@@ -44,3 +44,14 @@ npm-debug.log*
 .env
 .env.local
 /.claude/
+
+# Archived courses (May 2026, already done) — keep local caches for the
+# maintainer but don't ship them. The platform's study-state template only
+# advertises the 5 June courses, so these orphans would be dead weight.
+data/cache/mock-questions/cyber.json
+data/cache/mock-questions/it.json
+data/cache/mock-toc/cyber.json
+data/cache/practice-exam/cyber__*.json
+data/cache/practice-exam/it__*.json
+data/cache/questions/cyber-*.json
+data/cache/questions/it-*.json
