@@ -1795,16 +1795,26 @@ function renderCourse(courseId) {
   if (typeof questionsSummaryCache !== 'undefined' && !questionsSummaryCache.has(course.id)) ensureQuestionsSummary(course.id)
   ensureCourseToc(course.id)
   ensureCoverage()
-  // Hydrate any running generate-all job for this course (cheap GET; idempotent)
-  if (!generateAllJobs.get(course.id)?.polling) {
-    fetch(`/api/courses/${encodeURIComponent(course.id)}/generate-all`).then((r) => r.ok ? r.json() : null).then((job) => {
-      if (!job) return
-      const e = generateAllJobs.get(course.id) || {}
-      e.job = job
+  // Hydrate any running generate-all job for this course on FIRST render only.
+  // Once hydrated, the polling flag (or absence of one for a finished job) keeps
+  // future renders from re-firing the fetch — otherwise a finished job triggers
+  // render() → renders re-fire the fetch → response calls render() → infinite
+  // loop that wedges the browser.
+  {
+    const entry = generateAllJobs.get(course.id)
+    if (!entry?.hydrated && !entry?.polling) {
+      const e = entry || {}
+      e.hydrated = true
       generateAllJobs.set(course.id, e)
-      if (job.status === 'running' || job.status === 'queued') refreshGenerateJob(course.id)
-      else render()
-    }).catch(() => {})
+      fetch(`/api/courses/${encodeURIComponent(course.id)}/generate-all`).then((r) => r.ok ? r.json() : null).then((job) => {
+        if (!job) return
+        const e2 = generateAllJobs.get(course.id) || {}
+        e2.job = job
+        generateAllJobs.set(course.id, e2)
+        if (job.status === 'running' || job.status === 'queued') refreshGenerateJob(course.id)
+        else render()
+      }).catch(() => {})
+    }
   }
   const progress = courseProgress(course)
   const chapters = course.chapters || []
