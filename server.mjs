@@ -2294,11 +2294,20 @@ function countFlashcardsByChapter(courseId) {
   return counts
 }
 
+// Support pages — Cram Sheets / Self Tests / Worked Drills / Exam Skills —
+// are curated study aids, not source material. They should never have
+// self-tests or flashcards generated *from* them. Same filter the client
+// uses to split core vs support chapters on the course landing page.
+function isSupportChapter(chapter) {
+  return /exam skills|cram sheets|self tests|worked drills|cipher workthroughs|cipher walkthroughs/i.test(chapter?.name || '')
+}
+
 function planGenerateAllSteps(state, course) {
   const steps = []
   const flashcardCounts = countFlashcardsByChapter(course.id)
-  // 1. Per-chapter self-tests (skip support pages: cram sheets, drills, etc.)
-  for (const ch of course.chapters || []) {
+  const coreChapters = (course.chapters || []).filter((ch) => !isSupportChapter(ch))
+  // 1. Per-chapter self-tests (core chapters only)
+  for (const ch of coreChapters) {
     const cachePath = resolve(cacheDir, 'questions', `${course.id}-${ch.id}.json`)
     steps.push({
       key: `chapter:${ch.id}`,
@@ -2316,8 +2325,8 @@ function planGenerateAllSteps(state, course) {
     status: existsSync(mockPath) ? 'skipped' : 'pending',
     kind: 'mock-questions'
   })
-  // 3. Per-chapter flashcards (skipped if the chapter already has any cards)
-  for (const ch of course.chapters || []) {
+  // 3. Per-chapter flashcards (core chapters only, skipped if any already exist)
+  for (const ch of coreChapters) {
     const existing = flashcardCounts.get(ch.id) || 0
     steps.push({
       key: `flashcards:${ch.id}`,
