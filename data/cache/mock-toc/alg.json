@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-05-17T23:41:42.950Z",
+  "items": [
+    {
+      "title": "Greedy Algorithms",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1(a) — Refuelling greedy algorithm (8 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Optimality proof (4 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Divide and Conquer",
+      "page": 4,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q2(a) — Master theorem recurrence (4 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Master theorem recurrence (4 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(c) — Master theorem recurrence (4 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Dynamic Programming",
+      "page": 5,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q3 — Maximum subarray DP algorithm (18 marks)",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "NP-completeness and Linear Programming",
+      "page": 7,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q4(a) — Decision problem formulation (5 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(b) — NP-completeness conditions (2 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(c) — NP-completeness proof (10 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(d) — ILP formulation (6 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(e) — Fractional relaxation heuristic (5 marks)",
+      "page": 10,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Randomized Algorithms",
+      "page": 11,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q5(a) — Las Vegas 3-coloring runtime (4 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Monte Carlo 3-coloring algorithm (6 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Extra Space",
+      "page": 12,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

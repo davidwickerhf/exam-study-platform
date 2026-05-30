@@ -1,0 +1,3557 @@
+{
+  "cards": [
+    {
+      "id": "fc-8a56c338-9e17-4d10-8e3f-14d7377e242e",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Which variable type is used for distinct unordered labels?",
+      "back": "Categorical variables, also called nominal variables, are distinct unordered categories. Examples include gender, country, blood type, and political party.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.992Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.992Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a372d50d-7cfc-4296-b103-fa13b38164e4",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "What is an ordinal variable?",
+      "back": "An ordinal variable is categorical but has a meaningful order. Examples include Likert ratings, education level, and T-shirt sizes.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.992Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.992Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a89c15b6-5278-4d12-b6d2-a534a51b15a5",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Which variable type is used for countable integer-valued quantities?",
+      "back": "A discrete variable takes countable numeric values, usually integers. Examples include number of children, dice rolls, doctor visits, or any count.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.992Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.992Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4957e47f-f08e-4ff6-b735-5ecb553563a9",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Why is age usually treated as continuous in this course?",
+      "back": "Age is treated as continuous because the underlying variable can take any value on a time scale. Even if recorded in whole years, the course convention is to classify age as continuous.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.992Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.992Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e864198b-537c-4a73-b7b1-ca5c65e13fa4",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "When should you use a histogram?",
+      "back": "Use a histogram to show the distribution of one continuous variable when there are many observations. It is not ideal for very few data points.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.992Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.992Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-1ebbd795-b7a6-408a-9640-9636d49aef65",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "When should you use a box plot?",
+      "back": "Use a box plot to compare distributions across groups. It shows summaries such as the median, interquartile range, and outliers, but not the exact distribution shape.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-00755fcf-28c9-4153-98fc-05d42f21b7ad",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Why is a strip chart a bad choice for millions of birth weights?",
+      "back": "A strip chart draws individual data points, so millions of points overplot into an unreadable smear. For many continuous observations, a histogram is usually more appropriate.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-dbd0b5f5-2fe9-4203-be32-918f1c859431",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "When should you use a bar chart?",
+      "back": "Use a bar chart to compare counts or means across categories. Do not use it as the main display for a continuous variable's distribution; use a histogram instead.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-adfcf1b9-d6d3-4b12-9946-5ebb2235b0a3",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "When should you use a scatter plot?",
+      "back": "Use a scatter plot to show the relationship between two continuous variables. It is not appropriate when the main task requires showing more than two dimensions directly.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-0e81b7ed-236d-4b44-9ded-c00901a03802",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "When should you use a line plot?",
+      "back": "Use a line plot for time series or ordered continuous data. Avoid it for unordered categories because connecting unordered categories implies a false order.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-340e9294-49fe-4e8a-ba9c-3e84432293b8",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "When is a pie chart reasonable?",
+      "back": "A pie chart is reasonable for showing proportions of a whole with about $2$ to $5$ categories. It becomes poor with many categories or when comparing proportions across multiple charts.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-2ca15117-1a03-4f76-815c-81074dc9bb1b",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "What does a vertical shaded band in a scatter plot represent?",
+      "back": "A vertical shaded band filters observations by the $x$-axis variable only. For example, a band at husband schooling $= 12$ selects cases where the husband has exactly $12$ years of schooling.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-05d66498-5ef6-40c7-ac86-892ebccb39ac",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "What does a horizontal shaded band in a scatter plot represent?",
+      "back": "A horizontal shaded band filters observations by the $y$-axis variable only. For example, a band at wife schooling $= 16$ selects cases where the wife has exactly $16$ years of schooling.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-71d46afa-27b4-4f53-958d-94778a9c3b05",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Which scatter plot region shows that the wife completed more schooling than the husband?",
+      "back": "That comparison requires the region above the diagonal line $y = x$, assuming husband schooling is on the $x$-axis and wife schooling is on the $y$-axis. A vertical or horizontal band alone does not compare the two variables.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-fa71e0a3-a33d-48c8-9435-60f66a04c51f",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "What is an observational study?",
+      "back": "An observational study measures variables as they occur naturally without assigning treatment. It can show association, but it usually cannot justify a causal claim.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-add0fbd9-45f1-46ab-be7c-7dd1b22bdd57",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Which study design follows people forward in time from exposure to outcome?",
+      "back": "A prospective cohort study follows a group forward in time and observes later outcomes. It can provide useful evidence but remains vulnerable to confounding.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e91eebaa-d480-458c-bc76-fd0f8bfa56d0",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Which study design starts with people who already have or do not have the outcome?",
+      "back": "A case-control study compares people with the outcome to people without the outcome and looks back for differences in exposure. It is observational, so causal claims are limited.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-75de3bf7-54e5-44f7-9e12-83d376b15adf",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Which study design is the gold standard for causal claims?",
+      "back": "A randomized controlled experiment, or RCT, randomly assigns participants to treatment and control groups. Random assignment helps balance confounders, making causal claims much stronger.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-43fe39b5-c5be-47f9-b281-9c5737584936",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "What does double-blind mean in an RCT?",
+      "back": "Double-blind means neither the subjects nor the doctors know who receives treatment or control. In the course example, only the statisticians know the assignments, reducing placebo and observer bias.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a07c88d6-5d2a-4cde-98e7-e48cb0b36559",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Why is “lurking factor experiment” not a valid study design?",
+      "back": "A lurking factor is a confounding variable, not a type of experiment. The phrase “lurking factor experiment” is a made-up answer choice.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a6da7932-31a5-47c0-8dac-1d210c5de731",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "What is Goodhart's Law?",
+      "back": "Goodhart's Law says that when a measure becomes a target, it stops being a good measure. People change behavior to optimize the metric rather than the underlying goal.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-89609f3b-5245-483c-8c11-5cd3088e8a25",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "Why is taxing homes by window count an example of Goodhart's Law?",
+      "back": "Window count was meant to measure house size or wealth, but once taxed, people built houses with fewer windows. The measure became the target and stopped measuring the intended concept well.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-662edacb-c785-4fa1-92b1-d267ba245d8c",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "What does “teaching to the test” mean as a measurement caveat?",
+      "back": "Teaching to the test happens when test scores become the target, so instruction optimizes scores rather than genuine learning. It is the same measurement failure as Goodhart's Law.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e9119f40-391b-44ec-bdc6-e9440b10a1a2",
+      "courseId": "stats",
+      "chapterId": "01",
+      "front": "How should you handle negative-scoring multi-select measurement questions?",
+      "back": "Be conservative and select only statements you are confident are correct. Wrong selections cost points, so guessing broadly can reduce the score.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:41:40.993Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:41:40.993Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-61c09fa9-3160-4606-aefb-1c9faf3b3377",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What is a randomized controlled trial?",
+      "back": "A randomized controlled trial is a study where participants are randomly assigned to a treatment group or a control group, the intervention is manipulated, and outcomes are compared using a pre-specified analysis. Blinding and pre-registration strengthen the design.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8a9e2d1c-a8a1-4954-b166-53979e8207d5",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "Which part of an RCT balances confounders on average?",
+      "back": "Random assignment balances observed and unobserved confounders across groups on average. This is why differences in outcomes can be attributed more credibly to the treatment.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-ac9b497a-d57f-40c7-aefb-0e97a6c4c288",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What is the difference between a random sample and random assignment?",
+      "back": "A random sample concerns who is included in the study population. Random assignment concerns which group each participant enters, and it is the key feature needed for an RCT.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-597ff8c0-b46c-4dfd-8da1-07c52266e7d7",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What are the four required steps when designing an RCT in an exam answer?",
+      "back": "State the population and sampling method, describe random assignment, define the intervention and control, then specify outcome measurement and analysis. This order gives a complete RCT design.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-96a2ecbb-b122-42d5-b615-10907e5dfd8c",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "When should stratified randomisation be used?",
+      "back": "Use stratified randomisation when a known important confounder should be balanced across groups. For example, randomise within sex categories so both groups have similar sex composition.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8f9ade09-cc05-400b-8f89-4ac3e18d65d1",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What does single-blind mean in an RCT?",
+      "back": "Single-blind means participants do not know whether they are in the treatment group or the control group. It mainly reduces placebo effects and participant expectation bias.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-88324191-192c-4a60-91f6-74b9520c66a3",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What does double-blind mean in an RCT?",
+      "back": "Double-blind means neither participants nor researchers who interact with them know group assignment. In the mock exam wording, only statisticians may know the assignments.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-5bc243c7-b0ad-4518-96fd-dfae5a12d1f1",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "Why is blinding outcome markers important when participants cannot be blinded?",
+      "back": "Blinding outcome markers prevents grading or observer bias. This is useful in studies like LLM access, where students know whether they received the treatment.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e99e8d64-fe42-4a94-b362-8c2a6937c3fe",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What is the correct control choice when placebo effects are plausible?",
+      "back": "Use an active placebo control when placebo effects could influence the outcome. This helps separate the treatment's true effect from expectations about receiving treatment.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-3b57e065-9b45-45f3-829a-763da4bb0c01",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What statistical test is appropriate for comparing mean outcomes between two independent RCT groups?",
+      "back": "Use a two-sample $t$-test when comparing the mean outcome of a treatment group against a control group. The significance level should be chosen in advance, such as $\\alpha = 0.05$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6612fb09-2dfb-4ce8-b3ad-4c8ad5f8b783",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What test can replace a two-sample $t$-test if normality is badly violated?",
+      "back": "Use the Mann-Whitney test as a non-parametric alternative for comparing two independent groups. It is useful when the assumptions of the two-sample $t$-test are not reasonable.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8063a07d-1415-43f4-bb8d-b9cf0813029b",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "Why include a baseline outcome measurement in an RCT?",
+      "back": "A baseline measurement lets researchers analyse change from start to end. This can improve precision and show whether groups differed before the intervention.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-14c5fd31-4615-4ac7-a57b-34248a13b13e",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What should be reported besides the $p$-value in an RCT analysis?",
+      "back": "Report an effect size and uncertainty, such as Cohen's $d$ and a $95\\%$ confidence interval. A $p$-value alone does not show the practical size of the treatment effect.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-05e6b39c-9602-4ae4-9aa3-5f6b13600bea",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "Why does pre-registration matter in an RCT?",
+      "back": "Pre-registration records the outcome and statistical analysis before the data are examined. It reduces $p$-hacking and researcher degrees of freedom.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7d1c6588-d39b-49cb-830d-43c290b31434",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What does a correlation of $r = 0$ imply about causality?",
+      "back": "A correlation of $r = 0$ only rules out linear association in the observed data. It does not rule out non-linear, time-lagged, or averaging-out causal relationships.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-0bb32b7d-988e-409d-ad6c-8a50b35e0e8b",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "Why does manipulation help establish causal direction in an RCT?",
+      "back": "The researcher assigns the treatment before measuring the outcome, so the treatment clearly comes first. This addresses reverse causation between $X$ and $Y$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-0cef42dc-c8ea-4819-9f02-47be18610e80",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What are the three main threats that observational studies face when making causal claims?",
+      "back": "The main threats are confounding, reverse causation, and selection bias. RCTs address these through random assignment, manipulation of treatment, and defined population sampling.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-d094c4f3-1c96-4b89-884b-b6680407d424",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "What is external validity in the context of an RCT?",
+      "back": "External validity is whether the causal result generalises beyond the studied population. An RCT can have strong internal validity while still not generalising well.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c00efd33-51d5-44af-be94-fee561ef848f",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "Which observational alternative uses an almost-random real-world event?",
+      "back": "A natural experiment exploits a real-world event or policy that assigns exposure almost randomly. It is used when an RCT is unethical, costly, or impossible.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c3eeee40-eadf-4c35-af76-423bca031030",
+      "courseId": "stats",
+      "chapterId": "02",
+      "front": "Which observational method matches treated units to similar untreated units on observables?",
+      "back": "Propensity score matching pairs treated units with untreated units that have similar observed characteristics. It cannot balance unobserved confounders as reliably as random assignment.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:12.608Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:12.608Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7936d883-16db-4cd3-9e5c-36f4dc829674",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What is the formula for relative risk?",
+      "back": "Relative risk is the ratio of the outcome probability in the exposed group to the outcome probability in the unexposed group: $\\text{RR} = \\frac{p}{q}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-32cd88a4-4b18-43af-8465-3cc418bfaca3",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "In relative risk, what do $p$ and $q$ represent?",
+      "back": "$p$ is the outcome probability in the exposed or treatment group, and $q$ is the outcome probability in the unexposed or control group.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-11345067-369f-40bc-8496-44aafe1d42d6",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "How do you interpret $\\text{RR} = 1$, $\\text{RR} > 1$, and $\\text{RR} < 1$?",
+      "back": "$\\text{RR} = 1$ means no difference in risk. $\\text{RR} > 1$ means the exposed group has higher risk, and $\\text{RR} < 1$ means the exposed group has lower risk.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-dfee812a-da4e-40dc-b7a5-344a37c1c2c7",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What is the formula for an odds ratio using outcome probabilities?",
+      "back": "The odds ratio compares the odds of the outcome in two groups: $\\text{OR} = \\frac{p/(1-p)}{q/(1-q)}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-584790c9-b5b3-45dc-95b3-549337ef4830",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What is the formula for odds from a probability $p$?",
+      "back": "Odds are $\\frac{p}{1-p}$. For example, probability $0.75$ gives odds $\\frac{0.75}{0.25} = 3$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-800d4547-0eca-4e41-a9db-892c77837ed0",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "When can an odds ratio be treated approximately like a relative risk?",
+      "back": "When the outcome is rare, especially when the baseline risk is below about $10\\%$, $\\text{OR} \\approx \\text{RR}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a75d4377-ecf6-4252-a458-c37bd14b6d4e",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "Why can odds ratios be misleading when the outcome is common?",
+      "back": "When the outcome is common, $\\text{OR}$ usually exaggerates the apparent effect compared with $\\text{RR}$. The odds scale grows faster than the probability scale.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-646353f2-1cbf-47c0-85d8-0f8cad101133",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "How do you compute the exposed-group risk from a $2 \\times 2$ table with cells $a$, $b$, $c$, and $d$?",
+      "back": "If exposed cases are $a$ and exposed non-cases are $b$, the exposed-group risk is $p = \\frac{a}{a+b}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e341ad1b-2896-40cc-9989-1be7e6fefc6d",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "How do you compute the unexposed-group risk from a $2 \\times 2$ table with cells $a$, $b$, $c$, and $d$?",
+      "back": "If unexposed cases are $c$ and unexposed non-cases are $d$, the unexposed-group risk is $q = \\frac{c}{c+d}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-d9cf51fd-ad09-40aa-9793-bd8eba0a9e21",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What is the relative-risk formula from a $2 \\times 2$ contingency table?",
+      "back": "Using exposed cases $a$, exposed non-cases $b$, unexposed cases $c$, and unexposed non-cases $d$, $\\text{RR} = \\frac{a/(a+b)}{c/(c+d)}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8ea1929e-095d-4d6b-b429-452d61248057",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What is the odds-ratio formula from a $2 \\times 2$ contingency table?",
+      "back": "Using exposed cases $a$, exposed non-cases $b$, unexposed cases $c$, and unexposed non-cases $d$, $\\text{OR} = \\frac{a/b}{c/d} = \\frac{ad}{bc}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e1b3a91f-a0f5-45d9-8713-463928a1534c",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "If a headline says risk is $20\\%$ higher, how do you compute the new risk from a baseline risk?",
+      "back": "Multiply the baseline risk by $1.20$. For baseline risk $r$, the new risk is $1.20r$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-b3a226d0-4b36-448f-a7ac-d5df2dfae010",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "If baseline risk is $6/100$ and a headline says risk is $20\\%$ higher, what is the new risk?",
+      "back": "The new risk is $\\frac{6}{100} \\cdot 1.20 = \\frac{7.2}{100}$. That is $12$ extra cases per $1000$ people.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-41048680-bbf0-491b-b964-335b6ca57be1",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "If baseline risk is $2/100$ and $\\text{OR} = 1.6$ for a rare outcome, what expected frequency should you use?",
+      "back": "Because the outcome is rare, use $\\text{OR} \\approx \\text{RR}$. The expected frequency is $\\frac{2}{100} \\cdot 1.6 = \\frac{3.2}{100}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-ce37a0c8-bad9-423c-a150-c9ba51129328",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What is absolute risk difference?",
+      "back": "Absolute risk difference is the subtraction of two risks: $p_{\\text{exposed}} - p_{\\text{unexposed}}$. It gives the extra cases per unit population.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-54e58fa2-cbf8-48d5-a7fd-3a4c11e62eb0",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What is number needed to harm?",
+      "back": "Number needed to harm is the reciprocal of the absolute risk increase: $\\text{NNH} = \\frac{1}{p_{\\text{exposed}} - p_{\\text{unexposed}}}$. It estimates how many exposed people are needed to produce $1$ extra harmful outcome.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a34ea9da-a269-4aea-8cf3-529ac691f7d3",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "Why is relative-risk framing often more sensational than absolute-risk framing?",
+      "back": "Relative framing reports a multiplier, such as $20\\%$ higher risk, without showing the baseline rate. Absolute framing reports the real frequency change, such as $4$ extra cases per $1000$, which better shows practical significance.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-910c71c1-f751-47a1-b1d4-032643c2d4b8",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "What does a ratio value of $1$ mean for $\\text{RR}$ or $\\text{OR}$?",
+      "back": "A value of $1$ means no association or no difference between groups. It does not mean the outcome risk is zero.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-68dea0ac-038c-419c-a3dc-c2f6d5e98abb",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "Why does a confidence interval matter when interpreting an odds ratio?",
+      "back": "A point estimate such as $\\text{OR} = 2$ may be unreliable if its confidence interval is wide and includes $1$, such as $[0.5, 8]$. Including $1$ means the result is not statistically significant at the usual threshold.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-1ec83249-db7f-421e-a7be-1cfa4592f2ee",
+      "courseId": "stats",
+      "chapterId": "03",
+      "front": "Why is $\\text{OR}$ often used in case-control studies instead of $\\text{RR}$?",
+      "back": "$\\text{OR}$ is symmetric under outcome and exposure swapping, which fits case-control designs where the numbers of cases and controls are fixed by design. $\\text{RR}$ needs actual risk rates in exposed and unexposed groups.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:42:50.166Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:42:50.166Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-2a77beed-1643-47c5-8ac3-de379c6711c8",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What formula gives the complement probability of an event?",
+      "back": "For event $A$, use $P(A^c) = 1 - P(A)$. This is useful when the event is easier to exclude than count directly.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-0b0064f6-f5a7-4139-a4ae-3703f1f7f204",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "When can probabilities be added directly for a union?",
+      "back": "Use $P(A \\cup B) = P(A) + P(B)$ only when $A \\cap B = \\emptyset$. That means the events are mutually exclusive.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-3d7e02c9-89db-4199-9e9d-6006b33f5b9b",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What union formula applies when two events may overlap?",
+      "back": "Use $P(A \\cup B) = P(A) + P(B) - P(A \\cap B)$. The subtraction avoids counting the overlap twice.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8dd3394f-cdcb-4c7f-9a2e-0c1cd8f696a6",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What test determines whether two events are independent?",
+      "back": "Events $A$ and $B$ are independent exactly when $P(A \\cap B) = P(A)P(B)$. Equivalently, knowing one occurred does not change the probability of the other.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-61438422-f546-48f9-9224-aabb9566cf18",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "Why are mutually exclusive events with positive probabilities dependent?",
+      "back": "If $A \\cap B = \\emptyset$ and both events have positive probability, then observing $A$ makes $B$ impossible. Therefore they cannot satisfy $P(A \\cap B) = P(A)P(B)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-89159b2b-b738-47a1-9bf0-94cc300638c2",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What is a discrete random variable?",
+      "back": "A discrete random variable has a finite or countable set of possible values. It is described by a probability mass function.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-01ebdb55-76a3-4252-8b80-da0a2aec84bc",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What two conditions must a probability mass function satisfy?",
+      "back": "A probability mass function satisfies $P(X = x) = f(x)$ and $\\sum_x f(x) = 1$. Each probability must also be nonnegative.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f6bac6d8-3b35-4e5f-ac16-f53b5de8b7a9",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What formula gives the expectation of a discrete random variable?",
+      "back": "Use $E[X] = \\sum_x x \\cdot P(X = x)$. Multiply each value by its probability and add over all possible values.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-3f26c120-fb47-4145-a64d-78992646fd3e",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What computational formula is often easiest for variance?",
+      "back": "Use $\\operatorname{Var}(X) = E[X^2] - (E[X])^2$. This is often faster than computing $E[(X - \\mu_X)^2]$ directly.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-174299fc-f4f7-4985-81fe-76d117ffd4a5",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "When should a Bernoulli distribution be used?",
+      "back": "Use a Bernoulli distribution for a single success or failure trial with success probability $p$. Its mean is $E[X] = p$ and its variance is $\\operatorname{Var}(X) = p(1-p)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f8d770b0-95b2-4470-92cf-d85e2ed82f20",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "When should a binomial distribution be used?",
+      "back": "Use a binomial distribution for $n$ independent Bernoulli trials with the same success probability $p$. Its mean is $E[X] = np$ and its variance is $\\operatorname{Var}(X) = np(1-p)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-cca454a7-5a9d-4240-9346-0e35c698873b",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What conditions make a continuous pdf valid?",
+      "back": "A valid pdf must satisfy $f(x) \\geq 0$ for all $x$ and $\\int_{-\\infty}^{\\infty} f(x)\\,dx = 1$. The total area under the density must be one.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a629e5e8-4a73-474d-8589-edd9f6896e0d",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "How do you find interval probability for a continuous random variable?",
+      "back": "Use $P(a \\leq X \\leq b) = \\int_a^b f(x)\\,dx$. For continuous variables, probability is area under the density.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6204feef-6588-4629-b6bf-acedf0f84e0a",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What is the probability that a continuous random variable equals one exact value?",
+      "back": "For any exact point $c$, $P(X = c) = 0$. Continuous probability is assigned to intervals, not single points.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4d7c6cf5-8fd6-4183-a5a8-5b4a3fd58281",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What formula defines the cumulative distribution function?",
+      "back": "The CDF is $F(x) = P(X \\leq x) = \\int_{-\\infty}^x f(t)\\,dt$. It accumulates probability up to $x$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-37e60c2c-4e25-4e4e-9fb0-3ac0feefaf1a",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "How can a CDF be used to find an interval probability?",
+      "back": "Use $P(a \\leq X \\leq b) = F(b) - F(a)$. This subtracts the probability below $a$ from the probability below $b$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-63d8ba82-71f4-4c75-aea4-ec61b8c5dcd0",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What formula gives the expectation of a continuous random variable?",
+      "back": "Use $E[X] = \\int_{-\\infty}^{\\infty} x f(x)\\,dx$. If the pdf is nonzero only on a limited support, integrate over that support.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-75467dec-d73c-4b36-b83f-c86c4264c827",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What integration limits should be used when a pdf is nonzero only on $2 \\leq x \\leq 3$?",
+      "back": "Integrate only over the support of the pdf. For expectation, use $E[X] = \\int_2^3 x f(x)\\,dx$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-3ba29d3c-6b61-42fc-8c44-5f34a33c9242",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "How does increasing sample size affect the spread of a sample proportion?",
+      "back": "For a sample proportion $\\hat p$, $SE = \\sqrt{p(1-p)/n}$, so spread decreases as $n$ increases. Larger samples make outcomes concentrate more tightly around the true probability $p$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-22a61e22-fe43-4970-a80d-7658b3fe3b1b",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "If the true red probability is $p > 0.5$, why do more draws increase the chance that reds exceed blues?",
+      "back": "Winning means observing $\\hat p > 0.5$. Since $SE = \\sqrt{p(1-p)/n}$ decreases as $n$ grows, larger $n$ makes $\\hat p$ more likely to stay near the true value $p > 0.5$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-da6aab8d-a5ba-4cdb-a092-9ab13c569aca",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "What is the linearity rule for expectation?",
+      "back": "Use $E[aX + bY] = aE[X] + bE[Y]$. This holds even if $X$ and $Y$ are dependent.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7dc62f02-9faf-448a-a114-0892b5e3cf08",
+      "courseId": "stats",
+      "chapterId": "04",
+      "front": "When can variances be added for a sum?",
+      "back": "Use $\\operatorname{Var}(X+Y) = \\operatorname{Var}(X) + \\operatorname{Var}(Y)$ only when $X$ and $Y$ are independent. Also remember $\\operatorname{Var}(aX) = a^2\\operatorname{Var}(X)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:43:36.206Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:43:36.206Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c85906ac-5eb5-4e6d-b092-982f2174ef8e",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "What is conditional probability $P(A \\mid B)$?",
+      "back": "It is the probability that $A$ occurs given that $B$ has occurred: $P(A \\mid B)=\\frac{P(A\\cap B)}{P(B)}$, with $P(B)>0$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-b9a6bf6f-0b15-46f2-b23e-c895020221d5",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "What condition must hold before $P(A \\mid B)$ is defined?",
+      "back": "The conditioning event must have positive probability: $P(B)>0$. You cannot condition on an impossible event.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-3671bb64-515a-4a06-aff1-447b3da72670",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "What is the multiplication rule for finding a joint probability?",
+      "back": "Use $P(A\\cap B)=P(A\\mid B)P(B)$. Equivalently, $P(A\\cap B)=P(B\\mid A)P(A)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-0bbcc1c4-2d4b-45aa-a16a-ddc457462383",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "Which formula should you use to compute an unconditional event probability from several conditional branches?",
+      "back": "Use the Law of Total Probability. For a partition $B_1,\\ldots,B_n$, $P(A)=\\sum_{j=1}^{n}P(B_j)P(A\\mid B_j)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-346bf72e-cb98-4131-bff2-0eb98513195a",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "What is the common two-branch version of the Law of Total Probability?",
+      "back": "When the branches are $B$ and $B^c$, use $P(A)=P(A\\mid B)P(B)+P(A\\mid B^c)P(B^c)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-18259ed0-1eb8-485d-a69e-93f1afbe6d45",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "Which formula should you use when the question reverses from outcome to cause?",
+      "back": "Use Bayes' rule: $P(H\\mid E)=\\frac{P(H)P(E\\mid H)}{P(E)}$. Here $H$ is the hypothesis or cause, and $E$ is the observed evidence.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-b3a71803-0b90-41c6-b193-0d61fd6762e1",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "How do you expand the denominator $P(E)$ in Bayes' rule for two causes?",
+      "back": "Use the Law of Total Probability: $P(E)=P(E\\mid H)P(H)+P(E\\mid H^c)P(H^c)$. This is the total probability of the evidence across all causes.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-882b220f-9292-4fa6-9947-c95e713f8963",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "In a Bayes problem, what are the prior and evidence?",
+      "back": "The prior is the starting probability of the cause, usually $P(H)$. The evidence is the observed outcome, usually $E$, used to compute $P(H\\mid E)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-40235480-3d5f-4692-8fb7-5619db9b4a99",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "How does an expected frequency tree compute a leaf count?",
+      "back": "Start with a round total such as $1000$, then multiply along the branch. For example, the leaf for $B\\cap A$ has count $1000\\cdot P(B)\\cdot P(A\\mid B)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a35e1248-4350-4d70-845d-b3bf9a5820f4",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "How do you get an unconditional probability from an expected frequency tree?",
+      "back": "Add all leaf counts where the event occurs and divide by the total. For event $A$, use $P(A)=\\frac{\\text{leaves where }A\\text{ occurs}}{\\text{total leaves}}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4a169c99-334b-4c53-8122-954a76e9d2c2",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "How do you get a reversed conditional probability from an expected frequency tree?",
+      "back": "Restrict to the leaves matching the observed outcome, then take the fraction from the desired cause. For example, $P(B\\mid A)=\\frac{\\text{leaves where }A\\cap B\\text{ occurs}}{\\text{leaves where }A\\text{ occurs}}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-0b6fc047-9990-4950-8cb6-7153974fea1e",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "In the plant problem, how is $P(\\text{alive})$ computed from the branches?",
+      "back": "Use the Law of Total Probability: $P(\\text{alive})=P(\\text{alive}\\mid F)P(F)+P(\\text{alive}\\mid F^c)P(F^c)$. Substituting gives $0.30\\cdot0.25+0.90\\cdot0.75=0.75$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-fdfa64f7-b35e-4b31-a26e-ee472580bcc0",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "In the plant problem, how is $P(F\\mid D)$ computed using Bayes' rule?",
+      "back": "Use $P(F\\mid D)=\\frac{P(D\\mid F)P(F)}{P(D)}$. With $P(D)=0.70\\cdot0.25+0.10\\cdot0.75=0.25$, the result is $P(F\\mid D)=\\frac{0.70\\cdot0.25}{0.25}=0.70$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-32a68a40-53d8-45dc-a22f-fe84630f147f",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "How should you answer a conditional probability that is directly given in the problem?",
+      "back": "Do not reverse it or apply Bayes unnecessarily. If the problem gives $P(\\text{alive}\\mid F)=0.30$, then $P(\\text{alive}\\mid F)$ is already $0.30$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-abb4d0fe-f845-4707-bdb9-e27521fdb85b",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "What does independence mean in conditional probability terms?",
+      "back": "Events $A$ and $B$ are independent if knowing $B$ does not change the probability of $A$: $P(A\\mid B)=P(A)$. Equivalently, $P(A\\cap B)=P(A)P(B)$ when the probabilities are defined.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-ddaf16bf-279d-4444-8835-9508f203ae99",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "Why is confusing $P(A\\mid B)$ with $P(B\\mid A)$ a common error?",
+      "back": "They condition on different information and are generally not equal. For example, $P(\\text{disease}\\mid \\text{positive})$ is not the same as $P(\\text{positive}\\mid \\text{disease})$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-15fd1b9d-8cb0-4fc0-8832-f06bd1cf356f",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "In diagnostic testing, what is the difference between sensitivity and positive predictive value?",
+      "back": "Sensitivity is $P(\\text{positive}\\mid \\text{disease})$. Positive predictive value is $P(\\text{disease}\\mid \\text{positive})$, which usually requires Bayes' rule and the base rate.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6e7f6bbf-761a-40d2-b701-8a594285c394",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "What is the base rate fallacy in Bayes problems?",
+      "back": "It is ignoring the prior probability $P(H)$ when interpreting evidence. Even a strong test can give many false positives when $P(H)$ is very small.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-bf400778-d8b4-41d6-b2be-49bc9a5d5fbf",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "How do you compute the probability of a source when there are more than two possible causes?",
+      "back": "Use Bayes' rule with a multi-branch denominator. For source $B_k$, $P(B_k\\mid A)=\\frac{P(A\\mid B_k)P(B_k)}{\\sum_j P(A\\mid B_j)P(B_j)}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-33b6d01a-f1aa-4539-9ec2-3097cf365c7e",
+      "courseId": "stats",
+      "chapterId": "05",
+      "front": "In the standard Monty Hall problem, why should you switch doors?",
+      "back": "After you pick one door and the host reveals an empty door, the original door still has probability $\\frac{1}{3}$. The remaining unopened door has probability $\\frac{2}{3}$, so switching doubles the chance of winning.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:15.332Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:15.332Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e824fbdf-cc9f-454d-a78b-a2ddf5bc2058",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What does the notation $X \\sim N(\\mu, \\sigma^2)$ mean?",
+      "back": "It means $X$ is normally distributed with mean $\\mu$ and variance $\\sigma^2$. The standard deviation is $\\sigma$, and the density is bell-shaped and symmetric around $\\mu$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-17287721-27b2-4312-b150-381aa20283f4",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What proportion of a normal distribution lies within $\\mu \\pm 1\\sigma$?",
+      "back": "About $68\\%$ of values lie within $\\mu \\pm 1\\sigma$. This leaves about $16\\%$ in each outer tail.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-08f04317-10c2-4311-a3dc-feaf91c01fbe",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What proportion of a normal distribution lies within $\\mu \\pm 2\\sigma$?",
+      "back": "About $95\\%$ of values lie within $\\mu \\pm 2\\sigma$. This leaves about $2.5\\%$ in each tail.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-97ba668b-1208-4b1a-9ed7-34b2b0871729",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What proportion of a normal distribution lies within $\\mu \\pm 3\\sigma$?",
+      "back": "About $99.7\\%$ of values lie within $\\mu \\pm 3\\sigma$. This leaves about $0.15\\%$ in each extreme tail.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-29d8c038-9b80-4bfa-9a60-660506acf5d3",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What formula standardises an observation into a $Z$-score?",
+      "back": "Use $Z = \\frac{X - \\mu}{\\sigma}$. This converts an observation from $X \\sim N(\\mu, \\sigma^2)$ into the standard normal scale $Z \\sim N(0,1)$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-14bcaed7-b1d3-47fc-8663-837b6a1f0418",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "When do you use $P(|Z| > z)$ instead of $P(Z > z)$?",
+      "back": "Use $P(|Z| > z)$ when the question asks for values at least $z$ standard deviations away from the mean in either direction. Compute it as $P(|Z| > z) = 2P(Z > z)$ for a symmetric normal distribution.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8a6e9b13-6e30-4855-9374-27967bf08a5e",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What is the approximate probability $P(|Z| > 1.25)$?",
+      "back": "For $Z \\sim N(0,1)$, $P(|Z| > 1.25) \\approx 0.21$. For a sample of $26$ observations, the expected count is $26 \\cdot 0.21 \\approx 5.5$, so about $6$ observations.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f0e8e345-2ed0-455f-8bc2-ef84c24cfe85",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "Which $z$-value is used for a $95\\%$ two-sided confidence interval?",
+      "back": "Use $z_{\\alpha/2} = 1.96$ when $\\alpha = 0.05$. The corresponding confidence level is $1 - \\alpha = 0.95$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7c306739-8789-42fa-bfb5-034bef887921",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "Which $z$-values should be memorised for $90\\%$, $95\\%$, and $99\\%$ two-sided confidence intervals?",
+      "back": "Use $1.645$ for $90\\%$, $1.96$ for $95\\%$, and $2.576$ for $99\\%$. These are the positive critical values $z_{1-\\alpha/2}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c53f103b-b849-4f3b-9b50-971400c49bab",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "How do one-sided and two-sided normal critical values differ?",
+      "back": "A one-sided test at significance level $\\alpha$ uses $z_{\\alpha}$ or $z_{1-\\alpha}$. A two-sided test splits the tail area and uses $z_{\\alpha/2}$ or $z_{1-\\alpha/2}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-d59b5637-1e1a-4f14-b14a-36e3a0b5b533",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What does the Central Limit Theorem apply to?",
+      "back": "The Central Limit Theorem applies to the distribution of sample means $\\bar{x}$, and also to sample sums. It does not say the raw population data must be normal.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-edf447f9-2cdc-4557-bfb1-8ea634721ba7",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What is the Central Limit Theorem formula for the sample mean?",
+      "back": "For large $n$, the sampling distribution of $\\bar{x}$ is approximately normal with mean $\\mu$ and standard error $\\frac{\\sigma}{\\sqrt{n}}$. In symbols, $\\bar{x} \\approx N\\left(\\mu, \\frac{\\sigma}{\\sqrt{n}}\\right)$ when the second parameter is being treated as a standard deviation.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4aa913db-1ed8-440b-bcbc-1405afe0e40d",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What is the standard error of the sample mean?",
+      "back": "The standard error is $SE = \\frac{\\sigma}{\\sqrt{n}}$ when the population standard deviation is known. If $\\sigma$ is unknown, use $SE = \\frac{s}{\\sqrt{n}}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.223Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.223Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e6507514-dfe1-48d3-aee6-7437fd336286",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "How is standard error different from standard deviation?",
+      "back": "Standard deviation $\\sigma$ measures the spread of individual observations. Standard error $\\frac{\\sigma}{\\sqrt{n}}$ measures the spread of sample means and gets smaller as $n$ increases.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.233Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.233Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-68fd8d2b-8cbe-417e-9a6c-eedcbc391613",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "When is $n \\geq 30$ used as a rule of thumb?",
+      "back": "Use $n \\geq 30$ as a conventional cutoff for applying the Central Limit Theorem when the population is skewed or non-normal. If the population is very skewed or has strong outliers, a larger sample such as $n \\geq 100$ may be needed.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-9c94d64a-efce-462e-b966-5fd8eef7aac7",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "What confidence interval formula is used for a population mean when $\\sigma$ is known?",
+      "back": "Use $\\bar{x} \\pm z_{\\alpha/2}\\cdot \\frac{\\sigma}{\\sqrt{n}}$. This is the normal-based confidence interval for the mean.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-5bf7a5cc-935d-4d8f-b7fe-27ef4a660ecd",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "How do you compute the $95\\%$ confidence interval for $\\bar{x}=211$, $\\sigma=4$, and $n=16$?",
+      "back": "First compute $SE = \\frac{4}{\\sqrt{16}} = 1$. The interval is $211 \\pm 1.96 \\cdot 1 = [209.04, 212.96]$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-76594688-e592-4491-bb4b-0acdb04f9762",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "For a lower-spec question, what probability should be checked for individual boxes?",
+      "back": "Check the tail probability for an individual observation, such as $P(X < 200)$. Do not use the sampling distribution of $\\bar{x}$ when the requirement is about individual boxes.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-dd356745-a284-4c0e-91ab-b8e556cc0641",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "How do you test whether $X \\sim N(211,16)$ meets the spec $P(X < 200) \\leq 0.005$?",
+      "back": "Standardise the cutoff using $Z = \\frac{200 - 211}{4} = -2.75$. Since $-2.75 < -2.576$, the lower-tail probability is less than $0.005$, so the spec is met.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e36e4122-d896-4fd6-b161-0a93d5455b27",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "When is the $t$-distribution used instead of the normal distribution for a mean?",
+      "back": "Use the $t$-distribution when estimating a mean with unknown $\\sigma$, especially when $n < 30$. The standard error is then based on the sample standard deviation $s$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-90cfe8ea-c1f4-48c8-a60a-e094b91c2e6a",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "When is a Bernoulli distribution used?",
+      "back": "Use $Bernoulli(p)$ for one trial with only two outcomes, usually success or failure. The parameter $p$ is the probability of success.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4f4f6da4-caf6-45da-b9f9-892612cebc98",
+      "courseId": "stats",
+      "chapterId": "06",
+      "front": "When is a binomial distribution used?",
+      "back": "Use $Binomial(n,p)$ for the count of successes in $n$ independent Bernoulli trials. Each trial must have the same success probability $p$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:44:56.234Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:44:56.234Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-53fe17fb-b7ed-467b-9091-7c76054f2d67",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What is the generic form of a confidence interval?",
+      "back": "A confidence interval has the form $\\hat{\\theta} \\pm K \\cdot SE$, where $\\hat{\\theta}$ is the point estimate, $K$ is the critical value, and $SE$ is the standard error.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-432a7554-d771-49db-ae62-d7ab6884d0ec",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "When should you use the confidence interval formula for a proportion?",
+      "back": "Use the proportion confidence interval when the data are a sample proportion, such as the fraction of people with a certain preference or outcome. The formula is $\\hat{p} \\pm z_{\\alpha/2}\\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c85c75d1-58a1-4bf3-abc7-8d69e2876a2b",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "How do you find $\\hat{p}$ from a sample percentage?",
+      "back": "Convert the sample percentage to a decimal. For example, if $70\\%$ of the sample has the outcome, then $\\hat{p}=0.70$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-853d0f26-1558-44cb-9600-ef7191296731",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What is the standard error used in a confidence interval for a proportion?",
+      "back": "The standard error is $SE=\\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}}$. It estimates the sampling variability of the sample proportion $\\hat{p}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-da48df9f-ab16-480a-ad69-ae4aa490b837",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What critical value is used for a $95\\%$ confidence interval with a normal approximation?",
+      "back": "For a $95\\%$ confidence interval, $\\alpha=0.05$ and the normal critical value is $z_{\\alpha/2}=1.96$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-372fb3d2-58b3-414e-b21a-b0b5dca3de68",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "When should you use $\\bar{x} \\pm z_{\\alpha/2}\\frac{\\sigma}{\\sqrt{n}}$?",
+      "back": "Use $\\bar{x} \\pm z_{\\alpha/2}\\frac{\\sigma}{\\sqrt{n}}$ for a confidence interval for a mean when the population standard deviation $\\sigma$ is known.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-ec5cc2be-af63-4308-810c-a140e0afe60c",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "When should you use $\\bar{x} \\pm z_{\\alpha/2}\\frac{s}{\\sqrt{n}}$?",
+      "back": "Use $\\bar{x} \\pm z_{\\alpha/2}\\frac{s}{\\sqrt{n}}$ for a mean when $\\sigma$ is unknown but the sample size is large, usually $n \\geq 30$. The CLT justifies the normal approximation, and $s$ estimates $\\sigma$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-efab2dd4-c764-43f0-b51a-2026c04a4c1d",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "When should you use a $t$ confidence interval for a mean?",
+      "back": "Use a $t$ confidence interval when estimating a mean with unknown $\\sigma$ and small sample size, usually $n<30$. The form is $\\bar{x} \\pm t_{n-1,\\alpha/2}\\frac{s}{\\sqrt{n}}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-45288a81-8ec1-433e-86f0-9cbbaee95a39",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What is the margin of error in a confidence interval?",
+      "back": "The margin of error is the amount added and subtracted from the point estimate. In the generic formula, it is $K \\cdot SE$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-43b0d8e9-29d8-4c2a-ab31-51727edef286",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "How do you construct a $95\\%$ confidence interval for a sample proportion?",
+      "back": "Compute $SE=\\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}}$, then use $\\hat{p} \\pm 1.96 \\cdot SE$. This gives the lower and upper endpoints of the interval.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-13b4855c-244e-4276-87ca-ec63f9a71947",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "Why can the chance that at least one interval misses exceed $\\alpha$ when making multiple intervals?",
+      "back": "Each interval has its own miss probability of $\\alpha$, so the miss risks accumulate across intervals. With multiple intervals, the probability that at least one misses is larger than the miss probability of a single interval.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c5d9349a-ba78-465e-bb21-1f216bcaac33",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What is the family-wise error rate for $k$ independent confidence intervals?",
+      "back": "If each interval has miss probability $\\alpha$ and the intervals are independent, then the probability all cover their true parameters is $(1-\\alpha)^k$. The probability that at least one misses is $1-(1-\\alpha)^k$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-99c52584-03f3-4d33-93ab-d8eef2b2258d",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What is the probability that at least one of three independent $95\\%$ confidence intervals misses?",
+      "back": "For three independent intervals, the probability is $1-0.95^3 \\approx 0.143$. So the chance of at least one miss is about $14.3\\%$, not $5\\%$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-20810a12-ff31-449e-9eee-571220df134b",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What is the multiple-testing problem for confidence intervals?",
+      "back": "The multiple-testing problem is that making several confidence intervals increases the chance that at least one interval fails to contain its true parameter. This is also called the multiple comparisons problem.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-68946409-e499-4214-9d53-c844b722e70d",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What does the Bonferroni correction do for multiple confidence intervals?",
+      "back": "The Bonferroni correction uses $\\alpha/k$ for each individual interval to keep the overall family-wise error rate at about $\\alpha$. For example, with $k=3$ and overall $\\alpha=0.05$, use $\\alpha'=0.05/3 \\approx 0.0167$ per interval.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4f08467d-fb23-4dcd-a969-7734ffd171c7",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What is the correct interpretation of a $95\\%$ confidence interval?",
+      "back": "The correct interpretation is that if the same sampling procedure were repeated many times, $95\\%$ of the resulting intervals would contain the true parameter. The parameter is fixed, while the interval varies from sample to sample.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-ee614668-4071-41a3-af78-421424bb779f",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "Why is it wrong to say there is a $95\\%$ chance the true parameter is inside this computed interval?",
+      "back": "In the frequentist interpretation, the true parameter is fixed and not random. The $95\\%$ refers to the long-run success rate of the interval-building procedure, not to the probability for one already-computed interval.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-9073dcab-5f21-41ba-b4e2-a3fcb45d64e0",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "How is a two-sided hypothesis test connected to a confidence interval?",
+      "back": "For a $95\\%$ confidence interval and a two-sided test at $\\alpha=0.05$, reject $H_0$ if the null value falls outside the interval. Fail to reject $H_0$ if the null value falls inside the interval.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c5b7e932-3710-40ce-b1cb-6004bc133650",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What sample size formula gives margin of error at most $E$ for a mean when $\\sigma$ is known?",
+      "back": "Start from $z_{\\alpha/2}\\frac{\\sigma}{\\sqrt{n}} \\leq E$ and solve for $n$. The required sample size is $n \\geq \\left(\\frac{z_{\\alpha/2}\\sigma}{E}\\right)^2$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f47d1101-72ef-4a02-85e1-6e277843267e",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "What sample size formula gives margin of error at most $E$ for a proportion?",
+      "back": "Use $n \\geq \\left(\\frac{z_{\\alpha/2}}{E}\\right)^2\\hat{p}(1-\\hat{p})$. If no estimate of $\\hat{p}$ is available, use the worst case $\\hat{p}=0.5$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4a664bbb-133d-479e-b287-d87a85bb9fd4",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "Why is $\\hat{p}=0.5$ the worst case for planning a proportion confidence interval?",
+      "back": "The term $\\hat{p}(1-\\hat{p})$ is largest when $\\hat{p}=0.5$. Therefore, proportions near $50\\%$ produce the widest intervals and require the largest sample size.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-06eff556-7d99-4c6b-8c3b-25a836f9ddc9",
+      "courseId": "stats",
+      "chapterId": "07",
+      "front": "How do confidence level and sample size affect confidence interval width?",
+      "back": "A higher confidence level uses a larger critical value, so the interval becomes wider. A larger sample size decreases $SE$, so the interval becomes narrower.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:45:38.545Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:45:38.545Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6b82e745-950f-433b-b52e-5ced82427c8b",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What is the role of the null hypothesis in a hypothesis test?",
+      "back": "The null hypothesis, $H_0$, represents the status quo or claim being tested against. It must include equality, such as $H_0: \\mu = \\mu_0$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f994b4f9-206f-4cfe-875e-b88363b249f0",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What is the role of the alternative hypothesis in a hypothesis test?",
+      "back": "The alternative hypothesis, $H_a$, represents what the researcher is trying to find evidence for. It uses $<$, $>$, or $\\neq$, such as $H_a: \\mu < \\mu_0$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6629b1ce-53fa-4ebe-8348-fd1e38827a7e",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "Why should $H_0$ not be based on the sample mean?",
+      "back": "$H_0$ is the claim or benchmark being tested, not the observed result. The sample mean $\\bar{x}$ is used later to compute the test statistic.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7ab62d8f-4bb3-4f0a-b1f4-896a046f9a65",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "When should a one-sided hypothesis test be used?",
+      "back": "Use a one-sided test when the research claim is directional, such as higher, lower, increased, decreased, improved, or faster. Examples are $H_a: \\mu > \\mu_0$ and $H_a: \\mu < \\mu_0$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a92ed46c-3167-4f5f-8774-eef563ee645e",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "When should a two-sided hypothesis test be used?",
+      "back": "Use a two-sided test when the research claim is neutral and asks whether a value is different from a benchmark. The alternative is $H_a: \\mu \\neq \\mu_0$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4e8bd683-ca34-4802-a530-ae61ad4c7f1f",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What rejection rule is used for a right-tailed $z$-test?",
+      "back": "For $H_a: \\mu > \\mu_0$, reject $H_0$ when $z > z_\\alpha$. At $\\alpha = 0.05$, the common critical value is $z_\\alpha = 1.645$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-fcba82a1-86e4-471a-81c2-62efdc291a7f",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What rejection rule is used for a left-tailed $z$-test?",
+      "back": "For $H_a: \\mu < \\mu_0$, reject $H_0$ when $z < -z_\\alpha$. At $\\alpha = 0.05$, this means reject when $z < -1.645$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-edecad79-264a-4699-9957-872badcdd4ba",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What rejection rule is used for a two-sided $z$-test?",
+      "back": "For $H_a: \\mu \\neq \\mu_0$, reject $H_0$ when $|z| > z_{\\alpha/2}$. At $\\alpha = 0.05$, this means reject when $|z| > 1.96$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-701b75e3-9f6d-4ac5-b7ed-d519cfd3b769",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What formula is used for a one-sample $z$-test statistic when population standard deviation is known?",
+      "back": "Use $z = \\frac{\\bar{x} - \\mu_0}{\\sigma / \\sqrt{n}}$. This compares the sample mean $\\bar{x}$ to the hypothesized mean $\\mu_0$ using the standard error $\\sigma / \\sqrt{n}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f32abd59-7a94-4d00-858c-e7bef5876726",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What formula is used for a one-sample test statistic when population standard deviation is unknown?",
+      "back": "Use $t = \\frac{\\bar{x} - \\mu_0}{s / \\sqrt{n}}$ when the sample is small and $\\sigma$ is unknown. If $n \\geq 30$, the course often treats $s$ as an estimate of $\\sigma$ and uses a $z$-test by the central limit theorem.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-d58a12aa-41a8-4078-ba3a-d90434e9c3a8",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "When should a $t$-test be used instead of a $z$-test for one mean?",
+      "back": "Use a $t$-test when the sample is small, usually $n < 30$, and the population standard deviation $\\sigma$ is unknown. The degrees of freedom are $n - 1$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-aa46e00d-2f47-49fe-9c17-4f4f3908edb8",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "When is a $z$-test acceptable even if $\\sigma$ is unknown?",
+      "back": "A $z$-test is often acceptable when $n \\geq 30$ because the central limit theorem applies and $s$ can approximate $\\sigma$. This is common in exam-style calculations for large samples.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8abea1d1-eb0b-4a7e-a74e-4f6f11b7f3dd",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What test is typically used to compare two means?",
+      "back": "Use a two-sample $t$-test when comparing the means of two groups. The exact version depends on assumptions about independence and variances, but the key cue is comparing two sample means.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-af3705c4-5184-4e37-ab60-40d4630777c8",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What test is typically used to compare proportions?",
+      "back": "Use a $z$-test for proportions when the parameter of interest is a population proportion rather than a mean. The test statistic is based on the difference between the observed proportion and the hypothesized proportion.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f505557b-125c-4551-a896-72edf066aa55",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What is a $p$-value?",
+      "back": "A $p$-value is the probability of observing data this extreme or more extreme if $H_0$ is true. It is not the probability that $H_0$ is true.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-1ec8f7dc-1a05-496a-9537-b3b87ad9feb5",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What decision rule uses the $p$-value and significance level?",
+      "back": "Reject $H_0$ if $p < \\alpha$. If $p \\geq \\alpha$, fail to reject $H_0$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-31681a7f-4488-45f7-aab7-a812f6b0b3b2",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "How should the conclusion be worded when $H_0$ is rejected?",
+      "back": "State that there is sufficient evidence at the chosen significance level $\\alpha$ to support the alternative claim. The conclusion should be in context, such as evidence that the mean response time is less than $3.5$ minutes.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-a8493320-96fe-4676-824a-3ce1977682a7",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "How should the conclusion be worded when $H_0$ is not rejected?",
+      "back": "State that there is insufficient evidence at significance level $\\alpha$ to support $H_a$. Do not say that $H_0$ has been proven true.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6a8e598a-062c-4061-8b50-f2cafd34e599",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What is a Type I error?",
+      "back": "A Type I error occurs when $H_0$ is rejected even though $H_0$ is true. Its probability is the significance level $\\alpha$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-5e9c9012-2ac2-4fb3-806b-ab8d3c92b544",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What is a Type II error?",
+      "back": "A Type II error occurs when we fail to reject $H_0$ even though $H_0$ is false. Its probability is $\\beta$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7230b013-96f8-4f08-87fd-eb21147c1ab7",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What is statistical power?",
+      "back": "Power is the probability of correctly rejecting $H_0$ when $H_0$ is false. It is $1 - \\beta$, and it generally increases when sample size increases.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-d53bf347-9aff-44af-b6e6-ffd460df028e",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What does an ROC curve show?",
+      "back": "An ROC curve plots true positive rate against false positive rate as the classification threshold changes. It is used to evaluate binary classifiers across possible thresholds.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6cfd4e64-a363-4ce8-b476-b32738cd507c",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What does $\\mathrm{AUC} = 0.5$ mean for a binary classifier?",
+      "back": "$\\mathrm{AUC} = 0.5$ means the classifier is at chance level and performs no better than random guessing. Values above $0.5$ are better than chance, while values below $0.5$ are worse than chance.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4e5eacbd-da02-4f3e-9829-7f412b8c8159",
+      "courseId": "stats",
+      "chapterId": "08",
+      "front": "What is sensitivity in classifier evaluation?",
+      "back": "Sensitivity is the true positive rate. It is the fraction of actual positives that are correctly identified as positive.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:18.796Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:18.796Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-9ba73ddf-3e5c-4b25-a796-3b31bf21848a",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What association does Pearson correlation measure?",
+      "back": "Pearson correlation measures the strength and direction of a linear association between two variables. Its population formula is $\\rho = \\frac{\\operatorname{cov}(X,Y)}{\\sigma_X\\sigma_Y}$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6ac5a9ee-7028-4686-9a56-87e74353da8d",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What is the sample Pearson correlation formula?",
+      "back": "The sample Pearson correlation is $r = \\frac{\\sum (x_i - \\bar{x})(y_i - \\bar{y})}{\\sqrt{\\sum (x_i - \\bar{x})^2}\\sqrt{\\sum (y_i - \\bar{y})^2}}$. On this exam, you are more likely to interpret $r$ than compute it by hand.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-59450127-bf2c-46d2-846c-baf9ba9c0f6d",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What is the range of a correlation coefficient?",
+      "back": "Both Pearson and Spearman correlations lie in the range $[-1,1]$. A value of $1$ means perfect positive association, $0$ means no captured association of that type, and $-1$ means perfect negative association.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-d46c9b4f-7c3f-41c0-82a1-d76c147c2355",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What does a negative Pearson correlation mean in applied wording?",
+      "back": "A negative Pearson correlation means that as $X$ increases, $Y$ tends to decrease on average. Equivalently, below-mean $X$ values tend to associate with above-mean $Y$ values.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-6f4eb5a1-bc11-47ef-8158-9e116d5cd232",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What does the magnitude of a correlation tell you?",
+      "back": "The magnitude $|r|$ measures strength, not direction. For example, $r=-0.9$ is strong because $|r|=0.9$, even though the direction is negative.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-5d52aecc-f412-4158-b1ff-f07843c6cbd2",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "How is Spearman correlation computed?",
+      "back": "Spearman correlation is Pearson correlation applied to ranks: $r_s = \\operatorname{Pearson}(\\operatorname{rank}(X),\\operatorname{rank}(Y))$. The smallest value gets rank $1$ and the largest gets rank $n$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-78b69be0-c171-48e5-b130-00d4231a1697",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "When should Spearman be preferred over Pearson?",
+      "back": "Use Spearman when the relationship is monotonic but not necessarily linear, or when outliers may distort Pearson correlation. Spearman uses ranks, so it captures ordered movement rather than exact spacing.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7a19f2a0-6d14-4db3-8ee3-09ac60623798",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What type of relationship can Spearman capture that Pearson may miss?",
+      "back": "Spearman can capture non-linear monotonic relationships. For example, if $Y=X^2$ over positive $X$, the ranks match perfectly, so Spearman can be $1$ even if Pearson is lower.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-cb1abe2a-e4b9-4a1d-b693-8bbee092107e",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "When are Pearson and Spearman expected to be similar?",
+      "back": "Pearson and Spearman are usually similar when the data are roughly linear and evenly spread. In that case, the raw values and their ranks tell nearly the same association story.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-8ebc54f0-1413-4427-a0a8-6ec0a4d49bdc",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "Why is Spearman more robust to outliers than Pearson?",
+      "back": "Spearman replaces extreme raw values with ranks such as $1$ or $n$. This limits the influence of very large or very small observations compared with Pearson correlation.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-05a9db98-fa49-4c84-910a-136950192de4",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "How should you interpret Pearson $r=-0.80$ and Spearman $r_s=-0.75$ together?",
+      "back": "Both values show a strong negative relationship. Since $r$ and $r_s$ are close, the relationship is likely monotonic decreasing and reasonably linear rather than driven only by outliers.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f1f245d7-782a-4128-9733-c27ccfc2d23b",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What would Pearson strongly negative but Spearman near $0$ suggest?",
+      "back": "It would suggest that Pearson may be driven by a few influential outliers rather than a consistent monotonic relationship. Spearman near $0$ means the rank ordering does not show a clear increasing or decreasing pattern.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-5f1eff60-656e-4bb2-8d3d-bcef9e8da80a",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What would Spearman be much stronger than Pearson in absolute value suggest?",
+      "back": "It suggests a monotonic but non-linear relationship. The ordering of $X$ and $Y$ is strong, but the raw points do not fit a straight line very well.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-2fcb108d-9d46-46f6-b7ed-9ddde93ff5b2",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What does correlation not establish about two variables?",
+      "back": "Correlation does not establish causation. An observed association between $X$ and $Y$ could be caused by a confounder $Z$, reverse causation, or coincidence.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7e5d991d-ec08-422b-a6ae-d6092fd2c86f",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "Does no correlation prove no causal relationship?",
+      "back": "No. A causal relationship can have correlation near $0$ if the relationship is non-linear or if effects cancel each other out.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-1abd310f-a6ae-43f9-a9a4-a617551fbf48",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What is the relationship between independence and Pearson correlation?",
+      "back": "If $X$ and $Y$ are independent, then their Pearson correlation is $0$. The reverse is not generally true: Pearson correlation $0$ does not imply independence.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e4058a30-afbd-4d66-b93b-6da5122afc20",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What classic example shows that zero Pearson correlation does not imply independence?",
+      "back": "Let $Y=X^2$ with $X\\sim N(0,1)$. Then $\\operatorname{cov}(X,Y)=E[X^3]-E[X]E[X^2]=0$, so Pearson correlation is $0$, but $Y$ is completely determined by $X$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-f4edf240-273c-49fb-ba0d-a63bcc932e24",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What is the exam moral of Anscombe's Quartet?",
+      "back": "Datasets can have the same Pearson correlation, such as $r=0.816$, while having very different shapes. The key lesson is to plot the data because correlation alone can hide non-linearity and outliers.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-41bbe4dd-9756-4131-a785-00d06091ec31",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What is the difference between $r$ and $r^2$?",
+      "back": "The value $r$ is the correlation coefficient and ranges from $-1$ to $1$. The value $r^2$ is the proportion of variance explained and ranges from $0$ to $1$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-e3261eee-dee4-4840-a11b-13abfdb75a21",
+      "courseId": "stats",
+      "chapterId": "09",
+      "front": "What does it mean that correlation is symmetric?",
+      "back": "Correlation is symmetric because $\\operatorname{corr}(X,Y)=\\operatorname{corr}(Y,X)$. This differs from regression, where predicting $Y$ from $X$ is not the same as predicting $X$ from $Y$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:46:58.490Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:46:58.490Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-fdc32bcd-3f1d-4bde-b9ce-a04a7711b3e2",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "What is the universal pseudo-code skeleton for a data workflow question?",
+      "back": "Load data, preprocess data, analyse or model, evaluate, then interpret the result for the research question. This structure earns marks because it shows implementable logic rather than only syntax.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-06b5cb0f-ef4c-491c-9238-03008fc148a0",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "In preprocessing pseudo-code, what should you do before merging files that encode missing values differently?",
+      "back": "First inspect columns for unusual unique values, then map all missing-value labels to one standard missing marker. This addresses the key problem that different files may use different strings for missing data.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c2d48e7d-51d6-4949-8369-757f6b984158",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "When merging state-level CSV files, why should state be preserved as a column?",
+      "back": "The original file identity is needed for state-level analysis after concatenation. Without a state column, the merged data loses the grouping variable needed for per-state tests or classification.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-0c37fb45-1f1d-4db9-9f6e-c4d9f75b0abf",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "When should you drop rows with missing values instead of imputing them?",
+      "back": "Drop rows when missingness affects critical fields and the remaining data are still adequate. Impute when dropping would waste too much data, using a median for numeric variables or a mode for categorical variables.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-b713986f-49a2-47a3-8c52-ac7b4758b597",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "Which test fits a question comparing mean income between men and women?",
+      "back": "Use a two-sample test because there are two independent groups and the target is a mean difference. A two-sample t-test is standard, and a Z approximation is acceptable when the sample size is large.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-d1543068-4aa8-46b7-a447-80bac59c3fbf",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "What decision rule should pseudo-code use for a hypothesis test with significance level $\\alpha = 0.05$?",
+      "back": "If the p-value is below $0.05$, conclude there is statistically significant evidence for a difference. If it is not below $0.05$, conclude there is not enough evidence for a significant difference.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-600490a5-1cc6-497c-a0ed-113f4c9bb108",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "Why report effect size along with a p-value in a mean-comparison workflow?",
+      "back": "The p-value says whether the result is statistically significant, while the effect size says how large the difference is. For income differences, Cohen's $d$ or a confidence interval for the mean difference gives practical context.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-71438121-5bda-4965-bf0f-0434f79b7337",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "What adjustment is appropriate when testing income differences separately in all $50$ states?",
+      "back": "Use a multiple-testing correction because many tests inflate the chance of false positives. With Bonferroni at $\\alpha = 0.05$, the state-level threshold is $0.05 / 50 = 0.001$.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-2590f48b-aac9-4d30-873a-063416aa9606",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "In classification pseudo-code, what are features and what is the target?",
+      "back": "Features are the input variables used to predict, such as demographics or household information. The target is the class label to predict, such as the individual's state.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-7aaba954-1df0-487a-842e-df2af08146df",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "Why must categorical variables be encoded before fitting most classifiers?",
+      "back": "Most classifiers require numeric inputs, so categories must be converted into numeric representations. One-hot encoding is suitable for unordered categories, while ordered categories can sometimes use ordinal encoding.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-c111afc6-d894-47b6-b7f7-0075b00dc6df",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "Why is a training and test split required in classification pseudo-code?",
+      "back": "It separates model fitting from model evaluation. This prevents data leakage, where the model is evaluated on data it already learned from.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4e35ee7c-8ba5-442f-83a3-1de20fc716b3",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "When should the split be stratified in a classification workflow?",
+      "back": "Use stratification when classes are imbalanced or when each class must be represented in both training and test data. For state classification, stratifying helps keep all state classes represented.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-06d66145-067b-4c03-a21a-106df5977c52",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "Which evaluation metrics are appropriate for a multi-class classifier?",
+      "back": "Accuracy, a confusion matrix, and possibly F1 are appropriate classification metrics. Regression metrics such as MSE, MAE, or $R^2$ are not appropriate for ordinary classification accuracy questions.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-4ac953b1-1c72-4230-b912-a9d33f2b3696",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "What baseline should state classification be compared against when there are $50$ equally likely states?",
+      "back": "A random-guess baseline is $1 / 50 = 0.02$, or $2\\%$. The classifier is useful only if its performance is meaningfully above the relevant baseline.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    },
+    {
+      "id": "fc-63df2d45-b545-4f85-af3c-d85225ce21ba",
+      "courseId": "stats",
+      "chapterId": "10",
+      "front": "What is the main rule for pseudo-code scoring in this chapter?",
+      "back": "Pseudo-code is judged by logical structure, not exact programming syntax. Clear English steps with motivated preprocessing, method choice, evaluation, and interpretation can score full marks.",
+      "source": "ai",
+      "createdAt": "2026-05-30T12:47:27.902Z",
+      "sr": {
+        "ease": 2.5,
+        "interval": 0,
+        "repetitions": 0,
+        "lastReviewed": null,
+        "dueAt": "2026-05-30T12:47:27.902Z",
+        "history": []
+      }
+    }
+  ]
+}

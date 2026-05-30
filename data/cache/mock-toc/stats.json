@@ -1,0 +1,263 @@
+{
+  "generatedAt": "2026-05-20T23:08:36.704Z",
+  "items": [
+    {
+      "title": "Section: Multiple Choice Questions",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1(a) — Double-blind experiment (2 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Admissions rates (3 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) — Bell curve and SDs (3 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(d) — Scatter diagram shading (3 marks)",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(e) — Data collection methods (2 marks)",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(f) — Marble draws and confidence limits (4 marks)",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(g) — Central limit theorem (2 marks)",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(h) — ROC curve classification (2 marks)",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(i) — Hypotheses for party time (2 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(j) — Birth weight visualization (2 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(k) — Variable types (2 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(l) — Population mean from PDF (3 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: Judging statistical claims",
+      "page": 8,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q2(a) — Brain cancer odds ratio (4 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Cat ownership relative risk (2 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: Conditional Probability",
+      "page": 9,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q3 — Plant survival and Bayes probabilities (9 marks)",
+      "page": 9,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3(a) — Plant survival chance",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — Forgot watering given dead plant",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(c) — Alive given friend forgot",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: Design a Research Study",
+      "page": 10,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q4 — School exam performance analysis (8 marks)",
+      "page": 10,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Section: Video game genres",
+      "page": 11,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q5(a) — Confidence intervals for game genres (8 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Multiple interval error risk (4 marks)",
+      "page": 12,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: Box of cereal",
+      "page": 12,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q6(a) — CI for cereal box mean (4 marks)",
+      "page": 12,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(b) — Machine standard adherence (8 marks)",
+      "page": 13,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: On Measurement",
+      "page": 14,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q7(a) — Window tax measurement caveat (3 marks)",
+      "page": 14,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q7(b) — Defining variables for data collection (6 marks)",
+      "page": 14,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: Correlation",
+      "page": 15,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q8(a) — Correlation statement true/false (2 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q8(b) — Motivation and Spearman correlation (4 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: RCTs and Causality",
+      "page": 15,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q9(a) — Fish population causality (2 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q9(b) — RCT for LLMs and critical thinking (6 marks)",
+      "page": 16,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Section: Pseudo-Coding Statistics",
+      "page": 17,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q10(a) — Clean and merge state CSVs (3 marks)",
+      "page": 17,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q10(b) — Income differences by sex and state (4 marks)",
+      "page": 18,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q10(c) — Classify state from demographics (3 marks)",
+      "page": 18,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q11 — Extra answer space",
+      "page": 19,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

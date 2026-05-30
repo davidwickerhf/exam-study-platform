@@ -1,0 +1,245 @@
+{
+  "generatedAt": "2026-05-21T17:30:24.992Z",
+  "chapterId": "01",
+  "questions": [
+    {
+      "id": "gen-01-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A survey records gender, age, number of doctor visits last year, and education level. Which classification best matches the course convention?",
+      "options": [
+        "Gender categorical; age continuous; doctor visits discrete; education level ordinal",
+        "Gender ordinal; age discrete; doctor visits continuous; education level categorical",
+        "Gender categorical; age discrete; doctor visits ordinal; education level continuous",
+        "Gender continuous; age continuous; doctor visits discrete; education level nominal"
+      ],
+      "expected": "Gender categorical; age continuous; doctor visits discrete; education level ordinal"
+    },
+    {
+      "id": "gen-01-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why age is usually treated as continuous in this course even if a questionnaire records it in whole years.",
+      "options": [
+        "[] handle? wait schema expects array not string. Need redo. ",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "Age is treated as continuous because the underlying construct changes continuously over time. Recording age in whole years is a measurement or coding choice, not proof that the real variable only takes integer values."
+    },
+    {
+      "id": "gen-01-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "For the sample birth weights in kilograms $2.8, 3.1, 3.3, 3.7, 4.1$, compute the sample mean and sample standard deviation. Use the sample formula with denominator $n - 1$.",
+      "options": [
+        "[]?",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "The mean is $\\bar{x} = \\frac{2.8 + 3.1 + 3.3 + 3.7 + 4.1}{5} = 3.4$. The squared deviations sum to $0.90$, so the sample variance is $s^2 = \\frac{0.90}{4} = 0.225$ and the sample standard deviation is $s = \\sqrt{0.225} \\approx 0.474$ kilograms."
+    },
+    {
+      "id": "gen-01-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "A histogram is generally more appropriate than a bar chart for displaying the distribution of one continuous variable with many observations.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "True. A histogram bins a continuous axis and shows the distribution shape, while a bar chart is meant for comparing categories or category summaries."
+    },
+    {
+      "id": "gen-01-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A dataset contains millions of individual baby birth weights. Which visualization would you definitely not want to use as the primary display?",
+      "options": [
+        "Strip chart with one point per baby",
+        "Histogram of birth weights",
+        "Box plot of birth weights by hospital",
+        "Density-style distribution summary"
+      ],
+      "expected": "Strip chart with one point per baby"
+    },
+    {
+      "id": "gen-01-5",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A scatter plot has husband years of schooling on the horizontal axis and wife years of schooling on the vertical axis. Explain why a vertical shaded band at husband schooling greater than $16$ years does not identify couples where the wife has more schooling than the husband.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "The vertical band filters only on the horizontal variable, so it selects couples where the husband has more than $16$ years of schooling regardless of the wife's schooling. Wife schooling greater than husband schooling requires comparing both coordinates and selecting points above the diagonal line $y = x$."
+    },
+    {
+      "id": "gen-01-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A sample has $n = 36$ students and sample standard deviation $s = 12$ test-score points. Compute the standard error of the mean.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "Use $SE = \\frac{s}{\\sqrt{n}}$. Here $SE = \\frac{12}{\\sqrt{36}} = \\frac{12}{6} = 2$ test-score points."
+    },
+    {
+      "id": "gen-01-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A medical trial randomly assigns patients to treatment or placebo. Neither patients nor doctors know the assignment, but the statisticians retain the assignment file for analysis. What study design is this?",
+      "options": [
+        "Double-blind randomized controlled experiment",
+        "Prospective observational cohort study",
+        "Retrospective case-control study",
+        "Single-arm observational study"
+      ],
+      "expected": "Double-blind randomized controlled experiment"
+    },
+    {
+      "id": "gen-01-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "A very large observational study can establish causality if its sample size is large enough.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "False. A large sample can reduce random noise, but it does not remove confounding or selection mechanisms. Without random assignment or a credible causal design, the study mainly supports association."
+    },
+    {
+      "id": "gen-01-9",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain Goodhart's Law using the example of taxing homes by window count, and name two measurement failures that appear in the example.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "Goodhart's Law says that when a measure becomes a target, it stops being a good measure. Window count was meant to proxy house size or wealth, but once taxes targeted windows, people changed building behavior; this creates gaming of the metric and an operationalization failure because window count no longer captures the intended construct."
+    },
+    {
+      "id": "gen-01-10",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For the sample values $4, 7, 9, 10$, compute the sample variance using denominator $n - 1$ and also compute the population-style variance using denominator $n$.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "The mean is $\\bar{x} = \\frac{4 + 7 + 9 + 10}{4} = 7.5$. The squared deviations sum to $12.25 + 0.25 + 2.25 + 6.25 = 21$, so the sample variance is $s^2 = \\frac{21}{3} = 7$ and the population-style variance is $\\frac{21}{4} = 5.25$."
+    },
+    {
+      "id": "gen-01-11",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which pairing of chart and data task is least appropriate?",
+      "options": [
+        "Pie chart for comparing $18$ product categories across several regions",
+        "Line plot for monthly unemployment rates over time",
+        "Box plot for comparing income distributions across job sectors",
+        "Scatter plot for studying the relationship between height and weight"
+      ],
+      "expected": "Pie chart for comparing $18$ product categories across several regions"
+    },
+    {
+      "id": "gen-01-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A school evaluates teachers almost entirely by student test scores. Give one reason this can damage measurement validity and one reason wrong answer choices should be avoided in a negative-scoring multi-select exam question about this scenario.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "The test score can become the target, causing teaching to the test rather than broader learning, so the measure no longer captures the intended educational construct. In a negative-scoring multi-select question, unsupported claims should be skipped because selecting a plausible but ungrounded statement loses points."
+    },
+    {
+      "id": "gen-01-13",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A variable called income group is defined as poor if annual income is less than $20{,}000$ dollars and not poor otherwise. Person A earns $19{,}950$ dollars and Person B earns $20{,}050$ dollars. What category is assigned to each person, and what measurement caveat does this illustrate?",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "Person A is classified as poor because $19{,}950 < 20{,}000$. Person B is classified as not poor because $20{,}050 \\geq 20{,}000$. This illustrates a threshold artifact: a continuous amount is forced into categories, creating a sharp discontinuity for very similar incomes."
+    },
+    {
+      "id": "gen-01-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for choosing an appropriate visualization from variable metadata. It should distinguish categorical, ordinal, discrete, and continuous variables, handle group comparisons, and avoid strip charts for extremely large datasets.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "```text\nProcedure ChooseVisualization with inputs variableType, hasGroup, sampleSize, orderedTime\nIf orderedTime is yes\n    Return line plot\nIf variableType is categorical or variableType is ordinal\n    Return bar chart\nIf variableType is discrete and hasGroup is no\n    Return bar chart or dot plot for counts\nIf variableType is continuous and hasGroup is yes\n    Return box plot\nIf variableType is continuous and sampleSize is small\n    Return strip chart or dot plot\nIf variableType is continuous and sampleSize is large\n    Return histogram\nReturn written explanation that more metadata is needed\n```"
+    },
+    {
+      "id": "gen-01-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for grading a conservative multi-select answer on measurement caveats with negative scoring. The algorithm should add credit for correct selected statements, subtract credit for incorrect selected statements, and avoid going below $0$.",
+      "options": [
+        "bad",
+        "bad",
+        "bad",
+        "bad"
+      ],
+      "expected": "```text\nProcedure GradeMultiSelect with inputs selectedStatements, correctStatements, creditEach, penaltyEach\nSet score to zero\nFor each statement in selectedStatements\n    If statement is in correctStatements\n        Set score to score plus creditEach\n    Otherwise\n        Set score to score minus penaltyEach\nIf score is below zero\n    Set score to zero\nReturn score\n```"
+    },
+    {
+      "id": "gen-01-16",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A poll samples mostly telephone owners in a period when telephone ownership is associated with wealth and political preference, then claims to represent the whole electorate. What is the main problem?",
+      "options": [
+        "Selection bias from a non-representative sampling frame",
+        "Survivorship bias because only winners remain in the data",
+        "Bessel's correction because the denominator should be $n - 1$",
+        "A double-blind failure because voters know their own preferences"
+      ],
+      "expected": "Selection bias from a non-representative sampling frame"
+    }
+  ],
+  "generationError": null
+}

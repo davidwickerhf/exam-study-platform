@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MST Cycle-Swap Proof — Step Through</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #fafafa;
+    color: #222;
+    margin: 0;
+    padding: 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+  }
+  .subtitle {
+    color: #666;
+    margin: 0 0 24px 0;
+    font-size: 14px;
+  }
+  .container {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .panel {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .step-counter {
+    color: #888;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    color: #1a1a1a;
+  }
+  .step-body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+  }
+  .step-body code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .step-body .em {
+    background: #fff8d9;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  button:hover { background: #1d4ed8; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  button.secondary { background: #6b7280; }
+  button.secondary:hover { background: #4b5563; }
+  .progress {
+    margin-left: auto;
+    color: #666;
+    font-size: 13px;
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    background: white;
+    border-radius: 4px;
+  }
+  .legend {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: #555;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .swatch {
+    width: 20px;
+    height: 4px;
+    border-radius: 2px;
+  }
+  .swatch.thick { height: 6px; }
+  .annotation {
+    background: #f0f9ff;
+    border-left: 3px solid #2563eb;
+    padding: 12px 14px;
+    margin-top: 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .annotation.warn {
+    background: #fff8e6;
+    border-left-color: #f59e0b;
+  }
+  .annotation.success {
+    background: #f0fdf4;
+    border-left-color: #10b981;
+  }
+</style>
+</head>
+<body>
+
+<h1>MST Cycle-Swap Proof — Step Through</h1>
+<p class="subtitle">Walks through the exchange argument for Prim's MST on a concrete 5-vertex graph.</p>
+
+<div class="container">
+  <div class="panel">
+    <svg id="graph" viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg">
+      <!-- edges (will be styled dynamically) -->
+      <g id="edges"></g>
+      <!-- vertices (drawn after edges) -->
+      <g id="vertices"></g>
+      <!-- weight labels -->
+      <g id="weights"></g>
+    </svg>
+    <div class="legend">
+      <div class="legend-item"><span class="swatch thick" style="background: #94a3b8"></span> Graph edge (unselected)</div>
+      <div class="legend-item"><span class="swatch thick" style="background: #10b981"></span> Greedy edge (T)</div>
+      <div class="legend-item"><span class="swatch thick" style="background: #3b82f6"></span> Alt MST edge (T*)</div>
+      <div class="legend-item"><span class="swatch thick" style="background: #8b5cf6"></span> In both T and T*</div>
+      <div class="legend-item"><span class="swatch thick" style="background: #f59e0b"></span> First disagreement (e)</div>
+      <div class="legend-item"><span class="swatch thick" style="background: #ef4444"></span> Swap target (e')</div>
+      <div class="legend-item"><span class="swatch thick" style="background: #fbbf24; opacity: 0.5"></span> Cycle</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="step-counter" id="step-counter">Step 1 of 14</div>
+    <h2 class="step-title" id="step-title"></h2>
+    <div class="step-body" id="step-body"></div>
+    <div class="controls">
+      <button class="secondary" id="prev-btn">‹ Prev</button>
+      <button id="next-btn">Next ›</button>
+      <span class="progress" id="progress"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Graph data
+// ============================================================
+const VERTICES = [
+  { id: 'A', x: 320, y: 70,  label: 'A' },
+  { id: 'B', x: 540, y: 200, label: 'B' },
+  { id: 'C', x: 100, y: 200, label: 'C' },
+  { id: 'D', x: 470, y: 390, label: 'D' },
+  { id: 'E', x: 170, y: 390, label: 'E' },
+];
+
+// Each edge: id (e.g. "AB"), endpoints, weight
+const EDGES = [
+  { id: 'AB', from: 'A', to: 'B', weight: 1 },
+  { id: 'AC', from: 'A', to: 'C', weight: 4 },
+  { id: 'BC', from: 'B', to: 'C', weight: 2 },
+  { id: 'BD', from: 'B', to: 'D', weight: 3 },
+  { id: 'CD', from: 'C', to: 'D', weight: 4 },
+  { id: 'DE', from: 'D', to: 'E', weight: 2 },
+  { id: 'CE', from: 'C', to: 'E', weight: 3 },
+];
+
+// Greedy output T (the edges greedy adds, in order):
+// Start at A. Add A-B (1). Then B-C (2). Then B-D (3) (tied with C-E, greedy picks B-D first). Then D-E (2).
+const T = ['AB', 'BC', 'BD', 'DE']; // chronological order
+
+// Alternative MST T* (same cost = 8, differs only by swapping BD ↔ CE):
+const TSTAR = ['AB', 'BC', 'CE', 'DE'];
+
+// The edge e = first edge in T not in T*
+// Greedy added in order AB, BC, BD, DE.
+//   AB in T*: yes
+//   BC in T*: yes
+//   BD in T*: NO  ← first disagreement
+// So e = BD.
+const E = 'BD';
+
+// The cycle formed in T* when we add e = BD:
+// T* = {AB, BC, CE, DE}. Add BD. Cycle from B to D via T*:
+//   B -> C (BC), C -> E (CE), E -> D (DE), D -> B (via the new BD)
+// Cycle edges: BD, BC, CE, DE
+const CYCLE = ['BD', 'BC', 'CE', 'DE'];
+
+// At the moment greedy added BD:
+//   tree-so-far = {A, B, C}, outside = {D, E}
+//   CUT = edges crossing this partition
+// Edges in the cycle that cross the cut:
+//   BD: B in tree, D outside → crosses
+//   BC: both in tree → no
+//   CE: C in tree, E outside → crosses
+//   DE: both outside → no
+// So the cut-crossing cycle edges are BD (= e) and CE. Swap target e' = CE.
+const ESTAR = 'CE';
+
+// ============================================================
+// Steps
+// ============================================================
+const STEPS = [
+  {
+    title: 'The graph',
+    body: `Five vertices (A–E) connected by seven weighted edges. Edge weights = installation costs.
+           Our goal: find a spanning tree (a set of edges that touches every vertex, with no cycles) of minimum total weight.`,
+    state: {
+      tEdges: [], tStarEdges: [], e: null, eStar: null, cycle: [], faded: false,
+    },
+    annotation: null,
+  },
+  {
+    title: 'Greedy execution — step 1',
+    body: `Start at A. The frontier (edges with one endpoint in the tree-so-far and one outside) is
+           <code>{AB(1), AC(4)}</code>. Cheapest is <code>AB(1)</code>. Add it.`,
+    state: { tEdges: ['AB'], tStarEdges: [], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'info', text: `Tree-so-far: {A, B}. Total cost: 1.` },
+  },
+  {
+    title: 'Greedy execution — step 2',
+    body: `Frontier: <code>{AC(4), BC(2), BD(3)}</code>. Cheapest is <code>BC(2)</code>. Add it.`,
+    state: { tEdges: ['AB','BC'], tStarEdges: [], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'info', text: `Tree-so-far: {A, B, C}. Total cost: 3.` },
+  },
+  {
+    title: 'Greedy execution — step 3',
+    body: `Frontier: <code>{BD(3), CD(4), CE(3)}</code>. Tie between BD(3) and CE(3). Greedy picks <span class="em">BD(3)</span>
+           (a deterministic tiebreak choice). Add it.`,
+    state: { tEdges: ['AB','BC','BD'], tStarEdges: [], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'warn', text: `Tiebreak: BD(3) chosen over CE(3). This choice is what makes T differ from T* later.` },
+  },
+  {
+    title: 'Greedy execution — step 4 (T complete)',
+    body: `Frontier: <code>{CE(3), DE(2)}</code>. Cheapest is <code>DE(2)</code>. Add it. Now every vertex is in the tree.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: [], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'success', text: `Greedy output T = {AB, BC, BD, DE}. Total cost = 1 + 2 + 3 + 2 = 8.` },
+  },
+  {
+    title: 'Reveal an alternative MST T*',
+    body: `Suppose T* = {AB, BC, <span class="em">CE</span>, DE} is another MST (with cost 1 + 2 + 3 + 2 = 8 — same as T).
+           T* uses <code>CE</code> instead of <code>BD</code>; otherwise identical.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','CE','DE'], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'info', text: `T and T* share AB, BC, DE. They disagree on BD (only in T) and CE (only in T*).` },
+  },
+  {
+    title: 'Find the first disagreement e',
+    body: `Greedy added its edges in order: AB, BC, BD, DE.
+           Walking through this order, which is the first edge greedy added that is NOT in T*?
+           <ul>
+             <li>AB? In T*. ✓ Agree.</li>
+             <li>BC? In T*. ✓ Agree.</li>
+             <li>BD? <span class="em">NOT in T*.</span> First disagreement!</li>
+           </ul>
+           So <code>e = BD</code>.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','CE','DE'], e: 'BD', eStar: null, cycle: [], faded: false },
+    annotation: { type: 'warn', text: `e = BD is now highlighted in orange. This is what we'll try to swap into T*.` },
+  },
+  {
+    title: 'Add e to T* — a cycle appears',
+    body: `T* is already a spanning tree of all 5 vertices. Adding any extra edge to a spanning tree
+           necessarily creates exactly one cycle.
+           <br><br>
+           Add <code>e = BD</code> to T*. What's the cycle?<br>
+           Trace from B to D using only T* edges, then close with BD:<br>
+           <code>B → C (via BC) → E (via CE) → D (via DE) → B (via the new BD)</code>.<br>
+           Cycle = <code>{BD, BC, CE, DE}</code>.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','CE','DE'], e: 'BD', eStar: null, cycle: CYCLE, faded: false },
+    annotation: { type: 'info', text: `The cycle is highlighted with a yellow background. Notice it contains the new edge e plus three T* edges.` },
+  },
+  {
+    title: 'Find the swap target e\' inside the cycle',
+    body: `We need an edge e' in the cycle such that:
+           <ol>
+             <li>e' is in T* (so swapping changes T*'s edge set)</li>
+             <li>e' crosses the same "cut" as e at the moment greedy added e</li>
+           </ol>
+           At the moment greedy added <code>e = BD</code>, the tree-so-far was <code>{A, B, C}</code> and outside was <code>{D, E}</code>.
+           The "cut" is the set of edges with one endpoint in each side.
+           <br><br>
+           Cycle edges:
+           <ul>
+             <li><code>BD</code>: B in tree, D outside → crosses cut ✓ (but this is e itself)</li>
+             <li><code>BC</code>: both in tree → doesn't cross</li>
+             <li><code>CE</code>: C in tree, E outside → <span class="em">crosses cut ✓</span> and in T* → this is e'!</li>
+             <li><code>DE</code>: both outside → doesn't cross</li>
+           </ul>
+           So <code>e' = CE</code>.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','CE','DE'], e: 'BD', eStar: 'CE', cycle: CYCLE, faded: false },
+    annotation: { type: 'warn', text: `e' = CE is now highlighted in red. This is the edge we'll remove from T* to break the cycle.` },
+  },
+  {
+    title: 'Cost comparison — greedy\'s rule guarantees c(e) ≤ c(e\')',
+    body: `When greedy chose e = BD, it was picking the cheapest frontier edge. At that moment,
+           the frontier included both BD (cost 3) and CE (cost 3) — both crossing the same cut.
+           <br><br>
+           Greedy picked the minimum, so by definition <code>c(e) ≤ c(e')</code>.<br>
+           Here: <code>c(BD) = 3 ≤ c(CE) = 3</code>. ✓
+           <br><br>
+           (If greedy hadn't picked the cheapest, it wouldn't be greedy. So this inequality is forced.)`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','CE','DE'], e: 'BD', eStar: 'CE', cycle: CYCLE, faded: false },
+    annotation: { type: 'success', text: `c(e) ≤ c(e'): the swap won't make T* worse.` },
+  },
+  {
+    title: 'Perform the swap',
+    body: `Now construct a new T*': remove <code>e' = CE</code> from T*, add <code>e = BD</code>.
+           <br><br>
+           Before: T* = {AB, BC, <span class="em">CE</span>, DE}, cost 8.<br>
+           After: T*' = {AB, BC, <span class="em">BD</span>, DE}, cost 8.
+           <br><br>
+           Notice: T*' is exactly equal to T! Both edges contribute the same cost (3), so total cost is unchanged.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','BD','DE'], e: 'BD', eStar: null, cycle: [], faded: false },
+    annotation: { type: 'success', text: `T*' has more commonality with T than T* did. In fact, T*' = T.` },
+  },
+  {
+    title: 'Verify T*\' is still a spanning tree',
+    body: `Why is T*' still a valid spanning tree?
+           <ul>
+             <li>Removing e' = CE from (T* ∪ {e}) breaks the cycle exactly once</li>
+             <li>e and e' both crossed the same cut, so e replaces e' across that cut</li>
+             <li>Connectivity is preserved, no cycle remains</li>
+             <li>Same number of edges (n - 1 = 4)</li>
+           </ul>
+           T*' is a valid spanning tree of the same cost — so T*' is also an MST.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','BD','DE'], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'info', text: `T*' is an MST. And T*' shares MORE edges with T than T* did. This is the contradiction.` },
+  },
+  {
+    title: 'The contradiction',
+    body: `We assumed T* was the MST with <em>maximum</em> commonality with T.
+           But we just constructed T*' — also an MST — with strictly more commonality.
+           <br><br>
+           This contradicts the assumption. The only way out: T* must have already equalled T from the start.
+           <br><br>
+           Therefore <code>T = T*</code>, so <span class="em">T is an MST</span>.`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','BD','DE'], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'success', text: `Greedy's output T is provably an MST. QED.` },
+  },
+  {
+    title: 'The whole proof, compressed',
+    body: `<strong>What you write on the exam (4 sentences):</strong>
+           <ol>
+             <li>Let T = greedy output. Let T* be an MST with maximum edges in common with T. Suppose T ≠ T*; let e = first edge greedy added not in T*.</li>
+             <li>Adding e to T* creates a cycle. This cycle contains some edge e' crossing the same cut as e at the moment greedy chose e.</li>
+             <li>By the greedy rule, c(e) ≤ c(e'). Swap e for e' in T*: result is still a spanning tree, cost ≤ c(T*), more edges in common with T.</li>
+             <li>Contradicts T*'s max-commonality. So T = T*, hence T is an MST.</li>
+           </ol>`,
+    state: { tEdges: ['AB','BC','BD','DE'], tStarEdges: ['AB','BC','BD','DE'], e: null, eStar: null, cycle: [], faded: false },
+    annotation: { type: 'success', text: `Memorise these 4 sentences. The graph in this demo just shows what each sentence is doing.` },
+  },
+];
+
+// ============================================================
+// Rendering
+// ============================================================
+let currentStep = 0;
+
+function getVertex(id) {
+  return VERTICES.find(v => v.id === id);
+}
+
+function getEdgeKey(edge) {
+  return edge.id;
+}
+
+// Edge color based on state
+function edgeStyle(edge, state) {
+  const inT = state.tEdges.includes(edge.id);
+  const inTStar = state.tStarEdges.includes(edge.id);
+  const isE = state.e === edge.id;
+  const isEStar = state.eStar === edge.id;
+
+  // Priority: e' > e > both > T > T* > unselected
+  if (isEStar) return { color: '#ef4444', width: 6, opacity: 1 };
+  if (isE) return { color: '#f59e0b', width: 6, opacity: 1 };
+  if (inT && inTStar) return { color: '#8b5cf6', width: 5, opacity: 1 };
+  if (inT) return { color: '#10b981', width: 5, opacity: 1 };
+  if (inTStar) return { color: '#3b82f6', width: 5, opacity: 1 };
+  return { color: '#cbd5e1', width: 3, opacity: 0.55 };
+}
+
+function render() {
+  const step = STEPS[currentStep];
+  const state = step.state;
+
+  // Update step counter
+  document.getElementById('step-counter').textContent = `Step ${currentStep + 1} of ${STEPS.length}`;
+  document.getElementById('progress').textContent = `${currentStep + 1} / ${STEPS.length}`;
+  document.getElementById('step-title').textContent = step.title;
+
+  // Build step body with annotation
+  let bodyHtml = step.body;
+  if (step.annotation) {
+    bodyHtml += `<div class="annotation ${step.annotation.type === 'warn' ? 'warn' : step.annotation.type === 'success' ? 'success' : ''}">${step.annotation.text}</div>`;
+  }
+  document.getElementById('step-body').innerHTML = bodyHtml;
+
+  // Update button states
+  document.getElementById('prev-btn').disabled = currentStep === 0;
+  document.getElementById('next-btn').disabled = currentStep === STEPS.length - 1;
+
+  // Re-render SVG
+  const edgesG = document.getElementById('edges');
+  const verticesG = document.getElementById('vertices');
+  const weightsG = document.getElementById('weights');
+
+  edgesG.innerHTML = '';
+  verticesG.innerHTML = '';
+  weightsG.innerHTML = '';
+
+  // Draw cycle background highlights first (so they sit underneath edges)
+  if (state.cycle && state.cycle.length > 0) {
+    state.cycle.forEach(edgeId => {
+      const edge = EDGES.find(e => e.id === edgeId);
+      const v1 = getVertex(edge.from);
+      const v2 = getVertex(edge.to);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', v1.x);
+      line.setAttribute('y1', v1.y);
+      line.setAttribute('x2', v2.x);
+      line.setAttribute('y2', v2.y);
+      line.setAttribute('stroke', '#fbbf24');
+      line.setAttribute('stroke-width', '16');
+      line.setAttribute('stroke-linecap', 'round');
+      line.setAttribute('opacity', '0.35');
+      edgesG.appendChild(line);
+    });
+  }
+
+  // Draw edges
+  EDGES.forEach(edge => {
+    const v1 = getVertex(edge.from);
+    const v2 = getVertex(edge.to);
+    const style = edgeStyle(edge, state);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', v1.x);
+    line.setAttribute('y1', v1.y);
+    line.setAttribute('x2', v2.x);
+    line.setAttribute('y2', v2.y);
+    line.setAttribute('stroke', style.color);
+    line.setAttribute('stroke-width', style.width);
+    line.setAttribute('opacity', style.opacity);
+    line.setAttribute('stroke-linecap', 'round');
+    edgesG.appendChild(line);
+  });
+
+  // Draw weight labels at midpoints
+  EDGES.forEach(edge => {
+    const v1 = getVertex(edge.from);
+    const v2 = getVertex(edge.to);
+    // Slight offset from midpoint to avoid overlap with edge
+    const mx = (v1.x + v2.x) / 2;
+    const my = (v1.y + v2.y) / 2;
+    // Background circle
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    bg.setAttribute('cx', mx);
+    bg.setAttribute('cy', my);
+    bg.setAttribute('r', '11');
+    bg.setAttribute('fill', 'white');
+    bg.setAttribute('stroke', '#cbd5e1');
+    bg.setAttribute('stroke-width', '1');
+    weightsG.appendChild(bg);
+    // Weight text
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', mx);
+    text.setAttribute('y', my + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '13');
+    text.setAttribute('font-weight', '600');
+    text.setAttribute('fill', '#475569');
+    text.textContent = edge.weight;
+    weightsG.appendChild(text);
+  });
+
+  // Draw vertices (on top)
+  VERTICES.forEach(v => {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', v.x);
+    circle.setAttribute('cy', v.y);
+    circle.setAttribute('r', '24');
+    circle.setAttribute('fill', '#1e293b');
+    circle.setAttribute('stroke', 'white');
+    circle.setAttribute('stroke-width', '3');
+    verticesG.appendChild(circle);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', v.x);
+    text.setAttribute('y', v.y + 6);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '18');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', 'white');
+    text.textContent = v.label;
+    verticesG.appendChild(text);
+  });
+}
+
+function next() {
+  if (currentStep < STEPS.length - 1) {
+    currentStep++;
+    render();
+  }
+}
+
+function prev() {
+  if (currentStep > 0) {
+    currentStep--;
+    render();
+  }
+}
+
+document.getElementById('next-btn').addEventListener('click', next);
+document.getElementById('prev-btn').addEventListener('click', prev);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') next();
+  if (e.key === 'ArrowLeft') prev();
+});
+
+render();
+</script>
+
+</body>
+</html>

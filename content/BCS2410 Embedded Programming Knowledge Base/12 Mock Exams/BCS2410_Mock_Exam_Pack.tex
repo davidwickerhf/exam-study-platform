@@ -1,0 +1,711 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textsc{BCS2410 Mock Examination Pack}}
+\rhead{\textsc{Page \thepage}}
+\cfoot{}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\setlength{\headheight}{14pt}
+\setlist[enumerate]{leftmargin=*,itemsep=0.7em}
+
+\newcommand{\paperheader}[3]{
+  \begin{center}
+  {\Large\textbf{BCS2410 Embedded Programming}}\\[0.25em]
+  {\large\textsc{Mock Examination Paper}}\\[0.35em]
+  {\Large\textbf{#1}}
+  \end{center}
+  \vspace{0.25em}
+  \begin{tabularx}{\linewidth}{|>{\raggedright\arraybackslash}p{0.22\linewidth}|X|}
+  \hline
+  Total marks & #2 \\
+  \hline
+  Recommended duration & #3 \\
+  \hline
+  Paper structure & Section A = 40 marks of short theory / closed-ended questions. Section B = 60 marks of practical exercises. \\
+  \hline
+  Candidate instructions & Answer all questions. Show working where appropriate. Write assembly clearly with labels, branch conditions, and register use visible. Where a question requests explanation, concise technical prose is sufficient. \\
+  \hline
+  \end{tabularx}
+  \vspace{0.6em}
+  \begin{tabularx}{\linewidth}{|p{0.23\linewidth}|X|p{0.22\linewidth}|X|}
+  \hline
+  Candidate name & & Student number & \\
+  \hline
+  Date & & Start time & \\
+  \hline
+  \end{tabularx}
+  \vspace{0.75em}
+}
+
+\newcommand{\subpaperheader}[1]{
+  \begin{center}
+  \fbox{
+  \begin{minipage}{0.97\linewidth}
+  \textbf{#1}
+  \end{minipage}}
+  \end{center}
+}
+
+\newcommand{\qmarks}[1]{\hfill{\textbf{[#1 marks]}}}
+\newcount\answerlinecount
+
+\newcommand{\answerlines}[1]{
+  \par\smallskip\noindent\textit{Answer:}\par\nobreak
+  \answerlinecount=0
+  \loop\ifnum\answerlinecount<#1
+    \par\noindent\rule{\linewidth}{0.4pt}\vspace{0.95\baselineskip}
+    \advance\answerlinecount by1
+  \repeat
+  \par\smallskip
+}
+
+\newcommand{\tinyanswer}{\answerlines{2}}
+\newcommand{\smallanswer}{\answerlines{4}}
+\newcommand{\medanswer}{\answerlines{6}}
+\newcommand{\largeanswer}{\answerlines{9}}
+\newcommand{\xlargeanswer}{\answerlines{13}}
+
+\newcommand{\checkbox}{$\square$}
+
+\begin{document}
+\pagenumbering{roman}
+
+\begin{titlepage}
+\centering
+{\Large \textsc{University Examination Style Revision Pack}}\\[1.0em]
+{\Huge \textbf{BCS2410 Embedded Programming}}\\[0.4em]
+{\LARGE \textbf{Mock Examination Pack}}\\[1.5em]
+
+{\large Four simulated exam papers with answer space}\\[0.5em]
+{\large Built from the lecture notes, cram sheets, self-tests, worked drills, and syllabus-aligned exam notes in this vault}\\[2em]
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.92\textwidth}
+\textbf{How this pack is designed}
+\begin{itemize}[leftmargin=1.2em]
+\item Each paper is worth \textbf{100 marks}.
+\item Each paper follows the exam structure inferred from your notes: about \textbf{40\% theory / short closed questions} and \textbf{60\% practical work in 2 or 3 larger exercises}.
+\item Across the four papers, all major course areas are covered: foundations, architecture, data representation, C and pointers, ARM Thumb assembly, peripherals and workflow, interrupts and clocks, and FPGA / Edge AI.
+\item The difficulty is intentionally mixed so you are comfortable whether the real exam is straightforward or demanding.
+\item A \textbf{condensed model solution and marking guide} is included at the end of this PDF.
+\end{itemize}
+\end{minipage}}
+\end{center}
+
+\vfill
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.92\textwidth}
+\textbf{Exam-use suggestion}
+\begin{itemize}[leftmargin=1.2em]
+\item First attempt a paper under timed conditions.
+\item Mark it only after you have completed the full paper.
+\item Use the answer boxes as if this were the actual answer script.
+\end{itemize}
+\end{minipage}}
+\end{center}
+
+\vfill
+
+Generated in the notes vault: \\
+\url{/Users/davidwickerhf/Projects/personal/notes/University/BCS2410 Embedded Programming Knowledge Base/12 Mock Exams/}
+\end{titlepage}
+
+\clearpage
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\section*{Paper 1}
+\addcontentsline{toc}{section}{Paper 1}
+\paperheader{Paper 1: Core Embedded Systems, Data Representation, and ARM Basics}{100}{2 hours 10 minutes}
+
+\subpaperheader{Section A: Theory and Short Closed Questions (40 marks)}
+\begin{enumerate}
+\item State one key difference between an embedded system and a general-purpose computer. \qmarks{4}
+\tinyanswer
+
+\item Program code on the Discovery board is typically stored in:
+\begin{itemize}[leftmargin=1.5em]
+\item \checkbox\ Random Access Memory (RAM)
+\item \checkbox\ Flash / ROM-like non-volatile memory
+\item \checkbox\ Cache only
+\item \checkbox\ The Arithmetic Logic Unit (ALU)
+\end{itemize}
+\tinyanswer
+
+\item What does the Program Counter (PC) hold? \qmarks{4}
+\tinyanswer
+
+\item Name the two main parts of the processor in the datapath-plus-control view. \qmarks{4}
+\tinyanswer
+
+\item In a little-endian system, how is \texttt{0x12345678} stored in memory from lowest to highest address? \qmarks{4}
+\tinyanswer
+
+\item What is the main job of the Arithmetic Logic Unit (ALU)? \qmarks{4}
+\tinyanswer
+
+\item Match each flag to its meaning: \texttt{N}, \texttt{Z}, \texttt{C}, \texttt{V}. \qmarks{4}
+\smallanswer
+
+\item What is the difference between \texttt{MOV}, \texttt{LDR}, and \texttt{STR}? \qmarks{4}
+\smallanswer
+
+\item Which branch is appropriate for a signed greater-than comparison after \texttt{CMP}: \texttt{BGT} or \texttt{BHI}? Briefly justify. \qmarks{4}
+\smallanswer
+
+\item What does \texttt{*(ptr + 2)} mean when \texttt{ptr} is an \texttt{int *} pointing at the first element of an array? \qmarks{4}
+\smallanswer
+\end{enumerate}
+
+\subpaperheader{Section B: Practical Exercises (60 marks)}
+
+\textbf{Exercise 1: ARM Thumb loop and branch construction} \qmarks{20}
+
+Write an ARM Thumb function \texttt{sum\_to\_n} with the following behaviour:
+\begin{itemize}[leftmargin=1.5em]
+\item input: \texttt{r0 = n}
+\item output: return \texttt{1 + 2 + \dots + n} in \texttt{r0}
+\item if \texttt{n <= 0}, return \texttt{0}
+\end{itemize}
+
+Your answer should:
+\begin{enumerate}[label=\alph*)]
+\item use a loop with labels \qmarks{10}
+\item use the correct signed branch conditions \qmarks{5}
+\item briefly explain why \texttt{BGT} and not \texttt{BHI} is the right exit-test style here \qmarks{5}
+\end{enumerate}
+\xlargeanswer
+
+\textbf{Exercise 2: Pointers, arrays, and memory layout} \qmarks{20}
+
+Consider the following C code:
+\begin{verbatim}
+int arr[] = {10, 20, 30, 40};
+int *ptr = arr;
+int a = *(ptr + 2);
+*(ptr + 1) = 99;
+\end{verbatim}
+
+Answer all parts:
+\begin{enumerate}[label=\alph*)]
+\item What does \texttt{ptr} store? \qmarks{4}
+\item What is the value of \texttt{a}? \qmarks{4}
+\item What are the final contents of \texttt{arr}? \qmarks{4}
+\item Explain why \texttt{ptr + 2} means ``two elements later'' and not ``two bytes later.'' \qmarks{4}
+\item Show the byte layout of \texttt{0x12345678} in little-endian memory. \qmarks{4}
+\end{enumerate}
+\xlargeanswer
+
+\textbf{Exercise 3: Memory-mapped I/O and load-modify-store} \qmarks{20}
+
+A General-Purpose Input/Output (GPIO) output register address is already stored in \texttt{r0}. Write ARM Thumb assembly that:
+\begin{enumerate}[label=\alph*)]
+\item reads the register \qmarks{4}
+\item sets bit 7 to 1 \qmarks{4}
+\item clears bit 3 to 0 \qmarks{4}
+\item writes the result back \qmarks{4}
+\item briefly explains why ordinary \texttt{LDR} and \texttt{STR} can be used for peripheral registers \qmarks{4}
+\end{enumerate}
+\largeanswer
+\largeanswer
+
+\newpage
+\section*{Paper 2}
+\addcontentsline{toc}{section}{Paper 2}
+\paperheader{Paper 2: Architecture, Flags, Functions, and Assembly Tracing}{100}{2 hours 10 minutes}
+
+\subpaperheader{Section A: Theory and Short Closed Questions (40 marks)}
+\begin{enumerate}
+\item What is the difference between datapath and control? \qmarks{4}
+\tinyanswer
+
+\item What is the role of the decode stage in the fetch-decode-execute cycle? \qmarks{4}
+\tinyanswer
+
+\item Why are registers faster than ordinary memory access? \qmarks{4}
+\tinyanswer
+
+\item State one difference between Von Neumann and Harvard architecture. \qmarks{4}
+\tinyanswer
+
+\item What is a half adder, and what extra input makes a full adder different? \qmarks{4}
+\smallanswer
+
+\item What does \texttt{BL} do that \texttt{B} does not? \qmarks{4}
+\tinyanswer
+
+\item Where are the first four 32-bit function arguments usually passed in ARM Cortex-M style calling convention? \qmarks{4}
+\tinyanswer
+
+\item What is the purpose of the Link Register (\texttt{LR})? \qmarks{4}
+\tinyanswer
+
+\item Why can \texttt{BGT} and \texttt{BHI} give different answers on the same raw bit patterns? \qmarks{4}
+\smallanswer
+
+\item What is cache for? \qmarks{4}
+\tinyanswer
+\end{enumerate}
+
+\subpaperheader{Section B: Practical Exercises (60 marks)}
+
+\textbf{Exercise 1: Function calls, \texttt{BL}, \texttt{LR}, and tracing} \qmarks{30}
+
+Consider the following ARM Thumb code:
+\begin{verbatim}
+ASM_Function:
+    MOVS r0, #3
+    BL   add5
+    BL   twice
+    BX   LR
+
+add5:
+    ADDS r0, r0, #5
+    BX   LR
+
+twice:
+    LSL  r0, r0, #1
+    BX   LR
+\end{verbatim}
+
+Answer all parts:
+\begin{enumerate}[label=\alph*)]
+\item Trace the value in \texttt{r0} after each instruction in \texttt{ASM\_Function}. \qmarks{8}
+\item What final value is returned in \texttt{r0}? \qmarks{4}
+\item What does each \texttt{BL} instruction do to control flow and to \texttt{LR}? \qmarks{8}
+\item Explain why \texttt{BX LR} returns correctly in this example. \qmarks{4}
+\item If \texttt{add5} itself needed to call another function, why might it need to preserve \texttt{LR} first? \qmarks{6}
+\end{enumerate}
+\xlargeanswer
+\largeanswer
+
+\textbf{Exercise 2: Flags, signedness, overflow, and bitwise reasoning} \qmarks{30}
+
+Answer all parts.
+
+\begin{enumerate}[label=\alph*)]
+\item Given:
+\begin{verbatim}
+MOV  r0, #-1
+MOV  r1, #2
+CMP  r0, r1
+\end{verbatim}
+State whether each branch would be taken, and explain why:
+\texttt{BGT}, \texttt{BLT}, \texttt{BHI}, \texttt{BLO}. \qmarks{12}
+
+\item Compute the result of:
+\begin{verbatim}
+10110100 AND 00001111
+10110100 OR  00001111
+10110100 XOR 00001111
+\end{verbatim}
+\qmarks{6}
+
+\item A 32-bit signed integer currently holds \texttt{0x7FFFFFFF}. What happens when 1 is added? State the new bit pattern and explain the signed interpretation. \qmarks{6}
+
+\item Write a short ARM Thumb sequence that sets \texttt{r1 = 1} if \texttt{r0} is odd, else \texttt{r1 = 0}. You may use \texttt{TST} or a branch-based solution. \qmarks{6}
+\end{enumerate}
+\xlargeanswer
+\xlargeanswer
+
+\newpage
+\section*{Paper 3}
+\addcontentsline{toc}{section}{Paper 3}
+\paperheader{Paper 3: Workflow, Debugging, Peripherals, Clocks, and Integration}{100}{2 hours 10 minutes}
+
+\subpaperheader{Section A: Theory and Short Closed Questions (40 marks)}
+\begin{enumerate}
+\item What is the difference between build, flash, and debug? \qmarks{4}
+\smallanswer
+
+\item What is ST-LINK used for? \qmarks{4}
+\tinyanswer
+
+\item Why is the disassembly view useful during debugging? \qmarks{4}
+\smallanswer
+
+\item What is a breakpoint? \qmarks{4}
+\tinyanswer
+
+\item What is memory-mapped I/O? \qmarks{4}
+\smallanswer
+
+\item What is the difference between a datasheet and a programming manual? \qmarks{4}
+\smallanswer
+
+\item What is an interrupt? \qmarks{4}
+\tinyanswer
+
+\item What is an Interrupt Service Routine (ISR)? \qmarks{4}
+\tinyanswer
+
+\item Why do peripherals need clocks? \qmarks{4}
+\tinyanswer
+
+\item State one advantage and one disadvantage of polling. \qmarks{4}
+\smallanswer
+\end{enumerate}
+
+\subpaperheader{Section B: Practical Exercises (60 marks)}
+
+\textbf{Exercise 1: Debugging workflow on the Discovery board} \qmarks{20}
+
+You build a project successfully, but the board does not behave as expected and an LED never changes state.
+
+Describe a structured debug workflow using course tools and concepts. Your answer should include:
+\begin{enumerate}[label=\alph*)]
+\item what to check after build \qmarks{4}
+\item what flashing does \qmarks{4}
+\item how ST-LINK is involved \qmarks{4}
+\item how breakpoints, register views, memory views, and disassembly can help isolate the bug \qmarks{8}
+\end{enumerate}
+\xlargeanswer
+
+\textbf{Exercise 2: Integrating ARM assembly with C} \qmarks{20}
+
+You want to call an assembly function from C with this prototype:
+\begin{verbatim}
+extern unsigned max3u(unsigned a, unsigned b, unsigned c);
+\end{verbatim}
+
+Write the assembly implementation for \texttt{max3u} that returns the maximum of the three \textbf{unsigned} inputs.
+
+Requirements:
+\begin{enumerate}[label=\alph*)]
+\item use argument registers correctly \qmarks{4}
+\item use unsigned comparison branches correctly \qmarks{8}
+\item return the result in the correct register \qmarks{4}
+\item briefly explain why signed branches would be wrong here \qmarks{4}
+\end{enumerate}
+\xlargeanswer
+
+\textbf{Exercise 3: Polling, interrupts, timers, and control-flow design} \qmarks{20}
+
+You are asked to design a simple embedded application with this behaviour:
+\begin{itemize}[leftmargin=1.5em]
+\item an LED toggles every 500 ms
+\item a button press must be detected promptly
+\item the CPU should not waste time unnecessarily
+\end{itemize}
+
+Answer all parts:
+\begin{enumerate}[label=\alph*)]
+\item Would you prefer polling, interrupts, or a mixture of both? Justify your choice. \qmarks{8}
+\item Explain the role of a timer in this design. \qmarks{4}
+\item Sketch a high-level control flow for the solution. Pseudocode is acceptable. \qmarks{8}
+\end{enumerate}
+\xlargeanswer
+\largeanswer
+
+\newpage
+\section*{Paper 4}
+\addcontentsline{toc}{section}{Paper 4}
+\paperheader{Paper 4: FPGA, Edge AI, and Integrated Embedded System Reasoning}{100}{2 hours 10 minutes}
+
+\subpaperheader{Section A: Theory and Short Closed Questions (40 marks)}
+\begin{enumerate}
+\item What is a Field-Programmable Gate Array (FPGA)? \qmarks{4}
+\tinyanswer
+
+\item State one key difference between an FPGA and an Application-Specific Integrated Circuit (ASIC). \qmarks{4}
+\tinyanswer
+
+\item What is a Lookup Table (LUT) used for in FPGA fabric? \qmarks{4}
+\tinyanswer
+
+\item What is the role of Block RAM (BRAM)? \qmarks{4}
+\tinyanswer
+
+\item Why do modern FPGA platforms include Digital Signal Processing (DSP) blocks? \qmarks{4}
+\tinyanswer
+
+\item What is a Deep Processing Unit (DPU) in the course context? \qmarks{4}
+\tinyanswer
+
+\item What is quantization, and why is it useful on edge devices? \qmarks{4}
+\smallanswer
+
+\item What is a bitstream? \qmarks{4}
+\tinyanswer
+
+\item In a Zynq-style platform, what is the difference between the processing system and programmable logic? \qmarks{4}
+\smallanswer
+
+\item What does Vitis AI broadly do in the deployment flow? \qmarks{4}
+\smallanswer
+\end{enumerate}
+
+\subpaperheader{Section B: Practical Exercises (60 marks)}
+
+\textbf{Exercise 1: Edge AI deployment scenario} \qmarks{30}
+
+You must deploy a small image-classification model on an embedded platform with limited power and memory.
+
+Answer all parts:
+\begin{enumerate}[label=\alph*)]
+\item Compare three implementation options: CPU only, FPGA with DPU, and ASIC. Focus on flexibility, development cost, and runtime efficiency. \qmarks{12}
+\item Explain a sensible Vitis AI style workflow from model preparation to execution on hardware. \qmarks{8}
+\item Explain where quantization fits into this workflow and why it is often helpful. \qmarks{5}
+\item State the likely roles of LUTs, BRAM, and DSP blocks in this kind of design. \qmarks{5}
+\end{enumerate}
+\xlargeanswer
+\largeanswer
+
+\textbf{Exercise 2: Mixed embedded-system practical design} \qmarks{30}
+
+Consider a smart sensor node with:
+\begin{itemize}[leftmargin=1.5em]
+\item a microcontroller
+\item Flash and Random Access Memory (RAM)
+\item a timer
+\item General-Purpose Input/Output (GPIO)
+\item a status register at address \texttt{0x40001000}
+\item a data register at address \texttt{0x40001004}
+\end{itemize}
+
+Bit 0 of the status register becomes 1 when new sensor data is ready.
+
+Answer all parts:
+\begin{enumerate}[label=\alph*)]
+\item State where program code should live and where live runtime variables should live. \qmarks{6}
+\item Explain why GPIO, timers, and sensor registers count as peripherals rather than the CPU itself. \qmarks{6}
+\item Write ARM Thumb assembly that repeatedly polls the status register until bit 0 is set, then loads the data register value into \texttt{r2}. \qmarks{12}
+\item Briefly explain why this is an example of memory-mapped I/O. \qmarks{6}
+\end{enumerate}
+\xlargeanswer
+\largeanswer
+
+\newpage
+\section*{Condensed Model Solutions and Marking Guide}
+\addcontentsline{toc}{section}{Condensed Model Solutions and Marking Guide}
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.97\linewidth}
+Use this section only after attempting a paper. Solutions are intentionally concise and aligned to the vault's course notes rather than to every possible alternative answer.
+\end{minipage}}
+\end{center}
+
+\subsection*{Paper 1 Solutions}
+\textbf{Section A}
+\begin{enumerate}
+\item Embedded systems are specialized, hardware-coupled, and resource-constrained; general-purpose systems are meant for broad use.
+\item Flash / ROM-like non-volatile memory.
+\item The address of the next instruction to execute.
+\item Datapath and control.
+\item \texttt{78 56 34 12}.
+\item Arithmetic, logic, comparisons, shifts, and related value transformations.
+\item \texttt{N} negative, \texttt{Z} zero, \texttt{C} carry / no-borrow style unsigned condition, \texttt{V} signed overflow.
+\item \texttt{MOV} moves register / immediate values; \texttt{LDR} loads from memory to a register; \texttt{STR} stores a register to memory.
+\item \texttt{BGT}. It is a signed comparison; \texttt{BHI} is for unsigned higher.
+\item The value two integer elements after \texttt{ptr}; if \texttt{ptr} starts at the first element, this is the third element.
+\end{enumerate}
+
+\textbf{Section B}
+
+\textit{Exercise 1 reference solution}
+\begin{verbatim}
+sum_to_n:
+    CMP  r0, #0
+    BLE  done_zero
+    MOVS r1, #1
+    MOVS r2, #0
+loop:
+    CMP  r1, r0
+    BGT  done_sum
+    ADD  r2, r2, r1
+    ADDS r1, r1, #1
+    B    loop
+done_sum:
+    MOV  r0, r2
+    BX   LR
+done_zero:
+    MOVS r0, #0
+    BX   LR
+\end{verbatim}
+Marks: correct structure 10, correct signed branches 5, signed-vs-unsigned explanation 5.
+
+\textit{Exercise 2 key points}
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{ptr} stores the address of \texttt{arr[0]}.
+\item \texttt{a = 30}.
+\item Final array: \texttt{\{10, 99, 30, 40\}}.
+\item Pointer arithmetic scales by element size.
+\item Little-endian layout of \texttt{0x12345678}: \texttt{78 56 34 12}.
+\end{itemize}
+
+\textit{Exercise 3 reference solution}
+\begin{verbatim}
+    LDR  r1, [r0]
+    ORR  r1, r1, #0x80
+    BIC  r1, r1, #0x08
+    STR  r1, [r0]
+\end{verbatim}
+\texttt{BIC} clears the selected bit. Full credit also for a correct clear-by-mask alternative. Peripheral registers occupy normal addresses, so \texttt{LDR} and \texttt{STR} work.
+
+\subsection*{Paper 2 Solutions}
+\textbf{Section A}
+\begin{enumerate}
+\item Datapath moves / transforms values; control issues signals that steer execution.
+\item Decode interprets the fetched instruction and generates the internal control actions.
+\item Registers are inside the CPU and much closer to the Arithmetic Logic Unit.
+\item Von Neumann shares instruction and data memory; Harvard separates them.
+\item A half adder adds two bits; a full adder also accepts carry-in.
+\item \texttt{BL} branches and stores a return address in \texttt{LR}.
+\item In \texttt{r0-r3}.
+\item It holds the return address after a call-style branch.
+\item Signed and unsigned branches interpret the same flag state differently.
+\item It reduces average access time by holding frequently used data / instructions close to the CPU.
+\end{enumerate}
+
+\textbf{Section B}
+
+\textit{Exercise 1}
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{MOVS r0, \#3} gives \texttt{r0 = 3}.
+\item After \texttt{BL add5}, \texttt{r0 = 8}.
+\item After \texttt{BL twice}, \texttt{r0 = 16}.
+\item Final returned value is \texttt{16}.
+\item Each \texttt{BL} changes control flow and writes the return address into \texttt{LR}.
+\item \texttt{BX LR} works because the callee returns to the address saved by \texttt{BL}.
+\item If \texttt{add5} made another call, that new \texttt{BL} would overwrite \texttt{LR}; it may need \texttt{PUSH \{lr\}} / \texttt{POP \{lr\}} or equivalent preservation.
+\end{itemize}
+
+\textit{Exercise 2}
+\begin{itemize}[leftmargin=1.5em]
+\item With \texttt{r0 = -1} and \texttt{r1 = 2}: \texttt{BGT} no, \texttt{BLT} yes, \texttt{BHI} yes, \texttt{BLO} no.
+\item \texttt{10110100 AND 00001111 = 00000100}
+\item \texttt{10110100 OR 00001111 = 10111111}
+\item \texttt{10110100 XOR 00001111 = 10111011}
+\item \texttt{0x7FFFFFFF + 1 = 0x80000000}; under signed 32-bit interpretation this is negative and represents signed overflow.
+\item One correct odd-test sequence:
+\begin{verbatim}
+    TST  r0, #1
+    BEQ  even_case
+    MOVS r1, #1
+    B    done
+even_case:
+    MOVS r1, #0
+done:
+\end{verbatim}
+\end{itemize}
+
+\subsection*{Paper 3 Solutions}
+\textbf{Section A}
+\begin{enumerate}
+\item Build creates the binary, flash programs it into the microcontroller, debug runs with inspection and breakpoints.
+\item ST-LINK is the host-to-board programming and debugging interface.
+\item Disassembly shows generated instructions and addresses, linking source behaviour to machine execution.
+\item A breakpoint stops execution at a chosen location.
+\item Peripherals occupy addresses in the normal processor address space.
+\item Datasheet: device capabilities / characteristics; programming manual: architecture, programming model, register semantics.
+\item An interrupt redirects normal execution so an event can be handled promptly.
+\item The function / routine that runs in response to an interrupt.
+\item Peripherals depend on clock sources to operate correctly.
+\item Advantage: simple to understand. Disadvantage: wastes CPU time and can increase latency.
+\end{enumerate}
+
+\textbf{Section B}
+
+\textit{Exercise 1 expected workflow}
+\begin{itemize}[leftmargin=1.5em]
+\item Confirm successful build and the correct project image.
+\item Flash the image into device non-volatile memory.
+\item Use ST-LINK for programming / debug connection.
+\item Start a debug session, place breakpoints, single-step, inspect variables, inspect registers, inspect memory, compare with disassembly, and identify where behaviour diverges from expectation.
+\end{itemize}
+
+\textit{Exercise 2 reference solution}
+\begin{verbatim}
+    .global max3u
+max3u:
+    CMP  r0, r1
+    BHS  keep_r0
+    MOV  r0, r1
+keep_r0:
+    CMP  r0, r2
+    BHS  done
+    MOV  r0, r2
+done:
+    BX   LR
+\end{verbatim}
+\texttt{BHS} is unsigned higher-or-same; signed branches would be incorrect because the inputs are explicitly unsigned.
+
+\textit{Exercise 3}
+\begin{itemize}[leftmargin=1.5em]
+\item Best answer: usually a mixture. Timer interrupt or timer-driven event for periodic LED toggling; interrupt or at least event-based detection for prompt button response; superloop may still exist for background work.
+\item The timer provides the 500 ms time base.
+\item High-level sketch: initialize GPIO and timer, enable button interrupt or sampled event, in ISR set a flag or toggle state, main loop handles background tasks.
+\end{itemize}
+
+\subsection*{Paper 4 Solutions}
+\textbf{Section A}
+\begin{enumerate}
+\item A reconfigurable integrated circuit whose logic can be programmed after manufacturing.
+\item FPGA is reconfigurable after manufacture; ASIC is fixed once fabricated.
+\item LUTs implement combinational logic.
+\item BRAM provides on-chip storage.
+\item DSP blocks accelerate arithmetic-heavy operations.
+\item A dedicated accelerator in the FPGA fabric for neural-network inference.
+\item Quantization reduces numeric precision, usually reducing model size and compute cost for constrained hardware.
+\item The configuration data that programs the FPGA fabric.
+\item Processing system is the processor side; programmable logic is the configurable hardware fabric.
+\item It supports model preparation, quantization, compilation, and runtime execution on supported targets.
+\end{enumerate}
+
+\textbf{Section B}
+
+\textit{Exercise 1}
+\begin{itemize}[leftmargin=1.5em]
+\item CPU only: flexible, easiest to program, but less efficient for inference-heavy workloads.
+\item FPGA + DPU: middle ground; configurable and more efficient for targeted acceleration.
+\item ASIC: most efficient for one fixed purpose, but inflexible and expensive to design.
+\item Workflow: prepare model, quantize, compile for target, generate / use platform bitstream and runtime stack, execute with runtime such as VART.
+\item Quantization reduces precision, often to INT8, to lower cost while keeping acceptable accuracy.
+\item LUTs implement logic, BRAM stores data and activations, DSP blocks accelerate arithmetic.
+\end{itemize}
+
+\textit{Exercise 2}
+\begin{itemize}[leftmargin=1.5em]
+\item Program code: Flash. Runtime variables / stack / buffers: Random Access Memory.
+\item GPIO, timers, and sensor registers are peripherals because they are hardware blocks controlled by the CPU, not the CPU core itself.
+\item One correct polling solution:
+\begin{verbatim}
+    LDR  r0, =0x40001000
+poll:
+    LDR  r1, [r0]
+    TST  r1, #1
+    BEQ  poll
+    LDR  r1, =0x40001004
+    LDR  r2, [r1]
+\end{verbatim}
+\item This is memory-mapped I/O because the peripheral registers are accessed through normal addresses with normal load instructions.
+\end{itemize}
+
+\end{document}

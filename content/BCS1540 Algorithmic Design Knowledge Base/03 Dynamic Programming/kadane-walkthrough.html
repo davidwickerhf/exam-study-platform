@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kadane's Algorithm — Walkthrough + 4-Step Exam Format</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #fafafa;
+    color: #1c1c1e;
+    margin: 0;
+    padding: 32px 32px 120px;  /* extra bottom padding for floating controls */
+    max-width: 1200px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+  }
+  .subtitle {
+    color: #6b6b6f;
+    margin: 0 0 20px 0;
+    font-size: 14px;
+  }
+  /* ===== TABS ===== */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e5e5e7;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b6b6f;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: #1c1c1e; }
+  .tab.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+  .section {
+    display: none;
+  }
+  .section.active {
+    display: block;
+  }
+
+  /* ===== WALKTHROUGH ===== */
+  .container {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .panel {
+    background: white;
+    border: 1px solid #e5e5e7;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .panel.diagram-panel {
+    position: sticky;
+    top: 20px;
+  }
+  .panel.explanation-panel {
+    min-height: 600px;   /* prevent vertical jumping */
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    background: white;
+    border-radius: 4px;
+  }
+  .step-counter {
+    color: #888;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 14px 0;
+    color: #1a1a1a;
+  }
+  .step-body {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #333;
+  }
+  .step-body p { margin: 10px 0; }
+  .step-body strong { color: #1c1c1e; }
+  .step-body code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+  }
+  .step-body .em {
+    background: #fff8d9;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .step-body ul, .step-body ol {
+    margin: 8px 0;
+    padding-left: 22px;
+  }
+  .step-body li {
+    margin-bottom: 6px;
+  }
+  .formula {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 14px 16px;
+    border-radius: 6px;
+    margin: 14px 0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: center;
+  }
+  .annotation {
+    background: #f0f9ff;
+    border-left: 3px solid #2563eb;
+    padding: 12px 14px;
+    margin: 12px 0;
+    border-radius: 4px;
+    font-size: 13.5px;
+  }
+  .annotation.warn {
+    background: #fff8e6;
+    border-left-color: #f59e0b;
+  }
+  .annotation.success {
+    background: #f0fdf4;
+    border-left-color: #10b981;
+  }
+  .legend {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11px;
+    color: #555;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .swatch {
+    width: 16px;
+    height: 14px;
+    border: 1px solid #888;
+  }
+
+  /* ===== FLOATING CONTROLS ===== */
+  .floating-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 12px 16px;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 1000;
+    border: 1px solid #e5e5e7;
+  }
+  .floating-controls.hidden { display: none; }
+  .floating-controls button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .floating-controls button:hover { background: #1d4ed8; }
+  .floating-controls button:disabled { background: #ccc; cursor: not-allowed; }
+  .floating-controls button.secondary { background: #6b7280; }
+  .floating-controls button.secondary:hover { background: #4b5563; }
+  .floating-controls .progress {
+    color: #666;
+    font-size: 13px;
+    padding: 0 10px;
+    font-weight: 500;
+  }
+  .floating-controls input[type=range] {
+    width: 200px;
+  }
+
+  /* ===== EXAM FORMAT SECTION ===== */
+  .exam-intro {
+    background: #fff8e6;
+    border-left: 3px solid #f59e0b;
+    padding: 16px 20px;
+    border-radius: 6px;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+  .exam-step-card {
+    background: white;
+    border: 1px solid #e5e5e7;
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .exam-step-card h2 {
+    margin: 0 0 8px 0;
+    font-size: 22px;
+    color: #1c1c1e;
+  }
+  .exam-step-card .step-tag {
+    display: inline-block;
+    background: #f0f9ff;
+    color: #1d4ed8;
+    padding: 4px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .exam-step-card .subhead {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b6b6f;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 22px;
+    margin-bottom: 8px;
+  }
+  .exam-step-card p {
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin: 8px 0;
+  }
+  .exam-step-card ul {
+    padding-left: 22px;
+    margin: 8px 0;
+  }
+  .exam-step-card li {
+    margin: 6px 0;
+    font-size: 14px;
+  }
+  .exam-step-card code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+  }
+  .exam-step-card .em {
+    background: #fff8d9;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .exam-step-card .kadane-box {
+    background: #f0f9ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 12px 0;
+    font-size: 13.5px;
+  }
+  .exam-step-card .kadane-box strong { color: #1d4ed8; }
+  .exam-step-card .pitfall {
+    background: #fef2f2;
+    border-left: 3px solid #ef4444;
+    padding: 10px 12px;
+    margin: 12px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .exam-step-card .pitfall strong { color: #b91c1c; }
+  .exam-step-card pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 12px 0;
+  }
+  .full-answer-card {
+    background: #f0fdf4;
+    border: 2px solid #86efac;
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .full-answer-card h2 {
+    margin: 0 0 16px 0;
+    color: #15803d;
+    font-size: 20px;
+  }
+  .full-answer-card pre {
+    background: white;
+    color: #1c1c1e;
+    border: 1px solid #d1fae5;
+    padding: 16px 18px;
+    border-radius: 6px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Kadane's Algorithm — Walkthrough + Exam Format</h1>
+<p class="subtitle">Maximum-sum contiguous subarray (2024 mock Q3). Switch between the visual step-through and the 4-step exam-answer breakdown.</p>
+
+<div class="tabs">
+  <button class="tab active" data-section="walkthrough">Visual Walkthrough</button>
+  <button class="tab" data-section="exam-format">4-Step Exam Format</button>
+</div>
+
+<!-- ====================== WALKTHROUGH ====================== -->
+<div class="section active" id="walkthrough">
+  <div class="container">
+    <div class="panel diagram-panel">
+      <svg id="diagram" viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg">
+        <g id="labels"></g>
+        <g id="subarray-highlight"></g>
+        <g id="array-row"></g>
+        <g id="opt-row"></g>
+        <g id="opt-label"></g>
+        <g id="overlay"></g>
+      </svg>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background: #fef3c7"></span> Subarray under consideration</div>
+        <div class="legend-item"><span class="swatch" style="background: #dbeafe"></span> Best ending at current j</div>
+        <div class="legend-item"><span class="swatch" style="background: #dcfce7"></span> Final winner</div>
+        <div class="legend-item"><span class="swatch" style="background: #f3f4f6"></span> Not yet computed</div>
+      </div>
+    </div>
+
+    <div class="panel explanation-panel">
+      <div class="step-counter" id="step-counter"></div>
+      <h2 class="step-title" id="step-title"></h2>
+      <div class="step-body" id="step-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== EXAM FORMAT ====================== -->
+<div class="section" id="exam-format">
+
+  <div class="exam-intro">
+    <strong>Why this section exists.</strong> The 4-step format is what you literally write on the exam. Each step has a precise meaning that you must hit. This page explains <strong>what each step is, how to find it, how to define it</strong> — using the Kadane example we just walked through. Memorise this structure; tomorrow you'll instantiate it for whatever DP problem appears.
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 1 of 4</span>
+    <h2>Define the table of values</h2>
+
+    <p class="subhead">What is a "table of values"?</p>
+    <p>A <strong>table of values</strong> is an array — 1-dimensional, 2-dimensional, or higher — where <strong>each cell stores the answer to a sub-problem</strong>. We solve the original problem by computing all the sub-problems' answers, one cell at a time.</p>
+    <p>It's called a "table" because, when the table is 2D, it visually looks like a grid (rows × columns). But the data structure is just an array.</p>
+
+    <p class="subhead">What goes in a cell?</p>
+    <p>A single number — specifically the <strong>optimum value</strong> (max sum, min cost, count, etc.) for some sub-problem. <strong>Not</strong> the solution itself (e.g. the actual subarray), <strong>just the value</strong>. Reconstructing the actual solution is done separately in Step 4.</p>
+
+    <p class="subhead">What's a "sub-problem"?</p>
+    <p>A smaller version of the original problem. For DP to work, the original problem must have <em>natural smaller pieces</em> that can be solved independently and combined.</p>
+    <p>For our Kadane problem, the original question is: <em>"What's the max-sum contiguous subarray of X[1..n]?"</em> A natural smaller piece is: <em>"What's the max-sum subarray <strong>ending at index j</strong>?"</em> That's a sub-problem — one per choice of j.</p>
+
+    <p class="subhead">How do you find the right table definition?</p>
+    <p>Ask yourself: <em>"What's the LAST decision the algorithm makes? What parameters describe a sub-problem just before that decision?"</em> Those parameters become the <strong>indices</strong> of your table.</p>
+    <p>For Kadane: the last decision is "where does the subarray end?". Parameter = <code>j</code> (the ending index). So the table is indexed by <code>j</code> — a 1D table.</p>
+    <ul>
+      <li>If the last decision involves one parameter → <strong>1D table</strong> (Kadane, Weighted Interval Scheduling)</li>
+      <li>Two parameters → <strong>2D table</strong> (Knapsack: which items × remaining capacity; LCS: prefix-of-string1 × prefix-of-string2)</li>
+      <li>More → higher-dimensional table (TSP uses a subset + last vertex)</li>
+    </ul>
+
+    <p class="subhead">How do you DEFINE it on paper?</p>
+    <p>Write one sentence in the exact form:</p>
+    <pre>Let OPT[index] = the [max / min / count] of [property] over [sub-problem description].</pre>
+    <p>For Kadane:</p>
+    <div class="kadane-box">
+      <strong>Definition:</strong> <code>OPT[j]</code> = the <strong>maximum sum</strong> of a contiguous subarray <strong>ending at index j</strong>, for j = 1, …, n. <br><br>
+      <strong>Whole-problem mapping:</strong> the answer to the original problem is <code>max over j ∈ {1, …, n} of OPT[j]</code>.
+    </div>
+    <p>Notice: the table doesn't directly give the answer — instead, the answer is the <em>max</em> of all table cells. That's fine. Many DP problems work this way.</p>
+
+    <div class="pitfall">
+      <strong>Common pitfall:</strong> defining <code>OPT[i, j]</code> = "max-sum subarray from i to j". That's <strong>just restating the original problem</strong> with extra parameters. It gives no obvious smaller sub-problem. The right table is anchored to a SINGLE decision point (here: where the subarray ends).
+    </div>
+    <div class="pitfall">
+      <strong>Common pitfall:</strong> forgetting to state that the whole problem's answer is max/min over cells. The grader needs to see how the table corresponds to the final answer.
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 2 of 4</span>
+    <h2>Give the recurrence (with correctness justification)</h2>
+
+    <p class="subhead">What is a "recurrence"?</p>
+    <p>A <strong>recurrence</strong> is a formula that expresses <code>OPT[i]</code> in terms of <code>OPT[smaller indices]</code> — together with <strong>base cases</strong> for the smallest sub-problems where no recursion is needed.</p>
+
+    <p class="subhead">How do you FIND the recurrence?</p>
+    <p>Step back and ask: <em>"For an optimal solution to sub-problem i, what's the LAST decision it makes?"</em> Usually there are 2–3 options. List them, take the max (or min, or sum) over the options.</p>
+    <p>For Kadane's <code>OPT[j]</code>: the best subarray ending at j has a "starting position". Two options:</p>
+    <ul>
+      <li><strong>Option A — Start fresh at j.</strong> Subarray length 1, just <code>X[j]</code>.</li>
+      <li><strong>Option B — Extend a subarray ending at j-1.</strong> Length ≥ 2, equals (best subarray ending at j-1) + <code>X[j]</code>.</li>
+    </ul>
+    <p>Any subarray ending at j must be one of these two cases — there's no other possibility.</p>
+
+    <p class="subhead">Write the recurrence:</p>
+    <div class="kadane-box">
+      <strong>Recurrence:</strong> <code>OPT[j] = max( X[j], &nbsp; X[j] + OPT[j-1] )</code> for j ≥ 2.<br>
+      <strong>Base case:</strong> <code>OPT[1] = X[1]</code>.
+    </div>
+
+    <p class="subhead">Justifying correctness</p>
+    <p>The grader wants you to explain <strong>why</strong> the recurrence is correct. One sentence is enough:</p>
+    <p class="kadane-box">
+      <strong>Correctness:</strong> any contiguous subarray ending at j either has length 1 (= X[j] alone) or has length ≥ 2 (= some subarray ending at j-1, extended by X[j]). The recurrence considers both cases and picks the maximum, so it equals the max-sum subarray ending at j.
+    </p>
+    <p>The recipe: list the cases that any optimal sub-problem solution can take, observe the recurrence considers all of them, conclude correctness.</p>
+
+    <div class="pitfall">
+      <strong>Common pitfall:</strong> forgetting the base case. Without <code>OPT[1] = X[1]</code>, the recurrence has nothing to start from.
+    </div>
+    <div class="pitfall">
+      <strong>Common pitfall:</strong> using "any subarray ending at j-1" in Option B instead of "the BEST subarray ending at j-1" (= <code>OPT[j-1]</code>). The recurrence MUST refer to optimal sub-problem solutions, not arbitrary ones. This is the principle of "optimal substructure".
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 3 of 4</span>
+    <h2>Bottom-up algorithm + runtime</h2>
+
+    <p class="subhead">What does "bottom-up" mean?</p>
+    <p>It means <strong>compute the table values starting from the smallest sub-problems</strong>, building up to the full problem. The opposite is "top-down" (recursive, with memoisation) — same result, but bottom-up is iterative and standard on the exam.</p>
+
+    <p class="subhead">How do you find the right ORDER to fill cells?</p>
+    <p>Look at the recurrence. Each cell <code>OPT[i]</code> depends on some smaller-indexed cells. Fill cells in an order such that <strong>whenever you compute <code>OPT[i]</code>, all the cells it depends on are already filled</strong>.</p>
+    <p>For Kadane: <code>OPT[j]</code> depends on <code>OPT[j-1]</code> only. So fill in order j = 1, 2, …, n.</p>
+    <p>For 2D tables: usually nested loops, with the outer loop being the parameter that drives smaller-to-larger.</p>
+
+    <p class="subhead">Write the algorithm:</p>
+    <div class="kadane-box">
+      <pre style="background: white; color: #1c1c1e; padding: 12px; border-radius: 4px; margin: 0; border: 1px solid #bfdbfe;">KADANE(X[1..n]):
+    OPT[1] := X[1]
+    for j := 2 to n:
+        OPT[j] := max(X[j], X[j] + OPT[j-1])
+    answer := max over j of OPT[j]
+    return answer</pre>
+    </div>
+
+    <p class="subhead">Runtime analysis</p>
+    <p>Always state runtime explicitly, in the form:</p>
+    <pre>Runtime = O( (number of table cells) × (work per cell) ) = O(...)</pre>
+    <p>For Kadane:</p>
+    <ul>
+      <li>Number of cells: <code>n</code></li>
+      <li>Work per cell: <code>O(1)</code> (just one comparison)</li>
+      <li>Plus <code>O(n)</code> for the final max-scan</li>
+      <li>Total: <strong><code>O(n)</code></strong></li>
+    </ul>
+    <p>Compare to brute force: try all O(n²) subarrays, each summed in O(n) → O(n³). DP cuts this by a factor of n².</p>
+
+    <div class="pitfall">
+      <strong>Common pitfall:</strong> stating runtime as a single big-O without breaking down where it comes from. Graders want to see the (table size × work) reasoning.
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 4 of 4</span>
+    <h2>Reconstruction — recover the actual solution</h2>
+
+    <p class="subhead">What is reconstruction?</p>
+    <p>After Step 3, you have all the table values, including the optimum value. But you usually don't have the actual SOLUTION — the set of choices that produces the optimum. Reconstruction recovers it.</p>
+    <p>For Kadane: Step 3 gives you the max sum (a number, 6). Reconstruction gives you the actual <strong>indices (i, j)</strong> of the subarray achieving sum 6.</p>
+
+    <p class="subhead">How do you reconstruct?</p>
+    <p>Walk back through the table starting from the "winning" cell. At each cell, figure out which branch of the recurrence "won" — that is, which option in the max/min produced this cell's value. Record the choice, then jump to the predecessor cell suggested by that option. Continue until you reach a base case.</p>
+
+    <p class="subhead">For Kadane:</p>
+    <p>Start: find <code>j* = argmax OPT[j]</code> (the right endpoint of the best subarray).</p>
+    <p>Walk back from <code>j*</code> to find the left endpoint <code>i*</code>. At each cell <code>OPT[i]</code>, ask: <em>which branch produced this value?</em></p>
+    <ul>
+      <li>If <code>OPT[i] = X[i] + OPT[i-1]</code> → Option B was used (extended). Keep walking left.</li>
+      <li>Otherwise → Option A was used (started fresh). Stop — <code>i</code> is the left endpoint.</li>
+    </ul>
+    <div class="kadane-box">
+      <pre style="background: white; color: #1c1c1e; padding: 12px; border-radius: 4px; margin: 0; border: 1px solid #bfdbfe;">RECONSTRUCT(OPT, X):
+    j* := index achieving max over j of OPT[j]
+    i* := j*
+    while i* > 1 and OPT[i*] = X[i*] + OPT[i*-1]:
+        i* := i* - 1
+    return (i*, j*)</pre>
+    </div>
+    <p>For our example: j* = 7 (OPT[7] = 6 is max). Walking back: i*=7 → extended → 6 → extended → 5 → extended → 4 → NOT extended (started fresh). Stop at i* = 4. Answer: subarray X[4..7] = [4, -1, 2, 1], sum 6.</p>
+
+    <p class="subhead">Runtime</p>
+    <p><code>O(n)</code> for the backward walk plus <code>O(n)</code> to find <code>j*</code> = <code>O(n)</code> total. Always state it.</p>
+
+    <div class="pitfall">
+      <strong>Common pitfall:</strong> stopping reconstruction at <code>j*</code> without walking back. Step 4 is not just "find the winning cell" — it's "find the actual solution structure".
+    </div>
+    <div class="pitfall">
+      <strong>Common pitfall:</strong> forgetting to track which branch won. Sometimes you need extra information (e.g., for LCS, you remember which of three branches: match / drop-from-s1 / drop-from-s2). For Kadane the comparison <code>OPT[i] = X[i] + OPT[i-1]</code> suffices.
+    </div>
+  </div>
+
+  <!-- FULL ANSWER -->
+  <div class="full-answer-card">
+    <h2>📋 The full 4-step answer (18 pts on the exam)</h2>
+    <pre>Step 1. Define the table.
+    Let OPT[j] be the maximum sum of a contiguous subarray ending at
+    index j, for j = 1, ..., n. The whole problem's answer is
+    max over j of OPT[j].
+
+Step 2. Recurrence + correctness.
+    OPT[j] = max( X[j],  X[j] + OPT[j-1] ) for j >= 2.
+    Base case: OPT[1] = X[1].
+    Correctness: any subarray ending at j either has length 1 (just X[j])
+    or length >= 2 (a subarray ending at j-1, extended by X[j]). The
+    recurrence considers both options and picks the larger, so it
+    equals the max-sum subarray ending at j.
+
+Step 3. Bottom-up + runtime.
+    OPT[1] := X[1]
+    for j := 2 to n:
+        OPT[j] := max(X[j], X[j] + OPT[j-1])
+    answer := max over j of OPT[j]
+    Runtime: O(n) cells with O(1) work each, plus O(n) for the final
+    max = O(n) total.
+
+Step 4. Reconstruction.
+    j* := index achieving max over j of OPT[j]
+    i* := j*
+    while i* > 1 and OPT[i*] = X[i*] + OPT[i*-1]:
+        i* := i* - 1
+    return (i*, j*)
+    Runtime: O(n).</pre>
+  </div>
+
+</div>
+
+<!-- Floating controls (only visible in walkthrough section) -->
+<div class="floating-controls" id="floating-controls">
+  <button class="secondary" id="prev-btn">‹ Prev</button>
+  <span class="progress" id="progress">1 / 22</span>
+  <button id="next-btn">Next ›</button>
+</div>
+
+<script>
+// ============================================================
+// Tab navigation
+// ============================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.section;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.section === target));
+    document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === target));
+    // Show/hide floating controls
+    document.getElementById('floating-controls').classList.toggle('hidden', target !== 'walkthrough');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// ============================================================
+// Input data
+// ============================================================
+const X = [null, -2, 1, -3, 4, -1, 2, 1, -5, 4];
+const N = 9;
+const OPT_VALUES = [null, -2, 1, -2, 4, 3, 5, 6, 1, 5];
+
+// ============================================================
+// Steps
+// ============================================================
+const STEPS = [
+  {
+    title: 'What we are given',
+    body: `<p>We have an <strong>array</strong> of <em>n</em> integers. Numbers can be positive or negative. The array on the left has <em>n</em> = 9 numbers.</p>
+           <p>Think of it as 9 boxes in a row, each holding a number. The <strong>index</strong> (1, 2, …, 9) tells us the position.</p>
+           <p>Below the array there's an empty row labelled <code>OPT[j]</code>. We'll fill it in soon — for now, it's empty.</p>`,
+    annotation: { type: 'info', text: 'We will refer to a number at position j as X[j]. Example: X[4] = 4.' },
+    arraySubarray: null,
+    optFilled: 0,
+  },
+  {
+    title: 'What is a "subarray"?',
+    body: `<p>A <strong>contiguous subarray</strong> is a chunk of consecutive boxes — pick a <strong>start position</strong> <em>i</em> and an <strong>end position</strong> <em>j</em>, and take everything from <em>X[i]</em> to <em>X[j]</em>.</p>
+           <p>The highlighted yellow region is one example: the subarray from index 4 to index 7.</p>
+           <p>"Contiguous" means: no gaps allowed. You can't skip boxes.</p>`,
+    annotation: { type: 'info', text: 'A subarray of length 1 is also valid — it\'s just a single box.' },
+    arraySubarray: { start: 4, end: 7, color: '#fef3c7', label: 'Subarray X[4..7] = [4, -1, 2, 1]' },
+    optFilled: 0,
+  },
+  {
+    title: 'The sum of a subarray',
+    body: `<p>The <strong>sum</strong> of a subarray is just adding up all its numbers.</p>
+           <p>For the highlighted subarray X[4..7] = [4, -1, 2, 1]:</p>`,
+    formula: 'sum = 4 + (-1) + 2 + 1 = 6',
+    bodyEnd: `<p>So this subarray has sum 6. Some subarrays have positive sums (good), some negative (bad). Our goal: find the one with the <strong>biggest</strong> sum.</p>`,
+    arraySubarray: { start: 4, end: 7, color: '#fef3c7', label: 'sum = 6' },
+    optFilled: 0,
+  },
+  {
+    title: 'The problem',
+    body: `<p>The question is: <em>"Out of all possible contiguous subarrays, which one has the largest sum?"</em></p>
+           <p>For our array, the answer happens to be the subarray <code>X[4..7] = [4, -1, 2, 1]</code> with sum <strong>6</strong>. But we need an <em>algorithm</em> that finds it for any input array.</p>
+           <p>Output: the maximum sum, plus optionally the indices (start, end) of the subarray achieving it.</p>`,
+    annotation: { type: 'info', text: 'Brute force would try every (i, j) pair — about n²/2 of them — and sum each in O(n) time. That gives O(n³). We can do MUCH better with DP.' },
+    arraySubarray: { start: 4, end: 7, color: '#dcfce7', label: 'Optimal subarray — sum 6' },
+    optFilled: 0,
+  },
+  {
+    title: 'KEY INSIGHT — fix the right endpoint',
+    body: `<p>Instead of trying every <strong>(start, end)</strong> pair, here's the trick:</p>
+           <p style="font-size: 15px; padding: 12px; background: #fff8d9; border-radius: 4px;">"<em>For each possible <strong>ending</strong> index <em>j</em>, find the best subarray that <strong>ends at j</strong>. Then the overall answer is the best across all ending positions.</em>"</p>
+           <p>That is, we reframe the problem as <em>n</em> simpler subproblems:</p>
+           <ul>
+             <li>What's the best subarray ending at j=1?</li>
+             <li>What's the best subarray ending at j=2?</li>
+             <li>… and so on up to j=n.</li>
+           </ul>
+           <p>Then we take the max across these <em>n</em> answers.</p>`,
+    annotation: { type: 'warn', text: 'This reframing is the heart of DP. We trade ONE hard problem for n smaller, related problems.' },
+    arraySubarray: null,
+    optFilled: 0,
+  },
+  {
+    title: 'Step 1 of DP template — Define the table',
+    body: `<p>Let's name the answer to each subproblem. Define:</p>`,
+    formula: 'OPT[j] = max sum of a subarray ending exactly at index j',
+    bodyEnd: `<p>So <code>OPT[j]</code> is a number. There are <em>n</em> such values: OPT[1], OPT[2], …, OPT[9].</p>
+              <p>The empty row below the array (labelled "OPT[j]") will hold these values. We'll fill them in one at a time.</p>
+              <p>The final answer to the original problem will be <code>max over j of OPT[j]</code> — the largest entry in this row.</p>`,
+    annotation: { type: 'info', text: 'OPT[j] is NOT directly the answer. It is the answer for ending-at-j. We take the max across all j at the end.' },
+    arraySubarray: null,
+    optFilled: 0,
+  },
+  {
+    title: 'Base case — Compute OPT[1]',
+    body: `<p>What's the best subarray ending at index 1?</p>
+           <p>There's only ONE possible subarray ending at index 1: the subarray consisting of just <code>X[1] = -2</code>. So:</p>`,
+    formula: 'OPT[1] = X[1] = -2',
+    bodyEnd: `<p>Yes, it's negative — that's fine. We just record whatever the best one is. OPT[1] is now <strong>−2</strong>.</p>`,
+    arraySubarray: { start: 1, end: 1, color: '#dbeafe', label: 'Only subarray ending at j=1' },
+    optFilled: 1,
+    optActive: 1,
+  },
+  {
+    title: 'Step 2 of DP template — Recurrence intuition',
+    body: `<p>What about OPT[2], OPT[3], …, OPT[9]? Let's think generally for any <code>j ≥ 2</code>.</p>
+           <p>The best subarray ending at <em>j</em> has SOME start position. There are exactly <strong>two scenarios</strong>:</p>
+           <ol>
+             <li><strong>Option A — Start fresh at j.</strong> The subarray is just <code>X[j]</code> alone (length 1).</li>
+             <li><strong>Option B — Extend an earlier subarray.</strong> The subarray includes <code>X[j]</code> AND extends a subarray ending at <code>j-1</code>.</li>
+           </ol>
+           <p>Why only these two? Because any subarray ending at <em>j</em> either starts at <em>j</em> (length 1) or starts before <em>j</em> (length ≥ 2). If length ≥ 2, then chopping off <code>X[j]</code> leaves a subarray ending at <code>j-1</code>.</p>`,
+    annotation: { type: 'warn', text: 'These are the ONLY two options. Recurrence must consider both and pick the better one.' },
+    arraySubarray: null,
+    optFilled: 1,
+  },
+  {
+    title: 'The recurrence formula',
+    body: `<p>Putting Option A and Option B together:</p>`,
+    formula: 'OPT[j] = max( X[j],  X[j] + OPT[j−1] )',
+    bodyEnd: `<p>Reading this:</p>
+             <ul>
+               <li>The first term <code>X[j]</code> is Option A (start fresh: subarray is just X[j]).</li>
+               <li>The second term <code>X[j] + OPT[j-1]</code> is Option B (extend: best subarray ending at j-1, plus X[j]).</li>
+               <li>We take the <code>max</code> of the two.</li>
+             </ul>
+             <p>This is the entire recurrence. Now we just apply it n-1 times to fill OPT[2..n].</p>`,
+    annotation: { type: 'success', text: 'Why does Option B use OPT[j-1] and not "any subarray ending at j-1"? Because if Option B is optimal, the part ending at j-1 MUST be the best — otherwise we could swap in a better one and improve total. This is called "optimal substructure".' },
+    arraySubarray: null,
+    optFilled: 1,
+  },
+  {
+    title: 'Compute OPT[2]',
+    body: `<p>Apply the recurrence with j=2. <code>X[2] = 1</code>, and <code>OPT[1] = -2</code>.</p>
+           <p>Option A: X[2] alone = <code>1</code>.</p>
+           <p>Option B: X[2] + OPT[1] = <code>1 + (-2) = -1</code>.</p>`,
+    formula: 'OPT[2] = max( 1,  -1 ) = 1',
+    bodyEnd: `<p>Option A wins! The best subarray ending at 2 is just <code>X[2] = 1</code> alone. We record OPT[2] = 1.</p>`,
+    annotation: { type: 'info', text: 'Option A "won": starting fresh is better than extending. We threw away the negative prefix.' },
+    arraySubarray: { start: 2, end: 2, color: '#dbeafe', label: 'OPT[2] = 1 (Option A: start fresh)' },
+    optFilled: 2,
+    optActive: 2,
+  },
+  {
+    title: 'Compute OPT[3]',
+    body: `<p>j=3. <code>X[3] = -3</code>, <code>OPT[2] = 1</code>.</p>
+           <p>Option A: X[3] alone = <code>-3</code>.</p>
+           <p>Option B: X[3] + OPT[2] = <code>-3 + 1 = -2</code>.</p>`,
+    formula: 'OPT[3] = max( -3,  -2 ) = -2',
+    bodyEnd: `<p>Option B wins (less negative). OPT[3] = -2. Best subarray ending at 3 is <code>[X[2], X[3]] = [1, -3]</code>.</p>`,
+    arraySubarray: { start: 2, end: 3, color: '#dbeafe', label: 'OPT[3] = -2 (Option B: extends OPT[2])' },
+    optFilled: 3,
+    optActive: 3,
+  },
+  {
+    title: 'Compute OPT[4]',
+    body: `<p>j=4. <code>X[4] = 4</code>, <code>OPT[3] = -2</code>.</p>
+           <p>Option A: X[4] alone = <code>4</code>.</p>
+           <p>Option B: X[4] + OPT[3] = <code>4 + (-2) = 2</code>.</p>`,
+    formula: 'OPT[4] = max( 4,  2 ) = 4',
+    bodyEnd: `<p>Option A wins. The negative OPT[3] dragged down Option B, so we start fresh at j=4.</p>`,
+    annotation: { type: 'warn', text: 'IMPORTANT: this is where the "winning subarray" begins. OPT[4]=4 means we started fresh at index 4. We will see why this matters during reconstruction.' },
+    arraySubarray: { start: 4, end: 4, color: '#dbeafe', label: 'OPT[4] = 4 (start fresh — important!)' },
+    optFilled: 4,
+    optActive: 4,
+  },
+  {
+    title: 'Compute OPT[5]',
+    body: `<p>j=5. <code>X[5] = -1</code>, <code>OPT[4] = 4</code>.</p>
+           <p>Option A: X[5] alone = <code>-1</code>.</p>
+           <p>Option B: X[5] + OPT[4] = <code>-1 + 4 = 3</code>.</p>`,
+    formula: 'OPT[5] = max( -1,  3 ) = 3',
+    bodyEnd: `<p>Option B wins big. OPT[5] = 3. The subarray now extends to include X[4] and X[5].</p>`,
+    arraySubarray: { start: 4, end: 5, color: '#dbeafe', label: 'OPT[5] = 3 (extends from j=4)' },
+    optFilled: 5,
+    optActive: 5,
+  },
+  {
+    title: 'Compute OPT[6]',
+    body: `<p>j=6. <code>X[6] = 2</code>, <code>OPT[5] = 3</code>.</p>
+           <p>Option A: X[6] alone = <code>2</code>.</p>
+           <p>Option B: X[6] + OPT[5] = <code>2 + 3 = 5</code>.</p>`,
+    formula: 'OPT[6] = max( 2,  5 ) = 5',
+    bodyEnd: `<p>Option B wins. OPT[6] = 5. Subarray extends to X[4..6].</p>`,
+    arraySubarray: { start: 4, end: 6, color: '#dbeafe', label: 'OPT[6] = 5' },
+    optFilled: 6,
+    optActive: 6,
+  },
+  {
+    title: 'Compute OPT[7] — the champion',
+    body: `<p>j=7. <code>X[7] = 1</code>, <code>OPT[6] = 5</code>.</p>
+           <p>Option A: X[7] alone = <code>1</code>.</p>
+           <p>Option B: X[7] + OPT[6] = <code>1 + 5 = 6</code>.</p>`,
+    formula: 'OPT[7] = max( 1,  6 ) = 6',
+    bodyEnd: `<p>Option B wins. <strong>OPT[7] = 6.</strong> This is currently the highest OPT value — and as we'll see, this will turn out to be the overall maximum.</p>`,
+    annotation: { type: 'success', text: 'OPT[7]=6 is the winner of the table. The subarray X[4..7] = [4, -1, 2, 1] achieves it.' },
+    arraySubarray: { start: 4, end: 7, color: '#dbeafe', label: 'OPT[7] = 6 — current best!' },
+    optFilled: 7,
+    optActive: 7,
+  },
+  {
+    title: 'Compute OPT[8]',
+    body: `<p>j=8. <code>X[8] = -5</code>, <code>OPT[7] = 6</code>.</p>
+           <p>Option A: X[8] alone = <code>-5</code>.</p>
+           <p>Option B: X[8] + OPT[7] = <code>-5 + 6 = 1</code>.</p>`,
+    formula: 'OPT[8] = max( -5,  1 ) = 1',
+    bodyEnd: `<p>Option B wins narrowly. The big -5 hurt us, but extending the great prefix still beats starting fresh.</p>`,
+    arraySubarray: { start: 4, end: 8, color: '#dbeafe', label: 'OPT[8] = 1 (extends, but barely)' },
+    optFilled: 8,
+    optActive: 8,
+  },
+  {
+    title: 'Compute OPT[9]',
+    body: `<p>j=9. <code>X[9] = 4</code>, <code>OPT[8] = 1</code>.</p>
+           <p>Option A: X[9] alone = <code>4</code>.</p>
+           <p>Option B: X[9] + OPT[8] = <code>4 + 1 = 5</code>.</p>`,
+    formula: 'OPT[9] = max( 4,  5 ) = 5',
+    bodyEnd: `<p>Option B wins. OPT[9] = 5. Table is now fully filled!</p>`,
+    arraySubarray: { start: 4, end: 9, color: '#dbeafe', label: 'OPT[9] = 5' },
+    optFilled: 9,
+    optActive: 9,
+  },
+  {
+    title: 'Find the final answer — max over all OPT[j]',
+    body: `<p>We've computed all 9 OPT values:</p>
+           <p style="font-family: ui-monospace, monospace; font-size: 13px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+             OPT[1..9] = [-2, 1, -2, <strong>4</strong>, 3, 5, <strong>6</strong>, 1, 5]
+           </p>
+           <p>The maximum is <strong>OPT[7] = 6</strong>. That's the answer to the original problem.</p>`,
+    formula: 'answer = max over j of OPT[j] = 6  (achieved at j* = 7)',
+    bodyEnd: `<p>So the maximum-sum subarray has sum <strong>6</strong>, and it ENDS at index <strong>7</strong>. But where does it START? We still need to find the starting index. That's Step 4: reconstruction.</p>`,
+    annotation: { type: 'success', text: 'The DP value tells us what (the max sum) and where it ends (j*=7). Reconstruction tells us where it starts.' },
+    arraySubarray: null,
+    optFilled: 9,
+    optHighlight: 7,
+  },
+  {
+    title: 'Step 4 of DP template — Reconstruction setup',
+    body: `<p>We know <code>j* = 7</code> (the end). Now we walk backwards from j=7 to find the start.</p>
+           <p>The trick: at each cell <code>OPT[i]</code>, look at the recurrence. Was Option A or Option B used?</p>
+           <ul>
+             <li>If <code>OPT[i] = X[i] + OPT[i-1]</code> → Option B was used (extended). Keep walking left.</li>
+             <li>If <code>OPT[i] = X[i]</code> (and ≠ X[i] + OPT[i-1]) → Option A was used (started fresh). STOP. <code>i</code> is the start.</li>
+           </ul>
+           <p>Initialize <code>i* := j* = 7</code> and walk backwards.</p>`,
+    annotation: { type: 'info', text: 'We are tracing back the "did we extend?" chain until we find where the subarray started fresh.' },
+    arraySubarray: null,
+    optFilled: 9,
+    optHighlight: 7,
+  },
+  {
+    title: 'Reconstruction walk — j=7, 6, 5...',
+    body: `<p>Walk backwards from i*=7:</p>
+           <ul>
+             <li>i*=7: Is OPT[7]=6 equal to X[7]+OPT[6] = 1+5 = 6? <strong>Yes</strong> → extended. Move left to i*=6.</li>
+             <li>i*=6: Is OPT[6]=5 equal to X[6]+OPT[5] = 2+3 = 5? <strong>Yes</strong> → extended. Move left to i*=5.</li>
+             <li>i*=5: Is OPT[5]=3 equal to X[5]+OPT[4] = -1+4 = 3? <strong>Yes</strong> → extended. Move left to i*=4.</li>
+             <li>i*=4: Is OPT[4]=4 equal to X[4]+OPT[3] = 4+(-2) = 2? <strong>No (4 ≠ 2)</strong> → started fresh. <strong>STOP.</strong></li>
+           </ul>
+           <p>So i* = 4.</p>`,
+    annotation: { type: 'success', text: 'The walk stops at i*=4 because that\'s where the algorithm "started fresh" — Option A won at j=4, remember a few steps ago.' },
+    arraySubarray: { start: 4, end: 7, color: '#dcfce7', label: 'Final answer: X[4..7] = [4,-1,2,1], sum = 6' },
+    optFilled: 9,
+    optHighlight: 7,
+  },
+  {
+    title: 'Final answer',
+    body: `<p>The maximum-sum contiguous subarray is:</p>`,
+    formula: 'X[4..7] = [4, -1, 2, 1],   sum = 6',
+    bodyEnd: `<p>Indices: i* = 4 (start), j* = 7 (end). Sum: 6.</p>
+              <p>We solved the problem in <strong>O(n) time</strong> — way faster than the O(n³) brute force.</p>
+              <p>For the full <strong>exam-ready 4-step answer</strong>, switch to the <em>"4-Step Exam Format"</em> tab above.</p>`,
+    annotation: { type: 'success', text: 'The DP saved us a factor of n² compared to brute force.' },
+    arraySubarray: { start: 4, end: 7, color: '#dcfce7', label: 'OPTIMAL: X[4..7], sum 6' },
+    optFilled: 9,
+    optHighlight: 7,
+  },
+];
+
+// ============================================================
+// Rendering
+// ============================================================
+let currentStep = 0;
+
+const CELL_W = 60;
+const CELL_H = 50;
+const ROW_START_X = 60;
+const ARRAY_ROW_Y = 110;
+const OPT_ROW_Y = 240;
+const HIGHLIGHT_Y = 75;
+
+function renderDiagram(step) {
+  const labelsG = document.getElementById('labels');
+  const subarrayG = document.getElementById('subarray-highlight');
+  const arrayG = document.getElementById('array-row');
+  const optG = document.getElementById('opt-row');
+  const optLabelG = document.getElementById('opt-label');
+  const overlayG = document.getElementById('overlay');
+
+  labelsG.innerHTML = '';
+  subarrayG.innerHTML = '';
+  arrayG.innerHTML = '';
+  optG.innerHTML = '';
+  optLabelG.innerHTML = '';
+  overlayG.innerHTML = '';
+
+  const indexLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  indexLabel.setAttribute('x', '10');
+  indexLabel.setAttribute('y', ARRAY_ROW_Y - 30);
+  indexLabel.setAttribute('font-size', '11');
+  indexLabel.setAttribute('fill', '#888');
+  indexLabel.textContent = 'Index j:';
+  labelsG.appendChild(indexLabel);
+
+  const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  xLabel.setAttribute('x', '10');
+  xLabel.setAttribute('y', ARRAY_ROW_Y + 30);
+  xLabel.setAttribute('font-size', '13');
+  xLabel.setAttribute('fill', '#475569');
+  xLabel.setAttribute('font-weight', '600');
+  xLabel.textContent = 'X[j]:';
+  labelsG.appendChild(xLabel);
+
+  const optLabelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  optLabelText.setAttribute('x', '10');
+  optLabelText.setAttribute('y', OPT_ROW_Y + 30);
+  optLabelText.setAttribute('font-size', '13');
+  optLabelText.setAttribute('fill', '#475569');
+  optLabelText.setAttribute('font-weight', '600');
+  optLabelText.textContent = 'OPT[j]:';
+  optLabelG.appendChild(optLabelText);
+
+  if (step.arraySubarray) {
+    const sa = step.arraySubarray;
+    const x = ROW_START_X + (sa.start - 1) * CELL_W;
+    const w = (sa.end - sa.start + 1) * CELL_W;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x - 4);
+    rect.setAttribute('y', ARRAY_ROW_Y - 5);
+    rect.setAttribute('width', w + 8);
+    rect.setAttribute('height', CELL_H + 10);
+    rect.setAttribute('fill', sa.color);
+    rect.setAttribute('rx', '6');
+    subarrayG.appendChild(rect);
+    if (sa.label) {
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      lbl.setAttribute('x', x + w / 2);
+      lbl.setAttribute('y', HIGHLIGHT_Y);
+      lbl.setAttribute('text-anchor', 'middle');
+      lbl.setAttribute('font-size', '12');
+      lbl.setAttribute('font-weight', '600');
+      lbl.setAttribute('fill', '#1c1c1e');
+      lbl.textContent = sa.label;
+      subarrayG.appendChild(lbl);
+    }
+  }
+
+  for (let j = 1; j <= N; j++) {
+    const x = ROW_START_X + (j - 1) * CELL_W;
+    const idx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    idx.setAttribute('x', x + CELL_W / 2);
+    idx.setAttribute('y', ARRAY_ROW_Y - 15);
+    idx.setAttribute('text-anchor', 'middle');
+    idx.setAttribute('font-size', '12');
+    idx.setAttribute('fill', '#64748b');
+    idx.setAttribute('font-weight', '500');
+    idx.textContent = j;
+    arrayG.appendChild(idx);
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x);
+    rect.setAttribute('y', ARRAY_ROW_Y);
+    rect.setAttribute('width', CELL_W);
+    rect.setAttribute('height', CELL_H);
+    rect.setAttribute('fill', 'white');
+    rect.setAttribute('stroke', '#1c1c1e');
+    rect.setAttribute('stroke-width', '1.5');
+    arrayG.appendChild(rect);
+
+    const val = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    val.setAttribute('x', x + CELL_W / 2);
+    val.setAttribute('y', ARRAY_ROW_Y + CELL_H / 2 + 6);
+    val.setAttribute('text-anchor', 'middle');
+    val.setAttribute('font-size', '17');
+    val.setAttribute('font-weight', '700');
+    val.setAttribute('fill', '#1c1c1e');
+    val.textContent = X[j];
+    arrayG.appendChild(val);
+  }
+
+  for (let j = 1; j <= N; j++) {
+    const x = ROW_START_X + (j - 1) * CELL_W;
+    const filled = j <= step.optFilled;
+    const active = step.optActive === j;
+    const highlight = step.optHighlight === j;
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x);
+    rect.setAttribute('y', OPT_ROW_Y);
+    rect.setAttribute('width', CELL_W);
+    rect.setAttribute('height', CELL_H);
+    if (highlight) {
+      rect.setAttribute('fill', '#dcfce7');
+      rect.setAttribute('stroke', '#10b981');
+      rect.setAttribute('stroke-width', '3');
+    } else if (active) {
+      rect.setAttribute('fill', '#fef3c7');
+      rect.setAttribute('stroke', '#f59e0b');
+      rect.setAttribute('stroke-width', '2.5');
+    } else if (filled) {
+      rect.setAttribute('fill', '#fef9e7');
+      rect.setAttribute('stroke', '#475569');
+      rect.setAttribute('stroke-width', '1.2');
+    } else {
+      rect.setAttribute('fill', '#f3f4f6');
+      rect.setAttribute('stroke', '#cbd5e1');
+      rect.setAttribute('stroke-width', '1');
+      rect.setAttribute('stroke-dasharray', '4 3');
+    }
+    optG.appendChild(rect);
+
+    const val = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    val.setAttribute('x', x + CELL_W / 2);
+    val.setAttribute('y', OPT_ROW_Y + CELL_H / 2 + 6);
+    val.setAttribute('text-anchor', 'middle');
+    val.setAttribute('font-size', '17');
+    val.setAttribute('font-weight', filled ? '700' : '400');
+    val.setAttribute('fill', filled ? (highlight ? '#15803d' : '#1c1c1e') : '#cbd5e1');
+    val.textContent = filled ? OPT_VALUES[j] : '?';
+    optG.appendChild(val);
+  }
+
+  if (step.optHighlight) {
+    const x = ROW_START_X + (step.optHighlight - 1) * CELL_W;
+    const badge = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    badge.setAttribute('x', x + CELL_W / 2);
+    badge.setAttribute('y', OPT_ROW_Y - 8);
+    badge.setAttribute('text-anchor', 'middle');
+    badge.setAttribute('font-size', '11');
+    badge.setAttribute('font-weight', '700');
+    badge.setAttribute('fill', '#15803d');
+    badge.textContent = '★ MAX';
+    overlayG.appendChild(badge);
+  }
+}
+
+function render() {
+  const step = STEPS[currentStep];
+  document.getElementById('step-counter').textContent = `Step ${currentStep + 1} of ${STEPS.length}`;
+  document.getElementById('progress').textContent = `${currentStep + 1} / ${STEPS.length}`;
+  document.getElementById('step-title').textContent = step.title;
+
+  let html = step.body;
+  if (step.formula) html += `<div class="formula">${step.formula}</div>`;
+  if (step.bodyEnd) html += step.bodyEnd;
+  if (step.annotation) {
+    const cls = step.annotation.type === 'warn' ? 'warn' :
+                step.annotation.type === 'success' ? 'success' : '';
+    html += `<div class="annotation ${cls}">${step.annotation.text}</div>`;
+  }
+  document.getElementById('step-body').innerHTML = html;
+
+  document.getElementById('prev-btn').disabled = currentStep === 0;
+  document.getElementById('next-btn').disabled = currentStep === STEPS.length - 1;
+
+  renderDiagram(step);
+}
+
+function next() {
+  if (currentStep < STEPS.length - 1) {
+    currentStep++;
+    render();
+  }
+}
+function prev() {
+  if (currentStep > 0) {
+    currentStep--;
+    render();
+  }
+}
+
+document.getElementById('next-btn').addEventListener('click', next);
+document.getElementById('prev-btn').addEventListener('click', prev);
+document.addEventListener('keydown', (e) => {
+  // Only handle keys when walkthrough is active
+  if (!document.getElementById('walkthrough').classList.contains('active')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+});
+
+render();
+</script>
+
+</body>
+</html>

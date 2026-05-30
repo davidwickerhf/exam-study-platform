@@ -1,0 +1,73 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "examTypeMix": {
+      "type": "string"
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "chapterId": {
+            "type": "string"
+          },
+          "chapterName": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "written",
+              "calc",
+              "tf",
+              "mc",
+              "pseudocode"
+            ]
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chapterId",
+          "chapterName",
+          "topic",
+          "type",
+          "difficulty",
+          "question",
+          "options",
+          "expected"
+        ]
+      }
+    }
+  },
+  "required": [
+    "examTypeMix",
+    "questions"
+  ]
+}

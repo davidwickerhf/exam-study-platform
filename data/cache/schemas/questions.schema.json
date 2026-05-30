@@ -1,0 +1,59 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "questions": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "written",
+              "calc",
+              "tf",
+              "mc",
+              "pseudocode"
+            ]
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 3,
+            "maxItems": 5
+          },
+          "expected": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "difficulty",
+          "question",
+          "options",
+          "expected"
+        ]
+      }
+    }
+  },
+  "required": [
+    "questions"
+  ]
+}

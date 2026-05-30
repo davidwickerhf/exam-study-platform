@@ -1,0 +1,203 @@
+{
+  "generatedAt": "2026-05-18T19:57:57.912Z",
+  "chapterId": "02",
+  "questions": [
+    {
+      "id": "selftest-master-theorem-q1",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = 2T(n/2) + n$",
+      "expected": "a=2, b=2, c=1. n^(log₂ 2) = n. Case 2 → **Θ(n log n)**."
+    },
+    {
+      "id": "selftest-master-theorem-q2",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = 6T(n/2) + n$",
+      "expected": "a=6, b=2, c=1. n^(log₂ 6) > n. Case 1 → **Θ(n^(log₂ 6))**."
+    },
+    {
+      "id": "selftest-master-theorem-q3",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = 8T(n/2) + 2^n$",
+      "expected": "f(n) = 2ⁿ, n^(log₂ 8) = n³. 2ⁿ ≫ n³. Case 3 → **Θ(2ⁿ)**."
+    },
+    {
+      "id": "selftest-master-theorem-q4",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = 2T(n/4) + \\sqrt n$",
+      "expected": "f(n) = √n, n^(log₄ 2) = n^(1/2) = √n. Case 2 → **Θ(√n · log n)**."
+    },
+    {
+      "id": "selftest-master-theorem-q5",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = 3T(n/2) + n$ (Karatsuba)",
+      "expected": "f(n) = n, n^(log₂ 3) ≈ n^1.585. Case 1 → **Θ(n^(log₂ 3))**."
+    },
+    {
+      "id": "selftest-master-theorem-q6",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = T(n/2) + 1$ (binary search)",
+      "expected": "a=1, b=2, c=0. n⁰ = 1, f(n) = 1. Case 2 → **Θ(log n)**."
+    },
+    {
+      "id": "selftest-master-theorem-q7",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = 4T(n/2) + n²$ (matrix multiply-ish)",
+      "expected": "f(n) = n², n^(log₂ 4) = n². Case 2 → **Θ(n² log n)**."
+    },
+    {
+      "id": "selftest-master-theorem-q8",
+      "source": "Self test: Master Theorem",
+      "type": "written",
+      "question": "$T(n) = 2T(n/2) + n log n$ (general form needed)",
+      "expected": "General form: f(n) = n log n = n^(log₂ 2) · log¹ n. Case 2 with k=1 → **Θ(n · log² n)**."
+    },
+    {
+      "id": "gen-02-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain the three-step procedure for applying the Master Theorem to a recurrence of the form $T(n) = aT(n/b) + f(n)$. Your answer should mention what is compared and what final information must be reported.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A complete answer should: identify $a$, $b$, and $f(n)$; compute the threshold $n^{\\log_b a}$; compare $f(n)$ with that threshold using the Master Theorem cases; then state both the case number and the asymptotic solution for $T(n)$. For simple-form recurrences $T(n)=aT(n/b)+\\Theta(n^c)$, this is equivalent to comparing $c$ with $\\log_b a$."
+    },
+    {
+      "id": "gen-02-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Why does the general Master Theorem require a polynomial gap in cases $1$ and $3$? Explain using the example $f(n)=n^{\\log_b a}/\\log n$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Cases $1$ and $3$ require $f(n)$ to be polynomially smaller or larger than $n^{\\log_b a}$, meaning a factor of $n^\\varepsilon$ for some $\\varepsilon>0$. The function $f(n)=n^{\\log_b a}/\\log n$ is smaller only by a logarithmic factor, not a polynomial factor, so it falls into the gap where the standard Master Theorem cases do not apply."
+    },
+    {
+      "id": "gen-02-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Solve the recurrence $T(n)=9T(n/3)+n^2$. State the Master Theorem case and the final asymptotic bound.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Here $a=9$, $b=3$, and $f(n)=n^2$. Since $n^{\\log_3 9}=n^2$, this is case $2$. Therefore $T(n)=\\Theta(n^2\\log n)$."
+    },
+    {
+      "id": "gen-02-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Solve the recurrence $T(n)=7T(n/2)+n^2$. State the Master Theorem case and the final asymptotic bound.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Here $a=7$, $b=2$, and $c=2$. Since $\\log_2 7\\approx 2.807$ and $2<\\log_2 7$, this is case $1$. Therefore $T(n)=\\Theta(n^{\\log_2 7})$, approximately $\\Theta(n^{2.807})$."
+    },
+    {
+      "id": "gen-02-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option correctly solves $T(n)=4T(n/2)+n^3$ by the Master Theorem?",
+      "options": [
+        "Case $1$, so $T(n)=\\Theta(n^2)$",
+        "Case $2$, so $T(n)=\\Theta(n^2\\log n)$",
+        "Case $3$, so $T(n)=\\Theta(n^3)$",
+        "Case $3$, so $T(n)=\\Theta(n^3\\log n)$"
+      ],
+      "expected": "Case $3$, so $T(n)=\\Theta(n^3)$"
+    },
+    {
+      "id": "gen-02-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "For $T(n)=2T(n/2)+n\\log^3 n$, which Master Theorem result is correct?",
+      "options": [
+        "Case $1$, so $T(n)=\\Theta(n)$",
+        "Case $2$ with $k=3$, so $T(n)=\\Theta(n\\log^4 n)$",
+        "Case $2$ with $k=0$, so $T(n)=\\Theta(n\\log n)$",
+        "Case $3$, so $T(n)=\\Theta(n\\log^3 n)$"
+      ],
+      "expected": "Case $2$ with $k=3$, so $T(n)=\\Theta(n\\log^4 n)"
+    },
+    {
+      "id": "gen-02-6",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: The recurrence $T(n)=T(n/2)+T(n/3)+n$ can be solved directly using the standard Master Theorem.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. The standard Master Theorem requires equal-size subproblems in the form $aT(n/b)+f(n)$, while this recurrence has uneven subproblem sizes $n/2$ and $n/3$. A recursion tree or another method is needed."
+    },
+    {
+      "id": "gen-02-7",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Binary search has recurrence $T(n)=T(n/2)+1$, and the Master Theorem gives $T(n)=\\Theta(\\log n)$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. Here $a=1$, $b=2$, and $f(n)=1$, while $n^{\\log_2 1}=n^0=1$. This is case $2$, giving $T(n)=\\Theta(\\log n)$."
+    },
+    {
+      "id": "gen-02-8",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Give pseudocode for a divide-and-conquer closest-pair algorithm on points in the plane. The expected running time should satisfy $T(n)=2T(n/2)+\\Theta(n)$ after the initial sort.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct sketch sorts once, recurses on left and right halves, and checks only the vertical strip around the split line.\n\n```text\nClosestPair(points):\n    Px = points sorted by x-coordinate\n    Py = points sorted by y-coordinate\n    return ClosestPairRec(Px, Py)\n\nClosestPairRec(Px, Py):\n    n = length(Px)\n    if n <= 3:\n        return brute_force_closest_pair(Px)\n\n    mid = n // 2\n    x_mid = Px[mid].x\n    Lx = Px[0:mid]\n    Rx = Px[mid:n]\n    Ly = [p in Py where p.x <= x_mid]\n    Ry = [p in Py where p.x > x_mid]\n\n    delta_left = ClosestPairRec(Lx, Ly)\n    delta_right = ClosestPairRec(Rx, Ry)\n    delta = min(delta_left, delta_right)\n\n    strip = [p in Py where abs(p.x - x_mid) < delta.distance]\n    best = delta\n    for i from 0 to length(strip) - 1:\n        for j from i + 1 to min(i + 7, length(strip) - 1):\n            best = min(best, distance_pair(strip[i], strip[j]))\n    return best\n```\n\nThe initial sorting costs $\\Theta(n\\log n)$, and the recursive part has recurrence $T(n)=2T(n/2)+\\Theta(n)$, so the total time is $\\Theta(n\\log n)$."
+    },
+    {
+      "id": "gen-02-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for Karatsuba multiplication of two $n$-bit integers $I$ and $J$. Your algorithm should use three recursive multiplications and should imply the recurrence $T(n)=3T(n/2)+\\Theta(n)$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct sketch splits each number into high and low halves, computes three products, and combines them using shifts.\n\n```text\nKaratsuba(I, J, n):\n    if n <= 1:\n        return I * J\n\n    m = ceil(n / 2)\n    base = 2^m\n\n    I_L = I mod base\n    I_H = floor(I / base)\n    J_L = J mod base\n    J_H = floor(J / base)\n\n    z0 = Karatsuba(I_L, J_L, m)\n    z2 = Karatsuba(I_H, J_H, m)\n    z1 = Karatsuba(I_L + I_H, J_L + J_H, m + 1)\n\n    middle = z1 - z2 - z0\n    return z2 * base^2 + middle * base + z0\n```\n\nThe three recursive calls are on roughly half-size inputs, and splitting, addition, subtraction, and shifting cost $\\Theta(n)$, so $T(n)=3T(n/2)+\\Theta(n)=\\Theta(n^{\\log_2 3})$."
+    }
+  ],
+  "generationError": null
+}

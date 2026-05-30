@@ -1,0 +1,196 @@
+Network Defense
+Firewalls and Tunnels
+BCS2420
+Dr. Ashish Sai
+ashish.sai@maastrichtuniversity.nl
+Introduction
+Firewalls and encrypted tunnels (VPNs)
+provide perimeter-based defenses.
+Firewalls Overview
+• Firewalls serve as gateways, controlling access
+between networks or devices, isolating damage, and
+containing spread using principles like Complete-
+mediation And Isolated-compartments .
+• Often used in perimeter defenses, they protect
+trusted internal networks from untrusted external
+ones (e.g., the Internet).
+Packet-Filter Firewalls
+A packet-filter firewall uses rules to
+allow or deny data packets based on
+header fields. Rules follow a
+<condition, action> format, with
+actions like ALLOW , DROP , or REJECT .
+Stateless vs. Stateful Filters
+
+– Stateless Filters: Process each packet
+  independently.
+– Stateful Filters: Keep track of
+  connection states, processing packets
+  based on prior state information.
+Packet-Filter Rules and Actions
+Example Rules
+
+1. Ingress/Egress Filtering: Rules to prevent spoofed IP
+   addresses.
+2. SMTP Email: Rules to allow or deny email traffic based on IP
+   addresses and ports.
+3. HTTP Traffic: Rules to manage outbound and inbound HTTP
+   connections, using flags like ACK .
+4. DNS Queries: Rules to control DNS traffic for internal and
+   external queries.
+Default-Deny Rulesets
+Principle of SAFE-DEFAULTS
+A default-deny ruleset blocks all packets
+unless explicitly allowed by an accept
+rule, reducing the risk of unknown
+exploits and aligning with strict security
+policies.
+Firewall and Security Policy
+Firewalls enforce an organization’s
+Internet security policy by defining
+rules that allow or block packets,
+translating authorized services into
+specific access controls.
+Firewalls as Chokepoints
+– Firewalls serve as centralized points for monitoring,
+  control, and packet rejection, assuming a secure perimeter.
+  Despite the shift from single-point network access, they
+  remain valuable for:
+  – Protecting legacy applications.
+  – Enforcing security policies against remote threats.
+  – Supporting defensive strategies like defense-in-depth
+    and isolation.
+Limitations of Firewalls
+
+1. Topological Limitations: Assumes true perimeters exist.
+2. Malicious Insiders: Provides little protection against trusted
+   users cooperating with outsiders.
+3. Bad Connections by Trusted Users: Limited protection
+   against malicious content from compromised sites.
+4. Tunneling: Firewall rules can be bypassed by tunneling
+   disallowed protocols.
+5. Encrypted Content: Prevents content-based inspection unless
+   decrypted at the firewall.
+Dynamic Packet Filtering Example:
+FTP   1
+
+FTP uses separate TCP connections for
+commands and data. Dynamic packet
+filters track client-specified ports to
+temporarily allow inbound connections,
+resolving firewall conflicts.
+1.   FTP (File Transfer Protocol) is a standard network protocol used to transfer files between a client
+     and server over TCP.
+Proxy Firewalls
+ and Firewall
+ Architectures
+Proxy Firewalls
+Act as intermediaries between internal
+clients and external services, offering
+circuit-level and application-level
+filtering.
+Circuit-Level Proxies
+Relays connections through a proxy
+point, allowing or denying the
+connection and then relaying data.
+SOCKS is a common protocol used.
+Application-Level Filters
+Uses specialized programs to filter traffic based on
+application-specific protocols, capable of altering
+payloads for intrusion prevention.
+Targeted Applications
+Includes widely-used protocols like TELNET , FTP ,
+ HTTP , and email, which are filtered for security
+issues.
+Bastion Hosts and Dual-Homed Hosts
+Bastion Hosts
+Exposed to hostile networks and hardened by
+disabling non-essential services.
+Dual-Homed Hosts
+Computers with two network interfaces used as part
+of multi-component firewalls to ensure no direct
+connections between external and internal networks.
+Enterprise Firewall Architectures
+Single Screening Router
+Basic protection but limited configurability.
+Screening Router and Bastion Host
+Provides additional security by having a
+bastion host behind the router.
+DMZ (Demilitarized Zone)
+A subnetwork between external and
+internal networks, using multiple
+screening routers and a bastion host for
+added security.
+Secure Shell
+(SSH)
+Secure Shell (SSH)
+SSH enables secure, encrypted communication, replacing
+insecure protocols like telnet and FTP. It consists of:
+
+1. Transport Layer: Ensures encryption and integrity.
+2. Authentication: Manages client-server
+   authentication.
+3. Connection: Allows multiple sessions over one
+   connection.
+TARGET       FULL NAME            FUNCTIONALITY
+
+rsh (ssh)    remote shell         Send shell commands for execution on remote host by a daemon (rshd).
+
+rlogin       remote login         Log in to remote Unix server over TCP network, then communicate as if
+(ssh)                             physically local.
+
+telnet       teletype network     Acquire interactive virtual terminal connection over TCP, e.g., to a
+(ssh)                             command line interface (Unix, Windows).
+
+ftp (sftp)   file transfer prot   Transfer files, using separate connections for control and data. Can also
+             (secure ftp)         be replaced by ftps (FTP over TLS).
+
+rcp (scp)    remote copy          Copy files, directories between local, remote systems, with command
+             (secure copy)        line syntax similar to Unix command cp
+SSH Client Authentication
+Methods
+
+1. Client Password
+2. Kerberos Ticket
+3. Client Public Key
+
+Process
+
+1. Client sends public key and signature.
+2. Server verifies key and signature.
+SSH Server Authentication
+Establishing Trust
+Server authentication involves a public key (SSH host
+key) verified by the client. Trust models include:
+
+1. Client Database of Server Keys: Trusted keys
+   stored locally.
+2. CA-Certified Server Keys: Verified using a CA's
+   public key.
+SSH Port Forwarding
+Local Port Forwarding
+Redirects data from an unsecured application
+through an SSH tunnel.
+SCP (Secure Copy)
+Functionality
+Transfers files securely using SSH
+tunnels, replacing rcp .
+VPNs and
+Encrypted
+Tunnels
+Motivation
+Encrypts data to protect against
+eavesdropping and tampering.
+Tunneling
+Encapsulates one protocol within
+another for secure transit.
+Virtual Private Networks (VPNs)
+A private network using encrypted tunnels over
+public networks.
+Designs and Use Cases
+
+1. Transport Mode: Host-to-host VPN for end-to-end
+   security.
+2. Tunnel Mode: Network-to-network or host-to-
+   network VPNs for site-to-site or remote access.
+

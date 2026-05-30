@@ -1,0 +1,46 @@
+# ── Per-user runtime state ──────────────────────────────────────────────────
+# The .template.json versions are committed; the runtime files are seeded
+# on first launch (see server.mjs readState / readFlashcards). Once seeded,
+# they hold the user's progress, attempts, and SR scheduling.
+data/study-state.json
+data/flashcards.json
+data/sr-state.json
+data/mistakes/
+data/mocks/
+
+# Per-user LLM config (provider choice, API key)
+data/llm-config.json
+
+# State backups created during migrations
+data/*.bak
+data/*.bak2
+data/*.bak3
+data/*.bak-*
+
+# ── Generated cache that we DO want to ship ────────────────────────────────
+# Mock-question banks, parsed practice exams, schemas etc. are kept under
+# version control so friends get them out of the box, no Codex needed:
+#   data/cache/mock-questions/    — AI-generated per-course question bank
+#   data/cache/mock-toc/          — PDF outlines (codex-built)
+#   data/cache/practice-exam/     — parsed mock papers + model answers
+#   data/cache/questions/         — self-test question banks per chapter
+#   data/cache/schemas/           — JSON schemas (committed)
+# Nothing to ignore under data/cache/, but it's listed here so you know it's intentional.
+
+# ── Node ────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+.pnpm-debug.log*
+
+# ── OS / editor ─────────────────────────────────────────────────────────────
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# ── Misc ────────────────────────────────────────────────────────────────────
+*.log
+.env
+.env.local
+/.claude/

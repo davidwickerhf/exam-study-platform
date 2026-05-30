@@ -1,0 +1,275 @@
+{
+  "generatedAt": "2026-05-23T13:37:26.965Z",
+  "courseId": "sec",
+  "questions": [
+    {
+      "id": "paq1",
+      "label": "Part A Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement about the STRIDE threat-modeling method is correct?",
+      "modelAnswer": "(b) STRIDE stands for Spoofing, Tampering, Repudiation, Infor-\nmation Disclosure, Denial of Service, Escalation of Privilege and helps ensure common threats are not overlooked.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "STRIDE focuses solely on DoS attacks and ignores other threat categories.",
+        "STRIDE stands for Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Escalation of Privilege and helps ensure common threats are not overlooked.",
+        "STRIDE is used only for cryptographic key management, not application-level threats.",
+        "STRIDE is an alternative to risk equations and cannot be combined with other modeling approaches."
+      ]
+    },
+    {
+      "id": "paq2",
+      "label": "Part A Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Consider the risk equation ( R = T ×V ×C ). Which best describes V (vulnerability)?",
+      "modelAnswer": "(c) The probability that the system, if attacked, will be successfully compromised.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "The precise dollar amount of potential damage.",
+        "The attacker’s level of motivation and skill.",
+        "The probability that the system, if attacked, will be successfully compromised.",
+        "The cost to remediate any discovered flaw."
+      ]
+    },
+    {
+      "id": "paq3",
+      "label": "Part A Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which adversary attribute most directly addresses their technical means and skill set?",
+      "modelAnswer": "(d) Capabilities.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Objectives",
+        "Funding Level",
+        "Methods",
+        "Capabilities"
+      ]
+    },
+    {
+      "id": "paq4",
+      "label": "Part A Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following correctly compares symmetric vs. public-key (asym-\nmetric) cryptography?",
+      "modelAnswer": "(c) Symmetric systems require a pre-shared secret for encryp-\ntion/decryption, while public-key systems use separate public and private keys.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Symmetric ciphers typically require significantly larger keys than public-key ciphers to achieve the same security level.",
+        "Public-key systems are always faster in bulk data encryption than symmetric systems.",
+        "Symmetric systems require a pre-shared secret for both encryption and decryption, while public-key systems use separate public and private keys.",
+        "Public-key cryptography is only used for direct content encryption, never for key exchange."
+      ]
+    },
+    {
+      "id": "paq5",
+      "label": "Part A Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement about stream ciphers is true?",
+      "modelAnswer": "(c) They encrypt data one bit/character at a time, often combined with a keystream generator.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "They encrypt entire files as one large block, never bit by bit.",
+        "They produce a one-time pad of infinite length for all practical purposes.",
+        "They encrypt data one bit/character at a time, often combined with a keystream generator.",
+        "They always require random access to previous ciphertext blocks to decrypt."
+      ]
+    },
+    {
+      "id": "paq6",
+      "label": "Part A Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In a typical digital signature workflow, why do we hash the message before signing?",
+      "modelAnswer": "(b) To reduce the data length for faster signature operations and to detect any message alteration.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "To guarantee the public key is large enough.",
+        "To reduce the data length for faster signature operations and to detect any message alteration.",
+        "Because hashing ensures no collisions exist for any two distinct inputs.",
+        "Because signing the raw message is impossible without a one-time pad."
+      ]
+    },
+    {
+      "id": "paq7",
+      "label": "Part A Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following is the best reason to include a random unique salt for each user’s stored password hash?",
+      "modelAnswer": "(c) It prevents the use of precomputed hash tables (rainbow tables) across multiple users.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "It speeds up legitimate login attempts.",
+        "It guarantees that no offline attacks are possible.",
+        "It prevents the use of precomputed hash tables (rainbow tables) across multiple users.",
+        "It makes the hashing algorithm invertible for large datasets."
+      ]
+    },
+    {
+      "id": "paq8",
+      "label": "Part A Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which step most effectively slows down offline password guessing attacks if an attacker has obtained the hashed password file?",
+      "modelAnswer": "(b) Using a specialized key-stretching algorithm with salts and high iteration counts.",
+      "page": 4,
+      "type": "mc",
+      "options": [
+        "Applying a password policy that locks the account after three failed online attempts",
+        "Using a specialized key-stretching algorithm with salts and high iteration counts",
+        "Using only uppercase letters and digits in all stored passwords",
+        "Changing the default TCP port for remote login to an uncommon number"
+      ]
+    },
+    {
+      "id": "paq9",
+      "label": "Part A Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "What is a fundamental difference between passive and active attackers during a network communication?",
+      "modelAnswer": "(b) A passive attacker attempts to observe traffic, whereas an active attacker may inject or modify data.",
+      "page": 4,
+      "type": "mc",
+      "options": [
+        "A passive attacker only measures bandwidth usage, whereas an active attacker only disrupts hardware.",
+        "A passive attacker attempts to observe traffic, whereas an active attacker may inject or modify data.",
+        "A passive attacker always uses advanced cryptanalysis, while an active attacker focuses on social engineering.",
+        "A passive attacker must first authenticate to the network, while an active at-\ntacker can remain anonymous."
+      ]
+    },
+    {
+      "id": "paq10",
+      "label": "Part A Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement correctly applies to a firewall running a “default-allow” policy?",
+      "modelAnswer": "(b) It allows traffic by default, creating a risk that unrecognized services remain accessible.",
+      "page": 4,
+      "type": "mc",
+      "options": [
+        "It blocks all inbound and outbound traffic unless explicitly permitted.",
+        "It allows traffic by default, creating a risk that unrecognized services remain accessible.",
+        "It inspects application-layer data but never logs denied traffic.",
+        "It automatically drops traffic on commonly used HTTP ports."
+      ]
+    },
+    {
+      "id": "paq11",
+      "label": "Part A Q11",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A user visits a forum and inadvertently runs malicious scripts posted by another user’s comment. The malicious content is stored on the server and delivered to all who view that comment. Which term best describes this attack?",
+      "modelAnswer": "(b) Stored cross-site scripting.",
+      "page": 4,
+      "type": "mc",
+      "options": [
+        "Reflected cross-site scripting",
+        "Stored cross-site scripting",
+        "Cross-site request forgery",
+        "DNS cache poisoning"
+      ]
+    },
+    {
+      "id": "paq12",
+      "label": "Part A Q12",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which situation most clearly illustrates a man-in-the-middle attack?",
+      "modelAnswer": "(b) An attacker intercepts key exchange messages and substitutes public keys, relaying data so both endpoints believe they communicate di-\nrectly.",
+      "page": 4,
+      "type": "mc",
+      "options": [
+        "An attacker brute-forces a user’s password hash stored in a database dump.",
+        "An attacker intercepts key exchange messages and substitutes public keys, re-\nlaying data so both endpoints believe they communicate directly.",
+        "A user leaves their workstation unlocked, allowing a coworker to read confiden-\ntial files.",
+        "A malicious script on a website reads cookies from a completely different do-\nmain."
+      ]
+    },
+    {
+      "id": "pbq1",
+      "label": "Part B Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Explain how a formal security policy helps guide threat modeling. Why can a policy violation lead to a system’s non-secure state? Provide an example.",
+      "modelAnswer": "- A formal security policy defines what actions are permitted or forbidden, clarifying sys-\ntem boundaries.\n- Threat modeling uses this policy to identify possible violations that attackers might cause. A policy violation creates a non-secure state because it contradicts the organization’s defined security rules.\n- Example: If the policy states “No user may modify financial records except the finance group,” then any threat vector allowing unauthorized modification breaks the policy, thus resulting in a non-secure state.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pbq2",
+      "label": "Part B Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Define how online password guessing differs from offline password guessing. Identify one defense mechanism that specifically targets offline attacks and explain why it is ineffective against online attacks.",
+      "modelAnswer": "- Online guessing: The attacker must interact with the legitimate server for each attempt, so rate-limiting or lockout policies can hinder guess volume.\n- Offline guessing: The attacker has the hashed password file and can try unlimited guesses locally without server control.\n- Defense for offline attacks: Iterated hashing (e.g., PBKDF2, bcrypt).\n- Why it’s ineffective against online attacks: If the attacker is brute-forcing online, the server can still enforce lockouts or rate-limits. The extra hashing cost on the server side helps somewhat but doesn’t by itself block repeated attempts if the server is forced to respond. Real-time server policies are typically more effective for online scenarios.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pbq3",
+      "label": "Part B Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Summarize the key fields of an X.509 certificate that ensure the binding between a subject’s name and public key. Why is the certificate’s issuer signature essential to preventing impersonation?",
+      "modelAnswer": "- Key fields :\n1. Subject (the entity name being certified),\n2. Subject’s Public Key (and its algorithm details),\n3. Issuer (the Certification Authority),\n4. Validity Period (Not-Before and Not-After dates),\n5. Digital Signature by the CA.\n- Issuer signature : Ensures the certificate is authentic and unmodified. Without the CA’s trusted signature, anyone could create a fake certificate binding any public key to a legitimate name.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pcq1",
+      "label": "Part C Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Briefly outline how a Trojan horse differs from a worm in terms of user interaction requirements and typical propagation.",
+      "modelAnswer": "- A Trojan horse masquerades as a legitimate program but contains hidden malicious code. Typically, it needs user action to download or run it.\n- A worm spreads automatically by exploiting network or software vulnerabilities, not relying on the user to launch it explicitly.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pcq2a",
+      "label": "Part C Q2(a)",
+      "marks": 1,
+      "sharedContext": "An organization discovers a kernel-mode rootkit on a server.",
+      "text": "- Describe how hooking or overwriting system calls helps a rootkit hide its files and processes.",
+      "modelAnswer": "System call hooking : The rootkit alters kernel tables or code so that legitimate queries (e.g., for process listings or file directories) are intercepted and modified, hiding malicious processes/files.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pcq2b",
+      "label": "Part C Q2(b)",
+      "marks": 1,
+      "sharedContext": "An organization discovers a kernel-mode rootkit on a server.",
+      "text": "- Propose two steps to remove the rootkit and reduce the chance of reinfection.",
+      "modelAnswer": "Two steps to remove and reduce reinfection :\n- Step 1 : Boot from a trusted, clean medium (e.g., offline rescue disk) to scan or reinstall the OS, ensuring the rootkit’s hooks are wiped.\n- Step 2 : Patch the exploited vulnerabilities and enable secure boot/code-signing policies, so future unauthorized kernel modifications are blocked or detected.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pcq3",
+      "label": "Part C Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A developer implements an Diffie-Hellman key exchange within a chat application but does not authenticate each party’s public share. How could an attacker exploit this to impersonate users (man-in-the-middle)? Propose one countermeasure to preserve forward secrecy and ensure authenticity.",
+      "modelAnswer": "- Attack : An attacker can intercept and replace each party’s public Diffie-Hellman share, creating two separate secret keys (one with each victim). The attacker relays messages, acting as a transparent proxy (MITM). Both victims think they communicate with each other.\n- Countermeasure : Digitally sign each ephemeral public key or use certificates to verify that each side’s key is genuine. This retains forward secrecy (ephemeral key) but ensures authenticity, defeating man-in-the-middle attacks.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

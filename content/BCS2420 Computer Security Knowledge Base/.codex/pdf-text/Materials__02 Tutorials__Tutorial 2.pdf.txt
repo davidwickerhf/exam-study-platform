@@ -1,0 +1,221 @@
+                            Tutorial 2
+
+
+                  Foundations of Cryptography
+
+
+                       Computer Security
+                             BCS2420
+
+
+
+
+                             Part A
+
+
+1. Which of the following best describes the advantage of
+   public-key (asymmetric) encryption compared to symmetric
+   encryption?
+         Faster encryption for large data
+         The same key is used by both sender and receiver
+         It simplifies secure key distribution
+         It eliminates the need for any private key
+2. Which cryptographic property ensures that a given hash
+   output does not reveal any information about the original
+   message?
+         Collision resistance
+         One-way property
+         Key encapsulation
+         Second-preimage resistance
+3. In a chosen-ciphertext attack model, the adversary can...
+         Only observe ciphertexts without modifying them
+         Submit ciphertexts to a decryption oracle and observe
+         the results
+         Pick plaintext and obtain its encryption from an
+         oracle
+         Obtain a set of plaintext-ciphertext pairs without
+         influencing them
+4. Which statement about the Vernam cipher is correct?
+         It encrypts data in 64-bit blocks.
+         It provides perfect secrecy if the key is reused
+         carefully.
+
+
+
+
+                                1
+          It uses modular exponentiation with prime numbers.
+          It can provide perfect secrecy only if the key is
+          truly random and used exactly once.
+ 5. In a hybrid encryption scheme, typically...
+          Only the public key is needed to encrypt large
+          messages directly.
+          Symmetric keys are never involved.
+          A symmetric key is randomly generated for data
+          encryption, then encrypted with a public key.
+          The private key is used for both encryption and
+          decryption.
+ 6. Which of the following is an active adversary action?
+          Eavesdropping on network traffic without modifying it
+          Recording ciphertext for later analysis
+          Injecting malicious packets into a conversation
+          Archiving all messages for offline cryptanalysis
+ 7. Collision resistance in a hash function means...
+          Finding two distinct inputs with the same hash is
+          computationally infeasible.
+          Reconstructing the original message from the hash is
+          infeasible.
+          Finding any input that produces a given hash is easy.
+          Only one hash value is possible for a given input.
+ 8. Which block cipher mode directly concatenates each
+    plaintext block with the preceding ciphertext block (via
+    XOR) before encryption?
+          ECB
+          CBC
+          CTR
+          OFB
+ 9. Digital signatures aim to provide which of the following?
+          Confidentiality and authentication only
+          Non-repudiation, integrity, and origin authentication
+          Key management and collision resistance
+          Simple encryption of large files
+10. A 56-bit key space (as in original DES) implies how many
+    possible keys?
+          256
+          562
+          1056
+          2 × 1016
+
+
+
+                               2
+                             Part B
+
+
+1. Comparing Passive vs. Active Adversaries:
+     – Briefly define passive and active adversaries in
+       cryptography.
+     – Provide one real-world example scenario of each.
+     – Why might defending against active adversaries be more
+       challenging?
+2. Attack Models:
+     – Summarize the four attack models discussed (ciphertext-
+       only, known-plaintext, chosen-plaintext, chosen-
+       ciphertext).
+     – Which model imposes the strongest requirement on a
+       cryptosystem’s security, and why?
+3. Key Space and Security:
+     – Explain the concept of key space.
+     – Discuss how an increase in key length affects the
+       feasibility of brute-force attacks.
+     – Give two practical factors (beyond key length) that
+       also determine a cipher’s real-world resistance to
+       brute-force.
+4. Designing a Secure Symmetric Cipher:
+     – Suppose you aim to design a new symmetric encryption
+       system. What core properties must it have to resist
+       modern cryptanalytic attacks?
+     – Mention any two advanced cryptanalytic methods and how
+       a well-designed cipher can mitigate them.
+5. Public-Key Infrastructure (PKI):
+     – What is a certificate and how does it relate to trust
+       in PKI?
+     – Illustrate how an organization could use PKI to ensure
+       secure email communication among its employees.
+6. Hash Functions vs. Encryption Functions:
+     – Compare the roles of a cryptographic hash function and
+       a symmetric encryption function.
+     – Why is it generally inappropriate to use a block cipher
+       in place of a hash function?
+7. Digital Signatures and Non-Repudiation:
+     – What does “non-repudiation” mean in the context of
+
+
+
+
+                               3
+        digital signatures?
+      – Give an example in an e-commerce transaction where non-
+        repudiation is crucial.
+ 8. Block Cipher Modes:
+      – Discuss the main weakness of ECB mode.
+      – Why is CBC mode generally preferred over ECB for
+        encrypting multiple blocks?
+      – Provide a high-level use-case for CTR (counter) mode.
+ 9. Hybrid Encryption Scenario:
+      – You want to encrypt a 1GB file for secure storage. Why
+        might you opt to use a hybrid encryption approach
+        instead of directly using a public-key cipher for the
+        entire file?
+      – Summarize the key steps in hybrid encryption for this
+        scenario.
+10. MAC vs. Digital Signature:
+      – In which scenarios is a Message Authentication Code
+        (MAC) more suitable than a digital signature?
+      – Conversely, give an example scenario where a digital
+        signature is more beneficial.
+
+
+
+
+                              Part C
+
+
+ 1. Brute-Force Feasibility
+                                                         40
+      – A cryptographic system has a key space of 2           .
+      – How many keys are there in total?
+                                      9
+      – If an attacker can try 10         (1 billion) keys per second,
+        how many seconds to exhaust the key space in the worst
+        case? Convert this to days (approx.).
+      – Comment on whether this is feasible with today’s
+        technology.
+ 2. Key Length Impact
+      – You are deciding between a 128-bit key and a 256-bit
+        key.
+      – By how many orders of magnitude does a 256-bit key
+        space exceed a 128-bit key space?
+      – Does doubling the key length from 128 bits to 256 bits
+        double the security, or provide more? Briefly explain.
+
+
+
+
+                                  4
+3. Simple Caesar Cipher Computation
+     – The Caesar cipher shifts letters by 3. Given the
+       ciphertext “FODCGR” (assuming A=0, B=1, ... Z=25),
+       decrypt it back to plaintext.
+     – Show your steps.
+     – How many possible shifts (keys) are there in total if
+       we only consider the English alphabet?
+4. Block Cipher Encryption Rate
+     – A block cipher encrypts 128-bit blocks. The
+       implementation can process 1 million blocks per second.
+     – How many bits per second does this correspond to?
+     – How many megabytes per second is this (assuming 1 byte
+       = 8 bits)?
+     – How long would it take to encrypt a 10 GB file?
+5. Hash Collisions
+     – A cryptographic hash has an n-bit output. By the
+       birthday paradox, collisions typically appear after
+       about   2n operations.
+     – For a 128-bit hash, how many operations (roughly) might
+       be needed to find a collision?
+     – Why might attackers find collisions sooner if the hash
+       function is poorly designed?
+6. Public-Key Encryption Overhead
+     – An organization wants to transmit 10,000 messages, each
+       1KB in size, using pure public-key encryption with RSA
+       (no hybrid approach). Each RSA encryption takes 5ms.
+     – How long (in seconds) will it take to encrypt all
+       messages?
+     – Why might the organization prefer hybrid encryption in
+       this scenario?
+
+
+
+
+                                5
+

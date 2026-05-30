@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Greedy Proof Drill — 3 Levels</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #f5f5f7;
+    color: #1c1c1e;
+    margin: 0;
+    padding: 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+    line-height: 1.55;
+  }
+  header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e5e7;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 24px;
+    margin: 0 0 6px 0;
+  }
+  .subtitle {
+    color: #6b6b6f;
+    margin: 0;
+    font-size: 14px;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    border-bottom: 2px solid #e5e5e7;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b6b6f;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: #1c1c1e; }
+  .tab.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+  .level {
+    display: none;
+  }
+  .level.active {
+    display: block;
+  }
+  .level-intro {
+    background: #f0f9ff;
+    border-left: 3px solid #2563eb;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .card {
+    background: white;
+    border: 1px solid #e5e5e7;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    color: #1c1c1e;
+  }
+  .card .tag {
+    display: inline-block;
+    background: #f0f9ff;
+    color: #2563eb;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .proof-text {
+    font-size: 14.5px;
+    color: #2c2c2e;
+    line-height: 1.8;
+    margin: 14px 0;
+  }
+  .blank-input {
+    display: inline-block;
+    background: #fef9c3;
+    border: 1px dashed #f59e0b;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13.5px;
+    min-width: 180px;
+    margin: 0 2px;
+    transition: all 0.15s;
+  }
+  .blank-input:focus {
+    outline: none;
+    background: #fff;
+    border-color: #2563eb;
+    border-style: solid;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
+  .blank-input.revealed.correct {
+    background: #f0fdf4;
+    border-color: #10b981;
+    border-style: solid;
+  }
+  .blank-input.revealed.partial {
+    background: #fff8e6;
+    border-color: #f59e0b;
+    border-style: solid;
+  }
+  .model-answer {
+    display: block;
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: #f0fdf4;
+    border-left: 3px solid #10b981;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #166534;
+  }
+  .model-answer .label {
+    font-weight: 600;
+    font-size: 11px;
+    color: #15803d;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .model-answer.hidden { display: none; }
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #f3f4f6;
+  }
+  button.action {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button.action:hover { background: #1d4ed8; }
+  button.action.secondary {
+    background: white;
+    color: #6b6b6f;
+    border: 1px solid #d4d4d7;
+  }
+  button.action.secondary:hover {
+    background: #f5f5f7;
+    color: #1c1c1e;
+  }
+  button.action.success {
+    background: #10b981;
+  }
+  button.action.success:hover { background: #059669; }
+  textarea {
+    width: 100%;
+    border: 1px solid #d4d4d7;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    font-family: inherit;
+    box-sizing: border-box;
+    resize: vertical;
+    transition: border 0.15s, box-shadow 0.15s;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  textarea.proof-area {
+    min-height: 280px;
+  }
+  textarea.short-answer {
+    min-height: 80px;
+    font-size: 13.5px;
+  }
+  .problem-prose {
+    background: #fafafa;
+    border: 1px solid #e5e5e7;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .problem-prose strong { color: #1c1c1e; }
+  .model-proof {
+    margin-top: 16px;
+    padding: 16px 18px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #14532d;
+  }
+  .model-proof.hidden { display: none; }
+  .model-proof .label {
+    font-weight: 600;
+    color: #166534;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-size: 11px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .theory-q {
+    margin-bottom: 16px;
+  }
+  .theory-q .question {
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    color: #1c1c1e;
+    font-size: 14px;
+  }
+  .theory-q .options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .theory-q .option {
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #d4d4d7;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13.5px;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .theory-q .option:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+  .theory-q .option.selected {
+    background: #f0f9ff;
+    border-color: #2563eb;
+    color: #1d4ed8;
+  }
+  .theory-q .option.correct {
+    background: #f0fdf4;
+    border-color: #10b981;
+    color: #166534;
+  }
+  .theory-q .option.wrong {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #991b1b;
+  }
+  .theory-q .answer-reveal {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: #f0fdf4;
+    border-left: 3px solid #10b981;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #166534;
+  }
+  .theory-q .answer-reveal.hidden { display: none; }
+  details.hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #92400e;
+  }
+  details.hint summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #b45309;
+  }
+  details.hint .body {
+    margin-top: 6px;
+    background: #fff8e6;
+    padding: 8px 12px;
+    border-radius: 4px;
+    line-height: 1.5;
+  }
+  .progress-bar {
+    background: white;
+    border: 1px solid #e5e5e7;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    color: #6b6b6f;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Greedy Proof Drill</h1>
+  <p class="subtitle">Three levels of difficulty. Start with Level 1 (fill in blanks), graduate to Level 2 (write from memory), finish with Level 3 (theory questions). Dijkstra excluded.</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-level="1">Level 1 — Fill in blanks</button>
+  <button class="tab" data-level="2">Level 2 — Write from memory</button>
+  <button class="tab" data-level="3">Level 3 — Theory</button>
+</div>
+
+<!-- ====================== LEVEL 1 ====================== -->
+<div class="level active" id="level-1">
+  <div class="level-intro">
+    <strong>Level 1.</strong> The proof structure is given. Fill in the key phrases from memory (or guesswork). Click <strong>"Reveal model"</strong> to see what each blank should contain. Work through all 4 styles.
+  </div>
+
+  <!-- Style A (Template 1, Exhaustion) -->
+  <div class="card" data-style-card="A">
+    <h2>Style A — Exhaustion</h2>
+    <span class="tag">Template 1 (Interval Scheduling / minimum rooms)</span>
+    <div class="proof-text" id="proof-A"></div>
+    <div class="card-actions">
+      <button class="action" onclick="revealStyle('A')">Reveal model</button>
+      <button class="action secondary" onclick="resetStyle('A')">Reset</button>
+    </div>
+  </div>
+
+  <!-- Style B (Template 2, Exchange Case 1 collapses) -->
+  <div class="card" data-style-card="B">
+    <h2>Style B — Exchange (Case 1 collapses)</h2>
+    <span class="tag">Template 2 (Interval Selection / max compatible)</span>
+    <div class="proof-text" id="proof-B"></div>
+    <div class="card-actions">
+      <button class="action" onclick="revealStyle('B')">Reveal model</button>
+      <button class="action secondary" onclick="resetStyle('B')">Reset</button>
+    </div>
+  </div>
+
+  <!-- Style C (Template 3, MST cycle swap) -->
+  <div class="card" data-style-card="C">
+    <h2>Style C — Exchange via cycle swap</h2>
+    <span class="tag">Template 3 (MST / minimum spanning tree)</span>
+    <div class="proof-text" id="proof-C"></div>
+    <div class="card-actions">
+      <button class="action" onclick="revealStyle('C')">Reveal model</button>
+      <button class="action secondary" onclick="resetStyle('C')">Reset</button>
+    </div>
+  </div>
+
+  <!-- Style E (Template 5, Covering direction-impossible) -->
+  <div class="card" data-style-card="E">
+    <h2>Style E — Exchange (one direction impossible)</h2>
+    <span class="tag">Template 5 (Interval Covering / minimum markers)</span>
+    <div class="proof-text" id="proof-E"></div>
+    <div class="card-actions">
+      <button class="action" onclick="revealStyle('E')">Reveal model</button>
+      <button class="action secondary" onclick="resetStyle('E')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== LEVEL 2 ====================== -->
+<div class="level" id="level-2">
+  <div class="level-intro">
+    <strong>Level 2.</strong> No template scaffold. Read the problem, then write the proof from scratch in the box. Click <strong>"Reveal model proof"</strong> only after you've written something — even a partial attempt is more valuable than reading the model cold.
+  </div>
+
+  <div id="level-2-cards"></div>
+</div>
+
+<!-- ====================== LEVEL 3 ====================== -->
+<div class="level" id="level-3">
+  <div class="level-intro">
+    <strong>Level 3.</strong> Conceptual questions about proof selection and structure. Click an option, then <strong>"Check"</strong> to see if you're right and read the explanation.
+  </div>
+
+  <div id="level-3-cards"></div>
+</div>
+
+<script>
+// ============================================================
+// Tab navigation
+// ============================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const n = tab.dataset.level;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.level === n));
+    document.querySelectorAll('.level').forEach(l => l.classList.toggle('active', l.id === `level-${n}`));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// ============================================================
+// LEVEL 1 — Cloze proofs
+// ============================================================
+
+// Each proof is an array of "chunks":
+// { text: 'literal text' } or { blank: 'blank-id', model: 'model answer', hint: 'optional hint' }
+
+const PROOFS = {
+  A: {
+    name: 'Exhaustion (Template 1)',
+    chunks: [
+      { text: 'Let k = number of rooms/labels greedy used. Consider the moment greedy opened the k-th room: at that moment, greedy was processing some element X, and every existing room had ' },
+      { blank: 'A1', model: 'lastFinish > X.start', hint: 'A condition about the rooms\' last assigned element vs. X' },
+      { text: ' (else greedy would have reused it). So at time s_X, there were ' },
+      { blank: 'A2', model: 'k mutually overlapping', hint: 'How many elements overlap, and what kind of overlap?' },
+      { text: ' elements (k−1 ongoing in the existing rooms, plus the new X itself). Any valid schedule must place these k pairwise-overlapping elements in ' },
+      { blank: 'A3', model: 'k distinct rooms', hint: 'Quantity + descriptor of the rooms' },
+      { text: '. Hence any valid schedule uses ' },
+      { blank: 'A4', model: '≥ k rooms', hint: 'The lower bound on the optimal solution' },
+      { text: '. Since greedy uses exactly k rooms, greedy is optimal.' },
+    ],
+  },
+  B: {
+    name: 'Exchange Case 1 collapses (Template 2)',
+    chunks: [
+      { text: 'Let G = greedy output. Let OPT be an optimal solution with ' },
+      { blank: 'B1', model: 'maximum number of elements in common with G', hint: 'How is OPT defined relative to G?' },
+      { text: '. Suppose G ≠ OPT, and let j = ' },
+      { blank: 'B2', model: 'the smallest input-array index where G and OPT disagree', hint: 'What\'s the first disagreement?' },
+      { text: '.\n\nCase 1 (T_j ∈ OPT, T_j ∉ G): Greedy skipped T_j, so T_j ' },
+      { blank: 'B3', model: 'conflicts with one of greedy\'s prior picks', hint: 'Why would greedy skip an interval?' },
+      { text: '. But OPT agreed on those prior picks, so T_j would also conflict with OPT. But OPT contains T_j — contradiction. Case 1 is impossible.\n\nCase 2 (T_j ∈ G, T_j ∉ OPT): Let T_k be ' },
+      { blank: 'B4', model: 'OPT\'s first pick with index > j', hint: 'OPT\'s next pick after the disagreement' },
+      { text: '. By greedy\'s rule (earliest finish), ' },
+      { blank: 'B5', model: 'f_j ≤ f_k', hint: 'The cost comparison guaranteed by the greedy rule' },
+      { text: '. Replace T_k with T_j in OPT: still valid (T_j compatible with prior picks; f_j ≤ f_k means T_j compatible with later picks). Same size, more commonality — contradicts max-commonality.\n\nTherefore G = OPT, so G is optimal.' },
+    ],
+  },
+  C: {
+    name: 'Exchange via cycle swap (Template 3)',
+    chunks: [
+      { text: 'Let T = greedy output. Let T* be an MST with ' },
+      { blank: 'C1', model: 'maximum number of edges in common with T', hint: 'How is T* defined relative to T?' },
+      { text: '. Suppose T ≠ T*. Let e be ' },
+      { blank: 'C2', model: 'the first edge greedy added that is not in T*', hint: 'What\'s the disagreement edge?' },
+      { text: '.\n\nAdding e to T* creates ' },
+      { blank: 'C3', model: 'a cycle', hint: 'Geometric consequence of adding an edge to a spanning tree' },
+      { text: '. This cycle must contain some edge e\' that ' },
+      { blank: 'C4', model: 'crosses the same cut as e at the moment greedy chose e', hint: 'What property does e\' share with e?' },
+      { text: ' and is in T*. By greedy\'s rule (picked e via min-cost frontier edge), ' },
+      { blank: 'C5', model: 'c(e) ≤ c(e\')', hint: 'The cost inequality' },
+      { text: '.\n\nSwap e for e\' in T*: still a spanning tree (e replaces e\' across the same cut), cost ≤ c(T*), more commonality with T. Contradicts T*\'s max-commonality.\n\nTherefore T = T*, so T is an MST.' },
+    ],
+  },
+  E: {
+    name: 'Exchange (one direction impossible) (Template 5)',
+    chunks: [
+      { text: 'Let G = greedy output. Let OPT be an optimal solution with maximum number of markers in common with G. Suppose G ≠ OPT. Let j be the first step where their marker positions disagree. Let x_i be ' },
+      { blank: 'E1', model: 'the leftmost point not yet covered by markers G and OPT agreed on prior to step j', hint: 'What point must both j-th markers cover?' },
+      { text: '. Both G\'s and OPT\'s j-th markers must cover x_i.\n\nBy greedy\'s rule, G placed its marker at position ' },
+      { blank: 'E2', model: 'x_i + r', hint: 'The furthest right position that still covers x_i' },
+      { text: ' (furthest right while still covering x_i). So OPT\'s marker is at position p ≤ x_i + r.\n\nReal case (p < x_i + r): replace OPT\'s marker with G\'s. Still covers x_i, extends coverage further right; anything OPT covered to the left of x_i is ' },
+      { blank: 'E3', model: 'already covered by the prior shared markers', hint: 'Why doesn\'t the swap break OPT\'s validity?' },
+      { text: '. So OPT\' is valid, same count, more commonality — contradiction.\n\nOther direction (p > x_i + r): impossible because ' },
+      { blank: 'E4', model: 'such a marker would not cover x_i', hint: 'Why can\'t OPT go further right than greedy?' },
+      { text: '.\n\nTherefore G = OPT, so G is optimal.' },
+    ],
+  },
+};
+
+function renderProof(styleKey) {
+  const container = document.getElementById(`proof-${styleKey}`);
+  const proof = PROOFS[styleKey];
+  container.innerHTML = '';
+  proof.chunks.forEach((chunk, idx) => {
+    if (chunk.text) {
+      // Replace \n with <br> for line breaks
+      const parts = chunk.text.split('\n');
+      parts.forEach((part, i) => {
+        container.appendChild(document.createTextNode(part));
+        if (i < parts.length - 1) {
+          container.appendChild(document.createElement('br'));
+          container.appendChild(document.createElement('br'));
+        }
+      });
+    } else if (chunk.blank) {
+      const wrap = document.createElement('span');
+      wrap.style.display = 'inline-block';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'blank-input';
+      input.dataset.style = styleKey;
+      input.dataset.blank = chunk.blank;
+      input.placeholder = chunk.hint || '';
+      input.addEventListener('input', saveAll);
+      wrap.appendChild(input);
+      const reveal = document.createElement('span');
+      reveal.className = 'model-answer hidden';
+      reveal.dataset.revealFor = chunk.blank;
+      reveal.innerHTML = `<span class="label">Model:</span>${chunk.model}`;
+      wrap.appendChild(reveal);
+      container.appendChild(wrap);
+    }
+  });
+}
+
+function revealStyle(styleKey) {
+  const proof = PROOFS[styleKey];
+  proof.chunks.forEach(chunk => {
+    if (chunk.blank) {
+      const reveal = document.querySelector(`[data-reveal-for="${chunk.blank}"]`);
+      if (reveal) reveal.classList.remove('hidden');
+      const input = document.querySelector(`input[data-blank="${chunk.blank}"]`);
+      if (input) {
+        const userVal = (input.value || '').trim().toLowerCase();
+        const model = (chunk.model || '').trim().toLowerCase();
+        if (userVal.length === 0) {
+          // No answer
+        } else if (matchesModel(userVal, model)) {
+          input.classList.add('revealed', 'correct');
+        } else {
+          input.classList.add('revealed', 'partial');
+        }
+      }
+    }
+  });
+}
+
+function matchesModel(user, model) {
+  // Lenient match: tokenize, compare key tokens
+  const norm = s => s.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(t => t.length > 2);
+  const u = new Set(norm(user));
+  const m = norm(model);
+  const matched = m.filter(t => u.has(t));
+  return matched.length >= Math.ceil(m.length * 0.5);
+}
+
+function resetStyle(styleKey) {
+  document.querySelectorAll(`input[data-style="${styleKey}"]`).forEach(i => {
+    i.value = '';
+    i.classList.remove('revealed', 'correct', 'partial');
+  });
+  document.querySelectorAll(`#proof-${styleKey} .model-answer`).forEach(m => m.classList.add('hidden'));
+  saveAll();
+}
+
+// ============================================================
+// LEVEL 2 — Write from memory
+// ============================================================
+
+const LEVEL_2_PROBLEMS = [
+  {
+    id: 'L2A',
+    title: '1. Airport gates (Template 1 — Exhaustion)',
+    style: 'A',
+    problem: 'You have <em>n</em> flights with arrival times <em>a_i</em> and departure times <em>d_i</em>. Two flights cannot share a gate during overlapping ground periods. Find the minimum number of gates needed. (Greedy: sort by arrival time, assign each to any free gate, open a new one if none free.) Prove your algorithm uses the minimum number of gates possible.',
+    modelProof: 'Let k = the number of gates greedy used. Consider the moment greedy opened the k-th gate: at that moment, greedy was processing some flight C, and every existing gate had lastDeparture > C.arrival (else greedy would have reused it). So at time a_C, there were k mutually overlapping flights (k−1 ongoing plus C itself). Any valid schedule must place these k pairwise-overlapping flights in k distinct gates. Hence any valid schedule uses ≥ k gates. Since greedy uses exactly k gates, greedy is optimal.',
+  },
+  {
+    id: 'L2B',
+    title: '2. Royal Cinema (Template 2 — Exchange, Case 1 collapses)',
+    style: 'B',
+    problem: 'You have <em>n</em> films with start times <em>s_i</em> and end times <em>f_i</em>. Pick the maximum subset of non-overlapping films. (Greedy: sort by finish time, take next film if its start is ≥ last selected film\'s finish.) Prove your algorithm picks the maximum-size subset.',
+    modelProof: 'Let G = greedy output. Let OPT be an optimal solution with maximum number of films in common with G. Suppose G ≠ OPT, and let j be the smallest index (in sorted-by-finish order) where they disagree.\n\nCase 1 (film T_j ∈ OPT, T_j ∉ G): Greedy skipped T_j, so T_j conflicts with one of greedy\'s prior picks. But OPT agreed on those prior picks, so T_j also conflicts with OPT\'s prior picks. But OPT contains T_j — contradiction. Case 1 is impossible.\n\nCase 2 (T_j ∈ G, T_j ∉ OPT): Let T_k be OPT\'s first pick with index > j. By greedy\'s rule (earliest finish), f_j ≤ f_k. Replace T_k with T_j in OPT: still valid (T_j compatible with prior picks, and f_j ≤ f_k means T_j compatible with OPT\'s later picks). Same size, more commonality — contradicts max-commonality.\n\nTherefore G = OPT, so G is optimal.',
+  },
+  {
+    id: 'L2C',
+    title: '3. Hydraulic Network (Template 3 — Exchange via cycle swap)',
+    style: 'C',
+    problem: 'Given a connected weighted graph (wells + proposed pipes with costs), find the cheapest subset of pipes connecting all wells. (Greedy: Prim\'s — grow a tree starting at any vertex, repeatedly add the cheapest frontier edge.) Prove your algorithm produces an MST.',
+    modelProof: 'Let T = greedy output. Let T* be an MST with maximum number of edges in common with T. Suppose T ≠ T*. Let e be the first edge greedy added that is not in T*.\n\nAdding e to T* creates a cycle (T* is already a spanning tree). This cycle must contain some edge e\' that crosses the same cut as e at the moment greedy chose e, and is in T*. By greedy\'s rule (picked e as the cheapest frontier edge), c(e) ≤ c(e\').\n\nSwap e for e\' in T*: still a spanning tree (e replaces e\' across the same cut), cost ≤ c(T*), and now has e in common with T (more commonality). This contradicts T*\'s max-commonality property.\n\nTherefore T = T*, so T is an MST.',
+  },
+  {
+    id: 'L2E',
+    title: '4. Lighthouses (Template 5 — Exchange, one direction impossible)',
+    style: 'E',
+    problem: 'Hazards at sorted positions <em>p_1 ≤ p_2 ≤ … ≤ p_n</em> on a coast. Each lighthouse has warning radius <em>r</em>. Place the minimum number of lighthouses so every hazard is within distance <em>r</em> of one. (Greedy: at the leftmost uncovered hazard p_i, place a lighthouse at p_i + r; skip past hazards now covered.) Prove your algorithm uses the minimum number of lighthouses.',
+    modelProof: 'Let G = greedy output. Let OPT be an optimal solution with maximum number of lighthouses in common with G. Suppose G ≠ OPT. Let j be the first step where their lighthouse positions disagree. Let p_i be the leftmost hazard not yet covered by the lighthouses G and OPT agreed on prior to step j. Both G\'s and OPT\'s j-th lighthouses must cover p_i.\n\nBy greedy\'s rule, G placed its lighthouse at position p_i + r (furthest right while still covering p_i). So OPT\'s lighthouse is at position p ≤ p_i + r.\n\nReal case (p < p_i + r): Replace OPT\'s lighthouse with G\'s. Still covers p_i, extends coverage further right; anything OPT covered to the left of p_i is already covered by the prior shared lighthouses. So OPT\' is valid, same count, more commonality — contradiction.\n\nOther direction (p > p_i + r): impossible — such a lighthouse would not cover p_i.\n\nTherefore G = OPT, so G is optimal.',
+  },
+];
+
+function renderLevel2() {
+  const container = document.getElementById('level-2-cards');
+  container.innerHTML = '';
+  LEVEL_2_PROBLEMS.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <h2>${p.title}</h2>
+      <span class="tag">Proof style ${p.style}</span>
+      <div class="problem-prose">${p.problem}</div>
+      <label style="display:block;font-size:12px;font-weight:600;color:#6b6b6f;text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 6px 0;">Your proof</label>
+      <textarea class="proof-area" data-l2id="${p.id}" placeholder="Write the full proof from memory. Don't peek at the model until you've tried."></textarea>
+      <div class="model-proof hidden" id="model-${p.id}">
+        <span class="label">Model proof</span>
+        ${p.modelProof.split('\n').map(line => `<div>${line}</div>`).join('')}
+      </div>
+      <div class="card-actions">
+        <button class="action" onclick="toggleModel('${p.id}')" id="reveal-btn-${p.id}">Reveal model proof</button>
+        <button class="action secondary" onclick="clearL2('${p.id}')">Clear</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+  // Wire up textarea autosave
+  document.querySelectorAll('textarea[data-l2id]').forEach(t => {
+    t.addEventListener('input', saveAll);
+  });
+}
+
+function toggleModel(id) {
+  const model = document.getElementById(`model-${id}`);
+  const btn = document.getElementById(`reveal-btn-${id}`);
+  if (model.classList.contains('hidden')) {
+    model.classList.remove('hidden');
+    btn.textContent = 'Hide model proof';
+    btn.classList.remove('action');
+    btn.classList.add('action', 'secondary');
+  } else {
+    model.classList.add('hidden');
+    btn.textContent = 'Reveal model proof';
+    btn.classList.remove('secondary');
+  }
+}
+
+function clearL2(id) {
+  if (!confirm('Clear your proof for this problem?')) return;
+  const ta = document.querySelector(`textarea[data-l2id="${id}"]`);
+  if (ta) ta.value = '';
+  saveAll();
+}
+
+// ============================================================
+// LEVEL 3 — Theory questions
+// ============================================================
+
+const THEORY_QUESTIONS = [
+  {
+    id: 'T1',
+    type: 'mcq',
+    question: 'A problem asks: "what is the maximum number of non-overlapping intervals you can select from a given set?" Which proof style applies?',
+    options: [
+      'A — Exhaustion',
+      'B — Exchange (Case 1 collapses)',
+      'C — Exchange via cycle swap',
+      'E — Exchange (one direction impossible)',
+    ],
+    correct: 1,
+    explanation: 'This is Template 2 (Interval Selection — maximum compatible subset). Use Style B: Case 1 collapses because greedy skips intervals only when they conflict with prior picks — and OPT agreed on prior picks, so OPT can\'t contain that interval either.',
+  },
+  {
+    id: 'T2',
+    type: 'mcq',
+    question: 'A problem asks: "what is the minimum number of rooms needed to schedule overlapping events without conflict?" Which proof style applies?',
+    options: [
+      'A — Exhaustion',
+      'B — Exchange (Case 1 collapses)',
+      'C — Exchange via cycle swap',
+      'E — Exchange (one direction impossible)',
+    ],
+    correct: 0,
+    explanation: 'This is Template 1 (Interval Scheduling — minimum partitioning into rooms). Use Style A: exhaustion. At the moment greedy opens the k-th room, k mutually overlapping events must exist — so any valid solution needs ≥ k rooms.',
+  },
+  {
+    id: 'T3',
+    type: 'mcq',
+    question: 'In a Template 2 exchange argument (Interval Selection), why does Case 1 (T_j ∈ OPT, T_j ∉ G) always lead to an immediate contradiction?',
+    options: [
+      'Because greedy is provably better than OPT',
+      'Because greedy skipped T_j only if it conflicts with a prior pick, but OPT agreed on prior picks',
+      'Because OPT is not allowed to contain T_j by definition',
+      'Because T_j has the earliest finish time',
+    ],
+    correct: 1,
+    explanation: 'Greedy skipped T_j → T_j conflicted with one of greedy\'s prior picks. Since OPT and greedy agreed on prior picks (j is the FIRST disagreement), T_j also conflicts with OPT\'s prior picks. But OPT contains T_j — that\'s a contradiction with OPT being valid.',
+  },
+  {
+    id: 'T4',
+    type: 'mcq',
+    question: 'In a cycle-swap proof (Style C, MST), what is the key geometric fact that creates the cycle?',
+    options: [
+      'Adding any edge to a connected graph creates a cycle',
+      'Adding any edge to a spanning tree creates exactly one cycle',
+      'Two trees joined by an edge form a cycle',
+      'Edges with same weight form a cycle',
+    ],
+    correct: 1,
+    explanation: 'A spanning tree has exactly n−1 edges and no cycles. Adding ANY extra edge creates a unique cycle — namely the one consisting of the new edge plus the unique tree-path between its endpoints. This is the structural property the cycle-swap exploits.',
+  },
+  {
+    id: 'T5',
+    type: 'mcq',
+    question: 'In a Template 5 covering proof (lighthouse/tower problem), why is "OPT placed its marker further RIGHT than greedy" impossible?',
+    options: [
+      'Because greedy is optimal and OPT can\'t do better',
+      'Because the leftmost uncovered point must be covered, and greedy places at the furthest valid right position',
+      'Because OPT must always match greedy\'s decisions',
+      'Because moving right loses coverage of the right edge',
+    ],
+    correct: 1,
+    explanation: 'Greedy places its marker at the furthest right position that still covers the leftmost uncovered point x_i — namely x_i + r. If OPT places its marker further right than x_i + r, that marker would not cover x_i. But x_i must be covered, contradiction. So OPT cannot exceed greedy in the rightward direction.',
+  },
+  {
+    id: 'T6',
+    type: 'mcq',
+    question: 'Which is the KEY difference between exchange-style proofs (B, C, E) and exhaustion (A)?',
+    options: [
+      'Exchange proofs use OPT-with-max-commonality and swap; exhaustion proofs don\'t use OPT at all — they establish a direct lower bound on any valid solution.',
+      'Exchange proofs are for graphs; exhaustion proofs are for intervals',
+      'Exchange proofs are by induction; exhaustion is by contradiction',
+      'Exchange proofs work for maximisation; exhaustion only works for minimisation',
+    ],
+    correct: 0,
+    explanation: 'Exhaustion (A) doesn\'t define OPT or do swaps — it directly shows that the input forces at least k rooms/labels/colours, matching greedy\'s output. Exchange proofs (B, C, E) all use the OPT-with-max-commonality assumption and modify OPT to derive a contradiction.',
+  },
+  {
+    id: 'T7',
+    type: 'mcq',
+    question: 'In an exchange-argument setup, why do we always modify OPT and never modify G (the greedy output)?',
+    options: [
+      'Because G is already optimal, so modifying it would break it',
+      'Because the contradiction comes from OPT having more commonality than its defining property allows; we need OPT\' (the modified OPT) to be the contradicting object',
+      'Because G has fixed structure due to the greedy rule',
+      'Because modifying G would change the algorithm',
+    ],
+    correct: 1,
+    explanation: 'OPT is defined as the optimal solution with MAX commonality with G. The proof constructs OPT\' (a modified OPT) that has even more commonality with G. That contradicts OPT\'s defining property — but only because OPT was the thing chosen by that max criterion. G isn\'t selected by any max-commonality rule, so modifying G wouldn\'t produce a contradiction.',
+  },
+  {
+    id: 'T8',
+    type: 'short',
+    question: 'In your own words, what are the four moves of an exchange argument (the mnemonic was MAX-OVERLAP → FIRST-DISAGREE → TWO-SWAPS → CONTRADICT)? Write a one-line description of each.',
+    modelAnswer: '1. MAX-OVERLAP: Define OPT = optimal solution with max number of elements in common with G.\n2. FIRST-DISAGREE: Locate the smallest index j where G and OPT disagree.\n3. TWO-SWAPS: Handle Case 1 (j ∈ OPT, j ∉ G) and Case 2 (j ∈ G, j ∉ OPT) — one of these usually collapses; in the other, swap to make OPT look more like G.\n4. CONTRADICT: The swap produces OPT\' with strictly more commonality with G, contradicting OPT\'s defining property. Conclude G = OPT.',
+  },
+];
+
+function renderLevel3() {
+  const container = document.getElementById('level-3-cards');
+  container.innerHTML = '';
+  THEORY_QUESTIONS.forEach((q, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card theory-q';
+    if (q.type === 'mcq') {
+      card.innerHTML = `
+        <p class="question">${idx + 1}. ${q.question}</p>
+        <div class="options" id="opts-${q.id}">
+          ${q.options.map((opt, i) => `<button class="option" data-q="${q.id}" data-opt="${i}" onclick="selectOption('${q.id}', ${i})">${String.fromCharCode(65 + i)}. ${opt}</button>`).join('')}
+        </div>
+        <div class="card-actions">
+          <button class="action" onclick="checkMCQ('${q.id}')">Check</button>
+          <button class="action secondary" onclick="resetMCQ('${q.id}')">Reset</button>
+        </div>
+        <div class="answer-reveal hidden" id="reveal-${q.id}">
+          <strong>Correct: ${String.fromCharCode(65 + q.correct)}</strong> — ${q.explanation}
+        </div>
+      `;
+    } else if (q.type === 'short') {
+      card.innerHTML = `
+        <p class="question">${idx + 1}. ${q.question}</p>
+        <textarea class="short-answer" data-l3id="${q.id}" placeholder="Type your answer..."></textarea>
+        <div class="card-actions">
+          <button class="action" onclick="revealShort('${q.id}')">Reveal model</button>
+          <button class="action secondary" onclick="clearL3('${q.id}')">Clear</button>
+        </div>
+        <div class="answer-reveal hidden" id="reveal-${q.id}">
+          <strong>Model answer:</strong><br>${q.modelAnswer.split('\n').map(line => `<div>${line}</div>`).join('')}
+        </div>
+      `;
+    }
+    container.appendChild(card);
+  });
+  document.querySelectorAll('textarea[data-l3id]').forEach(t => {
+    t.addEventListener('input', saveAll);
+  });
+}
+
+function selectOption(qid, idx) {
+  document.querySelectorAll(`#opts-${qid} .option`).forEach(o => o.classList.remove('selected'));
+  const btn = document.querySelector(`#opts-${qid} .option[data-opt="${idx}"]`);
+  if (btn) btn.classList.add('selected');
+  saveAll();
+}
+
+function checkMCQ(qid) {
+  const q = THEORY_QUESTIONS.find(x => x.id === qid);
+  if (!q) return;
+  const selected = document.querySelector(`#opts-${qid} .option.selected`);
+  if (!selected) {
+    alert('Pick an option first.');
+    return;
+  }
+  const idx = parseInt(selected.dataset.opt);
+  document.querySelectorAll(`#opts-${qid} .option`).forEach((o, i) => {
+    o.classList.remove('correct', 'wrong');
+    if (i === q.correct) o.classList.add('correct');
+    else if (i === idx) o.classList.add('wrong');
+  });
+  document.getElementById(`reveal-${qid}`).classList.remove('hidden');
+}
+
+function resetMCQ(qid) {
+  document.querySelectorAll(`#opts-${qid} .option`).forEach(o => {
+    o.classList.remove('selected', 'correct', 'wrong');
+  });
+  document.getElementById(`reveal-${qid}`).classList.add('hidden');
+  saveAll();
+}
+
+function revealShort(qid) {
+  document.getElementById(`reveal-${qid}`).classList.remove('hidden');
+}
+
+function clearL3(qid) {
+  const ta = document.querySelector(`textarea[data-l3id="${qid}"]`);
+  if (ta) ta.value = '';
+  document.getElementById(`reveal-${qid}`).classList.add('hidden');
+  saveAll();
+}
+
+// ============================================================
+// LocalStorage persistence
+// ============================================================
+
+const STORAGE_KEY = 'bcs1540-proof-drill-v1';
+
+function saveAll() {
+  const data = {
+    level1: {},
+    level2: {},
+    level3: {},
+    level3Selected: {},
+  };
+  document.querySelectorAll('input.blank-input').forEach(i => {
+    data.level1[i.dataset.blank] = i.value;
+  });
+  document.querySelectorAll('textarea[data-l2id]').forEach(t => {
+    data.level2[t.dataset.l2id] = t.value;
+  });
+  document.querySelectorAll('textarea[data-l3id]').forEach(t => {
+    data.level3[t.dataset.l3id] = t.value;
+  });
+  document.querySelectorAll('.option.selected').forEach(o => {
+    data.level3Selected[o.dataset.q] = o.dataset.opt;
+  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {}
+}
+
+function loadAll() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    Object.entries(data.level1 || {}).forEach(([id, val]) => {
+      const input = document.querySelector(`input[data-blank="${id}"]`);
+      if (input) input.value = val;
+    });
+    Object.entries(data.level2 || {}).forEach(([id, val]) => {
+      const ta = document.querySelector(`textarea[data-l2id="${id}"]`);
+      if (ta) ta.value = val;
+    });
+    Object.entries(data.level3 || {}).forEach(([id, val]) => {
+      const ta = document.querySelector(`textarea[data-l3id="${id}"]`);
+      if (ta) ta.value = val;
+    });
+    Object.entries(data.level3Selected || {}).forEach(([qid, idx]) => {
+      const btn = document.querySelector(`#opts-${qid} .option[data-opt="${idx}"]`);
+      if (btn) btn.classList.add('selected');
+    });
+  } catch (e) {}
+}
+
+// ============================================================
+// Init
+// ============================================================
+['A', 'B', 'C', 'E'].forEach(renderProof);
+renderLevel2();
+renderLevel3();
+loadAll();
+</script>
+
+</body>
+</html>

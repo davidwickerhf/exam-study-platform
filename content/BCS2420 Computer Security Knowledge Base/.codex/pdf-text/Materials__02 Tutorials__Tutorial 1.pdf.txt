@@ -1,0 +1,126 @@
+                           Tutorial 1
+
+
+              Fundamentals of Computer Security
+
+
+                        Computer Security
+                            BCS2420
+
+
+
+
+                             Part A
+
+
+1. Which of the following is not one of the fundamental goals
+   of computer security?
+         Confidentiality
+         Integrity
+         Repudiation
+         Availability
+2. Which statement best characterizes the principle of
+   authentication in computer security?
+         Ensuring data are unaltered except by authorized
+         parties.
+         Ensuring only authorized users can access resources.
+         Confirming the identity or genuineness of an entity
+         or data source.
+         Guaranteeing continuous operational readiness of
+         systems and networks.
+3. Which of the following adversary attributes deals primarily
+   with the financial resources at an attacker’s disposal?
+         Objectives
+         Methods
+         Capabilities
+         Funding Level
+4. In threat modeling, which approach specifically uses a
+   visual hierarchical structure where the root node is the
+   overall attack goal and leaves represent methods to achieve
+   it?
+         STRIDE
+
+
+
+
+                               1
+         Attack Trees
+         Diagram-Driven Modeling
+         Checklists
+5. In the risk equation R = T × V × C , the term V refers to:
+         The cost of a successful attack
+         The vulnerability level of a system
+         The probability of a threat occurring
+         The total number of adversaries involved
+
+
+
+
+                             Part B
+
+
+1. Real-World Incidents: From the lecture examples (WannaCry,
+   NotPetya, Stuxnet, TRITON), choose one and discuss:
+     – The nature of the attack (e.g., malware type, exploit
+       used)
+     – Its broader impact (financial, operational,
+       reputational)
+     – Why it represents a significant turning point in cyber
+       threats.
+2. Security Policy and Attacks : Describe the relationship
+   between a security policy and an attack. In your answer,
+   explain how a policy violation can lead to a non-secure
+   state and give one example of a practical policy from an
+   organizational context.
+3. Threat Modeling Methods : Compare two different approaches
+   to threat modeling (e.g., Diagram-Driven vs. STRIDE).
+   Clearly outline:
+     – How each approach identifies threats
+     – Their advantages and disadvantages for complex systems
+4. Insider vs. Outsider Threats : Analyze the security
+   implications of insiders compared to outsiders. Which
+   scenario is potentially more dangerous, and how might
+   security measures differ in addressing the two?
+5. Model-Reality Gaps : The lecture discussed how invalid
+   assumptions can undermine even the best security models.
+   Give an example of how such a gap might arise in a cloud
+   service context. Propose one strategy to mitigate this gap.
+
+
+
+
+                               2
+                            Part C
+
+
+1. Applying the Risk Equation: A company uses an internal
+   application that handles critical financial transactions.
+     – Threat probability, T : 0.02 (2% chance of occurring
+       each year)
+     – System vulnerability, V : 0.7 (70% chance the attack
+       will succeed if attempted)
+     – Potential cost of a successful attack, C : € 5,000,000
+   (a) Calculate the annual risk R using the equation: R = T ×
+   V ×C
+   (b) Briefly discuss two ways the organization might reduce
+   R from both the technical and procedural standpoints.
+2. Comparing Security Controls: A university estimates that a
+   successful breach of its research data would cost € 2
+   million in damages. They can invest in Option A (improved
+   firewalls) that reduces the system’s vulnerability from 0.8
+   to 0.3, or Option B (advanced intrusion detection + staff
+   training) that lowers the threat probability from 0.1 to
+   0.02.
+     – Threat probability (original): T = 0.1
+     – Vulnerability (original): V = 0.8
+     – Potential cost: C = €2,000,000
+   (a). Option A: Calculate the new risk RA .
+   (b). Option B: Calculate the new risk RB .
+   (c). Which option yields a lower risk? Suppose both options
+   cost the same. Which would you recommend and why?
+
+
+
+
+                              3
+

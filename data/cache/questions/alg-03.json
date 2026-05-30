@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-05-17T14:50:07.191Z",
+  "chapterId": "03",
+  "questions": [
+    {
+      "id": "selftest-dynamic-programming-q1",
+      "source": "Self test: Dynamic Programming",
+      "type": "written",
+      "question": "Define a DP table for max contiguous subarray sum.",
+      "expected": "`OPT[j] = max sum of a contiguous subarray ending at index j`."
+    },
+    {
+      "id": "selftest-dynamic-programming-q2",
+      "source": "Self test: Dynamic Programming",
+      "type": "written",
+      "question": "Write the recurrence for 0-1 Knapsack.",
+      "expected": "`OPT[j, Z] = max(OPT[j-1, Z], v_j + OPT[j-1, Z - w_j])`. Base case `OPT[0, Z] = 0`."
+    },
+    {
+      "id": "selftest-dynamic-programming-q4",
+      "source": "Self test: Dynamic Programming",
+      "type": "written",
+      "question": "What are the four required parts of a DP exam answer?",
+      "expected": "(i) Table definition; (ii) recurrence + correctness; (iii) bottom-up algorithm + runtime; (iv) reconstruction."
+    },
+    {
+      "id": "selftest-dynamic-programming-q6",
+      "source": "Self test: Dynamic Programming",
+      "type": "written",
+      "question": "What's the recurrence for LCS?",
+      "expected": "`L(i,j) = 1 + L(i-1, j-1)` if `s_1[i] = s_2[j]`, else `max(L(i-1, j), L(i, j-1))`. Base: `L(0, *) = L(*, 0) = 0`."
+    },
+    {
+      "id": "gen-03-1",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "easy",
+      "question": "True or False: 0-1 Knapsack with weight capacity W has runtime O(nW), which is polynomial in the input size.",
+      "expected": "False. W is given as a number; its encoding takes log W bits. O(nW) is exponential in log W, so the algorithm is pseudo-polynomial, not polynomial."
+    },
+    {
+      "id": "gen-03-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which DP recurrence correctly solves Weighted Interval Scheduling (where p(i) is the latest interval finishing before i starts)?",
+      "options": [
+        "M[i] = max(M[i-1], w_i + M[p(i)])",
+        "M[i] = w_i + max(M[i-1], M[p(i)])",
+        "M[i] = w_i + M[i-1] + M[p(i)]",
+        "M[i] = max(M[p(i)], M[p(i)] + w_i)"
+      ],
+      "expected": "M[i] = max(M[i-1], w_i + M[p(i)])"
+    },
+    {
+      "id": "gen-03-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Items with (value, weight): (60, 3), (100, 5), (120, 4). Capacity W = 7. What is the optimal 0/1 Knapsack value? Show your reasoning briefly.",
+      "expected": "Optimal: choose item 1 (60, 3) and item 3 (120, 4): total weight 7, value 180. Other feasible subsets: just item 2 = 100; items 1+2 = weight 8 (infeasible). Answer: 180."
+    },
+    {
+      "id": "gen-03-4",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write bottom-up pseudocode for Floyd-Warshall on a weighted graph with adjacency matrix W (using +infinity for non-edges).",
+      "expected": "```\nFLOYD-WARSHALL(W):\n    D = copy of W\n    for k in 1..n:\n        for i in 1..n:\n            for j in 1..n:\n                if D[i][k] + D[k][j] < D[i][j]:\n                    D[i][j] = D[i][k] + D[k][j]\n    return D\n```\nRuntime: Θ(n^3). Negative cycles iff D[i][i] < 0 for some i."
+    }
+  ]
+}

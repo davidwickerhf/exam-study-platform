@@ -1,0 +1,440 @@
+{
+  "generatedAt": "2026-05-21T18:38:29.370Z",
+  "courseId": "stats",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "When you perform a double-blind experiment, who has knowledge whether a subject in the study is in the treatment or control condition?",
+      "modelAnswer": "Neither the subjects, nor the doctors know but the statisticians do.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Neither the subjects, nor the doctors know but the statisticians do.",
+        "The subjects and statisticians do know, but the doctors do not know.",
+        "The subjects, the doctors and statisticians don’t know.",
+        "The doctors and statisticians do know, but the subjects do not know."
+      ]
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 3,
+      "sharedContext": "",
+      "text": "In a certain university, the admissions committee released the following summary for two departments. (Numbers are admitted / applicants .)\n\n| Department | Women | Men |\n|---|---:|---:|\n| A | 5 / 5 | 45 / 50 |\n| B | 35 / 95 | 3 / 15 |\n| Total (both depts.) | 40 / 100 | 48 / 65 |\n\nWhich ONE of the following statements is correct ?",
+      "modelAnswer": "Women have the higher admission rate in each department, yet men have the higher admission rate overall.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Women have the higher admission rate in each department, yet men have the higher admission rate overall.",
+        "Women have a higher admission rate than men overall, but men have the higher rate in Department B.",
+        "Men have the higher admission rate in each department and overall.",
+        "Women have a higher admission rate than men in each department and overall."
+      ]
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 3,
+      "sharedContext": "",
+      "text": "The table of test scores below has an average of 50 and a standard deviation (SD) of 10 .\n\n39 41 47 58 65 37 37 49 56 59 62 36 48 52 64 29 44 47 49 52 53 54 72 50 50\n\nAssume this data comes from a bell curve and use that to determine how many scores are $1 . 25$ SDs or more away from the average. The total number of observations that is more than $1 . 25$ SDs away of the average is:",
+      "modelAnswer": "5 observations",
+      "page": 4,
+      "type": "mc",
+      "options": [
+        "10 observations",
+        "6 observations",
+        "7 observations",
+        "9 observations",
+        "8 observations",
+        "5 observations"
+      ]
+    },
+    {
+      "id": "q1d",
+      "label": "Q1(d)",
+      "marks": 3,
+      "sharedContext": "",
+      "text": "Shown is a scatter diagram for educational levels (years of schooling completed) of husbands and wives in South Carolina, from the March 2005 Current Population Survey. In this image, three areas are shaded. Which of the following descriptions is not indicated as a shaded area?",
+      "modelAnswer": "Wife completed 16 years of schooling.",
+      "page": 5,
+      "type": "mc",
+      "options": [
+        "Husband completed 12 years of schooling and wife completed fewer years of schooling than husband.",
+        "Husband completed more than 16 years of schooling.",
+        "Wife completed 16 years of schooling.",
+        "Wife completed more years of schooling than husband."
+      ]
+    },
+    {
+      "id": "q1e",
+      "label": "Q1(e)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Which of the following options is not a real way that you could try collecting data:",
+      "modelAnswer": "Lurking Factor Experiment",
+      "page": 5,
+      "type": "mc",
+      "options": [
+        "Prospective Cohort Study",
+        "Lurking Factor Experiment",
+        "Randomized Controlled Experiment",
+        "Observational Study"
+      ]
+    },
+    {
+      "id": "q1f",
+      "label": "Q1(f)",
+      "marks": 4,
+      "sharedContext": "",
+      "text": "A box contains red and blue marbles; there are 5 more red marbles than blue ones. Marbles are drawn one at a time from the box, at random with replacement. You win a dollar if a red marble is drawn more often than a blue one. There are two choices:\n\n1. 100 draws are made from the box\n2. 200 draws are made from the box\n\nWhich of these options gives a better chance of winning?\n\nHint: Confidence limits.",
+      "modelAnswer": "Choice 1 gives a better chance of winning",
+      "page": 6,
+      "type": "mc",
+      "options": [
+        "Choice 2 gives a better chance of winning",
+        "Can’t tell without more information",
+        "Choice 1 gives a better chance of winning",
+        "Choices 1 and 2 give the same chance of winning"
+      ]
+    },
+    {
+      "id": "q1g",
+      "label": "Q1(g)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "The central limit theorem (CLT) tells us something about distribution of? Assuming that the requirements for CLT to apply hold.",
+      "modelAnswer": "Sample means",
+      "page": 6,
+      "type": "mc",
+      "options": [
+        "Raw data",
+        "Population parameters",
+        "Sample means",
+        "Root mean squared error"
+      ]
+    },
+    {
+      "id": "q1h",
+      "label": "Q1(h)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "We run a machine learning algorithm to do classification to figure out when a house is in Los Angeles or in New York based on several features (size, price and so on). Our classification gives us an area under the ROC curve of 0.5. This means what?",
+      "modelAnswer": "Chance level of classifiability.",
+      "page": 6,
+      "type": "mc",
+      "options": [
+        "High sensitivity",
+        "Chance level of classifiability.",
+        "Accuracy is slightly better than chance.",
+        "50% specificity.",
+        "None of the above."
+      ]
+    },
+    {
+      "id": "q1i",
+      "label": "Q1(i)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Time freshmen spend at parties: A newspaper article says that on the average, college freshmen spend $7 . 5$ hours a week going to parties. One administrator does not believe that these figures can be this high at her college, which has nearly $3 , 000$ freshmen. She takes a simple random sample of 100 freshmen, and interviews them. On average they report $6 . 6$ hours a week going to parties, and the SD is 9 hours. Which of the following hypotheses align with this example:",
+      "modelAnswer": "$H_0$: $7 . 5$ hours a week are spent going to parties AND $H_a$: less than $7 . 5$ hours a week are spend going to parties",
+      "page": 7,
+      "type": "mc",
+      "options": [
+        "$H_0$: $7 . 5$ hours a week are spent going to parties AND $H_a$: more than $7 . 5$ hours a week are spend going to parties",
+        "$H_0$: $6 . 6$ hours a week are spent going to parties AND $H_a$: less than $6 . 6$ hours a week are spend going to parties",
+        "$H_0$: $7 . 5$ hours a week are spent going to parties AND $H_a$: less than $7 . 5$ hours a week are spend going to parties",
+        "$H_0$: $6 . 6$ hours a week are spent going to parties AND $H_a$: more than $6 . 6$ hours a week are spend going to parties"
+      ]
+    },
+    {
+      "id": "q1j",
+      "label": "Q1(j)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "What visualization would you definitely not want to use to represent baby birth weight data? This dataset comprises of millions of data points representing the birth weights of babies collected over a year.",
+      "modelAnswer": "Line plot",
+      "page": 7,
+      "type": "mc",
+      "options": [
+        "Box plot",
+        "Line plot",
+        "Strip chart",
+        "Histogram"
+      ]
+    },
+    {
+      "id": "q1k",
+      "label": "Q1(k)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "A researcher records each participant’s gender, age, and number of times they visited a doctor in the past year. Which pairing below correctly classifies the types of these three variables in order?",
+      "modelAnswer": "(Categorical, Continuous, Discrete)",
+      "page": 7,
+      "type": "mc",
+      "options": [
+        "(Categorical, Continuous, Continuous)",
+        "(Continuous, Categorical, Discrete)",
+        "(Categorical, Continuous, Discrete)",
+        "(Continuous, Continuous, Categorical)"
+      ]
+    },
+    {
+      "id": "q1l",
+      "label": "Q1(l)",
+      "marks": 3,
+      "sharedContext": "",
+      "text": "We are given the following probability distribution function: $f ( x ) = ( 7 − 2 x ) 2$ for $2 ≤ x ≤ 3$ and $f ( x ) = 0$ otherwise. What is the population mean for this distribution?",
+      "modelAnswer": "2.417",
+      "page": 8,
+      "type": "mc",
+      "options": [
+        "2.112",
+        "2.417",
+        "3.419",
+        "1.551"
+      ]
+    },
+    {
+      "id": "q2a",
+      "label": "Q2(a)",
+      "marks": 4,
+      "sharedContext": "Judging statistical claims\n\nThe news article below claims that cat parasites cause brain cancer. In the article they state:\n\n\"Across the range of infection prevalence, from 4% to 67% of the population, T. gondii [cat parasite] was associated with a 1.6-fold increase in the risk of brain cancer.\"\n\n\"Cat parasite linked to brain cancer\"",
+      "text": "Assuming that 2 in 100 people gets brain cancer in low cat parasite prevalence countries. What is the expected frequency of getting brain cancer in countries with high prevalence of the cat parasite? Assume the 1.6 was an odds ratio and that we want to know the rates per 100 people.",
+      "modelAnswer": "3.2/100",
+      "page": 8,
+      "type": "mc",
+      "options": [
+        "None of the above",
+        "3.9/100",
+        "3.6/100",
+        "5/100",
+        "3.2/100"
+      ]
+    },
+    {
+      "id": "q2b",
+      "label": "Q2(b)",
+      "marks": 2,
+      "sharedContext": "Judging statistical claims\n\nThe news article below claims that cat parasites cause brain cancer. In the article they state:\n\n\"Across the range of infection prevalence, from 4% to 67% of the population, T. gondii [cat parasite] was associated with a 1.6-fold increase in the risk of brain cancer.\"\n\n\"Cat parasite linked to brain cancer\"",
+      "text": "In reality, it turns out that cats do not cause cancer. A follow-up study that prospectively analyzed women with cats found confirmed that the cats cause cancer story was wrong. They created the following contingency table:\n\n|  | Own Cat | Don’t Own Cat |\n|---|---:|---:|\n| Brain Cancer | 171 | 645 |\n| No Brain Cancer | 114614 | 378066 |\n\nWhat is the relative risk of getting brain cancer when you have a cat compared to when you do not have a cat?",
+      "modelAnswer": "0.9",
+      "page": 8,
+      "type": "mc",
+      "options": [
+        "0.8",
+        "0.9",
+        "0.4",
+        "0.7"
+      ]
+    },
+    {
+      "id": "q3a",
+      "label": "Q3(a)",
+      "marks": 3,
+      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes’ theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
+      "text": "(a) What’s the chance that your plant will survive the week? [3 points]",
+      "modelAnswer": "$$P(\\text{survive}) = P(\\text{survive} \\mid \\text{watered})P(\\text{watered}) + P(\\text{survive} \\mid \\text{forgot})P(\\text{forgot})$$\n\n$$= 0.90 \\times 0.75 + 0.30 \\times 0.25 = 0.675 + 0.075 = 0.75$$\n\nThe chance that your plant will survive the week is 75%.",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3b",
+      "label": "Q3(b)",
+      "marks": 3,
+      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes’ theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
+      "text": "(b) If it’s dead when you return, what’s the chance that your friend forgot to water it? [3 points]",
+      "modelAnswer": "$$P(\\text{dead}) = 0.10 \\times 0.75 + 0.70 \\times 0.25 = 0.075 + 0.175 = 0.25$$\n\n$$P(\\text{forgot} \\mid \\text{dead}) = \\frac{P(\\text{dead} \\mid \\text{forgot})P(\\text{forgot})}{P(\\text{dead})} = \\frac{0.70 \\times 0.25}{0.25} = 0.70$$\n\nIf it’s dead when you return, the chance that your friend forgot to water it is 70%.",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3c",
+      "label": "Q3(c)",
+      "marks": 3,
+      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes’ theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
+      "text": "(c) If your friend forgot to water it, what’s the chance it’ll be alive when you return? [3 points]",
+      "modelAnswer": "$$P(\\text{alive} \\mid \\text{forgot}) = 1 - P(\\text{dead} \\mid \\text{forgot}) = 1 - 0.70 = 0.30$$\n\nIf your friend forgot to water it, the chance it’ll be alive when you return is 30%.",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 8,
+      "sharedContext": "",
+      "text": "Design a Research Study\n\nA regional government has issued a large study of the high schools in the region. As part of this study, an overview has been made of both the central exam and the school exam results of all students in the region. Note that in the Netherlands, someone’s graduation grades are determined based on both these results. For each student, it is listed what grades were obtained for which course. Moreover, it is also known which teachers taught each course to the students and at which school they taught the course. Based on the average grades per school (for the central exam) that were calculated based on this information and subsequently communicated to the schools, the top school (highest average grades on the central exam) requests another analysis to be performed on the data.\n\nThe school requests the following analysis to be performed :\n\n1. How do our students perform on each subject relative to the other schools in the region? Specifically, are there courses where our students under-perform relative to the other schools in the region?\n2. Are the findings about performance across courses consistent across teachers?\n\nDescribe your approach to process the data described above (note that it has already been collected) in such a way as to answer the research questions above. Consider the full process of setting up the analysis. Do not worry about how this would done in Python/elsewhere (that is, don’t write pseudocode, focus on how the analysis would be performed and what you would assess).",
+      "modelAnswer": "A full-credit answer should describe the complete analysis process:\n\n- Define the observational units: student-course exam results, with school, teacher, course, central exam grade, and school exam grade.\n- Clean and validate the data, checking missing values, duplicates, inconsistent course labels, teacher identifiers, and impossible grade values.\n- Restrict or flag analyses to comparable courses and exam types, especially central exam grades because the research question refers to central exam performance.\n- For each subject, compare the top school’s students to students from other schools in the region using subject-specific summaries such as means, standard deviations, sample sizes, confidence intervals, and differences in means.\n- Assess uncertainty rather than only ranking schools, because some courses may have few students.\n- Identify courses where the top school under-performs relative to the regional comparison, using estimated differences and confidence intervals or suitable hypothesis tests.\n- Account for relevant structure in the data: students are nested within courses, teachers, and schools, and course difficulty and student composition may differ.\n- For consistency across teachers, repeat the subject-level comparisons within teacher groups where possible, or use a model with teacher effects and school/course effects.\n- Check whether under-performance is concentrated among particular teachers or appears across teachers teaching the same course.\n- Report limitations: the data are observational, so the analysis can compare performance but cannot by itself prove that a school or teacher caused the differences.",
+      "page": 10,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q5a",
+      "label": "Q5(a)",
+      "marks": 8,
+      "sharedContext": "Video game genres\n\nA survey of 1200 teens collected data about video game use by teens. According to the survey, the following are among the most popular game genres:\n\n| Genre | Examples | Percent who play |\n|---|---|---:|\n| Racing | NASCAR, Mario Kart, Burnout | 70 |\n| Sports | Madden, FIFA, Tony Hawk | 65 |\n| Rhythm | Guitar Hero, Dance Dance Revolution, Lumines | 61 |",
+      "text": "Give a 95% confidence interval for the proportion who play games in each of these three genres. Make sure to note the correct formula and how/why you are applying it to calculate the confidence limits.",
+      "modelAnswer": "Use the large-sample confidence interval for a proportion:\n\n$$\\hat{p} \\pm 1.96\\sqrt{\\frac{\\hat{p}(1 - \\hat{p})}{n}}$$\n\nThis applies because the sample size is $n = 1200$ and the expected numbers of successes and failures are large for all three genres.\n\nRacing: $\\hat{p} = 0.70$\n\n$$0.70 \\pm 1.96\\sqrt{\\frac{0.70(0.30)}{1200}} = 0.70 \\pm 0.0259$$\n\n95% CI: $(0.674, 0.726)$, or 67.4% to 72.6%.\n\nSports: $\\hat{p} = 0.65$\n\n$$0.65 \\pm 1.96\\sqrt{\\frac{0.65(0.35)}{1200}} = 0.65 \\pm 0.0270$$\n\n95% CI: $(0.623, 0.677)$, or 62.3% to 67.7%.\n\nRhythm: $\\hat{p} = 0.61$\n\n$$0.61 \\pm 1.96\\sqrt{\\frac{0.61(0.39)}{1200}} = 0.61 \\pm 0.0276$$\n\n95% CI: $(0.582, 0.638)$, or 58.2% to 63.8%.",
+      "page": 11,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5b",
+      "label": "Q5(b)",
+      "marks": 4,
+      "sharedContext": "Video game genres\n\nA survey of 1200 teens collected data about video game use by teens. According to the survey, the following are among the most popular game genres:\n\n| Genre | Examples | Percent who play |\n|---|---|---:|\n| Racing | NASCAR, Mario Kart, Burnout | 70 |\n| Sports | Madden, FIFA, Tony Hawk | 65 |\n| Rhythm | Guitar Hero, Dance Dance Revolution, Lumines | 61 |",
+      "text": "Explain why the chance that at least one of your intervals does not contain the true value of the parameter (that is, the population percentage of teens playing any of these genres of games) is greater than the $α$ of 5% that we set for the confidence interval in part (a).",
+      "modelAnswer": "Each 95% confidence interval has a 5% error rate when considered on its own. In part (a), three intervals are constructed. The probability that all three intervals contain their true parameters is less than 95%, so the probability that at least one interval misses its true parameter is greater than 5%.\n\nIf the intervals were independent, the probability that at least one misses would be:\n\n$$1 - 0.95^3 = 0.142625$$\n\nor about 14.3%. Even without assuming independence, doing multiple confidence intervals increases the chance of at least one error compared with a single interval.",
+      "page": 12,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q6a",
+      "label": "Q6(a)",
+      "marks": 4,
+      "sharedContext": "Box of cereal\n\nA packaging company is asked by a producer of cereal to fill boxes of their newest brand. The cereal company would like to have at least 200 grams of cereal in their boxes and they are willing to accept that in general, five out of a thousand boxes are filled with less than 200 grams. Suppose the packaging company has a filling machine that fills boxes with a weight that is normally distributed with an unknown mean and a known standard deviation of 4 grams. Upon an inspection of 16 boxes that were filled by the machine, the company found that the boxes were filled with sample mean 211 grams.",
+      "text": "Construct a 95% confidence interval of the mean for the weight of the cereal box.",
+      "modelAnswer": "Because the population standard deviation is known, use a $z$ confidence interval:\n\n$$\\bar{x} \\pm 1.96\\frac{\\sigma}{\\sqrt{n}}$$\n\nWith $\\bar{x}=211$, $\\sigma=4$, and $n=16$:\n\n$$211 \\pm 1.96\\frac{4}{\\sqrt{16}} = 211 \\pm 1.96$$\n\n95% confidence interval:\n\n$$(209.04, 212.96)$$\n\nSo the 95% confidence interval for the mean weight is 209.04 grams to 212.96 grams.",
+      "page": 12,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6b",
+      "label": "Q6(b)",
+      "marks": 8,
+      "sharedContext": "Box of cereal\n\nA packaging company is asked by a producer of cereal to fill boxes of their newest brand. The cereal company would like to have at least 200 grams of cereal in their boxes and they are willing to accept that in general, five out of a thousand boxes are filled with less than 200 grams. Suppose the packaging company has a filling machine that fills boxes with a weight that is normally distributed with an unknown mean and a known standard deviation of 4 grams. Upon an inspection of 16 boxes that were filled by the machine, the company found that the boxes were filled with sample mean 211 grams.",
+      "text": "After further analysis of the initial output of the machine, the company finds that the machine fills boxes with a mean of 211 grams.\n\nBased on this information, does the machine adhere to the standards that the cereal company demanded (i.e., at most five out of a thousand boxes are filled with less than 400 grams)?",
+      "modelAnswer": "The standard in the setup is at most five out of a thousand boxes below 200 grams. Using the stated normal distribution with mean $\\mu = 211$ and standard deviation $\\sigma = 4$:\n\n$$P(X < 200) = P\\left(Z < \\frac{200 - 211}{4}\\right) = P(Z < -2.75)$$\n\n$$P(Z < -2.75) \\approx 0.0030$$\n\nThis is about 3 boxes per 1000, which is less than 5 boxes per 1000. Therefore, using the 200 gram standard described in the setup, the machine adheres to the cereal company’s demand.\n\nIf the threshold is read literally as 400 grams in the final sentence, then no: since the machine has mean 211 grams, essentially all boxes would be below 400 grams. This appears inconsistent with the earlier 200 gram standard.",
+      "page": 13,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7a",
+      "label": "Q7(a)",
+      "marks": 3,
+      "sharedContext": "On Measurement\n\nMeasurements are the core of data collection. Measurements are all around us in different forms: how many times did you visit Instagram today? how many coffees did you drink? how much money did you spend on your food? But measurements come with many caveats. Answer the following questions about the potential caveats of measurements:",
+      "text": "In France under Napoleon, the government wanted to tax homes based on how large they got. They assumed that you could do this by measuring the number of windows present on a home. Over time however, homes in poorer sections of society were being built without any windows. This is an example of:\n\n[Multiple correct answers possible, but negative points for incorrect answers are possible too.]",
+      "modelAnswer": "Correct answers:\n\n- A measure becoming the target.\n- Measurements can be wrong.",
+      "page": 14,
+      "type": "mc",
+      "options": [
+        "A measure becoming the target.",
+        "Measurements can be wrong.",
+        "\"Teaching to the test\"",
+        "Governments are not very clever."
+      ]
+    },
+    {
+      "id": "q7b",
+      "label": "Q7(b)",
+      "marks": 6,
+      "sharedContext": "On Measurement\n\nMeasurements are the core of data collection. Measurements are all around us in different forms: how many times did you visit Instagram today? how many coffees did you drink? how much money did you spend on your food? But measurements come with many caveats. Answer the following questions about the potential caveats of measurements:",
+      "text": "Which of the following is a problem of defining variables for data collection?\n\n[Multiple answers possible, but negative points are possible too.]",
+      "modelAnswer": "Correct answers:\n\n- The meaning of the measurements and the values themselves may change as a function of where and when I make the measurements.\n- The measurements we generate from the definitions of variables may not represent the real world.\n- We can be forced to create thresholds in defining the variables that affect the measurement.",
+      "page": 14,
+      "type": "mc",
+      "options": [
+        "The meaning of the measurements and the values themselves may change as a function of where and when I make the measurements.",
+        "The measurements we generate from the definitions of variables may not represent the real world.",
+        "The measurements we get from the variables we define do not allow us to abstract the real world into numbers.",
+        "We can be forced to create thresholds in defining the variables that affect the measurement.",
+        "The measurements based on the variable definitions have too much spread."
+      ]
+    },
+    {
+      "id": "q8a",
+      "label": "Q8(a)",
+      "marks": 2,
+      "sharedContext": "Correlation\n\nSuppose the correlation coefficient between an independent and a dependent variable is $− 0 . 80$ and the spearman rank correlation is $− 0 . 75$ .\n\nStatement : Below-mean values of the dependent variable (relative to its own mean) are associated with below-mean values of the independent variable (relative to its own mean).",
+      "text": "Is the statement true or false?",
+      "modelAnswer": "False",
+      "page": 15,
+      "type": "tf",
+      "options": [
+        "True",
+        "False"
+      ]
+    },
+    {
+      "id": "q8b",
+      "label": "Q8(b)",
+      "marks": 4,
+      "sharedContext": "Correlation\n\nSuppose the correlation coefficient between an independent and a dependent variable is $− 0 . 80$ and the spearman rank correlation is $− 0 . 75$ .\n\nStatement : Below-mean values of the dependent variable (relative to its own mean) are associated with below-mean values of the independent variable (relative to its own mean).",
+      "text": "Your motivation on why the statement is either true or false and why the spearman rank correlation matters to explain this:",
+      "modelAnswer": "The statement is false. A correlation coefficient of $-0.80$ means that values above the mean on one variable tend to be associated with values below the mean on the other variable, and values below the mean on one variable tend to be associated with values above the mean on the other variable. The statement describes a positive association, not a negative one.\n\nThe Spearman rank correlation of $-0.75$ matters because it shows that the negative association is also present in the ranked data. This means the relationship is not only a linear negative relationship measured by Pearson correlation, but also a strong negative monotonic relationship in the ranks.",
+      "page": 15,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q9a",
+      "label": "Q9(a)",
+      "marks": 2,
+      "sharedContext": "RCTs and Causality",
+      "text": "When analyzing two populations of fish, we want to understand whether changes in the population of one group of fish affects another population of fish. A first basic analysis tries to look at the correlation between the populations and finds that the correlation is close to 0. We can interpret this to mean:",
+      "modelAnswer": "There may still be a causal relationship between fish populations.",
+      "page": 15,
+      "type": "mc",
+      "options": [
+        "We can say nothing about causality from this result.",
+        "There is no causal relationship between the fish populations.",
+        "None of the above",
+        "There may still be a causal relationship between fish populations."
+      ]
+    },
+    {
+      "id": "q9b",
+      "label": "Q9(b)",
+      "marks": 6,
+      "sharedContext": "RCTs and Causality",
+      "text": "We want to understand whether large language models affect critical thinking in the university. You are requested to create a randomized control trial to assess this. Explain the details of this trial and how it will be administered and how you will make a causal claim at the end of the study.",
+      "modelAnswer": "A full-credit answer should include:\n\n- Define the target population, such as university students in selected courses.\n- Measure critical thinking before the intervention with a validated pre-test.\n- Randomly assign students, classes, or tutorial groups to treatment and control conditions.\n- Treatment group: allowed or required to use large language models under a clearly defined protocol.\n- Control group: no access to large language models, or use of standard non-LLM study resources.\n- Keep other course conditions as similar as possible across groups, including instructor, assignments, grading, and study time.\n- Measure critical thinking after the intervention with the same or equivalent validated assessment.\n- Compare post-test outcomes between treatment and control groups, ideally adjusting for pre-test scores.\n- Use randomization to justify the causal claim: because assignment to LLM exposure was random, systematic pre-existing differences between groups should be balanced, so a statistically meaningful difference in critical-thinking outcomes can be attributed to the LLM intervention, subject to compliance and study limitations.",
+      "page": 16,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q10a",
+      "label": "Q10(a)",
+      "marks": 3,
+      "sharedContext": "Pseudo-Coding Statistics\n\nYou are given a dataset consisting of incomes from men and women from all the states of the USA as well as some demographic information including family size, race, house ownership, gun ownership, house size, religiosity and political leaning. Unfortunately, each state gives you data in a separate comma-separated values (CSV) file and labels missing data differently, but always with a string. Every row of the dataset from each state represents a different individual and each column represents each of the characteristics already noted, including one column for income. Write pseudo-code that allows you to answer the following questions:",
+      "text": "Given a dataframe with missing values, do the preprocessing (cleaning the missing data),and merge into a single data frame.",
+      "modelAnswer": "```text\nall_data = empty list\n\nfor each csv_file in folder_of_state_files:\n    state_name = get state name from csv_file\n    df = read csv_file\n\n    standardize column names\n    add column state = state_name\n\n    for each column in df:\n        if column value is a string used to indicate missing data:\n            replace value with NA\n\n    convert income, family size, house size, and other numeric columns to numeric\n    convert gender, race, house ownership, gun ownership, religiosity, political leaning, and state to categorical variables\n\n    handle missing values:\n        remove rows where income or gender is missing\n        impute or mark missing values for other demographic variables\n\n    append df to all_data\n\nmerged_df = concatenate all dataframes in all_data by rows\ncheck that columns match across states\ncheck for impossible values and duplicates\nreturn merged_df\n```",
+      "page": 17,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q10b",
+      "label": "Q10(b)",
+      "marks": 4,
+      "sharedContext": "Pseudo-Coding Statistics\n\nYou are given a dataset consisting of incomes from men and women from all the states of the USA as well as some demographic information including family size, race, house ownership, gun ownership, house size, religiosity and political leaning. Unfortunately, each state gives you data in a separate comma-separated values (CSV) file and labels missing data differently, but always with a string. Every row of the dataset from each state represents a different individual and each column represents each of the characteristics already noted, including one column for income. Write pseudo-code that allows you to answer the following questions:",
+      "text": "Assuming you already have a clean, pre-processed dataframe (collapsed across states and missing values are accounted for), write pseudo-code to assess whether there is any difference in incomes between men and women across the USA and specifically, within different states of the USA.",
+      "modelAnswer": "```text\n# Overall USA comparison\nmale_income = income values where gender == \"men\"\nfemale_income = income values where gender == \"women\"\n\ncompute mean, median, standard deviation, and sample size for male_income\ncompute mean, median, standard deviation, and sample size for female_income\ncompute difference in mean income between men and women\ncompute confidence interval for the difference\nrun appropriate two-sample test or regression: income ~ gender\nrecord p-value and effect size\n\n# State-specific comparison\nfor each state in dataframe:\n    state_df = rows where state == current state\n    male_state_income = income values where gender == \"men\"\n    female_state_income = income values where gender == \"women\"\n\n    compute group summaries by gender\n    compute difference in mean income between men and women\n    compute confidence interval for the difference\n    run appropriate two-sample test or regression: income ~ gender\n    store state, estimates, confidence interval, p-value, and sample sizes\n\n# Optional adjusted model\nfit regression model:\n    income ~ gender + state + gender * state + demographic covariates\n\nuse the gender coefficient for the overall difference\nuse the gender * state terms to assess whether the difference varies across states\n```",
+      "page": 18,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q10c",
+      "label": "Q10(c)",
+      "marks": 3,
+      "sharedContext": "Pseudo-Coding Statistics\n\nYou are given a dataset consisting of incomes from men and women from all the states of the USA as well as some demographic information including family size, race, house ownership, gun ownership, house size, religiosity and political leaning. Unfortunately, each state gives you data in a separate comma-separated values (CSV) file and labels missing data differently, but always with a string. Every row of the dataset from each state represents a different individual and each column represents each of the characteristics already noted, including one column for income. Write pseudo-code that allows you to answer the following questions:",
+      "text": "Assuming you already have a clean, pre-processed dataframe (collapsed across states and missing values are accounted for), write pseudo-code to classify which state any individual person is from based on the available information - make a note of how you would train this model and test it.",
+      "modelAnswer": "```text\nfeatures = all columns except state\nlabel = state\n\nencode categorical features using one-hot encoding\nscale numeric features if the chosen model requires scaling\n\nsplit dataframe into training set and test set, stratified by state\n\nchoose classification model, for example random forest, logistic regression, or k-nearest neighbors\ntrain model on training features and training state labels\n\nuse trained model to predict state for the test set\n\ncompute test accuracy\ncompute confusion matrix\ncompute per-state precision, recall, and F1-score\n\nif tuning is needed:\n    use cross-validation on the training set to choose model parameters\n    retrain final model on full training set\n    evaluate once on the held-out test set\n```",
+      "page": 18,
+      "type": "pseudocode",
+      "options": []
+    }
+  ]
+}

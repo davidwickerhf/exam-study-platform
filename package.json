@@ -1,0 +1,13 @@
+{
+  "name": "exam-study-platform",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "setup": "node setup.mjs",
+    "dev": "node server.mjs",
+    "start": "node server.mjs"
+  }
+}

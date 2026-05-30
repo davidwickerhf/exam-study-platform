@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DP Walkthroughs — Kadane / WIS / LCS / Knapsack + 4-Step Exam Format</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #fafafa;
+    color: #1c1c1e;
+    margin: 0;
+    padding: 28px 28px 120px;
+    max-width: 1280px;
+    margin: 0 auto;
+    line-height: 1.55;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px 0; }
+  .subtitle { color: #6b6b6f; margin: 0 0 18px 0; font-size: 13.5px; }
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 22px;
+    border-bottom: 2px solid #e5e5e7; flex-wrap: wrap;
+  }
+  .tab {
+    background: transparent; border: none; padding: 10px 18px;
+    font-size: 13.5px; font-weight: 500; color: #6b6b6f;
+    cursor: pointer; border-bottom: 3px solid transparent;
+    margin-bottom: -2px; transition: all 0.15s;
+  }
+  .tab:hover { color: #1c1c1e; }
+  .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .container {
+    display: grid; grid-template-columns: 1.35fr 1fr;
+    gap: 20px; align-items: start;
+  }
+  .panel {
+    background: white; border: 1px solid #e5e5e7;
+    border-radius: 8px; padding: 18px;
+  }
+  .panel.diagram-panel { position: sticky; top: 18px; }
+  .panel.explanation-panel { min-height: 600px; }
+  svg { width: 100%; height: auto; background: white; border-radius: 4px; }
+  .step-counter {
+    color: #888; font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 4px;
+  }
+  .step-title {
+    font-size: 17px; font-weight: 600; margin: 0 0 12px 0; color: #1a1a1a;
+  }
+  .step-body { font-size: 14px; line-height: 1.6; color: #333; }
+  .step-body p { margin: 8px 0; }
+  .step-body strong { color: #1c1c1e; }
+  .step-body code {
+    background: #f0f0f0; padding: 2px 5px; border-radius: 3px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px;
+  }
+  .step-body .em { background: #fff8d9; padding: 1px 4px; border-radius: 3px; }
+  .step-body ul, .step-body ol { margin: 8px 0; padding-left: 22px; }
+  .step-body li { margin-bottom: 5px; }
+  .formula {
+    background: #1e293b; color: #e2e8f0;
+    padding: 12px 14px; border-radius: 6px; margin: 12px 0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13.5px; line-height: 1.6; text-align: center;
+  }
+  .annotation {
+    background: #f0f9ff; border-left: 3px solid #2563eb;
+    padding: 10px 13px; margin: 10px 0; border-radius: 4px; font-size: 13px;
+  }
+  .annotation.warn { background: #fff8e6; border-left-color: #f59e0b; }
+  .annotation.success { background: #f0fdf4; border-left-color: #10b981; }
+  .annotation.proof { background: #faf5ff; border-left-color: #8b5cf6; }
+  .exam-answer-final {
+    background: #f0fdf4; border: 2px solid #86efac;
+    border-radius: 8px; padding: 16px 18px; margin-top: 16px;
+  }
+  .exam-answer-final h4 { margin: 0 0 10px 0; color: #15803d; font-size: 14px; }
+  .exam-answer-final pre {
+    background: white; color: #1c1c1e; padding: 12px 14px;
+    border-radius: 4px; border: 1px solid #d1fae5;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px; line-height: 1.55; overflow-x: auto; margin: 0;
+    white-space: pre-wrap;
+  }
+  /* Floating controls */
+  .floating-controls {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: white; padding: 10px 14px; border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+    display: flex; gap: 8px; align-items: center; z-index: 1000;
+    border: 1px solid #e5e5e7;
+  }
+  .floating-controls.hidden { display: none; }
+  .floating-controls button {
+    background: #2563eb; color: white; border: none;
+    padding: 9px 16px; border-radius: 6px; font-size: 13px;
+    font-weight: 500; cursor: pointer;
+  }
+  .floating-controls button:hover { background: #1d4ed8; }
+  .floating-controls button:disabled { background: #ccc; cursor: not-allowed; }
+  .floating-controls button.secondary { background: #6b7280; }
+  .floating-controls button.secondary:hover { background: #4b5563; }
+  .floating-controls .progress { color: #666; font-size: 12.5px; padding: 0 8px; font-weight: 500; }
+  .floating-controls .algo-label { color: #2563eb; font-weight: 600; font-size: 12px; padding: 0 6px; border-right: 1px solid #e5e5e7; margin-right: 4px; }
+  /* Legend */
+  .legend {
+    margin-top: 12px; display: flex; flex-wrap: wrap;
+    gap: 8px; font-size: 10.5px; color: #555;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .swatch { width: 14px; height: 12px; border: 1px solid #888; }
+  /* HTML table for 2D DPs */
+  .dp-table { border-collapse: collapse; margin: 8px auto; font-size: 12.5px; }
+  .dp-table th, .dp-table td {
+    border: 1px solid #94a3b8; padding: 6px 10px; text-align: center;
+    min-width: 38px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .dp-table th { background: #e2e8f0; font-weight: 600; }
+  .dp-table th.header-axis { background: #cbd5e1; color: #1e293b; font-weight: 700; }
+  .dp-table td.unfilled { background: #f3f4f6; color: #cbd5e1; }
+  .dp-table td.filled { background: white; }
+  .dp-table td.active { background: #fef3c7; border-color: #f59e0b; border-width: 2px; font-weight: 700; }
+  .dp-table td.match-source { background: #dbeafe; }
+  .dp-table td.winning { background: #dcfce7; border-color: #10b981; border-width: 2px; font-weight: 700; color: #15803d; }
+  .dp-table td.path { background: #fef3c7; }
+  /* Exam format cards */
+  .exam-intro {
+    background: #fff8e6; border-left: 3px solid #f59e0b;
+    padding: 14px 18px; border-radius: 6px;
+    margin-bottom: 22px; font-size: 13.5px;
+  }
+  .exam-step-card {
+    background: white; border: 1px solid #e5e5e7;
+    border-radius: 10px; padding: 24px 28px; margin-bottom: 20px;
+  }
+  .exam-step-card h2 { margin: 0 0 8px 0; font-size: 21px; color: #1c1c1e; }
+  .exam-step-card .step-tag {
+    display: inline-block; background: #f0f9ff; color: #1d4ed8;
+    padding: 3px 10px; border-radius: 12px;
+    font-size: 11.5px; font-weight: 600; margin-bottom: 12px;
+  }
+  .exam-step-card .subhead {
+    font-size: 12.5px; font-weight: 600; color: #6b6b6f;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-top: 18px; margin-bottom: 6px;
+  }
+  .exam-step-card p { font-size: 14px; line-height: 1.6; margin: 7px 0; }
+  .exam-step-card ul { padding-left: 22px; margin: 6px 0; }
+  .exam-step-card li { margin: 4px 0; font-size: 13.5px; }
+  .exam-step-card code {
+    background: #f0f0f0; padding: 2px 5px; border-radius: 3px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px;
+  }
+  .exam-step-card .example-box {
+    background: #f0f9ff; border: 1px solid #bfdbfe;
+    border-radius: 6px; padding: 12px 14px; margin: 10px 0;
+    font-size: 13px; line-height: 1.6;
+  }
+  .exam-step-card .example-box strong { color: #1d4ed8; }
+  .exam-step-card .example-box .algo-name { font-weight: 700; color: #1d4ed8; font-size: 13px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .exam-step-card .pitfall {
+    background: #fef2f2; border-left: 3px solid #ef4444;
+    padding: 8px 12px; margin: 10px 0; border-radius: 4px; font-size: 12.5px;
+  }
+  .exam-step-card .pitfall strong { color: #b91c1c; }
+  .exam-step-card pre {
+    background: #1e293b; color: #e2e8f0; padding: 12px 14px;
+    border-radius: 6px; overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; line-height: 1.55; margin: 10px 0;
+  }
+  /* Fresh problems section */
+  .recognition-table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 12.5px;
+  }
+  .recognition-table th, .recognition-table td {
+    border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left;
+    vertical-align: top;
+  }
+  .recognition-table th {
+    background: #e2e8f0; font-weight: 600; color: #1e293b; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .recognition-table td { background: white; }
+  .recognition-table tbody tr:hover td { background: #f9fafb; }
+  .recognition-table code {
+    background: #f3f4f6; padding: 1px 4px; border-radius: 3px;
+    font-size: 11.5px; font-family: ui-monospace, Menlo, monospace;
+  }
+  textarea.fresh-attempt {
+    width: 100%; border: 1px solid #d4d4d7; border-radius: 6px;
+    padding: 12px 14px; font-size: 13px; line-height: 1.6;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    box-sizing: border-box; resize: vertical;
+    min-height: 220px; margin-bottom: 14px;
+    background: #fefefe;
+  }
+  textarea.fresh-attempt:focus {
+    outline: none; border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  details.reveal-section {
+    margin: 10px 0; border: 1px solid #e5e5e7;
+    border-radius: 6px; background: #fafafa;
+  }
+  details.reveal-section summary {
+    cursor: pointer; padding: 10px 14px; font-size: 13.5px;
+    user-select: none; border-radius: 5px;
+    transition: background 0.15s; list-style: none;
+  }
+  details.reveal-section summary::-webkit-details-marker { display: none; }
+  details.reveal-section summary::before {
+    content: '▶'; margin-right: 8px; font-size: 10px;
+    display: inline-block; transition: transform 0.2s;
+  }
+  details.reveal-section[open] summary::before { transform: rotate(90deg); }
+  details.reveal-section summary:hover { background: #f0f0f0; }
+  details.reveal-section[open] summary {
+    background: #f0f9ff; color: #1d4ed8;
+    border-bottom: 1px solid #bfdbfe; border-radius: 5px 5px 0 0;
+  }
+  details.reveal-section .reveal-body { padding: 12px 14px; font-size: 13px; }
+  details.reveal-section .reveal-body p { margin: 8px 0; }
+  details.reveal-section .reveal-body pre {
+    background: #1e293b; color: #e2e8f0; padding: 12px 14px;
+    border-radius: 6px; overflow-x: auto; white-space: pre-wrap;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px; line-height: 1.55; margin: 8px 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>DP Walkthroughs — Kadane, WIS, LCS, Knapsack + Exam Format</h1>
+<p class="subtitle">Step through each canonical DP. Every walkthrough ends with the exam-ready 4-step answer. Switch algorithms via the tabs.</p>
+
+<div class="tabs">
+  <button class="tab active" data-tab="kadane">Kadane (1D)</button>
+  <button class="tab" data-tab="wis">Weighted Interval Scheduling</button>
+  <button class="tab" data-tab="lcs">LCS (2D)</button>
+  <button class="tab" data-tab="knapsack">0/1 Knapsack (2D)</button>
+  <button class="tab" data-tab="format">📋 4-Step Exam Format</button>
+  <button class="tab" data-tab="fresh">🎯 Fresh Problems</button>
+</div>
+
+<!-- ====================== KADANE ====================== -->
+<div class="section active" id="kadane">
+  <div class="container">
+    <div class="panel diagram-panel">
+      <svg id="kadane-svg" viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg">
+        <g id="kadane-labels"></g>
+        <g id="kadane-subarray"></g>
+        <g id="kadane-array"></g>
+        <g id="kadane-opt"></g>
+        <g id="kadane-overlay"></g>
+      </svg>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background: #fef3c7"></span> Subarray under consideration</div>
+        <div class="legend-item"><span class="swatch" style="background: #dbeafe"></span> Best ending at current j</div>
+        <div class="legend-item"><span class="swatch" style="background: #dcfce7"></span> Final winner</div>
+        <div class="legend-item"><span class="swatch" style="background: #f3f4f6"></span> Not yet computed</div>
+      </div>
+    </div>
+    <div class="panel explanation-panel">
+      <div class="step-counter" id="kadane-step-counter"></div>
+      <h2 class="step-title" id="kadane-step-title"></h2>
+      <div class="step-body" id="kadane-step-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== WIS ====================== -->
+<div class="section" id="wis">
+  <div class="container">
+    <div class="panel diagram-panel">
+      <svg id="wis-svg" viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg">
+        <g id="wis-timeline"></g>
+        <g id="wis-table"></g>
+        <g id="wis-opt"></g>
+      </svg>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background: #fef3c7"></span> Currently computing</div>
+        <div class="legend-item"><span class="swatch" style="background: #dbeafe"></span> Skip-i value (OPT[i-1])</div>
+        <div class="legend-item"><span class="swatch" style="background: #d1fae5"></span> Take-i value (b_i + OPT[p(i)])</div>
+        <div class="legend-item"><span class="swatch" style="background: #dcfce7"></span> Final answer</div>
+      </div>
+    </div>
+    <div class="panel explanation-panel">
+      <div class="step-counter" id="wis-step-counter"></div>
+      <h2 class="step-title" id="wis-step-title"></h2>
+      <div class="step-body" id="wis-step-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== LCS ====================== -->
+<div class="section" id="lcs">
+  <div class="container">
+    <div class="panel diagram-panel">
+      <div id="lcs-diagram"></div>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background: #fef3c7"></span> Currently computing</div>
+        <div class="legend-item"><span class="swatch" style="background: #dbeafe"></span> Sources (cells used in recurrence)</div>
+        <div class="legend-item"><span class="swatch" style="background: #dcfce7"></span> Final answer L[n][m]</div>
+        <div class="legend-item"><span class="swatch" style="background: #fef3c7; border-color: orange"></span> Reconstruction path</div>
+      </div>
+    </div>
+    <div class="panel explanation-panel">
+      <div class="step-counter" id="lcs-step-counter"></div>
+      <h2 class="step-title" id="lcs-step-title"></h2>
+      <div class="step-body" id="lcs-step-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== KNAPSACK ====================== -->
+<div class="section" id="knapsack">
+  <div class="container">
+    <div class="panel diagram-panel">
+      <div id="ks-diagram"></div>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background: #fef3c7"></span> Currently computing</div>
+        <div class="legend-item"><span class="swatch" style="background: #dbeafe"></span> Source cells</div>
+        <div class="legend-item"><span class="swatch" style="background: #dcfce7"></span> Final answer</div>
+      </div>
+    </div>
+    <div class="panel explanation-panel">
+      <div class="step-counter" id="ks-step-counter"></div>
+      <h2 class="step-title" id="ks-step-title"></h2>
+      <div class="step-body" id="ks-step-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== 4-STEP EXAM FORMAT ====================== -->
+<div class="section" id="format">
+
+  <div class="exam-intro">
+    <strong>The 4-step format is what you literally write on the exam.</strong> Below each step is explained with examples from <strong>4 canonical DP problems</strong> (Kadane / WIS / LCS / Knapsack), so you can see the format flex across different problem shapes.
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 1 of 4</span>
+    <h2>Define the table of values</h2>
+
+    <p class="subhead">What is a "table of values"?</p>
+    <p>An array — 1D, 2D, or higher — where <strong>each cell stores the answer to a sub-problem</strong>. We solve the original problem by computing all the sub-problems' answers, one cell at a time.</p>
+
+    <p class="subhead">What goes in a cell?</p>
+    <p>The optimum value (max sum / min cost / count) for that sub-problem. <strong>Not the solution itself</strong>; just the value. Reconstructing the actual solution happens in Step 4.</p>
+
+    <p class="subhead">How to find the right indices?</p>
+    <p>Ask: <em>"What's the LAST decision the algorithm makes? What parameters describe a sub-problem just before that decision?"</em> Those parameters become the indices.</p>
+
+    <p class="subhead">How to define on paper?</p>
+    <pre>Let OPT[indices] = [max / min / count] of [property] over [sub-problem description].</pre>
+
+    <p class="subhead">Examples across canonical DPs</p>
+
+    <div class="example-box">
+      <span class="algo-name">Kadane (max subarray sum)</span>
+      <strong>Table:</strong> 1D, indexed by ending position <code>j</code>.<br>
+      Let <code>OPT[j] = </code> max sum of a contiguous subarray <strong>ending at index j</strong>.<br>
+      <strong>Whole problem:</strong> <code>answer = max over j of OPT[j]</code>.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">Weighted Interval Scheduling</span>
+      <strong>Table:</strong> 1D, indexed by interval count <code>i</code> (after sorting by finish time).<br>
+      Let <code>OPT[i] = </code> max total benefit using a subset of the <strong>first i intervals</strong>.<br>
+      <strong>Whole problem:</strong> <code>OPT[n]</code> directly.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">LCS (longest common subsequence)</span>
+      <strong>Table:</strong> 2D, indexed by <em>prefix lengths</em> of the two strings.<br>
+      Let <code>L[i][j] = </code> length of the LCS of <strong>s<sub>1</sub>[1..i]</strong> and <strong>s<sub>2</sub>[1..j]</strong>.<br>
+      <strong>Whole problem:</strong> <code>L[n][m]</code> directly (or rebuild the string itself by reconstruction).
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">0/1 Knapsack</span>
+      <strong>Table:</strong> 2D, indexed by <em>(items considered, capacity)</em>.<br>
+      Let <code>OPT[j][Z] = </code> max total value using a subset of the <strong>first j items</strong> with total weight <strong>≤ Z</strong>.<br>
+      <strong>Whole problem:</strong> <code>OPT[n][W]</code> directly.
+    </div>
+
+    <div class="pitfall">
+      <strong>Pitfall:</strong> defining the table to be the WHOLE problem (no smaller sub-problem). Make sure each cell is strictly smaller than the next.
+    </div>
+    <div class="pitfall">
+      <strong>Pitfall:</strong> forgetting to state how the table relates to the whole-problem answer (max over cells, or a specific cell).
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 2 of 4</span>
+    <h2>Give the recurrence (with correctness)</h2>
+
+    <p class="subhead">What is a recurrence?</p>
+    <p>A formula expressing <code>OPT[i]</code> in terms of <code>OPT[smaller indices]</code> + base cases.</p>
+
+    <p class="subhead">How to find it?</p>
+    <p>Ask: <em>"For an optimal solution to sub-problem i, what's the LAST decision? List 2–3 options, take max/min."</em></p>
+
+    <p class="subhead">Examples</p>
+
+    <div class="example-box">
+      <span class="algo-name">Kadane (max subarray sum)</span>
+      <strong>Last decision:</strong> does the best subarray ending at j include only X[j], or extend X[j-1]?<br>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">OPT[j] = max( X[j],  X[j] + OPT[j-1] )
+Base: OPT[1] = X[1]</pre>
+      <em>Correctness:</em> any subarray ending at j either starts at j (length 1) or extends a subarray ending at j-1. Both options considered.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">Weighted Interval Scheduling</span>
+      <strong>Last decision:</strong> include interval i, or skip it?<br>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">OPT[i] = max( OPT[i-1],  b_i + OPT[p(i)] )
+Base: OPT[0] = 0</pre>
+      where <code>p(i)</code> = largest index <em>j &lt; i</em> with interval j compatible with i.<br>
+      <em>Correctness:</em> any optimal solution either uses interval i (forces the compatible-predecessor branch) or doesn't (reduces to OPT[i-1]).
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">LCS (longest common subsequence)</span>
+      <strong>Last decision:</strong> at position (i, j), do the last characters match — if so, do we use them?<br>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">L[i][j] = 1 + L[i-1][j-1]            if s_1[i] == s_2[j]
+        = max( L[i-1][j], L[i][j-1] ) otherwise
+Base: L[0][*] = L[*][0] = 0</pre>
+      <em>Correctness:</em> either the last characters of both strings are in the LCS (forces match branch) or one of them is dropped.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">0/1 Knapsack</span>
+      <strong>Last decision:</strong> take item j, or skip it?<br>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">OPT[j][Z] = max( OPT[j-1][Z],
+                  v_j + OPT[j-1][Z - w_j]  if w_j ≤ Z )
+Base: OPT[0][Z] = 0 for all Z</pre>
+      <em>Correctness:</em> either item j is in the optimal subset (consumes its weight) or it isn't.
+    </div>
+
+    <div class="pitfall">
+      <strong>Pitfall:</strong> forgetting the base case (no recursion can terminate).
+    </div>
+    <div class="pitfall">
+      <strong>Pitfall:</strong> using "any" sub-problem solution in the recurrence rather than the optimal one — this breaks the "optimal substructure" guarantee.
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 3 of 4</span>
+    <h2>Bottom-up algorithm + runtime</h2>
+
+    <p class="subhead">What does "bottom-up" mean?</p>
+    <p>Compute table values starting from the smallest sub-problems and build up to the full problem. The order must respect dependencies (each cell's predecessors are already computed).</p>
+
+    <p class="subhead">Runtime formula</p>
+    <pre>Runtime = O( (number of cells) × (work per cell) )</pre>
+
+    <p class="subhead">Examples</p>
+
+    <div class="example-box">
+      <span class="algo-name">Kadane</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">OPT[1] := X[1]
+for j := 2 to n:
+    OPT[j] := max(X[j], X[j] + OPT[j-1])
+answer := max over j of OPT[j]</pre>
+      Cells: n, work per cell: O(1) → <strong>O(n)</strong> total.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">Weighted Interval Scheduling</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">sort intervals by finish time
+compute p(i) for each i  // via binary search
+OPT[0] := 0
+for i := 1 to n:
+    OPT[i] := max(OPT[i-1], b_i + OPT[p(i)])
+return OPT[n]</pre>
+      Sort: O(n log n). Compute p(i): O(n log n). Fill: O(n). Total: <strong>O(n log n)</strong>.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">LCS</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">for i := 0 to n: L[i][0] := 0
+for j := 0 to m: L[0][j] := 0
+for i := 1 to n:
+    for j := 1 to m:
+        if s_1[i] == s_2[j]:
+            L[i][j] := 1 + L[i-1][j-1]
+        else:
+            L[i][j] := max(L[i-1][j], L[i][j-1])
+return L[n][m]</pre>
+      Cells: nm, work per cell: O(1) → <strong>O(nm)</strong> total.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">0/1 Knapsack</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">for Z := 0 to W: OPT[0][Z] := 0
+for j := 1 to n:
+    for Z := 0 to W:
+        skip := OPT[j-1][Z]
+        take := (Z ≥ w_j) ? v_j + OPT[j-1][Z - w_j] : -∞
+        OPT[j][Z] := max(skip, take)
+return OPT[n][W]</pre>
+      Cells: n × (W+1), work per cell: O(1) → <strong>O(nW)</strong> total.
+      <br><br><em>Pseudopolynomial:</em> input size is O(n log W), but runtime is O(nW) — exponential in log W. Knapsack is NP-complete; this is best we can do.
+    </div>
+
+    <div class="pitfall">
+      <strong>Pitfall:</strong> stating runtime as a single big-O without breaking down where it comes from (cells × work per cell).
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="exam-step-card">
+    <span class="step-tag">Step 4 of 4</span>
+    <h2>Reconstruction — recover the actual solution</h2>
+
+    <p class="subhead">What is reconstruction?</p>
+    <p>Walk back through the filled table to extract the actual decisions (not just the optimal value).</p>
+
+    <p class="subhead">How?</p>
+    <p>Start at the winning cell. At each cell, determine which branch of the recurrence "won". Record the choice, jump to the predecessor cell suggested by that branch. Continue until a base case.</p>
+
+    <p class="subhead">Examples</p>
+
+    <div class="example-box">
+      <span class="algo-name">Kadane (recover indices)</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">j* := argmax_j OPT[j]
+i* := j*
+while i* > 1 and OPT[i*] = X[i*] + OPT[i*-1]:
+    i* := i* - 1
+return (i*, j*)</pre>
+      O(n). Identifies which branch (extend or start-fresh) won at each step.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">Weighted Interval Scheduling (recover selected intervals)</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">selected := empty
+i := n
+while i > 0:
+    if OPT[i] > OPT[i-1]:
+        // "take i" branch won
+        selected.add(i)
+        i := p(i)
+    else:
+        i := i - 1
+return selected</pre>
+      O(n). At each step decide if interval i was taken (compared to skipping).
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">LCS (recover the actual common subsequence string)</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">i := n; j := m; result := empty
+while i > 0 and j > 0:
+    if s_1[i] == s_2[j]:
+        // match: this char is in LCS
+        result.prepend(s_1[i])
+        i := i - 1; j := j - 1
+    elif L[i-1][j] >= L[i][j-1]:
+        i := i - 1
+    else:
+        j := j - 1
+return result</pre>
+      O(n + m). At each cell, find which of three branches the recurrence took.
+    </div>
+
+    <div class="example-box">
+      <span class="algo-name">0/1 Knapsack (recover selected items)</span>
+      <pre style="background: #1e293b; color: #e2e8f0; padding: 8px 12px; font-size: 12px; margin: 6px 0; border-radius: 4px;">items := empty
+j := n; Z := W
+while j > 0:
+    if OPT[j][Z] > OPT[j-1][Z]:
+        // item j was taken
+        items.add(j)
+        Z := Z - w_j
+    j := j - 1
+return items</pre>
+      O(n). Compare with the "skip" branch to detect if item j was taken.
+    </div>
+
+    <div class="pitfall">
+      <strong>Pitfall:</strong> giving only the optimum VALUE without reconstructing the actual decisions. The exam asks for both.
+    </div>
+  </div>
+
+</div>
+
+<!-- ====================== FRESH PROBLEMS ====================== -->
+<div class="section" id="fresh">
+
+  <div class="exam-intro">
+    <strong>The exam will give you a NEW-looking problem.</strong> Your job: recognise the pattern, then write the 4-step answer.
+    This section gives you 4 fresh problems. <strong>Attempt your answer in the box first</strong>, then click the reveals to compare. Your attempts auto-save to your browser.
+  </div>
+
+  <!-- RECOGNITION CHEAT SHEET -->
+  <div class="exam-step-card">
+    <span class="step-tag">Recognition cheat sheet</span>
+    <h2>The 5 patterns at a glance</h2>
+    <p>Read the problem and ask: <em>"What's the LAST decision the algorithm makes?"</em> Match the answer to one of these patterns.</p>
+
+    <table class="recognition-table">
+      <thead>
+        <tr>
+          <th>Problem says…</th>
+          <th>Pattern</th>
+          <th>Recurrence shape</th>
+          <th>Canonical example</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>"Pick a subset, max/min total"</td>
+          <td><strong>Take / Skip</strong></td>
+          <td><code>OPT[i] = max(OPT[i-1], v_i + OPT[predecessor])</code></td>
+          <td>Knapsack, WIS, House Robber</td>
+        </tr>
+        <tr>
+          <td>"Transform one sequence into another"</td>
+          <td><strong>Match / Drop</strong></td>
+          <td>2D table on prefix lengths; match or drop one</td>
+          <td>LCS, Edit Distance</td>
+        </tr>
+        <tr>
+          <td>"Best ending at position j"</td>
+          <td><strong>Extend / Restart</strong></td>
+          <td><code>OPT[j] = max(X[j], X[j] + OPT[j-1])</code></td>
+          <td>Kadane (max subarray)</td>
+        </tr>
+        <tr>
+          <td>"Best path/sequence with previous-element constraint"</td>
+          <td><strong>Previous State</strong></td>
+          <td><code>OPT[i] = f(OPT[j] for valid j &lt; i)</code></td>
+          <td>LIS, TSP</td>
+        </tr>
+        <tr>
+          <td>"Shortest path using intermediates ≤ k"</td>
+          <td><strong>Floyd-Warshall</strong></td>
+          <td><code>D[k][i][j] = min(D[k-1][i][j], D[k-1][i][k] + D[k-1][k][j])</code></td>
+          <td>All-pairs SP</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PROBLEM A: HOUSE ROBBER -->
+  <div class="exam-step-card">
+    <span class="step-tag">Problem A — Take/Skip with adjacency</span>
+    <h2>House Robber</h2>
+    <p>You're planning to rob houses along a street. House <em>i</em> contains <em>v<sub>i</sub></em> coins (positive integer). The police are tipped off if you rob two <strong>adjacent</strong> houses on the same night. Maximise total coins.</p>
+    <p><strong>Example:</strong> Houses with values <code>[2, 7, 9, 3, 1]</code>. Best plan: rob houses 1, 3, 5 → 2 + 9 + 1 = 12. Houses 2, 4 → 10. Optimal = 12.</p>
+
+    <p class="subhead">Your attempt</p>
+    <textarea data-fresh="A" class="fresh-attempt" placeholder="Write your 4-step answer here. Step 1: define table. Step 2: recurrence + correctness. Step 3: bottom-up + runtime. Step 4: reconstruction."></textarea>
+
+    <details class="reveal-section">
+      <summary><strong>🔍 Pattern recognition</strong></summary>
+      <div class="reveal-body">
+        <p><strong>Pattern:</strong> Take / Skip with a simple compatibility predecessor.</p>
+        <p><strong>Last decision:</strong> "For house <em>i</em>, take it or skip it. If take, the previous taken house was at most <em>i-2</em>."</p>
+        <p><strong>Similar to:</strong> Weighted Interval Scheduling, but the "compatible predecessor" is constant (always <em>i-2</em>) instead of computed via binary search.</p>
+      </div>
+    </details>
+
+    <details class="reveal-section">
+      <summary><strong>📋 Model 4-step answer</strong></summary>
+      <div class="reveal-body">
+        <pre>Step 1. Define the table.
+   Let OPT[i] = max coins robbed using a subset of houses 1, 2, ..., i
+   with no two adjacent. Whole-problem answer = OPT[n].
+
+Step 2. Recurrence + correctness.
+   OPT[i] = max( OPT[i-1],          // skip house i
+                 v_i + OPT[i-2] )   // rob house i (can't rob i-1)
+   Base: OPT[0] = 0, OPT[1] = v_1.
+   Correctness: any optimal solution either includes house i (forcing
+   previous taken house ≤ i-2) or excludes it (reducing to OPT[i-1]).
+
+Step 3. Bottom-up + runtime.
+   OPT[0] := 0; OPT[1] := v_1
+   for i := 2 to n:
+       OPT[i] := max(OPT[i-1], v_i + OPT[i-2])
+   return OPT[n]
+   Runtime: O(n) cells × O(1) work = O(n).
+
+Step 4. Reconstruction.
+   robbed := empty; i := n
+   while i > 0:
+       if i == 1 or OPT[i] > OPT[i-1]:    // robbed house i
+           robbed.add(i); i := i - 2
+       else:                                // skipped house i
+           i := i - 1
+   return robbed
+   Runtime: O(n).</pre>
+      </div>
+    </details>
+  </div>
+
+  <!-- PROBLEM B: EDIT DISTANCE -->
+  <div class="exam-step-card">
+    <span class="step-tag">Problem B — Match/Drop with 3 options</span>
+    <h2>Edit Distance (Levenshtein)</h2>
+    <p>Given two strings <em>s<sub>1</sub></em> (length <em>n</em>) and <em>s<sub>2</sub></em> (length <em>m</em>), find the minimum number of single-character edits to transform <em>s<sub>1</sub></em> into <em>s<sub>2</sub></em>. Allowed edits: insertion, deletion, substitution.</p>
+    <p><strong>Example:</strong> Transform "kitten" into "sitting". Minimum = 3 edits: substitute 'k'→'s', substitute 'e'→'i', insert 'g' at end.</p>
+
+    <p class="subhead">Your attempt</p>
+    <textarea data-fresh="B" class="fresh-attempt" placeholder="Write your 4-step answer here..."></textarea>
+
+    <details class="reveal-section">
+      <summary><strong>🔍 Pattern recognition</strong></summary>
+      <div class="reveal-body">
+        <p><strong>Pattern:</strong> Match / Drop (LCS family), with <strong>3 branches</strong> in the no-match case (insert, delete, substitute).</p>
+        <p><strong>Last decision:</strong> "At positions <em>(i, j)</em>, what was the LAST edit operation?" — match (no edit), substitute, insert, or delete.</p>
+        <p><strong>Similar to:</strong> LCS, but with insert/delete/substitute instead of just drop-from-one.</p>
+      </div>
+    </details>
+
+    <details class="reveal-section">
+      <summary><strong>📋 Model 4-step answer</strong></summary>
+      <div class="reveal-body">
+        <pre>Step 1. Define the table.
+   Let E[i][j] = min number of edits to transform s_1[1..i] into s_2[1..j],
+   for 0 ≤ i ≤ n, 0 ≤ j ≤ m. Whole-problem answer = E[n][m].
+
+Step 2. Recurrence + correctness.
+   E[i][j] = E[i-1][j-1]                            if s_1[i] = s_2[j]
+           = 1 + min( E[i-1][j],     // delete s_1[i]
+                      E[i][j-1],     // insert s_2[j] into s_1
+                      E[i-1][j-1] )  // substitute s_1[i] -> s_2[j]
+                                                    otherwise
+   Base: E[i][0] = i, E[0][j] = j.
+   Correctness: the last operation is one of {match, delete, insert,
+   substitute}, each reducing to a smaller subproblem.
+
+Step 3. Bottom-up + runtime.
+   for i := 0 to n: E[i][0] := i
+   for j := 0 to m: E[0][j] := j
+   for i := 1 to n:
+       for j := 1 to m:
+           if s_1[i] = s_2[j]:
+               E[i][j] := E[i-1][j-1]
+           else:
+               E[i][j] := 1 + min(E[i-1][j], E[i][j-1], E[i-1][j-1])
+   return E[n][m]
+   Runtime: O(nm) cells × O(1) work = O(nm).
+
+Step 4. Reconstruction (recover the edit operations).
+   i := n; j := m; ops := empty
+   while i > 0 or j > 0:
+       if i > 0 and j > 0 and s_1[i] = s_2[j]:
+           i--; j--    // match, no edit
+       elif i > 0 and j > 0 and E[i][j] = 1 + E[i-1][j-1]:
+           ops.prepend("substitute s_1[i] -> s_2[j]"); i--; j--
+       elif i > 0 and E[i][j] = 1 + E[i-1][j]:
+           ops.prepend("delete s_1[i]"); i--
+       else:
+           ops.prepend("insert s_2[j]"); j--
+   return ops
+   Runtime: O(n + m).</pre>
+      </div>
+    </details>
+  </div>
+
+  <!-- PROBLEM C: LIS -->
+  <div class="exam-step-card">
+    <span class="step-tag">Problem C — Previous State</span>
+    <h2>Longest Increasing Subsequence (LIS)</h2>
+    <p>Given an array <em>a[1..n]</em> of integers, find the length of the longest <strong>strictly increasing</strong> subsequence (not necessarily contiguous).</p>
+    <p><strong>Example:</strong> <code>a = [10, 9, 2, 5, 3, 7, 101, 18]</code>. LIS = <code>[2, 3, 7, 18]</code> or <code>[2, 3, 7, 101]</code>, length 4.</p>
+
+    <p class="subhead">Your attempt</p>
+    <textarea data-fresh="C" class="fresh-attempt" placeholder="Write your 4-step answer here..."></textarea>
+
+    <details class="reveal-section">
+      <summary><strong>🔍 Pattern recognition</strong></summary>
+      <div class="reveal-body">
+        <p><strong>Pattern:</strong> Previous State — the LIS ending at <em>i</em> extends some LIS ending at a previous <em>j</em> with <em>a[j] &lt; a[i]</em>.</p>
+        <p><strong>Last decision:</strong> "Which earlier element <em>j</em> is the previous element of the LIS ending at <em>i</em>?" — could be ANY <em>j &lt; i</em> with <em>a[j] &lt; a[i]</em>.</p>
+        <p><strong>Key difference from Kadane:</strong> the "previous" isn't just <em>i-1</em> — it's any earlier valid element. Each cell scans all earlier cells, giving <code>O(n²)</code>.</p>
+      </div>
+    </details>
+
+    <details class="reveal-section">
+      <summary><strong>📋 Model 4-step answer</strong></summary>
+      <div class="reveal-body">
+        <pre>Step 1. Define the table.
+   Let OPT[i] = length of the longest strictly increasing subsequence
+   ending at index i (must include a[i]).
+   Whole-problem answer = max over i of OPT[i].
+
+Step 2. Recurrence + correctness.
+   OPT[i] = 1 + max{ OPT[j] : j < i and a[j] < a[i] }
+          = 1   if no such j exists
+   Base: OPT[1] = 1 (just a[1] alone).
+   Correctness: the LIS ending at i either has length 1 (just a[i]) or
+   extends some shorter LIS ending at an earlier j with a[j] < a[i].
+   We take the maximum over all valid predecessors.
+
+Step 3. Bottom-up + runtime.
+   OPT[1] := 1; parent[1] := nil
+   for i := 2 to n:
+       OPT[i] := 1; parent[i] := nil
+       for j := 1 to i-1:
+           if a[j] < a[i] and OPT[j] + 1 > OPT[i]:
+               OPT[i] := OPT[j] + 1
+               parent[i] := j
+   return max over i of OPT[i]
+   Runtime: O(n²) (each cell scans all earlier cells).
+
+Step 4. Reconstruction (recover the LIS itself).
+   i* := argmax over i of OPT[i]
+   result := empty
+   while i* != nil:
+       result.prepend(a[i*])
+       i* := parent[i*]
+   return result
+   Runtime: O(n).</pre>
+      </div>
+    </details>
+  </div>
+
+  <!-- PROBLEM D: COIN CHANGE -->
+  <div class="exam-step-card">
+    <span class="step-tag">Problem D — Take/Skip with repetition</span>
+    <h2>Coin Change (Minimum Coins)</h2>
+    <p>Given coin denominations <em>C = {c<sub>1</sub>, …, c<sub>k</sub>}</em> (positive integers) and a target amount <em>T</em>, find the minimum number of coins (with repetition allowed) that sum to exactly <em>T</em>. Return ∞ if impossible.</p>
+    <p><strong>Example:</strong> <code>C = {1, 4, 5}</code>, <em>T = 8</em>. Min coins = 2 (4 + 4). Greedy by largest denomination gives 5+1+1+1 = 4 coins — suboptimal.</p>
+
+    <p class="subhead">Your attempt</p>
+    <textarea data-fresh="D" class="fresh-attempt" placeholder="Write your 4-step answer here..."></textarea>
+
+    <details class="reveal-section">
+      <summary><strong>🔍 Pattern recognition</strong></summary>
+      <div class="reveal-body">
+        <p><strong>Pattern:</strong> Take/Skip with <strong>repetition</strong> (unbounded knapsack family).</p>
+        <p><strong>Last decision:</strong> "What was the LAST coin added to reach amount <em>Z</em>?" — try each denomination <em>c</em>, then we had to reach <em>Z-c</em> with minimum coins.</p>
+        <p><strong>Why greedy fails:</strong> Greedy by largest denomination doesn't always work — see the example with <code>C = {1, 4, 5}, T = 8</code>.</p>
+      </div>
+    </details>
+
+    <details class="reveal-section">
+      <summary><strong>📋 Model 4-step answer</strong></summary>
+      <div class="reveal-body">
+        <pre>Step 1. Define the table.
+   Let OPT[Z] = min number of coins summing to exactly Z,
+   for 0 ≤ Z ≤ T. Whole-problem answer = OPT[T]
+   (or report ∞ = impossible).
+
+Step 2. Recurrence + correctness.
+   OPT[Z] = 1 + min{ OPT[Z - c] : c ∈ C and c ≤ Z }
+          = ∞   if no c ≤ Z exists
+   Base: OPT[0] = 0 (need 0 coins to make amount 0).
+   Correctness: any optimal way to make Z uses some last coin c;
+   before adding it, we'd made amount Z - c with minimum coins.
+   We try all denominations and take the min.
+
+Step 3. Bottom-up + runtime.
+   OPT[0] := 0
+   for Z := 1 to T: OPT[Z] := ∞
+   lastCoin[0] := nil
+   for Z := 1 to T:
+       for each c in C:
+           if c ≤ Z and 1 + OPT[Z - c] < OPT[Z]:
+               OPT[Z] := 1 + OPT[Z - c]
+               lastCoin[Z] := c
+   return OPT[T]
+   Runtime: O(k · T) — k denominations × T table cells, O(1) per check.
+
+Step 4. Reconstruction (which coins were used).
+   coins := empty; Z := T
+   while Z > 0:
+       coins.add(lastCoin[Z])
+       Z := Z - lastCoin[Z]
+   return coins
+   Runtime: O(answer) ≤ O(T).</pre>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<!-- Floating controls (only visible for walkthrough sections) -->
+<div class="floating-controls" id="floating-controls">
+  <span class="algo-label" id="algo-label">Kadane</span>
+  <button class="secondary" id="prev-btn">‹ Prev</button>
+  <span class="progress" id="progress">1 / 1</span>
+  <button id="next-btn">Next ›</button>
+</div>
+
+<script>
+// ============================================================
+// Tab navigation
+// ============================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+    document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === target));
+    // Show floating controls for walkthrough tabs only (not for format/fresh which have no step nav)
+    const isWalkthrough = target !== 'format' && target !== 'fresh';
+    document.getElementById('floating-controls').classList.toggle('hidden', !isWalkthrough);
+    if (isWalkthrough) {
+      currentAlgo = target;
+      document.getElementById('algo-label').textContent = ALGO_NAMES[target];
+      render();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+const ALGO_NAMES = {
+  kadane: 'Kadane',
+  wis: 'WIS',
+  lcs: 'LCS',
+  knapsack: 'Knapsack',
+};
+
+let currentAlgo = 'kadane';
+let currentSteps = { kadane: 0, wis: 0, lcs: 0, knapsack: 0 };
+
+// ============================================================
+// KADANE DATA & RENDERING
+// ============================================================
+const KADANE = {
+  X: [null, -2, 1, -3, 4, -1, 2, 1, -5, 4],
+  N: 9,
+  OPT: [null, -2, 1, -2, 4, 3, 5, 6, 1, 5],
+};
+
+const KADANE_STEPS = [
+  {
+    title: 'The problem',
+    body: `<p>We have an array of integers (positive or negative). Find the contiguous subarray with maximum sum.</p>
+           <p>For our example X = [-2, 1, -3, 4, -1, 2, 1, -5, 4] the answer is the subarray X[4..7] = [4, -1, 2, 1], sum = 6.</p>`,
+    arraySubarray: { start: 4, end: 7, color: '#dcfce7', label: 'Optimal subarray sum 6' },
+    optFilled: 0,
+  },
+  {
+    title: 'KEY INSIGHT — fix the right endpoint',
+    body: `<p>Instead of trying every (start, end) pair, ask for each ending position j:</p>
+           <p class="em"><em>"What's the best subarray ENDING at index j?"</em></p>
+           <p>Then the overall answer is the max across all j.</p>`,
+    arraySubarray: null,
+    optFilled: 0,
+  },
+  {
+    title: 'Step 1 — Define OPT[j]',
+    body: `<p>Define <code>OPT[j] = </code> max sum of a contiguous subarray ending at index j.</p>
+           <p>Whole-problem answer: <code>max over j of OPT[j]</code>.</p>`,
+    formula: 'OPT[j] = max sum of subarray ending at j',
+    optFilled: 0,
+  },
+  {
+    title: 'Base case OPT[1]',
+    body: `<p>Only one subarray ends at index 1: just X[1] alone.</p>`,
+    formula: 'OPT[1] = X[1] = -2',
+    arraySubarray: { start: 1, end: 1, color: '#dbeafe', label: 'OPT[1] = -2' },
+    optFilled: 1,
+    optActive: 1,
+  },
+  {
+    title: 'Step 2 — Recurrence (the two cases)',
+    body: `<p>For j ≥ 2, the best subarray ending at j has two possibilities:</p>
+           <ul>
+             <li><strong>Option A:</strong> Start fresh at j — just X[j].</li>
+             <li><strong>Option B:</strong> Extend best subarray ending at j-1 — adds X[j].</li>
+           </ul>`,
+    formula: 'OPT[j] = max( X[j], X[j] + OPT[j-1] )',
+    optFilled: 1,
+  },
+  {
+    title: 'Fill OPT[2..9]: compute each',
+    body: `<p>Walking through, computing each OPT[j]:</p>
+           <ul style="font-family: ui-monospace, monospace; font-size: 12px;">
+             <li>OPT[2] = max(1, 1+(-2)) = <strong>1</strong> (start fresh)</li>
+             <li>OPT[3] = max(-3, -3+1) = <strong>-2</strong> (extend)</li>
+             <li>OPT[4] = max(4, 4+(-2)) = <strong>4</strong> (start fresh — the winner begins here)</li>
+             <li>OPT[5] = max(-1, -1+4) = <strong>3</strong> (extend)</li>
+             <li>OPT[6] = max(2, 2+3) = <strong>5</strong> (extend)</li>
+             <li>OPT[7] = max(1, 1+5) = <strong>6</strong> ★ MAX</li>
+             <li>OPT[8] = max(-5, -5+6) = <strong>1</strong> (extend)</li>
+             <li>OPT[9] = max(4, 4+1) = <strong>5</strong> (extend)</li>
+           </ul>`,
+    annotation: { type: 'success', text: 'OPT[7] = 6 is the maximum. Winning subarray ends at index 7.' },
+    arraySubarray: { start: 4, end: 7, color: '#dbeafe', label: 'Winner: OPT[7] = 6, subarray X[4..7]' },
+    optFilled: 9,
+    optHighlight: 7,
+  },
+  {
+    title: 'Step 4 — Reconstruction',
+    body: `<p>j* = 7 (where OPT[j] is max). Walk backwards from i*=7:</p>
+           <ul>
+             <li>i*=7: OPT[7]=6 = X[7]+OPT[6]=6 → extended. i* := 6.</li>
+             <li>i*=6: OPT[6]=5 = X[6]+OPT[5]=5 → extended. i* := 5.</li>
+             <li>i*=5: OPT[5]=3 = X[5]+OPT[4]=3 → extended. i* := 4.</li>
+             <li>i*=4: OPT[4]=4 ≠ X[4]+OPT[3]=2 → STARTED FRESH. STOP.</li>
+           </ul>
+           <p>Result: <strong>i*=4, j*=7</strong>. Subarray X[4..7] = [4, -1, 2, 1], sum = 6.</p>`,
+    arraySubarray: { start: 4, end: 7, color: '#dcfce7', label: 'Final: X[4..7], sum 6' },
+    optFilled: 9,
+    optHighlight: 7,
+  },
+  {
+    title: '📋 The full exam answer for this problem',
+    body: `<p>This is what you would write on the exam paper for Kadane (max subarray sum):</p>`,
+    examAnswer: `Step 1. Define the table.
+   Let OPT[j] = maximum sum of a contiguous subarray ending at
+   index j, for j = 1, ..., n. Whole-problem answer = max over j of OPT[j].
+
+Step 2. Recurrence + correctness.
+   OPT[j] = max( X[j],  X[j] + OPT[j-1] ) for j ≥ 2.
+   Base: OPT[1] = X[1].
+   Correctness: any subarray ending at j either starts at j (length 1)
+   or extends a subarray ending at j-1. Recurrence considers both options.
+
+Step 3. Bottom-up + runtime.
+   OPT[1] := X[1]
+   for j := 2 to n: OPT[j] := max(X[j], X[j] + OPT[j-1])
+   answer := max over j of OPT[j]
+   Runtime: O(n) cells × O(1) work + O(n) for the final max = O(n).
+
+Step 4. Reconstruction.
+   j* := argmax_j OPT[j]
+   i* := j*
+   while i* > 1 and OPT[i*] = X[i*] + OPT[i*-1]:
+       i* := i* - 1
+   return (i*, j*)
+   Runtime: O(n).`,
+    arraySubarray: { start: 4, end: 7, color: '#dcfce7', label: 'X[4..7], sum 6' },
+    optFilled: 9,
+    optHighlight: 7,
+  },
+];
+
+function renderKadane(step) {
+  const labelsG = document.getElementById('kadane-labels');
+  const subarrayG = document.getElementById('kadane-subarray');
+  const arrayG = document.getElementById('kadane-array');
+  const optG = document.getElementById('kadane-opt');
+  const overlayG = document.getElementById('kadane-overlay');
+  [labelsG, subarrayG, arrayG, optG, overlayG].forEach(g => g.innerHTML = '');
+
+  const CW = 60, CH = 50, X0 = 60, AY = 110, OY = 240;
+
+  // Labels
+  const indexLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  indexLbl.setAttribute('x', '10'); indexLbl.setAttribute('y', AY - 30);
+  indexLbl.setAttribute('font-size', '11'); indexLbl.setAttribute('fill', '#888');
+  indexLbl.textContent = 'Index j:'; labelsG.appendChild(indexLbl);
+
+  const xLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  xLbl.setAttribute('x', '10'); xLbl.setAttribute('y', AY + 30);
+  xLbl.setAttribute('font-size', '13'); xLbl.setAttribute('fill', '#475569');
+  xLbl.setAttribute('font-weight', '600'); xLbl.textContent = 'X[j]:';
+  labelsG.appendChild(xLbl);
+
+  const optLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  optLbl.setAttribute('x', '10'); optLbl.setAttribute('y', OY + 30);
+  optLbl.setAttribute('font-size', '13'); optLbl.setAttribute('fill', '#475569');
+  optLbl.setAttribute('font-weight', '600'); optLbl.textContent = 'OPT[j]:';
+  labelsG.appendChild(optLbl);
+
+  // Subarray highlight
+  if (step.arraySubarray) {
+    const sa = step.arraySubarray;
+    const x = X0 + (sa.start - 1) * CW;
+    const w = (sa.end - sa.start + 1) * CW;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x - 4); rect.setAttribute('y', AY - 5);
+    rect.setAttribute('width', w + 8); rect.setAttribute('height', CH + 10);
+    rect.setAttribute('fill', sa.color); rect.setAttribute('rx', '6');
+    subarrayG.appendChild(rect);
+    if (sa.label) {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x + w / 2); t.setAttribute('y', 75);
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '12');
+      t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#1c1c1e');
+      t.textContent = sa.label; subarrayG.appendChild(t);
+    }
+  }
+
+  for (let j = 1; j <= KADANE.N; j++) {
+    const x = X0 + (j - 1) * CW;
+    const idx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    idx.setAttribute('x', x + CW / 2); idx.setAttribute('y', AY - 15);
+    idx.setAttribute('text-anchor', 'middle'); idx.setAttribute('font-size', '12');
+    idx.setAttribute('fill', '#64748b'); idx.textContent = j;
+    arrayG.appendChild(idx);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', AY); rect.setAttribute('width', CW); rect.setAttribute('height', CH);
+    rect.setAttribute('fill', 'white'); rect.setAttribute('stroke', '#1c1c1e'); rect.setAttribute('stroke-width', '1.5');
+    arrayG.appendChild(rect);
+    const v = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    v.setAttribute('x', x + CW / 2); v.setAttribute('y', AY + CH / 2 + 6);
+    v.setAttribute('text-anchor', 'middle'); v.setAttribute('font-size', '17');
+    v.setAttribute('font-weight', '700'); v.setAttribute('fill', '#1c1c1e');
+    v.textContent = KADANE.X[j]; arrayG.appendChild(v);
+  }
+
+  for (let j = 1; j <= KADANE.N; j++) {
+    const x = X0 + (j - 1) * CW;
+    const filled = j <= step.optFilled;
+    const active = step.optActive === j;
+    const hl = step.optHighlight === j;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', OY);
+    rect.setAttribute('width', CW); rect.setAttribute('height', CH);
+    if (hl) { rect.setAttribute('fill', '#dcfce7'); rect.setAttribute('stroke', '#10b981'); rect.setAttribute('stroke-width', '3'); }
+    else if (active) { rect.setAttribute('fill', '#fef3c7'); rect.setAttribute('stroke', '#f59e0b'); rect.setAttribute('stroke-width', '2.5'); }
+    else if (filled) { rect.setAttribute('fill', '#fef9e7'); rect.setAttribute('stroke', '#475569'); rect.setAttribute('stroke-width', '1.2'); }
+    else { rect.setAttribute('fill', '#f3f4f6'); rect.setAttribute('stroke', '#cbd5e1'); rect.setAttribute('stroke-width', '1'); rect.setAttribute('stroke-dasharray', '4 3'); }
+    optG.appendChild(rect);
+    const v = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    v.setAttribute('x', x + CW / 2); v.setAttribute('y', OY + CH / 2 + 6);
+    v.setAttribute('text-anchor', 'middle'); v.setAttribute('font-size', '17');
+    v.setAttribute('font-weight', filled ? '700' : '400');
+    v.setAttribute('fill', filled ? (hl ? '#15803d' : '#1c1c1e') : '#cbd5e1');
+    v.textContent = filled ? KADANE.OPT[j] : '?'; optG.appendChild(v);
+  }
+
+  if (step.optHighlight) {
+    const x = X0 + (step.optHighlight - 1) * CW;
+    const b = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    b.setAttribute('x', x + CW / 2); b.setAttribute('y', OY - 8);
+    b.setAttribute('text-anchor', 'middle'); b.setAttribute('font-size', '11');
+    b.setAttribute('font-weight', '700'); b.setAttribute('fill', '#15803d');
+    b.textContent = '★ MAX'; overlayG.appendChild(b);
+  }
+}
+
+// ============================================================
+// WIS DATA & RENDERING
+// ============================================================
+const WIS = {
+  // Intervals sorted by finish time: (start, finish, benefit)
+  intervals: [
+    { i: 1, s: 1, f: 3, b: 5 },
+    { i: 2, s: 2, f: 5, b: 6 },
+    { i: 3, s: 4, f: 6, b: 5 },
+    { i: 4, s: 6, f: 7, b: 4 },
+    { i: 5, s: 5, f: 8, b: 11 },
+  ],
+  N: 5,
+  p: [0, 0, 0, 1, 3, 2],  // p[i] for i=0..5
+  OPT: [0, 5, 6, 10, 14, 17],  // OPT[i] for i=0..5
+};
+
+const WIS_STEPS = [
+  {
+    title: 'The problem',
+    body: `<p>You have <em>n</em> intervals, each with a start time, finish time, and a <strong>benefit</strong>. Pick a subset of non-overlapping intervals to maximise the total benefit.</p>
+           <p>Our example: 5 intervals (already sorted by finish time).</p>`,
+    showIntervals: true, showTable: true, optFilled: 0, optActive: null,
+  },
+  {
+    title: 'Why greedy fails',
+    body: `<p>Greedy by "earliest finish" maximises COUNT but not benefit. E.g. one huge-benefit interval might be skipped because greedy picks several small-benefit ones instead.</p>
+           <p>We need DP because optimal choice at each step depends on what gets included later.</p>`,
+    showIntervals: true, showTable: true, optFilled: 0,
+  },
+  {
+    title: 'Sort by finish time + compute p(i)',
+    body: `<p>Define <code>p(i)</code> = largest index <em>j &lt; i</em> such that interval j is compatible with i (i.e., <em>f_j ≤ s_i</em>).</p>
+           <p>If no such j exists, <code>p(i) = 0</code>.</p>
+           <p>For our example:</p>
+           <ul>
+             <li>p(1) = 0 (no predecessors)</li>
+             <li>p(2) = 0 (f_1=3 > s_2=2)</li>
+             <li>p(3) = 1 (f_1=3 ≤ s_3=4)</li>
+             <li>p(4) = 3 (f_3=6 ≤ s_4=6)</li>
+             <li>p(5) = 2 (f_2=5 ≤ s_5=5)</li>
+           </ul>`,
+    showIntervals: true, showTable: true, showP: true, optFilled: 0,
+  },
+  {
+    title: 'Step 1 — Define OPT[i]',
+    body: `<p>Define <code>OPT[i] = </code> max total benefit using a subset of the <strong>first i intervals</strong>.</p>
+           <p>Whole-problem answer: <code>OPT[n]</code>.</p>`,
+    formula: 'OPT[i] = max benefit using first i intervals',
+    showIntervals: true, showTable: true, showP: true, optFilled: 0,
+  },
+  {
+    title: 'Step 2 — Recurrence (the two cases)',
+    body: `<p>For interval i, two choices:</p>
+           <ul>
+             <li><strong>Skip i:</strong> use OPT[i-1] (best from first i-1 intervals).</li>
+             <li><strong>Take i:</strong> get b_i, plus best from intervals compatible with i (= OPT[p(i)]).</li>
+           </ul>`,
+    formula: 'OPT[i] = max( OPT[i-1],  b_i + OPT[p(i)] )',
+    showIntervals: true, showTable: true, showP: true, optFilled: 0,
+  },
+  {
+    title: 'Base case OPT[0] = 0',
+    body: `<p>Using 0 intervals → 0 benefit.</p>`,
+    formula: 'OPT[0] = 0',
+    showIntervals: true, showTable: true, showP: true, optFilled: 0,
+    forceBaseFilled: true,
+  },
+  {
+    title: 'Compute OPT[1]',
+    body: `<p>i=1: <code>b_1 = 5</code>, <code>p(1) = 0</code>.</p>
+           <p>Skip 1: OPT[0] = 0.</p>
+           <p>Take 1: b_1 + OPT[p(1)] = 5 + 0 = 5.</p>`,
+    formula: 'OPT[1] = max(0, 5) = 5',
+    bodyEnd: `<p>Take interval 1 wins.</p>`,
+    showIntervals: true, showTable: true, showP: true, optFilled: 1, optActive: 1,
+  },
+  {
+    title: 'Compute OPT[2]',
+    body: `<p>i=2: <code>b_2 = 6</code>, <code>p(2) = 0</code>.</p>
+           <p>Skip 2: OPT[1] = 5.</p>
+           <p>Take 2: b_2 + OPT[p(2)] = 6 + 0 = 6.</p>`,
+    formula: 'OPT[2] = max(5, 6) = 6',
+    bodyEnd: `<p>Take interval 2 wins. Notice: this means dropping interval 1 (they conflict).</p>`,
+    showIntervals: true, showTable: true, showP: true, optFilled: 2, optActive: 2,
+  },
+  {
+    title: 'Compute OPT[3]',
+    body: `<p>i=3: <code>b_3 = 5</code>, <code>p(3) = 1</code>.</p>
+           <p>Skip 3: OPT[2] = 6.</p>
+           <p>Take 3: b_3 + OPT[p(3)] = 5 + OPT[1] = 5 + 5 = 10.</p>`,
+    formula: 'OPT[3] = max(6, 10) = 10',
+    bodyEnd: `<p>Take interval 3 wins. Now we have intervals {1, 3} with total benefit 10.</p>`,
+    showIntervals: true, showTable: true, showP: true, optFilled: 3, optActive: 3,
+  },
+  {
+    title: 'Compute OPT[4]',
+    body: `<p>i=4: <code>b_4 = 4</code>, <code>p(4) = 3</code>.</p>
+           <p>Skip 4: OPT[3] = 10.</p>
+           <p>Take 4: b_4 + OPT[p(4)] = 4 + OPT[3] = 4 + 10 = 14.</p>`,
+    formula: 'OPT[4] = max(10, 14) = 14',
+    bodyEnd: `<p>Take interval 4 wins. {1, 3, 4} → 5+5+4 = 14.</p>`,
+    showIntervals: true, showTable: true, showP: true, optFilled: 4, optActive: 4,
+  },
+  {
+    title: 'Compute OPT[5]',
+    body: `<p>i=5: <code>b_5 = 11</code>, <code>p(5) = 2</code>.</p>
+           <p>Skip 5: OPT[4] = 14.</p>
+           <p>Take 5: b_5 + OPT[p(5)] = 11 + OPT[2] = 11 + 6 = 17.</p>`,
+    formula: 'OPT[5] = max(14, 17) = 17',
+    bodyEnd: `<p><strong>Take interval 5 wins!</strong> The high-benefit interval 5 plus interval 2 (b=6) yields 17, beating {1,3,4}=14.</p>`,
+    annotation: { type: 'success', text: 'OPT[5] = 17 is the final answer.' },
+    showIntervals: true, showTable: true, showP: true, optFilled: 5, optActive: 5, optHighlight: 5,
+  },
+  {
+    title: 'Step 4 — Reconstruction',
+    body: `<p>Walk backwards from i=5. At each i, check if OPT[i] &gt; OPT[i-1] (take-i branch won) or not (skip-i won).</p>
+           <ul>
+             <li>i=5: OPT[5]=17 &gt; OPT[4]=14 → TAKE interval 5. Jump to p(5)=2.</li>
+             <li>i=2: OPT[2]=6 &gt; OPT[1]=5 → TAKE interval 2. Jump to p(2)=0.</li>
+             <li>i=0: base case. Stop.</li>
+           </ul>
+           <p>Selected intervals: <strong>{2, 5}</strong>. Total benefit: b_2 + b_5 = 6 + 11 = <strong>17</strong>. ✓</p>`,
+    showIntervals: true, showTable: true, showP: true, optFilled: 5, optHighlight: 5,
+    showSelected: [2, 5],
+  },
+  {
+    title: '📋 The full exam answer for WIS',
+    body: `<p>What you would write on the exam paper for Weighted Interval Scheduling:</p>`,
+    examAnswer: `Step 1. Define the table.
+   Sort intervals by finish time. Define p(i) = largest j < i with
+   interval j compatible with i (or 0 if none).
+   Let OPT[i] = max total benefit using a subset of the first i intervals.
+   Whole-problem answer = OPT[n].
+
+Step 2. Recurrence + correctness.
+   OPT[i] = max( OPT[i-1],  b_i + OPT[p(i)] ) for i ≥ 1.
+   Base: OPT[0] = 0.
+   Correctness: any optimal subset for the first i intervals either
+   includes interval i (must combine with optimal among compatible
+   earlier intervals = OPT[p(i)]) or doesn't (= OPT[i-1]).
+
+Step 3. Bottom-up + runtime.
+   sort intervals by finish time         // O(n log n)
+   compute p(i) for each i via binary search   // O(n log n)
+   OPT[0] := 0
+   for i := 1 to n:
+       OPT[i] := max(OPT[i-1], b_i + OPT[p(i)])
+   return OPT[n]
+   Total runtime: O(n log n).
+
+Step 4. Reconstruction.
+   selected := empty; i := n
+   while i > 0:
+       if OPT[i] > OPT[i-1]:    // take-i branch
+           selected.add(i); i := p(i)
+       else:                     // skip-i branch
+           i := i - 1
+   return selected
+   Runtime: O(n).`,
+    showIntervals: true, showTable: true, optFilled: 5, optHighlight: 5,
+    showSelected: [2, 5],
+  },
+];
+
+function renderWIS(step) {
+  const tl = document.getElementById('wis-timeline');
+  const tb = document.getElementById('wis-table');
+  const op = document.getElementById('wis-opt');
+  [tl, tb, op].forEach(g => g.innerHTML = '');
+
+  if (!step.showIntervals && !step.showTable) return;
+
+  const TX0 = 50, TIME_SCALE = 50;  // x position per time unit
+  const TY = 30;  // y for timeline header
+
+  // Timeline header
+  for (let t = 0; t <= 9; t++) {
+    const x = TX0 + t * TIME_SCALE;
+    const tt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tt.setAttribute('x', x); tt.setAttribute('y', TY);
+    tt.setAttribute('text-anchor', 'middle'); tt.setAttribute('font-size', '11');
+    tt.setAttribute('fill', '#888'); tt.textContent = t;
+    tl.appendChild(tt);
+    const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    ln.setAttribute('x1', x); ln.setAttribute('x2', x);
+    ln.setAttribute('y1', TY + 8); ln.setAttribute('y2', TY + 14);
+    ln.setAttribute('stroke', '#cbd5e1'); ln.setAttribute('stroke-width', '1');
+    tl.appendChild(ln);
+  }
+
+  // Interval bars (one per row, y offset)
+  const BAR_H = 22, BAR_GAP = 6, BAR_Y0 = TY + 24;
+  WIS.intervals.forEach((iv, idx) => {
+    const y = BAR_Y0 + idx * (BAR_H + BAR_GAP);
+    const x = TX0 + iv.s * TIME_SCALE;
+    const w = (iv.f - iv.s) * TIME_SCALE;
+    const sel = step.showSelected && step.showSelected.includes(iv.i);
+    const active = step.optActive === iv.i;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', y);
+    rect.setAttribute('width', w); rect.setAttribute('height', BAR_H);
+    rect.setAttribute('rx', '3');
+    rect.setAttribute('fill', sel ? '#dcfce7' : (active ? '#fef3c7' : '#dbeafe'));
+    rect.setAttribute('stroke', sel ? '#10b981' : (active ? '#f59e0b' : '#3b82f6'));
+    rect.setAttribute('stroke-width', sel || active ? '2.5' : '1.5');
+    tl.appendChild(rect);
+    // Label inside bar
+    const lab = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lab.setAttribute('x', x + w / 2); lab.setAttribute('y', y + BAR_H / 2 + 4);
+    lab.setAttribute('text-anchor', 'middle'); lab.setAttribute('font-size', '11');
+    lab.setAttribute('font-weight', '700'); lab.setAttribute('fill', '#1c1c1e');
+    lab.textContent = `i=${iv.i}, b=${iv.b}`;
+    tl.appendChild(lab);
+  });
+
+  // Table (i | s | f | b | p(i) | OPT[i])
+  const TAB_Y = BAR_Y0 + WIS.N * (BAR_H + BAR_GAP) + 16;
+  const COLS = step.showP ? ['i', 's_i', 'f_i', 'b_i', 'p(i)', 'OPT[i]'] : ['i', 's_i', 'f_i', 'b_i', 'OPT[i]'];
+  const COL_W = 60;
+  const TAB_X0 = TX0;
+  // header
+  COLS.forEach((c, ci) => {
+    const x = TAB_X0 + ci * COL_W;
+    const hd = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    hd.setAttribute('x', x); hd.setAttribute('y', TAB_Y);
+    hd.setAttribute('width', COL_W); hd.setAttribute('height', 26);
+    hd.setAttribute('fill', '#e2e8f0'); hd.setAttribute('stroke', '#94a3b8');
+    tb.appendChild(hd);
+    const tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tx.setAttribute('x', x + COL_W / 2); tx.setAttribute('y', TAB_Y + 18);
+    tx.setAttribute('text-anchor', 'middle'); tx.setAttribute('font-size', '12');
+    tx.setAttribute('font-weight', '700'); tx.setAttribute('fill', '#1e293b');
+    tx.textContent = c;
+    tb.appendChild(tx);
+  });
+  // rows for i=0 and i=1..n
+  for (let r = 0; r <= WIS.N; r++) {
+    const rowY = TAB_Y + 26 + r * 26;
+    const isBase = r === 0;
+    const filled = r <= step.optFilled || (isBase && (step.optFilled >= 0 || step.forceBaseFilled));
+    const active = step.optActive === r;
+    const hl = step.optHighlight === r;
+    COLS.forEach((c, ci) => {
+      const x = TAB_X0 + ci * COL_W;
+      const cell = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      cell.setAttribute('x', x); cell.setAttribute('y', rowY);
+      cell.setAttribute('width', COL_W); cell.setAttribute('height', 26);
+      const isOptCol = c === 'OPT[i]';
+      if (isOptCol && hl) cell.setAttribute('fill', '#dcfce7');
+      else if (isOptCol && active) cell.setAttribute('fill', '#fef3c7');
+      else if (isOptCol && filled) cell.setAttribute('fill', '#fef9e7');
+      else if (isOptCol) cell.setAttribute('fill', '#f3f4f6');
+      else cell.setAttribute('fill', 'white');
+      cell.setAttribute('stroke', '#94a3b8');
+      tb.appendChild(cell);
+      let val;
+      if (c === 'i') val = r;
+      else if (c === 's_i') val = isBase ? '—' : WIS.intervals[r-1].s;
+      else if (c === 'f_i') val = isBase ? '—' : WIS.intervals[r-1].f;
+      else if (c === 'b_i') val = isBase ? '—' : WIS.intervals[r-1].b;
+      else if (c === 'p(i)') val = isBase ? '—' : WIS.p[r];
+      else if (c === 'OPT[i]') {
+        if (filled) val = WIS.OPT[r];
+        else val = '?';
+      }
+      const tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      tx.setAttribute('x', x + COL_W / 2); tx.setAttribute('y', rowY + 18);
+      tx.setAttribute('text-anchor', 'middle'); tx.setAttribute('font-size', '12.5');
+      tx.setAttribute('font-weight', filled && isOptCol ? '700' : '500');
+      tx.setAttribute('fill', filled ? (hl && isOptCol ? '#15803d' : '#1c1c1e') : '#cbd5e1');
+      tx.textContent = val;
+      tb.appendChild(tx);
+    });
+  }
+}
+
+// ============================================================
+// LCS DATA & RENDERING
+// ============================================================
+const LCS = {
+  s1: 'AGCAT',
+  s2: 'GAC',
+  // L[i][j] for i=0..5, j=0..3
+  table: [
+    [0, 0, 0, 0],
+    [0, 0, 1, 1],
+    [0, 1, 1, 1],
+    [0, 1, 1, 2],
+    [0, 1, 2, 2],
+    [0, 1, 2, 2],
+  ],
+};
+
+const LCS_STEPS = [
+  {
+    title: 'The problem',
+    body: `<p>Given two strings s_1 and s_2, find the longest <em>subsequence</em> common to both.</p>
+           <p>Our example: <code>s_1 = "AGCAT"</code>, <code>s_2 = "GAC"</code>.</p>
+           <p>A common subsequence: "AC" or "GC" or "GA" — each appears in both as a subsequence. The LONGEST has length 2.</p>`,
+    filled: { rows: 0, cols: 0 },
+  },
+  {
+    title: 'Subsequence vs Substring',
+    body: `<p><strong>Subsequence</strong>: pick characters in order from the string, but you can skip characters. "AGT" is a subsequence of "AGCAT" (skip C and A in the middle).</p>
+           <p><strong>Substring (contiguous)</strong>: must be a contiguous chunk. "GCA" is a substring of "AGCAT" but "AGT" is NOT a substring.</p>
+           <p>LCS = longest common <em>subsequence</em>, NOT substring.</p>`,
+    filled: { rows: 0, cols: 0 },
+  },
+  {
+    title: 'Step 1 — Define L[i][j]',
+    body: `<p><code>L[i][j] = </code> length of the LCS of the prefixes <code>s_1[1..i]</code> and <code>s_2[1..j]</code>.</p>
+           <p>For our example, this is a (n+1) × (m+1) = 6 × 4 table (including the 0-row and 0-column for empty prefixes).</p>
+           <p>Whole-problem answer: <code>L[n][m] = L[5][3]</code>.</p>`,
+    filled: { rows: 0, cols: 0 },
+  },
+  {
+    title: 'Base case — L[0][*] = L[*][0] = 0',
+    body: `<p>Empty prefix has empty LCS with anything. So:</p>
+           <ul>
+             <li><code>L[0][j] = 0</code> for all j (empty s_1 prefix)</li>
+             <li><code>L[i][0] = 0</code> for all i (empty s_2 prefix)</li>
+           </ul>
+           <p>This fills the entire first row and first column with zeros.</p>`,
+    filled: { rows: 1, cols: 4 }, baseFilled: true,
+  },
+  {
+    title: 'Step 2 — Recurrence (match or drop)',
+    body: `<p>For i, j ≥ 1, two cases based on the last characters s_1[i] and s_2[j]:</p>
+           <ul>
+             <li><strong>If s_1[i] == s_2[j]:</strong> we can include this matching character. <code>L[i][j] = 1 + L[i-1][j-1]</code></li>
+             <li><strong>Else:</strong> drop one or the other. <code>L[i][j] = max(L[i-1][j], L[i][j-1])</code></li>
+           </ul>
+           <p>Each cell depends on at most 3 neighbors: left, up, and diagonal-up-left.</p>`,
+    formula: 'L[i][j] = 1 + L[i-1][j-1] (if match) else max(L[i-1][j], L[i][j-1])',
+    filled: { rows: 1, cols: 4 }, baseFilled: true,
+  },
+  {
+    title: 'Fill row 1: i=1 (s_1[1]=A)',
+    body: `<p>Computing L[1][1], L[1][2], L[1][3]:</p>
+           <ul>
+             <li>L[1][1]: A vs G → no match → max(L[0][1], L[1][0]) = max(0,0) = <strong>0</strong></li>
+             <li>L[1][2]: A vs A → <strong>match!</strong> 1 + L[0][1] = 1 + 0 = <strong>1</strong></li>
+             <li>L[1][3]: A vs C → no match → max(L[0][3], L[1][2]) = max(0,1) = <strong>1</strong></li>
+           </ul>`,
+    filled: { rows: 2, cols: 4 }, baseFilled: true, activeRow: 1,
+  },
+  {
+    title: 'Fill row 2: i=2 (s_1[2]=G)',
+    body: `<ul>
+             <li>L[2][1]: G vs G → <strong>match!</strong> 1 + L[1][0] = 1 + 0 = <strong>1</strong></li>
+             <li>L[2][2]: G vs A → no match → max(L[1][2], L[2][1]) = max(1,1) = <strong>1</strong></li>
+             <li>L[2][3]: G vs C → no match → max(L[1][3], L[2][2]) = max(1,1) = <strong>1</strong></li>
+           </ul>`,
+    filled: { rows: 3, cols: 4 }, baseFilled: true, activeRow: 2,
+  },
+  {
+    title: 'Fill row 3: i=3 (s_1[3]=C)',
+    body: `<ul>
+             <li>L[3][1]: C vs G → no match → max(L[2][1], L[3][0]) = max(1,0) = <strong>1</strong></li>
+             <li>L[3][2]: C vs A → no match → max(L[2][2], L[3][1]) = max(1,1) = <strong>1</strong></li>
+             <li>L[3][3]: C vs C → <strong>match!</strong> 1 + L[2][2] = 1 + 1 = <strong>2</strong> ← first 2!</li>
+           </ul>`,
+    annotation: { type: 'success', text: 'L[3][3] = 2 — we found a length-2 common subsequence. AGC and GAC share a "C" at this position, plus a matching "A" earlier.' },
+    filled: { rows: 4, cols: 4 }, baseFilled: true, activeRow: 3,
+  },
+  {
+    title: 'Fill row 4: i=4 (s_1[4]=A)',
+    body: `<ul>
+             <li>L[4][1]: A vs G → no match → max(L[3][1], L[4][0]) = max(1,0) = <strong>1</strong></li>
+             <li>L[4][2]: A vs A → <strong>match!</strong> 1 + L[3][1] = 1 + 1 = <strong>2</strong></li>
+             <li>L[4][3]: A vs C → no match → max(L[3][3], L[4][2]) = max(2,2) = <strong>2</strong></li>
+           </ul>`,
+    filled: { rows: 5, cols: 4 }, baseFilled: true, activeRow: 4,
+  },
+  {
+    title: 'Fill row 5: i=5 (s_1[5]=T)',
+    body: `<ul>
+             <li>L[5][1]: T vs G → no match → max(L[4][1], L[5][0]) = max(1,0) = <strong>1</strong></li>
+             <li>L[5][2]: T vs A → no match → max(L[4][2], L[5][1]) = max(2,1) = <strong>2</strong></li>
+             <li>L[5][3]: T vs C → no match → max(L[4][3], L[5][2]) = max(2,2) = <strong>2</strong> ← FINAL!</li>
+           </ul>`,
+    annotation: { type: 'success', text: 'L[5][3] = 2. The LCS has length 2.' },
+    filled: { rows: 6, cols: 4 }, baseFilled: true, activeRow: 5, winning: { r: 5, c: 3 },
+  },
+  {
+    title: 'Step 4 — Reconstruction',
+    body: `<p>Walk back from L[5][3] = 2. At each cell, figure out which branch the recurrence took.</p>
+           <ul>
+             <li>L[5][3]=2. T vs C — no match. From max(L[4][3]=2, L[5][2]=2). Tie, pick left: L[5][2]. Move ⬅</li>
+             <li>L[5][2]=2. T vs A — no match. From max(L[4][2]=2, L[5][1]=1). Up wins: L[4][2]. Move ⬆</li>
+             <li>L[4][2]=2. A vs A — <strong>match!</strong> Add 'A' to LCS. Move diagonally ↖ to L[3][1].</li>
+             <li>L[3][1]=1. C vs G — no match. From max(L[2][1]=1, L[3][0]=0). Up wins: L[2][1]. Move ⬆</li>
+             <li>L[2][1]=1. G vs G — <strong>match!</strong> Add 'G' to LCS. Move diagonally ↖ to L[1][0].</li>
+             <li>L[1][0]=0. Base case. Stop.</li>
+           </ul>
+           <p>LCS reading from front to back: <strong>"GA"</strong></p>`,
+    filled: { rows: 6, cols: 4 }, baseFilled: true, winning: { r: 5, c: 3 },
+    path: [[5,3], [5,2], [4,2], [3,1], [2,1]],
+  },
+  {
+    title: '📋 The full exam answer for LCS',
+    body: `<p>What you would write on the exam paper for LCS:</p>`,
+    examAnswer: `Step 1. Define the table.
+   Let L[i][j] = length of the longest common subsequence of
+   s_1[1..i] and s_2[1..j], for 0 ≤ i ≤ n, 0 ≤ j ≤ m.
+   Whole-problem answer = L[n][m].
+
+Step 2. Recurrence + correctness.
+   L[i][j] = 1 + L[i-1][j-1]              if s_1[i] = s_2[j]
+           = max(L[i-1][j], L[i][j-1])    otherwise
+   Base: L[0][j] = L[i][0] = 0 (empty prefix → empty LCS).
+   Correctness: at position (i,j), either s_1[i] and s_2[j] both end
+   the LCS (match branch — forced when characters equal), or one of
+   them isn't in the LCS, reducing to a smaller subproblem.
+
+Step 3. Bottom-up + runtime.
+   for i := 0 to n: L[i][0] := 0
+   for j := 0 to m: L[0][j] := 0
+   for i := 1 to n:
+       for j := 1 to m:
+           if s_1[i] = s_2[j]: L[i][j] := 1 + L[i-1][j-1]
+           else: L[i][j] := max(L[i-1][j], L[i][j-1])
+   return L[n][m]
+   Runtime: O(nm) cells × O(1) work = O(nm).
+
+Step 4. Reconstruction (recover the LCS string).
+   i := n; j := m; result := empty
+   while i > 0 and j > 0:
+       if s_1[i] = s_2[j]:
+           result.prepend(s_1[i]); i--; j--
+       elif L[i-1][j] >= L[i][j-1]:
+           i--
+       else:
+           j--
+   return result
+   Runtime: O(n + m).`,
+    filled: { rows: 6, cols: 4 }, baseFilled: true, winning: { r: 5, c: 3 },
+  },
+];
+
+function renderLCS(step) {
+  const container = document.getElementById('lcs-diagram');
+  let html = '<table class="dp-table">';
+  // Header row: empty corner, then "j=0", "j=1", ... with s_2 chars
+  html += '<tr><th class="header-axis" colspan="2"></th>';
+  for (let j = 0; j <= LCS.s2.length; j++) {
+    html += `<th class="header-axis">j=${j}<br>${j === 0 ? '∅' : LCS.s2[j-1]}</th>`;
+  }
+  html += '</tr>';
+  // Rows
+  for (let i = 0; i <= LCS.s1.length; i++) {
+    html += '<tr>';
+    html += `<th class="header-axis">i=${i}</th>`;
+    html += `<th class="header-axis">${i === 0 ? '∅' : LCS.s1[i-1]}</th>`;
+    for (let j = 0; j <= LCS.s2.length; j++) {
+      const filled = step.baseFilled && (i === 0 || j === 0 || (step.activeRow && i <= step.activeRow) || step.filled.rows >= LCS.s1.length + 1);
+      const isWinning = step.winning && step.winning.r === i && step.winning.c === j;
+      const inPath = step.path && step.path.some(([r, c]) => r === i && c === j);
+      let cls;
+      if (isWinning) cls = 'winning';
+      else if (inPath) cls = 'path';
+      else if (filled) cls = 'filled';
+      else cls = 'unfilled';
+      html += `<td class="${cls}">${filled ? LCS.table[i][j] : '?'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+// ============================================================
+// KNAPSACK DATA & RENDERING
+// ============================================================
+const KS = {
+  items: [
+    { i: 1, w: 2, v: 3 },
+    { i: 2, w: 3, v: 4 },
+    { i: 3, w: 4, v: 5 },
+    { i: 4, w: 5, v: 6 },
+  ],
+  N: 4,
+  W: 8,
+  // OPT[j][Z] for j=0..4, Z=0..8
+  table: [
+    [0,0,0,0,0,0,0,0,0],          // j=0
+    [0,0,3,3,3,3,3,3,3],          // j=1: item 1 (w=2,v=3)
+    [0,0,3,4,4,7,7,7,7],          // j=2: items 1,2
+    [0,0,3,4,5,7,8,9,9],          // j=3: items 1,2,3
+    [0,0,3,4,5,7,8,9,10],         // j=4: items 1,2,3,4
+  ],
+};
+
+const KS_STEPS = [
+  {
+    title: 'The problem',
+    body: `<p>Given <em>n</em> items with weights w_i and values v_i, and a knapsack with capacity <em>W</em>. Pick a subset of items (each at most once) with total weight ≤ W to maximise total value.</p>
+           <p>Our example: 4 items, W=8.</p>
+           <table style="border-collapse: collapse; margin: 8px 0; font-size: 13px;">
+             <tr><th style="padding: 4px 8px; border: 1px solid #94a3b8; background: #e2e8f0;">i</th><th style="padding: 4px 8px; border: 1px solid #94a3b8; background: #e2e8f0;">w_i</th><th style="padding: 4px 8px; border: 1px solid #94a3b8; background: #e2e8f0;">v_i</th></tr>
+             <tr><td style="padding: 4px 8px; border: 1px solid #94a3b8;">1</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">2</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">3</td></tr>
+             <tr><td style="padding: 4px 8px; border: 1px solid #94a3b8;">2</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">3</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">4</td></tr>
+             <tr><td style="padding: 4px 8px; border: 1px solid #94a3b8;">3</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">4</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">5</td></tr>
+             <tr><td style="padding: 4px 8px; border: 1px solid #94a3b8;">4</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">5</td><td style="padding: 4px 8px; border: 1px solid #94a3b8;">6</td></tr>
+           </table>`,
+    filledJ: 0,
+  },
+  {
+    title: 'Why greedy fails',
+    body: `<p>The obvious greedy (take items in order of value/weight ratio) doesn't always give the optimum for 0/1 Knapsack — because we can't "split" items. Sometimes a less-efficient but smaller item lets us fit a better combination overall.</p>
+           <p>Knapsack is NP-complete; DP gives us pseudopolynomial O(nW), which is the best known.</p>`,
+    filledJ: 0,
+  },
+  {
+    title: 'Step 1 — Define OPT[j][Z]',
+    body: `<p><code>OPT[j][Z] = </code> max total value using a subset of the <strong>first j items</strong> with total weight <strong>≤ Z</strong>.</p>
+           <p>The table is 2D: rows = j (items considered), columns = Z (capacity available).</p>
+           <p>Whole-problem answer: <code>OPT[n][W] = OPT[4][8]</code>.</p>`,
+    filledJ: 0,
+  },
+  {
+    title: 'Base case — OPT[0][Z] = 0',
+    body: `<p>Using 0 items, max value is 0 regardless of capacity.</p>
+           <p>Fill the first row (j=0) with all zeros.</p>`,
+    filledJ: 0, baseFilled: true,
+  },
+  {
+    title: 'Step 2 — Recurrence (take or skip)',
+    body: `<p>For each item j and capacity Z, two choices:</p>
+           <ul>
+             <li><strong>Skip j:</strong> OPT[j-1][Z] — same capacity, one fewer item considered.</li>
+             <li><strong>Take j</strong> (only if w_j ≤ Z): v_j + OPT[j-1][Z - w_j] — use w_j weight, gain v_j value.</li>
+           </ul>`,
+    formula: 'OPT[j][Z] = max( OPT[j-1][Z], v_j + OPT[j-1][Z - w_j] )',
+    filledJ: 0, baseFilled: true,
+  },
+  {
+    title: 'Fill row j=1 (item 1: w=2, v=3)',
+    body: `<p>For each Z from 0 to 8:</p>
+           <ul style="font-size: 12.5px;">
+             <li>Z=0,1: w_1=2 > Z → can't take. OPT[1][Z] = OPT[0][Z] = 0.</li>
+             <li>Z≥2: take 1 = 3 + OPT[0][Z-2] = 3. skip 1 = 0. → OPT[1][Z] = 3.</li>
+           </ul>
+           <p>Row j=1: <code>[0, 0, 3, 3, 3, 3, 3, 3, 3]</code></p>`,
+    filledJ: 1, baseFilled: true, activeRow: 1,
+  },
+  {
+    title: 'Fill row j=2 (item 2: w=3, v=4)',
+    body: `<p>Compute for each Z. Highlights:</p>
+           <ul style="font-size: 12.5px;">
+             <li>Z=3: take = 4 + OPT[1][0] = 4. skip = OPT[1][3] = 3. → max = <strong>4</strong>.</li>
+             <li>Z=5: take = 4 + OPT[1][2] = 4 + 3 = 7. skip = 3. → max = <strong>7</strong> (use items 1+2).</li>
+           </ul>
+           <p>Row j=2: <code>[0, 0, 3, 4, 4, 7, 7, 7, 7]</code></p>`,
+    filledJ: 2, baseFilled: true, activeRow: 2,
+  },
+  {
+    title: 'Fill row j=3 (item 3: w=4, v=5)',
+    body: `<p>Notable cells:</p>
+           <ul style="font-size: 12.5px;">
+             <li>Z=4: take = 5 + OPT[2][0] = 5. skip = OPT[2][4] = 4. → max = <strong>5</strong>.</li>
+             <li>Z=6: take = 5 + OPT[2][2] = 5 + 3 = 8. skip = 7. → max = <strong>8</strong>.</li>
+             <li>Z=7: take = 5 + OPT[2][3] = 5 + 4 = 9. skip = 7. → max = <strong>9</strong>.</li>
+           </ul>
+           <p>Row j=3: <code>[0, 0, 3, 4, 5, 7, 8, 9, 9]</code></p>`,
+    filledJ: 3, baseFilled: true, activeRow: 3,
+  },
+  {
+    title: 'Fill row j=4 (item 4: w=5, v=6) — Final',
+    body: `<p>Key cells:</p>
+           <ul style="font-size: 12.5px;">
+             <li>Z=8: take = 6 + OPT[3][3] = 6 + 4 = 10. skip = OPT[3][8] = 9. → max = <strong>10</strong>.</li>
+           </ul>
+           <p>Row j=4: <code>[0, 0, 3, 4, 5, 7, 8, 9, 10]</code></p>
+           <p><strong>OPT[4][8] = 10</strong>. This is our answer.</p>`,
+    annotation: { type: 'success', text: 'Max value = 10. Achieved by taking item 4 (v=6, w=5) and item 2 (v=4, w=3) — total weight 8.' },
+    filledJ: 4, baseFilled: true, activeRow: 4, winning: { r: 4, c: 8 },
+  },
+  {
+    title: 'Step 4 — Reconstruction',
+    body: `<p>Walk back from OPT[4][8]. At each (j, Z), check if item j was taken (OPT[j][Z] &gt; OPT[j-1][Z]):</p>
+           <ul style="font-size: 12.5px;">
+             <li>(4,8): OPT[4][8]=10 &gt; OPT[3][8]=9 → TAKE item 4. New state: (3, 8-5)=(3,3).</li>
+             <li>(3,3): OPT[3][3]=4 = OPT[2][3]=4 → SKIP item 3. New state: (2,3).</li>
+             <li>(2,3): OPT[2][3]=4 &gt; OPT[1][3]=3 → TAKE item 2. New state: (1, 3-3)=(1,0).</li>
+             <li>(1,0): OPT[1][0]=0 = OPT[0][0]=0 → SKIP item 1. Base case.</li>
+           </ul>
+           <p>Selected: <strong>items {2, 4}</strong>. Total weight: 3+5=8 ≤ 8 ✓. Total value: 4+6=10 ✓.</p>`,
+    filledJ: 4, baseFilled: true, winning: { r: 4, c: 8 },
+  },
+  {
+    title: '📋 The full exam answer for 0/1 Knapsack',
+    body: `<p>What you would write on the exam:</p>`,
+    examAnswer: `Step 1. Define the table.
+   Let OPT[j][Z] = max total value using a subset of the first j items
+   with total weight at most Z, for 0 ≤ j ≤ n, 0 ≤ Z ≤ W.
+   Whole-problem answer = OPT[n][W].
+
+Step 2. Recurrence + correctness.
+   OPT[j][Z] = max( OPT[j-1][Z],                              // skip j
+                    v_j + OPT[j-1][Z - w_j]  if w_j ≤ Z )    // take j
+   Base: OPT[0][Z] = 0 for all Z (no items → no value).
+   Correctness: any optimal subset for the first j items either includes
+   item j (consumes w_j weight, gains v_j value) or doesn't.
+
+Step 3. Bottom-up + runtime.
+   for Z := 0 to W: OPT[0][Z] := 0
+   for j := 1 to n:
+       for Z := 0 to W:
+           skip := OPT[j-1][Z]
+           take := (Z ≥ w_j) ? v_j + OPT[j-1][Z - w_j] : -∞
+           OPT[j][Z] := max(skip, take)
+   return OPT[n][W]
+   Runtime: n(W+1) cells × O(1) = O(nW).
+
+   NOTE: Pseudopolynomial. Input size is O(n log W) but runtime is O(nW).
+   Knapsack is NP-complete; this is the best known.
+
+Step 4. Reconstruction.
+   items := empty; j := n; Z := W
+   while j > 0:
+       if OPT[j][Z] > OPT[j-1][Z]:    // item j was taken
+           items.add(j); Z := Z - w_j
+       j := j - 1
+   return items
+   Runtime: O(n).`,
+    filledJ: 4, baseFilled: true, winning: { r: 4, c: 8 },
+  },
+];
+
+function renderKS(step) {
+  const container = document.getElementById('ks-diagram');
+  let html = '<table class="dp-table">';
+  html += '<tr><th class="header-axis">j \\ Z</th>';
+  for (let Z = 0; Z <= KS.W; Z++) {
+    html += `<th class="header-axis">${Z}</th>`;
+  }
+  html += '</tr>';
+  for (let j = 0; j <= KS.N; j++) {
+    const filled = step.baseFilled && j <= step.filledJ;
+    html += '<tr>';
+    html += `<th class="header-axis">j=${j}${j > 0 ? ` (w=${KS.items[j-1].w},v=${KS.items[j-1].v})` : ''}</th>`;
+    for (let Z = 0; Z <= KS.W; Z++) {
+      const isWinning = step.winning && step.winning.r === j && step.winning.c === Z;
+      let cls;
+      if (isWinning) cls = 'winning';
+      else if (filled) cls = 'filled';
+      else cls = 'unfilled';
+      html += `<td class="${cls}">${filled ? KS.table[j][Z] : '?'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+// ============================================================
+// Unified render
+// ============================================================
+const ALGOS = {
+  kadane: { steps: KADANE_STEPS, render: renderKadane, titlePrefix: 'kadane' },
+  wis:    { steps: WIS_STEPS,    render: renderWIS,    titlePrefix: 'wis' },
+  lcs:    { steps: LCS_STEPS,    render: renderLCS,    titlePrefix: 'lcs' },
+  knapsack: { steps: KS_STEPS,   render: renderKS,     titlePrefix: 'ks' },
+};
+
+function render() {
+  const algo = ALGOS[currentAlgo];
+  const stepIdx = currentSteps[currentAlgo];
+  const step = algo.steps[stepIdx];
+
+  document.getElementById(`${algo.titlePrefix}-step-counter`).textContent = `Step ${stepIdx + 1} of ${algo.steps.length}`;
+  document.getElementById('progress').textContent = `${stepIdx + 1} / ${algo.steps.length}`;
+  document.getElementById(`${algo.titlePrefix}-step-title`).textContent = step.title;
+
+  let html = step.body;
+  if (step.formula) html += `<div class="formula">${step.formula}</div>`;
+  if (step.bodyEnd) html += step.bodyEnd;
+  if (step.annotation) {
+    const cls = step.annotation.type === 'warn' ? 'warn' :
+                step.annotation.type === 'success' ? 'success' :
+                step.annotation.type === 'proof' ? 'proof' : '';
+    html += `<div class="annotation ${cls}">${step.annotation.text}</div>`;
+  }
+  if (step.examAnswer) {
+    html += `<div class="exam-answer-final"><h4>📋 EXAM-READY 4-STEP ANSWER</h4><pre>${step.examAnswer}</pre></div>`;
+  }
+  document.getElementById(`${algo.titlePrefix}-step-body`).innerHTML = html;
+
+  document.getElementById('prev-btn').disabled = stepIdx === 0;
+  document.getElementById('next-btn').disabled = stepIdx === algo.steps.length - 1;
+
+  algo.render(step);
+}
+
+function next() {
+  const steps = ALGOS[currentAlgo].steps;
+  if (currentSteps[currentAlgo] < steps.length - 1) {
+    currentSteps[currentAlgo]++;
+    render();
+  }
+}
+function prev() {
+  if (currentSteps[currentAlgo] > 0) {
+    currentSteps[currentAlgo]--;
+    render();
+  }
+}
+
+document.getElementById('next-btn').addEventListener('click', next);
+document.getElementById('prev-btn').addEventListener('click', prev);
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('format').classList.contains('active')) return;
+  if (document.getElementById('fresh').classList.contains('active')) return;
+  // Don't intercept if user is typing in a textarea
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+});
+
+// ============================================================
+// Fresh problems: autosave attempts
+// ============================================================
+const FRESH_KEY = 'dp-fresh-attempts-v1';
+
+function loadFreshAttempts() {
+  try {
+    const data = JSON.parse(localStorage.getItem(FRESH_KEY) || '{}');
+    Object.entries(data).forEach(([id, val]) => {
+      const ta = document.querySelector(`textarea[data-fresh="${id}"]`);
+      if (ta) ta.value = val;
+    });
+  } catch (e) {}
+}
+
+function saveFreshAttempts() {
+  const data = {};
+  document.querySelectorAll('textarea[data-fresh]').forEach(ta => {
+    data[ta.dataset.fresh] = ta.value;
+  });
+  try { localStorage.setItem(FRESH_KEY, JSON.stringify(data)); } catch (e) {}
+}
+
+document.querySelectorAll('textarea[data-fresh]').forEach(ta => {
+  ta.addEventListener('input', saveFreshAttempts);
+});
+
+loadFreshAttempts();
+render();
+</script>
+
+</body>
+</html>

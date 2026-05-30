@@ -1,0 +1,282 @@
+{
+  "generatedAt": "2026-05-30T13:30:09.447Z",
+  "courseId": "nm",
+  "examId": "2024-final",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 4,
+      "sharedContext": "Computer Arithmetic and Algebraic Equations\n\nConsider the problem for finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in the interval $[0, 4]$.",
+      "text": "1a Compute one step of Newton’s algorithm, starting from the midpoint of the interval.",
+      "modelAnswer": "Newton: $p_{n+1} = p_n - f(p_n)/f'(p_n)$\n\nDerivative: $f'(x) = e^x - 6$\n\nCalculation:\n$$\np_1 = p_0 - f(p_0)/f'(p_0)\n$$\n$$\np_1 = 2 - f(2)/f'(2)\n$$\n$$\np_1 = 2 - \\frac{e^2 - 12 - 2}{e^2 - 6}\n$$\n$$\np_1 = 2 - \\frac{-6.6109}{1.3891}\n$$\n$$\np_1 = 6.7593\n$$\n\nAnswer: $p_1 = 6.7593$ (4dp)",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 2,
+      "sharedContext": "Computer Arithmetic and Algebraic Equations\n\nConsider the problem for finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in the interval $[0, 4]$.",
+      "text": "1b What happens, and why?",
+      "modelAnswer": "We leave the interval of interest.\n\nInterval too wide, bad starting point, no convergence guarantees for Newton, etc.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 3,
+      "sharedContext": "Computer Arithmetic and Algebraic Equations\n\nConsider the problem for finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in the interval $[0, 4]$.",
+      "text": "1c Perform one step of the bisection method to find a smaller bracket for the solution.",
+      "modelAnswer": "$f(0) = -1.00 < 0$\n\n$f(4) = 28.60 > 0$\n\n$f(2) = -6.61 < 0$\n\nHence, $x \\in [2,4]$",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1d",
+      "label": "Q1(d)",
+      "marks": 2,
+      "sharedContext": "Computer Arithmetic and Algebraic Equations\n\nConsider the problem for finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in the interval $[0, 4]$.",
+      "text": "1d Perform one more step of Newton’s method, starting from the midpoint of the interval obtained in part c .",
+      "modelAnswer": "$$\np_1 = p_0 - f(p_0)/f'(p_0)\n$$\n$$\np_1 = 3 - f(3)/f'(3)\n$$\n$$\np_1 = 3 - \\frac{e^3 - 18 - 2}{e^3 - 6}\n$$\n$$\np_1 = 2.9939\n$$\n\nAnswer: $p_1 = 2.9939$ (4dp)",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1e",
+      "label": "Q1(e)",
+      "marks": 2,
+      "sharedContext": "Computer Arithmetic and Algebraic Equations\n\nConsider the problem for finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in the interval $[0, 4]$.",
+      "text": "1e Do you expect your new approximation to be within $0.1$ of the true solution? Give a reason for your answer.",
+      "modelAnswer": "Yes\n\nBecause $|p_1-p| \\lesssim |p_1-p_0| = |2.9939 - 3| = 6.1 \\times 10^{-3}$",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1f",
+      "label": "Q1(f)",
+      "marks": 3,
+      "sharedContext": "Computer Arithmetic and Algebraic Equations\n\nConsider the problem for finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in the interval $[0, 4]$.",
+      "text": "1f Write a Matlab statement which performs a single step of Newton’s method for a function $f$, starting from point $x$.",
+      "modelAnswer": "```matlab\nf = @(x) exp(x) - 6*x - 2;\ndf = @(x) exp(x) - 6;\nx = x - f(x)/df(x);\n```\n\nAlternative:\n\n```matlab\nx = x - (exp(x)-6*x-2)/(exp(x)-6);\n```",
+      "page": 4,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q2a",
+      "label": "Q2(a)",
+      "marks": 10,
+      "sharedContext": "Differential Equations\n\nConsider the problem of finding the value of $y(3)$ for the initial value problem\n$$\n\\frac{dy}{dt} = \\frac{1}{t-1} - y^2, \\quad y(2) = 1.4.\n$$",
+      "text": "2a Solve the problem using Ralston’s method with a step size of $h = 0.5$.",
+      "modelAnswer": "Ralston's method:\n$$\ny_{n+1}=y_n+\\frac{h}{4}\\left(f(t_n,y_n)+3f\\left(t_n+\\frac{2}{3}h,y_n+\\frac{2}{3}hf(t_n,y_n)\\right)\\right)\n$$\n\nor\n$$\nk_1=hf(t_n,y_n), \\quad k_2=hf\\left(t_n+\\frac{2}{3}h,y_n+\\frac{2}{3}k_1\\right), \\quad y'=y+\\frac{1}{4}(k_1+3k_2).\n$$\n\n$t_0=2$, $y_0=1.4000$.\n\n$f(t_0,y_0)=f(2.0,1.4000)=-0.9600$.\n\n$$\nf\\left(t_0+\\frac{2}{3}h,y_0+\\frac{2}{3}h f(t_0,y_0)\\right)=f(2.\\dot{3},1.0800)=-0.4164\n$$\n\n$k_{0,1}=-0.4800$, $k_{0,2}=0.2082$.\n\nNote $t_0+\\frac{2}{3}h=2.3\\dot{3}$ and $y_0+\\frac{2}{3}h f(t_0,y_0)=1.0800$.\n\n$$\ny_1=1.4000+\\frac{1}{4}\\times 0.5\\times(-0.9600+3\\times -0.4164)=1.1239\n$$\n\n$f(t_1,y_1)=f(2.5,1.1239)=-0.5964$.\n\n$$\nf\\left(t_1+\\frac{2}{3}h,y_1+\\frac{2}{3}h f(t_1,y_1)\\right)=f(2.8\\dot{3},0.9251)=-0.3103\n$$\n\n$k_{1,1}=-0.2982$, $k_{1,2}=-0.1551$.\n\nNote $t_1+\\frac{2}{3}h=2.83\\dot{3}$ and $y_1+\\frac{2}{3}h f(t_1,y_1)=0.9251$.\n\n$$\ny_2=1.1239+\\frac{1}{4}\\times 0.5\\times(-0.5964+3\\times -0.3103)=0.9329\n$$\n\n$t_2=t_1+h=3.0$, so $y(3.0) \\approx y_2=0.9329$.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2b",
+      "label": "Q2(b)",
+      "marks": 2,
+      "sharedContext": "Differential Equations\n\nConsider the problem of finding the value of $y(3)$ for the initial value problem\n$$\n\\frac{dy}{dt} = \\frac{1}{t-1} - y^2, \\quad y(2) = 1.4.\n$$",
+      "text": "2b How would you expect the error to change if you were to take a step-size of $h = 0.2$?",
+      "modelAnswer": "Method is 2nd-order, so error $\\sim h^2$.\n\nExpect error to decrease with a factor roughly\n$$\n(0.2/0.5)^2=0.16\n$$\n\ndecrease by factor $6.25$ times.",
+      "page": 6,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2c",
+      "label": "Q2(c)",
+      "marks": 8,
+      "sharedContext": "Differential Equations\n\nConsider the problem of finding the value of $y(3)$ for the initial value problem\n$$\n\\frac{dy}{dt} = \\frac{1}{t-1} - y^2, \\quad y(2) = 1.4.\n$$",
+      "text": "2c Write a Matlab function ode_ralston to solve a general differential equation $d\\tilde{y}/dt = f(t,y)$ over the time interval $[t_{init}, t_{final}]$ with intial value $y_{init}$ using $n$ steps of Ralston’s method.",
+      "modelAnswer": "```matlab\nfunction ys = ode_ralston(f, t_init_final, y_init, n)\nt_init = t_init_final(1);\nt_final = t_init_final(2);\nt = t_init;\ny = y_init;\nh = (t_final - t_init)/n;\nys = NaN(1,n+1);\nys(1) = y;\nfor i=1:n\n    k1 = h * f(t,y);\n    k2 = h * f(t+2/3*h,y+2/3*k1);\n    k = (k1+3*k2)/4;\n    t = t+h;\n    y = y+k;\n    ys(i+1) = y;\nend\nend\n```\n\nFunction signature.\n\nFunction arguments $f$, $t_{init}$, $t_{final}$, $y_{init}$, and $n$.\n\nInitialise $h$, $t$ and $y$.\n\nLoop for $n$ steps. Update $t=t+h$ each step.\n\nOutput array of all $y$-values. Alternatively, output only final value.\n\nCorrect syntax in formulae for new $y$.\n\nCorrect formula for new $y$ in reasonable syntax.\n\nOnly compute $f(t,y)$ once per step.",
+      "page": 7,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q3a",
+      "label": "Q3(a)",
+      "marks": 6,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the data\n\n| $x_i$ | $2.0$ | $1.5$ | $1.0$ | $3.0$ |\n|---|---:|---:|---:|---:|\n| $y_i = f(x_i)$ | $0.40$ | $1.00$ | $1.82$ | $0.03$ |",
+      "text": "3a Compute the divided differences $f[x_i, ..., x_j]$ for $0 \\leq i \\leq j \\leq 3$. You may assume $f[x_0, x_1] = -1.200$ and $f[x_1, x_2] = -1.640$.",
+      "modelAnswer": "Finite difference formula.\n\n$$\nf[x_2,x_3] = -0.8950\n$$\n\n$$\nf[x_0,x_1,x_2] = 0.4400\n$$\n\n$$\nf[x_1,x_2,x_3] = 0.4967\n$$\n\n$$\nf[x_0,x_1,x_2,x_3] = 0.0567\n$$\n\nCorrect use of given $f[x_0,x_1]$ and $f[x_1,x_2]$.",
+      "page": 8,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3b",
+      "label": "Q3(b)",
+      "marks": 2,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the data\n\n| $x_i$ | $2.0$ | $1.5$ | $1.0$ | $3.0$ |\n|---|---:|---:|---:|---:|\n| $y_i = f(x_i)$ | $0.40$ | $1.00$ | $1.82$ | $0.03$ |",
+      "text": "3b Write down the nested form of the cubic polynomial $p_3$ interpolating the given data.",
+      "modelAnswer": "Nested form:\n\n$$\np_3(x)=0.4000+(x-2.0)(-1.2000+(x-1.5)(0.4400+(x-1.0)0.0567)).\n$$",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3c",
+      "label": "Q3(c)",
+      "marks": 3,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the data\n\n| $x_i$ | $2.0$ | $1.5$ | $1.0$ | $3.0$ |\n|---|---:|---:|---:|---:|\n| $y_i = f(x_i)$ | $0.40$ | $1.00$ | $1.82$ | $0.03$ |",
+      "text": "3c Estimate the value of $y$ when $x = 2.5$, showing intermediate steps in your computations.",
+      "modelAnswer": "Computation:\n\n$$\np(2.5)=0.0625\n$$\n\nCorrect answer: $p(2.5)=0.0625$ (4dp)\n\nCorrect rounding: $p(2.5)=0.06$ (2dp)",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3d",
+      "label": "Q3(d)",
+      "marks": 5,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the data\n\n| $x_i$ | $2.0$ | $1.5$ | $1.0$ | $3.0$ |\n|---|---:|---:|---:|---:|\n| $y_i = f(x_i)$ | $0.40$ | $1.00$ | $1.82$ | $0.03$ |",
+      "text": "3d Write a Matlab function to evaluate a polynomial of degree $n$ given in nested form, given the interpolation points $x_i$ and coefficients $a_i$.",
+      "modelAnswer": "```matlab\nfunction z = eval(a,x,w)\nn = length(a);\nz = a(end);\nfor k = n-1:-1:1\n    z = a(k) + (w-x(k))*z;\nend\nend\n```\n\nFunction signature.\n\nInitialization $z$.\n\nFor loop.\n\nRecursive expression: idea.\n\nRecursive expression: correct.",
+      "page": 10,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q4a",
+      "label": "Q4(a)",
+      "marks": 5,
+      "sharedContext": "Integration & Differentiation\n\nConsider the problem of computing to an accuracy of $0.01$ the integral $I = \\int_{0.0}^{1.2} f(x)\\,dx$ for $f(x)=\\cos(x^2)$.",
+      "text": "4a Use the trapezoid rule with $n = 4$ subdivisions to estimate the value of $I$..",
+      "modelAnswer": "$$\nT_4=h\\left(\\frac{1}{2}f(x_0)+\\sum_{i=1}^{3}f(x_i)+\\frac{1}{2}f(x_4)\\right)\n$$\n\nStep and partition points:\n$$\nh=(b-a)/4=(1.2-0.0)/4=0.3\n$$\n$$\nx_i=(0.0,0.3,0.6,0.9,1.2)\n$$\n\nFunction values:\n$$\ny_i=f(x_i)=(1.0000,0.9960,0.9359,0.6895,0.1304)\n$$\n\n$$\nT_4=h(y_0/2+y_1+y_2+y_3+y_4/2)\n$$\n$$\nT_4=0.3\\times\\left(\\frac{1}{2}\\times1.0000+0.9960+0.9359+0.6895+\\frac{1}{2}\\times0.1304\\right)\n$$\n$$\nT_4=0.3\\times3.1866=0.9560\n$$\n\nTrapezoid approximation $0.9560$.",
+      "page": 11,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4b",
+      "label": "Q4(b)",
+      "marks": 5,
+      "sharedContext": "Integration & Differentiation\n\nConsider the problem of computing to an accuracy of $0.01$ the integral $I = \\int_{0.0}^{1.2} f(x)\\,dx$ for $f(x)=\\cos(x^2)$.",
+      "text": "4b Use the error estimate for the trapezoid rule to estimate the error over the sub-intervals $[0.0, 0.6]$ and $[0.6, 1.2]$. Do you expect the total error to be less than the desired accuracy bound?",
+      "modelAnswer": "Error estimate over $[p,q]$ is\n$$\n\\frac{1}{12}(q-p)\\left|f(p)-2f\\left(\\frac{p+q}{2}\\right)+f(q)\\right|\n$$\n\nor\n$$\n\\frac{1}{3}|T_2(f,[p,q])-T_1(f,[p,q])|.\n$$\n\nMay give error bound\n$$\n\\frac{1}{24}(q-p)h^2\\max_{\\xi\\in[p,q]}|f''(\\xi)|.\n$$\n\nOver $[0.0,0.6]$:\n$$\nE_0=\\frac{1}{12}(0.6-0.0)\\times|1.0000-2\\times0.9960+0.9359|\n$$\n\n$T_1=0.5808$, $T_2=0.5892$.\n\n$$\nE_0=0.05\\times|-0.0560|=0.0028=2.8\\times10^{-3}\n$$\n\nOver $[0.6,1.2]$:\n$$\nE_1=\\frac{1}{12}(1.2-0.6)\\times|0.9359-2\\times0.6895+0.1304|\n$$\n$$\nE_1=0.05\\times|-0.3127|=0.0156\\approx1.6\\times10^{-2}\n$$\n\n$T_1=0.3199$, $T_2=0.3668$.\n\n$$\nE_0+E_1=0.018\\cdots \\leq 0.019\n$$\n\nNot less than error bound.",
+      "page": 12,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4c",
+      "label": "Q4(c)",
+      "marks": 3,
+      "sharedContext": "Integration & Differentiation\n\nConsider the problem of computing to an accuracy of $0.01$ the integral $I = \\int_{0.0}^{1.2} f(x)\\,dx$ for $f(x)=\\cos(x^2)$.",
+      "text": "4c Explain how to use the adaptive trapezoid method to obtain a better estimate to the integral. (You do not have to perform the computation.",
+      "modelAnswer": "Recursively subdivide one of the intervals.\n\nExpect error on subdivided interval to be smaller (multiplied by $1/4$). or Continue until total error is small.\n\nChoose the subinterval with the largest error estimate, (here $[0.6,1.2]$).",
+      "page": 12,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q4d",
+      "label": "Q4(d)",
+      "marks": 3,
+      "sharedContext": "Integration & Differentiation\n\nConsider the problem of computing to an accuracy of $0.01$ the integral $I = \\int_{0.0}^{1.2} f(x)\\,dx$ for $f(x)=\\cos(x^2)$.",
+      "text": "4d Write Matlab code to compute the integral using a builtin Matlab function for integration.",
+      "modelAnswer": "```matlab\nf = @(x) cos(x.^2);\nI = integral(f,0,1.2);\n```\n\nDefine $f$.\n\nUse `integral` function.\n\nCall with arguments `(f,a,b)`.",
+      "page": 13,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q5a",
+      "label": "Q5(a)",
+      "marks": 6,
+      "sharedContext": "Least-Squares Approximation\n\nConsider the data:\n\n| $x_i$ | $0$ | $\\frac{1}{4}\\pi$ | $\\frac{1}{2}\\pi$ | $\\frac{3}{4}\\pi$ | $\\pi$ | $\\frac{5}{4}\\pi$ | $\\frac{3}{2}\\pi$ | $\\frac{7}{4}\\pi$ | $2\\pi$ |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n| $f(x_i)$ | $0.550$ | $0.300$ | $-0.033$ | $0.300$ | $0.800$ | $0.300$ | $-0.033$ | $0.300$ | $0.550$ |",
+      "text": "5a Compute the coefficients $a_0$, $a_1$, $a_2$ of the discrete Fourier transform.",
+      "modelAnswer": "$$\na_k=\\frac{\\sum_{i=0}^{7}y_i\\cos(kx_i)}{4}\n$$\n\n$$\na_0=\\frac{\\sum_{i=0}^{7}y_i}{4}=\\frac{0.550+0.300-0.033+0.300+0.800+0.300-0.033+0.300}{4}=\\frac{2.484}{4}=0.621\n$$\n\nUsing $\\cos(\\pi/4)=1/\\sqrt{2}=0.707$, find\n$$\na_1=\\frac{\\sum_{i=0}^{7}y_i\\cos(x_i)}{4}\n$$\n$$\na_1=\\frac{0.550\\times1+0.300\\times0.707-0.033\\times0+0.300\\times-0.707+0.800\\times-1+0.300\\times-0.707-0.033\\times0+0.300\\times0.707}{4}\n$$\n$$\na_1=\\frac{(0.550+0-0.800+0)+(0.300-0.300-0.300+0.300)\\times0.707}{4}=\\frac{-0.25}{4}=-0.0625\n$$\n\nor\n$$\na_1=\\frac{0.550+0.212+0-0.212-0.800-0.212+0+0.212}{4}=-0.0625\n$$\n\n$$\na_2=\\frac{\\sum_{i=0}^{7}y_i\\cos(2x_i)}{4}\n$$\n$$\na_2=\\frac{0.550\\times1+0.300\\times0-0.033\\times-1+0.300\\times0+0.800\\times1+0.300\\times0-0.033\\times-1+0.300\\times0}{4}\n$$\n$$\na_2=\\frac{0.550+0.033+0.800+0.033}{4}=\\frac{1.416}{4}=0.354\n$$",
+      "page": 14,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5b",
+      "label": "Q5(b)",
+      "marks": 2,
+      "sharedContext": "Least-Squares Approximation\n\nConsider the data:\n\n| $x_i$ | $0$ | $\\frac{1}{4}\\pi$ | $\\frac{1}{2}\\pi$ | $\\frac{3}{4}\\pi$ | $\\pi$ | $\\frac{5}{4}\\pi$ | $\\frac{3}{2}\\pi$ | $\\frac{7}{4}\\pi$ | $2\\pi$ |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n| $f(x_i)$ | $0.550$ | $0.300$ | $-0.033$ | $0.300$ | $0.800$ | $0.300$ | $-0.033$ | $0.300$ | $0.550$ |",
+      "text": "5b Assuming the coefficients $b_i$ equal $0$ for all $i$, write down the second Fourier approximation $s_2$ to $f$.",
+      "modelAnswer": "$$\ns_2(x)=a_0/2+\\sum_{k=1}^{2}a_k\\cos(kx)\n$$\n\n$$\ns_2(x)=0.3105-0.0625\\cos(x)+0.354\\cos(2x)\n$$",
+      "page": 15,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5c",
+      "label": "Q5(c)",
+      "marks": 2,
+      "sharedContext": "Least-Squares Approximation\n\nConsider the data:\n\n| $x_i$ | $0$ | $\\frac{1}{4}\\pi$ | $\\frac{1}{2}\\pi$ | $\\frac{3}{4}\\pi$ | $\\pi$ | $\\frac{5}{4}\\pi$ | $\\frac{3}{2}\\pi$ | $\\frac{7}{4}\\pi$ | $2\\pi$ |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n| $f(x_i)$ | $0.550$ | $0.300$ | $-0.033$ | $0.300$ | $0.800$ | $0.300$ | $-0.033$ | $0.300$ | $0.550$ |",
+      "text": "5c Evaluate $s_2(\\pi/3)$",
+      "modelAnswer": "$\\cos(\\pi/3)=0.5$ and $\\cos(2\\pi/3)=-0.5$.\n\n$$\ns_2(\\pi/3)=0.3105-0.0625\\times0.5+0.353\\times-0.5\n$$\n$$\n=0.3105-0.03125-0.1765=0.10225=0.102\n$$\n\nAnswer: $0.102$ (3dp).",
+      "page": 15,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5d",
+      "label": "Q5(d)",
+      "marks": 3,
+      "sharedContext": "Least-Squares Approximation\n\nConsider the data:\n\n| $x_i$ | $0$ | $\\frac{1}{4}\\pi$ | $\\frac{1}{2}\\pi$ | $\\frac{3}{4}\\pi$ | $\\pi$ | $\\frac{5}{4}\\pi$ | $\\frac{3}{2}\\pi$ | $\\frac{7}{4}\\pi$ | $2\\pi$ |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n| $f(x_i)$ | $0.550$ | $0.300$ | $-0.033$ | $0.300$ | $0.800$ | $0.300$ | $-0.033$ | $0.300$ | $0.550$ |",
+      "text": "5d What is the root-mean-square value $\\sqrt{\\frac{1}{2\\pi}\\int_0^{2\\pi}s_2(x)^2\\,dx}$ ?",
+      "modelAnswer": "$$\n\\int_0^{2\\pi}s_2(x)^2\\,dx=2\\pi\\left((a_0/2)^2+\\frac{1}{2}a_1^2+\\frac{1}{2}a_2^2\\right)\n$$\n\nso obtain\n$$\np=(a_0/2)^2+\\frac{1}{2}a_1^2+\\frac{1}{2}a_2^2\n$$\n\n$$\np=(0.621/2)^2+\\frac{1}{2}(-0.0625)^2+\\frac{1}{2}(0.354)^2\n$$\n\n$$\np=0.3856/2+0.0039/2+0.1253/2=0.1610\n$$\n\n$$\n\\sqrt{p}=0.401\n$$",
+      "page": 15,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5e",
+      "label": "Q5(e)",
+      "marks": 3,
+      "sharedContext": "Least-Squares Approximation\n\nConsider the data:\n\n| $x_i$ | $0$ | $\\frac{1}{4}\\pi$ | $\\frac{1}{2}\\pi$ | $\\frac{3}{4}\\pi$ | $\\pi$ | $\\frac{5}{4}\\pi$ | $\\frac{3}{2}\\pi$ | $\\frac{7}{4}\\pi$ | $2\\pi$ |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n| $f(x_i)$ | $0.550$ | $0.300$ | $-0.033$ | $0.300$ | $0.800$ | $0.300$ | $-0.033$ | $0.300$ | $0.550$ |",
+      "text": "5e Write Matlab code to compute the Fourier coefficient $a_2$ for $n$ equally-spaced data points in $[0, 2\\pi)$.",
+      "modelAnswer": "```matlab\nx = (0:n-1)/n*2*pi;\nz = y.*cos(2*x);\na2 = sum(z)/(n/2);\n```\n\nSyntax errors, e.g. not using `*` for multiplication, lose credit.",
+      "page": 16,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q6a",
+      "label": "Q6(a)",
+      "marks": 9,
+      "sharedContext": "Linear Algebra\n\nLet $A$ be the matrix\n$$\n\\begin{pmatrix}\n7 & 5 \\\\\n1 & 4\n\\end{pmatrix}\n$$",
+      "text": "6a Apply one step of the QR-method to find a matrix $B$ with the same eigenvalues as $A$.",
+      "modelAnswer": "$$\nv_1=x_1=\\begin{bmatrix}7\\\\1\\end{bmatrix}\n$$\n\n$$\nv_2=x_2-\\frac{x_2\\cdot v_1}{v_1\\cdot v_1}v_1\n$$\n\n$$\nv_2=\\cdots=\\begin{bmatrix}-0.4600\\\\3.2200\\end{bmatrix}\n$$\n\n$$\nr_{11}=\\|v_1\\|=\\sqrt{50}=7.0711\n$$\n$$\nr_{22}=\\|v_2\\|=3.2527\n$$\n\n$$\nv_1=v_1/r_{11}=\\begin{bmatrix}0.9899\\\\0.1414\\end{bmatrix}\n$$\n$$\nv_2=v_2/r_{22}=\\begin{bmatrix}-0.1414\\\\0.9899\\end{bmatrix}\n$$\n\n$$\nr_{12}=x_2\\cdot u_1=5.5151\n$$\n$$\nr_{21}=x_1\\cdot u_2=0.0000\n$$\n\n$$\nA=QR=\\begin{bmatrix}0.9899&-0.1414\\\\0.1414&0.9899\\end{bmatrix}\\begin{bmatrix}7.0711&5.5151\\\\0&3.2527\\end{bmatrix}\n$$\n\n$$\nA_1=RQ=\\begin{bmatrix}7.7795&4.4595\\\\0.4599&3.2198\\end{bmatrix}\n$$",
+      "page": 17,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6b",
+      "label": "Q6(b)",
+      "marks": 4,
+      "sharedContext": "Linear Algebra\n\nLet $A$ be the matrix\n$$\n\\begin{pmatrix}\n7 & 5 \\\\\n1 & 4\n\\end{pmatrix}\n$$",
+      "text": "6b Apply the Gershgorin circle theorem to $B$ and on $B^T$ to find bounds on the eigenvalues of $A$.",
+      "modelAnswer": "Gershgorin circle theorem.\n\nApplied to $B$:\n$$\n3.18 \\leq \\lambda_1 \\leq 12.38\n$$\n$$\n2.76 \\leq \\lambda_2 \\leq 3.68\n$$\n\nApplied to $B^T$:\n$$\n7.32 \\leq \\lambda_1 \\leq 8.24\n$$\n$$\n-1.38 \\leq \\lambda_2 \\leq 7.82\n$$\n\nTightest bound for $\\lambda_2$ from $B$ and for $\\lambda_1$ from $B^T$.",
+      "page": 18,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6c",
+      "label": "Q6(c)",
+      "marks": 3,
+      "sharedContext": "Linear Algebra\n\nLet $A$ be the matrix\n$$\n\\begin{pmatrix}\n7 & 5 \\\\\n1 & 4\n\\end{pmatrix}\n$$",
+      "text": "6c Write code to perform one step of the QR-method on the matrix $A$ in Matlab. You may use a builtin command for performing a QR-factorisation.",
+      "modelAnswer": "```matlab\nA = [7 5; 1 4];\n[Q,R] = qr(A);\nB = R*Q;\n```",
+      "page": 19,
+      "type": "pseudocode",
+      "options": []
+    }
+  ]
+}

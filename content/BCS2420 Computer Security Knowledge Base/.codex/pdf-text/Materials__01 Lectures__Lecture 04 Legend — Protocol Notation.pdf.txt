@@ -1,0 +1,56 @@
+Lecture 4
+Legend
+Encrypted Key Exchange (EKE)
+EKE combines password-based authentication with public-key encryption to securely establish a
+session key without revealing the password.
+Basic EKE Protocol
+
+1.   (A → B : A, {eA }W )
+     – ( A ) (initiator) sends their identity and a temporary public key (eA ), encrypted with the password-
+       derived key ( W ).
+2.   (A ← B : {EeA (K)}W )
+     – ( B ) encrypts the session key ( K ) with (eA ), then encrypts the result with ( W ).
+3.   (A → B : {T }K )
+     – ( A ) confirms knowledge of ( K ) by sending a test value ( T ), encrypted with ( K ).
+
+Analysis
+
+– Attackers cannot verify password guesses for ( W ) without first decrypting ( K ), making brute-force
+  attacks harder.
+Diffie-Hellman EKE (DH-EKE)
+DH-EKE enhances EKE with Diffie-Hellman (DH) key exchange, ensuring that each session generates a
+new, independent key.
+Protocol Steps
+
+1.   (A → B : A, {g a }W )
+     – ( A ) sends their identity and a Diffie-Hellman exponent (g a ), encrypted with ( W ).
+2.   (A ← B : {g b }W )
+3. ( B ) responds with their own DH exponent (g b ), also encrypted with ( W ).
+4. Key Agreement
+5. ( A ) and ( B ) compute the shared session key (K = (g b )a = (g a )b ) after decrypting each other's DH
+   values.
+
+Forward Secrecy
+
+– Since the session key ( K ) is computed from fresh Diffie-Hellman values in every session, even if the
+  password ( W ) is later compromised, past sessions remain secure.
+Legend
+Symbol              Meaning
+
+( A, B )            Communicating parties (Alice and Bob)
+
+(W)                 Password-derived encryption key
+
+(eA )               Temporary public key from ( A )
+
+(EeA (K))           Encryption of session key ( K ) using (eA )
+
+(g a , g b )        Diffie-Hellman public values
+
+(K)                 Shared session key computed from DH exchange
+
+(T)                 Test value to verify ( K )
+
+
+    Let me know if I missed anything here!
+

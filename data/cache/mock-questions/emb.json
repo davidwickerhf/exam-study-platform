@@ -1,0 +1,820 @@
+{
+  "generatedAt": "2026-05-22T21:22:38.127Z",
+  "courseId": "emb",
+  "examTypeMix": "Hard course-wide mix: mostly tricky Section A multiple-choice with some true/false, a few written and calculation prompts, plus substantial Section B pseudocode-type prompts requiring hand-written ARM Thumb assembly.",
+  "examPaperUsed": false,
+  "questions": [
+    {
+      "id": "mq-emb-001",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "Embedded System Definition",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which description best captures what makes a system an embedded system in this course?",
+      "options": [
+        "A specialised computer tightly coupled to hardware and designed for a particular function",
+        "Any computer that is physically small and has less RAM than a laptop",
+        "Any program written in C rather than a high-level interpreted language",
+        "Any device that runs without an operating system"
+      ],
+      "expected": "A specialised computer tightly coupled to hardware and designed for a particular function. The key idea is specialisation and hardware coupling; small size, C programming, or absence of an operating system may occur, but none of them alone defines an embedded system."
+    },
+    {
+      "id": "mq-emb-002",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "Embedded System Definition",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A smartphone is automatically an embedded system because it contains sensors and a microcontroller-like processor.",
+      "options": [],
+      "expected": "False. Hardware integration alone is not enough; the course definition emphasizes a specialised computer built into a larger product for a specific function, while a smartphone is usually treated as a general-purpose computing platform."
+    },
+    {
+      "id": "mq-emb-003",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "Language Layers",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A student says: \"The STM32 executes C statements directly, and assembly is just a more readable version of C.\" Which correction is best?",
+      "options": [
+        "The STM32 executes machine-code bit patterns; C is compiled through lower-level representations such as assembly into machine code",
+        "The STM32 executes assembly text directly, and the assembler only checks spelling",
+        "The STM32 executes C directly if the program is stored in Flash rather than RAM",
+        "The STM32 executes electrical signals directly, so machine code is irrelevant"
+      ],
+      "expected": "The STM32 executes machine-code bit patterns; C is compiled through lower-level representations such as assembly into machine code. Assembly is close to the ISA, but the processor ultimately responds to encoded binary instructions."
+    },
+    {
+      "id": "mq-emb-004",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "Flash and RAM",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "After flashing an STM32 board and power-cycling it, the program still starts again. Which memory distinction explains this?",
+      "options": [
+        "Program code is stored in non-volatile Flash, while runtime variables normally live in volatile RAM",
+        "Program code is stored in RAM, because RAM is faster and survives reset",
+        "The CPU registers store the whole program permanently after flashing",
+        "The debugger stores the program on the host PC and streams each instruction during normal execution"
+      ],
+      "expected": "Program code is stored in non-volatile Flash, while runtime variables normally live in volatile RAM. Flash retains the program without power; RAM is used for temporary runtime state and does not persist in the same way."
+    },
+    {
+      "id": "mq-emb-005",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "ISA Boundary",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why the ISA is called the hardware-software interface in this course. Mention both the programmer view and the hardware view.",
+      "options": [],
+      "expected": "The ISA defines the instructions, registers, addressing modes, and visible behavior that software can rely on. From the programmer side, assembly code is written against that contract; from the hardware side, the processor implements that contract through decode, datapath, control, registers, and memory access. This is why C compilers, assembly programmers, and CPU designers can meet at the same boundary."
+    },
+    {
+      "id": "mq-emb-006",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "Power Wall",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Why does the power wall matter especially in embedded programming?",
+      "options": [
+        "Because energy, heat, and battery limits constrain clock speed, computation, and hardware choices",
+        "Because embedded systems cannot use binary numbers at high clock speeds",
+        "Because Flash memory consumes no power, so only RAM matters",
+        "Because the C language prevents optimization once the program is compiled"
+      ],
+      "expected": "Because energy, heat, and battery limits constrain clock speed, computation, and hardware choices. Embedded designs are often power- and thermally constrained, so performance cannot be treated as only a matter of increasing frequency."
+    },
+    {
+      "id": "mq-emb-007",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "Course Assessment",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A student earns an exam grade of $6.8$ and a bonus grade of $0.7$. Using $\\text{final grade} = \\text{exam grade} + \\text{bonus grade}$, what is the final grade before any institutional rounding or cap policy?",
+      "options": [],
+      "expected": "The final grade is $6.8 + 0.7 = 7.5$. The method is direct substitution into the stated course formula."
+    },
+    {
+      "id": "mq-emb-008",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Course",
+      "topic": "Board Context",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Knowing the named board and STM32 tooling is merely logistical and cannot be examined conceptually.",
+      "options": [],
+      "expected": "False. The course treats the B-U585I-IOT02A board, STM32CubeIDE workflow, Flash/RAM behavior, registers, and later FPGA/Vitis AI tooling as part of the examinable working knowledge."
+    },
+    {
+      "id": "mq-emb-009",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "Transistors and Gates",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement gives the best architecture-level role of a transistor in a digital computer?",
+      "options": [
+        "It acts as a controllable switch used to build logic gates and storage circuits",
+        "It stores the complete program like non-volatile Flash",
+        "It decodes C statements into assembly instructions",
+        "It performs floating-point arithmetic by itself"
+      ],
+      "expected": "It acts as a controllable switch used to build logic gates and storage circuits. The course does not require semiconductor physics, but it does require the functional link from switching to gates, adders, ALUs, registers, and memory."
+    },
+    {
+      "id": "mq-emb-010",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "Stored Program Concept",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "In a stored-program machine, what is the most precise reason the same memory can contain an editor program, payroll data, and source text?",
+      "options": [
+        "Instructions and data are both represented as binary values; interpretation depends on how the CPU uses the address and value",
+        "The CPU tags every byte permanently as either instruction or data",
+        "Only source code is stored in memory; machine code is generated again for each instruction",
+        "Data is stored in registers while instructions are stored in memory"
+      ],
+      "expected": "Instructions and data are both represented as binary values; interpretation depends on how the CPU uses the address and value. A value alone does not reveal whether it is instruction or data; execution context gives it meaning."
+    },
+    {
+      "id": "mq-emb-011",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "Datapath and Control",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A CPU executes an ADD instruction. Which split between datapath and control is most accurate?",
+      "options": [
+        "The control unit selects the operation and routes operands; the datapath contains structures such as registers and the ALU that carry out the operation",
+        "The datapath decodes opcodes; the control unit stores user variables",
+        "The control unit performs arithmetic; the datapath only stores the program counter",
+        "The datapath and control unit are the same thing in Von Neumann machines"
+      ],
+      "expected": "The control unit selects the operation and routes operands; the datapath contains structures such as registers and the ALU that carry out the operation. This distinction explains why instruction decode produces control signals rather than arithmetic results directly."
+    },
+    {
+      "id": "mq-emb-012",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "Fetch Decode Execute",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: During decode, the processor usually performs the final arithmetic result and writes it back to the destination register.",
+      "options": [],
+      "expected": "False. Decode interprets the instruction bits and generates control decisions; arithmetic and write-back occur in later execute or write-back behavior, depending on the simplified model used."
+    },
+    {
+      "id": "mq-emb-013",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "Program Counter",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain the role of the program counter in the fetch-decode-execute cycle, and why changing it changes control flow.",
+      "options": [],
+      "expected": "The program counter holds the address of the instruction to fetch next, or in simplified descriptions the current or next instruction address. Normal execution advances it sequentially, while a branch, call, return, or exception changes it to a different address. Because instruction fetch follows the program counter, modifying it redirects execution."
+    },
+    {
+      "id": "mq-emb-014",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "Memory Hierarchy",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which answer best explains why cache exists between CPU registers and main memory?",
+      "options": [
+        "It exploits locality to reduce average memory access time and energy compared with repeatedly going to slower memory",
+        "It replaces all RAM so programs no longer need variables",
+        "It stores data permanently like Flash after power loss",
+        "It exists only because assembly cannot access RAM directly"
+      ],
+      "expected": "It exploits locality to reduce average memory access time and energy compared with repeatedly going to slower memory. Cache is a performance and power response to the speed gap between the processor and main memory."
+    },
+    {
+      "id": "mq-emb-015",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "SRAM DRAM Flash",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which pairing of memory technology and cell-level mechanism is most accurate?",
+      "options": [
+        "SRAM uses latch-like circuits, DRAM stores charge in capacitors that need refresh, and Flash stores charge non-volatilely in floating-gate or charge-trap structures",
+        "SRAM stores charge in capacitors, DRAM uses mechanical switches, and Flash is only a software file format",
+        "SRAM is non-volatile, DRAM is register-based, and Flash must be refreshed every cycle",
+        "All three are identical internally and differ only by compiler settings"
+      ],
+      "expected": "SRAM uses latch-like circuits, DRAM stores charge in capacitors that need refresh, and Flash stores charge non-volatilely in floating-gate or charge-trap structures. The exam emphasis is mechanism, not just the speed ranking."
+    },
+    {
+      "id": "mq-emb-016",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Computer Architecture",
+      "topic": "Von Neumann Harvard",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "What is the strongest distinction between Von Neumann and Harvard architecture for this course?",
+      "options": [
+        "Von Neumann uses a shared instruction/data memory path, while Harvard separates instruction and data memories or buses",
+        "Von Neumann has no registers, while Harvard always has more than $16$ registers",
+        "Von Neumann cannot execute machine code, while Harvard can",
+        "Harvard means the processor has no control unit"
+      ],
+      "expected": "Von Neumann uses a shared instruction/data memory path, while Harvard separates instruction and data memories or buses. The practical effect is on how instruction fetch and data access share or avoid contention."
+    },
+    {
+      "id": "mq-emb-017",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "Number Systems",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Convert $0b11010110$ to hexadecimal and decimal. Show the compact method.",
+      "options": [],
+      "expected": "Group into nibbles: $1101\\ 0110_2 = \\texttt{0xD6}$. In decimal, $0xD6 = 13\\cdot16 + 6 = 214$, so the value is $214_{10}$."
+    },
+    {
+      "id": "mq-emb-018",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "Fixed Width Overflow",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "On a $32$-bit two's-complement machine, what happens if signed integer arithmetic computes $0x7FFFFFFF + 1$ at the bit-pattern level?",
+      "options": [
+        "The bit pattern becomes $0x80000000$, which represents the most negative signed $32$-bit value if interpreted as two's complement",
+        "The bit pattern becomes $0x00000000$ because all additions wrap to zero on overflow",
+        "The bit pattern remains $0x7FFFFFFF$ because signed integers saturate automatically",
+        "The value becomes $0xFFFFFFFF$ because the carry flag is copied into every bit"
+      ],
+      "expected": "The bit pattern becomes $0x80000000$, which represents the most negative signed $32$-bit value if interpreted as two's complement. The important distinction is between the raw fixed-width bit pattern and the signed interpretation; in C, signed overflow also has language-level rules beyond the hardware pattern."
+    },
+    {
+      "id": "mq-emb-019",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "Signedness",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: The bit pattern $0xFFFFFFFF$ has one fixed mathematical value, independent of signedness.",
+      "options": [],
+      "expected": "False. As an unsigned $32$-bit value it is $2^{32}-1$, while as a two's-complement signed $32$-bit value it represents $-1$."
+    },
+    {
+      "id": "mq-emb-020",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "Bit Masks",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which C-style expression correctly returns only bit $i$ of value $x$, normalized to either $0$ or $1$?",
+      "options": [
+        "$(x >> i) & 1$",
+        "$x & (1 << i)$",
+        "$(x << i) & 1$",
+        "$x | (1 << i)$"
+      ],
+      "expected": "$(x >> i) & 1$. Shifting right brings the selected bit to position $0$, and masking with $1$ normalizes the result to $0$ or $1$."
+    },
+    {
+      "id": "mq-emb-021",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "Bit Masks",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Let $x = 0b10110100$. Compute the result of clearing bit $5$ using $x \\mathbin{\\&} \\sim(1 << 5)$, assuming bit numbering starts at $0$.",
+      "options": [],
+      "expected": "Bit $5$ is already $1$ in $0b10110100$, so clearing it gives $0b10010100$, which is $0x94$. The mask keeps all bits except the bit whose weight is $2^5$."
+    },
+    {
+      "id": "mq-emb-022",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "Little Endian Memory",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A $32$-bit word with value $0x12345678$ is stored at address $0x20000000$ on a little-endian ARM system. Which byte is at the lowest address?",
+      "options": [
+        "$0x78$",
+        "$0x12$",
+        "$0x34$",
+        "$0x56$"
+      ],
+      "expected": "$0x78$. Little-endian storage places the least significant byte at the lowest address, so the bytes appear in memory as $78$, $56$, $34$, then $12$."
+    },
+    {
+      "id": "mq-emb-023",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "Pointers and Arrays",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Assume `int *ptr` points to the first element of an array of $32$-bit integers at address $0x20000000$. What address does `ptr + 2` refer to?",
+      "options": [
+        "$0x20000008$",
+        "$0x20000002$",
+        "$0x20000004$",
+        "$0x20000020$"
+      ],
+      "expected": "$0x20000008$. Pointer arithmetic scales by the size of the pointed-to type, so adding $2$ to an `int *` advances by $2 \\cdot 4 = 8$ bytes."
+    },
+    {
+      "id": "mq-emb-024",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Data Representation and C Memory",
+      "topic": "C Memory Model",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why the same bytes in memory can be interpreted differently as an integer, a character array, a pointer value, or an instruction.",
+      "options": [],
+      "expected": "Memory stores bytes, not high-level meanings. The type system, instruction being executed, address used, and program context determine how those bytes are interpreted. This is why embedded programming requires separating raw representation from interpretation: the same bit pattern can be data, an address, signed or unsigned integer, or machine code depending on use."
+    },
+    {
+      "id": "mq-emb-025",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "Register File",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement about the ARM Cortex-M calling convention used in the course is correct?",
+      "options": [
+        "Arguments are passed in `r0` through `r3`, the return value is in `r0`, and a function returns with `BX LR`",
+        "All arguments are passed on the heap, and return values are written to Flash",
+        "Arguments are passed in `r13` through `r15`, and return uses `POP PC` only",
+        "The return value is always in `r7`, because `r0` is reserved for the program counter"
+      ],
+      "expected": "Arguments are passed in `r0` through `r3`, the return value is in `r0`, and a function returns with `BX LR`. This is the practical convention needed for hand-written assembly functions called from C."
+    },
+    {
+      "id": "mq-emb-026",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "Flags and Branches",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "After `CMP r0, r1`, which branch should be used for unsigned \"higher than\" rather than signed \"greater than\"?",
+      "options": [
+        "`BHI`",
+        "`BGT`",
+        "`BEQ`",
+        "`BMI`"
+      ],
+      "expected": "`BHI`. Unsigned comparisons use carry and zero flag logic, while signed comparisons such as `BGT` use signed flag relationships involving negative and overflow flags."
+    },
+    {
+      "id": "mq-emb-027",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "Bit Test Function",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a hand-written ARM Thumb function `$bit_check$` that receives `value` in `r0` and bit index in `r1`, and returns the selected bit normalized to $0$ or $1$ in `r0`.",
+      "options": [],
+      "expected": "A correct solution shifts the requested bit into position $0$, masks it, and returns through `LR`.\n```arm\n.syntax unified\n.thumb\n.global $bit_check$\n$bit_check$:\n    LSR  r0, r0, r1\n    AND  r0, r0, #1\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-028",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "Set Clear Bits",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a hand-written ARM Thumb function `$set_clear$` that receives a value in `r0`, a bit index to set in `r1`, and a bit index to clear in `r2`. Return the modified value in `r0`. Use shift plus `ORR` and `BIC`.",
+      "options": [],
+      "expected": "One correct approach builds one-bit masks in scratch registers, uses `ORR` to set, and `BIC` to clear.\n```arm\n.syntax unified\n.thumb\n.global $set_clear$\n$set_clear$:\n    MOVS r3, #1\n    LSL  r3, r3, r1\n    ORR  r0, r0, r3\n\n    MOVS r3, #1\n    LSL  r3, r3, r2\n    BIC  r0, r0, r3\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-029",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "Max Three Values",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a hand-written ARM Thumb function `max3u_ne` that receives three unsigned values in `r0`, `r1`, and `r2`. Return $0$ if any two are equal; otherwise return the greatest value in `r0`.",
+      "options": [],
+      "expected": "The equality checks must happen before overwriting any argument; unsigned maximum uses unsigned branches such as `BHS` or `BHI`.\n```arm\n.syntax unified\n.thumb\n.global max3u_ne\nmax3u_ne:\n    CMP  r0, r1\n    BEQ  $ret_zero$\n    CMP  r0, r2\n    BEQ  $ret_zero$\n    CMP  r1, r2\n    BEQ  $ret_zero$\n\n    CMP  r0, r1\n    BHS  $check_r2$\n    MOV  r0, r1\n$check_r2$:\n    CMP  r0, r2\n    BHS  done\n    MOV  r0, r2\ndone:\n    BX   LR\n$ret_zero$:\n    MOVS r0, #0\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-030",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "Loops",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a hand-written ARM Thumb function `sum_to_n` that receives unsigned `n` in `r0` and returns $1 + 2 + \\dots + n$ in `r0`. Use a loop, not the closed-form formula.",
+      "options": [],
+      "expected": "A clear solution keeps the running sum and counter in registers, tests the loop condition with `CMP`, and returns in `r0`.\n```arm\n.syntax unified\n.thumb\n.global sum_to_n\nsum_to_n:\n    MOV  r1, r0\n    MOVS r0, #0\nloop:\n    CMP  r1, #0\n    BEQ  done\n    ADD  r0, r0, r1\n    SUBS r1, r1, #1\n    B    loop\ndone:\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-031",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "Recursion and Stack",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a hand-written ARM Thumb recursive function `fib` that receives `n` in `r0` and returns Fibonacci value $F(n)$ with base cases $F(0)=0$ and $F(1)=1$. Preserve what is needed across calls.",
+      "options": [],
+      "expected": "The function must save `LR` because it calls itself, and must save intermediate values across the second recursive call.\n```arm\n.syntax unified\n.thumb\n.global fib\nfib:\n    CMP  r0, #1\n    BLS  $fib_base$\n\n    PUSH {r4, r5, lr}\n    MOV  r4, r0\n\n    SUBS r0, r4, #1\n    BL   fib\n    MOV  r5, r0\n\n    SUBS r0, r4, #2\n    BL   fib\n    ADD  r0, r0, r5\n\n    POP  {r4, r5, pc}\n\n$fib_base$:\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-032",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "ARM ISA and Assembly",
+      "topic": "BL and LR",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A function that executes `BL helper` can safely return with `BX LR` without saving `LR`, because `LR` always keeps the original caller's address.",
+      "options": [],
+      "expected": "False. `BL helper` overwrites `LR` with the return address from `helper`, so a non-leaf function must save the incoming `LR`, commonly with `PUSH {lr}` or a wider callee-save push."
+    },
+    {
+      "id": "mq-emb-033",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "STM32 Tools",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which tool-role mapping is most accurate for the STM32 workflow in this course?",
+      "options": [
+        "CubeMX configures peripherals and clocks, CubeIDE builds and debugs, CubeProgrammer flashes images, and ST-LINK bridges the host to the MCU",
+        "CubeMX is only a debugger, CubeIDE only edits PDFs, CubeProgrammer compiles C, and ST-LINK is the main CPU",
+        "CubeIDE configures no hardware and cannot flash the board",
+        "ST-LINK is a software library linked into `main.c`"
+      ],
+      "expected": "CubeMX configures peripherals and clocks, CubeIDE builds and debugs, CubeProgrammer flashes images, and ST-LINK bridges the host to the MCU. CubeIDE integrates several stages, but the conceptual separation remains important for diagnosing failures."
+    },
+    {
+      "id": "mq-emb-034",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "Failure Isolation",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A project compiles successfully, but the board is not detected when trying to program it. Which workflow stage should be investigated first?",
+      "options": [
+        "Flash or connection stage, including ST-LINK driver, cable, board switches, and target connection",
+        "C syntax stage, because successful compilation proves nothing",
+        "Algorithm design stage, because incorrect loops prevent flashing",
+        "FPGA bitstream generation stage, because every STM32 project needs a bitstream"
+      ],
+      "expected": "Flash or connection stage, including ST-LINK driver, cable, board switches, and target connection. A successful build narrows the problem away from compilation and toward host-board programming connectivity."
+    },
+    {
+      "id": "mq-emb-035",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "Project Structure",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: User code should be placed only in the generated user-code regions if the project may be regenerated from CubeMX.",
+      "options": [],
+      "expected": "True. CubeMX regeneration can rewrite generated files, so code placed inside designated user-code blocks is preserved while edits outside those regions risk being lost."
+    },
+    {
+      "id": "mq-emb-036",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "Memory Mapped IO",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain memory-mapped I/O using GPIO as the example. Why can ordinary load and store instructions affect hardware pins?",
+      "options": [],
+      "expected": "Memory-mapped I/O assigns peripheral registers addresses in the processor's address space. A load from such an address reads the peripheral register, and a store writes control bits that the peripheral hardware interprets. For GPIO, setting or clearing bits in output registers changes pin-driving circuitry rather than ordinary RAM bytes."
+    },
+    {
+      "id": "mq-emb-037",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "GPIO Read Modify Write",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a hand-written ARM Thumb function `gpio_set_bit` that receives a pointer to a $32$-bit GPIO output register in `r0` and a bit index in `r1`. It must set that bit and leave other bits unchanged.",
+      "options": [],
+      "expected": "The load-modify-store sequence reads the register, builds a mask, ORs it in, and writes the value back.\n```arm\n.syntax unified\n.thumb\n.global gpio_set_bit\ngpio_set_bit:\n    LDR  r2, [r0]\n    MOVS r3, #1\n    LSL  r3, r3, r1\n    ORR  r2, r2, r3\n    STR  r2, [r0]\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-038",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "Polling Status Register",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a hand-written ARM Thumb function `$wait_ready$` that receives a pointer to a status register in `r0` and a ready-bit mask in `r1`. It should loop until at least one masked ready bit is set, then return.",
+      "options": [],
+      "expected": "The loop repeatedly loads the volatile hardware register, tests masked bits, and branches while the result is zero.\n```arm\n.syntax unified\n.thumb\n.global $wait_ready$\n$wait_ready$:\nloop:\n    LDR  r2, [r0]\n    TST  r2, r1\n    BEQ  loop\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-039",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "Polling Interrupts",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement best compares polling and interrupts in embedded systems?",
+      "options": [
+        "Polling repeatedly checks a condition in software; interrupts let hardware redirect execution when an event occurs, reducing wasted CPU time but increasing control-flow complexity",
+        "Polling is always faster and lower power than interrupts",
+        "Interrupts require no state saving and cannot interfere with main code",
+        "Polling can only be used for Flash memory and never for GPIO"
+      ],
+      "expected": "Polling repeatedly checks a condition in software; interrupts let hardware redirect execution when an event occurs, reducing wasted CPU time but increasing control-flow complexity. The trade-off is simplicity and predictability versus responsiveness and efficient waiting."
+    },
+    {
+      "id": "mq-emb-040",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Embedded Workflow and Tooling",
+      "topic": "Clocks and Timing",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Why is a delay loop in C or assembly not a reliable real-time delay unless the clock configuration is known?",
+      "options": [
+        "The number of cycles per iteration maps to time only through the configured clock frequency and compiler or instruction behavior",
+        "Delay loops are stored in Flash, and Flash has no timing properties",
+        "The debugger changes all arithmetic results to wall-clock seconds",
+        "GPIO pins determine the CPU frequency automatically"
+      ],
+      "expected": "The number of cycles per iteration maps to time only through the configured clock frequency and compiler or instruction behavior. Embedded timing depends on the clock tree and generated machine code, not just the source loop text."
+    },
+    {
+      "id": "mq-emb-041",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "FPGA Concept",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement best distinguishes an FPGA from a CPU?",
+      "options": [
+        "An FPGA is configured into hardware structure, while a CPU changes behavior by fetching and executing instructions over time",
+        "An FPGA is a CPU with a larger instruction cache",
+        "An FPGA can only store data and cannot compute",
+        "An FPGA is an ASIC that cannot be reprogrammed after manufacturing"
+      ],
+      "expected": "An FPGA is configured into hardware structure, while a CPU changes behavior by fetching and executing instructions over time. The course's central distinction is configured circuit fabric versus sequential instruction execution."
+    },
+    {
+      "id": "mq-emb-042",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "FPGA Resources",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which mapping from design need to FPGA resource is most accurate?",
+      "options": [
+        "Boolean logic to LUTs and CLBs, state to flip-flops, larger on-chip storage to BRAM, and multiply-add arithmetic to DSP blocks",
+        "Boolean logic to BRAM, state to DSP blocks, and multiplication to switch boxes only",
+        "All computation must be implemented only with flip-flops",
+        "DSP blocks are used mainly to store configuration bitstreams"
+      ],
+      "expected": "Boolean logic to LUTs and CLBs, state to flip-flops, larger on-chip storage to BRAM, and multiply-add arithmetic to DSP blocks. FPGA fabrics include specialised resources because generic LUT logic is not equally efficient for every job."
+    },
+    {
+      "id": "mq-emb-043",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "Bitstreams",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Loading a bitstream onto an FPGA is conceptually the same as loading an instruction stream onto a CPU.",
+      "options": [],
+      "expected": "False. A CPU instruction stream is executed over time by fixed hardware, while an FPGA bitstream configures the hardware structure itself, including logic and routing behavior."
+    },
+    {
+      "id": "mq-emb-044",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "FPGA Tradeoffs",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare CPU, FPGA, and ASIC for an embedded acceleration task. Focus on flexibility, performance, development cost, and post-manufacturing change.",
+      "options": [],
+      "expected": "A CPU is the most flexible because behavior changes through software, but it may be inefficient for highly parallel regular workloads. An FPGA is less flexible than a CPU but can implement custom parallel datapaths and can still be reconfigured after manufacturing. An ASIC can be fastest and most energy-efficient for a fixed task, but has high development cost and cannot be changed after fabrication."
+    },
+    {
+      "id": "mq-emb-045",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "Quantization",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Why is quantization useful for edge-AI inference?",
+      "options": [
+        "It reduces model size and often speeds inference by using lower-precision numeric representations, at the cost of possible accuracy loss",
+        "It converts neural networks into C source comments so they consume no memory",
+        "It guarantees higher accuracy by increasing every weight to $64$ bits",
+        "It removes the need for hardware acceleration because all operations become free"
+      ],
+      "expected": "It reduces model size and often speeds inference by using lower-precision numeric representations, at the cost of possible accuracy loss. The key trade-off is resource efficiency versus numerical precision and possible accuracy degradation."
+    },
+    {
+      "id": "mq-emb-046",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "DPU Deployment",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "In the Vitis AI deployment story, what is the role of the DPU?",
+      "options": [
+        "It is a hardware accelerator implemented in programmable logic to run supported neural-network operations efficiently",
+        "It is a text editor for writing Python training scripts",
+        "It is the ARM program counter used for branch prediction",
+        "It is a Flash memory format used only by STM32CubeProgrammer"
+      ],
+      "expected": "It is a hardware accelerator implemented in programmable logic to run supported neural-network operations efficiently. The DPU is the FPGA-side compute engine targeted by the Vitis AI compilation and runtime flow."
+    },
+    {
+      "id": "mq-emb-047",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "Edge Constraints",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Edge-AI deployment is mainly difficult because embedded devices have unlimited power but no way to store images.",
+      "options": [],
+      "expected": "False. Edge deployment is difficult because compute, memory bandwidth, storage, latency, heat, and power are constrained; quantization and acceleration address those constraints."
+    },
+    {
+      "id": "mq-emb-048",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "FPGA and Edge AI",
+      "topic": "Parallel Datapaths",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Why can an FPGA be a good match for a regular arithmetic-heavy workload, even if its clock frequency is lower than a CPU's?",
+      "options": [],
+      "expected": "The FPGA can implement many operations as custom parallel hardware datapaths, so useful work can happen concurrently rather than through one instruction stream. For regular arithmetic-heavy workloads, spatial parallelism and specialised DSP or memory resources can outweigh lower clock frequency."
+    },
+    {
+      "id": "mq-emb-049",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Exam Structure",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which study allocation best follows the recalled BCS2410 exam structure?",
+      "options": [
+        "Prepare for about $40\\%$ closed theory and about $60\\%$ hand-written ARM assembly practical exercises",
+        "Spend nearly all time on FPGA theory because Section B is multiple choice",
+        "Ignore assembly because the exam is fully open-ended C programming",
+        "Study only course administration because the bonus test determines most of the grade"
+      ],
+      "expected": "Prepare for about $40\\%$ closed theory and about $60\\%$ hand-written ARM assembly practical exercises. The practical section dominates marks, but theory still covers architecture, data representation, flags, and FPGA or Edge AI topics."
+    },
+    {
+      "id": "mq-emb-050",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Negative Marking",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A multiple-choice block has $k=4$ options per question and $P=1$ point per question. A student answers $12$ questions, with $8$ correct and $4$ wrong. Using $\\text{Adjusted score}=P\\left(C-\\frac{W}{k-1}\\right)$, compute the adjusted score.",
+      "options": [],
+      "expected": "Substitute $P=1$, $C=8$, $W=4$, and $k=4$: $1\\left(8-\\frac{4}{3}\\right)=\\frac{20}{3}\\approx 6.67$. Wrong answers are penalized by $\\frac{1}{k-1}$ each."
+    },
+    {
+      "id": "mq-emb-051",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Negative Marking",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: With correction for guessing and $4$ options, a completely blind guess has positive expected value.",
+      "options": [],
+      "expected": "False. With $4$ options, the chance of a correct blind guess is $\\frac{1}{4}$ and the chance of a wrong answer is $\\frac{3}{4}$, so the expected adjusted score is $\\frac{1}{4}-\\frac{3}{4}\\cdot\\frac{1}{3}=0$."
+    },
+    {
+      "id": "mq-emb-052",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Assembly Presentation",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which hand-written assembly answer is most likely to be gradeable under time pressure?",
+      "options": [
+        "One instruction per line, meaningful labels, visible branch conditions, clear register use, and short comments only where they clarify tricky logic",
+        "A paragraph describing the idea without labels or actual instructions",
+        "A dense block of instructions with no branch targets because the marker can infer them",
+        "C code mixed with assembly mnemonics whenever the algorithm is obvious"
+      ],
+      "expected": "One instruction per line, meaningful labels, visible branch conditions, clear register use, and short comments only where they clarify tricky logic. The exam rewards correct ARM assembly structure and traceability, not just a vague algorithm."
+    },
+    {
+      "id": "mq-emb-053",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Practical Archetypes",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which set best matches the recalled practical archetypes and their core skills?",
+      "options": [
+        "Bit-check using shift and mask, max-of-three using comparisons and branches, and Fibonacci using loops or recursion with calling convention discipline",
+        "Cache design, Verilog synthesis, and operating-system scheduling",
+        "Decimal long division, SQL joins, and UML diagrams",
+        "Only GPIO HAL calls in C, with no assembly"
+      ],
+      "expected": "Bit-check using shift and mask, max-of-three using comparisons and branches, and Fibonacci using loops or recursion with calling convention discipline. These map directly to the reported Section B exercise patterns."
+    },
+    {
+      "id": "mq-emb-054",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Bit Check Trap",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write a compact ARM Thumb solution for the likely bit-check archetype. Input: `r0` holds value and `r1` holds index. Output: `r0` is $0$ or $1$.",
+      "options": [],
+      "expected": "The safest exam answer avoids a fixed mask and normalizes the result.\n```arm\n.syntax unified\n.thumb\n.global $bit_check$\n$bit_check$:\n    LSR  r0, r0, r1\n    AND  r0, r0, #1\n    BX   LR\n```"
+    },
+    {
+      "id": "mq-emb-055",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Max Three Trap",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "In the max-of-three practical where the function must return $0$ if any two inputs are equal, why must equality checks come before maximum-selection code?",
+      "options": [],
+      "expected": "Maximum-selection code may overwrite `r0` with one of the other inputs, destroying the original triple of values. If equality is checked after that overwrite, the function can no longer reliably detect whether the original `r0`, `r1`, and `r2` contained any equal pair. Therefore all three pairwise equality checks must come first."
+    },
+    {
+      "id": "mq-emb-056",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Fibonacci Strategy",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "For a recursive Fibonacci assembly answer, which mistake is most damaging?",
+      "options": [
+        "Failing to save `LR` before making recursive `BL` calls",
+        "Using `CMP r0, #1` to detect the base case",
+        "Returning the result in `r0`",
+        "Using `PUSH` and `POP` to preserve callee-saved registers"
+      ],
+      "expected": "Failing to save `LR` before making recursive `BL` calls. Each `BL` overwrites `LR`, so without saving the incoming return address the function cannot return correctly to its caller."
+    }
+  ]
+}

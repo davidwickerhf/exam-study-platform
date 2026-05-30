@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "questions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 60,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "marks": {
+            "type": "number"
+          },
+          "sharedContext": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "modelAnswer": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "written",
+              "mc",
+              "multi",
+              "tf",
+              "calc",
+              "pseudocode"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "marks",
+          "sharedContext",
+          "text",
+          "modelAnswer",
+          "page",
+          "type",
+          "options"
+        ]
+      }
+    }
+  },
+  "required": [
+    "questions"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 80,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "section",
+              "question",
+              "subquestion",
+              "note"
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "page",
+          "depth",
+          "kind"
+        ]
+      }
+    }
+  },
+  "required": [
+    "items"
+  ]
+}

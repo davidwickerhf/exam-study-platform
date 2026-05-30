@@ -1,0 +1,683 @@
+{
+  "generatedAt": "2026-05-23T00:40:30.123Z",
+  "courseId": "sec",
+  "examTypeMix": "Multiple-choice, true-or-false, written short-answer, and light calculation, matching the course material: sample-style Part A objective questions, Part B and Part C prose explanations, and limited numerical work for risk and cryptographic key-space reasoning; no pseudocode because the course material does not show algorithm-writing exam tasks.",
+  "examPaperUsed": false,
+  "questions": [
+    {
+      "id": "mq-sec-001",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Security Principles",
+      "topic": "Security goals",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Name the six foundational security goals in this course and briefly distinguish authentication from authorization.",
+      "options": [],
+      "expected": "The six goals are confidentiality, integrity, availability, authentication, authorization, and accountability. Authentication verifies that a principal, data item, or software is genuine. Authorization decides what an authenticated or identified principal is allowed to access or do. A strong answer also notes that accountability is supported by evidence such as logs, while confidentiality and integrity are often enforced through access control and cryptography."
+    },
+    {
+      "id": "mq-sec-002",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Security Principles",
+      "topic": "Security goals",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option best describes the role of access control in the security-goal dependency model?",
+      "options": [
+        "It enforces policy decisions using authenticated identity and supports confidentiality, integrity, and authorization.",
+        "It replaces authentication because permissions alone prove identity.",
+        "It only protects availability and has no role in confidentiality.",
+        "It is the same property as accountability because both depend on logs."
+      ],
+      "expected": "It enforces policy decisions using authenticated identity and supports confidentiality, integrity, and authorization. Access control uses identity and policy to mediate resource access; accountability is related but is mainly supported by evidence such as logs."
+    },
+    {
+      "id": "mq-sec-003",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Security Principles",
+      "topic": "Risk equation",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A threat has likelihood score $T = 0.4$, vulnerability value $V = 0.25$, and consequence score $C = 80000$. Using the course risk model, compute the risk value.",
+      "options": [],
+      "expected": "Using $R = T \\times V \\times C$, the risk is $R = 0.4 \\times 0.25 \\times 80000 = 8000$. The key interpretation is that $V$ is the conditional probability of successful compromise given an attack attempt, not the damage itself."
+    },
+    {
+      "id": "mq-sec-004",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Security Principles",
+      "topic": "Risk equation",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "In the course risk equation, $V$ means the financial value of the asset being attacked.",
+      "options": [],
+      "expected": "False. In $R = T \\times V \\times C$, $V$ is vulnerability: the conditional probability that an attack succeeds given that it is attempted. The consequence or impact term is represented by $C$."
+    },
+    {
+      "id": "mq-sec-005",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Security Principles",
+      "topic": "STRIDE",
+      "type": "mc",
+      "difficulty": "easy",
+      "question": "Which expansion of STRIDE is correct?",
+      "options": [
+        "Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Escalation of Privilege",
+        "Spoofing, Tunneling, Replay, Information Disclosure, Data Loss, Encryption Failure",
+        "Scanning, Tampering, Replication, Integrity Loss, Denial of Service, Exploitation",
+        "Spoofing, Tracking, Repudiation, Identity Theft, Data Corruption, Elevation Control"
+      ],
+      "expected": "Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Escalation of Privilege. These six categories map common threats to violated security properties and are a structured prompt for threat modelling."
+    },
+    {
+      "id": "mq-sec-006",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Security Principles",
+      "topic": "Threat modelling",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain how a formal security policy and threat modelling relate to the idea of a non-secure system state.",
+      "options": [],
+      "expected": "A formal security policy explicitly states which actions or states are permitted and forbidden. Threat modelling then identifies ways attackers or failures could violate that policy. A non-secure state is defined relative to the policy: if a policy says only finance staff may modify financial records, then unauthorized modification by a normal employee is non-secure because it violates the stated rule."
+    },
+    {
+      "id": "mq-sec-007",
+      "source": "Mock-questions",
+      "chapterId": "01",
+      "chapterName": "Foundations and Security Principles",
+      "topic": "Adversary attributes",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A report says an attacker group has advanced reverse-engineering skill, exploit development experience, and access to specialist tools. Which adversary attribute is being described most directly?",
+      "options": [
+        "Capabilities",
+        "Motivation",
+        "Risk tolerance",
+        "Methods"
+      ],
+      "expected": "Capabilities. In this course, capabilities include resources, knowledge, and technical proficiency; methods are the techniques used, while motivation and risk tolerance describe different attacker properties."
+    },
+    {
+      "id": "mq-sec-008",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Cryptography",
+      "topic": "Encryption model",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Define plaintext, ciphertext, encryption key, decryption key, and key space using the course encryption model.",
+      "options": [],
+      "expected": "Plaintext $m$ is the original message, ciphertext $c$ is the transformed output, the encryption key $k$ parameterizes encryption, and the decryption key $k'$ parameterizes decryption. The model is $c = E_k(m)$ and $m = D_{k'}(c)$. The key space is the set of all possible keys; its size determines the cost of exhaustive search."
+    },
+    {
+      "id": "mq-sec-009",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Cryptography",
+      "topic": "Key space",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "An attacker can test $10^9$ keys per second against a $40$-bit cipher. Estimate the worst-case brute-force time in seconds and hours.",
+      "options": [],
+      "expected": "The key space is $2^{40} \\approx 1.1 \\times 10^{12}$ keys. At $10^9$ keys per second, the worst-case time is about $\\frac{2^{40}}{10^9} \\approx 1100$ seconds, which is about $0.3$ hours. This shows why $40$-bit keys are obsolete."
+    },
+    {
+      "id": "mq-sec-010",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Cryptography",
+      "topic": "Key space",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "Increasing key length from $128$ bits to $256$ bits merely doubles the brute-force work factor.",
+      "options": [],
+      "expected": "False. A $128$-bit key space has size $2^{128}$ and a $256$-bit key space has size $2^{256}$, so the ratio is $\\frac{2^{256}}{2^{128}} = 2^{128}$. Each extra key bit doubles the search space."
+    },
+    {
+      "id": "mq-sec-011",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Cryptography",
+      "topic": "Attack models",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which attack model is strongest among the four listed in the course?",
+      "options": [
+        "Chosen-ciphertext attack",
+        "Ciphertext-only attack",
+        "Known-plaintext attack",
+        "Chosen-plaintext attack"
+      ],
+      "expected": "Chosen-ciphertext attack. In a chosen-ciphertext attack, the adversary can query a decryption oracle with selected ciphertexts, giving deeper interaction than ciphertext-only, known-plaintext, or chosen-plaintext settings."
+    },
+    {
+      "id": "mq-sec-012",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Cryptography",
+      "topic": "Symmetric encryption",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Contrast symmetric encryption, asymmetric encryption, and hybrid encryption.",
+      "options": [],
+      "expected": "Symmetric encryption uses the same shared secret key for encryption and decryption and is efficient for bulk data. Asymmetric encryption uses a public and private key pair, solving some key-distribution problems but usually being slower. Hybrid encryption uses asymmetric cryptography to authenticate or exchange a fresh symmetric session key, then uses symmetric encryption for the main data stream."
+    },
+    {
+      "id": "mq-sec-013",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Cryptography",
+      "topic": "Hashes and signatures",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Why is a message usually hashed before it is digitally signed?",
+      "options": [
+        "Hashing reduces the data to a fixed-size digest and makes any message alteration change the signed value.",
+        "Hashing encrypts the message so the signature becomes confidential.",
+        "Hashing lets the verifier recover the private key from the signature.",
+        "Hashing removes the need to validate the signer certificate."
+      ],
+      "expected": "Hashing reduces the data to a fixed-size digest and makes any message alteration change the signed value. The signature is over the digest, which is efficient and binds the signature to the message contents."
+    },
+    {
+      "id": "mq-sec-014",
+      "source": "Mock-questions",
+      "chapterId": "02",
+      "chapterName": "Cryptography",
+      "topic": "X.509 certificates",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "List the core fields of an X.509 certificate and explain why the issuer signature is essential.",
+      "options": [],
+      "expected": "A strong answer names the subject, subject public key and algorithm, issuer, validity period with not-before and not-after times, and the certificate authority digital signature. The issuer signature is computed over the certificate body and verified with the issuer public key. This provides integrity and origin authentication; without it, an attacker could mint a certificate binding their own public key to someone else's name."
+    },
+    {
+      "id": "mq-sec-015",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Identity concepts",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Distinguish authentication, identification, and authorization using a login example.",
+      "options": [],
+      "expected": "Identification establishes who the entity is, often by selecting from many possible identities. Authentication verifies a claimed identity, such as checking that the claimant for a username knows the correct password. Authorization decides what that authenticated account may do, such as whether it may read a file or access an admin page. A correct password proves knowledge of the password, not absolute proof that the intended human is present."
+    },
+    {
+      "id": "mq-sec-016",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Password storage",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "What is the main purpose of a per-user salt in password hashing?",
+      "options": [
+        "It makes identical passwords hash differently and defeats reuse of precomputed tables across users.",
+        "It is a secret encryption key stored only in hardware.",
+        "It prevents online guessing by locking the account after failures.",
+        "It proves that the password was sent over TLS."
+      ],
+      "expected": "It makes identical passwords hash differently and defeats reuse of precomputed tables across users. A salt is not normally secret; it forces attackers to attack each salted hash separately instead of reusing one rainbow table."
+    },
+    {
+      "id": "mq-sec-017",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Password guessing",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare online and offline password guessing and name the most relevant defenses for each.",
+      "options": [],
+      "expected": "Online guessing sends attempts to the live verifier, so defenses include rate limiting, lockout, monitoring, and multi-factor authentication. Offline guessing happens after an attacker steals password hashes and tests guesses locally without server interaction. The offline-specific defenses are per-user salts and slow password hashing or key stretching such as PBKDF2, bcrypt, scrypt, or Argon2. Stretching does not stop online guessing by itself because online guessing is mainly constrained by server policy and request rate."
+    },
+    {
+      "id": "mq-sec-018",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Password stretching",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "Password stretching is mainly designed to slow offline guessing after a password-hash database is stolen.",
+      "options": [],
+      "expected": "True. Stretching makes each password verification computationally expensive, which directly raises the cost of local hash cracking. It is not a substitute for online controls such as throttling or account lockout."
+    },
+    {
+      "id": "mq-sec-019",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Replay defense",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain how nonces help defend against replay attacks in authentication protocols.",
+      "options": [],
+      "expected": "A nonce is a fresh value used once in a protocol run. If the claimant must cryptographically respond to a fresh nonce, an old captured response will not verify in a later session. The verifier must check freshness and reject reused or stale values; otherwise an attacker can replay previously valid messages."
+    },
+    {
+      "id": "mq-sec-020",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Diffie-Hellman",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "What is the key weakness of unauthenticated Diffie-Hellman in the presence of an active network attacker?",
+      "options": [
+        "A man-in-the-middle can substitute public values and establish separate keys with each endpoint.",
+        "The shared key is always sent directly over the network in plaintext.",
+        "The protocol cannot generate a fresh session key.",
+        "The protocol only works if both parties already share the final session key."
+      ],
+      "expected": "A man-in-the-middle can substitute public values and establish separate keys with each endpoint. Diffie-Hellman gives key agreement, but without authentication it does not prove who contributed the public values."
+    },
+    {
+      "id": "mq-sec-021",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Biometrics",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "Biometric authentication is risk-free because biometric traits cannot be forgotten or shared like passwords.",
+      "options": [],
+      "expected": "False. Biometrics can be spoofed, measured with errors, and are hard to revoke after compromise. They also raise privacy concerns and may perform identification or authentication depending on whether the system searches many identities or verifies one claimed identity."
+    },
+    {
+      "id": "mq-sec-022",
+      "source": "Mock-questions",
+      "chapterId": "03",
+      "chapterName": "Authentication and Secure Communication",
+      "topic": "Secure channels",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "In a secure communication protocol, why are authentication, freshness, and key confirmation separate requirements?",
+      "options": [],
+      "expected": "Authentication establishes the identity or source of the peer or data. Freshness ensures messages belong to the current run rather than an old replay. Key confirmation gives assurance that the peer actually possesses the negotiated session key. A protocol may have one property without another, so exam answers should state which attack is prevented: impersonation, replay, or unknown-key or failed-key agreement."
+    },
+    {
+      "id": "mq-sec-023",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "Malware and System Security",
+      "topic": "Malware taxonomy",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Distinguish a virus, worm, and Trojan horse using propagation and user interaction.",
+      "options": [],
+      "expected": "A virus typically spreads by infecting host files or executable content and often needs user action or host execution. A worm spreads autonomously over networks by exploiting reachable vulnerabilities, so user action is not required. A Trojan horse appears useful or legitimate but hides malicious functionality and depends on deception to get the user to run it."
+    },
+    {
+      "id": "mq-sec-024",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "Malware and System Security",
+      "topic": "Malware taxonomy",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best separates a Trojan horse from a worm?",
+      "options": [
+        "A Trojan relies on deception and user execution, while a worm propagates autonomously by exploiting vulnerabilities.",
+        "A Trojan always encrypts files, while a worm only steals passwords.",
+        "A Trojan is non-malicious hidden functionality, while a worm is a legitimate update tool.",
+        "A Trojan spreads only by email, while a worm can never use a network."
+      ],
+      "expected": "A Trojan relies on deception and user execution, while a worm propagates autonomously by exploiting vulnerabilities. The two key axes are user interaction and propagation mechanism."
+    },
+    {
+      "id": "mq-sec-025",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "Malware and System Security",
+      "topic": "Virus lifecycle",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Name and explain the four phases of the virus lifecycle from the lecture.",
+      "options": [],
+      "expected": "The four phases are dormancy, propagation, trigger condition, and payload. Dormancy means the virus is present but inactive. Propagation is when it copies itself to other files, programs, or machines. The trigger condition is the event that activates the payload, and the payload is the effect, ranging from harmless display to destructive modification."
+    },
+    {
+      "id": "mq-sec-026",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "Malware and System Security",
+      "topic": "Rootkit stealth",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "A kernel-mode rootkit can be reliably removed by asking the infected operating system to list and delete suspicious files.",
+      "options": [],
+      "expected": "False. A kernel-mode rootkit may hook or manipulate the operating system so file listings, process listings, and security tools lie. Trusted recovery normally requires booting from clean media, collecting evidence carefully, and rebuilding or restoring from known-good sources."
+    },
+    {
+      "id": "mq-sec-027",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "Malware and System Security",
+      "topic": "Rootkit stealth",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why Direct Kernel Object Manipulation is harder to detect than simply hiding a file by changing its name.",
+      "options": [],
+      "expected": "Direct Kernel Object Manipulation changes kernel data structures directly, such as unlinking a process from the operating system's process list while it continues running. This can defeat normal tools because they rely on the compromised kernel view. Renaming a file only changes a filesystem artifact and is much easier to discover by independent scanning or metadata checks."
+    },
+    {
+      "id": "mq-sec-028",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "Malware and System Security",
+      "topic": "Ransomware crypto",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Why does modern ransomware often use hybrid cryptography rather than encrypting every victim file directly with public-key cryptography?",
+      "options": [],
+      "expected": "Public-key cryptography is too slow for bulk file encryption. Ransomware commonly generates a symmetric key for fast local file encryption, then encrypts or protects that symmetric key using the attacker's public key. This combines efficient bulk encryption with an attacker-controlled recovery bottleneck."
+    },
+    {
+      "id": "mq-sec-029",
+      "source": "Mock-questions",
+      "chapterId": "04",
+      "chapterName": "Malware and System Security",
+      "topic": "Botnet control",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which defense most directly disrupts a simple centralized botnet command-and-control architecture?",
+      "options": [
+        "Taking down or blocking the central command server domain or infrastructure",
+        "Increasing the victim screen brightness timeout",
+        "Changing file extensions on infected hosts",
+        "Using a shorter password hashing salt"
+      ],
+      "expected": "Taking down or blocking the central command server domain or infrastructure. A centralized botnet depends on bots reaching a central controller, so that point is a natural disruption target; peer-to-peer botnets are more resilient to this."
+    },
+    {
+      "id": "mq-sec-030",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Web and Network Defense",
+      "topic": "Browser model",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which triple defines a web origin under the Same-Origin Policy?",
+      "options": [
+        "Scheme, host, and port",
+        "Top-level domain, cookie value, and username",
+        "Path, query string, and fragment",
+        "IP address, MAC address, and TCP sequence number"
+      ],
+      "expected": "Scheme, host, and port. The Same-Origin Policy does not treat two pages as same-origin merely because they share a top-level domain or similar path."
+    },
+    {
+      "id": "mq-sec-031",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Web and Network Defense",
+      "topic": "Cookies and sessions",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why cookies are central to both web sessions and CSRF risk.",
+      "options": [],
+      "expected": "HTTP is stateless, so authenticated web applications use cookies to carry session state across requests. Browsers automatically attach matching cookies to later requests, which is convenient for sessions but enables CSRF: a malicious site may cause the browser to send an authenticated request to a target site. Defenses include CSRF tokens, SameSite cookie settings, and checking request origin where appropriate."
+    },
+    {
+      "id": "mq-sec-032",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Web and Network Defense",
+      "topic": "XSS",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A forum stores a comment containing a script payload and serves it to every later visitor of the thread. What type of attack is this?",
+      "options": [
+        "Stored XSS",
+        "Reflected XSS",
+        "CSRF",
+        "DNS poisoning"
+      ],
+      "expected": "Stored XSS. The payload is persisted server-side and delivered to later victims, unlike reflected XSS which is tied to a single crafted request."
+    },
+    {
+      "id": "mq-sec-033",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Web and Network Defense",
+      "topic": "SQL injection",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Describe the mechanism of SQL injection and give the main defensive pattern.",
+      "options": [],
+      "expected": "SQL injection occurs when untrusted input is concatenated into a SQL command so the input becomes executable query syntax rather than data. The main defense is parameterized queries or prepared statements, where user input is bound as data. Input validation and least-privilege database accounts help, but escaping alone is a weaker and error-prone primary defense."
+    },
+    {
+      "id": "mq-sec-034",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Web and Network Defense",
+      "topic": "Firewalls",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "A default-allow firewall permits traffic unless a rule explicitly blocks it.",
+      "options": [],
+      "expected": "True. Default-allow is a permissive posture: communication is accepted unless denied by a matching rule. Default-deny is the opposite and usually safer because allowed traffic must be justified explicitly."
+    },
+    {
+      "id": "mq-sec-035",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Web and Network Defense",
+      "topic": "IDS and IPS",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Contrast an intrusion detection system and an intrusion prevention system, and mention one trade-off.",
+      "options": [],
+      "expected": "An intrusion detection system observes events or traffic and raises alerts, while an intrusion prevention system can actively block or modify traffic. The trade-off is that prevention can reduce attack impact but false positives may disrupt legitimate activity. Detection is less disruptive but requires response capacity."
+    },
+    {
+      "id": "mq-sec-036",
+      "source": "Mock-questions",
+      "chapterId": "05",
+      "chapterName": "Web and Network Defense",
+      "topic": "Base-rate problem",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "An IDS monitors $100000$ events. Only $0.1\\%$ are malicious. The IDS catches $99\\%$ of malicious events and has a $1\\%$ false-positive rate on benign events. How many alerts are true positives and false positives?",
+      "options": [],
+      "expected": "There are $100000 \\times 0.001 = 100$ malicious events, so true positives are $100 \\times 0.99 = 99$. There are $99900$ benign events, so false positives are $99900 \\times 0.01 = 999$. Even with high detection accuracy, most alerts are false positives because malicious events are rare."
+    },
+    {
+      "id": "mq-sec-037",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "Labs and Tooling",
+      "topic": "Encoding versus encryption",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "In Lab 1, why do Base64 and hex transformations not provide confidentiality, while a Caesar cipher is still weak even though it has a key?",
+      "options": [],
+      "expected": "Base64 and hex are encodings, not encryption, because they have no secret and are freely reversible. A Caesar cipher has a key in form, but the key space is only $|K| = 26$, so exhaustive search is trivial. The shared lesson is that confidentiality requires a meaningful secret and a key space large enough to resist brute force."
+    },
+    {
+      "id": "mq-sec-038",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "Labs and Tooling",
+      "topic": "OTP misuse",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Lab 1 reuses a one-time pad. If a known plaintext byte is $P_1 = 01010101_2$ and its ciphertext byte is $C_1 = 00110011_2$, compute the pad byte and then decrypt $C_2 = 11110000_2$.",
+      "options": [],
+      "expected": "The pad is $P_1 \\oplus C_1 = 01010101_2 \\oplus 00110011_2 = 01100110_2$. The second plaintext is $P_2 = C_2 \\oplus \\text{pad} = 11110000_2 \\oplus 01100110_2 = 10010110_2$. Reusing the pad makes known-plaintext recovery possible."
+    },
+    {
+      "id": "mq-sec-039",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "Labs and Tooling",
+      "topic": "ECB leakage",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "ECB mode can leak visual or structural patterns because identical plaintext blocks produce identical ciphertext blocks.",
+      "options": [],
+      "expected": "True. ECB encrypts blocks independently, so repeated plaintext blocks map to repeated ciphertext blocks under the same key. Modes such as CBC, CTR, or GCM are designed to avoid this visible block-pattern leakage when used correctly."
+    },
+    {
+      "id": "mq-sec-040",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "Labs and Tooling",
+      "topic": "Reverse engineering",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "What did Lab 1's key-generator challenge demonstrate about security through obscurity?",
+      "options": [],
+      "expected": "The challenge showed that hiding validation logic in a compiled binary is not a strong security boundary. Tools such as Ghidra can recover enough structure to identify length checks, character constraints, equality constraints, and checksums. Once the validation logic is understood, a student can generate valid keys without knowing the original source code."
+    },
+    {
+      "id": "mq-sec-041",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "Labs and Tooling",
+      "topic": "Password cracking tools",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which tool is most directly associated with cracking leaked password hashes in the lab workflow?",
+      "options": [
+        "John the Ripper",
+        "Wireshark",
+        "Burp Repeater",
+        "Ghidra"
+      ],
+      "expected": "John the Ripper. Wireshark is for packet inspection, Burp Repeater is for replaying and modifying HTTP requests, and Ghidra is for reverse engineering binaries."
+    },
+    {
+      "id": "mq-sec-042",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "Labs and Tooling",
+      "topic": "Rootkit recon",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "In Lab 3, why is comparing multiple evidence sources important when investigating a suspected rootkit?",
+      "options": [],
+      "expected": "A rootkit may alter normal operating-system views, so a single command such as a process listing or file listing may be false. Comparing sources such as $/proc$, network connections, loaded modules, filesystem artifacts, and behavior over time can reveal inconsistencies. The aim is not just to find a suspicious name but to explain persistence, hiding, and impact."
+    },
+    {
+      "id": "mq-sec-043",
+      "source": "Mock-questions",
+      "chapterId": "06",
+      "chapterName": "Labs and Tooling",
+      "topic": "Web tooling",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which tool is most appropriate for intercepting, modifying, and replaying HTTP requests in a web exploitation lab?",
+      "options": [
+        "Burp Suite",
+        "Ghidra",
+        "John the Ripper",
+        "A kernel module loader"
+      ],
+      "expected": "Burp Suite. Burp is designed for HTTP interception and request manipulation; the other options serve reverse engineering, hash cracking, or system-level loading tasks."
+    },
+    {
+      "id": "mq-sec-044",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Exam structure",
+      "type": "mc",
+      "difficulty": "easy",
+      "question": "Which structure matches the sample paper described in the course material?",
+      "options": [
+        "$12$ multiple-choice questions, $3$ short essays, and $3$ longer problems over $120$ minutes",
+        "$40$ multiple-choice questions only over $60$ minutes",
+        "$2$ programming tasks and $1$ oral presentation over $180$ minutes",
+        "$6$ long essays only with open-book notes"
+      ],
+      "expected": "$12$ multiple-choice questions, $3$ short essays, and $3$ longer problems over $120$ minutes. The sample paper is closed-book and combines objective recall with prose scenario answers."
+    },
+    {
+      "id": "mq-sec-045",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Answer structure",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Describe the recommended structure for a strong Part B or Part C security answer.",
+      "options": [],
+      "expected": "A strong answer should define the concept, explain the mechanism, name the relevant attack or failure mode, give a targeted defense, and mention a trade-off where relevant. For scenario questions, the answer should tie the mechanism to the facts in the scenario instead of writing only generic definitions."
+    },
+    {
+      "id": "mq-sec-046",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Time management",
+      "type": "calc",
+      "difficulty": "easy",
+      "question": "The sample exam lasts $120$ minutes. If a student spends $36$ minutes on Part A, $30$ minutes on Part B, and $45$ minutes on Part C, how much review time remains?",
+      "options": [],
+      "expected": "The used time is $36 + 30 + 45 = 111$ minutes. The remaining review time is $120 - 111 = 9$ minutes."
+    },
+    {
+      "id": "mq-sec-047",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Acronym recall",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "For STRIDE questions, it is enough to remember only the first three letters because the remaining categories are rarely used.",
+      "options": [],
+      "expected": "False. The sample paper directly tests the full STRIDE expansion, so all six categories must be recalled: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, and Escalation of Privilege."
+    },
+    {
+      "id": "mq-sec-048",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Model answers",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A student answers an X.509 question by saying only, \"It contains a public key and a signature.\" What is missing for full marks?",
+      "options": [],
+      "expected": "The answer is too shallow. Full marks should include subject, subject public key and algorithm, issuer, validity period with not-before and not-after values, and the certificate authority signature. It should also explain that the issuer signature covers the certificate body and is verified using the issuer public key to prove integrity and origin, preventing arbitrary impersonation certificates."
+    },
+    {
+      "id": "mq-sec-049",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Scenario answers",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "In a scenario question about a rootkit, which answer style is most likely to score well?",
+      "options": [
+        "Explain the hiding mechanism, why normal tools may lie, how to recover using trusted media, and what evidence supports the conclusion.",
+        "List every malware type alphabetically without connecting them to the scenario.",
+        "Say only that antivirus should be installed.",
+        "Focus on password salting because all security scenarios involve authentication."
+      ],
+      "expected": "Explain the hiding mechanism, why normal tools may lie, how to recover using trusted media, and what evidence supports the conclusion. Scenario answers need mechanism, impact, defense, and direct connection to the facts given."
+    },
+    {
+      "id": "mq-sec-050",
+      "source": "Mock-questions",
+      "chapterId": "07",
+      "chapterName": "Exam Skills",
+      "topic": "Common pitfalls",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Give three common exam mistakes in this course and explain how to avoid them.",
+      "options": [],
+      "expected": "One mistake is confusing authentication with authorization; avoid it by stating whether the issue is identity proof or permission. A second is treating salts as secret; avoid it by saying salts are random per-user values while peppers are secret. A third is giving generic defenses without attack mechanism; avoid it by naming how the attack works first, then matching the defense to that mechanism."
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-23T00:30:53.650Z",
+  "chapterId": "01",
+  "questions": [
+    {
+      "id": "gen-01-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option correctly lists the six foundational security goals used in this chapter?",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability"
+    },
+    {
+      "id": "gen-01-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain how authentication, authorization, and access control differ, and describe how they work together to enforce confidentiality and integrity.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "Authentication establishes that a principal, data item, or software component is genuine. Authorization defines what an authenticated principal is allowed to access or do. Access control is the enforcement mechanism that combines identity and policy to permit or deny operations, thereby protecting confidentiality against unauthorized reads and integrity against unauthorized modification."
+    },
+    {
+      "id": "gen-01-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A system has threat likelihood $T = 0.40$, vulnerability level $V = 0.25$, and consequence cost $C = 800000$. Using $R = T \\times V \\times C$, calculate the expected risk.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "$R = 0.40 \\times 0.25 \\times 800000 = 80000$. The expected risk is $80000$ in the same cost units as $C$."
+    },
+    {
+      "id": "gen-01-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Non-repudiation is one of the six foundational security goals in this chapter.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "False. The six goals are confidentiality, integrity, availability, authorization, authentication, and accountability. Non-repudiation is related to STRIDE's Repudiation category, but this course names accountability as the foundational goal."
+    },
+    {
+      "id": "gen-01-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "In STRIDE, which threat category best matches an attacker modifying a database record without permission?",
+      "options": [
+        "Tampering",
+        "Spoofing",
+        "Repudiation",
+        "Information disclosure"
+      ],
+      "expected": "Tampering"
+    },
+    {
+      "id": "gen-01-5",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A ransomware incident encrypts hospital appointment systems and may also have copied patient records. Identify the main security goals affected and justify each one.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "Availability is directly harmed because authorized users cannot access appointment systems or clinical resources when needed. Confidentiality may be harmed if patient records were exfiltrated or exposed to unauthorized parties. Integrity may also be at risk if records or system state were altered, but encryption that merely blocks access primarily demonstrates an availability failure."
+    },
+    {
+      "id": "gen-01-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A control reduces vulnerability from $V = 0.60$ to $V = 0.15$ while $T = 0.50$ and $C = 2000000$ stay unchanged. Compute the original risk, new residual risk, and percentage reduction.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "Original risk: $R_1 = 0.50 \\times 0.60 \\times 2000000 = 600000$. Residual risk: $R_2 = 0.50 \\times 0.15 \\times 2000000 = 150000$. Reduction is $\\frac{600000 - 150000}{600000} \\times 100\\% = 75\\%$."
+    },
+    {
+      "id": "gen-01-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement best captures the adversary attribute called capabilities?",
+      "options": [
+        "The technical, financial, organizational, and operational resources an adversary can bring to an attack",
+        "The business impact suffered by the victim after a successful attack",
+        "The weaknesses in a system that make compromise possible",
+        "The legal authority granted to defenders to monitor users"
+      ],
+      "expected": "The technical, financial, organizational, and operational resources an adversary can bring to an attack"
+    },
+    {
+      "id": "gen-01-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A vulnerability is the same thing as a threat because both describe an attacker attempting harm.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "False. A threat is a potential cause of harm, often involving an adversary or event. A vulnerability is a weakness that can be exploited by a threat."
+    },
+    {
+      "id": "gen-01-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for ranking assets by residual risk after applying candidate controls. The algorithm should use $R = T \\times V \\times C$ and return assets from highest to lowest residual risk.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "A correct answer should compute each asset's post-control vulnerability, apply $R = T \\times V \\times C$, and sort descending by residual risk.\n\n```pseudocode\nfunction RankResidualRisk(assets, controls):\n    rankedAssets <- empty list\n\n    for each asset in assets:\n        residualVulnerability <- asset.vulnerability\n\n        for each control in controls:\n            if control.appliesTo(asset):\n                residualVulnerability <- residualVulnerability * control.remainingFraction\n\n        residualRisk <- asset.threatLikelihood * residualVulnerability * asset.consequence\n        append rankedAssets with (asset.name, residualRisk)\n\n    sort rankedAssets by residualRisk descending\n    return rankedAssets\n```"
+    },
+    {
+      "id": "gen-01-10",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare STRIDE and attack trees as threat-modelling techniques. When would each be especially useful?",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "STRIDE is a checklist-style taxonomy that prompts analysts to look for spoofing, tampering, repudiation, information disclosure, denial of service, and elevation of privilege across system components and data flows. Attack trees start from an attacker goal and decompose possible paths to that goal, making dependencies and alternative attack routes explicit. STRIDE is useful for broad coverage during design review; attack trees are useful for reasoning about how a specific high-value compromise could occur."
+    },
+    {
+      "id": "gen-01-11",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "An attack tree has two independent branches for compromising an account. Branch A succeeds with probability $0.20$ and Branch B succeeds with probability $0.35$. If either branch is sufficient, compute the probability that the account is compromised.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "For an OR relationship with independent branches, use $1 - (1 - 0.20)(1 - 0.35)$. The result is $1 - 0.80 \\times 0.65 = 0.48$, so the compromise probability is $48\\%$."
+    },
+    {
+      "id": "gen-01-12",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option is the best example of defense in depth?",
+      "options": [
+        "Combining patching, least privilege, network segmentation, monitoring, backups, and incident response so one failed control does not decide the outcome",
+        "Relying on a single strong password policy because it is cheaper to administer",
+        "Encrypting stored data and assuming this also guarantees availability",
+        "Replacing all technical controls with user awareness training"
+      ],
+      "expected": "Combining patching, least privilege, network segmentation, monitoring, backups, and incident response so one failed control does not decide the outcome"
+    },
+    {
+      "id": "gen-01-13",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Insider threats are mainly a confidentiality problem, so availability and integrity controls are usually irrelevant to them.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "False. Insiders can disclose secrets, alter records, disable systems, abuse privileges, or hide actions. Integrity, availability, authorization, authentication, and accountability controls are all relevant."
+    },
+    {
+      "id": "gen-01-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Write pseudocode for a simple access-control decision that uses an authenticated principal, a requested action, a resource, and a policy. It should also record an accountability log entry.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "A correct answer should deny unauthenticated requests, check policy before access, and log both allowed and denied decisions for accountability.\n\n```pseudocode\nfunction AuthorizeRequest(principal, action, resource, policy):\n    if not principal.isAuthenticated:\n        WriteLog(principal.id, action, resource.id, \"deny\", \"not authenticated\")\n        return \"deny\"\n\n    decision <- policy.lookup(principal.role, action, resource.type)\n\n    if decision == \"allow\":\n        WriteLog(principal.id, action, resource.id, \"allow\", \"policy matched\")\n        return \"allow\"\n\n    WriteLog(principal.id, action, resource.id, \"deny\", \"no policy permission\")\n    return \"deny\"\n```"
+    },
+    {
+      "id": "gen-01-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Name three common sources of gaps between a threat model and real-world security outcomes, and give one mitigation for each.",
+      "options": [
+        "Confidentiality, Integrity, Availability, Authorization, Authentication, Accountability",
+        "Confidentiality, Integrity, Availability, Non-repudiation, Privacy, Safety",
+        "Confidentiality, Identification, Availability, Authorization, Auditing, Anonymity",
+        "Confidentiality, Integrity, Availability, Encryption, Authentication, Accountability"
+      ],
+      "expected": "One gap is incomplete assumptions about assets, trust boundaries, or attacker paths; mitigate it with structured reviews and stakeholder validation. A second is system change after the model is written; mitigate it by updating the model when architecture, deployment, or dependencies change. A third is human and operational behavior differing from the model; mitigate it with usable procedures, logging, monitoring, training, and incident drills."
+    }
+  ],
+  "generationError": null
+}

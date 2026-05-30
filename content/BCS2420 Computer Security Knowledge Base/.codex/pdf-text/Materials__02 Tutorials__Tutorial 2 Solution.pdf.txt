@@ -1,0 +1,390 @@
+                     Tutorial 2: Solutions
+
+
+                  Foundations of Cryptography
+
+
+                      Computer Security
+                             BCS2420
+
+
+
+
+                             Part A
+
+
+1. Which of the following best describes the advantage of
+   public-key (asymmetric) encryption compared to symmetric
+   encryption?
+   Correct Answer: C. It simplifies secure key distribution
+   Explanation:
+     – Symmetric encryption often requires a pre-shared key
+       (both sides must have the same secret key).
+     – Public-key systems allow one to publish a public key
+       while keeping a private key secret, making key
+       distribution more convenient.
+2. Which cryptographic property ensures that a given hash
+   output does not reveal any information about the original
+   message?
+   Correct Answer: B. One-way property
+   Explanation:
+     – One-way means it should be infeasible to invert the
+       hash.
+     – Collision resistance (A) is about finding two inputs
+       with the same hash.
+     – Second-preimage resistance (D) is about creating a
+       second input matching an existing hash.
+     – Key encapsulation (C) is unrelated to standard hash
+       properties.
+3. In a chosen-ciphertext attack model, the adversary can...
+   Correct Answer: B. Submit ciphertexts to a decryption
+   oracle and observe the results
+
+
+
+
+                                1
+   Explanation:
+     – Ciphertext-only: The adversary only sees ciphertext.
+     – Known-plaintext: The adversary knows some
+       plaintext/ciphertext pairs.
+     – Chosen-plaintext: The adversary can encrypt plaintext
+       of their choosing.
+     – Chosen-ciphertext: The adversary can decrypt chosen
+       ciphertexts and analyze responses.
+4. Which statement about the Vernam cipher is correct?
+   Correct Answer: D. It can provide perfect secrecy only if
+   the key is truly random and used exactly once.
+   Explanation:
+     – Also known as the one-time pad.
+     – Reusing the key breaks the perfect secrecy property.
+5. In a hybrid encryption scheme, typically...
+   Correct Answer: C. A symmetric key is randomly generated
+   for data encryption, then encrypted with a public key.
+   Explanation:
+     – Hybrid encryption uses a symmetric key for efficiency.
+       This key is then protected (encrypted) with the
+       recipient’s asymmetric public key.
+6. Which of the following is an active adversary action?
+   Correct Answer: C. Injecting malicious packets into a
+   conversation
+   Explanation:
+     – An active adversary modifies or injects data.
+     – A passive adversary only observes or eavesdrops.
+7. Collision resistance in a hash function means...
+   Correct Answer: A. Finding two distinct inputs with the
+   same hash is computationally infeasible.
+   Explanation:
+     – “Collision” = different inputs same hash.
+     – Being hard/impractical to find any two inputs with the
+       same digest is collision resistance.
+8. Which block cipher mode directly concatenates each
+   plaintext block with the preceding ciphertext block (via
+   XOR) before encryption?
+   Correct Answer: B. CBC
+   Explanation:
+     – CBC (Cipher Block Chaining) mode XORs each plaintext
+       block with the previous block’s ciphertext before
+
+
+
+
+                              2
+        encrypting.
+      – ECB (A) encrypts blocks independently; CTR (C) uses
+        counters; OFB (D) generates keystream blocks.
+ 9. Digital signatures aim to provide which of the following?
+    Correct Answer: B. Non-repudiation, integrity, and origin
+    authentication
+    Explanation:
+      – Digital signatures help prove who signed it (origin
+        auth), ensure the message is unaltered (integrity), and
+        prevent the signer from denying having signed (non-
+        repudiation).
+10. A 56-bit key space (as in original DES) implies how many
+    possible keys?
+    Correct Answer: A. (2{56})
+    Explanation:
+      – A 56-bit key space has (2{56}) possible keys. Other
+        expressions are incorrect for that bit size.
+
+
+
+
+                             Part B
+
+
+ 1. Comparing Passive vs. Active Adversaries
+      – Passive Adversary: Observes or eavesdrops on
+        communications without modifying or injecting messages.
+         – Example: A hacker passively sniffing Wi-Fi traffic
+           to capture data (e.g., passwords).
+      – Active Adversary: Can alter messages in transit, inject
+        new ones, or impersonate legitimate users.
+         – Example: A man-in-the-middle attack where an
+           attacker intercepts and modifies messages between
+           two parties, or an attacker sending forged commands
+           in a network protocol.
+      – Why more challenging to defend against active
+        adversaries?
+         – Active adversaries can manipulate data flows, alter
+           messages, and exploit protocols more dynamically.
+           This requires not just confidentiality but also
+           data integrity checks, authentication protocols,
+           and robust handshake mechanisms.
+
+
+
+
+                                 3
+2. Attack Models
+     – Ciphertext-Only Attack (COA): Adversary only has
+       ciphertext and attempts to recover plaintext or key.
+     – Known-Plaintext Attack (KPA): Adversary knows some
+       plaintext/ciphertext pairs and tries to recover the key
+       or decrypt future ciphertext.
+     – Chosen-Plaintext Attack (CPA): Adversary can choose
+       plaintexts to be encrypted and sees corresponding
+       ciphertexts (e.g., can query an encryption oracle).
+     – Chosen-Ciphertext Attack (CCA): Adversary can submit
+       chosen ciphertexts to a decryption oracle and see the
+       resulting plaintext.
+     – Strongest Requirement: CCA is generally the most
+       demanding for a cryptosystem because the adversary can
+       fully interact with decryption, providing the highest
+       potential for discovering weaknesses.
+3. Key Space and Security
+     – Key Space: All possible keys that can be used by a
+       cryptographic algorithm. Larger key space → more brute-
+       force attempts required.
+     – Effect of Increasing Key Length:
+     – Makes brute-force attacks exponentially harder, as each
+       additional bit doubles the key space.
+     – Other Practical Factors:
+       1. Implementation robustness: Side-channel leaks or
+          poor random number generation can reduce effective
+          security.
+       2. Speed of encryption/decryption: Slower ciphers can
+          be costlier to brute force, but also can hinder
+          legitimate use if too slow.
+       3. (Bonus) Cryptanalytic breakthroughs: Algorithms
+          themselves may be broken, reducing effective key
+          length in practice.
+4. Designing a Secure Symmetric Cipher
+     – Core Properties:
+       1. Confusion (makes relationship between key and
+          ciphertext complex).
+       2. Diffusion (spreads plaintext information over many
+          parts of ciphertext).
+       3. Large key space + no known structural weaknesses
+          (e.g., no easy differential or linear
+
+
+
+
+                                4
+          cryptanalysis).
+     – Two Advanced Cryptanalytic Methods:
+       1. Differential Cryptanalysis: Looks at how
+          differences in plaintext input affect differences
+          in ciphertext output. A well-designed cipher
+          incorporates strong non-linear components to resist
+          this.
+       2. Linear Cryptanalysis: Exploits statistical biases
+          in linear combinations of plaintext bits and
+          ciphertext bits. Substitution-permutation networks
+          help mitigate these biases.
+5. Public-Key Infrastructure (PKI)
+     – Certificates: Signed data structures that bind a public
+       key to a subject’s identity (e.g., a domain or an
+       individual). A Certificate Authority (CA) vouches for
+       correctness by signing.
+        – This relies on the trust placed in the CA.
+     – Use in an Organization:
+       1. Each employee gets a certificate with their public
+          key.
+       2. To send secure email, you retrieve the recipient’s
+          public key (via their certificate).
+       3. You encrypt (or sign) email accordingly, trusting
+          the CA’s verification of the key’s ownership.
+6. Hash Functions vs. Encryption Functions
+     – Hash Functions:
+        – One-way transformations, fixed-length output, used
+          for integrity checks.
+        – No secret key necessarily; no direct “decryption”
+          process.
+     – Encryption Functions:
+        – Transform plaintext to ciphertext with a key;
+          reversible by the corresponding decryption
+          function.
+     – Why not use a block cipher as a hash:
+        – Block ciphers are designed for two-way
+          encryption/decryption.
+        – Hashes require an irreversible property. Simply
+          encrypting with a block cipher does not guarantee
+          collision resistance or the one-way property at
+          scale.
+
+
+
+
+                                 5
+ 7. Digital Signatures and Non-Repudiation
+      – Non-Repudiation: The signer cannot deny having signed a
+        message because only they hold the private key used in
+        generating the signature.
+      – E-Commerce Example: When a customer signs an electronic
+        contract or purchase agreement, the signature ensures
+        they cannot later claim they didn’t authorize the
+        transaction.
+ 8. Block Cipher Modes
+      – Weakness of ECB: Identical plaintext blocks produce
+        identical ciphertext blocks → patterns leak.
+      – CBC Mode: Each block is XORed with the previous
+        ciphertext block before encryption, hiding repeated
+        plaintext patterns.
+      – CTR Mode Use-Case**: High-speed streaming or parallel
+        encryption. Each block is encrypted by XORing the
+        plaintext with a keystream block generated from a
+        counter. Often used where random access to encrypted
+        data is needed.
+ 9. Hybrid Encryption Scenario
+      – Why Hybrid?
+         – Public-key algorithms are computationally intensive
+           for large data (e.g., 1GB).
+         – Symmetric algorithms are fast; so you generate a
+           random symmetric key to encrypt the bulk data, then
+           use the recipient’s public key only for encrypting
+           the small symmetric key.
+      – Steps:
+        1. Generate a random symmetric key k .
+        2. Encrypt the 1GB file with k using a fast symmetric
+           cipher (e.g., AES).
+        3. Encrypt k with the recipient’s public key.
+        4. Store/transmit both (encrypted data + encrypted
+           symmetric key).
+10. MAC vs. Digital Signature
+      – When MAC is more suitable:
+         – In a closed system where all participants share a
+           secret key, and the goal is message authentication
+           + integrity (e.g., within a single company’s
+           internal API).
+         – MACs are typically faster and simpler to implement
+
+
+
+
+                                 6
+            than a signature scheme.
+     – When a Digital Signature is better:
+        – In open systems where you need non-repudiation and
+            publicly verifiable proof of authenticity (e.g., a
+            signed contract, public software release).
+        – A signature does not require sharing a secret key
+            with the verifier.
+
+
+
+
+                                    Part C
+
+
+1. Brute-Force Feasibility
+                    40
+     – Key space: 2      .
+        – This is 1, 099, 511, 627, 776 possible keys
+                                             12
+            (approximately 1.1 × 10               ).
+                                9
+     – Attacker speed: 10           keys/sec.
+                             40         12
+        – Worst-case time = 2 9 ≈ 1.1×10
+                            10      109    = 1.1 × 103 seconds =
+            1100 seconds.
+        –                1100
+            In days ≈          ≈ 0.0127 days               0.3hours.
+                         86400
+     – Feasibility: With modern hardware, cracking a 40-bit
+       key might be feasible in under an hour. This is why 40-
+       bit ciphers are no longer considered secure.
+2. Key Length Impact
+     – 128-bit vs. 256-bit keys:
+        – Key space(128-bit): 2128
+                                           256
+        – Key space(256-bit): 2
+        –                    2256
+            The ratio:            = 2128 .
+                             2128                128
+        – This is an increase of 2                     times, which is
+            astronomically larger.
+        – More than just double: Doubling key length squares
+            the size of the key space when going from 128 to
+            256 bits.
+3. Simple Caesar Cipher Computation
+     – Ciphertext: “FODCGR”
+     – Assume ‘A’ = 0, ‘B’ = 1, ..., ‘Z’ = 25.
+     – Caesar shift by 3 (encryption shifts forward by 3). To
+       decrypt, shift backward by 3.
+     – Steps (letter by letter):
+
+
+
+
+                                       7
+     – F → F’s position is 5 (A=0, B=1, C=2, D=3, E=4, F=5).
+         – 5 - 3 = 2 → C.
+     – O → O’s position is 14.
+         – 14 - 3 = 11 → L.
+     – D → D’s position is 3.
+         – 3 - 3 = 0 → A.
+     – C → C’s position is 2.
+         – 2 - 3 = -1 → wrap around: -1 + 26 = 25 → Z.
+     – G → G’s position is 6.
+         – 6 - 3 = 3 → D.
+     – R → R’s position is 17.
+         – 17 - 3 = 14 → O.
+     – Plaintext = “CLAZDO” (assuming standard Caesar with
+       shift of 3).
+     – Number of possible shifts: For the English alphabet, 26
+       possible shifts (0 to 25).
+4. Block Cipher Encryption Rate
+     – Block size: 128 bits
+     – Throughput: 1 million 106 blocks per second
+         – In bits/sec: 106 × 128 = 1.28 × 108 bits/sec = 128
+             Mbps.
+         –                       128 Mbps
+             In megabytes/sec:            = 16 MB/s.
+                                    8
+         – Time for a 10 GB file:
+         – 10 GB = 10 × 1024 ≈ 10, 240MB.
+         – At 16 MB/s → ≈ 10, 240
+                                  = 640 seconds    10.7minutes.
+                            16
+5. Hash Collisions - n-bit hash: collisions around      2n = 2n/2 .
+   - For a 128-bit hash → ~      2128 = 264 .
+     – That’s 1.84 × 1019 .
+         – Why sooner if poorly designed?
+         – Structural weaknesses or patterns can reduce actual
+             complexity needed to find collisions below 264 .
+6. Public-Key Encryption Overhead
+     – Message count: 10,000 messages, each 1KB.
+     – RSA encryption: 5ms per message → total time =
+       10,000 × 0.005 s = 50 s.
+     – Why prefer hybrid?
+         – Public-key operations (RSA) are much slower than
+             symmetric. For large volumes of data or numerous
+             messages, using a hybrid scheme drastically reduces
+             total encryption time.
+
+
+
+
+                                   8
+– Also reduces computational overhead on the
+ sender/receiver.
+
+
+
+
+                     9
+

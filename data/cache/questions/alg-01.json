@@ -1,0 +1,195 @@
+{
+  "generatedAt": "2026-05-17T20:03:55.224Z",
+  "chapterId": "01",
+  "questions": [
+    {
+      "id": "selftest-greedy-q1",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "What is the greedy rule for **interval selection**?",
+      "expected": "Pick the next interval (in earliest-finish-time order) if it doesn't conflict with the last selected."
+    },
+    {
+      "id": "selftest-greedy-q2",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "What is the greedy rule for **interval scheduling** (labelling/colouring)?",
+      "expected": "Process intervals in earliest-start-time order; assign each to the smallest label whose intervals don't conflict; create a new label only if needed."
+    },
+    {
+      "id": "selftest-greedy-q3",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "Why does earliest start fail for interval selection?",
+      "expected": "Counter-example: one giant interval covering all the slot; selecting it forces skipping all the smaller ones."
+    },
+    {
+      "id": "selftest-greedy-q4",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "State the exchange proof template in five sentences.",
+      "expected": "(i) Let G = greedy, OPT = optimal with maximum overlap with G. (ii) Suppose G ≠ OPT, pick first disagreement j. (iii) Show greedy's choice is at least as good as OPT's. (iv) Exchange OPT's choice with greedy's: still valid, same objective, more overlap. (v) Contradiction → G = OPT."
+    },
+    {
+      "id": "selftest-greedy-q5",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "Why does Dijkstra require positive edge weights?",
+      "expected": "With negative edges, a \"long\" path through a vertex w (with d(w) ≥ d(v)) could end up shorter than v's current distance. Use Bellman-Ford instead."
+    },
+    {
+      "id": "selftest-greedy-q6",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "What's Prim's greedy rule for MST?",
+      "expected": "Grow T edge-by-edge; pick the minimum-cost edge connecting a vertex in T to one outside T."
+    },
+    {
+      "id": "selftest-greedy-q7",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "In the refueling-stops problem, what is the greedy choice?",
+      "expected": "From current position, refuel at the furthest reachable station before becoming unable to reach the next one (or the destination)."
+    },
+    {
+      "id": "selftest-greedy-q8",
+      "source": "Self test: Greedy",
+      "type": "written",
+      "question": "What is a k-partial solution?",
+      "expected": "A valid solution to the problem restricted to the first k inputs in the greedy ordering."
+    },
+    {
+      "id": "gen-01-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain the difference between interval scheduling as labelled in the notes and interval selection. For each problem, state the objective and the greedy rule, and explain why using the other problem's greedy rule would not directly solve it.",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "Interval scheduling assigns every interval to a minimum number of non-conflicting labels/resources; its greedy rule processes by earliest start time and assigns the first compatible label, creating a new label only when all existing labels conflict. Interval selection chooses a maximum-size subset of mutually non-overlapping intervals; its greedy rule processes by earliest finish time and accepts an interval if it starts after the last selected finish time. The objectives differ: one must keep all intervals and minimize labels, the other may discard intervals and maximize count. Earliest finish does not by itself minimize the number of labels for all intervals, and earliest start with first-fit does not by itself maximize the number of selected intervals."
+    },
+    {
+      "id": "gen-01-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "In the exchange-argument template for greedy algorithms, why do we choose an optimal solution OPT that has maximum overlap with the greedy solution G? Explain how this choice is used to obtain a contradiction.",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "Choosing OPT with maximum overlap makes the exchange step meaningful: after identifying the first position where OPT and G differ, we replace OPT's conflicting choice with the greedy choice while preserving feasibility and optimal objective value. The resulting solution is still optimal but has one more element in common with G, contradicting the way OPT was chosen. This proves the assumed disagreement cannot exist."
+    },
+    {
+      "id": "gen-01-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Run interval selection on the intervals A=(0,3), B=(1,2), C=(3,5), D=(4,7), E=(5,6), F=(6,9). Intervals are compatible when the next start time is at least the previous finish time. Which intervals are selected, and what is the maximum number selected by the greedy algorithm?",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "Selected intervals: B, C, E, F. Count = 4. Method: sort by finish time: B(1,2), A(0,3), C(3,5), E(5,6), D(4,7), F(6,9). Accept B, skip A, accept C, accept E, skip D, accept F."
+    },
+    {
+      "id": "gen-01-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Run Dijkstra's algorithm from source s on the directed graph with edges s->a:4, s->b:1, b->a:2, b->c:5, a->c:1, a->d:7, c->d:3. Give final dist values and parents for a, b, c, d.",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "Final distances: dist[s]=0, dist[b]=1, dist[a]=3, dist[c]=4, dist[d]=7. Parents: parent[b]=s, parent[a]=b, parent[c]=a, parent[d]=c. Method: settle s, then b with distance 1, relax a to 3 and c to 6; settle a, relax c to 4 and d to 10; settle c, relax d to 7; settle d."
+    },
+    {
+      "id": "gen-01-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which greedy rule is the correct one for selecting a maximum-size subset of non-overlapping intervals?",
+      "options": [
+        "Process intervals by earliest start time and keep every interval that fits.",
+        "Process intervals by shortest duration and keep every interval that fits.",
+        "Process intervals by earliest finish time and keep every interval that fits.",
+        "Process intervals by latest finish time and keep every interval that fits."
+      ],
+      "expected": "Process intervals by earliest finish time and keep every interval that fits."
+    },
+    {
+      "id": "gen-01-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "In Prim's MST exchange proof, after adding the first greedy edge e that is not in T*, why must there be an edge e' on the created cycle that crosses the same cut as e?",
+      "options": [
+        "Because every cycle in a connected graph contains the globally cheapest edge.",
+        "Because adding e to T* creates a cycle that leaves and re-enters the current greedy tree, so some other cycle edge also crosses that cut.",
+        "Because T* must contain all edges crossing every cut except e.",
+        "Because e' is necessarily the heaviest edge in the entire graph."
+      ],
+      "expected": "Because adding e to T* creates a cycle that leaves and re-enters the current greedy tree, so some other cycle edge also crosses that cut."
+    },
+    {
+      "id": "gen-01-6",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Dijkstra's algorithm remains correct on graphs with negative edge weights as long as there are no negative cycles.",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "False. Dijkstra's correctness relies on positive edge weights so that once the closest unsettled vertex is chosen, no later path through another unsettled vertex can become shorter. With negative edges, that monotonicity can fail; Bellman-Ford is the standard replacement."
+    },
+    {
+      "id": "gen-01-7",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: If the interval-partitioning greedy algorithm creates label k for some interval, then at that moment there are k mutually overlapping intervals, so any feasible labelling needs at least k labels.",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "True. Creating label k means the new interval conflicts with intervals already occupying labels 1 through k-1 at that start time. Together these k intervals overlap at a common point, so no two can share a label and any solution needs at least k labels."
+    },
+    {
+      "id": "gen-01-8",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Give pseudocode for the greedy interval-selection algorithm that returns a maximum-size subset of non-overlapping intervals. Assume each interval has fields start, finish, and name.",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "Reference pseudocode:\n```text\nIntervalSelection(intervals):\n    sort intervals by increasing finish\n    selected := empty list\n    lastFinish := -infinity\n\n    for each interval in intervals:\n        if interval.start >= lastFinish:\n            append interval.name to selected\n            lastFinish := interval.finish\n\n    return selected\n```\nThe key requirements are sorting by earliest finish time and accepting exactly those intervals compatible with the last accepted interval."
+    },
+    {
+      "id": "gen-01-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for Prim's minimum spanning tree algorithm on a connected weighted graph G=(V,E), starting from an arbitrary vertex. The output should be the set of MST edges.",
+      "options": [
+        "string1",
+        "string2",
+        "string3"
+      ],
+      "expected": "Reference pseudocode:\n```text\nPrimMST(G):\n    choose any start vertex s in V\n    inTree := {s}\n    mstEdges := empty set\n\n    while inTree != V:\n        bestEdge := nil\n        bestCost := infinity\n\n        for each edge (u, v) in E:\n            if u in inTree and v not in inTree and cost(u, v) < bestCost:\n                bestEdge := (u, v)\n                bestCost := cost(u, v)\n            if v in inTree and u not in inTree and cost(u, v) < bestCost:\n                bestEdge := (v, u)\n                bestCost := cost(u, v)\n\n        add bestEdge to mstEdges\n        add bestEdge.secondEndpoint to inTree\n\n    return mstEdges\n```\nA priority-queue version is also acceptable if it always adds the minimum-cost edge crossing from the current tree to a new vertex."
+    }
+  ],
+  "generationError": null
+}

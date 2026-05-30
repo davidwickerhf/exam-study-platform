@@ -1,0 +1,1261 @@
+{
+  "meta": {
+    "title": "May 2026 Exam Study Platform",
+    "schemaVersion": 2,
+    "vaultRoot": "./content",
+    "createdAt": "2026-05-31T00:00:00.000Z",
+    "updatedAt": "2026-05-31T00:00:00.000Z",
+    "timezone": "Europe/Amsterdam",
+    "stateNote": "This file is the source of truth. UI changes write here. Assistants may also edit mastery/reviewLog/notes for exact item ids.",
+    "masteryScale": {
+      "0": "Untouched",
+      "1": "Seen / read",
+      "2": "Understood",
+      "3": "Fluent (can apply with notes)",
+      "4": "Exam-ready (cold recall)"
+    },
+    "doneThreshold": 3,
+    "categories": {
+      "material": "Material to learn",
+      "practice": "Drill / template",
+      "review": "Review / consolidation",
+      "exam-practice": "Mock or past exam",
+      "readiness": "Pre-exam execution"
+    }
+  },
+  "dailyBlocks": [],
+  "courses": [
+    {
+      "id": "alg",
+      "code": "BCS1540",
+      "name": "Algorithmic Design",
+      "shortName": "AD",
+      "visualStyle": "Pseudocode + math first. Use mermaid for search trees, recursion trees, and graph algorithms.",
+      "mockExams": [
+        {
+          "id": "2024-final",
+          "label": "Final 2024",
+          "pdf": "Materials/03 Past Exams and Solutions/cs1540-FinalExam2024.pdf",
+          "solutionsPdf": "Materials/03 Past Exams and Solutions/exam-model-solutions.pdf"
+        }
+      ],
+      "exam": "Wednesday 2026-05-20 12:00-14:00",
+      "role": "Primary pass target",
+      "knowledgeBase": "BCS1540 Algorithmic Design Knowledge Base",
+      "accent": "#3b6f5b",
+      "chapters": [
+        {
+          "id": "01",
+          "name": "Greedy Algorithms",
+          "file": "01 Greedy Algorithms/01 Greedy Algorithms.md"
+        },
+        {
+          "id": "02",
+          "name": "Master Theorem and Divide and Conquer",
+          "file": "02 Master Theorem and Divide and Conquer/02 Master Theorem and Divide and Conquer.md"
+        },
+        {
+          "id": "03",
+          "name": "Dynamic Programming",
+          "file": "03 Dynamic Programming/03 Dynamic Programming.md"
+        },
+        {
+          "id": "04",
+          "name": "Complexity and NP-Completeness",
+          "file": "04 Complexity and NP-Completeness/04 Complexity and NP-Completeness.md"
+        },
+        {
+          "id": "05",
+          "name": "Backtracking and Branch-and-Bound",
+          "file": "05 Backtracking and Branch-and-Bound/05 Backtracking and Branch-and-Bound.md"
+        },
+        {
+          "id": "06",
+          "name": "Linear Programming and ILP",
+          "file": "06 Linear Programming and ILP/06 Linear Programming and ILP.md"
+        },
+        {
+          "id": "08",
+          "name": "Exam Skills",
+          "file": "08 Exam Skills"
+        },
+        {
+          "id": "09",
+          "name": "Cram Sheets",
+          "file": "09 Cram Sheets"
+        },
+        {
+          "id": "10",
+          "name": "Self Tests",
+          "file": "10 Self Tests"
+        },
+        {
+          "id": "11",
+          "name": "Worked Drills",
+          "file": "11 Worked Drills"
+        }
+      ],
+      "items": [
+        {
+          "id": "alg-greedy-proof-template",
+          "title": "Greedy proof template",
+          "type": "Topic + skill",
+          "category": "material",
+          "priority": 1,
+          "blocks": [
+            "sun-afternoon",
+            "mon-afternoon"
+          ],
+          "chapterIds": [
+            "01"
+          ],
+          "extraSources": [
+            "Master Cram Sheet"
+          ],
+          "details": [
+            "Greedy-choice property",
+            "Exchange argument",
+            "Counterexample awareness",
+            "Runtime statement"
+          ],
+          "deliverable": "A reusable answer skeleton for proving or rejecting a greedy algorithm.",
+          "assistantPrompt": "Drill greedy proof shape: ask me to explain the greedy choice, test an exchange argument, and identify the runtime.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-master-theorem-template",
+          "title": "Divide-and-conquer and Master theorem",
+          "type": "Exercise template",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "sun-afternoon",
+            "mon-afternoon"
+          ],
+          "chapterIds": [
+            "02"
+          ],
+          "extraSources": [],
+          "details": [
+            "Identify a, b, f(n)",
+            "Select Master theorem case",
+            "State asymptotic result",
+            "Check regularity when needed"
+          ],
+          "deliverable": "Solve at least three recurrence classifications without notes.",
+          "assistantPrompt": "Give me recurrence drills and make me state a, b, f(n), the Master theorem case, and final complexity.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-dp-answer-template",
+          "title": "Dynamic programming answer template",
+          "type": "Topic + exercise",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "sun-afternoon",
+            "tue-morning"
+          ],
+          "chapterIds": [
+            "03"
+          ],
+          "extraSources": [
+            "2024 Final Walkthrough"
+          ],
+          "details": [
+            "Subproblem definition",
+            "Recurrence",
+            "Base cases",
+            "Evaluation order",
+            "Complexity",
+            "Reconstruction if needed"
+          ],
+          "deliverable": "A complete DP answer skeleton and one worked DP problem.",
+          "assistantPrompt": "Run a DP drill: force me to define subproblem, recurrence, base cases, fill order, and complexity before solving.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-complexity-checklist",
+          "title": "Complexity and runtime checklist",
+          "type": "Review",
+          "category": "review",
+          "priority": 2,
+          "blocks": [
+            "mon-afternoon"
+          ],
+          "chapterIds": [
+            "04"
+          ],
+          "extraSources": [],
+          "details": [
+            "Big-O clarity",
+            "Polynomial vs exponential",
+            "Input-size awareness",
+            "Avoid vague runtime claims"
+          ],
+          "deliverable": "A short checklist to attach to every algorithm answer.",
+          "assistantPrompt": "Check my algorithm answers for complete and precise runtime statements.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-np-template",
+          "title": "NP-completeness proof template",
+          "type": "Exam practice",
+          "category": "exam-practice",
+          "priority": 1,
+          "blocks": [
+            "sun-afternoon",
+            "mon-afternoon",
+            "tue-morning"
+          ],
+          "chapterIds": [
+            "04"
+          ],
+          "extraSources": [],
+          "details": [
+            "Define problem",
+            "Show membership in NP",
+            "Choose known NP-complete problem",
+            "Reduction direction",
+            "Polynomial construction",
+            "Correctness iff argument"
+          ],
+          "deliverable": "One complete NP-completeness proof outline.",
+          "assistantPrompt": "Make me write a reduction proof and check that the direction and iff argument are correct.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-backtracking-template",
+          "title": "Backtracking algorithm skeleton",
+          "type": "Topic + exercise",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-afternoon",
+            "tue-morning"
+          ],
+          "chapterIds": [
+            "05"
+          ],
+          "extraSources": [],
+          "details": [
+            "State representation",
+            "Candidate generation",
+            "Feasibility test",
+            "Recursive call",
+            "Base case",
+            "Search tree size"
+          ],
+          "deliverable": "Write one backtracking algorithm in pseudocode.",
+          "assistantPrompt": "Give me a backtracking problem and require state, choices, feasibility, recursion, base case, and complexity.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-branch-bound-template",
+          "title": "Branch-and-bound pruning logic",
+          "type": "Topic + exercise",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-afternoon",
+            "tue-morning"
+          ],
+          "chapterIds": [
+            "05"
+          ],
+          "extraSources": [],
+          "details": [
+            "Incumbent",
+            "Bound",
+            "Pruning condition",
+            "Search order",
+            "Optimality explanation"
+          ],
+          "deliverable": "Explain when a branch can be pruned and why optimality is preserved.",
+          "assistantPrompt": "Drill branch-and-bound: ask me to identify bound, incumbent, pruning rule, and correctness of pruning.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-lp-ilp-template",
+          "title": "LP / ILP formulation template",
+          "type": "Exercise template",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-afternoon",
+            "tue-morning"
+          ],
+          "chapterIds": [
+            "06"
+          ],
+          "extraSources": [],
+          "details": [
+            "Decision variables",
+            "Objective",
+            "Constraints",
+            "Integrality",
+            "Meaning of each constraint"
+          ],
+          "deliverable": "Formulate one optimization problem as LP/ILP.",
+          "assistantPrompt": "Give me LP/ILP formulation drills and check variables, objective, constraints, and integrality.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-2024-walkthrough",
+          "title": "2024 final walkthrough",
+          "type": "Past exam",
+          "category": "exam-practice",
+          "priority": 1,
+          "blocks": [
+            "sun-evening"
+          ],
+          "chapterIds": [
+            "11"
+          ],
+          "extraSources": [
+            "Materials/03 Past Exams and Solutions"
+          ],
+          "details": [
+            "Identify tested topic per question",
+            "Compare with model solution",
+            "Extract answer shapes",
+            "Ignore removed topics"
+          ],
+          "deliverable": "Annotated list of what each 2024 question tests.",
+          "assistantPrompt": "Walk me through the 2024 final one question at a time and ask me what topic and answer skeleton it uses.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-removed-topics",
+          "title": "Removed-topic filter",
+          "type": "Syllabus check",
+          "category": "review",
+          "priority": 2,
+          "blocks": [
+            "sun-evening"
+          ],
+          "chapterIds": [],
+          "extraSources": [
+            "00 Home",
+            "BSC1540-Assessment_2025-2026.pdf"
+          ],
+          "details": [
+            "Randomized algorithms removed",
+            "Network flows removed",
+            "Approximation algorithms removed",
+            "Backtracking/B&B emphasized"
+          ],
+          "deliverable": "A clear ignore/include list for old exam material.",
+          "assistantPrompt": "Check whether a topic is relevant to the 2025-2026 Algorithmic Design syllabus before drilling it.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-self-test",
+          "title": "Algorithmic Design self-test",
+          "type": "Self-test",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-afternoon"
+          ],
+          "chapterIds": [
+            "10"
+          ],
+          "extraSources": [],
+          "details": [
+            "Cold attempt",
+            "Mark weak areas",
+            "Patch gaps from topic notes",
+            "Redo failed questions"
+          ],
+          "deliverable": "Self-test completed with weak topics repaired.",
+          "assistantPrompt": "Quiz me across all Algorithmic Design self-test sections and track which topic fails.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "alg-final-execution-sheet",
+          "title": "One-page exam execution sheet",
+          "type": "Readiness",
+          "category": "readiness",
+          "priority": 1,
+          "blocks": [
+            "tue-morning",
+            "wed-midday"
+          ],
+          "chapterIds": [
+            "08",
+            "09"
+          ],
+          "extraSources": [],
+          "details": [
+            "Algorithm answer shape",
+            "Correctness cue",
+            "Runtime cue",
+            "DP checklist",
+            "NP checklist",
+            "LP/ILP checklist"
+          ],
+          "deliverable": "A one-page sheet you can review right before the exam.",
+          "assistantPrompt": "Ask me to recite each Algorithmic Design answer template from memory and point out missing pieces.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        }
+      ],
+      "order": 1
+    },
+    {
+      "id": "stats",
+      "code": "BCS1520",
+      "name": "Statistics",
+      "shortName": "Stats",
+      "visualStyle": "Tables for distributions and formulas. Mermaid probability trees for Bayes. (Future: Chart.js plots for normal/CLT.)",
+      "mockExams": [
+        {
+          "id": "mock",
+          "label": "Mock exam A (11 Q)",
+          "pdf": "Materials/Mock Exams/mock-paper.pdf",
+          "solutionsPdf": "Materials/Mock Exams/mock-paper-solutions.pdf"
+        },
+        {
+          "id": "mock-b",
+          "label": "Mock exam B (8 Q)",
+          "pdf": "Materials/Mock Exams/mock-paper-b.pdf"
+        }
+      ],
+      "exam": "Friday 2026-05-22 09:00-11:00",
+      "role": "Primary pass target; daily review",
+      "knowledgeBase": "BCS1520 Statistics Knowledge Base",
+      "accent": "#9a4f3f",
+      "chapters": [
+        {
+          "id": "01",
+          "name": "Data Visualization and Measurement",
+          "file": "01 Data Visualization and Measurement/01 Data Visualization and Measurement.md"
+        },
+        {
+          "id": "02",
+          "name": "RCTs and Causality",
+          "file": "02 RCTs and Causality/02 RCTs and Causality.md"
+        },
+        {
+          "id": "03",
+          "name": "Odds Ratios and Relative Risk",
+          "file": "03 Odds Ratios and Relative Risk/03 Odds Ratios and Relative Risk.md"
+        },
+        {
+          "id": "04",
+          "name": "Probability Theory",
+          "file": "04 Probability Theory/04 Probability Theory.md"
+        },
+        {
+          "id": "05",
+          "name": "Conditional Probability and Bayes",
+          "file": "05 Conditional Probability and Bayes/05 Conditional Probability and Bayes.md"
+        },
+        {
+          "id": "06",
+          "name": "Distributions CLT and Sampling",
+          "file": "06 Distributions CLT and Sampling/06 Distributions CLT and Sampling.md"
+        },
+        {
+          "id": "07",
+          "name": "Confidence Intervals",
+          "file": "07 Confidence Intervals/07 Confidence Intervals.md"
+        },
+        {
+          "id": "08",
+          "name": "Hypothesis Testing",
+          "file": "08 Hypothesis Testing/08 Hypothesis Testing.md"
+        },
+        {
+          "id": "09",
+          "name": "Correlation",
+          "file": "09 Correlation/09 Correlation.md"
+        },
+        {
+          "id": "10",
+          "name": "Pseudo-Code and Data Workflows",
+          "file": "10 Pseudo-Code and Data Workflows/10 Pseudo-Code and Data Workflows.md"
+        },
+        {
+          "id": "11",
+          "name": "Exam Skills",
+          "file": "11 Exam Skills"
+        },
+        {
+          "id": "12",
+          "name": "Worked Drills",
+          "file": "12 Worked Drills"
+        },
+        {
+          "id": "13",
+          "name": "Cram Sheets",
+          "file": "13 Cram Sheets"
+        }
+      ],
+      "items": [
+        {
+          "id": "stats-exam-rules",
+          "title": "Exam rules and point-loss traps",
+          "type": "Rules",
+          "category": "readiness",
+          "priority": 1,
+          "blocks": [
+            "sun-evening",
+            "thu-afternoon",
+            "fri-morning"
+          ],
+          "chapterIds": [
+            "11"
+          ],
+          "extraSources": [
+            "00 Home",
+            "Mock Exam cover"
+          ],
+          "details": [
+            "Write only in reserved boxes",
+            "Use Q11 only with 'see Q11'",
+            "Round checkboxes = one answer",
+            "Square checkboxes may be multi-select",
+            "Negative scoring risk",
+            "No pencil"
+          ],
+          "deliverable": "Rule checklist memorized.",
+          "assistantPrompt": "Before stats drills, ask me the format rules and multi-select risk rules.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-formula-map",
+          "title": "Formula sheet navigation map",
+          "type": "Review",
+          "category": "review",
+          "priority": 1,
+          "blocks": [
+            "sun-evening",
+            "mon-evening",
+            "wed-evening",
+            "fri-morning"
+          ],
+          "chapterIds": [
+            "13"
+          ],
+          "extraSources": [
+            "Formula Sheet 2026.pdf"
+          ],
+          "details": [
+            "RR/OR formulas",
+            "Bayes",
+            "CI for proportion",
+            "CI for mean",
+            "Normal/CLT",
+            "Hypothesis testing",
+            "Correlation"
+          ],
+          "deliverable": "A map of question type to formula location and usage.",
+          "assistantPrompt": "Ask me which formula applies from short scenario prompts and make me locate it conceptually.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-mc-trap-list",
+          "title": "Multiple-choice concept trap list",
+          "type": "Mock review",
+          "category": "review",
+          "priority": 1,
+          "blocks": [
+            "tue-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "12"
+          ],
+          "extraSources": [
+            "Mock Exam Q1",
+            "Grading Scheme"
+          ],
+          "details": [
+            "Double blind",
+            "Simpson's paradox",
+            "Study design",
+            "Probability facts",
+            "Correlation vs causation",
+            "Checkbox strategy"
+          ],
+          "deliverable": "Q1 trap list with why wrong answers are wrong.",
+          "assistantPrompt": "Drill me with Stats Q1-style concept questions and ask for elimination reasoning.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-rr-or-drill",
+          "title": "Relative risk and odds ratio drill",
+          "type": "Calculation drill",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "03"
+          ],
+          "extraSources": [
+            "Mock Q2"
+          ],
+          "details": [
+            "Build 2x2 table",
+            "Compute risks",
+            "Compute RR",
+            "Compute odds",
+            "Compute OR",
+            "Interpret absolute vs relative change"
+          ],
+          "deliverable": "One clean worked RR/OR example with interpretation.",
+          "assistantPrompt": "Give me RR/OR table drills and require interpretation in words after calculation.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-probability-theory",
+          "title": "Probability theory core rules",
+          "type": "Concept + calculation",
+          "category": "material",
+          "priority": 1,
+          "blocks": [
+            "mon-evening"
+          ],
+          "chapterIds": [
+            "04"
+          ],
+          "extraSources": [],
+          "details": [
+            "Sample space and events",
+            "Complement / union / intersection rules",
+            "Independence vs mutual exclusivity",
+            "Conditional probability definition",
+            "Law of total probability",
+            "Combinatorics when applicable"
+          ],
+          "deliverable": "One clean answer applying union/intersection/complement/independence to a scenario.",
+          "assistantPrompt": "Give me probability-theory drills and force me to identify independence vs mutual exclusivity before computing.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-bayes-tree-drill",
+          "title": "Conditional probability and Bayes tree drill",
+          "type": "Calculation drill",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-evening",
+            "wed-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "05"
+          ],
+          "extraSources": [
+            "Mock Q3"
+          ],
+          "details": [
+            "Draw probability tree",
+            "Compute joint leaf probabilities",
+            "Compute total evidence probability",
+            "Compute posterior",
+            "Interpret"
+          ],
+          "deliverable": "One complete Bayes tree and posterior calculation.",
+          "assistantPrompt": "Give me Bayes-tree problems and make me draw the branch structure before calculating.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-study-design",
+          "title": "Study design and causality template",
+          "type": "Written answer",
+          "category": "material",
+          "priority": 2,
+          "blocks": [
+            "sun-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "02"
+          ],
+          "extraSources": [
+            "Mock Q4/Q9"
+          ],
+          "details": [
+            "RCT design",
+            "Control group",
+            "Random assignment",
+            "Blinding",
+            "Confounding",
+            "Causality limitations"
+          ],
+          "deliverable": "One concise design/critique answer.",
+          "assistantPrompt": "Ask me to design an RCT or critique a study for causality and confounding.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-ci-proportion-drill",
+          "title": "Confidence interval for proportion",
+          "type": "Calculation drill",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-evening",
+            "wed-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "07"
+          ],
+          "extraSources": [
+            "Mock Q5"
+          ],
+          "details": [
+            "p-hat",
+            "standard error",
+            "critical value",
+            "margin",
+            "interval",
+            "interpretation"
+          ],
+          "deliverable": "One proportion CI with interpretation.",
+          "assistantPrompt": "Drill proportion CI calculations and require a sentence interpreting the interval.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-ci-mean-drill",
+          "title": "Confidence interval for mean",
+          "type": "Calculation drill",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-evening",
+            "wed-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "07"
+          ],
+          "extraSources": [
+            "Mock Q6"
+          ],
+          "details": [
+            "Mean",
+            "standard deviation or SE",
+            "n",
+            "critical value",
+            "interval",
+            "claim assessment"
+          ],
+          "deliverable": "One mean CI and compliance/claim conclusion.",
+          "assistantPrompt": "Drill mean CI and CLT-style claim assessment with interpretation.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-clt-normal-drill",
+          "title": "Normal distribution and CLT drill",
+          "type": "Calculation drill",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-evening",
+            "tue-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "06"
+          ],
+          "extraSources": [
+            "Mock Q6"
+          ],
+          "details": [
+            "Translate to normal model",
+            "Sampling distribution",
+            "z-score",
+            "Probability or CI",
+            "Practical conclusion"
+          ],
+          "deliverable": "One CLT/normal problem solved start to finish.",
+          "assistantPrompt": "Give me normal/CLT problems and force setup before formula use.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-hypothesis-testing",
+          "title": "Hypothesis testing template",
+          "type": "Concept + calculation",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "mon-evening",
+            "wed-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "08"
+          ],
+          "extraSources": [],
+          "details": [
+            "State H0 and H1",
+            "Choose test statistic",
+            "Significance level alpha",
+            "Compute test statistic and p-value",
+            "Reject vs fail-to-reject decision",
+            "Type I vs Type II errors",
+            "Interpret in context"
+          ],
+          "deliverable": "One complete hypothesis test from H0 to interpretation.",
+          "assistantPrompt": "Drill hypothesis testing: force H0/H1 statement, test choice, p-value reasoning, and decision interpretation.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-measurement-caveats",
+          "title": "Measurement caveats and bias",
+          "type": "Concept review",
+          "category": "review",
+          "priority": 2,
+          "blocks": [
+            "tue-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "01"
+          ],
+          "extraSources": [
+            "Mock Q7"
+          ],
+          "details": [
+            "Validity",
+            "Reliability",
+            "Measurement error",
+            "Bias",
+            "Sampling caveats",
+            "Multi-select caution"
+          ],
+          "deliverable": "Caveat list with examples.",
+          "assistantPrompt": "Ask me applied measurement caveat questions and make me justify selected caveats.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-correlation-note",
+          "title": "Correlation and Spearman note",
+          "type": "Concept + interpretation",
+          "category": "review",
+          "priority": 2,
+          "blocks": [
+            "tue-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "09"
+          ],
+          "extraSources": [
+            "Mock Q8"
+          ],
+          "details": [
+            "Pearson vs Spearman",
+            "Monotonic relationship",
+            "Correlation vs causation",
+            "Interpretation"
+          ],
+          "deliverable": "Short note choosing/justifying correlation measure.",
+          "assistantPrompt": "Drill correlation interpretation and Pearson/Spearman choice.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-pseudocode-template",
+          "title": "Pseudo-code and data workflow template",
+          "type": "Written exercise",
+          "category": "practice",
+          "priority": 1,
+          "blocks": [
+            "tue-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "10"
+          ],
+          "extraSources": [
+            "Mock Q10"
+          ],
+          "details": [
+            "Preprocessing",
+            "Variable selection",
+            "Test choice",
+            "Hypothesis test logic",
+            "Classification logic",
+            "Output/decision"
+          ],
+          "deliverable": "One Q10-style pseudocode answer.",
+          "assistantPrompt": "Give me Q10-style data workflow prompts and grade whether the pseudocode is clear and complete.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-mock-full-review",
+          "title": "Full mock pattern review",
+          "type": "Mock exam",
+          "category": "exam-practice",
+          "priority": 1,
+          "blocks": [
+            "tue-evening",
+            "thu-afternoon"
+          ],
+          "chapterIds": [
+            "12"
+          ],
+          "extraSources": [
+            "Grading Scheme Mock Exam.pdf"
+          ],
+          "details": [
+            "Map each mock question to pattern",
+            "Redo weak questions",
+            "Note point values",
+            "Check negative scoring"
+          ],
+          "deliverable": "Annotated mock with reusable recipe per question.",
+          "assistantPrompt": "Walk me through the mock question by question and ask which recipe applies before solving.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-when-to-use-what",
+          "title": "When-to-use-what decision list",
+          "type": "Review",
+          "category": "review",
+          "priority": 1,
+          "blocks": [
+            "tue-evening"
+          ],
+          "chapterIds": [
+            "13"
+          ],
+          "extraSources": [],
+          "details": [
+            "Trigger words for RR/OR",
+            "Trigger words for Bayes",
+            "Trigger words for CI",
+            "Trigger words for CLT",
+            "Trigger words for correlation",
+            "Trigger words for RCT",
+            "Trigger words for hypothesis testing"
+          ],
+          "deliverable": "Decision list mapping scenario language to method.",
+          "assistantPrompt": "Give me scenario snippets and make me choose the statistical method without solving.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        },
+        {
+          "id": "stats-final-execution",
+          "title": "Statistics final exam execution",
+          "type": "Readiness",
+          "category": "readiness",
+          "priority": 1,
+          "blocks": [
+            "thu-afternoon",
+            "fri-morning"
+          ],
+          "chapterIds": [
+            "11"
+          ],
+          "extraSources": [
+            "00 Home"
+          ],
+          "details": [
+            "Formula + substitution + result + interpretation",
+            "Skip stuck calculations",
+            "Manage multi-select risk",
+            "Use Q11 correctly"
+          ],
+          "deliverable": "Pre-exam execution checklist reviewed.",
+          "assistantPrompt": "Run a final readiness check: ask rules, formula mapping, and one quick calculation of each core type.",
+          "mastery": 0,
+          "masteryUpdatedAt": null,
+          "reviewLog": [],
+          "notes": ""
+        }
+      ],
+      "order": 3
+    },
+    {
+      "id": "emb",
+      "code": "BCS2410",
+      "name": "Embedded Programming",
+      "shortName": "EP",
+      "visualStyle": "Assembly + C first. Lead with the instruction signature/header before explaining. Use HTML/SVG diagrams for register layouts, memory maps, and ALU/datapath.",
+      "exam": "June 2026",
+      "role": "June exam prep",
+      "knowledgeBase": "BCS2410 Embedded Programming Knowledge Base",
+      "accent": "#2f7d72",
+      "order": 5,
+      "chapters": [
+        {
+          "id": "01",
+          "name": "Foundations and Course",
+          "file": "01 Foundations and Course/01 Foundations and Course.md"
+        },
+        {
+          "id": "02",
+          "name": "Computer Architecture",
+          "file": "02 Computer Architecture/02 Computer Architecture.md"
+        },
+        {
+          "id": "03",
+          "name": "Data Representation and C Memory",
+          "file": "03 Data Representation and C Memory/03 Data Representation and C Memory.md"
+        },
+        {
+          "id": "04",
+          "name": "ARM ISA and Assembly",
+          "file": "04 ARM ISA and Assembly/04 ARM ISA and Assembly.md"
+        },
+        {
+          "id": "05",
+          "name": "Embedded Workflow and Tooling",
+          "file": "05 Embedded Workflow and Tooling/05 Embedded Workflow and Tooling.md"
+        },
+        {
+          "id": "06",
+          "name": "FPGA and Edge AI",
+          "file": "06 FPGA and Edge AI/06 FPGA and Edge AI.md"
+        },
+        {
+          "id": "07",
+          "name": "Exam Skills",
+          "file": "07 Exam Skills/07 Exam Skills.md"
+        }
+      ],
+      "items": [],
+      "examProfile": "HARD exam — favour multi-step questions over recall. Two sections. SECTION A (Theory): closed multiple-choice. Generate many mc and some tf questions; distractors must be genuinely tricky plausible misconceptions; the expected answer must be detailed and explanatory (teach the concept, do not just name the correct option). SECTION B (Practical): hand-written ARM assembly. Generate pseudocode-type questions that ask the student to WRITE real ARM Thumb assembly (NOT generic pseudocode) — bit manipulation (shift + AND/ORR/BIC to test/set/clear a bit), comparison + conditional branching, loops, recursion, and functions following the calling convention (args in r0-r3, return in r0, BL/BX LR, stack PUSH/POP). The expected answer must contain a fenced ```arm block with a correct, hand-writable solution. Apply Section-B coding questions to assembly/coding-capable chapters (ARM ISA, data representation, workflow); for conceptual chapters (architecture, FPGA/Edge AI) lean on hard mc/tf plus detailed written questions. Skew all difficulty to hard."
+    },
+    {
+      "id": "sec",
+      "code": "BCS2420",
+      "name": "Computer Security",
+      "shortName": "CS",
+      "visualStyle": "Concept + attack-scenario first. Use HTML/SVG diagrams for protocols, attack flows, and crypto. Mark anything beyond the notes.",
+      "mockExams": [
+        {
+          "id": "2025-sample",
+          "label": "Sample 2025-03-21",
+          "pdf": "Materials/04 Past Exams/Sample Paper — 2025-03-21.pdf",
+          "solutionsPdf": "Materials/04 Past Exams/Sample Paper Solution — 2025-03-21.pdf"
+        }
+      ],
+      "exam": "June 2026",
+      "role": "June exam prep",
+      "knowledgeBase": "BCS2420 Computer Security Knowledge Base",
+      "accent": "#a8743a",
+      "order": 6,
+      "chapters": [
+        {
+          "id": "01",
+          "name": "Foundations and Security Principles",
+          "file": "01 Foundations and Security Principles/01 Foundations and Security Principles.md"
+        },
+        {
+          "id": "02",
+          "name": "Cryptography",
+          "file": "02 Cryptography/02 Cryptography.md"
+        },
+        {
+          "id": "03",
+          "name": "Authentication and Secure Communication",
+          "file": "03 Authentication and Secure Communication/03 Authentication and Secure Communication.md"
+        },
+        {
+          "id": "04",
+          "name": "Malware and System Security",
+          "file": "04 Malware and System Security/04 Malware and System Security.md"
+        },
+        {
+          "id": "05",
+          "name": "Web and Network Defense",
+          "file": "05 Web and Network Defense/05 Web and Network Defense.md"
+        },
+        {
+          "id": "06",
+          "name": "Labs and Tooling",
+          "file": "06 Labs and Tooling/06 Labs and Tooling.md"
+        },
+        {
+          "id": "07",
+          "name": "Exam Skills",
+          "file": "07 Exam Skills/07 Exam Skills.md"
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "nm",
+      "code": "BCS2540",
+      "name": "Numerical Methods",
+      "shortName": "NM",
+      "visualStyle": "Formula-sheet exam. Lead with the formula in code/KaTeX, then a one-line numeric example. Use HTML/SVG diagrams for method workflows (Newton step, divided-difference table, Simpson rule, Euler/RK step, power method).",
+      "exam": "June 2026 — Thu 18 Jun 12:00-14:00",
+      "role": "June exam (resit, A1 only)",
+      "knowledgeBase": "BCS2540 Numerical Methods Knowledge Base",
+      "accent": "#3a7d9a",
+      "order": 7,
+      "mockExams": [
+        {
+          "id": "2024-final",
+          "label": "Final 2024",
+          "pdf": "Materials/Mock Exams/2024-final.pdf",
+          "solutionsPdf": "Materials/Mock Exams/2024-final-solutions.pdf"
+        },
+        {
+          "id": "2023-final",
+          "label": "Final 2023",
+          "pdf": "Materials/Mock Exams/2023-final.pdf",
+          "solutionsPdf": "Materials/Mock Exams/2023-final-solutions.pdf"
+        },
+        {
+          "id": "2022-final",
+          "label": "Final 2022",
+          "pdf": "Materials/Mock Exams/2022-final.pdf",
+          "solutionsPdf": "Materials/Mock Exams/2022-final-solutions.pdf"
+        },
+        {
+          "id": "2022-resit",
+          "label": "Resit 2022",
+          "pdf": "Materials/Mock Exams/2022-resit.pdf"
+        },
+        {
+          "id": "2023-resit",
+          "label": "Resit 2023 (solutions only)",
+          "solutionsPdf": "Materials/Mock Exams/2023-resit-solutions.pdf"
+        },
+        {
+          "id": "mock",
+          "label": "Mock paper",
+          "pdf": "Materials/Mock Exams/mock-paper.pdf",
+          "solutionsPdf": "Materials/Mock Exams/mock-paper-solutions.pdf"
+        },
+        {
+          "id": "2012-sample",
+          "label": "Sample 2012",
+          "pdf": "Materials/Mock Exams/2012-sample.pdf"
+        }
+      ],
+      "examProfile": "HARD resit exam — closed book + supplied formula sheet + calculator, 2 hours, 6 questions (one per topic). Each question has part (a) computational (highest marks; apply a method to specific numbers) and parts (b-e) conceptual follow-up (convergence order, error bound, when does this method fail, method choice and why, derive a simple identity). GENERATE: many \"calc\" questions asking for one-step numerical applications (one Newton iteration, one Simpson sub-interval, one Euler step, build a divided-difference cell, one power-method iteration); \"written\" short-answer questions for conceptual follow-up (state convergence order; identify failure conditions; compare two methods; explain why a method suits a problem); \"mc\" for must-know definitions and method-recognition. AVOID \"pseudocode\" and \"tf\" — this is a quantitative math exam, not an algorithm or true/false course. For every \"calc\" the \"expected\" must include the worked numeric answer, 1-2 line method, and the relevant formula. Skew difficulty to HARD. Prioritise Topics 1 (root finding), 3 (polynomial interpolation), 4 (numerical integration/differentiation) for both quantity and depth — these are the formulaic high-yield topics for a pass-targeted resit. Topics 2 (ODEs), 5 (least squares), 6 (eigenvalues/linear algebra) still get coverage but less depth.",
+      "chapters": [
+        {
+          "id": "01",
+          "name": "Algebraic Equations",
+          "file": "01 Algebraic Equations/01 Algebraic Equations.md"
+        },
+        {
+          "id": "02",
+          "name": "Differential Equations",
+          "file": "02 Differential Equations/02 Differential Equations.md"
+        },
+        {
+          "id": "03",
+          "name": "Polynomial Interpolation",
+          "file": "03 Polynomial Interpolation/03 Polynomial Interpolation.md"
+        },
+        {
+          "id": "04",
+          "name": "Numerical Integration",
+          "file": "04 Numerical Integration/04 Numerical Integration.md"
+        },
+        {
+          "id": "05",
+          "name": "Least-Squares Approximation",
+          "file": "05 Least-Squares Approximation/05 Least-Squares Approximation.md"
+        },
+        {
+          "id": "06",
+          "name": "Eigenvalues and Linear Algebra",
+          "file": "06 Eigenvalues and Linear Algebra/06 Eigenvalues and Linear Algebra.md"
+        },
+        {
+          "id": "07",
+          "name": "Exam Skills",
+          "file": "07 Exam Skills/07 Exam Skills.md"
+        }
+      ],
+      "items": []
+    }
+  ]
+}

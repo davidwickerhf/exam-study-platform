@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dijkstra's Algorithm — Step Through</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #fafafa;
+    color: #222;
+    margin: 0;
+    padding: 32px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+  }
+  .subtitle {
+    color: #666;
+    margin: 0 0 24px 0;
+    font-size: 14px;
+  }
+  .main-container {
+    display: grid;
+    grid-template-columns: 1fr 0.5fr 1fr;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 16px;
+  }
+  .panel {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .panel h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    background: white;
+    border-radius: 4px;
+  }
+  .legend {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11px;
+    color: #555;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px #888;
+  }
+  .swatch.line {
+    width: 16px;
+    height: 3px;
+    border-radius: 2px;
+    border: none;
+    box-shadow: none;
+  }
+  table.state-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.state-table th, table.state-table td {
+    padding: 6px 8px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  table.state-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #555;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  td.dist {
+    font-weight: 600;
+    color: #1e293b;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  td.dist.infinity {
+    color: #cbd5e1;
+    font-weight: 400;
+  }
+  tr.settled {
+    background: #ecfdf5;
+  }
+  tr.current {
+    background: #fff7ed;
+  }
+  tr.improved td.dist {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .step-counter {
+    color: #888;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .step-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    color: #1a1a1a;
+  }
+  .step-body {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #333;
+  }
+  .step-body code {
+    background: #f0f0f0;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .step-body .em {
+    background: #fff8d9;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .step-body ul, .step-body ol {
+    margin: 6px 0;
+    padding-left: 22px;
+  }
+  .step-body li {
+    margin-bottom: 4px;
+  }
+  .controls {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  button:hover { background: #1d4ed8; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  button.secondary { background: #6b7280; }
+  button.secondary:hover { background: #4b5563; }
+  .progress {
+    margin-left: auto;
+    color: #666;
+    font-size: 12px;
+  }
+  .annotation {
+    background: #f0f9ff;
+    border-left: 3px solid #2563eb;
+    padding: 10px 12px;
+    margin-top: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .annotation.warn {
+    background: #fff8e6;
+    border-left-color: #f59e0b;
+  }
+  .annotation.success {
+    background: #f0fdf4;
+    border-left-color: #10b981;
+  }
+  .annotation.proof {
+    background: #faf5ff;
+    border-left-color: #8b5cf6;
+  }
+  .pseudocode-panel {
+    margin-top: 0;
+  }
+  .pseudocode-panel pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Code", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .pseudo-line {
+    display: block;
+    padding: 1px 8px;
+    margin: 0 -8px;
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+  .pseudo-line.highlight {
+    background: #fbbf24;
+    color: #1e293b;
+    font-weight: 600;
+  }
+  .line-no {
+    display: inline-block;
+    width: 24px;
+    color: #64748b;
+    user-select: none;
+  }
+  .pseudo-line.highlight .line-no {
+    color: #92400e;
+  }
+</style>
+</head>
+<body>
+
+<h1>Dijkstra's Algorithm — Step Through</h1>
+<p class="subtitle">Single-source shortest paths from vertex A on a weighted graph (positive weights only).</p>
+
+<div class="main-container">
+  <!-- Graph panel -->
+  <div class="panel">
+    <h3>Graph</h3>
+    <svg id="graph" viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg">
+      <g id="edges"></g>
+      <g id="vertices"></g>
+      <g id="weights"></g>
+      <g id="distances"></g>
+    </svg>
+    <div class="legend">
+      <div class="legend-item"><span class="swatch" style="background: #cbd5e1"></span>Unreached (∞)</div>
+      <div class="legend-item"><span class="swatch" style="background: #fbbf24"></span>Frontier (tentative)</div>
+      <div class="legend-item"><span class="swatch" style="background: #10b981"></span>Settled</div>
+      <div class="legend-item"><span class="swatch" style="background: #ef4444; box-shadow: 0 0 0 3px #fee2e2"></span>Active</div>
+      <div class="legend-item"><span class="swatch line" style="background: #f59e0b"></span>Relaxing edge</div>
+      <div class="legend-item"><span class="swatch line" style="background: #10b981"></span>Shortest-path tree</div>
+    </div>
+  </div>
+
+  <!-- State table panel -->
+  <div class="panel">
+    <h3>State</h3>
+    <table class="state-table">
+      <thead>
+        <tr><th>Vertex</th><th>Distance</th><th>Parent</th></tr>
+      </thead>
+      <tbody id="state-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Step panel -->
+  <div class="panel">
+    <div class="step-counter" id="step-counter">Step 1 of 15</div>
+    <h2 class="step-title" id="step-title"></h2>
+    <div class="step-body" id="step-body"></div>
+    <div class="controls">
+      <button class="secondary" id="prev-btn">‹ Prev</button>
+      <button id="next-btn">Next ›</button>
+      <span class="progress" id="progress"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Pseudocode panel -->
+<div class="panel pseudocode-panel">
+  <h3>Pseudocode (current execution highlighted)</h3>
+  <pre id="pseudocode"></pre>
+</div>
+
+<script>
+// ============================================================
+// Graph definition
+// ============================================================
+const VERTICES = [
+  { id: 'A', x: 320, y: 70,  label: 'A' },
+  { id: 'B', x: 540, y: 200, label: 'B' },
+  { id: 'C', x: 100, y: 200, label: 'C' },
+  { id: 'D', x: 470, y: 390, label: 'D' },
+  { id: 'E', x: 170, y: 390, label: 'E' },
+];
+
+// Undirected edges; each is two-way for relaxation
+const EDGES = [
+  { id: 'AB', from: 'A', to: 'B', weight: 4 },
+  { id: 'AC', from: 'A', to: 'C', weight: 2 },
+  { id: 'BC', from: 'B', to: 'C', weight: 1 },
+  { id: 'BD', from: 'B', to: 'D', weight: 5 },
+  { id: 'CD', from: 'C', to: 'D', weight: 8 },
+  { id: 'CE', from: 'C', to: 'E', weight: 10 },
+  { id: 'DE', from: 'D', to: 'E', weight: 2 },
+];
+
+// ============================================================
+// Pseudocode
+// ============================================================
+const PSEUDOCODE = [
+  'DIJKSTRA(G = (V, E), source s):',
+  '  for each vertex v in V:',
+  '    dist[v] := ∞',
+  '    parent[v] := nil',
+  '  dist[s] := 0',
+  '  Settled := ∅',
+  '  while Settled ≠ V:',
+  '    u := unsettled vertex with min dist[u]    // PICK',
+  '    Settled.add(u)                            // SETTLE',
+  '    for each edge (u, v):',
+  '      if v ∉ Settled and dist[u] + w(u,v) < dist[v]:',
+  '        dist[v] := dist[u] + w(u,v)           // RELAX',
+  '        parent[v] := u',
+  '  return dist, parent',
+];
+
+// ============================================================
+// Helper to build state objects concisely
+// ============================================================
+function makeState(opts) {
+  return {
+    settled: opts.settled || [],
+    dist: opts.dist || { A: null, B: null, C: null, D: null, E: null },
+    parent: opts.parent || { A: null, B: null, C: null, D: null, E: null },
+    current: opts.current || null,
+    activeEdges: opts.activeEdges || [],
+    improved: opts.improved || [],
+    showTree: opts.showTree || false,
+    pseudoLines: opts.pseudoLines || [],
+  };
+}
+
+// ============================================================
+// Steps
+// ============================================================
+const STEPS = [
+  // 1
+  {
+    title: 'The problem',
+    body: `Given the weighted graph on the left, find the shortest path (lowest total weight) from source <code>A</code> to every other vertex.
+           Dijkstra grows a <em>settled set</em> S of vertices whose shortest distance is already known.
+           At each step, it picks the unsettled vertex with the smallest tentative distance, settles it, and relaxes its outgoing edges.`,
+    annotation: { type: 'info', text: 'Each vertex will track two things: a tentative distance from A, and a parent (the predecessor in the shortest path).' },
+    state: makeState({ pseudoLines: [] }),
+  },
+  // 2
+  {
+    title: 'Initialize',
+    body: `Set <code>dist[v] = ∞</code> for every vertex (we don't know any distances yet).
+           Set <code>dist[A] = 0</code> (the source is 0 away from itself).
+           Set <code>Settled = ∅</code> (no vertex is finalized).`,
+    annotation: { type: 'info', text: 'All distances are ∞ except dist[A] = 0. No vertex is settled yet.' },
+    state: makeState({
+      dist: { A: 0, B: null, C: null, D: null, E: null },
+      pseudoLines: [2, 3, 4, 5, 6],
+    }),
+  },
+  // 3
+  {
+    title: 'Round 1 — Pick',
+    body: `Among unsettled vertices <code>{A, B, C, D, E}</code>, which has the smallest tentative distance?
+           A has <code>dist=0</code>; all others have <code>dist=∞</code>.
+           So we pick <span class="em">A</span>.`,
+    annotation: { type: 'warn', text: 'A is now the active vertex. Settle it and prepare to relax its edges.' },
+    state: makeState({
+      dist: { A: 0, B: null, C: null, D: null, E: null },
+      current: 'A',
+      pseudoLines: [7, 8],
+    }),
+  },
+  // 4
+  {
+    title: 'Round 1 — Settle A, relax its edges',
+    body: `Move A into <code>Settled</code>. Then look at A's edges:
+           <ul>
+             <li><code>A→B</code> (weight 4): <code>dist[A] + 4 = 0 + 4 = 4 &lt; ∞</code>. Update <code>dist[B] = 4</code>, <code>parent[B] = A</code>.</li>
+             <li><code>A→C</code> (weight 2): <code>dist[A] + 2 = 0 + 2 = 2 &lt; ∞</code>. Update <code>dist[C] = 2</code>, <code>parent[C] = A</code>.</li>
+           </ul>`,
+    annotation: { type: 'success', text: 'Two distances improved from ∞: dist[B] = 4 and dist[C] = 2.' },
+    state: makeState({
+      settled: ['A'],
+      dist: { A: 0, B: 4, C: 2, D: null, E: null },
+      parent: { A: null, B: 'A', C: 'A', D: null, E: null },
+      activeEdges: ['AB', 'AC'],
+      improved: ['B', 'C'],
+      pseudoLines: [9, 10, 11, 12, 13],
+    }),
+  },
+  // 5
+  {
+    title: 'Round 2 — Pick',
+    body: `Unsettled: <code>{B, C, D, E}</code> with distances <code>{4, 2, ∞, ∞}</code>.
+           Smallest is <code>dist[C] = 2</code>. Pick <span class="em">C</span>.`,
+    annotation: { type: 'warn', text: 'C is now active. About to settle and relax.' },
+    state: makeState({
+      settled: ['A'],
+      dist: { A: 0, B: 4, C: 2, D: null, E: null },
+      parent: { A: null, B: 'A', C: 'A', D: null, E: null },
+      current: 'C',
+      pseudoLines: [7, 8],
+    }),
+  },
+  // 6
+  {
+    title: 'Round 2 — Settle C, relax its edges',
+    body: `Settle C. Now look at C's edges (skip any going to settled vertices):
+           <ul>
+             <li><code>C→A</code>: A is settled. Skip.</li>
+             <li><code>C→B</code> (weight 1): <code>dist[C] + 1 = 2 + 1 = 3 &lt; 4 = dist[B]</code>. <span class="em">Improvement!</span> Update <code>dist[B] = 3</code>, <code>parent[B] = C</code>.</li>
+             <li><code>C→D</code> (weight 8): <code>dist[C] + 8 = 10 &lt; ∞</code>. Update <code>dist[D] = 10</code>, <code>parent[D] = C</code>.</li>
+             <li><code>C→E</code> (weight 10): <code>dist[C] + 10 = 12 &lt; ∞</code>. Update <code>dist[E] = 12</code>, <code>parent[E] = C</code>.</li>
+           </ul>`,
+    annotation: { type: 'success', text: 'B improved from 4 to 3 (going via C is cheaper than direct from A). D and E got their first finite distances.' },
+    state: makeState({
+      settled: ['A', 'C'],
+      dist: { A: 0, B: 3, C: 2, D: 10, E: 12 },
+      parent: { A: null, B: 'C', C: 'A', D: 'C', E: 'C' },
+      activeEdges: ['BC', 'CD', 'CE'],
+      improved: ['B', 'D', 'E'],
+      pseudoLines: [9, 10, 11, 12, 13],
+    }),
+  },
+  // 7
+  {
+    title: 'Round 3 — Pick',
+    body: `Unsettled: <code>{B, D, E}</code> with distances <code>{3, 10, 12}</code>.
+           Smallest is <code>dist[B] = 3</code>. Pick <span class="em">B</span>.`,
+    annotation: { type: 'warn', text: 'B is now active.' },
+    state: makeState({
+      settled: ['A', 'C'],
+      dist: { A: 0, B: 3, C: 2, D: 10, E: 12 },
+      parent: { A: null, B: 'C', C: 'A', D: 'C', E: 'C' },
+      current: 'B',
+      pseudoLines: [7, 8],
+    }),
+  },
+  // 8
+  {
+    title: 'Round 3 — Settle B, relax its edges',
+    body: `Settle B. Look at B's edges (skip settled):
+           <ul>
+             <li><code>B→A</code>: A settled. Skip.</li>
+             <li><code>B→C</code>: C settled. Skip.</li>
+             <li><code>B→D</code> (weight 5): <code>dist[B] + 5 = 3 + 5 = 8 &lt; 10 = dist[D]</code>. <span class="em">Improvement!</span> Update <code>dist[D] = 8</code>, <code>parent[D] = B</code>.</li>
+           </ul>`,
+    annotation: { type: 'success', text: 'D improved from 10 (via C) to 8 (via B). Path A → C → B → D = 2 + 1 + 5 = 8.' },
+    state: makeState({
+      settled: ['A', 'B', 'C'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 12 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'C' },
+      activeEdges: ['BD'],
+      improved: ['D'],
+      pseudoLines: [9, 10, 11, 12, 13],
+    }),
+  },
+  // 9
+  {
+    title: 'Round 4 — Pick',
+    body: `Unsettled: <code>{D, E}</code> with distances <code>{8, 12}</code>.
+           Smallest is <code>dist[D] = 8</code>. Pick <span class="em">D</span>.`,
+    annotation: { type: 'warn', text: 'D is now active.' },
+    state: makeState({
+      settled: ['A', 'B', 'C'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 12 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'C' },
+      current: 'D',
+      pseudoLines: [7, 8],
+    }),
+  },
+  // 10
+  {
+    title: 'Round 4 — Settle D, relax its edges',
+    body: `Settle D. Look at D's edges (skip settled):
+           <ul>
+             <li><code>D→B</code>: settled. Skip.</li>
+             <li><code>D→C</code>: settled. Skip.</li>
+             <li><code>D→E</code> (weight 2): <code>dist[D] + 2 = 8 + 2 = 10 &lt; 12 = dist[E]</code>. <span class="em">Improvement!</span> Update <code>dist[E] = 10</code>, <code>parent[E] = D</code>.</li>
+           </ul>`,
+    annotation: { type: 'success', text: 'E improved from 12 to 10. Path A → C → B → D → E = 2 + 1 + 5 + 2 = 10.' },
+    state: makeState({
+      settled: ['A', 'B', 'C', 'D'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 10 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'D' },
+      activeEdges: ['DE'],
+      improved: ['E'],
+      pseudoLines: [9, 10, 11, 12, 13],
+    }),
+  },
+  // 11
+  {
+    title: 'Round 5 — Pick E, settle, done',
+    body: `Only one unsettled vertex left: E with <code>dist[E] = 10</code>. Pick and settle E.
+           All of E's neighbors (C, D) are settled, so no relaxations occur.
+           <br><br>
+           <code>Settled = V</code>. Loop terminates. Algorithm complete.`,
+    annotation: { type: 'success', text: 'All 5 vertices are settled. We have the shortest distances and parent pointers.' },
+    state: makeState({
+      settled: ['A', 'B', 'C', 'D', 'E'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 10 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'D' },
+      current: 'E',
+      pseudoLines: [7, 8],
+    }),
+  },
+  // 12
+  {
+    title: 'The shortest-path tree',
+    body: `Follow the parent pointers backward from each vertex to A. That traces the shortest path.
+           <ul>
+             <li>A: 0</li>
+             <li>B: 3 — path <code>A → C → B</code></li>
+             <li>C: 2 — path <code>A → C</code></li>
+             <li>D: 8 — path <code>A → C → B → D</code></li>
+             <li>E: 10 — path <code>A → C → B → D → E</code></li>
+           </ul>
+           The green edges on the graph (parent edges) form the <em>shortest-path tree</em> from A.`,
+    annotation: { type: 'info', text: 'The shortest-path tree has n-1 = 4 edges, just like any spanning tree.' },
+    state: makeState({
+      settled: ['A', 'B', 'C', 'D', 'E'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 10 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'D' },
+      showTree: true,
+      pseudoLines: [14],
+    }),
+  },
+  // 13
+  {
+    title: 'Why does this work? — The invariant',
+    body: `<strong>Claim:</strong> At every step of Dijkstra, when a vertex u is settled, its <code>dist[u]</code> is the <em>true</em> shortest distance from A to u.
+           <br><br>
+           We prove this by induction on the order in which vertices are settled.
+           <br><br>
+           <strong>Base case:</strong> The first vertex settled is A with <code>dist[A] = 0</code>. Trivially correct.`,
+    annotation: { type: 'proof', text: 'Induction = assume the invariant holds for all previously-settled vertices, then show it holds for the newly-settled vertex.' },
+    state: makeState({
+      settled: ['A', 'B', 'C', 'D', 'E'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 10 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'D' },
+      showTree: true,
+      pseudoLines: [],
+    }),
+  },
+  // 14
+  {
+    title: 'Why the newly-settled vertex has the true shortest distance',
+    body: `Suppose we are about to settle vertex u. Could there be a shorter path from A to u that we missed?
+           <br><br>
+           Any alternative path from A to u must <em>leave</em> the settled set somewhere — call that the "exit vertex" w.
+           Before reaching u, this alternative path goes through some unsettled vertex w with edge (s, w) for some settled s.
+           <br><br>
+           Since Dijkstra picked u (not w) as the next vertex, <code>dist[u] ≤ dist[w]</code>.
+           <br><br>
+           The alternative path from A to u costs at least <code>dist[w]</code> (to get to w) <em>plus</em> the cost from w onward.
+           Since <strong>all edge weights are positive</strong>, that "plus" is ≥ 0.
+           <br><br>
+           So the alternative path costs ≥ <code>dist[w] ≥ dist[u]</code>. Therefore <code>dist[u]</code> is the true shortest distance.`,
+    annotation: { type: 'warn', text: 'POSITIVE WEIGHTS ARE ESSENTIAL. If we had negative edges, the "plus" could be negative, and a longer-looking detour could end up shorter.' },
+    state: makeState({
+      settled: ['A', 'B', 'C', 'D', 'E'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 10 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'D' },
+      showTree: true,
+      pseudoLines: [],
+    }),
+  },
+  // 15
+  {
+    title: 'Exam-ready 4-sentence proof',
+    body: `<strong>Memorise this exact wording for the exam (Style D, induction):</strong>
+           <ol>
+             <li>Invariant: at every step, the settled set S, together with the parent edges, forms a subtree of a shortest-path tree from A.</li>
+             <li>Base case: S = {A}. Trivially a subtree.</li>
+             <li>Inductive step: when Dijkstra picks vertex v with parent u to settle, any alternative path from A to v must leave S through some unsettled vertex w. By the pick rule, dist[w] ≥ dist[v]. Since all edge weights are positive, the rest of the alternative path adds ≥ 0. Total ≥ dist[w] ≥ dist[v], so dist[v] is the true shortest distance.</li>
+             <li>By induction, every settled vertex has the true shortest distance from A. When the loop ends, S = V.</li>
+           </ol>`,
+    annotation: { type: 'proof', text: 'This is your 4-pt answer if Dijkstra appears as Q1. Memorise the structure, sub in the variables.' },
+    state: makeState({
+      settled: ['A', 'B', 'C', 'D', 'E'],
+      dist: { A: 0, B: 3, C: 2, D: 8, E: 10 },
+      parent: { A: null, B: 'C', C: 'A', D: 'B', E: 'D' },
+      showTree: true,
+      pseudoLines: [],
+    }),
+  },
+];
+
+// ============================================================
+// Rendering
+// ============================================================
+let currentStep = 0;
+
+function getVertex(id) { return VERTICES.find(v => v.id === id); }
+function getEdge(id) { return EDGES.find(e => e.id === id); }
+
+function vertexFill(id, state) {
+  if (state.current === id) return '#ef4444';
+  if (state.settled.includes(id)) return '#10b981';
+  if (state.dist[id] !== null && state.dist[id] !== undefined) return '#fbbf24';
+  return '#cbd5e1';
+}
+
+function vertexStroke(id, state) {
+  if (state.current === id) return '#fee2e2';
+  return 'white';
+}
+
+function vertexStrokeWidth(id, state) {
+  if (state.current === id) return '6';
+  return '3';
+}
+
+function edgeStyle(edge, state) {
+  // Highlight active edges (being relaxed)
+  if (state.activeEdges.includes(edge.id)) {
+    return { color: '#f59e0b', width: 5, opacity: 1 };
+  }
+  // Show shortest-path tree edges (when showTree is true OR when both endpoints are settled and one is the parent)
+  const parentFrom = state.parent[edge.from];
+  const parentTo = state.parent[edge.to];
+  const isTreeEdge = (parentFrom === edge.to) || (parentTo === edge.from);
+  if (isTreeEdge && state.showTree) {
+    return { color: '#10b981', width: 4, opacity: 1 };
+  }
+  if (isTreeEdge && (state.settled.includes(edge.from) || state.settled.includes(edge.to))) {
+    return { color: '#10b981', width: 3.5, opacity: 0.85 };
+  }
+  return { color: '#cbd5e1', width: 2.5, opacity: 0.6 };
+}
+
+function distLabel(d) {
+  if (d === null || d === undefined) return '∞';
+  return String(d);
+}
+
+function renderGraph(state) {
+  const edgesG = document.getElementById('edges');
+  const verticesG = document.getElementById('vertices');
+  const weightsG = document.getElementById('weights');
+  const distancesG = document.getElementById('distances');
+  edgesG.innerHTML = '';
+  verticesG.innerHTML = '';
+  weightsG.innerHTML = '';
+  distancesG.innerHTML = '';
+
+  // Edges
+  EDGES.forEach(edge => {
+    const v1 = getVertex(edge.from);
+    const v2 = getVertex(edge.to);
+    const style = edgeStyle(edge, state);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', v1.x);
+    line.setAttribute('y1', v1.y);
+    line.setAttribute('x2', v2.x);
+    line.setAttribute('y2', v2.y);
+    line.setAttribute('stroke', style.color);
+    line.setAttribute('stroke-width', style.width);
+    line.setAttribute('opacity', style.opacity);
+    line.setAttribute('stroke-linecap', 'round');
+    edgesG.appendChild(line);
+  });
+
+  // Weight labels at midpoint
+  EDGES.forEach(edge => {
+    const v1 = getVertex(edge.from);
+    const v2 = getVertex(edge.to);
+    const mx = (v1.x + v2.x) / 2;
+    const my = (v1.y + v2.y) / 2;
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    bg.setAttribute('cx', mx);
+    bg.setAttribute('cy', my);
+    bg.setAttribute('r', '11');
+    bg.setAttribute('fill', 'white');
+    bg.setAttribute('stroke', '#cbd5e1');
+    bg.setAttribute('stroke-width', '1');
+    weightsG.appendChild(bg);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', mx);
+    text.setAttribute('y', my + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '12');
+    text.setAttribute('font-weight', '600');
+    text.setAttribute('fill', '#475569');
+    text.textContent = edge.weight;
+    weightsG.appendChild(text);
+  });
+
+  // Distance labels next to each vertex (offset slightly)
+  VERTICES.forEach(v => {
+    const d = state.dist[v.id];
+    const dx = v.x < 320 ? -32 : (v.x > 320 ? 32 : 0);
+    const dy = v.y < 200 ? -32 : 32;
+    const labelX = v.x + dx;
+    const labelY = v.y + dy;
+    const isImproved = state.improved && state.improved.includes(v.id);
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('x', labelX - 18);
+    bg.setAttribute('y', labelY - 12);
+    bg.setAttribute('width', '36');
+    bg.setAttribute('height', '20');
+    bg.setAttribute('rx', '4');
+    bg.setAttribute('fill', isImproved ? '#dbeafe' : 'white');
+    bg.setAttribute('stroke', isImproved ? '#1e40af' : '#94a3b8');
+    bg.setAttribute('stroke-width', isImproved ? '2' : '1');
+    distancesG.appendChild(bg);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', labelX);
+    text.setAttribute('y', labelY + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '13');
+    text.setAttribute('font-weight', '600');
+    text.setAttribute('fill', isImproved ? '#1e40af' : (d === null ? '#94a3b8' : '#1e293b'));
+    text.textContent = distLabel(d);
+    distancesG.appendChild(text);
+  });
+
+  // Vertices
+  VERTICES.forEach(v => {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', v.x);
+    circle.setAttribute('cy', v.y);
+    circle.setAttribute('r', '24');
+    circle.setAttribute('fill', vertexFill(v.id, state));
+    circle.setAttribute('stroke', vertexStroke(v.id, state));
+    circle.setAttribute('stroke-width', vertexStrokeWidth(v.id, state));
+    verticesG.appendChild(circle);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', v.x);
+    text.setAttribute('y', v.y + 6);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '18');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', 'white');
+    text.textContent = v.label;
+    verticesG.appendChild(text);
+  });
+}
+
+function renderStateTable(state) {
+  const body = document.getElementById('state-body');
+  body.innerHTML = '';
+  VERTICES.forEach(v => {
+    const tr = document.createElement('tr');
+    const isSettled = state.settled.includes(v.id);
+    const isCurrent = state.current === v.id;
+    const isImproved = state.improved && state.improved.includes(v.id);
+    if (isCurrent) tr.classList.add('current');
+    else if (isSettled) tr.classList.add('settled');
+    if (isImproved) tr.classList.add('improved');
+    const tdVertex = document.createElement('td');
+    tdVertex.textContent = v.id;
+    tdVertex.style.fontWeight = '600';
+    tr.appendChild(tdVertex);
+    const tdDist = document.createElement('td');
+    tdDist.className = 'dist';
+    const d = state.dist[v.id];
+    if (d === null || d === undefined) {
+      tdDist.classList.add('infinity');
+      tdDist.textContent = '∞';
+    } else {
+      tdDist.textContent = d;
+    }
+    tr.appendChild(tdDist);
+    const tdParent = document.createElement('td');
+    tdParent.textContent = state.parent[v.id] || '—';
+    tr.appendChild(tdParent);
+    body.appendChild(tr);
+  });
+}
+
+function renderPseudocode(state) {
+  const pre = document.getElementById('pseudocode');
+  pre.innerHTML = '';
+  PSEUDOCODE.forEach((line, idx) => {
+    const lineNum = idx + 1; // 1-indexed
+    const span = document.createElement('span');
+    span.className = 'pseudo-line';
+    if (state.pseudoLines.includes(lineNum)) {
+      span.classList.add('highlight');
+    }
+    const lineNumSpan = document.createElement('span');
+    lineNumSpan.className = 'line-no';
+    lineNumSpan.textContent = lineNum;
+    span.appendChild(lineNumSpan);
+    span.appendChild(document.createTextNode(line));
+    pre.appendChild(span);
+  });
+}
+
+function render() {
+  const step = STEPS[currentStep];
+  const state = step.state;
+
+  document.getElementById('step-counter').textContent = `Step ${currentStep + 1} of ${STEPS.length}`;
+  document.getElementById('progress').textContent = `${currentStep + 1} / ${STEPS.length}`;
+  document.getElementById('step-title').textContent = step.title;
+
+  let bodyHtml = step.body;
+  if (step.annotation) {
+    const cls = step.annotation.type === 'warn' ? 'warn' :
+                step.annotation.type === 'success' ? 'success' :
+                step.annotation.type === 'proof' ? 'proof' : '';
+    bodyHtml += `<div class="annotation ${cls}">${step.annotation.text}</div>`;
+  }
+  document.getElementById('step-body').innerHTML = bodyHtml;
+
+  document.getElementById('prev-btn').disabled = currentStep === 0;
+  document.getElementById('next-btn').disabled = currentStep === STEPS.length - 1;
+
+  renderGraph(state);
+  renderStateTable(state);
+  renderPseudocode(state);
+}
+
+function next() {
+  if (currentStep < STEPS.length - 1) {
+    currentStep++;
+    render();
+  }
+}
+
+function prev() {
+  if (currentStep > 0) {
+    currentStep--;
+    render();
+  }
+}
+
+document.getElementById('next-btn').addEventListener('click', next);
+document.getElementById('prev-btn').addEventListener('click', prev);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') next();
+  if (e.key === 'ArrowLeft') prev();
+});
+
+render();
+</script>
+
+</body>
+</html>

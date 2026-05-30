@@ -1,0 +1,215 @@
+                            Tutorial 5
+
+
+                         Malware Threats
+
+
+                         Computer Security
+                             BCS2420
+
+
+
+
+                              Part A
+
+
+1. Which statement about the undecidability of detecting
+   malware is correct?
+         It is theoretically proven that a perfect malware
+         detector cannot exist in all cases.
+         Malware detection is easily automated with zero false
+         positives.
+         Any code that modifies system files is necessarily
+         malware.
+         Commercial antivirus tools already achieve perfect
+         detection.
+2. Which feature distinguishes a worm from a virus?
+         Worms require user intervention (e.g., opening an
+         attachment), while viruses do not.
+         Worms spread autonomously through network
+         vulnerabilities, whereas viruses typically rely on
+         users executing infected files.
+         Worms cannot replicate, but viruses replicate
+         aggressively.
+         Worms are always detected by signature-based
+         antivirus, while viruses often go undetected.
+3. A piece of malware that intercepts system calls to hide its
+   processes from user utilities is typically classified as:
+         A logic bomb
+         A worm
+         A rootkit
+         Ransomware
+
+
+
+
+                                1
+4. Which best describes a ransomware attack?
+         Malware that primarily spreads via self-replicating
+         network exploits
+         A Trojan horse that silently steals keystrokes for
+         indefinite periods
+         Malware that encrypts user data and demands payment
+         to restore access
+         A rootkit that replaces the kernel’s system-call
+         table
+5. When malware uses polymorphic techniques, it means that:
+         The malware’s encrypted body changes with each
+         infection to evade signature detection.
+         The malware cannot be disinfected without
+         reformatting the system.
+         It specifically targets multiple operating systems
+         equally.
+         The malware does not replicate but changes user
+         privileges frequently.
+6. Which factor is most associated with a drive-by download
+   attack?
+         Relying on user curiosity to click an email
+         attachment
+         Exploiting browser or plugin vulnerabilities without
+         user awareness
+         Attaching malicious macros to Microsoft Office
+         documents
+         Replacing user-mode libraries after the OS boots
+7. What is the main purpose of hooking or replacing system
+   calls in a rootkit?
+         To detect other malicious software by scanning the
+         kernel
+         To stealthily manipulate API results, hiding the
+         rootkit’s presence or actions
+         To accelerate cryptographic operations
+         To forcibly reinstall the operating system in a loop
+8. Which of the following statements about botnets is false?
+         Botnets typically consist of compromised machines
+         under remote command-and-control.
+         Botnets may communicate using peer-to-peer or multi-
+         tiered architectures.
+         A single centralized server is the only way to manage
+
+
+
+
+                              2
+          botnets.
+          Botnets can be used for DDoS attacks, spam campaigns,
+          or credential theft.
+ 9. A keylogger is primarily designed to:
+          Render the OS unbootable until a ransom is paid
+          Replace standard binaries (like ls or ps ) to hide
+          malicious processes
+          Capture user keystrokes to harvest passwords or other
+          sensitive data
+          Create duplicates of infected files to spread to
+          other machines
+10. Which technique might a kernel-mode rootkit use to remain
+    undetected?
+          Including a special self-destruct button in the user
+          interface
+          Manipulating the kernel’s internal data structures
+          (DKOM) to hide processes or network connections
+          Encouraging the user to run system updates frequently
+          Conducting a phone-based phishing campaign
+
+
+
+
+                             Part B
+
+
+ 1. Malware Installation Pathways
+      – Question: Summarize three different malware delivery
+        methods (e.g., email attachments, drive-by downloads)
+        and describe one real-world example for each method.
+ 2. Virus vs. Worm Differences
+      – Question: Compare and contrast viruses and worms in
+        terms of infection mechanism, propagation, and user
+        involvement. What implications do these differences
+        have for designing effective defensive measures?
+ 3. Rootkit Detection Challenges
+      – Question: Why are rootkits considered especially
+        difficult to detect and remove? Discuss two stealth
+        techniques rootkits commonly use and how these pose
+        challenges to traditional antivirus.
+ 4. Polymorphic and Metamorphic Malware
+      – Question: Explain the difference between polymorphic
+
+
+
+
+                                 3
+        and metamorphic malware. Illustrate how each makes
+        signature-based detection difficult.
+ 5. Ransomware Workflows
+      – Question: Outline the key steps in a modern ransomware
+        attack, from initial compromise to payment demand. How
+        do advanced ransomware strains ensure that even offline
+        backups might be compromised?
+ 6. Botnet Control Structures
+      – Question: Describe two different C2 (command-and-
+        control) architectures for botnets (e.g., centralized
+        vs. peer-to-peer). For each architecture, note a
+        strength and a weakness from the botmaster’s
+        perspective.
+ 7. Drive-by Download Mechanisms
+      – Question: Analyze a typical drive-by download scenario.
+        How do attackers exploit browser vulnerabilities, and
+        what redirection or obfuscation techniques might they
+        use?
+ 8. Kernel-Mode vs. User-Mode Rootkits
+      – Question: Distinguish between kernel-mode and user-mode
+        rootkits in terms of system privileges, potential
+        stealth, and risk. Why might a kernel-mode rootkit be
+        more powerful?
+ 9. Trojan Horses and Backdoors
+      – Question: Many Trojan horses include hidden backdoors.
+        Discuss how attackers typically embed these backdoors
+        and why they are valuable for long-term system
+        compromise.
+10. Vulnerability Exploits and Malware
+      – Question: Malware often relies on software
+        vulnerabilities to gain elevated privileges or execute
+        arbitrary code. Describe two example vulnerabilities
+        (e.g., buffer overflow, SQL injection) commonly
+        targeted by malware, and why patching them quickly is
+        crucial.
+
+
+
+
+                                  4
+                              Part C
+
+
+1. Worm Spread Rate
+     – Question: Suppose a worm scans the internet for
+       vulnerable hosts at a rate of (106) probes per hour. If
+       roughly 0.01% of all hosts probed are unpatched and
+       become newly infected, estimate how many new infections
+       occur per hour. If the infected population doubles each
+       hour, how many infections might there be after 5 hours?
+2. Ransomware File-Encryption Scale
+     – Question: A ransomware variant encrypts user files
+       using a hybrid approach. It generates a 256-bit AES key
+       per system to encrypt all files, then encrypts that AES
+       key using a 2048-bit RSA public key. If the RSA
+       encryption step takes 20ms on average, how long would
+       it take to encrypt the AES key across 5000 infected
+       systems?
+3. Botnet Attack Throughput
+     – Question: A botnet with 50,000 active zombies can each
+       send 10,000 spam emails per hour. What is the total
+       spam-sending capacity per day (24 hours)? Express your
+       answer in billions of emails per day.
+4. Polymorphic Malware Signature Coverage
+     – Question: A polymorphic malware variant can create 100
+       distinct decryptor shapes per day. An antivirus vendor
+       can only generate 1 new signature update per day.
+       Explain quantitatively how the malware’s mutation rate
+       might outpace signature-based detection (e.g., how many
+       forms remain undetected over a week).
+
+
+
+
+                                5
+

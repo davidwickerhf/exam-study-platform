@@ -1,0 +1,232 @@
+{
+  "generatedAt": "2026-05-30T13:46:43.282Z",
+  "courseId": "stats",
+  "examId": "mock-b",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Suppose that the province of Limburg contains 85 school corporations and each corporation reports its expenditures per pupil. If we want to construct a 95%-confidence interval for the average expenditure per pupil, which type of confidence interval (CI) is most appropriate in this situation?",
+      "modelAnswer": "d) None, this sample is not a random sample and therefore constructing a CI is not appropriate.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "The $p$-CI as we are dealing with a proportion.",
+        "The $z$-CI as we know the population variance.",
+        "The $t$-CI as we do not know the population variance.",
+        "None, this sample is not a random sample and therefore constructing a CI is not appropriate."
+      ]
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Which of the following visualizations highlights (indicated by the gray area) the following subset of the sample space $S$: $$(E' \\cap F') \\cup (E \\cap F)$$",
+      "modelAnswer": "The event is the region where $E$ and $F$ have the same truth value: both outside $E$ and $F$, or inside both $E$ and $F$.\n\nCorrect option(s): d) I",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "IV",
+        "III",
+        "II",
+        "I"
+      ]
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "The sampling distribution of the sample variance follows a",
+      "modelAnswer": "a) $\\chi^2$ distribution with $n - 1$ degrees of freedom",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "$\\chi^2$ distribution with $n - 1$ degrees of freedom",
+        "$t$-distribution with $n - 1$ degrees of freedom",
+        "$\\chi^2$ distribution with $1$ degrees of freedom",
+        "$\\chi^2$ distribution with $n$ degrees of freedom",
+        "$t$-distribution with $n$ degrees of freedom"
+      ]
+    },
+    {
+      "id": "q1d",
+      "label": "Q1(d)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Fill in the blank: In Geary’s test for normality, the ____ of the test statistic is a good estimator for $\\sigma$ if $X$ follows a normal distribution with mean $\\mu$ and variance $\\sigma^2$, but it will over- or underestimate for any other distribution.",
+      "modelAnswer": "b) numerator",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "denominator",
+        "numerator",
+        "first factor",
+        "first term"
+      ]
+    },
+    {
+      "id": "q2a",
+      "label": "Q2(a)",
+      "marks": 1,
+      "sharedContext": "Statement: The binomial distribution can not be approximated by a normal distribution.",
+      "text": "Is the statement True of False?",
+      "modelAnswer": "False",
+      "page": 3,
+      "type": "tf",
+      "options": [
+        "True",
+        "False"
+      ]
+    },
+    {
+      "id": "q2b",
+      "label": "Q2(b)",
+      "marks": 5,
+      "sharedContext": "Statement: The binomial distribution can not be approximated by a normal distribution.",
+      "text": "Motivate your response to the previous question on whether the statement is True or False. Please be as complete as possible in your answer. Remember that the only thing that can be graded is what you write down on your exam.",
+      "modelAnswer": "The statement is false. A binomial distribution can be approximated by a normal distribution when the sample size is sufficiently large and the distribution is not too skewed.\n\nFor $X \\sim \\operatorname{Bin}(n,p)$,\n\n$$\nE[X] = np, \\qquad \\operatorname{Var}(X) = np(1-p).\n$$\n\nUnder the usual rule of thumb, the normal approximation is appropriate when\n\n$$\nnp \\geq 10 \\quad \\text{and} \\quad n(1-p) \\geq 10,\n$$\n\nor equivalently when there are sufficiently many expected successes and failures. Then\n\n$$\nX \\approx N(np, np(1-p)).\n$$\n\nFor probabilities involving integer counts, a continuity correction should be used, for example $P(X \\leq k) \\approx P(Y \\leq k + 0.5)$ for $Y \\sim N(np, np(1-p))$.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2c",
+      "label": "Q2(c)",
+      "marks": 1,
+      "sharedContext": "Statement: When performing a $t$-test, and obtaining a $p$-value of $0.07$, then there is a $7\\%$ probability that the alternative hypothesis is false.",
+      "text": "Is the statement True of False?",
+      "modelAnswer": "False",
+      "page": 4,
+      "type": "tf",
+      "options": [
+        "True",
+        "False"
+      ]
+    },
+    {
+      "id": "q2d",
+      "label": "Q2(d)",
+      "marks": 5,
+      "sharedContext": "Statement: When performing a $t$-test, and obtaining a $p$-value of $0.07$, then there is a $7\\%$ probability that the alternative hypothesis is false.",
+      "text": "Motivate your response to the previous question on whether the statement is True or False. Please be as complete as possible in your answer. Remember that the only thing that can be graded is what you write down on your exam.",
+      "modelAnswer": "The statement is false. A $p$-value is not the probability that the alternative hypothesis is false.\n\nA $p$-value of $0.07$ means that, assuming the null hypothesis $H_0$ is true, the probability of obtaining a test statistic at least as extreme as the observed one is $0.07$.\n\nIn symbols, for an observed test statistic $t_{\\text{obs}}$, the $p$-value is of the form\n\n$$\nP(\\text{test statistic at least as extreme as } t_{\\text{obs}} \\mid H_0 \\text{ is true}).\n$$\n\nIt is not $P(H_0 \\text{ true} \\mid \\text{data})$ and not $P(H_A \\text{ false} \\mid \\text{data})$. For a fixed significance level $\\alpha = 0.05$, a $p$-value of $0.07$ would mean we fail to reject $H_0$.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "An urn contains $b$ black balls and $r$ red balls. One of the balls is drawn at random, but when it is put back in the urn $c$ additional balls of the same color are put in with it. Now suppose that we draw another ball. Derive that the probability of the first ball drawn was black given that the second ball drawn was red is equal to $\\frac{b}{b + r + c}$.",
+      "modelAnswer": "Let $B_1$ be the event that the first ball drawn was black, and let $R_2$ be the event that the second ball drawn was red. We need $P(B_1 \\mid R_2)$.\n\nBy Bayes' rule,\n\n$$\nP(B_1 \\mid R_2) = \\frac{P(R_2 \\mid B_1)P(B_1)}{P(R_2)}.\n$$\n\nWe have\n\n$$\nP(B_1) = \\frac{b}{b+r}, \\qquad P(R_1) = \\frac{r}{b+r}.\n$$\n\nIf the first ball was black, then the urn contains $b+c$ black balls and $r$ red balls before the second draw, so\n\n$$\nP(R_2 \\mid B_1) = \\frac{r}{b+r+c}.\n$$\n\nIf the first ball was red, then the urn contains $b$ black balls and $r+c$ red balls before the second draw, so\n\n$$\nP(R_2 \\mid R_1) = \\frac{r+c}{b+r+c}.\n$$\n\nTherefore, using the law of total probability,\n\n$$\nP(R_2) = P(R_2 \\mid B_1)P(B_1) + P(R_2 \\mid R_1)P(R_1)\n$$\n\n$$\n= \\frac{r}{b+r+c}\\frac{b}{b+r} + \\frac{r+c}{b+r+c}\\frac{r}{b+r}\n$$\n\n$$\n= \\frac{br + r(r+c)}{(b+r+c)(b+r)}\n= \\frac{r(b+r+c)}{(b+r+c)(b+r)}\n= \\frac{r}{b+r}.\n$$\n\nHence,\n\n$$\nP(B_1 \\mid R_2)\n= \\frac{\\frac{r}{b+r+c}\\frac{b}{b+r}}{\\frac{r}{b+r}}\n= \\frac{b}{b+r+c}.\n$$",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q4a",
+      "label": "Q4(a)",
+      "marks": 6,
+      "sharedContext": "",
+      "text": "Consider the joint density function $f(x,y) = \\begin{cases} \\frac{16y}{x^3} & x > 2, 0 < y < 1, \\\\ 0 & \\text{elsewhere}. \\end{cases}$ Compute the correlation coefficient $\\rho_{XY}$.",
+      "modelAnswer": "The joint density factors as\n\n$$\nf(x,y) = \\frac{16y}{x^3} = \\frac{8}{x^3} \\cdot 2y, \\qquad x>2,\\;0<y<1.\n$$\n\nThus $X$ and $Y$ are independent, with marginal densities\n\n$$\nf_X(x)=\\frac{8}{x^3}, \\quad x>2,\n$$\n\nand\n\n$$\nf_Y(y)=2y, \\quad 0<y<1.\n$$\n\nSince $X$ and $Y$ are independent,\n\n$$\n\\operatorname{Cov}(X,Y)=0.\n$$\n\nTherefore,\n\n$$\n\\rho_{XY}=\\frac{\\operatorname{Cov}(X,Y)}{\\sigma_X\\sigma_Y}=0.\n$$",
+      "page": 6,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4b",
+      "label": "Q4(b)",
+      "marks": 4,
+      "sharedContext": "A convenience store has two separate locations where customers can be checked out as they leave. These locations each have two cash registers and two employees who check out customers. Let $X$ be the number of cash registers being used at a particular time for location 1 and $Y$ the number being used at the same time for location 2. The joint probability function is given by\n\n| | $y = 0$ | $y = 1$ | $y = 2$ |\n|---|---:|---:|---:|\n| $x = 0$ | $0.12$ | $0.04$ | $0.04$ |\n| $x = 1$ | $0.08$ | $0.19$ | $0.05$ |\n| $x = 2$ | $0.06$ | $0.12$ | $0.30$ |",
+      "text": "Calculate $Var(X)$",
+      "modelAnswer": "First compute the marginal distribution of $X$:\n\n$$\nP(X=0)=0.12+0.04+0.04=0.20,\n$$\n\n$$\nP(X=1)=0.08+0.19+0.05=0.32,\n$$\n\n$$\nP(X=2)=0.06+0.12+0.30=0.48.\n$$\n\nThen\n\n$$\nE[X] = 0(0.20)+1(0.32)+2(0.48)=1.28.\n$$\n\nAlso,\n\n$$\nE[X^2] = 0^2(0.20)+1^2(0.32)+2^2(0.48)=0.32+1.92=2.24.\n$$\n\nTherefore,\n\n$$\nVar(X)=E[X^2]-(E[X])^2=2.24-(1.28)^2=2.24-1.6384=0.6016.\n$$",
+      "page": 7,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4c",
+      "label": "Q4(c)",
+      "marks": 4,
+      "sharedContext": "A convenience store has two separate locations where customers can be checked out as they leave. These locations each have two cash registers and two employees who check out customers. Let $X$ be the number of cash registers being used at a particular time for location 1 and $Y$ the number being used at the same time for location 2. The joint probability function is given by\n\n| | $y = 0$ | $y = 1$ | $y = 2$ |\n|---|---:|---:|---:|\n| $x = 0$ | $0.12$ | $0.04$ | $0.04$ |\n| $x = 1$ | $0.08$ | $0.19$ | $0.05$ |\n| $x = 2$ | $0.06$ | $0.12$ | $0.30$ |",
+      "text": "Calculate $E[Y \\mid X = 2]$",
+      "modelAnswer": "For $X=2$,\n\n$$\nP(X=2)=0.06+0.12+0.30=0.48.\n$$\n\nThe conditional probabilities are\n\n$$\nP(Y=0 \\mid X=2)=\\frac{0.06}{0.48}=0.125,\n$$\n\n$$\nP(Y=1 \\mid X=2)=\\frac{0.12}{0.48}=0.25,\n$$\n\n$$\nP(Y=2 \\mid X=2)=\\frac{0.30}{0.48}=0.625.\n$$\n\nTherefore,\n\n$$\nE[Y \\mid X=2] = 0(0.125)+1(0.25)+2(0.625)=1.5.\n$$",
+      "page": 7,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5a",
+      "label": "Q5(a)",
+      "marks": 6,
+      "sharedContext": "Competitive prices?\n\nA retailer entered into an exclusive agreement with a supplier who guaranteed to provide all products at competitive prices. The retailer eventually began to purchase supplies from other vendors who offered better prices. The original supplier filed a legal action claiming violation of the agreement. In defense, the retailer had an audit performed on a random sample of invoices. For each audited invoice, all purchases made from other suppliers were examined and the prices were compared with those offered by the original supplier. For each invoice, the percent of purchases for which the alternate supplier offered a lower price than the original supplier was recorded. Here are the data:\n\n$0$ $100$ $0$ $100$ $33$ $34$ $100$ $48$ $78$ $100$ $77$ $100$ $38$ $68$ $100$ $79$ $100$ $100$ $100$ $100$ $100$ $100$ $89$ $100$ $100$",
+      "text": "Based on the information above, construct a $95\\%$ CI for the average percentage of the supplier’s prices that are not competitive.",
+      "modelAnswer": "Let $\\mu$ be the average percentage of the supplier's prices that are not competitive. Since $\\sigma$ is unknown, use a one-sample $t$-confidence interval.\n\nThe sample size is\n\n$$\nn=25.\n$$\n\nThe sample mean is\n\n$$\n\\bar{x}=75.36.\n$$\n\nThe sample standard deviation is\n\n$$\ns \\approx 33.72.\n$$\n\nFor a $95\\%$ confidence interval with $df=24$,\n\n$$\nt_{0.975,24} \\approx 2.064.\n$$\n\nThus,\n\n$$\n\\bar{x} \\pm t_{0.975,24}\\frac{s}{\\sqrt{n}}\n=75.36 \\pm 2.064\\frac{33.72}{5}\n=75.36 \\pm 13.92.\n$$\n\nSo the $95\\%$ confidence interval is\n\n$$\n(61.44, 89.28).\n$$\n\nThe average percentage of the supplier's prices that are not competitive is estimated to lie between about $61.4\\%$ and $89.3\\%$.",
+      "page": 8,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5b",
+      "label": "Q5(b)",
+      "marks": 2,
+      "sharedContext": "Competitive prices?\n\nA retailer entered into an exclusive agreement with a supplier who guaranteed to provide all products at competitive prices. The retailer eventually began to purchase supplies from other vendors who offered better prices. The original supplier filed a legal action claiming violation of the agreement. In defense, the retailer had an audit performed on a random sample of invoices. For each audited invoice, all purchases made from other suppliers were examined and the prices were compared with those offered by the original supplier. For each invoice, the percent of purchases for which the alternate supplier offered a lower price than the original supplier was recorded. Here are the data:\n\n$0$ $100$ $0$ $100$ $33$ $34$ $100$ $48$ $78$ $100$ $77$ $100$ $38$ $68$ $100$ $79$ $100$ $100$ $100$ $100$ $100$ $100$ $89$ $100$ $100$",
+      "text": "Keeping in mind that the supplier guaranteed to provide all products at competitive prices, does this CI suggest that the original supplier’s prices are on average not competitive?",
+      "modelAnswer": "Yes. The $95\\%$ confidence interval from part (a) is approximately\n\n$$\n(61.44, 89.28).\n$$\n\nThis interval is entirely above $0\\%$, so it suggests that, on average, a substantial percentage of the supplier's prices are not competitive. Therefore, the data suggest that the original supplier's prices are on average not competitive.",
+      "page": 9,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q5c",
+      "label": "Q5(c)",
+      "marks": 4,
+      "sharedContext": "",
+      "text": "In a random sample of $975$ students from a large public university, it was found that $463$ of the students changed majors during their college years. University officials concerned with counseling students are interested in the number of students who change majors. Give a $95\\%$-confidence interval of the number of students, out of $37,500$ undergraduate students, who change majors during their college years.",
+      "modelAnswer": "The sample proportion is\n\n$$\n\\hat{p}=\\frac{463}{975}\\approx 0.4749.\n$$\n\nFor a $95\\%$ confidence interval for a population proportion,\n\n$$\n\\hat{p} \\pm z_{0.975}\\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}}\n$$\n\nwith $z_{0.975}=1.96$. Thus,\n\n$$\n0.4749 \\pm 1.96\\sqrt{\\frac{0.4749(1-0.4749)}{975}}\n$$\n\n$$\n=0.4749 \\pm 0.0313.\n$$\n\nSo the confidence interval for the proportion is approximately\n\n$$\n(0.4436, 0.5062).\n$$\n\nMultiplying by $37,500$ undergraduate students gives\n\n$$\n37,500(0.4436,0.5062)=(16636,18984).\n$$\n\nA $95\\%$ confidence interval for the number of students who change majors is approximately\n\n$$\n(16,636, 18,984).\n$$",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6a",
+      "label": "Q6(a)",
+      "marks": 6,
+      "sharedContext": "Can snobby salespeople boost retail prices?\n\nResearchers asked $180$ women to read a hypothetical shopping experience where they entered a luxury store (e.g., Louis Vuitton, Gucci, Burberry) and ask a salesperson for directions to the items they seek. For half the women, the salesperson was condescending while doing this. The other half were directed in a neutral manner. After reading the experience, participants were asked what price they were willing to pay (in USD) for a particular product from the brand. The results are summarized in the table below.\n\n| Luxury Store | $n$ | $\\bar{x}$ | $s$ |\n|---|---:|---:|---:|\n| Treatment: Condescending | $90$ | $4.44$ | $3.98$ |\n| Treatment: Neutral | $90$ | $3.95$ | $2.88$ |",
+      "text": "Were the participants who were treated rudely in the luxury store willing to pay more for the product? Use significance testing to determine the answer.",
+      "modelAnswer": "Let $\\mu_C$ be the mean willingness to pay for the condescending treatment and $\\mu_N$ be the mean willingness to pay for the neutral treatment.\n\nUse a two-sample $t$-test:\n\n$$\nH_0: \\mu_C - \\mu_N = 0\n$$\n\n$$\nH_A: \\mu_C - \\mu_N > 0\n$$\n\nThe test statistic is\n\n$$\nt = \\frac{\\bar{x}_C - \\bar{x}_N}{\\sqrt{\\frac{s_C^2}{n_C}+\\frac{s_N^2}{n_N}}}\n= \\frac{4.44-3.95}{\\sqrt{\\frac{3.98^2}{90}+\\frac{2.88^2}{90}}}.\n$$\n\n$$\nt \\approx \\frac{0.49}{0.518}=0.95.\n$$\n\nUsing a one-sided two-sample $t$-test, the $p$-value is approximately $0.17$.\n\nSince $p \\approx 0.17 > 0.05$, we fail to reject $H_0$ at the $5\\%$ significance level.\n\nThere is not sufficient statistical evidence that participants who were treated rudely in the luxury store were willing to pay more for the product.",
+      "page": 10,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6b",
+      "label": "Q6(b)",
+      "marks": 6,
+      "sharedContext": "In another study the same researchers asked $180$ different women to read the same hypothetical shopping experience, but now they entered a mass market (e.g., Gap, H&M). Again, after reading the experience, participants were asked what price they were willing to pay (in USD) for a particular product from the brand. The results are summarized in the table below.\n\n| Mass Market | $n$ | $\\bar{x}$ | $s$ |\n|---|---:|---:|---:|\n| Treatment: Condescending | $90$ | $2.90$ | $3.28$ |\n| Treatment: Neutral | $90$ | $2.98$ | $3.24$ |",
+      "text": "Were the participants who were treated rudely in the mass market willing to pay more for the product? Use hypothesis testing with a fixed significance level (of $\\alpha = 0.05$) to determine the answer.",
+      "modelAnswer": "Let $\\mu_C$ be the mean willingness to pay for the condescending treatment and $\\mu_N$ be the mean willingness to pay for the neutral treatment.\n\nUse a two-sample $t$-test:\n\n$$\nH_0: \\mu_C - \\mu_N = 0\n$$\n\n$$\nH_A: \\mu_C - \\mu_N > 0\n$$\n\nThe test statistic is\n\n$$\nt = \\frac{\\bar{x}_C - \\bar{x}_N}{\\sqrt{\\frac{s_C^2}{n_C}+\\frac{s_N^2}{n_N}}}\n= \\frac{2.90-2.98}{\\sqrt{\\frac{3.28^2}{90}+\\frac{3.24^2}{90}}}.\n$$\n\n$$\nt \\approx \\frac{-0.08}{0.486}=-0.16.\n$$\n\nFor the one-sided alternative $\\mu_C - \\mu_N > 0$, this gives a large $p$-value, approximately $0.56$.\n\nSince $p > 0.05$, we fail to reject $H_0$.\n\nThere is not sufficient statistical evidence that participants who were treated rudely in the mass market were willing to pay more for the product.",
+      "page": 11,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Stephen wants to check whether we can use a Poisson distribution with an average of $2$ calls per day to model the number of dropped calls on his cell phone. To do this, he records the number of dropped calls per day for the next $100$ days. His observed counts of dropped calls are $11$, $22$, $28$ and $39$, for having $0$, $1$, $2$, and $\\geq 3$ dropped calls, respectively. Use a $\\chi^2$-test goodness of fit test to test the hypothesis that the number of dropped calls follow a Poisson distribution.",
+      "modelAnswer": "We test whether the number of dropped calls follows a Poisson distribution with $\\lambda=2$.\n\n$$\nH_0: X \\sim \\operatorname{Poisson}(2)\n$$\n\n$$\nH_A: X \\text{ does not follow } \\operatorname{Poisson}(2)\n$$\n\nThe observed counts are:\n\n| Number of dropped calls | Observed |\n|---|---:|\n| $0$ | $11$ |\n| $1$ | $22$ |\n| $2$ | $28$ |\n| $\\geq 3$ | $39$ |\n\nUnder $X \\sim \\operatorname{Poisson}(2)$,\n\n$$\nP(X=k)=e^{-2}\\frac{2^k}{k!}.\n$$\n\nExpected counts for $100$ days:\n\n$$\nE_0=100P(X=0)=100e^{-2}\\approx 13.53,\n$$\n\n$$\nE_1=100P(X=1)=100(2e^{-2})\\approx 27.07,\n$$\n\n$$\nE_2=100P(X=2)=100(2e^{-2})\\approx 27.07,\n$$\n\n$$\nE_{\\geq 3}=100P(X\\geq 3)=100(1-P(X=0)-P(X=1)-P(X=2))\\approx 32.33.\n$$\n\nThe test statistic is\n\n$$\n\\chi^2 = \\sum \\frac{(O_i-E_i)^2}{E_i}.\n$$\n\n$$\n\\chi^2 \\approx \\frac{(11-13.53)^2}{13.53}+\\frac{(22-27.07)^2}{27.07}+\\frac{(28-27.07)^2}{27.07}+\\frac{(39-32.33)^2}{32.33}\n$$\n\n$$\n\\chi^2 \\approx 2.83.\n$$\n\nThere are $4$ categories and no parameter is estimated from the data, so\n\n$$\ndf=4-1=3.\n$$\n\nAt significance level $\\alpha=0.05$, the critical value is\n\n$$\n\\chi^2_{0.95,3}=7.815.\n$$\n\nSince\n\n$$\n2.83 < 7.815,\n$$\n\nwe fail to reject $H_0$.\n\nThere is not sufficient evidence against using a Poisson distribution with average $2$ calls per day to model the number of dropped calls.",
+      "page": 12,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

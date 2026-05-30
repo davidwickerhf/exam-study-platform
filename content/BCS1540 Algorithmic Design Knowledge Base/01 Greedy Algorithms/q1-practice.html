@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Greedy Q1 Practice — Write & Submit</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #f5f5f7;
+    color: #1c1c1e;
+    margin: 0;
+    padding: 0 32px 64px;
+    max-width: 1100px;
+    margin: 0 auto;
+    line-height: 1.55;
+  }
+  header {
+    padding: 32px 0 16px;
+    border-bottom: 1px solid #e5e5e7;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 24px;
+    margin: 0 0 6px 0;
+  }
+  .subtitle {
+    color: #6b6b6f;
+    margin: 0;
+    font-size: 14px;
+  }
+  .how-to {
+    background: #fff8e6;
+    border-left: 3px solid #f59e0b;
+    padding: 12px 16px;
+    margin: 20px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .how-to strong { color: #92400e; }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e5e5e7;
+    flex-wrap: wrap;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b6b6f;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: #1c1c1e; }
+  .tab.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  .problem {
+    background: white;
+    border: 1px solid #e5e5e7;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+  .problem h2 {
+    font-size: 18px;
+    margin: 0 0 12px 0;
+    color: #1c1c1e;
+  }
+  .problem p {
+    margin: 12px 0;
+    color: #2c2c2e;
+    font-size: 14.5px;
+  }
+  .problem ul {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+  .problem li {
+    margin: 4px 0;
+    font-size: 14px;
+  }
+  .problem .example {
+    background: #f0f4ff;
+    border-left: 3px solid #2563eb;
+    padding: 10px 14px;
+    margin: 16px 0 0 0;
+    border-radius: 4px;
+    font-size: 13.5px;
+  }
+  .problem .pts {
+    color: #2563eb;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .problem .question {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #e5e5e7;
+  }
+  .answer-section {
+    background: white;
+    border: 1px solid #e5e5e7;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .answer-section h3 {
+    margin: 0 0 14px 0;
+    font-size: 15px;
+    color: #1c1c1e;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .answer-section h3 .pts {
+    color: #2563eb;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b6b6f;
+    margin: 14px 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  textarea {
+    width: 100%;
+    border: 1px solid #d4d4d7;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.55;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    box-sizing: border-box;
+    resize: vertical;
+    transition: border 0.15s, box-shadow 0.15s;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  textarea.description {
+    min-height: 90px;
+  }
+  textarea.runtime {
+    min-height: 50px;
+  }
+  textarea.proof {
+    min-height: 240px;
+  }
+  textarea.pseudocode {
+    min-height: 260px;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Code", monospace;
+    font-size: 13.5px;
+    line-height: 1.6;
+    background: #1e293b;
+    color: #e2e8f0;
+    border-color: #1e293b;
+    tab-size: 2;
+  }
+  textarea.pseudocode:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+    border-color: #3b82f6;
+  }
+  .pseudocode-hint {
+    font-size: 11px;
+    color: #6b6b6f;
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+  }
+  button.action {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button.action:hover { background: #1d4ed8; }
+  button.action.secondary {
+    background: white;
+    color: #6b6b6f;
+    border: 1px solid #d4d4d7;
+  }
+  button.action.secondary:hover {
+    background: #f5f5f7;
+    color: #1c1c1e;
+  }
+  button.action.danger {
+    background: white;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+  button.action.danger:hover {
+    background: #fef2f2;
+  }
+  .status {
+    color: #10b981;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .status.visible {
+    opacity: 1;
+  }
+  .progress-bar {
+    background: white;
+    border: 1px solid #e5e5e7;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #6b6b6f;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .progress-bar .indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .progress-bar .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d4d4d7;
+  }
+  .progress-bar .dot.done {
+    background: #10b981;
+  }
+  .footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e5e7;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .template-hint {
+    margin-top: 14px;
+    padding: 8px 12px;
+    background: #f0fdf4;
+    border-left: 3px solid #10b981;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #166534;
+  }
+  .template-hint summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .template-hint summary:hover { color: #14532d; }
+  .template-hint .hint-body {
+    margin-top: 6px;
+    color: #1f3a23;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Greedy Q1 Practice — Write & Submit</h1>
+  <p class="subtitle">Four exam-style Q1 exercises. Write your answer in the boxes, then click "Copy" to put it on your clipboard. Paste into the chat for grading.</p>
+</header>
+
+<div class="how-to">
+  <strong>How to use:</strong> Pick an exercise tab → write your answer (description + pseudocode + runtime + proof) → click <strong>"Copy this answer"</strong> → paste it back in the chat. Answers auto-save to your browser as you type. <strong>Tab</strong> inside the pseudocode box inserts 2 spaces; <strong>Enter</strong> preserves indentation.
+</div>
+
+<div class="progress-bar" id="progress-bar">
+  <span class="indicator"><span class="dot" id="dot-1"></span>Royal Cinema</span>
+  <span class="indicator"><span class="dot" id="dot-2"></span>Hydraulic Network</span>
+  <span class="indicator"><span class="dot" id="dot-3"></span>Airport Gates</span>
+  <span class="indicator"><span class="dot" id="dot-4"></span>Lighthouses</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="1">1. Royal Cinema</button>
+  <button class="tab" data-tab="2">2. Hydraulic Network</button>
+  <button class="tab" data-tab="3">3. Airport Gates</button>
+  <button class="tab" data-tab="4">4. Lighthouses</button>
+</div>
+
+<!-- ====================== EXERCISE 1 ====================== -->
+<div class="tab-content active" id="content-1">
+
+  <div class="problem">
+    <h2>1. The Royal Cinema</h2>
+    <p>You are the manager of the Royal Cinema, a single-screen movie theatre, and you want to show as many films as possible on the upcoming Cinema Day. You have a catalogue of <em>n</em> candidate films, where film <em>i</em> has a start time <em>s<sub>i</sub></em> and an end time <em>f<sub>i</sub></em> (with <em>s<sub>i</sub> &lt; f<sub>i</sub></em>). The theatre can show only one film at a time, and each film must be screened in its entirety.</p>
+    <p>You want to choose a subset <em>S</em> of the catalogue such that:</p>
+    <ul>
+      <li>No two films in <em>S</em> overlap in time (the end time of one is less than or equal to the start time of the next).</li>
+      <li><em>|S|</em> is as large as possible.</li>
+    </ul>
+    <p>You may assume that:</p>
+    <ul>
+      <li>Films are given to you in <strong>arbitrary order</strong> (not pre-sorted).</li>
+      <li>A film with end time exactly equal to the next film's start time is considered non-overlapping (you can show them back to back).</li>
+    </ul>
+    <div class="example">
+      <strong>Example.</strong> If <em>n</em> = 6 and the films are at times (1, 4), (3, 5), (0, 6), (5, 7), (4, 9), (8, 11), you can show 3 films: (1, 4), (5, 7), (8, 11). Showing 4 films is not possible.
+    </div>
+    <div class="question">
+      <p><span class="pts">4 pts</span> &nbsp; <strong>1a.</strong> Write a greedy algorithm to solve this problem in pseudocode, and include a brief high-level English description of the main idea. State the runtime.</p>
+      <p><span class="pts">4 pts</span> &nbsp; <strong>1b.</strong> Prove that your algorithm always returns a maximum-size set <em>S</em>.</p>
+    </div>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (a) — Algorithm <span class="pts">8 pts</span></h3>
+    <label>English description of the greedy rule</label>
+    <textarea id="ex1-desc" class="description" placeholder="2–4 sentences. Identify the template, state the greedy rule, mention sorting key if any."></textarea>
+    <label>Pseudocode</label>
+    <textarea id="ex1-pseudo" class="pseudocode" placeholder="FUNCTION(inputs):
+  sorted := ...
+  for ...
+    if ...
+      ...
+  return ..."></textarea>
+    <div class="pseudocode-hint">Tab = 2 spaces. Enter preserves the current line's indentation.</div>
+    <label>Runtime</label>
+    <textarea id="ex1-runtime" class="runtime" placeholder="O(?), explain briefly"></textarea>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (b) — Proof <span class="pts">4 pts</span></h3>
+    <textarea id="ex1-proof" class="proof" placeholder="Setup OPT, suppose G ≠ OPT, first disagreement j, two cases (one may collapse), contradiction, conclusion."></textarea>
+    <details class="template-hint">
+      <summary>Stuck? Template hint</summary>
+      <div class="hint-body">Recognition cue: "maximum compatible subset". Sort by earliest <strong>finish</strong> time. Use the exchange-argument template; Case 1 typically collapses (greedy and OPT agree on prior picks, so any "skipped" interval can't be in OPT either).</div>
+    </details>
+  </div>
+
+  <div class="actions">
+    <button class="action" onclick="copyAnswer(1)">Copy Exercise 1 Answer</button>
+    <button class="action secondary" onclick="goToTab(2)">Next →</button>
+    <button class="action danger" onclick="clearAnswer(1)">Clear</button>
+    <span class="status" id="status-1"></span>
+  </div>
+</div>
+
+<!-- ====================== EXERCISE 2 ====================== -->
+<div class="tab-content" id="content-2">
+
+  <div class="problem">
+    <h2>2. Hydraulic Network Construction</h2>
+    <p>You are the chief engineer for the Kingdom of Aquatia, planning a water distribution system to connect <em>n</em> freshwater wells throughout the kingdom. You have a list of <em>m</em> proposed water pipes; pipe <em>k</em> would connect wells <em>u<sub>k</sub></em> and <em>v<sub>k</sub></em> at a construction cost <em>c<sub>k</sub></em> (in royal coins). You want to install a subset of pipes such that:</p>
+    <ul>
+      <li>Water can flow between any two wells, possibly via intermediate wells.</li>
+      <li>The total construction cost is minimised.</li>
+    </ul>
+    <p>You may assume that:</p>
+    <ul>
+      <li>The proposed pipe graph is connected (every well is reachable via some sequence of proposed pipes).</li>
+      <li>Pipe costs <em>c<sub>k</sub></em> are positive integers.</li>
+      <li>Pipes are bidirectional — water can flow in either direction.</li>
+    </ul>
+    <div class="example">
+      <strong>Example.</strong> With <em>n</em> = 4 wells and <em>m</em> = 5 pipes (1, 2, c=6), (1, 3, c=3), (2, 4, c=4), (3, 4, c=5), (2, 3, c=2), the cheapest network installs pipes (1, 3), (2, 3), (2, 4) for total cost 9.
+    </div>
+    <div class="question">
+      <p><span class="pts">4 pts</span> &nbsp; <strong>2a.</strong> Write a greedy algorithm to solve this problem in pseudocode, and include a brief high-level English description of the main idea. State the runtime.</p>
+      <p><span class="pts">4 pts</span> &nbsp; <strong>2b.</strong> Prove that your algorithm always installs a network of minimum total cost.</p>
+    </div>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (a) — Algorithm <span class="pts">8 pts</span></h3>
+    <label>English description of the greedy rule</label>
+    <textarea id="ex2-desc" class="description" placeholder="2–4 sentences. Identify the template, state the greedy rule."></textarea>
+    <label>Pseudocode</label>
+    <textarea id="ex2-pseudo" class="pseudocode" placeholder="FUNCTION(graph, costs):
+  ..."></textarea>
+    <div class="pseudocode-hint">Tab = 2 spaces. Enter preserves indentation.</div>
+    <label>Runtime</label>
+    <textarea id="ex2-runtime" class="runtime" placeholder="O(?), explain briefly"></textarea>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (b) — Proof <span class="pts">4 pts</span></h3>
+    <textarea id="ex2-proof" class="proof" placeholder="Setup, first disagreement edge, cycle creation, find swap target, cost comparison, swap, contradiction."></textarea>
+    <details class="template-hint">
+      <summary>Stuck? Template hint</summary>
+      <div class="hint-body">Recognition cue: "connect everything with minimum total cost". This is MST — use Prim's (or Kruskal's). Proof style: exchange-via-cycle-swap. When greedy and OPT disagree on an edge <em>e</em>, adding <em>e</em> to OPT creates a cycle; find another edge in that cycle crossing the same cut as <em>e</em> and swap.</div>
+    </details>
+  </div>
+
+  <div class="actions">
+    <button class="action" onclick="copyAnswer(2)">Copy Exercise 2 Answer</button>
+    <button class="action secondary" onclick="goToTab(3)">Next →</button>
+    <button class="action danger" onclick="clearAnswer(2)">Clear</button>
+    <span class="status" id="status-2"></span>
+  </div>
+</div>
+
+<!-- ====================== EXERCISE 3 ====================== -->
+<div class="tab-content" id="content-3">
+
+  <div class="problem">
+    <h2>3. Airport Gate Allocation</h2>
+    <p>You are the operations manager for a busy regional airport. Today the airport has <em>n</em> scheduled flights, where flight <em>i</em> has a known arrival time <em>a<sub>i</sub></em> and departure time <em>d<sub>i</sub></em> (with <em>a<sub>i</sub> &lt; d<sub>i</sub></em>). Each flight must occupy a single gate continuously throughout its ground period [<em>a<sub>i</sub></em>, <em>d<sub>i</sub></em>] — including taxiing in, disembarking, refuelling, boarding, and taxiing out. Two flights cannot share a gate during overlapping ground periods, but a gate can be re-used by another flight as soon as the previous flight has departed.</p>
+    <p>You have an unlimited number of gates available, but each open gate incurs an operational cost. You want to determine the <strong>minimum number of gates</strong> required to accommodate all <em>n</em> flights today, and to output a valid assignment of each flight to one of the gates.</p>
+    <p>You may assume that:</p>
+    <ul>
+      <li>Flights are given to you in <strong>arbitrary order</strong> (not pre-sorted).</li>
+      <li>A gate may be re-used at the exact moment a previous flight departs (a flight departing at time <em>d</em> does not conflict with a flight arriving at time <em>d</em>).</li>
+      <li>Every gate is identical.</li>
+    </ul>
+    <div class="example">
+      <strong>Example.</strong> With <em>n</em> = 4 flights at ground periods (9, 12), (10, 11), (11, 13), (12, 14), you need 2 gates: gate A hosts (9, 12) then (12, 14); gate B hosts (10, 11) then (11, 13).
+    </div>
+    <div class="question">
+      <p><span class="pts">4 pts</span> &nbsp; <strong>3a.</strong> Write a greedy algorithm to solve this problem in pseudocode, and include a brief high-level English description of the main idea. State the runtime.</p>
+      <p><span class="pts">4 pts</span> &nbsp; <strong>3b.</strong> Prove that your algorithm uses the minimum number of gates possible.</p>
+    </div>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (a) — Algorithm <span class="pts">8 pts</span></h3>
+    <label>English description of the greedy rule</label>
+    <textarea id="ex3-desc" class="description" placeholder="2–4 sentences. Identify the template, state the greedy rule."></textarea>
+    <label>Pseudocode</label>
+    <textarea id="ex3-pseudo" class="pseudocode" placeholder="FUNCTION(flights):
+  ..."></textarea>
+    <div class="pseudocode-hint">Tab = 2 spaces. Enter preserves indentation.</div>
+    <label>Runtime</label>
+    <textarea id="ex3-runtime" class="runtime" placeholder="O(?), with or without priority queue"></textarea>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (b) — Proof <span class="pts">4 pts</span></h3>
+    <textarea id="ex3-proof" class="proof" placeholder="Exhaustion argument. NOT exchange. Let k = number of gates greedy uses. Identify the moment greedy opens the k-th gate..."></textarea>
+    <details class="template-hint">
+      <summary>Stuck? Template hint</summary>
+      <div class="hint-body">Recognition cue: "minimum gates / rooms / labels for overlapping items". Sort by earliest <strong>start</strong> time. Proof style: <strong>exhaustion</strong>, NOT exchange. Show that when greedy opens the k-th gate, k mutually-overlapping flights must exist at that moment — so any valid schedule needs ≥ k gates.</div>
+    </details>
+  </div>
+
+  <div class="actions">
+    <button class="action" onclick="copyAnswer(3)">Copy Exercise 3 Answer</button>
+    <button class="action secondary" onclick="goToTab(4)">Next →</button>
+    <button class="action danger" onclick="clearAnswer(3)">Clear</button>
+    <span class="status" id="status-3"></span>
+  </div>
+</div>
+
+<!-- ====================== EXERCISE 4 ====================== -->
+<div class="tab-content" id="content-4">
+
+  <div class="problem">
+    <h2>4. Lighthouse Coverage Along a Coastline</h2>
+    <p>You are the Lighthouse Commissioner for the Kingdom of Maritima, planning to install warning beacons along a straight coastline of length <em>L</em>. There are <em>n</em> known shipwreck hazards located at positions 0 ≤ <em>p<sub>1</sub></em> ≤ <em>p<sub>2</sub></em> ≤ … ≤ <em>p<sub>n</sub></em> ≤ <em>L</em> along the coast. Each lighthouse has a fixed warning radius <em>r &gt; 0</em> — a lighthouse installed at position <em>x</em> warns ships of any hazard at position <em>p</em> with |<em>p − x</em>| ≤ <em>r</em>.</p>
+    <p>You may place lighthouses at any real-valued position along the coast (not necessarily at hazard positions), and you want to determine the <strong>minimum number of lighthouses</strong> to install so that every hazard <em>p<sub>i</sub></em> is within warning range of at least one lighthouse.</p>
+    <p>You may assume that:</p>
+    <ul>
+      <li>The hazard positions <em>p<sub>1</sub></em>, …, <em>p<sub>n</sub></em> are given to you in <strong>sorted order</strong>.</li>
+      <li>The warning radius <em>r</em> is the same for every lighthouse.</li>
+      <li>A lighthouse's coverage on the coast is the interval [<em>x − r</em>, <em>x + r</em>], including both endpoints.</li>
+    </ul>
+    <div class="example">
+      <strong>Example.</strong> If <em>n</em> = 4 with hazard positions 1, 4, 9, 12 and warning radius <em>r</em> = 2, you need 2 lighthouses: one at position 3 (covering hazards at 1 and 4) and one at position 11 (covering hazards at 9 and 12).
+    </div>
+    <div class="question">
+      <p><span class="pts">4 pts</span> &nbsp; <strong>4a.</strong> Write a greedy algorithm to solve this problem in pseudocode, and include a brief high-level English description of the main idea. State the runtime.</p>
+      <p><span class="pts">4 pts</span> &nbsp; <strong>4b.</strong> Prove that your algorithm installs the minimum number of lighthouses possible.</p>
+    </div>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (a) — Algorithm <span class="pts">8 pts</span></h3>
+    <label>English description of the greedy rule</label>
+    <textarea id="ex4-desc" class="description" placeholder="2–4 sentences. Identify the template, state the greedy rule."></textarea>
+    <label>Pseudocode</label>
+    <textarea id="ex4-pseudo" class="pseudocode" placeholder="FUNCTION(hazards, radius):
+  ..."></textarea>
+    <div class="pseudocode-hint">Tab = 2 spaces. Enter preserves indentation.</div>
+    <label>Runtime</label>
+    <textarea id="ex4-runtime" class="runtime" placeholder="O(?), given input is sorted or not"></textarea>
+  </div>
+
+  <div class="answer-section">
+    <h3>Part (b) — Proof <span class="pts">4 pts</span></h3>
+    <textarea id="ex4-proof" class="proof" placeholder="Setup OPT with max commonality, first disagreement j, greedy placed marker at furthest position covering leftmost uncovered hazard, one direction of disagreement is impossible..."></textarea>
+    <details class="template-hint">
+      <summary>Stuck? Template hint</summary>
+      <div class="hint-body">Recognition cue: "minimum markers to cover all points on a line". Greedy rule: at the leftmost uncovered hazard <em>p<sub>i</sub></em>, place a lighthouse at <em>p<sub>i</sub> + r</em> (furthest right while still covering <em>p<sub>i</sub></em>). Proof style: exchange-with-one-direction-impossible. OPT can't place its marker further right than greedy without leaving <em>p<sub>i</sub></em> uncovered.</div>
+    </details>
+  </div>
+
+  <div class="actions">
+    <button class="action" onclick="copyAnswer(4)">Copy Exercise 4 Answer</button>
+    <button class="action danger" onclick="clearAnswer(4)">Clear</button>
+    <span class="status" id="status-4"></span>
+  </div>
+</div>
+
+<div class="footer">
+  <button class="action" onclick="copyAllAnswers()">Copy ALL Answers (1–4)</button>
+  <button class="action danger" onclick="clearAllAnswers()">Clear All</button>
+  <span class="status" id="status-all"></span>
+</div>
+
+<script>
+// ============================================================
+// Tab navigation
+// ============================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const n = tab.dataset.tab;
+    goToTab(n);
+  });
+});
+
+function goToTab(n) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === String(n));
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === `content-${n}`);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// LocalStorage persistence
+// ============================================================
+const STORAGE_KEY = 'bcs1540-q1-practice-v1';
+
+function loadAll() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    Object.keys(data).forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.value = data[key];
+    });
+  } catch (e) {
+    console.warn('Failed to load saved data', e);
+  }
+}
+
+function saveAll() {
+  const data = {};
+  document.querySelectorAll('textarea').forEach(t => {
+    if (t.id) data[t.id] = t.value;
+  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Failed to save', e);
+  }
+  updateProgressDots();
+}
+
+// ============================================================
+// Pseudocode editor: Tab and auto-indent
+// ============================================================
+document.querySelectorAll('textarea.pseudocode').forEach(ta => {
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+      saveAll();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const start = ta.selectionStart;
+      const before = ta.value.substring(0, start);
+      const after = ta.value.substring(ta.selectionEnd);
+      // Find last newline before cursor; get the indent of that line
+      const lineStart = before.lastIndexOf('\n') + 1;
+      const currentLine = before.substring(lineStart);
+      const indent = currentLine.match(/^[ ]*/)[0];
+      const insert = '\n' + indent;
+      ta.value = before + insert + after;
+      ta.selectionStart = ta.selectionEnd = start + insert.length;
+      saveAll();
+    }
+  });
+});
+
+// ============================================================
+// Autosave on change
+// ============================================================
+document.querySelectorAll('textarea').forEach(t => {
+  t.addEventListener('input', saveAll);
+});
+
+// ============================================================
+// Progress dots
+// ============================================================
+function updateProgressDots() {
+  for (let i = 1; i <= 4; i++) {
+    const desc = (document.getElementById(`ex${i}-desc`)?.value || '').trim();
+    const pseudo = (document.getElementById(`ex${i}-pseudo`)?.value || '').trim();
+    const proof = (document.getElementById(`ex${i}-proof`)?.value || '').trim();
+    const filled = desc.length > 10 && pseudo.length > 20 && proof.length > 20;
+    const dot = document.getElementById(`dot-${i}`);
+    if (dot) dot.classList.toggle('done', filled);
+  }
+}
+
+// ============================================================
+// Copy actions
+// ============================================================
+function formatAnswer(n, title) {
+  const desc = document.getElementById(`ex${n}-desc`).value.trim();
+  const pseudo = document.getElementById(`ex${n}-pseudo`).value.trim();
+  const runtime = document.getElementById(`ex${n}-runtime`).value.trim();
+  const proof = document.getElementById(`ex${n}-proof`).value.trim();
+  let out = `# Exercise ${n} — ${title}\n\n## (a) Algorithm\n\n`;
+  out += `**English description:**\n${desc || '(not written)'}\n\n`;
+  out += `**Pseudocode:**\n\`\`\`\n${pseudo || '(not written)'}\n\`\`\`\n\n`;
+  out += `**Runtime:** ${runtime || '(not written)'}\n\n`;
+  out += `## (b) Proof\n\n${proof || '(not written)'}\n`;
+  return out;
+}
+
+const TITLES = {
+  1: 'Royal Cinema',
+  2: 'Hydraulic Network',
+  3: 'Airport Gates',
+  4: 'Lighthouses',
+};
+
+// Fallback copy that works on file:// URLs by using a temporary textarea
+function copyToClipboardFallback(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.top = '0';
+  ta.style.left = '0';
+  ta.style.width = '2em';
+  ta.style.height = '2em';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+function showCopyModal(text, label) {
+  // If we can't copy, show a modal with the text pre-selected for manual copy
+  let modal = document.getElementById('copy-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'copy-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:32px;';
+    modal.innerHTML = `
+      <div style="background:white;border-radius:8px;padding:24px;max-width:800px;width:100%;max-height:80vh;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong id="copy-modal-label" style="font-size:15px;"></strong>
+          <button onclick="document.getElementById('copy-modal').remove()" style="background:#ef4444;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Close</button>
+        </div>
+        <p style="margin:0;font-size:13px;color:#666;">Auto-copy failed (browser blocks clipboard from file:// URLs). The text below is pre-selected — press <strong>Cmd+C</strong> (Mac) or <strong>Ctrl+C</strong> (Windows) to copy it.</p>
+        <textarea id="copy-modal-text" readonly style="flex:1;min-height:300px;width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:12px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;"></textarea>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('copy-modal-label').textContent = label;
+  const ta = document.getElementById('copy-modal-text');
+  ta.value = text;
+  modal.style.display = 'flex';
+  // Focus and select after a tick so the modal renders
+  setTimeout(() => { ta.focus(); ta.select(); }, 50);
+}
+
+function tryCopy(text, statusId, successMsg, modalLabel) {
+  // 1. Try the modern clipboard API
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      showStatus(statusId, successMsg);
+    }).catch(() => {
+      // 2. Try execCommand fallback
+      if (copyToClipboardFallback(text)) {
+        showStatus(statusId, successMsg);
+      } else {
+        // 3. Show modal for manual copy
+        showCopyModal(text, modalLabel);
+      }
+    });
+  } else if (copyToClipboardFallback(text)) {
+    showStatus(statusId, successMsg);
+  } else {
+    showCopyModal(text, modalLabel);
+  }
+}
+
+function copyAnswer(n) {
+  const text = formatAnswer(n, TITLES[n]);
+  tryCopy(text, `status-${n}`, '✓ Copied!', `Exercise ${n} — ${TITLES[n]}`);
+}
+
+function copyAllAnswers() {
+  let text = '# Greedy Q1 Practice — All Answers\n\n';
+  for (let i = 1; i <= 4; i++) {
+    text += formatAnswer(i, TITLES[i]) + '\n---\n\n';
+  }
+  tryCopy(text, 'status-all', '✓ All 4 copied!', 'All 4 Exercises');
+}
+
+function clearAnswer(n) {
+  if (!confirm(`Clear all your work on Exercise ${n}?`)) return;
+  ['desc', 'pseudo', 'runtime', 'proof'].forEach(field => {
+    const el = document.getElementById(`ex${n}-${field}`);
+    if (el) el.value = '';
+  });
+  saveAll();
+  showStatus(`status-${n}`, 'Cleared');
+}
+
+function clearAllAnswers() {
+  if (!confirm('Clear all your work on ALL exercises? This cannot be undone.')) return;
+  document.querySelectorAll('textarea').forEach(t => t.value = '');
+  saveAll();
+  showStatus('status-all', 'All cleared');
+}
+
+function showStatus(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('visible'), 2000);
+}
+
+// ============================================================
+// Init
+// ============================================================
+loadAll();
+updateProgressDots();
+</script>
+
+</body>
+</html>
