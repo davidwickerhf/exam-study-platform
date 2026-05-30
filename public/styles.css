@@ -3652,6 +3652,70 @@ svg.diag-svg .d-arr-dan { fill: var(--danger); }
   width: 100%;
 }
 
+/* ----- Master generate-all-courses card (dashboard footer) ---------------- */
+.genall-all-card {
+  margin-top: 28px;
+}
+.genall-master-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.genall-master-row {
+  display: grid;
+  grid-template-columns: 24px minmax(80px, auto) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.genall-master-status {
+  text-align: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+.genall-master-pending .genall-master-status { color: var(--muted); opacity: 0.5; }
+.genall-master-running .genall-master-status { color: var(--accent); }
+.genall-master-done    .genall-master-status { color: #5a8a5a; }
+.genall-master-error   .genall-master-status { color: #b66355; }
+.genall-master-course {
+  font-weight: 700;
+  font-family: Georgia, Iowan Old Style, serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 14px;
+}
+.genall-master-pending .genall-master-course { color: var(--muted); }
+.genall-master-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.genall-master-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--line);
+  overflow: hidden;
+  max-width: 280px;
+  min-width: 80px;
+}
+.genall-master-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.genall-master-progress small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.genall-master-running-label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  padding-left: 36px;
+  font-style: italic;
+  margin-top: -4px;
+}
+
 /* ----- Chapter progress (course landing) — card grid + spine ----- */
 .course-spine-section {
   background: var(--panel);

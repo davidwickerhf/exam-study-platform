@@ -1228,6 +1228,15 @@ function renderDashboard() {
   // kick async refresh (cache holds results across renders)
   if (!mistakeCache) loadMistakes().then(() => render())
   if (!srDueCache) loadSrDue().then(() => render())
+  // Hydrate master generate-all-courses job once on dashboard mount
+  if (generateAllCoursesJob === null && !generateAllCoursesPolling) {
+    fetch('/api/generate-all-courses').then((r) => r.ok ? r.json() : null).then((job) => {
+      if (!job) { generateAllCoursesJob = undefined; return }
+      generateAllCoursesJob = job
+      if (job.status === 'running' || job.status === 'queued') refreshGenerateAllCourses()
+      else render()
+    }).catch(() => {})
+  }
   const mistakeCount = mistakeCache?.items?.length ?? null
   const srDue = srDueCache?.dueCount ?? null
   const srTotal = srDueCache?.totalCards ?? null
@@ -1280,9 +1289,108 @@ function renderDashboard() {
       </section>
     ` : ''}
 
-    <section class="panel">
-      <div class="panel-head"><div><p class="eyebrow">Week Plan</p><h2>Daily Blocks</h2></div></div>
-      <div class="day-list">${state.dailyBlocks.map(renderDailyBlock).join('')}</div>
+    ${renderGenerateAllCoursesCard()}
+  `
+}
+
+// ----- Master generate-all-courses widget (dashboard footer) ----------------
+let generateAllCoursesJob = null   // { id, isMaster, status, currentCourseId, subJobs: {cid: {steps,…}} }
+let generateAllCoursesPolling = false
+
+function refreshGenerateAllCourses() {
+  if (generateAllCoursesPolling) return
+  generateAllCoursesPolling = true
+  const tick = async () => {
+    try {
+      const resp = await fetch('/api/generate-all-courses')
+      if (resp.status === 404) {
+        generateAllCoursesPolling = false
+        return
+      }
+      generateAllCoursesJob = await resp.json()
+      if (generateAllCoursesJob.status === 'running' || generateAllCoursesJob.status === 'queued') {
+        setTimeout(tick, 4000)
+      } else {
+        generateAllCoursesPolling = false
+        // Invalidate course-level caches so the rest of the dashboard updates
+        if (typeof mockQuestionsCache !== 'undefined') mockQuestionsCache.clear()
+        if (typeof questionsSummaryCache !== 'undefined') questionsSummaryCache.clear()
+      }
+      render()
+    } catch {
+      setTimeout(tick, 8000)
+    }
+  }
+  tick()
+}
+
+async function startGenerateAllCourses() {
+  if (!confirm('Generate every missing piece of content for all active courses?\n\nThis runs sequentially and can take 1–3 hours total of Codex calls. You can close the tab — work continues in the background.')) return
+  try {
+    const resp = await fetch('/api/generate-all-courses', { method: 'POST' })
+    const data = await resp.json()
+    if (data.jobId) refreshGenerateAllCourses()
+  } catch (err) {
+    alert(`Failed to start: ${err.message}`)
+  }
+}
+
+function renderGenerateAllCoursesCard() {
+  const job = generateAllCoursesJob
+  if (!job) {
+    return `
+      <section class="genall-card genall-all-card">
+        <div class="genall-head">
+          <div>
+            <p class="eyebrow">Generate</p>
+            <h3>All content for all courses</h3>
+            <small class="rail-meta">One run that fills every gap across every active course — chapter self-tests, mock question banks, flashcards, parsed past papers, content TOCs. Anything already cached is skipped. Sequential, so Codex stays single-flight.</small>
+          </div>
+          <button type="button" class="kb-link kb-link-mock" data-genall-all-start>Generate all</button>
+        </div>
+      </section>
+    `
+  }
+  const isLive = job.status === 'running' || job.status === 'queued'
+  const isError = job.status === 'error'
+  const totalCourses = (job.courseIds || []).length
+  const doneCourses = Object.values(job.subJobs || {}).filter((s) => s && s.status === 'done').length
+  return `
+    <section class="genall-card genall-all-card ${isLive ? 'live' : (isError ? 'failed' : 'finished')}">
+      <div class="genall-head">
+        <div>
+          <p class="eyebrow">Generate all · all courses</p>
+          <h3>${isLive ? `Running — ${doneCourses}/${totalCourses} courses done` : isError ? `Stopped — ${job.error || 'error'}` : `All ${totalCourses} courses complete`}</h3>
+          ${job.currentCourseId ? `<small class="rail-meta">Now: <strong>${escapeHtml(job.currentCourseId)}</strong></small>` : ''}
+        </div>
+        ${isLive ? `<small class="rail-meta">${doneCourses}/${totalCourses}</small>` : `<button type="button" class="kb-link kb-link-mock" data-genall-all-start>Re-run</button>`}
+      </div>
+      <ul class="genall-master-list">
+        ${(job.courseIds || []).map((cid) => {
+          const sub = job.subJobs?.[cid]
+          if (!sub) {
+            return `<li class="genall-master-row genall-master-pending"><span class="genall-master-status">·</span><span class="genall-master-course">${escapeHtml(cid)}</span><small>pending</small></li>`
+          }
+          const done = sub.steps.filter((s) => s.status === 'done').length
+          const skipped = sub.steps.filter((s) => s.status === 'skipped').length
+          const errors = sub.steps.filter((s) => s.status === 'error').length
+          const running = sub.steps.find((s) => s.status === 'running')
+          const pct = sub.steps.length ? Math.round(((done + skipped) / sub.steps.length) * 100) : 0
+          const cls = sub.status === 'done' ? 'genall-master-done' : sub.status === 'error' ? 'genall-master-error' : sub.status === 'running' ? 'genall-master-running' : 'genall-master-pending'
+          const icon = sub.status === 'done' ? '✓' : sub.status === 'error' ? '!' : sub.status === 'running' ? '…' : '·'
+          return `
+            <li class="genall-master-row ${cls}">
+              <span class="genall-master-status">${icon}</span>
+              <span class="genall-master-course">${escapeHtml(cid)}</span>
+              <span class="genall-master-progress">
+                <span class="genall-master-bar"><span class="genall-master-bar-fill" style="width:${pct}%"></span></span>
+                <small>${done}/${sub.steps.length}${skipped ? ` · ${skipped} skipped` : ''}${errors ? ` · ${errors} failed` : ''}</small>
+              </span>
+              ${running ? `<small class="genall-master-running-label">${escapeHtml(running.label)}</small>` : ''}
+            </li>
+          `
+        }).join('')}
+      </ul>
     </section>
   `
 }
@@ -6458,6 +6566,9 @@ function bindEvents() {
     btn.addEventListener('click', (event) => {
       startGenerateAll(event.currentTarget.dataset.genallStart)
     })
+  })
+  document.querySelectorAll('[data-genall-all-start]').forEach((btn) => {
+    btn.addEventListener('click', () => startGenerateAllCourses())
   })
   document.querySelectorAll('[data-mq-regenerate]').forEach((btn) => {
     btn.addEventListener('click', async (event) => {

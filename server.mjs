@@ -2385,6 +2385,50 @@ async function runGenerateAllJob(jobId) {
   }
 }
 
+/**
+ * Master generate-all-courses orchestrator. Creates a per-course sub-job for
+ * each active course and runs them strictly sequentially, so we never have
+ * more than one Codex call in flight regardless of how many courses are in
+ * the queue.
+ */
+async function runGenerateAllCoursesJob(masterJobId) {
+  const master = generateJobs.get(masterJobId)
+  if (!master) return
+  master.status = 'running'
+  master.startedAt = Date.now()
+  try {
+    for (const courseId of master.courseIds) {
+      master.currentCourseId = courseId
+      const state = await readState()
+      const course = state.courses.find((c) => c.id === courseId)
+      if (!course) {
+        master.subJobIds[courseId] = null
+        continue
+      }
+      const subId = newJobId()
+      const sub = {
+        id: subId,
+        courseId,
+        parentId: masterJobId,
+        createdAt: Date.now(),
+        status: 'queued',
+        steps: planGenerateAllSteps(state, course)
+      }
+      generateJobs.set(subId, sub)
+      generateJobsByCourse.set(courseId, subId)
+      master.subJobIds[courseId] = subId
+      await runGenerateAllJob(subId)  // synchronous await — keeps Codex single-flight
+    }
+    master.status = 'done'
+    master.currentCourseId = null
+    master.finishedAt = Date.now()
+  } catch (err) {
+    master.status = 'error'
+    master.error = err.message || String(err)
+    master.finishedAt = Date.now()
+  }
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -2476,6 +2520,56 @@ const server = createServer(async (req, res) => {
       send(res, 200, JSON.stringify({ ok: true, message: 'Restarting…' }))
       // Give the response time to flush before exiting
       setTimeout(() => process.exit(23), 250)
+      return
+    }
+
+    // ── Master generate-all-courses endpoint ────────────────────────────────
+    // POST /api/generate-all-courses   — kick off a master job over all active courses
+    // GET  /api/generate-all-courses   — most recent master job (+ hydrated sub-jobs)
+    if (url.pathname === '/api/generate-all-courses' && req.method === 'POST') {
+      gcJobs()
+      const state = await readState()
+      const courseIds = state.courses.filter((c) => !c.archived).map((c) => c.id)
+      // If a master is already running, return its id
+      for (const job of generateJobs.values()) {
+        if (job.isMaster && job.status === 'running') {
+          send(res, 200, JSON.stringify({ jobId: job.id, status: job.status, existing: true }))
+          return
+        }
+      }
+      const id = newJobId()
+      const master = {
+        id,
+        isMaster: true,
+        courseIds,
+        subJobIds: {},
+        currentCourseId: null,
+        createdAt: Date.now(),
+        status: 'queued'
+      }
+      generateJobs.set(id, master)
+      setImmediate(() => { runGenerateAllCoursesJob(id).catch(() => {}) })
+      send(res, 202, JSON.stringify({ jobId: id, status: 'queued' }))
+      return
+    }
+    if (url.pathname === '/api/generate-all-courses' && req.method === 'GET') {
+      gcJobs()
+      // Find the most recent master job
+      let latest = null
+      for (const job of generateJobs.values()) {
+        if (job.isMaster && (!latest || job.createdAt > latest.createdAt)) latest = job
+      }
+      if (!latest) {
+        send(res, 404, JSON.stringify({ error: 'No master job' }))
+        return
+      }
+      // Hydrate sub-jobs so the client gets per-course progress in one round-trip
+      const subJobs = {}
+      for (const [cid, subId] of Object.entries(latest.subJobIds || {})) {
+        if (!subId) { subJobs[cid] = null; continue }
+        subJobs[cid] = generateJobs.get(subId) || null
+      }
+      send(res, 200, JSON.stringify({ ...latest, subJobs }))
       return
     }
 
