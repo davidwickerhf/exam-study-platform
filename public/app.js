@@ -3972,7 +3972,10 @@ async function loadPdfOutline(courseId, examId) {
 
     // 2) Try the cached codex-generated content TOC.
     try {
-      const cached = await fetch(`/api/mock-toc/${encodeURIComponent(courseId)}`).then((r) => r.ok ? r.json() : null)
+      const tocUrl = examId
+        ? `/api/mock-toc/${encodeURIComponent(courseId)}/${encodeURIComponent(examId)}`
+        : `/api/mock-toc/${encodeURIComponent(courseId)}`
+      const cached = await fetch(tocUrl).then((r) => r.ok ? r.json() : null)
       if (cached?.items?.length) {
         pdfOutlineCache.set(cacheKey, { items: cached.items, totalPages, status: 'codex' })
         render()
@@ -4345,8 +4348,11 @@ async function buildContentToc(courseId, { force = false, examId = null } = {}) 
   render()
 
   try {
+    const tocUrl = examId
+      ? `/api/mock-toc/${encodeURIComponent(courseId)}/${encodeURIComponent(examId)}`
+      : `/api/mock-toc/${encodeURIComponent(courseId)}`
     if (force) {
-      await fetch(`/api/mock-toc/${encodeURIComponent(courseId)}`, { method: 'DELETE' })
+      await fetch(tocUrl, { method: 'DELETE' })
     }
     const pdf = cached.pdf
     const pages = []
@@ -4356,7 +4362,7 @@ async function buildContentToc(courseId, { force = false, examId = null } = {}) 
       const text = tc.items.map((t) => t.str).join(' ').replace(/\s+/g, ' ').trim()
       pages.push({ page: i, text })
     }
-    const resp = await fetch(`/api/mock-toc/${encodeURIComponent(courseId)}`, {
+    const resp = await fetch(tocUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pages })

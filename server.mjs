@@ -1569,11 +1569,24 @@ async function loadOrGenerateMockQuestions(courseId, force = false) {
   return generateMockQuestions(courseId)
 }
 
-async function buildMockToc(courseId, pages) {
-  const cachePath = resolve(cacheDir, 'mock-toc', `${courseId}.json`)
+function mockTocPath(courseId, examId) {
+  return resolve(cacheDir, 'mock-toc', `${examCacheKey(courseId, examId)}.json`)
+}
+
+async function buildMockToc(courseId, examId, pages) {
+  const cachePath = mockTocPath(courseId, examId)
   if (existsSync(cachePath)) {
     try {
       const cached = JSON.parse(await readFile(cachePath, 'utf8'))
+      if (cached.items?.length) return cached
+    } catch {}
+  }
+  // Legacy single-TOC fallback: if a per-course file exists from before the
+  // multi-exam refactor, treat it as the TOC for the first exam.
+  const legacyPath = resolve(cacheDir, 'mock-toc', `${courseId}.json`)
+  if (existsSync(legacyPath)) {
+    try {
+      const cached = JSON.parse(await readFile(legacyPath, 'utf8'))
       if (cached.items?.length) return cached
     } catch {}
   }
@@ -2188,6 +2201,18 @@ function planGenerateAllSteps(state, course) {
       examId: exam.id
     })
   }
+  // 5. PDF content TOC, one per exam paper (for the in-page outline navigator)
+  for (const exam of getMockExams(course)) {
+    if (!exam.pdf) continue
+    const tocCachePath = mockTocPath(course.id, exam.id)
+    steps.push({
+      key: `mock-toc:${exam.id}`,
+      label: `Content TOC — ${exam.label}`,
+      status: existsSync(tocCachePath) ? 'skipped' : 'pending',
+      kind: 'mock-toc',
+      examId: exam.id
+    })
+  }
   return steps
 }
 
@@ -2246,6 +2271,14 @@ async function runGenerateAllJob(jobId) {
           }
           if (!questionPages.length) throw new Error('No text extracted from PDF')
           await parseExamPaper(job.courseId, step.examId, questionPages, solutionsPages)
+        } else if (step.kind === 'mock-toc') {
+          const exam = getMockExams(course).find((e) => e.id === step.examId)
+          if (!exam?.pdf) throw new Error(`Exam ${step.examId} has no PDF`)
+          const vaultRoot = getVaultRoot(state)
+          const pdfPath = resolve(vaultRoot, course.knowledgeBase, exam.pdf)
+          const pages = await extractPdfPageText(pdfPath)
+          if (!pages.length) throw new Error('No text extracted from PDF')
+          await buildMockToc(job.courseId, step.examId, pages)
         }
         step.status = 'done'
       } catch (err) {
@@ -2982,16 +3015,19 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    const mockTocMatch = url.pathname.match(/^\/api\/mock-toc\/([^/]+)$/)
+    // /api/mock-toc/:cid          → first exam (legacy)
+    // /api/mock-toc/:cid/:eid      → specific exam
+    const mockTocMatch = url.pathname.match(/^\/api\/mock-toc\/([^/]+)(?:\/([^/]+))?$/)
     if (mockTocMatch && req.method === 'POST') {
       const courseId = decodeURIComponent(mockTocMatch[1])
+      const examId = mockTocMatch[2] ? decodeURIComponent(mockTocMatch[2]) : null
       try {
         const body = await readBody(req)
         if (!Array.isArray(body.pages) || !body.pages.length) {
           send(res, 400, JSON.stringify({ error: 'pages[] is required' }))
           return
         }
-        const payload = await buildMockToc(courseId, body.pages)
+        const payload = await buildMockToc(courseId, examId, body.pages)
         send(res, 200, JSON.stringify(payload))
       } catch (err) {
         send(res, 500, JSON.stringify({ error: err.message }))
@@ -3000,17 +3036,28 @@ const server = createServer(async (req, res) => {
     }
     if (mockTocMatch && req.method === 'DELETE') {
       const courseId = decodeURIComponent(mockTocMatch[1])
-      const cachePath = resolve(cacheDir, 'mock-toc', `${courseId}.json`)
+      const examId = mockTocMatch[2] ? decodeURIComponent(mockTocMatch[2]) : null
+      const cachePath = mockTocPath(courseId, examId)
       if (existsSync(cachePath)) await unlink(cachePath).catch(() => {})
       send(res, 200, JSON.stringify({ ok: true }))
       return
     }
     if (mockTocMatch && req.method === 'GET') {
       const courseId = decodeURIComponent(mockTocMatch[1])
-      const cachePath = resolve(cacheDir, 'mock-toc', `${courseId}.json`)
+      const examId = mockTocMatch[2] ? decodeURIComponent(mockTocMatch[2]) : null
+      const cachePath = mockTocPath(courseId, examId)
       if (existsSync(cachePath)) {
         try {
           const cached = JSON.parse(await readFile(cachePath, 'utf8'))
+          send(res, 200, JSON.stringify(cached))
+          return
+        } catch {}
+      }
+      // Legacy fallback: pre-multi-exam single-file location
+      const legacyPath = resolve(cacheDir, 'mock-toc', `${courseId}.json`)
+      if (existsSync(legacyPath)) {
+        try {
+          const cached = JSON.parse(await readFile(legacyPath, 'utf8'))
           send(res, 200, JSON.stringify(cached))
           return
         } catch {}
