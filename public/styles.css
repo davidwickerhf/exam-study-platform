@@ -3572,6 +3572,47 @@ svg.diag-svg .d-arr-dan { fill: var(--danger); }
   gap: 8px;
 }
 
+/* ----- "Contents populated" chip in the course hero ----------------------- */
+.course-populated-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 4px 10px 4px 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+.course-populated-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5a8a5a;
+  font-size: 0;
+  line-height: 0;
+}
+.course-populated-label { color: var(--ink); }
+.course-populated-rerun {
+  border: none;
+  background: transparent;
+  padding: 2px 4px 2px 8px;
+  margin-left: 4px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  border-left: 1px solid var(--line);
+  transition: color 0.1s;
+}
+.course-populated-rerun:hover { color: var(--accent); }
+
 /* ----- Generate-all card on course landing -------------------------------- */
 .genall-card {
   background: var(--panel);

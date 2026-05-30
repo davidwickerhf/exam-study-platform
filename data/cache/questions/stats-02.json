@@ -1,0 +1,188 @@
+{
+  "generatedAt": "2026-05-30T23:21:03.566Z",
+  "chapterId": "02",
+  "questions": [
+    {
+      "id": "selftest-q9-rcts-and-causality-8-points--q1",
+      "source": "Self test: Q9 — RCTs and Causality (8 points)",
+      "type": "written",
+      "question": "**Population:** First-year university students taking a critical-thinking module",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q9-rcts-and-causality-8-points--q2",
+      "source": "Self test: Q9 — RCTs and Causality (8 points)",
+      "type": "written",
+      "question": "**Randomisation:** Random assignment (1:1, RNG) to either:\n   - Treatment: unrestricted LLM access for coursework\n   - Control: no LLM access (enforced via lab proctoring + browser monitoring)",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q9-rcts-and-causality-8-points--q3",
+      "source": "Self test: Q9 — RCTs and Causality (8 points)",
+      "type": "written",
+      "question": "**Blinding:** Single-blind impossible (students know if they have LLM). **Markers blinded** to group assignment when grading the outcome",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q9-rcts-and-causality-8-points--q4",
+      "source": "Self test: Q9 — RCTs and Causality (8 points)",
+      "type": "written",
+      "question": "**Outcome:** Pre-registered critical thinking test (e.g., Watson-Glaser) at end-of-semester, baseline at start. Statistical test: two-sample t-test on test scores (or Mann-Whitney if not normal). Report effect size + 95% CI",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q9-rcts-and-causality-8-points--q5",
+      "source": "Self test: Q9 — RCTs and Causality (8 points)",
+      "type": "written",
+      "question": "**Causal claim:** Because assignment was randomised, any difference can be attributed to LLM access — confounders are balanced on average. External validity (does it generalise beyond this university?) is a noted limitation\n> See [[02 RCTs and Causality]] for the recipe.",
+      "expected": ""
+    },
+    {
+      "id": "gen-02-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Define a randomised controlled trial in the context of causal inference. Your answer must explain random assignment, treatment/control groups, and why manipulation of the treatment matters.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "A randomised controlled trial assigns eligible participants randomly to a treatment group and a control group, then manipulates the treatment so the treatment clearly happens before the measured outcome. Random assignment balances observed and unobserved confounders on average, while the control group gives a comparison baseline. Because the researcher controls exposure, reverse causation is much less plausible."
+    },
+    {
+      "id": "gen-02-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why a correlation of $0$ between two variables does not prove that there is no causal relationship between them.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correlation of $0$ only means there is no linear association in the observed data. There could still be a non-linear causal relationship, a time-lagged causal effect, or effects that cancel out when averaged. Correlation alone cannot prove or disprove causation."
+    },
+    {
+      "id": "gen-02-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A study finds that students who use an LLM heavily have lower critical-thinking scores. Give three reasons why this observational result is not enough to conclude that LLM use causes lower critical thinking.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "First, confounding may be present: students already struggling with coursework may both use the LLM more and score lower. Second, reverse causation is possible: weaker critical-thinking skills may lead students to rely more on LLMs. Third, selection bias may affect who appears in the sample, so the observed association may not represent the target population. An RCT would be stronger because it randomly assigns LLM access before measuring outcomes."
+    },
+    {
+      "id": "gen-02-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "An RCT enrols $120$ students and uses $1:1$ random assignment. How many students should be assigned to treatment and control? If the treatment mean is $74$ and the control mean is $68$, what is the estimated treatment effect in points?",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Treatment group: $60$ students. Control group: $60$ students. Estimated treatment effect: $74 - 68 = 6$ points. Method: split $120$ equally for $1:1$ assignment, then subtract the control mean from the treatment mean."
+    },
+    {
+      "id": "gen-02-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A trial uses $2:1$ random assignment because the treatment is cheap. There are $90$ participants. How many go to treatment and control? If $51$ treatment participants and $21$ control participants complete the study, what are the completion rates in each group?",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Initial allocation: treatment $60$, control $30$. Treatment completion rate: $51/60 = 0.85$, or $85\\%$. Control completion rate: $21/30 = 0.70$, or $70\\%$. Method: divide $90$ into $3$ equal parts of $30$, assign $2$ parts to treatment and $1$ to control, then compute completed divided by assigned."
+    },
+    {
+      "id": "gen-02-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "In an RCT, the treatment group has mean outcome $82$ with standard deviation $10$, and the control group has mean outcome $76$ with standard deviation $8$. Using the pooled standard deviation formula $s_p = \\sqrt{\\frac{s_T^2 + s_C^2}{2}}$, compute Cohen's $d = \\frac{\\bar{x}_T - \\bar{x}_C}{s_p}$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "The pooled standard deviation is $s_p = \\sqrt{\\frac{10^2 + 8^2}{2}} = \\sqrt{\\frac{100 + 64}{2}} = \\sqrt{82} \\approx 9.06$. Cohen's $d$ is $\\frac{82 - 76}{9.06} \\approx 0.66$. Method: compute the mean difference, then divide by the pooled standard deviation."
+    },
+    {
+      "id": "gen-02-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes double-blinding in an RCT?",
+      "options": [
+        "Only the participants do not know whether they are in treatment or control.",
+        "Participants and researchers who interact with or assess participants do not know group assignment.",
+        "Only the statistician knows the hypothesis being tested.",
+        "The sample is randomly selected from the population before assignment."
+      ],
+      "expected": "Participants and researchers who interact with or assess participants do not know group assignment."
+    },
+    {
+      "id": "gen-02-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which design choice most directly addresses a known confounder such as prior academic ability in an RCT on LLM access and critical-thinking scores?",
+      "options": [
+        "Use stratified randomisation based on baseline academic ability.",
+        "Recruit only volunteers who already use LLMs.",
+        "Analyse only students with statistically significant improvement.",
+        "Replace the control group with a historical comparison group."
+      ],
+      "expected": "Use stratified randomisation based on baseline academic ability."
+    },
+    {
+      "id": "gen-02-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option is the best reason to pre-register the primary outcome and analysis plan before running an RCT?",
+      "options": [
+        "It guarantees that the result will be statistically significant at $\\alpha = 0.05$.",
+        "It prevents all selection bias in the original sample.",
+        "It reduces p-hacking by limiting researcher degrees of freedom after seeing the data.",
+        "It makes blinding unnecessary because the analysis is already written down."
+      ],
+      "expected": "It reduces p-hacking by limiting researcher degrees of freedom after seeing the data."
+    },
+    {
+      "id": "gen-02-9",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A random sample and random assignment mean the same thing in an RCT.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. A random sample concerns who is recruited from the population, while random assignment concerns which group each recruited participant enters. An RCT requires random assignment to treatment and control, even if the sample itself is not perfectly random."
+    },
+    {
+      "id": "gen-02-10",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for stratified random assignment in an RCT where students are stratified by baseline score group, then assigned $1:1$ to treatment and control within each stratum.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "A good answer groups students by baseline score stratum, shuffles each group, and assigns approximately half within each stratum to treatment and half to control.\n\n```text\ninput students\nstrata = $group_by$(students, baseline_score_group)\ntreatment = []\ncontrol = []\n\nfor each $stratum_name$ in strata:\n    group = strata[$stratum_name$]\n    $shuffled_group$ = $random_shuffle$(group)\n    midpoint = floor($length($shuffled_group$) / 2$)\n\n    for i from 0 to $length($shuffled_group$) - 1$:\n        if i < midpoint:\n            treatment.append($shuffled_group$[i])\n        else:\n            control.append($shuffled_group$[i])\n\noutput treatment, control\n```"
+    }
+  ],
+  "generationError": null
+}

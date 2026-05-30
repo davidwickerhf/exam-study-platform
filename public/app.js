@@ -1681,9 +1681,10 @@ function refreshGenerateJob(courseId) {
   tick()
 }
 
-async function startGenerateAll(courseId) {
+async function startGenerateAll(courseId, { force = false } = {}) {
   try {
-    const resp = await fetch(`/api/courses/${encodeURIComponent(courseId)}/generate-all`, { method: 'POST' })
+    const url = `/api/courses/${encodeURIComponent(courseId)}/generate-all${force ? '?force=1' : ''}`
+    const resp = await fetch(url, { method: 'POST' })
     const data = await resp.json()
     if (data.jobId) refreshGenerateJob(courseId)
   } catch (err) {
@@ -1691,14 +1692,47 @@ async function startGenerateAll(courseId) {
   }
 }
 
+async function confirmAndRerunCourse(courseId, courseName) {
+  const ok = await showConfirm({
+    title: 'Re-run generation for this course?',
+    message: `Every piece of cached content for ${courseName} (chapter self-tests, mock question bank, parsed past papers, content TOCs) will be regenerated from scratch.\n\nThis costs ~10–20 Codex calls and 5–15 minutes per course.\n\nFlashcards are NOT regenerated (would lose your spaced-repetition progress) — add new ones manually if needed.`,
+    okLabel: 'Yes, regenerate',
+    cancelLabel: 'Cancel',
+    danger: true
+  })
+  if (!ok) return
+  // Invalidate the local cov so the UI re-fetches once the job kicks off
+  courseCoverage.delete(courseId)
+  coverageState = 'idle'
+  ensureCoverage()
+  await startGenerateAll(courseId, { force: true })
+}
+
+/** Small status chip in the course hero — only when everything's populated. */
+function renderCoursePopulatedChip(course) {
+  const cov = courseCoverage.get(course.id)
+  if (!cov || cov.pending !== 0) return ''
+  const job = generateAllJobs.get(course.id)?.job
+  if (job && (job.status === 'running' || job.status === 'queued')) return '' // mid-run, show the card instead
+  return `
+    <div class="course-populated-chip" title="Every chapter self-test, mock question, parsed exam, and content TOC for this course is already generated and cached.">
+      <span class="course-populated-dot" aria-hidden="true">●</span>
+      <span class="course-populated-label">Contents populated</span>
+      <button type="button" class="course-populated-rerun" data-course-rerun="${course.id}" data-course-rerun-name="${escapeHtml(course.name)}">Re-run</button>
+    </div>
+  `
+}
+
 function renderGenerateAllCard(course) {
   const entry = generateAllJobs.get(course.id) || {}
   const job = entry.job
   // Hide entirely when nothing's pending — i.e. the course has been packaged
-  // editorially and end users don't need the CTA. We still render the progress
-  // card if a job exists (mid-run or recently finished).
+  // editorially and end users don't need the CTA. The hero shows a "Contents
+  // populated" chip instead. We also hide when a recent job finished cleanly
+  // with everything cached, so the big "Done — N generated" card doesn't
+  // linger after a no-op run.
   const cov = courseCoverage.get(course.id)
-  if (!job && cov && cov.pending === 0) return ''
+  if (cov && cov.pending === 0 && (!job || job.status === 'done')) return ''
   if (!job) {
     return `
       <section class="genall-card">
@@ -1792,6 +1826,7 @@ function renderCourse(courseId) {
               <p class="eyebrow">${course.code} ${course.shortName ? `· ${course.shortName}` : ''} · Overview</p>
               <h1>${course.name}</h1>
               <p>${course.exam} · ${course.role}</p>
+              ${renderCoursePopulatedChip(course)}
             </div>
             ${renderSurfaceTabs(course, { active: 'overview', surface: 'overview' })}
           </section>
@@ -6608,6 +6643,11 @@ function bindEvents() {
   document.querySelectorAll('[data-genall-start]').forEach((btn) => {
     btn.addEventListener('click', (event) => {
       startGenerateAll(event.currentTarget.dataset.genallStart)
+    })
+  })
+  document.querySelectorAll('[data-course-rerun]').forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      confirmAndRerunCourse(event.currentTarget.dataset.courseRerun, event.currentTarget.dataset.courseRerunName)
     })
   })
   document.querySelectorAll('[data-genall-all-start]').forEach((btn) => {
