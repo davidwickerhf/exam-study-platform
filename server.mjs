@@ -2125,8 +2125,27 @@ function gcJobs() {
   }
 }
 
+/**
+ * Synchronous flashcards-by-chapter count for the planner. Reads flashcards.json
+ * directly (sync) since planning runs ahead of the async work — keeps the
+ * planner simple. Returns a Map<chapterId, cardCount> scoped to one course.
+ */
+function countFlashcardsByChapter(courseId) {
+  const counts = new Map()
+  if (!existsSync(flashcardsPath)) return counts
+  try {
+    const data = JSON.parse(readFileSync(flashcardsPath, 'utf8'))
+    for (const c of data.cards || []) {
+      if (c.courseId !== courseId) continue
+      counts.set(c.chapterId, (counts.get(c.chapterId) || 0) + 1)
+    }
+  } catch {}
+  return counts
+}
+
 function planGenerateAllSteps(state, course) {
   const steps = []
+  const flashcardCounts = countFlashcardsByChapter(course.id)
   // 1. Per-chapter self-tests (skip support pages: cram sheets, drills, etc.)
   for (const ch of course.chapters || []) {
     const cachePath = resolve(cacheDir, 'questions', `${course.id}-${ch.id}.json`)
@@ -2146,7 +2165,18 @@ function planGenerateAllSteps(state, course) {
     status: existsSync(mockPath) ? 'skipped' : 'pending',
     kind: 'mock-questions'
   })
-  // 3. Mock exam parses, one per exam paper
+  // 3. Per-chapter flashcards (skipped if the chapter already has any cards)
+  for (const ch of course.chapters || []) {
+    const existing = flashcardCounts.get(ch.id) || 0
+    steps.push({
+      key: `flashcards:${ch.id}`,
+      label: `Flashcards · Ch ${ch.id} — ${ch.name}${existing ? ` (${existing} already)` : ''}`,
+      status: existing > 0 ? 'skipped' : 'pending',
+      kind: 'flashcards',
+      chapterId: ch.id
+    })
+  }
+  // 4. Mock exam parses, one per exam paper
   for (const exam of getMockExams(course)) {
     if (!exam.pdf) continue // no question paper, can't parse
     const examCachePath = resolve(cacheDir, 'practice-exam', `${examCacheKey(course.id, exam.id)}.json`)
@@ -2183,6 +2213,26 @@ async function runGenerateAllJob(jobId) {
           await loadOrGenerateQuestions(state, course, chapter)
         } else if (step.kind === 'mock-questions') {
           await generateMockQuestions(job.courseId)
+        } else if (step.kind === 'flashcards') {
+          const chapter = course.chapters.find((c) => c.id === step.chapterId)
+          if (!chapter) throw new Error(`Unknown chapter: ${step.chapterId}`)
+          const generated = await generateFlashcards(state, course, chapter, 'auto', '')
+          const newCards = generated.map((g) => ({
+            id: `fc-${randomUUID()}`,
+            courseId: job.courseId,
+            chapterId: chapter.id,
+            front: g.front,
+            back: g.back,
+            source: 'ai',
+            createdAt: new Date().toISOString(),
+            sr: initialSr()
+          }))
+          // Re-read flashcards.json fresh each time so concurrent UI edits
+          // (manual card adds, deletes) aren't clobbered.
+          const all = await readFlashcards()
+          all.cards = (all.cards || []).concat(newCards)
+          await writeFlashcards(all)
+          step.generatedCount = newCards.length
         } else if (step.kind === 'exam') {
           const exam = getMockExams(course).find((e) => e.id === step.examId)
           if (!exam?.pdf) throw new Error(`Exam ${step.examId} has no PDF`)
