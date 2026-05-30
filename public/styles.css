@@ -3529,6 +3529,49 @@ svg.diag-svg .d-arr-dan { fill: var(--danger); }
   }
 }
 
+/* ----- Self-update banner (dashboard) ------------------------------------- */
+.update-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  margin: 0 0 20px;
+  background: #fff8e6;
+  border: 1px solid #e6c97a;
+  border-left: 4px solid #c08a3e;
+}
+.update-banner.pulling { background: #eef4f0; border-color: #b2cabd; border-left-color: #5a8a5a; }
+.update-banner.done    { background: #e8f1ea; border-color: #a8c8b2; border-left-color: #5a8a5a; }
+.update-banner.error   { background: #fbeae6; border-color: #e3b5ab; border-left-color: #b66355; }
+.update-banner-icon {
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-weight: 800;
+  color: var(--ink);
+}
+.update-banner.pulling .update-banner-icon { animation: spin 1.4s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.update-banner-body h3 {
+  margin: 2px 0 4px;
+  font-family: Georgia, Iowan Old Style, serif;
+  font-size: 18px;
+}
+.update-banner-body small code {
+  background: rgba(0,0,0,0.05);
+  padding: 1px 5px;
+}
+.update-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ----- Generate-all card on course landing -------------------------------- */
 .genall-card {
   background: var(--panel);

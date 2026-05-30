@@ -1114,6 +1114,114 @@ function renderChapterTopbar() {
   `
 }
 
+// ----- Self-update widget state -----
+// Polled once per page load (and on demand when the user clicks). Stays alive
+// across renders so the widget can stay open without spamming the GitHub API.
+let updateInfo = null      // { local, remote, upToDate, repo }
+let updateJobState = null  // { status, output, error, newHead }
+let updateChecking = false
+
+async function checkForUpdates({ force = false } = {}) {
+  if (updateChecking) return
+  updateChecking = true
+  try {
+    const url = force ? '/api/version?force=1' : '/api/version'
+    const resp = await fetch(url)
+    updateInfo = await resp.json()
+  } catch (err) {
+    updateInfo = { error: err.message }
+  }
+  updateChecking = false
+  render()
+}
+
+async function startUpdatePull() {
+  try {
+    const resp = await fetch('/api/update/pull', { method: 'POST' })
+    updateJobState = await resp.json()
+    render()
+    // Poll until done
+    const tick = async () => {
+      try {
+        const r = await fetch('/api/update/status')
+        updateJobState = await r.json()
+        render()
+        if (updateJobState.status === 'pulling') setTimeout(tick, 1500)
+      } catch {
+        setTimeout(tick, 3000)
+      }
+    }
+    setTimeout(tick, 1500)
+  } catch (err) {
+    updateJobState = { status: 'error', error: err.message }
+    render()
+  }
+}
+
+async function triggerRestartAndReload() {
+  try {
+    await fetch('/api/update/restart', { method: 'POST' })
+  } catch {}
+  // Server is exiting. Poll /api/version until it comes back, then reload.
+  const startedAt = Date.now()
+  const waitForBack = async () => {
+    try {
+      const r = await fetch('/api/version', { cache: 'no-store' })
+      if (r.ok) { window.location.reload(); return }
+    } catch {}
+    if (Date.now() - startedAt > 60000) {
+      alert('Server did not come back within 60s. Restart it manually with `npm start`.')
+      return
+    }
+    setTimeout(waitForBack, 1000)
+  }
+  setTimeout(waitForBack, 1500)
+}
+
+function renderUpdateBanner() {
+  if (!updateInfo) {
+    // Kick a fetch on first render
+    if (!updateChecking) checkForUpdates()
+    return ''
+  }
+  if (updateInfo.error || !updateInfo.remote?.head) return ''
+  if (updateInfo.upToDate && !updateJobState) return ''
+
+  const jobStatus = updateJobState?.status
+  const isPulling = jobStatus === 'pulling'
+  const isDone = jobStatus === 'done'
+  const isError = jobStatus === 'error'
+
+  return `
+    <section class="update-banner ${isDone ? 'done' : isError ? 'error' : isPulling ? 'pulling' : ''}">
+      <div class="update-banner-icon" aria-hidden="true">${isDone ? '✓' : isError ? '!' : isPulling ? '⟳' : '•'}</div>
+      <div class="update-banner-body">
+        <p class="eyebrow">${isDone ? 'Updated' : isError ? 'Update failed' : isPulling ? 'Pulling…' : 'Update available'}</p>
+        <h3>${isDone
+          ? 'Restart the server to apply the new version'
+          : isError
+            ? escapeHtml(updateJobState.error || 'git pull failed')
+            : isPulling
+              ? 'Fetching changes from origin'
+              : escapeHtml(updateInfo.remote.message || 'A new commit is upstream')}</h3>
+        ${!isDone && !isError && !isPulling ? `<small class="rail-meta">Local <code>${updateInfo.local.head.slice(0, 8)}</code> → upstream <code>${updateInfo.remote.head.slice(0, 8)}</code></small>` : ''}
+        ${isError ? `<small class="rail-meta">${escapeHtml(updateJobState.output || '')}</small>` : ''}
+        ${isDone && updateJobState.newHead ? `<small class="rail-meta">Now at <code>${updateJobState.newHead.slice(0, 8)}</code></small>` : ''}
+      </div>
+      <div class="update-banner-actions">
+        ${isDone
+          ? `<button type="button" class="kb-link kb-link-mock" data-update-restart>Restart &amp; reload</button>`
+          : isPulling
+            ? `<small class="rail-meta">Working…</small>`
+            : isError
+              ? `<button type="button" class="kb-link" data-update-recheck>Re-check</button>`
+              : `<button type="button" class="kb-link kb-link-mock" data-update-pull>Pull updates</button>
+                 <button type="button" class="kb-link" data-update-recheck>Re-check</button>`}
+      </div>
+    </section>
+  `
+}
+
 function renderDashboard() {
   const items = allItems()
   const progress = progressOf(items)
@@ -1125,6 +1233,7 @@ function renderDashboard() {
   const srTotal = srDueCache?.totalCards ?? null
 
   return `
+    ${renderUpdateBanner()}
     <section class="hero">
       <div>
         <p class="eyebrow">Dashboard</p>
@@ -6335,6 +6444,15 @@ function bindEvents() {
     btn.addEventListener('click', (event) => {
       generateMockQuestionsAction(event.currentTarget.dataset.mqGenerate)
     })
+  })
+  document.querySelectorAll('[data-update-pull]').forEach((btn) => {
+    btn.addEventListener('click', () => startUpdatePull())
+  })
+  document.querySelectorAll('[data-update-recheck]').forEach((btn) => {
+    btn.addEventListener('click', () => checkForUpdates({ force: true }))
+  })
+  document.querySelectorAll('[data-update-restart]').forEach((btn) => {
+    btn.addEventListener('click', () => triggerRestartAndReload())
   })
   document.querySelectorAll('[data-genall-start]').forEach((btn) => {
     btn.addEventListener('click', (event) => {

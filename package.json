@@ -8,6 +8,6 @@
   "scripts": {
     "setup": "node setup.mjs",
     "dev": "node server.mjs",
-    "start": "node server.mjs"
+    "start": "node runner.mjs"
   }
 }

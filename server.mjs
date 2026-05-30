@@ -3,7 +3,7 @@ import { readFile, writeFile, readdir, stat, mkdir, unlink } from 'node:fs/promi
 import { existsSync, readFileSync } from 'node:fs'
 import { extname, join, resolve, relative, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFile, spawn } from 'node:child_process'
+import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { randomUUID } from 'node:crypto'
 
@@ -43,6 +43,94 @@ const CODEX_MODEL  = process.env.CODEX_MODEL  || llmConfig.codexModel  || ''
 const CLAUDE_BIN   = process.env.CLAUDE_BIN   || llmConfig.claudeBin   || 'claude'
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || llmConfig.anthropicApiKey || ''
 const ANTHROPIC_MODEL   = process.env.ANTHROPIC_MODEL   || llmConfig.anthropicModel  || 'claude-sonnet-4-5'
+
+// ─── Self-update config ─────────────────────────────────────────────────────
+// Read at boot — git HEAD + remote origin URL → parsed owner/repo for the
+// GitHub commits API. Lets the client warn when there's a newer commit upstream.
+function safeExec(cmd, args) {
+  try { return execFileSync(cmd, args, { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() }
+  catch { return '' }
+}
+const LOCAL_GIT_HEAD = safeExec('git', ['rev-parse', 'HEAD'])
+const LOCAL_GIT_BRANCH = safeExec('git', ['rev-parse', '--abbrev-ref', 'HEAD']) || 'main'
+const REMOTE_URL = safeExec('git', ['remote', 'get-url', 'origin'])
+// Parse https://github.com/<owner>/<repo>(.git)? or git@github.com:<owner>/<repo>(.git)?
+function parseGithubRemote(url) {
+  if (!url) return null
+  const m = url.match(/github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?$/)
+  if (!m) return null
+  return { owner: m[1], repo: m[2] }
+}
+const GITHUB_REPO = parseGithubRemote(REMOTE_URL)
+
+// Remote-version cache so we don't slam GitHub's 60-req/hr unauthenticated limit
+let remoteHeadCache = { sha: null, message: null, checkedAt: 0, ttlMs: 5 * 60 * 1000, error: null }
+async function fetchRemoteHead({ force = false } = {}) {
+  if (!GITHUB_REPO) return { error: 'No GitHub remote configured' }
+  const now = Date.now()
+  if (!force && remoteHeadCache.sha && now - remoteHeadCache.checkedAt < remoteHeadCache.ttlMs) {
+    return remoteHeadCache
+  }
+  try {
+    const url = `https://api.github.com/repos/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/commits/${LOCAL_GIT_BRANCH}`
+    const resp = await fetch(url, { headers: { 'User-Agent': 'exam-study-platform', 'Accept': 'application/vnd.github+json' } })
+    if (!resp.ok) {
+      remoteHeadCache = { sha: null, message: null, checkedAt: now, ttlMs: 60 * 1000, error: `GitHub API ${resp.status}` }
+      return remoteHeadCache
+    }
+    const data = await resp.json()
+    remoteHeadCache = {
+      sha: data.sha,
+      message: (data.commit?.message || '').split('\n')[0].slice(0, 200),
+      authoredAt: data.commit?.author?.date || null,
+      checkedAt: now,
+      ttlMs: 5 * 60 * 1000,
+      error: null
+    }
+    return remoteHeadCache
+  } catch (err) {
+    remoteHeadCache = { sha: null, message: null, checkedAt: now, ttlMs: 60 * 1000, error: err.message }
+    return remoteHeadCache
+  }
+}
+
+// Update job state — keyed singleton (one update at a time)
+let updateJob = null // { status: 'pulling'|'done'|'error', output, error, startedAt, finishedAt }
+
+async function runGitPull() {
+  updateJob = { status: 'pulling', output: '', error: null, startedAt: Date.now() }
+  try {
+    // First check there are no uncommitted changes that would block the pull
+    const dirty = safeExec('git', ['status', '--porcelain'])
+    if (dirty) {
+      updateJob = {
+        status: 'error',
+        output: dirty,
+        error: 'Local changes would be overwritten by git pull. Commit, stash, or discard them first.',
+        startedAt: updateJob.startedAt,
+        finishedAt: Date.now()
+      }
+      return
+    }
+    const { stdout, stderr } = await execFileAsync('git', ['pull', '--ff-only'], { cwd: __dirname })
+    updateJob = {
+      status: 'done',
+      output: (stdout + stderr).trim(),
+      error: null,
+      startedAt: updateJob.startedAt,
+      finishedAt: Date.now(),
+      newHead: safeExec('git', ['rev-parse', 'HEAD'])
+    }
+  } catch (err) {
+    updateJob = {
+      status: 'error',
+      output: (err.stdout || '') + (err.stderr || ''),
+      error: err.message,
+      startedAt: updateJob.startedAt,
+      finishedAt: Date.now()
+    }
+  }
+}
 
 /**
  * Resolves the vault root to use for course content lookups. Precedence:
@@ -2344,6 +2432,50 @@ const server = createServer(async (req, res) => {
       state.meta.updatedAt = new Date().toISOString()
       await writeState(state)
       send(res, 200, JSON.stringify({ ok: true, course: { id: course.id, archived: !!course.archived, order: course.order } }))
+      return
+    }
+
+    // ── Self-update endpoints ──────────────────────────────────────────────
+    // GET  /api/version            — local + remote HEAD, whether up to date
+    // POST /api/update/pull        — fire-and-forget git pull
+    // GET  /api/update/status      — polled job state
+    // POST /api/update/restart     — exits server with code 23 (runner respawns)
+    if (url.pathname === '/api/version' && req.method === 'GET') {
+      const force = url.searchParams.get('force') === '1'
+      const remote = await fetchRemoteHead({ force })
+      const upToDate = remote.sha && LOCAL_GIT_HEAD && remote.sha === LOCAL_GIT_HEAD
+      send(res, 200, JSON.stringify({
+        local: { head: LOCAL_GIT_HEAD, branch: LOCAL_GIT_BRANCH },
+        remote: {
+          head: remote.sha,
+          message: remote.message,
+          authoredAt: remote.authoredAt,
+          checkedAt: remote.checkedAt,
+          error: remote.error
+        },
+        upToDate: !!upToDate,
+        repo: GITHUB_REPO
+      }))
+      return
+    }
+    if (url.pathname === '/api/update/pull' && req.method === 'POST') {
+      if (updateJob?.status === 'pulling') {
+        send(res, 200, JSON.stringify({ ...updateJob, alreadyRunning: true }))
+        return
+      }
+      // Kick off in background and return immediately
+      runGitPull().catch(() => {})
+      send(res, 202, JSON.stringify({ status: 'pulling', startedAt: Date.now() }))
+      return
+    }
+    if (url.pathname === '/api/update/status' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(updateJob || { status: 'idle' }))
+      return
+    }
+    if (url.pathname === '/api/update/restart' && req.method === 'POST') {
+      send(res, 200, JSON.stringify({ ok: true, message: 'Restarting…' }))
+      // Give the response time to flush before exiting
+      setTimeout(() => process.exit(23), 250)
       return
     }
 
