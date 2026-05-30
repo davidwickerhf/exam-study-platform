@@ -1382,6 +1382,118 @@ function renderChapterSubTabs(course, chapter, activeTab) {
   `
 }
 
+// ----- Generate-all jobs (course-wide content generation) -----
+// One cache entry per course tracks its currently-known job. The card on the
+// course landing page reads from here and polls the server every 4s while a
+// job is running.
+const generateAllJobs = new Map() // courseId -> { job, polling }
+
+function refreshGenerateJob(courseId) {
+  const entry = generateAllJobs.get(courseId) || {}
+  if (entry.polling) return // already polling
+  entry.polling = true
+  generateAllJobs.set(courseId, entry)
+  const tick = async () => {
+    try {
+      const resp = await fetch(`/api/courses/${encodeURIComponent(courseId)}/generate-all`)
+      if (resp.status === 404) {
+        const e = generateAllJobs.get(courseId) || {}
+        e.polling = false
+        generateAllJobs.set(courseId, e)
+        return
+      }
+      const job = await resp.json()
+      const e = generateAllJobs.get(courseId) || {}
+      e.job = job
+      generateAllJobs.set(courseId, e)
+      if (job.status === 'running' || job.status === 'queued') {
+        setTimeout(tick, 4000)
+      } else {
+        e.polling = false
+        generateAllJobs.set(courseId, e)
+        // Invalidate per-course caches so updated content is reloaded
+        if (typeof mockQuestionsCache !== 'undefined') mockQuestionsCache.delete(courseId)
+        if (typeof questionsSummaryCache !== 'undefined') questionsSummaryCache.delete(courseId)
+      }
+      render()
+    } catch {
+      // network blip — try again later
+      setTimeout(tick, 8000)
+    }
+  }
+  tick()
+}
+
+async function startGenerateAll(courseId) {
+  try {
+    const resp = await fetch(`/api/courses/${encodeURIComponent(courseId)}/generate-all`, { method: 'POST' })
+    const data = await resp.json()
+    if (data.jobId) refreshGenerateJob(courseId)
+  } catch (err) {
+    alert(`Failed to start generation: ${err.message}`)
+  }
+}
+
+function renderGenerateAllCard(course) {
+  const entry = generateAllJobs.get(course.id) || {}
+  const job = entry.job
+  if (!job) {
+    // No job state known — show CTA only when there's likely missing content
+    // (we don't have summary info at render time, so always show the CTA;
+    // the orchestrator will skip already-cached steps anyway).
+    return `
+      <section class="genall-card">
+        <div class="genall-head">
+          <div>
+            <p class="eyebrow">Generate</p>
+            <h3>All course content</h3>
+            <small class="rail-meta">Builds every missing chapter self-test, the course-wide mock question bank, and parses each past paper into a graded practice exam. Skips anything already cached. Runs in the background.</small>
+          </div>
+          <button type="button" class="kb-link kb-link-mock" data-genall-start="${course.id}">Generate all</button>
+        </div>
+      </section>
+    `
+  }
+  // Have a job — render progress
+  const total = job.steps.length
+  const done = job.steps.filter((s) => s.status === 'done').length
+  const skipped = job.steps.filter((s) => s.status === 'skipped').length
+  const running = job.steps.find((s) => s.status === 'running')
+  const errors = job.steps.filter((s) => s.status === 'error')
+  const pendingCount = job.steps.filter((s) => s.status === 'pending').length
+
+  const isLive = job.status === 'running' || job.status === 'queued'
+  const pct = total ? Math.round(((done + skipped) / total) * 100) : 0
+
+  return `
+    <section class="genall-card ${isLive ? 'live' : (job.status === 'error' ? 'failed' : 'finished')}">
+      <div class="genall-head">
+        <div>
+          <p class="eyebrow">Generate all</p>
+          <h3>${isLive ? `Running — ${done + skipped}/${total} steps complete` : job.status === 'done' ? `Done — ${done} generated, ${skipped} skipped${errors.length ? `, ${errors.length} failed` : ''}` : `Stopped — ${job.error || 'error'}`}</h3>
+          ${running ? `<small class="rail-meta">Now: ${escapeHtml(running.label)}</small>` : isLive ? `<small class="rail-meta">${pendingCount} pending</small>` : ''}
+        </div>
+        ${isLive
+          ? `<small class="rail-meta">${pct}%</small>`
+          : `<button type="button" class="kb-link kb-link-mock" data-genall-start="${course.id}">Re-run</button>`}
+      </div>
+      <div class="genall-bar"><div class="genall-bar-fill" style="width:${pct}%"></div></div>
+      <details class="genall-steps">
+        <summary>${total} steps</summary>
+        <ul>
+          ${job.steps.map((s) => `
+            <li class="genall-step genall-step-${s.status}">
+              <span class="genall-step-status">${s.status === 'done' ? '✓' : s.status === 'skipped' ? '·' : s.status === 'running' ? '…' : s.status === 'error' ? '!' : ' '}</span>
+              <span class="genall-step-label">${escapeHtml(s.label)}</span>
+              ${s.error ? `<small class="genall-step-error">${escapeHtml(s.error)}</small>` : ''}
+            </li>
+          `).join('')}
+        </ul>
+      </details>
+    </section>
+  `
+}
+
 function renderCourse(courseId) {
   const course = state.courses.find((c) => c.id === courseId) || state.courses[0]
   // Ensure mock + flashcard caches are loaded so per-chapter rollups have data.
@@ -1389,6 +1501,17 @@ function renderCourse(courseId) {
   if (typeof flashcardsCache !== 'undefined' && !flashcardsCache.has(course.id)) ensureFlashcards(course.id)
   if (typeof questionsSummaryCache !== 'undefined' && !questionsSummaryCache.has(course.id)) ensureQuestionsSummary(course.id)
   ensureCourseToc(course.id)
+  // Hydrate any running generate-all job for this course (cheap GET; idempotent)
+  if (!generateAllJobs.get(course.id)?.polling) {
+    fetch(`/api/courses/${encodeURIComponent(course.id)}/generate-all`).then((r) => r.ok ? r.json() : null).then((job) => {
+      if (!job) return
+      const e = generateAllJobs.get(course.id) || {}
+      e.job = job
+      generateAllJobs.set(course.id, e)
+      if (job.status === 'running' || job.status === 'queued') refreshGenerateJob(course.id)
+      else render()
+    }).catch(() => {})
+  }
   const progress = courseProgress(course)
   const chapters = course.chapters || []
   const coreChapters = chapters.filter((ch) => !isSupportChapter(ch))
@@ -1412,6 +1535,8 @@ function renderCourse(courseId) {
             </div>
             ${renderSurfaceTabs(course, { active: 'overview', surface: 'overview' })}
           </section>
+
+          ${renderGenerateAllCard(course)}
 
           <section class="course-spine-section">
             <div class="panel-head spine-head">
@@ -6203,6 +6328,11 @@ function bindEvents() {
   document.querySelectorAll('[data-mq-generate]').forEach((btn) => {
     btn.addEventListener('click', (event) => {
       generateMockQuestionsAction(event.currentTarget.dataset.mqGenerate)
+    })
+  })
+  document.querySelectorAll('[data-genall-start]').forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      startGenerateAll(event.currentTarget.dataset.genallStart)
     })
   })
   document.querySelectorAll('[data-mq-regenerate]').forEach((btn) => {

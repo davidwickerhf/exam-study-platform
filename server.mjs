@@ -852,6 +852,40 @@ async function courseRootFor(state, course) {
   return courseRoot
 }
 
+/**
+ * Server-side per-page text extraction from a PDF, using pdftotext (poppler).
+ * Used by the background generate-all job so practice-exam parsing doesn't
+ * require a browser tab open. Returns [{ page, text }, …].
+ *
+ * Falls back to an empty array if pdftotext is missing or fails — caller can
+ * decide to skip the parse step rather than break the whole batch.
+ */
+async function extractPdfPageText(pdfPath) {
+  if (!existsSync(pdfPath)) return []
+  // pdftotext -layout preserves spacing closer to the visual layout, which our
+  // existing prompts (built for PDF.js output) expect.
+  let allText = ''
+  try {
+    const { stdout } = await execFileAsync('pdftotext', ['-layout', '-enc', 'UTF-8', pdfPath, '-'], {
+      maxBuffer: 32 * 1024 * 1024
+    })
+    allText = stdout
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      throw new Error('pdftotext not found — install poppler (brew install poppler) to enable background exam parsing')
+    }
+    throw err
+  }
+  // pdftotext separates pages with form-feed (\f). Split + emit per-page records.
+  const pages = allText.split('\f')
+  // Trailing form-feed gives an empty last entry — drop it
+  if (pages.length && pages[pages.length - 1].trim() === '') pages.pop()
+  return pages.map((text, idx) => ({
+    page: idx + 1,
+    text: text.split('\n').map((l) => l.replace(/[ \t]+/g, ' ').trimEnd()).join('\n').trim()
+  }))
+}
+
 async function extractBoldOptionKeys(state, course, examId) {
   const exam = getMockExam(course, examId)
   if (!exam?.solutionsPdf) return {}
@@ -2066,6 +2100,120 @@ async function gradeAttempt({ courseCode, chapterName, question, attempt, attemp
   return parsed
 }
 
+// ----- Generate-all Jobs -----
+//
+// A small in-memory job system that backs the "Generate all content" button on
+// the course landing page. Jobs run sequentially (one Codex call at a time per
+// job, to avoid rate-limit thrashing) and update step status as they progress.
+// The client polls /api/jobs/:jobId for live progress.
+
+const generateJobs = new Map() // jobId -> job
+const generateJobsByCourse = new Map() // courseId -> current jobId (running or recently done)
+const JOB_TTL_MS = 30 * 60 * 1000 // 30 minutes after completion before GC
+
+function newJobId() {
+  return `gen-${Date.now().toString(36)}-${randomUUID().slice(0, 6)}`
+}
+
+function gcJobs() {
+  const now = Date.now()
+  for (const [id, job] of generateJobs) {
+    if ((job.status === 'done' || job.status === 'error') && job.finishedAt && now - job.finishedAt > JOB_TTL_MS) {
+      generateJobs.delete(id)
+      if (generateJobsByCourse.get(job.courseId) === id) generateJobsByCourse.delete(job.courseId)
+    }
+  }
+}
+
+function planGenerateAllSteps(state, course) {
+  const steps = []
+  // 1. Per-chapter self-tests (skip support pages: cram sheets, drills, etc.)
+  for (const ch of course.chapters || []) {
+    const cachePath = resolve(cacheDir, 'questions', `${course.id}-${ch.id}.json`)
+    steps.push({
+      key: `chapter:${ch.id}`,
+      label: `Self-test · Ch ${ch.id} — ${ch.name}`,
+      status: existsSync(cachePath) ? 'skipped' : 'pending',
+      kind: 'chapter',
+      chapterId: ch.id
+    })
+  }
+  // 2. Course-wide mock-questions bank
+  const mockPath = resolve(cacheDir, 'mock-questions', `${course.id}.json`)
+  steps.push({
+    key: 'mock-questions',
+    label: 'Mock questions bank (course-wide)',
+    status: existsSync(mockPath) ? 'skipped' : 'pending',
+    kind: 'mock-questions'
+  })
+  // 3. Mock exam parses, one per exam paper
+  for (const exam of getMockExams(course)) {
+    if (!exam.pdf) continue // no question paper, can't parse
+    const examCachePath = resolve(cacheDir, 'practice-exam', `${examCacheKey(course.id, exam.id)}.json`)
+    steps.push({
+      key: `exam:${exam.id}`,
+      label: `Mock exam — ${exam.label}`,
+      status: existsSync(examCachePath) ? 'skipped' : 'pending',
+      kind: 'exam',
+      examId: exam.id
+    })
+  }
+  return steps
+}
+
+async function runGenerateAllJob(jobId) {
+  const job = generateJobs.get(jobId)
+  if (!job) return
+  job.status = 'running'
+  job.startedAt = Date.now()
+
+  try {
+    const state = await readState()
+    const course = state.courses.find((c) => c.id === job.courseId)
+    if (!course) throw new Error(`Unknown course: ${job.courseId}`)
+
+    for (const step of job.steps) {
+      if (step.status !== 'pending') continue
+      step.status = 'running'
+      const startedAt = Date.now()
+      try {
+        if (step.kind === 'chapter') {
+          const chapter = course.chapters.find((c) => c.id === step.chapterId)
+          if (!chapter) throw new Error(`Unknown chapter: ${step.chapterId}`)
+          await loadOrGenerateQuestions(state, course, chapter)
+        } else if (step.kind === 'mock-questions') {
+          await generateMockQuestions(job.courseId)
+        } else if (step.kind === 'exam') {
+          const exam = getMockExams(course).find((e) => e.id === step.examId)
+          if (!exam?.pdf) throw new Error(`Exam ${step.examId} has no PDF`)
+          const vaultRoot = getVaultRoot(state)
+          const pdfPath = resolve(vaultRoot, course.knowledgeBase, exam.pdf)
+          const questionPages = await extractPdfPageText(pdfPath)
+          let solutionsPages = []
+          if (exam.solutionsPdf) {
+            const sPath = resolve(vaultRoot, course.knowledgeBase, exam.solutionsPdf)
+            try { solutionsPages = await extractPdfPageText(sPath) } catch {}
+          }
+          if (!questionPages.length) throw new Error('No text extracted from PDF')
+          await parseExamPaper(job.courseId, step.examId, questionPages, solutionsPages)
+        }
+        step.status = 'done'
+      } catch (err) {
+        step.status = 'error'
+        step.error = err.message || String(err)
+      }
+      step.durationMs = Date.now() - startedAt
+    }
+
+    job.status = 'done'
+    job.finishedAt = Date.now()
+  } catch (err) {
+    job.status = 'error'
+    job.error = err.message || String(err)
+    job.finishedAt = Date.now()
+  }
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -2113,6 +2261,67 @@ const server = createServer(async (req, res) => {
       state.meta.updatedAt = new Date().toISOString()
       await writeState(state)
       send(res, 200, JSON.stringify({ ok: true, course: { id: course.id, archived: !!course.archived, order: course.order } }))
+      return
+    }
+
+    // ── Generate-all endpoints ──────────────────────────────────────────────
+    // POST /api/courses/:courseId/generate-all       — kick off a job
+    // GET  /api/courses/:courseId/generate-all       — get the current job (if any)
+    // GET  /api/jobs/:jobId                          — get a specific job by id
+    const genStartMatch = url.pathname.match(/^\/api\/courses\/([^/]+)\/generate-all$/)
+    if (genStartMatch && req.method === 'POST') {
+      gcJobs()
+      const courseId = decodeURIComponent(genStartMatch[1])
+      // If a job for this course is already running, return its id rather than spawning a duplicate
+      const existingId = generateJobsByCourse.get(courseId)
+      const existing = existingId ? generateJobs.get(existingId) : null
+      if (existing && existing.status === 'running') {
+        send(res, 200, JSON.stringify({ jobId: existing.id, status: existing.status, existing: true }))
+        return
+      }
+      const state = await readState()
+      const course = state.courses.find((c) => c.id === courseId)
+      if (!course) {
+        send(res, 404, JSON.stringify({ error: `Unknown course: ${courseId}` }))
+        return
+      }
+      const id = newJobId()
+      const job = {
+        id,
+        courseId,
+        createdAt: Date.now(),
+        status: 'queued',
+        steps: planGenerateAllSteps(state, course)
+      }
+      generateJobs.set(id, job)
+      generateJobsByCourse.set(courseId, id)
+      // Fire and forget — the job updates its own state as it runs
+      setImmediate(() => { runGenerateAllJob(id).catch(() => {}) })
+      send(res, 202, JSON.stringify({ jobId: id, status: 'queued' }))
+      return
+    }
+    if (genStartMatch && req.method === 'GET') {
+      gcJobs()
+      const courseId = decodeURIComponent(genStartMatch[1])
+      const id = generateJobsByCourse.get(courseId)
+      const job = id ? generateJobs.get(id) : null
+      if (!job) {
+        send(res, 404, JSON.stringify({ error: 'No job for this course' }))
+        return
+      }
+      send(res, 200, JSON.stringify(job))
+      return
+    }
+    const jobGetMatch = url.pathname.match(/^\/api\/jobs\/([^/]+)$/)
+    if (jobGetMatch && req.method === 'GET') {
+      gcJobs()
+      const id = decodeURIComponent(jobGetMatch[1])
+      const job = generateJobs.get(id)
+      if (!job) {
+        send(res, 404, JSON.stringify({ error: 'Unknown job' }))
+        return
+      }
+      send(res, 200, JSON.stringify(job))
       return
     }
 

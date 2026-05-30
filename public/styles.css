@@ -3529,6 +3529,86 @@ svg.diag-svg .d-arr-dan { fill: var(--danger); }
   }
 }
 
+/* ----- Generate-all card on course landing -------------------------------- */
+.genall-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  padding: 16px 20px;
+  margin: 18px 0 0;
+  box-shadow: var(--shadow);
+}
+.genall-card.live   { border-top-color: var(--accent); }
+.genall-card.finished { border-top-color: #6b8e6b; }
+.genall-card.failed { border-top-color: #b66355; }
+
+.genall-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.genall-head h3 {
+  margin: 4px 0 6px;
+  font-family: Georgia, Iowan Old Style, serif;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.genall-bar {
+  height: 4px;
+  background: var(--line);
+  margin: 12px 0;
+  overflow: hidden;
+}
+.genall-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.genall-steps {
+  font-size: 12px;
+  color: var(--muted);
+}
+.genall-steps summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+.genall-steps ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  border-top: 1px solid var(--line);
+}
+.genall-step {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.genall-step-status {
+  display: inline-block;
+  width: 18px;
+  text-align: center;
+  font-weight: 700;
+}
+.genall-step-done    .genall-step-status { color: #5a8a5a; }
+.genall-step-skipped .genall-step-status { color: var(--muted); opacity: 0.6; }
+.genall-step-running .genall-step-status { color: var(--accent); }
+.genall-step-error   .genall-step-status { color: #b66355; }
+.genall-step-pending .genall-step-status { color: var(--muted); opacity: 0.4; }
+.genall-step-label { flex: 1; min-width: 0; color: var(--ink); }
+.genall-step-skipped .genall-step-label { color: var(--muted); }
+.genall-step-error .genall-step-error {
+  display: block;
+  margin-top: 2px;
+  color: #b66355;
+  font-style: italic;
+  width: 100%;
+}
+
 /* ----- Chapter progress (course landing) — card grid + spine ----- */
 .course-spine-section {
   background: var(--panel);
