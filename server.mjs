@@ -51,8 +51,11 @@ function safeExec(cmd, args) {
   try { return execFileSync(cmd, args, { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() }
   catch { return '' }
 }
-const LOCAL_GIT_HEAD = safeExec('git', ['rev-parse', 'HEAD'])
-const LOCAL_GIT_BRANCH = safeExec('git', ['rev-parse', '--abbrev-ref', 'HEAD']) || 'main'
+// Re-read on every call (microseconds — just a `.git/HEAD` file read). If we
+// cached these at boot, an in-app pull would not refresh them and the banner
+// would falsely show "update available" until the next server restart.
+function getLocalGitHead()   { return safeExec('git', ['rev-parse', 'HEAD']) }
+function getLocalGitBranch() { return safeExec('git', ['rev-parse', '--abbrev-ref', 'HEAD']) || 'main' }
 const REMOTE_URL = safeExec('git', ['remote', 'get-url', 'origin'])
 // Parse https://github.com/<owner>/<repo>(.git)? or git@github.com:<owner>/<repo>(.git)?
 function parseGithubRemote(url) {
@@ -72,7 +75,7 @@ async function fetchRemoteHead({ force = false } = {}) {
     return remoteHeadCache
   }
   try {
-    const url = `https://api.github.com/repos/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/commits/${LOCAL_GIT_BRANCH}`
+    const url = `https://api.github.com/repos/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/commits/${getLocalGitBranch()}`
     const resp = await fetch(url, { headers: { 'User-Agent': 'exam-study-platform', 'Accept': 'application/vnd.github+json' } })
     if (!resp.ok) {
       remoteHeadCache = { sha: null, message: null, checkedAt: now, ttlMs: 60 * 1000, error: `GitHub API ${resp.status}` }
@@ -2546,9 +2549,10 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/version' && req.method === 'GET') {
       const force = url.searchParams.get('force') === '1'
       const remote = await fetchRemoteHead({ force })
-      const upToDate = remote.sha && LOCAL_GIT_HEAD && remote.sha === LOCAL_GIT_HEAD
+      const localHead = getLocalGitHead()
+      const upToDate = remote.sha && localHead && remote.sha === localHead
       send(res, 200, JSON.stringify({
-        local: { head: LOCAL_GIT_HEAD, branch: LOCAL_GIT_BRANCH },
+        local: { head: localHead, branch: getLocalGitBranch() },
         remote: {
           head: remote.sha,
           message: remote.message,
