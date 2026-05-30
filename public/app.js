@@ -1324,15 +1324,22 @@ function refreshGenerateAllCourses() {
         return
       }
       generateAllCoursesJob = await resp.json()
-      if (generateAllCoursesJob.status === 'running' || generateAllCoursesJob.status === 'queued') {
+      const stillRunning = generateAllCoursesJob.status === 'running' || generateAllCoursesJob.status === 'queued'
+      if (stillRunning) {
         setTimeout(tick, 4000)
       } else {
         generateAllCoursesPolling = false
-        // Invalidate course-level caches so the rest of the dashboard updates
         if (typeof mockQuestionsCache !== 'undefined') mockQuestionsCache.clear()
         if (typeof questionsSummaryCache !== 'undefined') questionsSummaryCache.clear()
       }
-      render()
+      // Update ONLY the master card in-place. A full render() here is what
+      // was resetting dashboard scroll + closing expanded step lists every
+      // 4 seconds. Falls back to full render if the card isn't in the DOM
+      // (e.g. user is on a different page) or on the final transition so
+      // the chip / hidden state can recompute cleanly.
+      if (!refreshMasterCardInPlace() || !stillRunning) {
+        if (!stillRunning) render()
+      }
     } catch {
       setTimeout(tick, 8000)
     }
@@ -1362,7 +1369,7 @@ function renderGenerateAllCoursesCard() {
       ? `<small class="rail-meta">${pendingTotal} step${pendingTotal === 1 ? '' : 's'} pending across all courses.</small>`
       : ''
     return `
-      <section class="genall-card genall-all-card">
+      <section class="genall-card genall-all-card" data-genall-master-card>
         <div class="genall-head">
           <div>
             <p class="eyebrow">Generate</p>
@@ -1380,7 +1387,7 @@ function renderGenerateAllCoursesCard() {
   const totalCourses = (job.courseIds || []).length
   const doneCourses = Object.values(job.subJobs || {}).filter((s) => s && s.status === 'done').length
   return `
-    <section class="genall-card genall-all-card ${isLive ? 'live' : (isError ? 'failed' : 'finished')}">
+    <section class="genall-card genall-all-card ${isLive ? 'live' : (isError ? 'failed' : 'finished')}" data-genall-master-card>
       <div class="genall-head">
         <div>
           <p class="eyebrow">Generate all · all courses</p>
@@ -1678,16 +1685,24 @@ function refreshGenerateJob(courseId) {
       const e = generateAllJobs.get(courseId) || {}
       e.job = job
       generateAllJobs.set(courseId, e)
-      if (job.status === 'running' || job.status === 'queued') {
+      const stillRunning = job.status === 'running' || job.status === 'queued'
+      if (stillRunning) {
         setTimeout(tick, 4000)
       } else {
         e.polling = false
         generateAllJobs.set(courseId, e)
-        // Invalidate per-course caches so updated content is reloaded
         if (typeof mockQuestionsCache !== 'undefined') mockQuestionsCache.delete(courseId)
         if (typeof questionsSummaryCache !== 'undefined') questionsSummaryCache.delete(courseId)
       }
-      render()
+      // Update ONLY the progress card in-place. Wholesale render() would blow
+      // away scroll position, open <details>, focused elements, mid-edits etc.
+      // Falls back to a full render if the card isn't in the current view
+      // (e.g. user navigated to a different course).
+      if (!refreshCourseCardInPlace(courseId) || !stillRunning) {
+        // If polling has stopped (job done), do one final full render so the
+        // page transitions cleanly (chip appears, big card gone).
+        if (!stillRunning) render()
+      }
     } catch {
       // network blip — try again later
       setTimeout(tick, 8000)
@@ -1738,6 +1753,51 @@ function renderCoursePopulatedChip(course) {
   `
 }
 
+/**
+ * Swap a single card's DOM in place — preserves scroll, open <details>,
+ * focus, mid-edits in the rest of the page. Used by the polling ticks so a
+ * 4-second progress refresh doesn't blow away whatever the user is doing.
+ *
+ * If the target card isn't in the current document (user navigated away),
+ * returns false so the caller can fall back to a full render.
+ */
+function replaceCardInPlace(selector, newHtml) {
+  const oldNode = document.querySelector(selector)
+  if (!oldNode) return false
+  if (!newHtml || !newHtml.trim()) {
+    // Card should be hidden — remove cleanly
+    oldNode.remove()
+    return true
+  }
+  const tmp = document.createElement('div')
+  tmp.innerHTML = newHtml.trim()
+  const newNode = tmp.firstElementChild
+  if (!newNode) {
+    oldNode.remove()
+    return true
+  }
+  oldNode.replaceWith(newNode)
+  // Re-bind any handlers that live within the new subtree. Buttons on the
+  // genall cards are the only handlers that matter here.
+  newNode.querySelectorAll('[data-genall-start]').forEach((btn) => {
+    btn.addEventListener('click', (event) => startGenerateAll(event.currentTarget.dataset.genallStart))
+  })
+  newNode.querySelectorAll('[data-genall-all-start]').forEach((btn) => {
+    btn.addEventListener('click', () => startGenerateAllCourses())
+  })
+  return true
+}
+
+function refreshCourseCardInPlace(courseId) {
+  const course = state.courses?.find((c) => c.id === courseId)
+  if (!course) return false
+  return replaceCardInPlace(`[data-genall-course-card="${CSS.escape(courseId)}"]`, renderGenerateAllCard(course))
+}
+
+function refreshMasterCardInPlace() {
+  return replaceCardInPlace('[data-genall-master-card]', renderGenerateAllCoursesCard())
+}
+
 function renderGenerateAllCard(course) {
   const entry = generateAllJobs.get(course.id) || {}
   const job = entry.job
@@ -1750,7 +1810,7 @@ function renderGenerateAllCard(course) {
   if (cov && cov.pending === 0 && (!job || job.status === 'done')) return ''
   if (!job) {
     return `
-      <section class="genall-card">
+      <section class="genall-card" data-genall-course-card="${course.id}">
         <div class="genall-head">
           <div>
             <p class="eyebrow">Generate</p>
@@ -1774,7 +1834,7 @@ function renderGenerateAllCard(course) {
   const pct = total ? Math.round(((done + skipped) / total) * 100) : 0
 
   return `
-    <section class="genall-card ${isLive ? 'live' : (job.status === 'error' ? 'failed' : 'finished')}">
+    <section class="genall-card ${isLive ? 'live' : (job.status === 'error' ? 'failed' : 'finished')}" data-genall-course-card="${course.id}">
       <div class="genall-head">
         <div>
           <p class="eyebrow">Generate all</p>
