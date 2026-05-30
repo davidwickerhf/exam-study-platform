@@ -1115,11 +1115,13 @@ function renderChapterTopbar() {
 }
 
 // ----- Self-update widget state -----
-// Polled once per page load (and on demand when the user clicks). Stays alive
-// across renders so the widget can stay open without spamming the GitHub API.
-let updateInfo = null      // { local, remote, upToDate, repo }
+// Re-checked on dashboard render whenever the cached info is older than
+// UPDATE_TTL_MS, and on tab focus, so a stale "Update available" banner
+// disappears quickly after the user pulls or pushes.
+let updateInfo = null      // { local, remote, upToDate, repo, _fetchedAt }
 let updateJobState = null  // { status, output, error, newHead }
 let updateChecking = false
+const UPDATE_TTL_MS = 60 * 1000 // 60s
 
 async function checkForUpdates({ force = false } = {}) {
   if (updateChecking) return
@@ -1128,11 +1130,22 @@ async function checkForUpdates({ force = false } = {}) {
     const url = force ? '/api/version?force=1' : '/api/version'
     const resp = await fetch(url)
     updateInfo = await resp.json()
+    updateInfo._fetchedAt = Date.now()
   } catch (err) {
-    updateInfo = { error: err.message }
+    updateInfo = { error: err.message, _fetchedAt: Date.now() }
   }
   updateChecking = false
   render()
+}
+
+function maybeRefreshUpdateInfo() {
+  const age = updateInfo?._fetchedAt ? Date.now() - updateInfo._fetchedAt : Infinity
+  if (age > UPDATE_TTL_MS && !updateChecking) checkForUpdates()
+}
+// Re-check on tab focus too — quickest path to a fresh state when the user
+// switches back after a push or pull from elsewhere.
+if (typeof window !== 'undefined') {
+  window.addEventListener('focus', maybeRefreshUpdateInfo)
 }
 
 async function startUpdatePull() {
@@ -1184,6 +1197,8 @@ function renderUpdateBanner() {
     if (!updateChecking) checkForUpdates()
     return ''
   }
+  // Auto-refresh if the cached info has gone stale (background, no spinner)
+  maybeRefreshUpdateInfo()
   if (updateInfo.error || !updateInfo.remote?.head) return ''
   if (updateInfo.upToDate && !updateJobState) return ''
 
