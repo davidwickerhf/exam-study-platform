@@ -97,34 +97,84 @@ async function fetchRemoteHead({ force = false } = {}) {
 // Update job state — keyed singleton (one update at a time)
 let updateJob = null // { status: 'pulling'|'done'|'error', output, error, startedAt, finishedAt }
 
+/**
+ * Update the local checkout from the remote, preserving user-generated changes.
+ *
+ * Many tracked files (data/cache/*.json) get mutated as the user generates
+ * content via the in-app Generate-All flow. A naïve `git pull --ff-only`
+ * against a dirty tree fails, which is not what an end user wants. Strategy:
+ *
+ *   1. Stash everything (tracked + untracked) so the working tree is clean.
+ *   2. Fast-forward pull.
+ *   3. Pop the stash. On merge conflict, keep the user's stashed version
+ *      (their generated content is what they want), then drop the stash.
+ *
+ * Personal state (study-state.json, flashcards.json, llm-config.json,
+ * mistakes/, sr-state.json) is gitignored, so it never enters this flow.
+ */
 async function runGitPull() {
   updateJob = { status: 'pulling', output: '', error: null, startedAt: Date.now() }
+  const lines = []
+  let stashed = false
+
   try {
-    // First check there are no uncommitted changes that would block the pull
+    // Step 1: stash anything dirty (-u also captures untracked files)
     const dirty = safeExec('git', ['status', '--porcelain'])
     if (dirty) {
-      updateJob = {
-        status: 'error',
-        output: dirty,
-        error: 'Local changes would be overwritten by git pull. Commit, stash, or discard them first.',
-        startedAt: updateJob.startedAt,
-        finishedAt: Date.now()
-      }
-      return
+      const stashOut = execFileSync(
+        'git',
+        ['stash', 'push', '-u', '-m', 'exam-study-platform auto-update'],
+        { cwd: __dirname, stdio: ['ignore', 'pipe', 'pipe'] }
+      ).toString().trim()
+      stashed = !/No local changes to save/.test(stashOut)
+      if (stashed) lines.push(`Stashed local changes:\n${dirty}`)
     }
+
+    // Step 2: fast-forward pull (clean tree now)
     const { stdout, stderr } = await execFileAsync('git', ['pull', '--ff-only'], { cwd: __dirname })
+    lines.push((stdout + stderr).trim() || 'Already up to date.')
+
+    // Step 3: pop the stash and restore the user's local content
+    if (stashed) {
+      try {
+        const { stdout: po, stderr: pe } = await execFileAsync('git', ['stash', 'pop'], { cwd: __dirname })
+        lines.push(`Restored local content:\n${(po + pe).trim()}`)
+      } catch (popErr) {
+        // Conflict during pop: keep the user's stashed version. Their generated
+        // content beats a regenerated equivalent from upstream.
+        const conflicted = safeExec('git', ['diff', '--name-only', '--diff-filter=U'])
+        safeExec('git', ['checkout', '--theirs', '.'])
+        safeExec('git', ['add', '.'])
+        safeExec('git', ['reset', 'HEAD', '.'])
+        safeExec('git', ['stash', 'drop'])
+        const count = conflicted.split('\n').filter(Boolean).length
+        lines.push(`Merged your local content on top of the update.\nKept your version of ${count} conflicting file${count === 1 ? '' : 's'}:\n${conflicted}`)
+      }
+    }
+
     updateJob = {
       status: 'done',
-      output: (stdout + stderr).trim(),
+      output: lines.join('\n\n'),
       error: null,
       startedAt: updateJob.startedAt,
       finishedAt: Date.now(),
       newHead: safeExec('git', ['rev-parse', 'HEAD'])
     }
   } catch (err) {
+    // Pull failed for some other reason. Try to restore the stash so the
+    // user doesn't silently lose their work.
+    let restoredNote = ''
+    if (stashed) {
+      try {
+        await execFileAsync('git', ['stash', 'pop'], { cwd: __dirname })
+        restoredNote = '\n\nRestored your stashed changes.'
+      } catch {
+        restoredNote = '\n\nYour local changes are still in `git stash` — recover with `git stash pop` from the platform directory.'
+      }
+    }
     updateJob = {
       status: 'error',
-      output: (err.stdout || '') + (err.stderr || ''),
+      output: (lines.join('\n\n') + '\n\n' + (err.stdout || '') + (err.stderr || '')).trim() + restoredNote,
       error: err.message,
       startedAt: updateJob.startedAt,
       finishedAt: Date.now()
