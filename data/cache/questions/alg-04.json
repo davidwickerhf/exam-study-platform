@@ -1,0 +1,217 @@
+{
+  "generatedAt": "2026-05-30T23:01:32.704Z",
+  "chapterId": "04",
+  "questions": [
+    {
+      "id": "selftest-np-completeness-q1",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "What two conditions prove a problem NP-complete?",
+      "expected": "(i) L ∈ NP (give certificate + poly-time verifier). (ii) L is NP-hard (reduce a known NP-hard problem to it)."
+    },
+    {
+      "id": "selftest-np-completeness-q2",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "What is a certificate for Knapsack?",
+      "expected": "A subset S of items, with a verifier that checks $Σ_{i\\in S} w_i \\leq C$ and $Σ_{i\\in S} v_i \\geq V$."
+    },
+    {
+      "id": "selftest-np-completeness-q3",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "What is a certificate for Hamiltonian Cycle?",
+      "expected": "A permutation of vertices; verifier checks it visits each vertex exactly once and is a cycle in G."
+    },
+    {
+      "id": "selftest-np-completeness-q4",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "What does $L₁ \\to L₂$ (polynomial-time reduction) mean formally?",
+      "expected": "A polynomial-time computable function `f` mapping instances of `L₁` to instances of `L₂` such that $l \\in L₁ \\Leftrightarrow f(l) \\in L₂$."
+    },
+    {
+      "id": "selftest-np-completeness-q5",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "If L₁ is NP-hard and $L₁ \\to L₂$, what can you conclude about L₂?",
+      "expected": "L₂ is also NP-hard. (For any M ∈ NP, M → L₁ → L₂, so M → L₂.)"
+    },
+    {
+      "id": "selftest-np-completeness-q6",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "Name three known NP-complete problems besides SAT.",
+      "expected": "Examples: Vertex Cover, Independent Set, Clique, Subset Sum, Knapsack, Hamiltonian Cycle, TSP, 3-Colouring."
+    },
+    {
+      "id": "selftest-np-completeness-q7",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "What's the difference between NP-hard and NP-complete?",
+      "expected": "NP-hard = at least as hard as everything in NP (could be even harder, not necessarily in NP). NP-complete = NP-hard AND in NP — \"hardest problems inside NP\"."
+    },
+    {
+      "id": "selftest-np-completeness-q8",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "What is the Cook-Levin theorem?",
+      "expected": "CNF-SAT is NP-complete — the first NP-completeness result. Proved by encoding any NP verifier as a Boolean formula. Used as the starting point for almost all other NP-completeness proofs."
+    },
+    {
+      "id": "selftest-np-completeness-q9",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "Why does P = NP imply public-key crypto breaks?",
+      "expected": "Public-key crypto relies on certain problems (factoring, discrete log) being hard. If P = NP, all NP problems are solvable in poly time, including those — and similar hardness assumptions fall."
+    },
+    {
+      "id": "selftest-np-completeness-q10",
+      "source": "Self test: NP-Completeness",
+      "type": "written",
+      "question": "How do you convert an optimization problem into a decision problem?",
+      "expected": "Add a threshold parameter T to the input. Decision: \"is there a solution with cost ≤ T (or ≥ T)?\" Use binary search on T to recover the optimization version."
+    },
+    {
+      "id": "gen-04-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why the verifier-based definition of $\\mathsf{NP}$ is asymmetric between YES and NO instances. Use one example from $\\mathsf{SAT}$, $\\mathsf{TSP}$, or factoring in your answer.",
+      "options": [
+        "A problem is in $\\mathsf{NP}$ exactly when every NO instance has a short certificate that can be checked in polynomial time.",
+        "A problem is in $\\mathsf{NP}$ exactly when YES instances have polynomial-size certificates checkable by a deterministic polynomial-time verifier.",
+        "A problem is in $\\mathsf{NP}$ exactly when it has a randomized polynomial-time algorithm with low error probability.",
+        "A problem is in $\\mathsf{NP}$ exactly when both YES and NO instances can be solved by exhaustive search in polynomial time."
+      ],
+      "expected": "A correct answer should state that $\\mathsf{NP}$ requires short, polynomial-time checkable certificates only for YES instances. For example, in $\\mathsf{SAT}$ a satisfying assignment proves YES by evaluating the formula, but a NO instance would require showing that no assignment satisfies it, which is not captured by the basic $\\mathsf{NP}$ certificate definition."
+    },
+    {
+      "id": "gen-04-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A student wants to prove that a decision problem $L$ is $\\mathsf{NP}$-complete and writes only a polynomial-time reduction from $3\\text{-}\\mathsf{SAT}$ to $L$. What is missing, and why does the reduction direction matter?",
+      "options": [
+        "A reduction $L \\to 3\\text{-}\\mathsf{SAT}$ is enough by itself because $3\\text{-}\\mathsf{SAT}$ is already known to be $\\mathsf{NP}$-complete.",
+        "A reduction $3\\text{-}\\mathsf{SAT} \\to L$ proves that $L \\in \\mathsf{NP}$, so no verifier is needed.",
+        "They must also show $L \\in \\mathsf{NP}$, and the direction $3\\text{-}\\mathsf{SAT} \\to L$ is used to transfer hardness from a known $\\mathsf{NP}$-complete problem to $L$.",
+        "They must show $L \\to 3\\text{-}\\mathsf{SAT}$ and $3\\text{-}\\mathsf{SAT} \\to L$ because all $\\mathsf{NP}$-complete problems require two-way reductions."
+      ],
+      "expected": "They must also show $L \\in \\mathsf{NP}$, and the direction $3\\text{-}\\mathsf{SAT} \\to L$ is used to transfer hardness from a known $\\mathsf{NP}$-complete problem to $L$."
+    },
+    {
+      "id": "gen-04-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A decision oracle for an optimisation problem returns whether the optimum value is at most a queried integer $T$. If all edge weights are nonnegative integers and every Hamiltonian cycle has total weight between $0$ and $4095$, how many oracle calls are sufficient to find the optimum value by binary search?",
+      "options": [
+        "$11$ oracle calls, because there are $4096$ possible values and $\\log_2 4096 = 12$, then one call is saved for the final value.",
+        "$12$ oracle calls, because there are $4096$ possible values and $\\lceil \\log_2 4096 \\rceil = 12$.",
+        "$4095$ oracle calls, because every threshold must be checked separately.",
+        "$4096$ oracle calls, because there are $4096$ candidate optimum values."
+      ],
+      "expected": "$12$ oracle calls, because there are $4096$ possible values and $\\lceil \\log_2 4096 \\rceil = 12$."
+    },
+    {
+      "id": "gen-04-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A verifier for a certificate of length $m$ runs in time $7n^3 + 4m^2 + 20$. If certificates are guaranteed to satisfy $m \\leq 2n^2$, give a polynomial upper bound in terms of $n$ only.",
+      "options": [
+        "$7n^3 + 16n^4 + 20 = O(n^4)$. Substitute $m \\leq 2n^2$, so $4m^2 \\leq 4(2n^2)^2 = 16n^4$.",
+        "$7n^3 + 8n^2 + 20 = O(n^3)$. Substitute $m = 2n$ because certificate length is always linear.",
+        "$7n^3 + 4n^2 + 20 = O(n^3)$. Ignore $m$ because it is not part of the input instance.",
+        "$7n^3 + 4(2^n)^2 + 20 = O(4^n)$. Certificates in $\\mathsf{NP}$ may be exponentially long."
+      ],
+      "expected": "$7n^3 + 16n^4 + 20 = O(n^4)$. Substitute $m \\leq 2n^2$, so $4m^2 \\leq 4(2n^2)^2 = 16n^4$."
+    },
+    {
+      "id": "gen-04-4",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If $L_1 \\leq_p L_2$ and $L_2 \\in \\mathsf{P}$, then $L_1 \\in \\mathsf{P}$.",
+      "options": [
+        "True. Compute the reduction in polynomial time, then run the polynomial-time algorithm for $L_2$ on the mapped instance.",
+        "False. A reduction only transfers hardness from $L_2$ to $L_1$.",
+        "True only if $L_1$ is already known to be $\\mathsf{NP}$-complete.",
+        "False unless $L_2 \\leq_p L_1$ also holds."
+      ],
+      "expected": "True. Compute the reduction $f$ in polynomial time and decide $L_2$ on $f(x)$ in polynomial time. The composition is polynomial, so $L_1 \\in \\mathsf{P}$."
+    },
+    {
+      "id": "gen-04-5",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: If a problem is $\\mathsf{NP}$-hard, then it must also be in $\\mathsf{NP}$.",
+      "options": [
+        "True. Every $\\mathsf{NP}$-hard problem is automatically $\\mathsf{NP}$-complete.",
+        "False. $\\mathsf{NP}$-hardness only says every problem in $\\mathsf{NP}$ reduces to it; membership in $\\mathsf{NP}$ is a separate condition.",
+        "True if the problem has a polynomial-time verifier for NO instances.",
+        "False only when $\\mathsf{P} = \\mathsf{NP}$."
+      ],
+      "expected": "False. $\\mathsf{NP}$-hardness only means every problem in $\\mathsf{NP}$ reduces to the problem. To be $\\mathsf{NP}$-complete, the problem must also satisfy $L \\in \\mathsf{NP}$."
+    },
+    {
+      "id": "gen-04-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement correctly describes the Cook-Levin theorem and its role in proving later $\\mathsf{NP}$-completeness results?",
+      "options": [
+        "It proves that $\\mathsf{P} = \\mathsf{NP}$ by giving a polynomial-time algorithm for $\\mathsf{SAT}$.",
+        "It proves that $\\mathsf{CNF}\\text{-}\\mathsf{SAT}$ is $\\mathsf{NP}$-complete by encoding polynomial-time verification as a Boolean formula.",
+        "It proves that every language in $\\mathsf{NP}$ is also in $\\mathsf{coNP}$ by complementing Boolean clauses.",
+        "It proves that $\\mathsf{TSP}$ is in $\\mathsf{P}$ because Hamiltonian cycles have short certificates."
+      ],
+      "expected": "It proves that $\\mathsf{CNF}\\text{-}\\mathsf{SAT}$ is $\\mathsf{NP}$-complete by encoding polynomial-time verification as a Boolean formula."
+    },
+    {
+      "id": "gen-04-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "For an undirected graph $G = (V,E)$ with $|V| = n$, which transformation correctly relates $\\mathsf{Vertex}\\text{-}\\mathsf{Cover}$ and $\\mathsf{Independent}\\text{-}\\mathsf{Set}$?",
+      "options": [
+        "$G$ has a vertex cover of size $k$ iff $G$ has an independent set of size $k$.",
+        "$G$ has a vertex cover of size $k$ iff $G$ has an independent set of size $n-k$.",
+        "$G$ has a vertex cover of size $k$ iff the complement graph $\\overline{G}$ has a vertex cover of size $n-k$.",
+        "$G$ has a vertex cover of size $k$ iff every subset of $k$ vertices is independent."
+      ],
+      "expected": "$G$ has a vertex cover of size $k$ iff $G$ has an independent set of size $n-k$."
+    },
+    {
+      "id": "gen-04-8",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Give pseudocode for a polynomial-time verifier for the decision version of $\\mathsf{TSP}$: input is a weighted graph $G=(V,E)$ and threshold $K$; the certificate is a proposed Hamiltonian cycle $C$.",
+      "options": [
+        "The verifier accepts only if the certificate lists each vertex exactly once, every consecutive pair is an edge, the last vertex connects to the first, and the total weight is at most $K$.",
+        "The verifier accepts if the listed vertices form any path of weight at most $K$, even if some vertices are missing.",
+        "The verifier accepts by checking all possible Hamiltonian cycles and choosing the lightest one.",
+        "The verifier accepts if every edge in $G$ has weight at most $K$."
+      ],
+      "expected": "```text\nVerifyTSP(G, K, C):\n    n <- number of vertices in G\n    if length(C) != n:\n        return NO\n    seen <- empty set\n    total <- 0\n    for i <- 1 to n:\n        v <- C[i]\n        if v not in V(G) or v in seen:\n            return NO\n        add v to seen\n    for i <- 1 to n:\n        u <- C[i]\n        v <- C[(i mod n) + 1]\n        if edge (u, v) not in E(G):\n            return NO\n        total <- total + weight(u, v)\n    if total <= K:\n        return YES\n    return NO\n```\nThis is polynomial because it performs a linear number of membership, edge, and weight checks after the certificate is read."
+    },
+    {
+      "id": "gen-04-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Give pseudocode for the standard polynomial-time reduction from $\\mathsf{Clique}$ to $\\mathsf{Independent}\\text{-}\\mathsf{Set}$. The input is a graph $G=(V,E)$ and integer $k$.",
+      "options": [
+        "Construct $\\overline{G}$ and keep $k$ unchanged; a $k$-clique in $G$ is exactly a $k$-independent set in $\\overline{G}$.",
+        "Construct $\\overline{G}$ and replace $k$ by $|V|-k$; this is the vertex-cover transformation, not the clique transformation.",
+        "Return the same graph $G$ and the same $k$, because cliques and independent sets are identical in every graph.",
+        "Delete all edges from $G$ and keep $k$ unchanged, because every subset then becomes independent."
+      ],
+      "expected": "```text\nReduceCliqueToIndependentSet(G, k):\n    H <- graph with vertex set V(G) and no edges\n    for each unordered pair {u, v} with u != v:\n        if {u, v} not in E(G):\n            add edge {u, v} to E(H)\n    return (H, k)\n```\nThe construction makes $H = \\overline{G}$. A set $S$ of size $k$ is a clique in $G$ iff no two vertices of $S$ are adjacent in $H$, so $S$ is an independent set in $H$."
+    }
+  ],
+  "generationError": null
+}

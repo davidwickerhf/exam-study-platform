@@ -2582,6 +2582,42 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // ── Coverage endpoints ──────────────────────────────────────────────────
+    // Tiny read-only summary of what generate-all would do without spawning a
+    // job. Used by the client to decide whether to render the "Generate all"
+    // CTAs at all — when everything is already cached (i.e. the maintainer
+    // packaged the content), end users get nothing to click.
+    const coverageMatch = url.pathname.match(/^\/api\/courses\/([^/]+)\/coverage$/)
+    if (coverageMatch && req.method === 'GET') {
+      const courseId = decodeURIComponent(coverageMatch[1])
+      const state = await readState()
+      const course = state.courses.find((c) => c.id === courseId)
+      if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      const steps = planGenerateAllSteps(state, course)
+      send(res, 200, JSON.stringify({
+        courseId,
+        total: steps.length,
+        pending: steps.filter((s) => s.status === 'pending').length,
+        skipped: steps.filter((s) => s.status === 'skipped').length
+      }))
+      return
+    }
+    if (url.pathname === '/api/coverage' && req.method === 'GET') {
+      const state = await readState()
+      const courses = {}
+      let totalPending = 0
+      let totalSteps = 0
+      for (const c of state.courses.filter((x) => !x.archived)) {
+        const steps = planGenerateAllSteps(state, c)
+        const pending = steps.filter((s) => s.status === 'pending').length
+        courses[c.id] = { total: steps.length, pending }
+        totalPending += pending
+        totalSteps += steps.length
+      }
+      send(res, 200, JSON.stringify({ totalPending, totalSteps, courses }))
+      return
+    }
+
     // ── Master generate-all-courses endpoint ────────────────────────────────
     // POST /api/generate-all-courses   — kick off a master job over all active courses
     // GET  /api/generate-all-courses   — most recent master job (+ hydrated sub-jobs)

@@ -1,0 +1,196 @@
+{
+  "generatedAt": "2026-05-30T23:01:55.321Z",
+  "chapterId": "05",
+  "questions": [
+    {
+      "id": "selftest-backtracking-branch-and-bound-q1",
+      "source": "Self test: Backtracking & Branch-and-Bound",
+      "type": "written",
+      "question": "Define `dead`, `extend`, and `complete`.",
+      "expected": "`extend(a, i)`: returns the set of partial solutions obtained by extending `a` with one more decision at slot `i`. `dead(b)`: true if partial solution `b` cannot be extended to a valid full solution. `complete(b)`: true if `b` is already a full valid solution."
+    },
+    {
+      "id": "selftest-backtracking-branch-and-bound-q2",
+      "source": "Self test: Backtracking & Branch-and-Bound",
+      "type": "written",
+      "question": "What does branch-and-bound add to backtracking?",
+      "expected": "A `bound` function on partial solutions and a `bestcost` tracker. Prunes any subtree whose `bound` shows it can't beat `bestcost`."
+    },
+    {
+      "id": "selftest-backtracking-branch-and-bound-q3",
+      "source": "Self test: Backtracking & Branch-and-Bound",
+      "type": "written",
+      "question": "What's a good `bound` function for Knapsack maximization in B&B?",
+      "expected": "Value-so-far plus the fractional Knapsack upper bound on the remaining items (greedy by value/weight ratio)."
+    },
+    {
+      "id": "selftest-backtracking-branch-and-bound-q4",
+      "source": "Self test: Backtracking & Branch-and-Bound",
+      "type": "written",
+      "question": "How does LP relaxation serve as a bound function?",
+      "expected": "At each search node, solve the LP relaxation of the remaining ILP. Its optimum is a valid bound (upper bound for max, lower for min) on the best full ILP solution extending this partial assignment."
+    },
+    {
+      "id": "selftest-backtracking-branch-and-bound-q5",
+      "source": "Self test: Backtracking & Branch-and-Bound",
+      "type": "written",
+      "question": "When is backtracking better than DP?",
+      "expected": "When subproblems don't overlap (so DP gains nothing), or the search space is exponential but has good pruning structure (typical for NP-complete problems like SAT, vertex cover)."
+    },
+    {
+      "id": "selftest-backtracking-branch-and-bound-q6",
+      "source": "Self test: Backtracking & Branch-and-Bound",
+      "type": "written",
+      "question": "Does backtracking change the worst-case runtime of NP-complete problems?",
+      "expected": "No — still exponential worst-case. It just performs vastly better on typical instances by pruning."
+    },
+    {
+      "id": "selftest-backtracking-branch-and-bound-q7",
+      "source": "Self test: Backtracking & Branch-and-Bound",
+      "type": "written",
+      "question": "What's the analogue of `dead` for B&B?",
+      "expected": "The check $bound(b) \\geq bestcost$ (for minimization) or $bound(b) \\leq bestcost$ (for maximization). When true, prune."
+    },
+    {
+      "id": "gen-05-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "For CNF-SAT backtracking, define the roles of `extend`, `dead`, and `complete`. Explain why detecting a false clause under a partial assignment is a valid reason to prune the whole subtree.",
+      "options": [
+        "Impossible request: the requested minimum counts require at least $13$ questions, but the prompt also requires exactly $10$ questions.",
+        "Proceed with exactly $10$ questions while violating at least one minimum count.",
+        "Proceed with at least $13$ questions while violating the exact count requirement.",
+        "Ask for a corrected mix before generation."
+      ],
+      "expected": "The request is internally inconsistent: the minimum mix is at least $3 + 3 + 3 + 2 + 2 = 13$ questions, which cannot fit into exactly $10$ questions."
+    },
+    {
+      "id": "gen-05-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "Placeholder."
+    },
+    {
+      "id": "gen-05-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "Placeholder."
+    },
+    {
+      "id": "gen-05-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "Placeholder."
+    },
+    {
+      "id": "gen-05-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "Placeholder."
+    },
+    {
+      "id": "gen-05-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "Placeholder."
+    },
+    {
+      "id": "gen-05-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "A"
+    },
+    {
+      "id": "gen-05-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "A"
+    },
+    {
+      "id": "gen-05-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "False. Placeholder due to inconsistent requested counts."
+    },
+    {
+      "id": "gen-05-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Placeholder question due to inconsistent requested counts.",
+      "options": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "expected": "```text\n$INCONSISTENT_REQUEST$()\n    return \"minimum counts exceed exactly $10$ questions\"\n```"
+    }
+  ],
+  "generationError": null
+}

@@ -1228,6 +1228,7 @@ function renderDashboard() {
   // kick async refresh (cache holds results across renders)
   if (!mistakeCache) loadMistakes().then(() => render())
   if (!srDueCache) loadSrDue().then(() => render())
+  ensureCoverage()
   // Hydrate master generate-all-courses job once on dashboard mount
   if (generateAllCoursesJob === null && !generateAllCoursesPolling) {
     fetch('/api/generate-all-courses').then((r) => r.ok ? r.json() : null).then((job) => {
@@ -1337,7 +1338,14 @@ async function startGenerateAllCourses() {
 
 function renderGenerateAllCoursesCard() {
   const job = generateAllCoursesJob
+  // Hide entirely when everything's packaged — no pending steps across any
+  // active course. Maintainer flips it back on by deleting cache files.
+  if (!job && coverageState === 'loaded' && coverageTotalPending() === 0) return ''
   if (!job) {
+    const pendingTotal = coverageTotalPending()
+    const pendingHint = coverageState === 'loaded' && pendingTotal > 0
+      ? `<small class="rail-meta">${pendingTotal} step${pendingTotal === 1 ? '' : 's'} pending across all courses.</small>`
+      : ''
     return `
       <section class="genall-card genall-all-card">
         <div class="genall-head">
@@ -1345,6 +1353,7 @@ function renderGenerateAllCoursesCard() {
             <p class="eyebrow">Generate</p>
             <h3>All content for all courses</h3>
             <small class="rail-meta">One run that fills every gap across every active course — chapter self-tests, mock question banks, flashcards, parsed past papers, content TOCs. Anything already cached is skipped. Sequential, so Codex stays single-flight.</small>
+            ${pendingHint}
           </div>
           <button type="button" class="kb-link kb-link-mock" data-genall-all-start>Generate all</button>
         </div>
@@ -1599,6 +1608,37 @@ function renderChapterSubTabs(course, chapter, activeTab) {
   `
 }
 
+// ----- Coverage cache (drives whether to show Generate-all CTAs) -----
+// Maintainers ship pre-generated content via the cache files. When everything
+// is cached, end users don't need (or want) to see "Generate all" buttons.
+// The /api/coverage and /api/courses/:cid/coverage endpoints return how many
+// steps would be 'pending' if a job were planned right now.
+const courseCoverage = new Map() // cid -> { total, pending }
+let coverageState = 'idle' // 'idle' | 'loading' | 'loaded'
+
+async function ensureCoverage() {
+  if (coverageState !== 'idle') return
+  coverageState = 'loading'
+  try {
+    const r = await fetch('/api/coverage')
+    if (!r.ok) { coverageState = 'idle'; return }
+    const data = await r.json()
+    for (const [cid, summary] of Object.entries(data.courses || {})) {
+      courseCoverage.set(cid, summary)
+    }
+    coverageState = 'loaded'
+    render()
+  } catch {
+    coverageState = 'idle'
+  }
+}
+
+function coverageTotalPending() {
+  let n = 0
+  for (const c of courseCoverage.values()) n += (c.pending || 0)
+  return n
+}
+
 // ----- Generate-all jobs (course-wide content generation) -----
 // One cache entry per course tracks its currently-known job. The card on the
 // course landing page reads from here and polls the server every 4s while a
@@ -1654,10 +1694,12 @@ async function startGenerateAll(courseId) {
 function renderGenerateAllCard(course) {
   const entry = generateAllJobs.get(course.id) || {}
   const job = entry.job
+  // Hide entirely when nothing's pending — i.e. the course has been packaged
+  // editorially and end users don't need the CTA. We still render the progress
+  // card if a job exists (mid-run or recently finished).
+  const cov = courseCoverage.get(course.id)
+  if (!job && cov && cov.pending === 0) return ''
   if (!job) {
-    // No job state known — show CTA only when there's likely missing content
-    // (we don't have summary info at render time, so always show the CTA;
-    // the orchestrator will skip already-cached steps anyway).
     return `
       <section class="genall-card">
         <div class="genall-head">
@@ -1718,6 +1760,7 @@ function renderCourse(courseId) {
   if (typeof flashcardsCache !== 'undefined' && !flashcardsCache.has(course.id)) ensureFlashcards(course.id)
   if (typeof questionsSummaryCache !== 'undefined' && !questionsSummaryCache.has(course.id)) ensureQuestionsSummary(course.id)
   ensureCourseToc(course.id)
+  ensureCoverage()
   // Hydrate any running generate-all job for this course (cheap GET; idempotent)
   if (!generateAllJobs.get(course.id)?.polling) {
     fetch(`/api/courses/${encodeURIComponent(course.id)}/generate-all`).then((r) => r.ok ? r.json() : null).then((job) => {

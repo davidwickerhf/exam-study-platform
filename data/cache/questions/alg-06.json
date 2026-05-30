@@ -1,0 +1,195 @@
+{
+  "generatedAt": "2026-05-30T23:02:46.467Z",
+  "chapterId": "06",
+  "questions": [
+    {
+      "id": "selftest-ilp-linear-programming-q1",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "Write the ILP for Vertex Cover.",
+      "expected": "```\n   x_v ∈ {0,1} for each v ∈ V\n   minimize Σ_v x_v\n   subject to x_u + x_v >= 1 for each (u,v) ∈ E\n   ```"
+    },
+    {
+      "id": "selftest-ilp-linear-programming-q2",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "What is fractional relaxation?",
+      "expected": "Drop the integrality constraint (e.g. replace $x \\in {0,1}$ with $0 \\leq x \\leq 1$) to obtain an LP. Solvable in polynomial time."
+    },
+    {
+      "id": "selftest-ilp-linear-programming-q3",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "For minimization, is the relaxed LP optimum lower or higher than the ILP optimum?",
+      "expected": "Lower (or equal). The LP feasible region is larger, so its minimum is at most the ILP's minimum."
+    },
+    {
+      "id": "selftest-ilp-linear-programming-q4",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "What is LP duality?",
+      "expected": "Every LP (primal) has a corresponding LP (dual) with the same optimum value. Each primal constraint becomes a dual variable."
+    },
+    {
+      "id": "selftest-ilp-linear-programming-q5",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "What is a shadow price?",
+      "expected": "A dual variable interpretable as the marginal value of one extra unit of the corresponding primal resource. Tells you which constraint to relax to improve the optimum."
+    },
+    {
+      "id": "selftest-ilp-linear-programming-q6",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "Why is LP in P but ILP NP-complete?",
+      "expected": "LP feasible region is convex; the optimum is at a vertex and can be found by edge-walking (simplex) or interior-point methods in polynomial time. Forcing integer values is a combinatorial constraint that makes the problem NP-hard."
+    },
+    {
+      "id": "selftest-ilp-linear-programming-q7",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "Can an LP have no solution?",
+      "expected": "Yes. The constraints can be infeasible (e.g. $x \\leq 1$ AND $x \\geq 2$), or the objective can be unbounded in the feasible region (e.g. $max x_1$ with no upper bound on $x_1$). In either case the \"optimum\" is $\\pm \\infty$."
+    },
+    {
+      "id": "selftest-ilp-linear-programming-q8",
+      "source": "Self test: ILP / Linear Programming",
+      "type": "written",
+      "question": "Write an LP constraint that says \"if item A is selected then item B must also be selected.\"",
+      "expected": "$x_A \\leq x_B$ (if $x_A = 1$, then $x_B \\geq 1$, so $x_B = 1$)."
+    },
+    {
+      "id": "gen-06-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why fractional relaxation gives a valid bound for branch-and-bound. State the bound direction for a maximisation ILP and for a minimisation ILP.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Fractional relaxation removes the integrality requirement, so every feasible ILP solution is also feasible for the LP relaxation. Therefore the relaxed feasible region is larger. For maximisation, this means $\\text{LP}_{\\text{opt}} \\geq \\text{ILP}_{\\text{opt}}$, so the LP gives an upper bound. For minimisation, $\\text{LP}_{\\text{opt}} \\leq \\text{ILP}_{\\text{opt}}$, so the LP gives a lower bound."
+    },
+    {
+      "id": "gen-06-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Formulate the maximum clique problem as an ILP for an undirected graph $G = (V,E)$. Your answer must define the variables, objective, constraints, and integrality conditions.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Use one binary variable $x_v$ for each vertex $v \\in V$, where $x_v = 1$ means vertex $v$ is chosen for the clique. Maximise $\\sum_{v \\in V} x_v$. For every non-edge $(v,w) \\notin E$, add the constraint $x_v + x_w \\leq 1$, because a clique cannot contain two non-adjacent vertices. Finally require $x_v \\in \\{0,1\\}$ for all $v \\in V$."
+    },
+    {
+      "id": "gen-06-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A knapsack instance has items with values $(10, 8, 6)$, weights $(5, 4, 3)$, and capacity $C = 7$. Compute the ILP optimum and the fractional relaxation optimum.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "The ILP optimum is $14$, obtained by choosing items $2$ and $3$, with total weight $4 + 3 = 7$ and value $8 + 6 = 14$. The fractional relaxation optimum is also $14$: all items have value-to-weight ratio $2$, so any feasible total weight $7$ has value at most $2 \\cdot 7 = 14$, achieved by items $2$ and $3$."
+    },
+    {
+      "id": "gen-06-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For the triangle vertex-cover ILP with variables $x_1,x_2,x_3$, constraints $x_1+x_2 \\geq 1$, $x_1+x_3 \\geq 1$, $x_2+x_3 \\geq 1$, and objective $\\min x_1+x_2+x_3$, compute the ILP optimum and the LP relaxation optimum.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "The ILP optimum is $2$, because any single vertex misses the opposite edge, while any two vertices cover all three edges. The LP relaxation optimum is $\\frac{3}{2}$, achieved by $x_1=x_2=x_3=\\frac{1}{2}$; summing the three constraints gives $2(x_1+x_2+x_3) \\geq 3$, so $x_1+x_2+x_3 \\geq \\frac{3}{2}$."
+    },
+    {
+      "id": "gen-06-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement about LP and ILP is correct?",
+      "options": [
+        "Every ILP can be solved in polynomial time because its fractional relaxation is an LP.",
+        "LP variables must be binary, while ILP variables may be real-valued.",
+        "LPs are solvable in polynomial time, while ILPs can express NP-complete problems.",
+        "The simplex algorithm has polynomial worst-case running time on all LP instances."
+      ],
+      "expected": "LPs are solvable in polynomial time, while ILPs can express NP-complete problems."
+    },
+    {
+      "id": "gen-06-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "For the primal LP $\\max\\{c \\cdot x : Ax \\leq b,\\ x \\geq 0\\}$, which is the correct dual?",
+      "options": [
+        "$\\min\\{b \\cdot y : y^\\top A \\geq c,\\ y \\geq 0\\}$",
+        "$\\max\\{b \\cdot y : y^\\top A \\leq c,\\ y \\geq 0\\}$",
+        "$\\min\\{c \\cdot y : Ay \\geq b,\\ y \\leq 0\\}$",
+        "$\\max\\{c \\cdot y : A^\\top y \\leq b,\\ y \\in \\mathbb{Z}\\}$"
+      ],
+      "expected": "$\\min\\{b \\cdot y : y^\\top A \\geq c,\\ y \\geq 0\\}$"
+    },
+    {
+      "id": "gen-06-6",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: In a minimisation ILP, if the LP relaxation has optimum value $12$, then the ILP optimum cannot be less than $12$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. The LP relaxation has a superset of the feasible ILP solutions, so for minimisation it can only improve downward. Therefore $\\text{LP}_{\\text{opt}} \\leq \\text{ILP}_{\\text{opt}}$, so the ILP optimum is at least $12$."
+    },
+    {
+      "id": "gen-06-7",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: The equality constraint $3x_1 - 2x_2 = 5$ can be represented in LP standard form using two linear inequalities.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. Replace it with $3x_1 - 2x_2 \\leq 5$ and $-3x_1 + 2x_2 \\leq -5$. Together these force $3x_1 - 2x_2 = 5$."
+    },
+    {
+      "id": "gen-06-8",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a branch-and-bound algorithm for a binary maximisation ILP using LP relaxation bounds. The algorithm should branch on a fractional variable and prune using the incumbent value.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "A valid answer should solve the LP relaxation at each node, prune infeasible nodes, prune nodes whose LP upper bound is no better than the incumbent, update the incumbent when the LP solution is integral, and otherwise branch on a fractional variable.\n\n```text\nBranchAndBoundMax(rootILP):\n    bestValue <- -infinity\n    bestSolution <- null\n    stack <- [rootILP]\n\n    while stack is not empty:\n        node <- pop(stack)\n        status, lpValue, lpSolution <- SolveLPRelaxation(node)\n\n        if status = infeasible:\n            continue\n\n        if lpValue <= bestValue:\n            continue\n\n        if IsIntegral(lpSolution):\n            bestValue <- lpValue\n            bestSolution <- lpSolution\n            continue\n\n        j <- ChooseIndexWithFractionalValue(lpSolution)\n        leftNode <- AddConstraint$node, $x_j$ <= floor(lpSolution[j])$\n        rightNode <- AddConstraint$node, $x_j$ >= ceil(lpSolution[j])$\n        push(stack, leftNode)\n        push(stack, rightNode)\n\n    return bestSolution, bestValue\n```"
+    },
+    {
+      "id": "gen-06-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode that converts a 3-SAT formula into an ILP feasibility problem. Each Boolean variable should become a binary variable, and each clause should become one linear inequality.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "The conversion should create one binary variable $x_i$ for each Boolean variable, interpret true as $1$ and false as $0$, and require each clause to have literal-sum at least $1$.\n\n```text\nSAT3ToILP(formula):\n    ilp <- NewILP()\n\n    for each Boolean variable $p_i$ in formula:\n        $x_i$ <- ilp.AddVariable$name = $p_i$$\n        ilp.AddConstraint$0 <= $x_i$$\n        ilp.AddConstraint$$x_i$ <= 1$\n        ilp.AddIntegerConstraint$$x_i$$\n\n    for each clause C in formula:\n        expression <- 0\n        for each literal L in C:\n            if L is $p_i$:\n                expression <- expression + $x_i$\n            else if L is not $p_i$:\n                expression <- expression + $1 - $x_i$$\n        ilp.AddConstraint(expression >= 1)\n\n    ilp.SetObjective(0)\n    return ilp\n```"
+    }
+  ],
+  "generationError": null
+}
