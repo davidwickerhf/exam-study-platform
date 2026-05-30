@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-17T15:38:12.692Z",
+  "chapterId": "02",
+  "questions": [
+    {
+      "id": "gen-02-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why the Caesar cipher is classified as a monoalphabetic substitution cipher, and why that classification makes it vulnerable to frequency analysis.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The Caesar cipher is monoalphabetic substitution because each plaintext letter is always replaced by the same ciphertext letter for a fixed key. This preserves the statistical pattern of the language: common plaintext letters such as E or T still correspond to consistently common ciphertext letters, so frequency analysis can recover likely mappings."
+    },
+    {
+      "id": "gen-02-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Encrypt the plaintext ATTACK using the Caesar cipher with shift 7, using A=0, B=1, ..., Z=25. Show the ciphertext.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Ciphertext: HAALJR. Method: convert each letter to a number and compute (plain + 7) mod 26: A->H, T(19)->A because 26 mod 26 = 0, T->A, A->H, C(2)->J, K(10)->R."
+    },
+    {
+      "id": "gen-02-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes the key distribution problem in symmetric cryptography?",
+      "options": [
+        "Symmetric encryption is slow because it requires a public/private key pair for every message.",
+        "Both parties must somehow obtain and protect the same secret key before secure communication can begin.",
+        "The ciphertext must include the symmetric key so the receiver can decrypt efficiently.",
+        "A symmetric key can be made public, but the encryption algorithm must remain secret."
+      ],
+      "expected": "Both parties must somehow obtain and protect the same secret key before secure communication can begin."
+    },
+    {
+      "id": "gen-02-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Vigenere encryption is less vulnerable to simple frequency analysis than Caesar encryption because the same plaintext letter may encrypt to different ciphertext letters.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. Vigenere is polyalphabetic: the shift depends on the current keyword position. Therefore one plaintext letter does not necessarily map to one fixed ciphertext letter across the whole message."
+    },
+    {
+      "id": "gen-02-4",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for encrypting an uppercase alphabetic message with the Vigenere cipher. Ignore spaces and punctuation; use A=0 through Z=25, repeat the keyword as needed, and return the ciphertext.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct answer should loop over plaintext letters, choose the matching repeated keyword letter, add the shift modulo 26, and append the ciphertext letter.\n\n```pseudocode\nfunction vigenereEncrypt(plaintext, keyword):\n    ciphertext = \"\"\n    keyIndex = 0\n\n    for each char in plaintext:\n        if char is not A..Z:\n            continue\n\n        p = ord(char) - ord('A')\n        keyChar = keyword[keyIndex mod length(keyword)]\n        k = ord(keyChar) - ord('A')\n        c = (p + k) mod 26\n        ciphertext = ciphertext + chr(c + ord('A'))\n        keyIndex = keyIndex + 1\n\n    return ciphertext\n```"
+    },
+    {
+      "id": "gen-02-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Encrypt the plaintext SECURITY with the Vigenere keyword KEY. Use A=0, ..., Z=25 and repeat the keyword as needed.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Ciphertext: CIAYVGRXC. Method: repeat KEY as KEYKEYKEK; shifts are 10,4,24,10,4,24,10,4. Compute each character as (plaintext value + key value) mod 26: S->C, E->I, C->A, U->Y, R->V, I->G, T->R, Y->C."
+    },
+    {
+      "id": "gen-02-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option correctly identifies the Caesar cipher?",
+      "options": [
+        "A transposition cipher because it reorders letters without changing them.",
+        "A monoalphabetic substitution cipher because each plaintext letter maps consistently to one ciphertext letter.",
+        "A polyalphabetic substitution cipher because each letter uses a different key position.",
+        "An asymmetric cipher because the encryption key and decryption key are different."
+      ],
+      "expected": "A monoalphabetic substitution cipher because each plaintext letter maps consistently to one ciphertext letter."
+    },
+    {
+      "id": "gen-02-7",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare how symmetric and asymmetric cryptography are commonly combined in practical secure communication. Your answer should mention efficiency and key distribution.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Asymmetric cryptography is often used first to solve the key distribution problem, for example by exchanging or protecting a symmetric session key using a public/private key pair. After that, symmetric cryptography is used for bulk data encryption because it is much more efficient. This hybrid approach uses asymmetric crypto for setup and symmetric crypto for fast confidentiality of the actual data."
+    },
+    {
+      "id": "gen-02-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Using the toy hash function h(x) = the number of 1 bits in x, returned as 8-bit binary, compute h(10110100). Then give one different 8-bit input with the same hash.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "h(10110100) = 00000100. Method: the input 10110100 contains four 1 bits, and 4 in 8-bit binary is 00000100. One different 8-bit input with the same hash is 11110000, which also has four 1 bits."
+    },
+    {
+      "id": "gen-02-9",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A hash function with an 8-bit output can be collision resistant for arbitrarily long binary inputs if its internal algorithm is secret.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. An 8-bit output has only 256 possible hash values, while arbitrarily long inputs provide far more than 256 possible inputs. By the pigeonhole principle, many collisions must exist; secrecy of the algorithm does not remove this output-space limitation."
+    },
+    {
+      "id": "gen-02-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which pair of inputs is a valid collision for the toy hash function that counts 1 bits and returns the count as 8-bit binary?",
+      "options": [
+        "1010 and 1110",
+        "0000 and 1000",
+        "1100 and 0101",
+        "1111 and 0000"
+      ],
+      "expected": "1100 and 0101"
+    },
+    {
+      "id": "gen-02-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Define preimage resistance and second-preimage resistance for cryptographic hash functions, and distinguish them clearly.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Preimage resistance means that given a hash output y, it should be computationally infeasible to find any input x such that h(x)=y. Second-preimage resistance means that given a specific input x, it should be computationally infeasible to find a different input x' such that h(x')=h(x). The first starts from only the output; the second starts from an existing input."
+    },
+    {
+      "id": "gen-02-12",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For a Caesar cipher with shift 11, decrypt the ciphertext ESPD. Use A=0, ..., Z=25 and show the plaintext.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Plaintext: THES. Method: decrypt by subtracting the shift modulo 26: E(4)-11=-7 mod 26=19 -> T; S(18)-11=7 -> H; P(15)-11=4 -> E; D(3)-11=-8 mod 26=18 -> S."
+    },
+    {
+      "id": "gen-02-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement about asymmetric cryptography is most accurate in the context of key distribution?",
+      "options": [
+        "It eliminates all need for symmetric cryptography because it is always faster.",
+        "It generally provides an effective mechanism for key distribution, often by helping establish a symmetric session key.",
+        "It requires both parties to share the same private key before communication starts.",
+        "It is vulnerable to frequency analysis because public keys reveal letter mappings."
+      ],
+      "expected": "It generally provides an effective mechanism for key distribution, often by helping establish a symmetric session key."
+    },
+    {
+      "id": "gen-02-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode that demonstrates why the toy hash h(x)=number of 1 bits returned as 8-bit binary is not second-preimage resistant. Given a binary string x, construct a different binary string y with the same hash whenever possible.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct answer should preserve the number of 1 bits while changing the input. One simple approach is to swap a 1 bit and a 0 bit; this keeps the count of 1s unchanged.\n\n```pseudocode\nfunction findToyHashSecondPreimage(x):\n    oneIndex = -1\n    zeroIndex = -1\n\n    for i from 0 to length(x) - 1:\n        if x[i] == '1' and oneIndex == -1:\n            oneIndex = i\n        if x[i] == '0' and zeroIndex == -1:\n            zeroIndex = i\n\n    if oneIndex == -1 or zeroIndex == -1:\n        return failure  // all bits equal; use a longer construction instead\n\n    y = copy of x\n    y[oneIndex] = '0'\n    y[zeroIndex] = '1'\n    return y\n```"
+    },
+    {
+      "id": "gen-02-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A student claims that Vigenere is secure against frequency analysis because it completely removes letter-frequency patterns. Explain what is wrong or incomplete about this claim using the chapter concepts.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The claim is too strong. Vigenere weakens simple frequency analysis because it is polyalphabetic: the same plaintext letter can encrypt differently depending on the keyword position. However, with a repeated keyword, patterns can still remain across positions that use the same key letter, so the cipher is less vulnerable than Caesar but not described as completely eliminating all frequency information."
+    }
+  ],
+  "generationError": null
+}

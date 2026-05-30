@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-21T23:40:57.214Z",
+  "chapterId": "03",
+  "questions": [
+    {
+      "id": "gen-03-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why asymmetric cryptography reduces the key-distribution problem compared with symmetric pairwise keys, and state what problem it does not solve by itself.",
+      "options": [
+        "Symmetric pairwise systems need $\\binom{n}{2} = \\frac{n(n-1)}{2}$ shared keys, which grows quadratically as the user population grows. Asymmetric systems let each user publish one public key and keep one private key, so strangers can bootstrap encryption or verification without first sharing a secret. However, asymmetric cryptography alone does not prove that a public key really belongs to the claimed identity; that binding requires PKI, a Web of Trust, or another trust mechanism. expected placeholder?",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "Symmetric pairwise systems need $\\binom{n}{2} = \\frac{n(n-1)}{2}$ shared keys, which grows quadratically as the user population grows. Asymmetric systems let each user publish one public key and keep one private key, so strangers can bootstrap encryption or verification without first sharing a secret. However, asymmetric cryptography alone does not prove that a public key really belongs to the claimed identity; that binding requires PKI, a Web of Trust, or another trust mechanism."
+    },
+    {
+      "id": "gen-03-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A student says: \"A digital signature proves that only the recipient could read the message.\" Correct this statement by naming the actual security properties a digital signature provides, and what separate mechanism is needed for confidentiality.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "The statement confuses signatures with encryption. A digital signature provides authentication of the signer, message integrity, and non-repudiation in the practical sense that the signer cannot plausibly deny use of the private signing key if the key was not compromised. Confidentiality requires encryption, usually hybrid encryption where a symmetric session key is encrypted or wrapped using the recipient's public key."
+    },
+    {
+      "id": "gen-03-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Describe two disadvantages of relying on commercial certificate authorities as the root of web PKI trust, and explain why certificate transparency only partially addresses those disadvantages.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "One disadvantage is concentration of trust: many browsers trust many root CAs, so a mistaken or compromised CA can issue a certificate for a domain it should not control. A second disadvantage is operational and political dependency: users and site operators must rely on CA validation processes, revocation infrastructure, and browser root-store decisions. Certificate transparency helps by making issued certificates publicly auditable, so misissuance is easier to detect, but it does not prevent every bad certificate from being issued or guarantee immediate revocation and client enforcement."
+    },
+    {
+      "id": "gen-03-3",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "In a PGP-style system, compare \"sign then encrypt\" with \"encrypt then sign\" for a confidential message from Alice to Bob. Which ordering is normally preferred and why?",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "Sign then encrypt is normally preferred for a confidential message: Alice signs the message with her private key, then encrypts the signed message for Bob. Bob decrypts first and then verifies Alice's signature. This keeps the signature itself confidential from outsiders and binds the signature to the plaintext Bob actually receives. Encrypt then sign exposes a signature over the ciphertext and can reveal metadata about who endorsed a ciphertext even when the plaintext remains hidden."
+    },
+    {
+      "id": "gen-03-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A company has $120$ employees. If every pair of employees needs a unique symmetric key for private pairwise communication, how many shared keys are required?",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "Use $\\binom{n}{2} = \\frac{n(n-1)}{2}$. With $n = 120$, the count is $\\frac{120 \\cdot 119}{2} = 7140$ shared symmetric keys."
+    },
+    {
+      "id": "gen-03-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "For toy RSA, let $p = 5$, $q = 11$, and $e = 3$. Compute $n$, $\\phi(n)$, and the private exponent $d$.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "Compute $n = p \\cdot q = 5 \\cdot 11 = 55$ and $\\phi(n) = (p-1)(q-1) = 4 \\cdot 10 = 40$. Find $d$ such that $3d \\equiv 1 \\pmod{40}$; $d = 27$ because $3 \\cdot 27 = 81 \\equiv 1 \\pmod{40}$."
+    },
+    {
+      "id": "gen-03-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Using the RSA public key $(e,n) = (3,55)$, encrypt message $m = 7$ with textbook RSA. Show the numeric ciphertext.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "Textbook RSA encryption uses $c = m^e \\bmod n$. Here $c = 7^3 \\bmod 55 = 343 \\bmod 55 = 13$, so the ciphertext is $13$."
+    },
+    {
+      "id": "gen-03-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "In Diffie-Hellman, let the public parameters be $p = 23$ and $g = 5$. Alice chooses $a = 6$ and Bob chooses $b = 15$. Compute Alice's public value $A$, Bob's public value $B$, and the shared key $K$.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "Alice sends $A = g^a \\bmod p = 5^6 \\bmod 23 = 8$. Bob sends $B = g^b \\bmod p = 5^{15} \\bmod 23 = 19$. The shared key is $K = B^a \\bmod p = 19^6 \\bmod 23 = 2$, equivalently $K = A^b \\bmod p = 8^{15} \\bmod 23 = 2$."
+    },
+    {
+      "id": "gen-03-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes why PKI is needed on top of public-key cryptography?",
+      "options": [
+        "PKI makes symmetric encryption faster than asymmetric encryption.",
+        "PKI binds public keys to identities through certificates and trusted issuers.",
+        "PKI keeps each user's private key in a central database for recovery.",
+        "PKI removes the need for certificate expiration and revocation."
+      ],
+      "expected": "PKI binds public keys to identities through certificates and trusted issuers."
+    },
+    {
+      "id": "gen-03-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A browser receives a server certificate, an intermediate CA certificate, and has a matching root CA in its trust store. Which validation step is most essential for chain-of-trust verification?",
+      "options": [
+        "Check that each certificate's subject public key is shorter than the issuer's public key.",
+        "Verify each certificate signature using the issuer's public key, ending at a trusted root.",
+        "Decrypt the server certificate with the browser's private key.",
+        "Accept the chain if the server's domain appears anywhere in any certificate field."
+      ],
+      "expected": "Verify each certificate signature using the issuer's public key, ending at a trusted root."
+    },
+    {
+      "id": "gen-03-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option is the best reason real RSA encryption uses OAEP instead of raw textbook RSA?",
+      "options": [
+        "OAEP makes RSA a symmetric cipher, so it can encrypt long files directly.",
+        "OAEP prevents structural leaks and deterministic encryption patterns present in raw RSA.",
+        "OAEP removes the need to verify the recipient's certificate chain.",
+        "OAEP allows anyone to derive the private exponent $d$ from the public exponent $e$."
+      ],
+      "expected": "OAEP prevents structural leaks and deterministic encryption patterns present in raw RSA."
+    },
+    {
+      "id": "gen-03-11",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "In certificate revocation, which statement best captures the tradeoff between CRLs and OCSP?",
+      "options": [
+        "CRLs and OCSP both eliminate the need for certificate expiration dates.",
+        "CRLs are issuer-published lists that can become large or stale; OCSP can give fresher per-certificate status but adds availability and privacy concerns.",
+        "CRLs require the client to reveal its private key; OCSP does not.",
+        "OCSP is only used for self-signed certificates, while CRLs are only used for root CAs."
+      ],
+      "expected": "CRLs are issuer-published lists that can become large or stale; OCSP can give fresher per-certificate status but adds availability and privacy concerns."
+    },
+    {
+      "id": "gen-03-12",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If Alice verifies a signature using Bob's public key and the verification succeeds, then the message must also have been encrypted for Alice.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "False. A valid signature shows that the message matches a signature produced with the corresponding private key, assuming the public key is genuinely Bob's. It says nothing by itself about confidentiality or whether the message was encrypted for Alice."
+    },
+    {
+      "id": "gen-03-13",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: In unauthenticated Diffie-Hellman, Alice and Bob can derive the same shared value $K = g^{ab} \\bmod p$, but they are still vulnerable to a man-in-the-middle attack.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "True. The mathematics lets each side compute the same $K$ when they exchange honest public values, but without authenticating those values an attacker can substitute separate Diffie-Hellman values and establish different keys with Alice and Bob."
+    },
+    {
+      "id": "gen-03-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for validating a certificate chain from a leaf server certificate to a trusted root. Include hostname checking, validity dates, signature checks, trust-anchor matching, and revocation status as separate checks.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "A correct answer should process the leaf first, verify every issuer signature, enforce the target hostname only on the leaf, check dates for every certificate, end at a configured trust anchor, and reject revoked certificates.\n```text\nPROCEDURE ValidateCertificateChain chain trustAnchors hostname currentTime\n    IF chain is empty THEN\n        RETURN reject\n    END IF\n\n    LET leaf be first certificate in chain\n    IF hostname is not listed in leaf names THEN\n        RETURN reject\n    END IF\n\n    FOR each certificate cert at position index in chain DO\n        IF currentTime is before cert validFrom THEN\n            RETURN reject\n        END IF\n        IF currentTime is after cert validTo THEN\n            RETURN reject\n        END IF\n        IF revocationStatus cert is revoked THEN\n            RETURN reject\n        END IF\n\n        IF cert is not last certificate in chain THEN\n            LET issuer be next certificate in chain\n            IF cert issuerName does not match issuer subjectName THEN\n                RETURN reject\n            END IF\n            IF VerifySignature cert signedBytes cert signature issuer publicKey is false THEN\n                RETURN reject\n            END IF\n        ELSE\n            IF cert is not in trustAnchors THEN\n                RETURN reject\n            END IF\n            IF VerifySignature cert signedBytes cert signature cert publicKey is false THEN\n                RETURN reject\n            END IF\n        END IF\n    END FOR\n\n    RETURN accept\nEND PROCEDURE\n```"
+    },
+    {
+      "id": "gen-03-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for PGP-style sign-then-encrypt sending and receiving. The sender should sign the plaintext, generate a random session key, encrypt the signed package symmetrically, wrap the session key for the recipient, and the receiver should reverse the process and verify the signature.",
+      "options": [
+        "x",
+        "x",
+        "x",
+        "x"
+      ],
+      "expected": "A correct answer should sign before encryption, use a fresh symmetric session key, encrypt the signed payload with that session key, encrypt or wrap the session key with the recipient public key, and verify after decryption.\n```text\nPROCEDURE SendSecureMessage plaintext senderPrivateKey recipientPublicKey\n    LET digest be Hash plaintext\n    LET signature be Sign digest senderPrivateKey\n    LET package be Combine plaintext signature\n    LET sessionKey be RandomSymmetricKey\n    LET ciphertext be SymmetricEncrypt package sessionKey\n    LET wrappedKey be PublicKeyEncrypt sessionKey recipientPublicKey\n    RETURN Message wrappedKey ciphertext\nEND PROCEDURE\n\nPROCEDURE ReceiveSecureMessage message recipientPrivateKey senderPublicKey\n    LET sessionKey be PublicKeyDecrypt message wrappedKey recipientPrivateKey\n    LET package be SymmetricDecrypt message ciphertext sessionKey\n    LET plaintext be ExtractPlaintext package\n    LET signature be ExtractSignature package\n    LET digest be Hash plaintext\n    IF VerifySignature digest signature senderPublicKey is false THEN\n        RETURN reject\n    END IF\n    RETURN plaintext\nEND PROCEDURE\n```"
+    }
+  ],
+  "generationError": null
+}

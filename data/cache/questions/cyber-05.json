@@ -1,0 +1,224 @@
+{
+  "generatedAt": "2026-05-21T23:55:32.981Z",
+  "chapterId": "05",
+  "questions": [
+    {
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A login system uses a password plus two security questions before allowing access. Explain whether this is multi-factor authentication, identify the factor category involved, and recommend one stronger replacement control.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "This is not multi-factor authentication because all three checks are still \"something you know\". The system has added more knowledge-based prompts, but it has not added a different factor category. A stronger replacement would be password plus a possession factor such as a hardware security key, smart card, or authenticator-app approval. For higher phishing resistance, a FIDO2 security key is preferable to a code that can be typed into a fake site.",
+      "id": "gen-05-0"
+    },
+    {
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A service stores password records as `username:hash(password)` using a fast general-purpose hash. The password database leaks. Describe three distinct problems with this design and give a corrected storage design suitable for authentication.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "Problems: First, identical passwords produce identical stored hashes, revealing password reuse inside the database. Second, unsalted hashes are vulnerable to rainbow-table lookup because the attacker can compare against precomputed hashes. Third, a fast hash lets attackers test guesses at very high speed offline.\n\nA corrected design uses a unique random per-user salt, a server-side pepper stored separately from the database, and an adaptive password hashing algorithm such as Argon2id, bcrypt, or scrypt. A suitable record stores the algorithm identifier, work parameters, salt, and derived hash, while the pepper remains outside the leaked database. On login, the server recomputes the adaptive hash using the submitted password, the stored salt, and the protected pepper, then compares the result in constant time.",
+      "id": "gen-05-1"
+    },
+    {
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "An attacker obtains a leaked credential list from Site A and tries the same email-and-password pairs on Site B. Name the attack, explain why password complexity rules alone do not stop it, and give two defenses that directly reduce the risk.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "The attack is credential stuffing. Password complexity rules on Site B do not stop it if the user reused the same password from Site A, because the attacker is not guessing the password; they are replaying a known credential pair.\n\nTwo direct defenses are MFA and checks against known-breached passwords during password creation or reset. Additional useful controls include rate limiting, bot detection, impossible-travel detection, login alerts, and encouraging unique passwords through password-manager-friendly policies.",
+      "id": "gen-05-2"
+    },
+    {
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A web application issues bearer access tokens after login. A developer proposes storing the token in browser local storage and using a long expiration time of thirty days to reduce user friction. Analyze the security tradeoff and propose a safer token/session design.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "A bearer token grants access to whoever possesses it, so storing it in local storage increases impact from cross-site scripting because injected JavaScript can read and exfiltrate it. A long lifetime also increases the value of a stolen token because the attacker has more time to use it.\n\nA safer design uses short-lived access tokens and refresh tokens with rotation. Browser sessions should prefer secure, HTTP-only, SameSite cookies where appropriate, so JavaScript cannot directly read the token. The server should bind refresh-token state to a session record, revoke old refresh tokens after rotation, detect reuse of an already-rotated refresh token, and support logout and server-side revocation. The access token should contain only necessary claims and should expire quickly.",
+      "id": "gen-05-3"
+    },
+    {
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Write pseudocode for a login decision that separates identification, authentication, and authorization. Include deny-by-default behavior after authentication succeeds.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "Identification is the username lookup, authentication is proof that the submitted secret matches the account, and authorization is the permission decision after identity is established.\n\n```text\nfunction $handle_request$(username, password, $requested_action$):\n    user = find_user_by_username(username)        // identification\n    if user is null:\n        return deny(\"invalid credentials\")\n\n    if not $verify_password$(password, user.$password_record$):\n        return deny(\"invalid credentials\")        // authentication failed\n\n    permissions = load_permissions_for(user)\n    if $requested_action$ not in permissions:\n        return deny(\"not authorized\")             // deny by default\n\n    return allow()\n```",
+      "id": "gen-05-4"
+    },
+    {
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A company wants to use fingerprint login as its only authentication method for employee laptops. Evaluate this design against passwords and possession factors, focusing on revocation, theft, and assurance. Give a better authentication policy.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "Fingerprint login is convenient and cannot be forgotten, but it is a weak choice as the only factor because biometrics are irrevocable. If a fingerprint template leaks or can be spoofed, the employee cannot replace their fingerprint the way they can reset a password or replace a security key. Biometrics can also be captured without the same deliberate action as typing a password or touching a hardware key.\n\nA better policy treats the fingerprint as a local convenience factor rather than the sole root of trust. Use a device-bound credential or hardware-backed key material, require a password or PIN after restart and for sensitive actions, and require phishing-resistant MFA for remote services. If a possession factor is lost, it can be revoked and re-enrolled; if a password leaks, it can be changed.",
+      "id": "gen-05-5"
+    },
+    {
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A password plus a six-digit SMS code always provides strong two-factor authentication because the factors are from different categories.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "False. It is nominally two-factor because it combines something known with access to a phone number, but SMS codes are vulnerable to SIM swapping, interception, and phishing. It improves over password-only login, but it is weaker than phishing-resistant possession factors such as FIDO2 security keys.",
+      "id": "gen-05-6"
+    },
+    {
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Per-user salts are intended to be secret, so storing the salt beside the password hash defeats the point of salting.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "False. A salt is not primarily a secret; it is a unique per-user value that prevents identical passwords from producing identical hashes and makes precomputed rainbow tables ineffective. A pepper, unlike a salt, is intended to remain secret and should be stored separately from the password database.",
+      "id": "gen-05-7"
+    },
+    {
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: In single sign-on, compromise of the identity provider can affect many relying applications even if those applications never directly saw the user's password.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "True. SSO centralizes authentication, so the identity provider becomes a high-value trust anchor. If it issues valid assertions or tokens to relying services, those services may accept the user as authenticated without ever receiving the password.",
+      "id": "gen-05-8"
+    },
+    {
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Rate limiting on the online login endpoint is sufficient protection after an attacker steals the password hash database.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "False. Once hashes are stolen, the attacker can perform offline guessing without touching the login endpoint, so online rate limits no longer apply. The database must use salted, peppered, adaptive password hashing to slow offline cracking and reduce precomputation value.",
+      "id": "gen-05-9"
+    },
+    {
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Broken access control can still exist when authentication is implemented correctly.",
+      "options": [
+        "string",
+        "string",
+        "string"
+      ],
+      "expected": "True. Authentication only proves who the user is; authorization decides what that user may do. A user can be correctly logged in but still exploit missing object-level checks, excessive roles, or endpoints that fail to enforce deny-by-default authorization.",
+      "id": "gen-05-10"
+    },
+    {
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option best distinguishes credential stuffing from brute-force password guessing?",
+      "options": [
+        "Credential stuffing reuses known leaked credential pairs across services; brute force enumerates possible secrets without needing a prior leak.",
+        "Credential stuffing only works against unsalted hashes; brute force only works against salted hashes.",
+        "Credential stuffing requires physical access to a user's device; brute force requires phishing.",
+        "Credential stuffing is prevented by changing SHA-256 to SHA-512; brute force is prevented by hiding usernames.",
+        "Credential stuffing is a server-side authorization flaw; brute force is a certificate validation flaw."
+      ],
+      "expected": "Credential stuffing reuses known leaked credential pairs across services; brute force enumerates possible secrets without needing a prior leak.",
+      "id": "gen-05-11"
+    },
+    {
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A password database stores records as `algorithm:salt:hash`, where the salt is unique per user and public. What security property does the salt mainly provide?",
+      "options": [
+        "It prevents attackers from using one precomputed table against all users and prevents identical passwords from producing identical stored hashes.",
+        "It encrypts the password so only the server can decrypt it during login.",
+        "It makes phishing impossible because users never type their passwords into websites.",
+        "It replaces the need for adaptive hashing because unique salts make every guess slow.",
+        "It lets the server authorize roles without checking a permissions table."
+      ],
+      "expected": "It prevents attackers from using one precomputed table against all users and prevents identical passwords from producing identical stored hashes.",
+      "id": "gen-05-12"
+    },
+    {
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A site wants phishing-resistant MFA for administrator accounts. Which choice best satisfies that goal?",
+      "options": [
+        "Password plus a FIDO2 hardware security key bound to the legitimate origin.",
+        "Password plus a six-digit code sent by SMS.",
+        "Password plus two different security questions.",
+        "Password plus a one-time code copied from email.",
+        "Password plus a longer password rotation policy every month."
+      ],
+      "expected": "Password plus a FIDO2 hardware security key bound to the legitimate origin.",
+      "id": "gen-05-13"
+    },
+    {
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement correctly separates identification, authentication, and authorization in a web application?",
+      "options": [
+        "Typing a username is identification, verifying the password is authentication, and checking whether the user may access `/admin` is authorization.",
+        "Typing a username is authorization, verifying the password is identification, and checking `/admin` is authentication.",
+        "All three terms mean verifying the password before creating a session.",
+        "Identification decides permissions, authentication selects a role, and authorization stores the password hash.",
+        "Authorization happens before identification because the system must know permissions before it knows the user."
+      ],
+      "expected": "Typing a username is identification, verifying the password is authentication, and checking whether the user may access `/admin` is authorization.",
+      "id": "gen-05-14"
+    },
+    {
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which session-token design is most defensible for a browser-based application handling sensitive accounts?",
+      "options": [
+        "Short-lived access tokens, refresh-token rotation, HTTP-only secure cookies where appropriate, and server-side revocation.",
+        "A bearer token in local storage that expires after one year so users rarely log in.",
+        "A password hash placed inside the token so the server can avoid database lookups.",
+        "A token with no expiration as long as it is signed with a strong algorithm.",
+        "A refresh token shared across all devices so logout from one device keeps the user logged in everywhere."
+      ],
+      "expected": "Short-lived access tokens, refresh-token rotation, HTTP-only secure cookies where appropriate, and server-side revocation.",
+      "id": "gen-05-15"
+    }
+  ]
+}

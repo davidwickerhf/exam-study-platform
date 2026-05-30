@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-17T15:28:34.880Z",
+  "chapterId": "05",
+  "questions": [
+    {
+      "id": "gen-05-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Distinguish changeover from change management in the context of a system going live. Your answer should explain the scope of each and why confusing them can create implementation risk.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Changeover/cutover is the actual technical and operational switch from the old system to the new one: the point or process where users stop using the old system and start using the new one. Change management is the broader formal process of planning, evaluating, communicating, training, implementing, and reviewing the change so disruption is minimized and adoption succeeds. Confusing them is risky because a technically successful cutover can still fail if users are not prepared, communication is poor, support is missing, or monitoring is weak."
+    },
+    {
+      "id": "gen-05-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A hospital is replacing its patient records system. Downtime is unacceptable, and the organization is willing to pay more to reduce operational risk. Which changeover strategy is most appropriate?",
+      "options": [
+        "Direct changeover, because it is fastest and avoids duplicate work.",
+        "Phased changeover, because it always has the lowest risk for critical systems.",
+        "Pilot changeover, because one department can prove the system before old records are removed everywhere.",
+        "Parallel changeover, because both old and new systems run simultaneously until confidence is established."
+      ],
+      "expected": "Parallel changeover, because both old and new systems run simultaneously until confidence is established."
+    },
+    {
+      "id": "gen-05-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A repaired system ran for 120 hours, failed, took 4 hours to repair, then ran for 180 hours, failed, took 6 hours to repair, then ran for 150 hours, failed, and took 5 hours to repair. Calculate MTBF, MTTF, and MTTR using MTBF ≈ MTTF + MTTR.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "MTTF = (120 + 180 + 150) / 3 = 150 hours. MTTR = (4 + 6 + 5) / 3 = 5 hours. MTBF ≈ 150 + 5 = 155 hours. Method: average the operating times for MTTF, average repair times for MTTR, then add them for approximate MTBF."
+    },
+    {
+      "id": "gen-05-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: User training and user support are interchangeable because both help users learn the system after deployment.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. User training is proactive and normally offered by default before, during, and sometimes after rollout; user support is reactive and provided on request during day-to-day operation. They complement each other but serve different roles."
+    },
+    {
+      "id": "gen-05-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain how change-management activities align with the SDLC from planning through maintenance and support. Include at least five correct activity-to-phase mappings.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A strong answer maps initiation to planning, evaluation to analysis, planning to design, communication to implementation, training to testing, changeover to deployment, and monitoring and review to maintenance and support. The key idea is that change management is not only a deployment activity; it spans the system lifecycle so that the organization prepares, communicates, trains, switches over, and then reviews whether the change is working."
+    },
+    {
+      "id": "gen-05-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "An organization wants to deploy a new ERP system one module at a time: procurement first, then inventory, then finance. It wants to learn from early stages and reduce the risk of an all-at-once transition, but it cannot afford to run two complete systems indefinitely. Which strategy best fits?",
+      "options": [
+        "Direct changeover",
+        "Phased changeover",
+        "Parallel changeover",
+        "Ad-hoc review"
+      ],
+      "expected": "Phased changeover"
+    },
+    {
+      "id": "gen-05-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A support team receives 240 help-desk tickets in the first 12 business days after go-live. Training improvements are expected to reduce ticket volume by 25%. If each ticket takes 18 minutes to resolve, how many support hours are saved over the next equivalent 12-day period?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Saved tickets = 240 × 0.25 = 60 tickets. Saved time = 60 × 18 = 1080 minutes = 18 hours. Method: multiply baseline tickets by the expected reduction, then multiply by minutes per ticket and convert minutes to hours."
+    },
+    {
+      "id": "gen-05-7",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Classify the following maintenance requests as corrective, adaptive, perfective, or preventive, and justify each: fixing a payroll calculation error; updating the application for a new data-protection regulation; optimizing a slow report after user complaints; refactoring fragile authentication code before it fails.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Fixing a payroll calculation error is corrective maintenance because it fixes a defect discovered after go-live. Updating for a new data-protection regulation is adaptive maintenance because the system is being changed to fit a changed organizational or regulatory environment. Optimizing a slow report after user complaints is perfective maintenance because it improves performance or usability based on feedback. Refactoring fragile authentication code before failure is preventive maintenance because it reduces future risk."
+    },
+    {
+      "id": "gen-05-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which role is primarily responsible for operating IT infrastructure tasks such as user accounts, backups, disaster recovery, and performance management?",
+      "options": [
+        "Maintenance Developer",
+        "System Administrator",
+        "Change Manager",
+        "IT Security Officer"
+      ],
+      "expected": "System Administrator"
+    },
+    {
+      "id": "gen-05-9",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A system processes 18,000 transactions during a 6-hour batch window. After a perfective maintenance release, the same workload completes in 4.5 hours. Calculate the old throughput, new throughput, and percentage throughput improvement.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Old throughput = 18,000 / 6 = 3,000 transactions/hour. New throughput = 18,000 / 4.5 = 4,000 transactions/hour. Improvement = (4,000 - 3,000) / 3,000 × 100 = 33.33%. Method: divide transactions by hours for each throughput, then compute percentage increase from the old value."
+    },
+    {
+      "id": "gen-05-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A healthy organization can rely on periodic systems reviews alone because scheduled reviews are comprehensive and therefore make ad-hoc reviews unnecessary.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. Periodic reviews are time-based and useful for regular oversight and detecting slow drift, but ad-hoc reviews are event-driven and needed after incidents, breaches, or major changes affecting integrity, performance, or usefulness. A healthy organization uses both."
+    },
+    {
+      "id": "gen-05-11",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for classifying a maintenance request into corrective, adaptive, perfective, preventive, or unknown. The algorithm should use the request's trigger, purpose, and example keywords, and should prioritize urgent bug/security fixes over improvement labels.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A reference answer should check defect/security-fix cases first, then environmental alignment, then improvement, then future-risk prevention.\n```pseudocode\nFUNCTION classifyMaintenance(request):\n    text = LOWERCASE(request.description + \" \" + request.trigger + \" \" + request.purpose)\n\n    IF CONTAINS_ANY(text, [\"bug\", \"error\", \"defect\", \"broken\", \"incorrect\", \"security vulnerability\", \"urgent fix\"]):\n        RETURN \"corrective\"\n\n    IF CONTAINS_ANY(text, [\"new regulation\", \"compliance\", \"new os\", \"browser version\", \"environment change\", \"organizational change\"]):\n        RETURN \"adaptive\"\n\n    IF CONTAINS_ANY(text, [\"performance\", \"usability\", \"user feedback\", \"new feature\", \"optimize\", \"enhance\"]):\n        RETURN \"perfective\"\n\n    IF CONTAINS_ANY(text, [\"prevent\", \"future risk\", \"refactor\", \"technical debt\", \"aging hardware\", \"avoid failure\"]):\n        RETURN \"preventive\"\n\n    RETURN \"unknown\"\nEND FUNCTION\n```"
+    },
+    {
+      "id": "gen-05-12",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement correctly matches the system performance metric to what it measures and the preferred direction?",
+      "options": [
+        "MTTR measures availability, and higher is better.",
+        "MTTF measures maintainability, and lower is better.",
+        "MTBF measures availability, and higher is better.",
+        "Resource utilization measures reliability, and lower is always better."
+      ],
+      "expected": "MTBF measures availability, and higher is better."
+    },
+    {
+      "id": "gen-05-13",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A service has an MTBF of approximately 210 hours and an MTTR of 7 hours. Using MTBF ≈ MTTF + MTTR, estimate MTTF. If maintenance reduces MTTR to 4 hours while MTTF remains unchanged, what is the new approximate MTBF?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Original MTTF ≈ 210 - 7 = 203 hours. New MTBF ≈ 203 + 4 = 207 hours. Method: rearrange MTBF ≈ MTTF + MTTR to estimate MTTF, then add the improved MTTR to the unchanged MTTF."
+    },
+    {
+      "id": "gen-05-14",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A legacy system still runs, but users say it no longer supports their workflows and IT says it is expensive to maintain. Explain why this can count as system obsolescence even if the software has not technically failed.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A system is obsolete when it no longer satisfies users' needs or organizational requirements, or when it cannot be economically operated and maintained. Technical failure is not required. If the system still runs but no longer fits workflows and consumes excessive maintenance resources, it is obsolete from an organizational and economic perspective."
+    },
+    {
+      "id": "gen-05-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for selecting a changeover strategy from direct, phased, pilot, or parallel. Inputs should include whether the system is critical, whether old and new can coexist, whether the system can be divided into modules, uncertainty level, and cost/time pressure.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A reference answer should encode the main decision logic: parallel for critical systems when coexistence is possible, direct when coexistence is impossible or cost/time dominates in a non-critical case, phased for divisible complex systems, and pilot under high uncertainty.\n```pseudocode\nFUNCTION chooseChangeover(isCritical, canCoexist, isDivisible, uncertaintyLevel, costTimePressure):\n    IF isCritical == TRUE AND canCoexist == TRUE:\n        RETURN \"parallel\"\n\n    IF canCoexist == FALSE:\n        RETURN \"direct\"\n\n    IF uncertaintyLevel == \"high\":\n        RETURN \"pilot\"\n\n    IF isDivisible == TRUE:\n        RETURN \"phased\"\n\n    IF costTimePressure == \"high\" AND isCritical == FALSE:\n        RETURN \"direct\"\n\n    IF canCoexist == TRUE:\n        RETURN \"pilot\"\n\n    RETURN \"direct\"\nEND FUNCTION\n```"
+    }
+  ],
+  "generationError": null
+}

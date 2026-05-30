@@ -2066,7 +2066,7 @@ async function gradeAttempt({ courseCode, chapterName, question, attempt, attemp
   return parsed
 }
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
 
@@ -2898,8 +2898,31 @@ createServer(async (req, res) => {
   } catch (error) {
     send(res, 500, JSON.stringify({ error: error.message }))
   }
-}).listen(port, () => {
+})
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\nPort ${port} is already in use.`)
+    console.error(`Something else is listening — likely another copy of this server still running.`)
+    console.error(`\nFix:`)
+    console.error(`  lsof -ti:${port} | xargs kill        # stop the other one`)
+    console.error(`  PORT=4178 npm start                  # or start on a different port`)
+    process.exit(1)
+  }
+  if (err.code === 'EACCES') {
+    console.error(`\nPermission denied binding to port ${port}.`)
+    console.error(`Pick a port above 1024 (PORT=4177 npm start), or run with elevated privileges.`)
+    process.exit(1)
+  }
+  console.error(`\nServer error: ${err.message}`)
+  process.exit(1)
+})
+
+server.listen(port, () => {
   console.log(`Exam Study Platform running at http://localhost:${port}`)
   console.log(`State file: ${dataPath}`)
-  console.log(`Codex bin: ${CODEX_BIN}${existsSync(CODEX_BIN) ? '' : ' (NOT FOUND)'}`)
+  console.log(`LLM provider: ${LLM_PROVIDER}`)
+  if (LLM_PROVIDER === 'codex') console.log(`Codex bin: ${CODEX_BIN}${existsSync(CODEX_BIN) ? '' : ' (NOT FOUND)'}`)
+  if (LLM_PROVIDER === 'claude') console.log(`Claude bin: ${CLAUDE_BIN}`)
+  if (LLM_PROVIDER === 'api') console.log(`Model: ${ANTHROPIC_MODEL} (API key ${ANTHROPIC_API_KEY ? 'set' : 'MISSING'})`)
 })

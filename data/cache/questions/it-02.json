@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-19T17:43:52.911Z",
+  "chapterId": "02",
+  "questions": [
+    {
+      "id": "gen-02-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Distinguish data, information, and knowledge using the course hierarchy, and give one original business example that shows the progression from one level to the next.",
+      "options": [
+        "Knowledge is raw facts; information is storage; data is managerial interpretation.",
+        "Data is raw facts, information is processed data in context, and knowledge is understanding relationships and implications.",
+        "Data governance converts knowledge into information by removing context.",
+        "Information and data are synonyms; knowledge means the database schema."
+      ],
+      "expected": "Data is raw facts and figures, such as sales records or dates. Information is data processed and presented in context, such as a report showing sales increased by $25\\%$ in $2024$. Knowledge is understanding the cause and implication, such as recognizing that the increase came from a new product line and deciding to invest more in it."
+    },
+    {
+      "id": "gen-02-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option best describes data governance in the DAMA-style data management framework?",
+      "options": [
+        "It is one optional spoke focused only on database backup scheduling.",
+        "It is the core component that defines roles, responsibilities, and processes so organizational data can be trusted and used.",
+        "It is the same as metadata management because both describe data definitions.",
+        "It is a technical DBMS function performed only by database administrators."
+      ],
+      "expected": "It is the core component that defines roles, responsibilities, and processes so organizational data can be trusted and used."
+    },
+    {
+      "id": "gen-02-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A department needs a customer file for a decision by $17{:}00$. The data source becomes available at $15{:}20$, extraction takes $35$ minutes, quality checks take $25$ minutes, and approval takes $20$ minutes. Is the information timely, and by how many minutes does it meet or miss the decision window?",
+      "options": [
+        "True. A spreadsheet is usually best for enterprise-scale, shared, regulated data because it has lower setup cost.",
+        "False. For enterprise-scale shared data, a DBMS is normally better because it supports integrity constraints, concurrent access, reduced redundancy, and stronger recovery/security controls.",
+        "True. DBMSs are only needed when the data exceeds $1{,}000{,}000$ rows.",
+        "False. A DBMS cannot improve concurrent access because only one user can safely write at a time."
+      ],
+      "expected": "False. For enterprise-scale shared data, a DBMS is normally better because it supports integrity constraints, concurrent access, reduced redundancy, and stronger recovery/security controls."
+    },
+    {
+      "id": "gen-02-3",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A bank’s analytics team discovers that different departments use different definitions of “active customer,” causing inconsistent reports. Explain how data governance should address this issue, including at least three concrete governance tasks.",
+      "options": [
+        "True. Data governance requires leadership beyond IT because policies about ownership, access, definitions, quality, and compliance affect business units and organizational accountability.",
+        "False. Data governance is a low-level infrastructure issue, so business leadership should not be involved.",
+        "True. Data governance is only about purchasing the right database software.",
+        "False. Data governance is the same as data warehousing, so it belongs only to analytics engineers."
+      ],
+      "expected": "True. Data governance requires leadership beyond IT because policies about ownership, access, definitions, quality, and compliance affect business units and organizational accountability."
+    },
+    {
+      "id": "gen-02-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A film festival stores attendees, tickets, films, screenings, venues, payments, and staff access logs. It expects $150{,}000$ attendees and more than $100$ films. Which storage approach is most defensible?",
+      "options": [
+        "Use a spreadsheet because familiarity is more important than integrity at this scale.",
+        "Use a DBMS because the case requires scalable storage, constraints, concurrent access, reduced redundancy, and controlled access.",
+        "Use separate spreadsheets per venue because splitting files removes the need for governance.",
+        "Use plain text files because they minimize software complexity and automatically enforce relationships."
+      ],
+      "expected": "Use a DBMS because the case requires scalable storage, constraints, concurrent access, reduced redundancy, and controlled access."
+    },
+    {
+      "id": "gen-02-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A dataset contains $12{,}000$ customer records. An audit samples $400$ records and finds $18$ records with incorrect addresses. Estimate the address accuracy rate as a percentage and estimate the number of incorrect address records in the full dataset, assuming the sample is representative.",
+      "options": [
+        "Issue $1$: the $8$ missing records create a completeness problem because not all required data is present. Issue $2$: the untraceable $14$ records create a verifiability problem because they cannot be confirmed against original sources. Timeliness may still be acceptable if the dataset arrives within the decision window, but quality is still weak.",
+        "Issue $1$: the dataset is economical because collecting less data always costs less. Issue $2$: the dataset is secure because missing data cannot be leaked.",
+        "Issue $1$: the dataset is accessible because it arrived before the deadline. Issue $2$: the dataset is complete because most rows exist.",
+        "Issue $1$: the dataset is reliable because $492$ rows is a large amount. Issue $2$: the dataset is timely because the source cannot be traced."
+      ],
+      "expected": "Issue $1$: the $8$ missing records create a completeness problem because not all required data is present. Issue $2$: the untraceable $14$ records create a verifiability problem because they cannot be confirmed against original sources. Timeliness may still be acceptable if the dataset arrives within the decision window, but quality is still weak."
+    },
+    {
+      "id": "gen-02-6",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: In an ERD, optionality indicates whether participation in a relationship is mandatory or optional, while cardinality describes quantities such as $1{:}1$, $1{:}N$, or $M{:}N$.",
+      "options": [
+        "An entity represents a real object or concept, an attribute describes a property of an entity, and a relationship connects entities. Cardinality matters because it determines whether the database can store links like one customer to many orders or many students to many courses without duplication or inconsistent structure.",
+        "An entity is a cell, an attribute is a worksheet, and a relationship is a formula. Cardinality only affects spreadsheet formatting.",
+        "An entity is always a person, an attribute is always numeric, and a relationship is always optional. Cardinality is mainly a security setting.",
+        "An entity is a DBMS table backup, an attribute is a user password, and a relationship is a recovery process. Cardinality only determines physical disk location."
+      ],
+      "expected": "An entity represents a real object or concept, an attribute describes a property of an entity, and a relationship connects entities. Cardinality matters because it determines whether the database can store links like one customer to many orders or many students to many courses without duplication or inconsistent structure."
+    },
+    {
+      "id": "gen-02-7",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a data lifecycle policy that takes a list of datasets and, for each dataset, decides whether to publish metadata, allow access, archive it, or discard it. Use the phases of lifecycle management: evaluate quality/value, check retention age, and apply access/security rules.",
+      "options": [
+        "A quality wheel is not a technical guarantee produced by the DBMS alone. Governance is needed to define quality standards, ownership, access rules, audit procedures, and correction processes across departments. Without governance, a DBMS can store data efficiently while still preserving inconsistent definitions, poor ownership, or unauthorized use.",
+        "The claim is correct because all information quality characteristics are automatically enforced by foreign keys.",
+        "The claim is mostly correct because governance only matters after a database failure.",
+        "The claim is incorrect only because spreadsheets provide better quality controls than DBMSs."
+      ],
+      "expected": "A quality wheel is not a technical guarantee produced by the DBMS alone. Governance is needed to define quality standards, ownership, access rules, audit procedures, and correction processes across departments. Without governance, a DBMS can store data efficiently while still preserving inconsistent definitions, poor ownership, or unauthorized use."
+    },
+    {
+      "id": "gen-02-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which set contains only spokes/functions from the DAMA-style data management wheel described in the chapter?",
+      "options": [
+        "Data Security Management, Meta Data Management, Data Quality Management, Reference & Master Data Management",
+        "Payroll Processing, Email Marketing, Software Testing, Office Facilities Management",
+        "Data Governance, Executive Hiring, Sales Forecasting, Helpdesk Ticketing",
+        "Spreadsheet Formatting, Slide Design, Contract Negotiation, Customer Support"
+      ],
+      "expected": "Data Security Management, Meta Data Management, Data Quality Management, Reference & Master Data Management"
+    },
+    {
+      "id": "gen-02-9",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A data governance team estimates that improving product master data will cost $48{,}000$ this year. It expects to prevent $75$ order errors per month, and each avoided error saves $90$. Compute the annual net benefit and return on investment percentage using $ROI = \\frac{benefit - cost}{cost} \\times 100\\%$.",
+      "options": [
+        "\u001dAnnual benefit is $75 \\times 12 \\times 90 = 81{,}000$. Net benefit is $81{,}000 - 48{,}000 = 33{,}000$. ROI is $\\frac{33{,}000}{48{,}000} \\times 100\\% = 68.75\\%$.",
+        "Annual benefit is $75 + 12 + 90 = 177$. Net benefit is $177 - 48{,}000 = -47{,}823$. ROI is about $-99.6\\%$.",
+        "Annual benefit is $75 \\times 90 = 6{,}750$. Net benefit is $41{,}250$. ROI is $85.94\\%$.",
+        "Annual benefit is $48{,}000 \\times 12 = 576{,}000$. Net benefit is $501{,}000$. ROI is $1{,}043.75\\%$."
+      ],
+      "expected": "Annual benefit is $75 \\times 12 \\times 90 = 81{,}000$. Net benefit is $81{,}000 - 48{,}000 = 33{,}000$. ROI is $\\frac{33{,}000}{48{,}000} \\times 100\\% = 68.75\\%$."
+    },
+    {
+      "id": "gen-02-10",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Name and explain five characteristics of high-quality information. For each characteristic, state what could go wrong in an organizational decision if that characteristic is missing.",
+      "options": [
+        "A DBMS gives data independence, integrity constraints, concurrent access control, backup and recovery, reduced redundancy, and shared resources. Its disadvantages include higher complexity, harder organization-wide failure recovery if the DBMS fails, higher purchase/hardware/storage costs, and the need for specialized staff such as DBAs.",
+        "A DBMS is cheaper, simpler, and less risky than spreadsheets in every possible case, with no disadvantages.",
+        "A DBMS mainly improves visual formatting and makes formulas easier to copy, but it weakens integrity constraints.",
+        "A DBMS removes the need for access control, backup policies, and stakeholder involvement."
+      ],
+      "expected": "A DBMS gives data independence, integrity constraints, concurrent access control, backup and recovery, reduced redundancy, and shared resources. Its disadvantages include higher complexity, harder organization-wide failure recovery if the DBMS fails, higher purchase/hardware/storage costs, and the need for specialized staff such as DBAs."
+    },
+    {
+      "id": "gen-02-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Stakeholders should mainly be involved after the database has been built, because early design is a technical task and business input can wait until user acceptance testing.",
+      "options": [
+        "False. Stakeholders should be involved continuously from the start so requirements, access needs, data definitions, workflows, and buy-in are understood before the schema and controls are fixed.",
+        "True. Early stakeholder involvement usually creates less accurate requirements.",
+        "False. Stakeholders should be involved only when choosing physical storage location.",
+        "True. Stakeholders are useful only for training after deployment."
+      ],
+      "expected": "False. Stakeholders should be involved continuously from the start so requirements, access needs, data definitions, workflows, and buy-in are understood before the schema and controls are fixed."
+    },
+    {
+      "id": "gen-02-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Write pseudocode for validating a new attendee registration record for the Maastricht Film Festival before inserting it into a DBMS. Check completeness, type/format validity, uniqueness of attendee ID, and referential integrity for the selected screening ID.",
+      "options": [
+        "```pseudo\nFUNCTION validateAndInsertRegistration(registration, AttendeeTable, ScreeningTable):\n    requiredFields = [\"attendee_id\", \"name\", \"email\", \"screening_id\", \"ticket_type\"]\n\n    FOR field IN requiredFields:\n        IF registration[field] IS NULL OR registration[field] = \"\":\n            RETURN \"Reject: missing \" + field\n\n    IF NOT isValidEmail(registration[\"email\"]):\n        RETURN \"Reject: invalid email format\"\n\n    IF NOT isString(registration[\"name\"]):\n        RETURN \"Reject: name must be text\"\n\n    IF exists(AttendeeTable, \"attendee_id\", registration[\"attendee_id\"]):\n        RETURN \"Reject: attendee_id must be unique\"\n\n    IF NOT exists(ScreeningTable, \"screening_id\", registration[\"screening_id\"]):\n        RETURN \"Reject: screening_id violates referential integrity\"\n\n    INSERT registration INTO AttendeeTable\n    RETURN \"Accepted\"\nEND FUNCTION\n```",
+        "```pseudo\nFUNCTION insertEverything(row):\n    INSERT row\nEND FUNCTION\n```",
+        "```pseudo\nFUNCTION validateRegistration(row):\n    IF row looks okay:\n        SAVE row\n    ELSE:\n        SAVE row anyway\nEND FUNCTION\n```",
+        "```pseudo\nFUNCTION checkFestival(row):\n    PRINT row\n    RETURN \"Done\"\nEND FUNCTION\n```"
+      ],
+      "expected": "```pseudo\nFUNCTION validateAndInsertRegistration(registration, AttendeeTable, ScreeningTable):\n    requiredFields = [\"attendee_id\", \"name\", \"email\", \"screening_id\", \"ticket_type\"]\n\n    FOR field IN requiredFields:\n        IF registration[field] IS NULL OR registration[field] = \"\":\n            RETURN \"Reject: missing \" + field\n\n    IF NOT isValidEmail(registration[\"email\"]):\n        RETURN \"Reject: invalid email format\"\n\n    IF NOT isString(registration[\"name\"]):\n        RETURN \"Reject: name must be text\"\n\n    IF exists(AttendeeTable, \"attendee_id\", registration[\"attendee_id\"]):\n        RETURN \"Reject: attendee_id must be unique\"\n\n    IF NOT exists(ScreeningTable, \"screening_id\", registration[\"screening_id\"]):\n        RETURN \"Reject: screening_id violates referential integrity\"\n\n    INSERT registration INTO AttendeeTable\n    RETURN \"Accepted\"\nEND FUNCTION\n```"
+    },
+    {
+      "id": "gen-02-13",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "An ERD for a festival has entities Film, Screening, Venue, and Ticket. Relationships are: Film-to-Screening is $1{:}N$, Venue-to-Screening is $1{:}N$, and Screening-to-Ticket is $1{:}N$. If there are $120$ films, each film has $4$ screenings, and each screening sells $250$ tickets, how many Screening records and Ticket records are expected?",
+      "options": [
+        "Screening records: $120 \\times 4 = 480$. Ticket records: $480 \\times 250 = 120{,}000$. Method: apply the $1{:}N$ relationship from Film to Screening, then from Screening to Ticket.",
+        "Screening records: $120 + 4 = 124$. Ticket records: $124 + 250 = 374$.",
+        "Screening records: $120 \\times 250 = 30{,}000$. Ticket records: $30{,}000 \\times 4 = 120{,}000$.",
+        "Screening records: $120$. Ticket records: $250$ because $1{:}N$ means the child table has one row."
+      ],
+      "expected": "Screening records: $120 \\times 4 = 480$. Ticket records: $480 \\times 250 = 120{,}000$. Method: apply the $1{:}N$ relationship from Film to Screening, then from Screening to Ticket."
+    },
+    {
+      "id": "gen-02-14",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which database design question is most directly about the physical location consideration?",
+      "options": [
+        "Should the data be stored on-premises, in a cloud service, or across multiple regions?",
+        "Which attributes belong to the Customer entity?",
+        "Which employees are authorized to update payment records?",
+        "How long must old transaction records be retained before archival?"
+      ],
+      "expected": "Should the data be stored on-premises, in a cloud service, or across multiple regions?"
+    },
+    {
+      "id": "gen-02-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A manager says: “We only need data lifecycle management when deleting data; storage and access are ordinary IT operations.” Critique this statement using at least five phases of the lifecycle from the lecture.",
+      "options": [
+        "This statement is too narrow. Data lifecycle management starts by defining data needs, evaluating alternate sources, acquiring data, storing data, publishing data descriptions such as metadata, enabling access and use, evaluating quality/value/fit, and only then archiving or discarding. Treating it as deletion-only ignores governance over quality, usability, retention, and security throughout the data’s life.",
+        "This statement is correct because lifecycle management begins and ends with deletion.",
+        "The statement is correct if the organization uses a DBMS, because DBMS software automatically defines business needs and retention rules.",
+        "The statement is wrong only because lifecycle management means making spreadsheet charts."
+      ],
+      "expected": "This statement is too narrow. Data lifecycle management starts by defining data needs, evaluating alternate sources, acquiring data, storing data, publishing data descriptions such as metadata, enabling access and use, evaluating quality/value/fit, and only then archiving or discarding. Treating it as deletion-only ignores governance over quality, usability, retention, and security throughout the data’s life."
+    }
+  ],
+  "generationError": null
+}

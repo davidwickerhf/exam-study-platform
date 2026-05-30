@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-21T23:50:36.500Z",
+  "chapterId": "04",
+  "questions": [
+    {
+      "id": "gen-04-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Compare ciphertext-only, known-plaintext, chosen-plaintext, and chosen-ciphertext attack models. In your answer, rank them by attacker capability and explain why adaptive chosen-ciphertext security is a strong target for modern authenticated encryption.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "From weakest to strongest attacker capability: ciphertext-only, known-plaintext, chosen-plaintext, chosen-ciphertext. Ciphertext-only gives only observed ciphertexts; known-plaintext adds matching plaintext-ciphertext pairs; chosen-plaintext lets the attacker request encryptions of selected plaintexts; chosen-ciphertext lets the attacker request decryptions of selected ciphertexts. Adaptive chosen-ciphertext security is strong because the attacker can choose later queries after seeing earlier answers, which models oracle attacks such as padding-oracle behavior."
+    },
+    {
+      "id": "gen-04-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A cipher has an advertised key size of $64$ bits, but $8$ bits are parity bits. Compute the effective key space and the expected number of brute-force trials under uniform random key search.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The effective key length is $64 - 8 = 56$ bits, so the key space is $2^{56} \\approx 7.21 \\times 10^{16}$ keys. Expected trials are half the key space, $2^{55} \\approx 3.60 \\times 10^{16}$ trials."
+    },
+    {
+      "id": "gen-04-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes why Vigenere encryption is less vulnerable to simple single-letter frequency analysis than a Caesar cipher?",
+      "options": [
+        "Vigenere uses multiple Caesar shifts, so one plaintext letter may map to different ciphertext letters depending on keyword position.",
+        "Vigenere is secure because it increases the alphabet size from $26$ letters to $26^2$ letters.",
+        "Vigenere prevents all repeated plaintext patterns from appearing anywhere in the ciphertext.",
+        "Vigenere is a transposition cipher, so letter frequencies are irrelevant."
+      ],
+      "expected": "Vigenere uses multiple Caesar shifts, so one plaintext letter may map to different ciphertext letters depending on keyword position."
+    },
+    {
+      "id": "gen-04-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If a scheme is secure against adaptive chosen-ciphertext attacks, then it is automatically secure against ciphertext-only attacks under the usual hierarchy of attack models.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. Adaptive chosen-ciphertext access is strictly stronger than merely observing ciphertexts, so security in the stronger model implies security in the weaker ciphertext-only model."
+    },
+    {
+      "id": "gen-04-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain how differential cryptanalysis exploits structure in a block cipher. Your answer must identify the typical attack model, the role of an input difference, and why a high-probability output difference can reveal key information.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Differential cryptanalysis is typically a chosen-plaintext attack. The attacker chooses plaintext pairs with a controlled XOR input difference $\\Delta P$ and observes the resulting ciphertext difference $\\Delta C$. If a particular differential $\\left(\\Delta P, \\Delta C\\right)$ occurs with probability noticeably above random chance, then candidate subkeys that predict that differential are statistically favored, allowing key bits to be ranked or recovered."
+    },
+    {
+      "id": "gen-04-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A Kasiski test finds repeated trigrams at distances $84$, $126$, and $210$ characters. Compute the strongest common candidate keyword length suggested by these observations.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Compute the greatest common divisor: $\\gcd\\left(84,126\\right) = 42$, and $\\gcd\\left(42,210\\right) = 42$. The strongest common candidate keyword length is $42$, though divisors of $42$ may also be tested in practice."
+    },
+    {
+      "id": "gen-04-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which option correctly matches the named cryptanalytic technique to its core pattern?",
+      "options": [
+        "Linear cryptanalysis studies biased XOR equations over plaintext, ciphertext, and key bits.",
+        "Integral cryptanalysis studies prime factorization of public moduli.",
+        "Differential cryptanalysis studies timing variation in modular exponentiation only.",
+        "Meet-in-the-middle attacks require quantum Fourier transforms."
+      ],
+      "expected": "Linear cryptanalysis studies biased XOR equations over plaintext, ciphertext, and key bits."
+    },
+    {
+      "id": "gen-04-7",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a Kasiski-style keyword-length estimator. It should scan for repeated trigrams, collect distances between repeated positions, and return the greatest common divisor of those distances when available.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct answer should record repeated trigram positions, compute pairwise distances, and combine them with a greatest-common-divisor step.\n```text\nprocedure estimateKasiskiLength(ciphertext)\n    positionsByGram starts empty\n    for each position p from $0$ to length(ciphertext) minus $3$ do\n        gram is substring(ciphertext, p, $3$)\n        append p to positionsByGram[gram]\n    end for\n\n    distances starts empty\n    for each gram in positionsByGram do\n        positions is positionsByGram[gram]\n        if length(positions) is at least $2$ then\n            for each index i from $0$ to length(positions) minus $2$ do\n                distance is positions[i plus $1$] minus positions[i]\n                append distance to distances\n            end for\n        end if\n    end for\n\n    if distances is empty then\n        return unknown\n    end if\n\n    candidate is distances[$0$]\n    for each distance in distances after the first do\n        candidate is gcd(candidate, distance)\n    end for\n    return candidate\nend procedure\n```"
+    },
+    {
+      "id": "gen-04-8",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Why does double encryption with DES not provide the full expected security of $2^{112}$ against exhaustive-style attacks? Describe the meet-in-the-middle idea at a high level.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Double DES is vulnerable to a meet-in-the-middle attack. The attacker encrypts known plaintext under all first keys and stores the intermediate values, then decrypts the known ciphertext under all second keys and looks for matching intermediate values. This avoids trying all $2^{112}$ key pairs directly and reduces the work to about $2^{57}$ DES operations plus large memory, so Triple DES was used instead."
+    },
+    {
+      "id": "gen-04-9",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Grover's algorithm gives a square-root speedup for brute-force key search. Estimate the quantum brute-force security levels for symmetric keys of $128$, $192$, and $256$ bits.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Grover reduces exhaustive search over $2^n$ keys to roughly $2^{n/2}$ quantum queries. Thus $128$-bit keys give about $2^{64}$ quantum security, $192$-bit keys give about $2^{96}$, and $256$-bit keys give about $2^{128}$."
+    },
+    {
+      "id": "gen-04-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which public-key systems are directly threatened by Shor's algorithm running on a sufficiently large fault-tolerant quantum computer?",
+      "options": [
+        "RSA, Diffie-Hellman, and elliptic-curve cryptography.",
+        "AES, ChaCha20, and one-time pads.",
+        "Merkle signatures, hash-based commitments, and symmetric message authentication codes.",
+        "Vigenere, Caesar, and monoalphabetic substitution ciphers."
+      ],
+      "expected": "RSA, Diffie-Hellman, and elliptic-curve cryptography."
+    },
+    {
+      "id": "gen-04-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Grover's algorithm has the same consequence for symmetric encryption as Shor's algorithm has for RSA and elliptic-curve cryptography.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. Shor's algorithm changes factoring and discrete-log based public-key cryptography from infeasible to polynomial-time, while Grover gives only a square-root speedup for brute-force search, so increasing symmetric key sizes can compensate."
+    },
+    {
+      "id": "gen-04-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A system stores long-term encrypted medical records today and expects them to remain confidential for decades. Explain the quantum-relevant risk and name a practical migration principle that follows from it.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The risk is harvest-now-decrypt-later: an attacker can store ciphertexts today and decrypt them later if a quantum computer breaks the public-key mechanisms used to protect session keys or archives. A practical migration principle is crypto agility: inventory cryptographic dependencies and move vulnerable RSA, Diffie-Hellman, and elliptic-curve uses toward post-quantum or hybrid key-establishment designs before the data's confidentiality lifetime expires."
+    },
+    {
+      "id": "gen-04-13",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A linear approximation in a block cipher holds with probability $0.5 + 0.03125$. Compute its bias and the approximate number of known plaintext-ciphertext pairs needed using the rule of thumb $N \\approx 1/\\epsilon^2$, where $\\epsilon$ is the bias.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The bias is $\\epsilon = 0.03125 = 1/32$. The rule gives $N \\approx 1/\\epsilon^2 = 1/(1/32)^2 = 1024$, so about $1024$ known plaintext-ciphertext pairs are needed."
+    },
+    {
+      "id": "gen-04-14",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement best captures the role of lattice-based cryptography in post-quantum defense?",
+      "options": [
+        "It is a major post-quantum approach because no efficient quantum algorithm is known for the underlying lattice problems used by modern schemes.",
+        "It is mainly used to speed up Shor's algorithm for factoring RSA moduli.",
+        "It protects RSA by hiding the modulus inside a larger matrix.",
+        "It is only relevant to classical substitution ciphers because lattices model letter frequencies."
+      ],
+      "expected": "It is a major post-quantum approach because no efficient quantum algorithm is known for the underlying lattice problems used by modern schemes."
+    },
+    {
+      "id": "gen-04-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for the filtering step of a differential attack on the last round of a toy block cipher. Given chosen plaintext pairs, observed ciphertext pairs, a target input difference, a target output difference, and a list of candidate subkeys, score each subkey by counting how often the predicted difference matches the target.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct answer should iterate over candidate subkeys, partially decrypt the relevant last-round state for each ciphertext pair, compare the resulting difference with the target, and rank candidates by score.\n```text\nprocedure scoreDifferentialCandidates(pairs, targetInDiff, targetOutDiff, candidateKeys)\n    scores starts empty\n    for each keyGuess in candidateKeys do\n        score is $0$\n        for each pair in pairs do\n            p1 is pair.plaintextOne\n            p2 is pair.plaintextTwo\n            c1 is pair.ciphertextOne\n            c2 is pair.ciphertextTwo\n\n            if xor(p1, p2) is not targetInDiff then\n                continue\n            end if\n\n            u1 is partialDecryptLastRound(c1, keyGuess)\n            u2 is partialDecryptLastRound(c2, keyGuess)\n            predictedDiff is xor(u1, u2)\n\n            if predictedDiff equals targetOutDiff then\n                score is score plus $1$\n            end if\n        end for\n        scores[keyGuess] is score\n    end for\n    return keys sorted by scores in descending order\nend procedure\n```"
+    }
+  ],
+  "generationError": null
+}

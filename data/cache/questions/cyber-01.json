@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-21T17:42:08.744Z",
+  "chapterId": "01",
+  "questions": [
+    {
+      "id": "gen-01-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why the question \"Is this system secure?\" is ill-posed unless a risk analysis has first been performed. Your answer should mention assets, adversaries, plausible attacks, and tolerable trade-offs.",
+      "options": [
+        "a) Encrypted backups always guarantee availability.",
+        "b) Encrypted backups mainly protect confidentiality if the backup media is stolen, but they do not keep the service running or restore deleted data by themselves.",
+        "c) Encrypted backups eliminate the need for access control because attackers cannot read the files.",
+        "d) Encrypted backups prove that all three security goals are fully satisfied."
+      ],
+      "expected": "A good answer states that security is not a binary property and has no universal definition. The system must be evaluated relative to the assets being protected, the adversaries who may target them, the attacks that are realistic, and the cost or usability trade-offs the operator can tolerate."
+    },
+    {
+      "id": "gen-01-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A hospital proposes mandatory multi-factor authentication for every staff action, including emergency access to patient records. Which answer best applies the chapter's view of security?",
+      "options": [
+        "The control is always correct because stronger authentication always improves security overall.",
+        "The control is always wrong because usability matters more than confidentiality in hospitals.",
+        "The control must be assessed through risk analysis because it may improve authentication and confidentiality while harming availability in emergencies.",
+        "The control is irrelevant because authentication is not a security goal."
+      ],
+      "expected": "The control must be assessed through risk analysis because it may improve authentication and confidentiality while harming availability in emergencies."
+    },
+    {
+      "id": "gen-01-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A web shop estimates that a data-disclosure incident has probability $0.12$ per year and impact $400000$ dollars. A monitoring and access-control upgrade reduces the probability to $0.05$ per year and costs $18000$ dollars per year. Compute the annual expected-loss reduction and decide whether the upgrade is justified on expected monetary value alone.",
+      "options": [
+        "True. Encryption is the primary way to preserve uptime under attack.",
+        "False. Encryption can protect confidentiality and, with appropriate mechanisms, integrity, but it does not ensure that authorized users can access the service when needed.",
+        "True. Encrypted systems cannot be disrupted because attackers cannot understand the data.",
+        "False. Encryption only supports authentication and has no relation to confidentiality."
+      ],
+      "expected": "Before the upgrade, expected loss is $0.12 \\times 400000 = 48000$ dollars per year. After the upgrade, expected loss is $0.05 \\times 400000 = 20000$ dollars per year, so the reduction is $48000 - 20000 = 28000$ dollars. Since $28000 > 18000$, the upgrade is justified on expected monetary value alone by $10000$ dollars per year."
+    },
+    {
+      "id": "gen-01-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Cryptography by itself delivers all goals in the confidentiality, integrity, and availability triad.",
+      "options": [
+        "Disclosure",
+        "Modification",
+        "Disruption",
+        "Authentication"
+      ],
+      "expected": "False. Cryptography is central for confidentiality and integrity, and it can support authentication, but availability is mainly an infrastructure and operational concern."
+    },
+    {
+      "id": "gen-01-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A company says: \"Our server is secure because it is fully encrypted.\" Critique this statement using the chapter's distinction between security goals and mechanisms.",
+      "options": [
+        "a) Confidentiality only",
+        "b) Integrity only",
+        "c) Availability only",
+        "d) Authentication only"
+      ],
+      "expected": "The statement confuses one mechanism with overall security. Encryption can protect confidentiality and may be combined with mechanisms that protect integrity, but it does not by itself ensure availability, correct authentication, secure key handling, good access control, or protection against poor system design."
+    },
+    {
+      "id": "gen-01-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which item is not one of the primary goals of cryptography emphasized in the chapter?",
+      "options": [
+        "Confidentiality of communication over an insecure medium",
+        "Integrity of messages",
+        "Authentication of communication partners",
+        "Availability of services during denial-of-service attacks"
+      ],
+      "expected": "Availability of services during denial-of-service attacks"
+    },
+    {
+      "id": "gen-01-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A service promises availability of $99.5\\%$ during a $30$-day month. Assume each day has $24$ hours. What is the maximum downtime in hours and minutes allowed by this promise?",
+      "options": [
+        "a) Poor system design and programming",
+        "b) Poor handling of information",
+        "c) Availability engineering",
+        "d) A harmless event because the data itself was not changed"
+      ],
+      "expected": "Total time is $30 \\times 24 = 720$ hours. Allowed downtime is $(1 - 0.995) \\times 720 = 3.6$ hours, which is $3$ hours and $36$ minutes."
+    },
+    {
+      "id": "gen-01-7",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Sketch an algorithm that takes a list of incident descriptions and classifies each incident by the main violated security goal: confidentiality, integrity, availability, authentication, or unclear. Use keyword-style rules, and ensure that one incident can be assigned exactly one main label.",
+      "options": [
+        "True. Password disclosure is only a software engineering bug.",
+        "False. It is primarily poor handling of information, because credential management and disclosure control are information-security concerns.",
+        "True. Any employee mistake is outside information security.",
+        "False. Leaked credentials violate integrity rather than confidentiality."
+      ],
+      "expected": "One acceptable reference answer is:\n```text\nprocedure classifyIncidents(incidents)\n    labelsByIncident starts as empty map\n    for each incident in incidents do\n        text starts as lowercase version of incident\n        if text contains \"impersonate\" or text contains \"fake login\" or text contains \"spoofed sender\" then\n            label starts as \"authentication\"\n        else if text contains \"leak\" or text contains \"disclose\" or text contains \"read private\" or text contains \"dumped database\" then\n            label starts as \"confidentiality\"\n        else if text contains \"alter\" or text contains \"modify\" or text contains \"overwrite\" or text contains \"tamper\" then\n            label starts as \"integrity\"\n        else if text contains \"outage\" or text contains \"ddos\" or text contains \"unavailable\" or text contains \"disruption\" then\n            label starts as \"availability\"\n        else\n            label starts as \"unclear\"\n        end if\n        store label in labelsByIncident for incident\n    end for\n    return labelsByIncident\nend procedure\n```\nThe ordering makes the output single-label: the first matching category is assigned and later categories are skipped."
+    },
+    {
+      "id": "gen-01-8",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Give one concrete violation example for each goal in the confidentiality, integrity, and availability triad. The examples must be distinct and must identify the violated goal explicitly.",
+      "options": [
+        "Confidentiality, integrity, and authentication",
+        "Confidentiality, availability, and storage efficiency",
+        "Integrity, availability, and reduced computational cost",
+        "Authentication, storage compression, and disruption resistance"
+      ],
+      "expected": "A complete answer gives three mapped examples. For example: confidentiality is violated when an attacker dumps a customer database; integrity is violated when an attacker changes a bank-transfer recipient in transit; availability is violated when a distributed denial-of-service attack prevents customers from reaching the service."
+    },
+    {
+      "id": "gen-01-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "An attacker changes the recipient account number in a bank transfer request while it is in transit, but the request still reaches the bank on time and is not disclosed publicly. Which goal is most directly violated?",
+      "options": [
+        "Confidentiality",
+        "Integrity",
+        "Availability",
+        "Storage capacity"
+      ],
+      "expected": "Integrity"
+    },
+    {
+      "id": "gen-01-10",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A risk register scores each incident as $\\text{risk} = \\text{likelihood} \\times \\text{impact}$, with impact in dollars. Incident Alpha has likelihood $0.20$ and impact $75000$. Incident Beta has likelihood $0.05$ and impact $400000$. Which incident has the higher risk score, and by how much?",
+      "options": [
+        "a) It is mainly poor system design and programming because it comes from missing input validation.",
+        "b) It is mainly poor handling of information because it exposes internal documents through bad permissions.",
+        "c) It is mainly an availability issue because a bucket is a storage service.",
+        "d) It is not a security issue unless files are modified."
+      ],
+      "expected": "Alpha has score $0.20 \\times 75000 = 15000$. Beta has score $0.05 \\times 400000 = 20000$. Beta is higher by $20000 - 15000 = 5000$ dollars of expected loss."
+    },
+    {
+      "id": "gen-01-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A system that is disconnected from every network and locked in a vault is automatically the best security design for any organization.",
+      "options": [
+        "True. Maximizing confidentiality always maximizes security.",
+        "False. Security is situation-dependent; this design may improve confidentiality but can destroy availability and usefulness.",
+        "True. Physical isolation removes all adversaries and all trade-offs.",
+        "False. The design mainly improves authentication, not confidentiality."
+      ],
+      "expected": "False. This may reduce some confidentiality risks, but it can make the system unavailable or unusable. The chapter frames security as a situation-dependent trade-off, not as absolute isolation."
+    },
+    {
+      "id": "gen-01-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a simple risk-analysis procedure. It should accept assets, adversaries, attacks, and candidate defenses, then choose defenses whose expected loss reduction is greater than their cost.",
+      "options": [
+        "a) Unauthorized disclosure of customer records",
+        "b) A distributed denial-of-service attack overwhelming the public website",
+        "c) A spoofed sender tricking a user into accepting a fake command",
+        "d) An attacker modifying a download in transit"
+      ],
+      "expected": "One acceptable reference answer is:\n```text\nprocedure chooseDefenses(assets, adversaries, attacks, defenses)\n    chosenDefenses starts as empty list\n    for each defense in defenses do\n        totalReduction starts as zero\n        for each attack in attacks do\n            if defense applies to attack then\n                oldLoss starts as attack likelihood before defense times attack impact\n                newLoss starts as attack likelihood after defense times attack impact\n                reduction starts as oldLoss minus newLoss\n                totalReduction starts as totalReduction plus reduction\n            end if\n        end for\n        if totalReduction is greater than defense cost then\n            append defense to chosenDefenses\n        end if\n    end for\n    return chosenDefenses\nend procedure\n```\nThis captures the chapter's case-by-case framing: assets, adversaries, plausible attacks, costs, and trade-offs determine which defenses are worthwhile."
+    },
+    {
+      "id": "gen-01-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A cloud storage bucket accidentally allows public read access to internal planning documents. Which classification best matches the chapter's two root-cause categories?",
+      "options": [
+        "Poor system design and programming, because the main problem is a race condition",
+        "Poor handling of information, because the main problem is misconfigured permissions and disclosure",
+        "Availability failure, because public access increases server load",
+        "No security issue, because the documents were not destroyed"
+      ],
+      "expected": "Poor handling of information, because the main problem is misconfigured permissions and disclosure"
+    },
+    {
+      "id": "gen-01-14",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Authentication is the same as integrity because both are concerned with whether a message is trustworthy.",
+      "options": [
+        "a) \"It has encryption, so it is secure.\"",
+        "b) \"The required controls depend on the protected assets, likely adversaries, plausible attacks, and acceptable trade-offs.\"",
+        "c) \"Security can be decided without considering the operator's budget.\"",
+        "d) \"The same checklist should be applied unchanged to banks, hospitals, and chat apps.\""
+      ],
+      "expected": "False. Integrity asks whether the message was modified, while authentication asks who the communication partner or sender is. They are related, but they answer different security questions."
+    },
+    {
+      "id": "gen-01-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Distinguish poor system design and programming from poor handling of information. Give one example of each and name a matching mitigation discipline for each example.",
+      "options": [
+        "a) $2$ hours",
+        "b) $4.8$ hours",
+        "c) $7.2$ hours",
+        "d) $12$ hours"
+      ],
+      "expected": "Poor system design and programming includes bugs such as missing input validation or broken access control; mitigations include secure coding standards, reviews, and testing. Poor handling of information includes leaked credentials, misconfigured permissions, or bad key management; mitigations include cryptography, authentication, access policies, and training."
+    }
+  ],
+  "generationError": null
+}

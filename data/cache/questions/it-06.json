@@ -1,0 +1,219 @@
+{
+  "generatedAt": "2026-05-20T21:59:52.172Z",
+  "chapterId": "06",
+  "questions": [
+    {
+      "id": "gen-06-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain the CIA triad using the exact security goal of each component, then give one example of a control that primarily supports each goal.",
+      "options": [
+        "Confidentiality: only authorized parties can access information. Integrity: only authorized parties can modify information. Availability: information is accessible for authorized use. Example controls: access control or encryption for confidentiality; checksums, change approval, or database constraints for integrity; redundancy, backups, or failover for availability.",
+        "expected",
+        "Confidentiality: only authorized parties can access information. Integrity: only authorized parties can modify information. Availability: information is accessible for authorized use. Example controls: access control or encryption for confidentiality; checksums, change approval, or database constraints for integrity; redundancy, backups, or failover for availability."
+      ],
+      "expected": "Confidentiality: only authorized parties can access information. Integrity: only authorized parties can modify information. Availability: information is accessible for authorized use. Example controls: access control or encryption for confidentiality; checksums, change approval, or database constraints for integrity; redundancy, backups, or failover for availability."
+    },
+    {
+      "id": "gen-06-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Distinguish security policy from risk management in an organization. Your answer must state what each one primarily answers and how they interact.",
+      "options": [
+        "Security policy sets the overall mandatory direction for security: it answers what the organization should be doing. It is implemented through standards and procedures and supported by guidelines and practices. Risk management answers what should be prioritized given actual threats: it identifies, analyzes, evaluates, and treats risks. They interact because risk management translates broad policy into prioritized action based on likelihood, impact, assets, vulnerabilities, and risk tolerance.",
+        "expected",
+        "Security policy sets the overall mandatory direction for security: it answers what the organization should be doing. It is implemented through standards and procedures and supported by guidelines and practices. Risk management answers what should be prioritized given actual threats: it identifies, analyzes, evaluates, and treats risks. They interact because risk management translates broad policy into prioritized action based on likelihood, impact, assets, vulnerabilities, and risk tolerance."
+      ],
+      "expected": "Security policy sets the overall mandatory direction for security: it answers what the organization should be doing. It is implemented through standards and procedures and supported by guidelines and practices. Risk management answers what should be prioritized given actual threats: it identifies, analyzes, evaluates, and treats risks. They interact because risk management translates broad policy into prioritized action based on likelihood, impact, assets, vulnerabilities, and risk tolerance."
+    },
+    {
+      "id": "gen-06-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A past exam asks for two stages of contingency planning, one activity in each, and the connection to risk management. Write a full-credit answer.",
+      "options": [
+        "The two stages are Business Impact Analysis and Incident Response Planning. In Business Impact Analysis, the organization determines the impact of downtime on revenue, product delivery, reputation, and recovery criticality, then sets metrics such as RTO, RPO, MTD, and WRT. In Incident Response Planning, the organization documents and tests procedures for before, during, and after a breach, including backups, detection, containment, eradication, notification, recovery, and post-incident review. The connection to risk management is that risk management assesses likelihood and impact, evaluates risk tolerance, and selects treatment priorities; contingency planning prepares response strategies for materialized risks so operations can continue.",
+        "expected",
+        "The two stages are Business Impact Analysis and Incident Response Planning. In Business Impact Analysis, the organization determines the impact of downtime on revenue, product delivery, reputation, and recovery criticality, then sets metrics such as RTO, RPO, MTD, and WRT. In Incident Response Planning, the organization documents and tests procedures for before, during, and after a breach, including backups, detection, containment, eradication, notification, recovery, and post-incident review. The connection to risk management is that risk management assesses likelihood and impact, evaluates risk tolerance, and selects treatment priorities; contingency planning prepares response strategies for materialized risks so operations can continue."
+      ],
+      "expected": "The two stages are Business Impact Analysis and Incident Response Planning. In Business Impact Analysis, the organization determines the impact of downtime on revenue, product delivery, reputation, and recovery criticality, then sets metrics such as RTO, RPO, MTD, and WRT. In Incident Response Planning, the organization documents and tests procedures for before, during, and after a breach, including backups, detection, containment, eradication, notification, recovery, and post-incident review. The connection to risk management is that risk management assesses likelihood and impact, evaluates risk tolerance, and selects treatment priorities; contingency planning prepares response strategies for materialized risks so operations can continue."
+    },
+    {
+      "id": "gen-06-3",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why security is described as a trade-off rather than a maximum. Use one example involving availability and one involving excessive restriction.",
+      "options": [
+        "Security is a balance between access and protection. A system available to anyone, anywhere, anytime may be highly usable but creates serious confidentiality, integrity, and abuse risks. A system that allows no one access may be highly protected in a narrow sense, but it fails the availability goal because authorized users cannot use the information. Good security chooses controls that reduce risk while preserving necessary authorized use.",
+        "expected",
+        "Security is a balance between access and protection. A system available to anyone, anywhere, anytime may be highly usable but creates serious confidentiality, integrity, and abuse risks. A system that allows no one access may be highly protected in a narrow sense, but it fails the availability goal because authorized users cannot use the information. Good security chooses controls that reduce risk while preserving necessary authorized use."
+      ],
+      "expected": "Security is a balance between access and protection. A system available to anyone, anywhere, anytime may be highly usable but creates serious confidentiality, integrity, and abuse risks. A system that allows no one access may be highly protected in a narrow sense, but it fails the availability goal because authorized users cannot use the information. Good security chooses controls that reduce risk while preserving necessary authorized use."
+    },
+    {
+      "id": "gen-06-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A customer portal has an RTO of $4$ hours and a WRT of $90$ minutes. The MTD is $6$ hours. Does the recovery plan fit within the MTD, and by how much?",
+      "options": [
+        "Convert WRT to hours: $90$ minutes $= 1.5$ hours. Full operation time is $RTO + WRT = 4 + 1.5 = 5.5$ hours. Since $5.5 \\le 6$, the plan fits within the MTD with $6 - 5.5 = 0.5$ hours, or $30$ minutes, of margin.",
+        "expected",
+        "Convert WRT to hours: $90$ minutes $= 1.5$ hours. Full operation time is $RTO + WRT = 4 + 1.5 = 5.5$ hours. Since $5.5 \\le 6$, the plan fits within the MTD with $6 - 5.5 = 0.5$ hours, or $30$ minutes, of margin."
+      ],
+      "expected": "Convert WRT to hours: $90$ minutes $= 1.5$ hours. Full operation time is $RTO + WRT = 4 + 1.5 = 5.5$ hours. Since $5.5 \\le 6$, the plan fits within the MTD with $6 - 5.5 = 0.5$ hours, or $30$ minutes, of margin."
+    },
+    {
+      "id": "gen-06-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A business impact analysis scores three functions on revenue, product delivery, and reputation. The weights are revenue $0.5$, product delivery $0.3$, and reputation $0.2$. Scores are on a $1$ to $5$ scale. Sales has scores $5$, $3$, $4$; IT Services has scores $4$, $5$, $5$; R&D has scores $2$, $4$, $3$. Compute the weighted score for each and rank recovery criticality from highest to lowest.",
+      "options": [
+        "Sales: $0.5 \\times 5 + 0.3 \\times 3 + 0.2 \\times 4 = 2.5 + 0.9 + 0.8 = 4.2$. IT Services: $0.5 \\times 4 + 0.3 \\times 5 + 0.2 \\times 5 = 2.0 + 1.5 + 1.0 = 4.5$. R&D: $0.5 \\times 2 + 0.3 \\times 4 + 0.2 \\times 3 = 1.0 + 1.2 + 0.6 = 2.8$. Ranking: IT Services, Sales, R&D.",
+        "expected",
+        "Sales: $0.5 \\times 5 + 0.3 \\times 3 + 0.2 \\times 4 = 2.5 + 0.9 + 0.8 = 4.2$. IT Services: $0.5 \\times 4 + 0.3 \\times 5 + 0.2 \\times 5 = 2.0 + 1.5 + 1.0 = 4.5$. R&D: $0.5 \\times 2 + 0.3 \\times 4 + 0.2 \\times 3 = 1.0 + 1.2 + 0.6 = 2.8$. Ranking: IT Services, Sales, R&D."
+      ],
+      "expected": "Sales: $0.5 \\times 5 + 0.3 \\times 3 + 0.2 \\times 4 = 2.5 + 0.9 + 0.8 = 4.2$. IT Services: $0.5 \\times 4 + 0.3 \\times 5 + 0.2 \\times 5 = 2.0 + 1.5 + 1.0 = 4.5$. R&D: $0.5 \\times 2 + 0.3 \\times 4 + 0.2 \\times 3 = 1.0 + 1.2 + 0.6 = 2.8$. Ranking: IT Services, Sales, R&D."
+    },
+    {
+      "id": "gen-06-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A database is backed up every $20$ minutes. An incident occurs at $14{:}37$, and the last successful backup was at $14{:}20$. If the RPO is $15$ minutes, is the actual data loss within objective? Calculate the excess or margin.",
+      "options": [
+        "Actual data loss is $14{:}37 - 14{:}20 = 17$ minutes. Since $17 > 15$, the RPO is not met. The excess is $17 - 15 = 2$ minutes, so backups are too infrequent or the backup schedule failed the objective.",
+        "expected",
+        "Actual data loss is $14{:}37 - 14{:}20 = 17$ minutes. Since $17 > 15$, the RPO is not met. The excess is $17 - 15 = 2$ minutes, so backups are too infrequent or the backup schedule failed the objective."
+      ],
+      "expected": "Actual data loss is $14{:}37 - 14{:}20 = 17$ minutes. Since $17 > 15$, the RPO is not met. The excess is $17 - 15 = 2$ minutes, so backups are too infrequent or the backup schedule failed the objective."
+    },
+    {
+      "id": "gen-06-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A risk analysis uses a simple annualized risk score: $risk = likelihood \\times impact$. Risk A has likelihood $0.25$ and impact $\\$400{,}000$. Risk B has likelihood $0.08$ and impact $\\$1{,}200{,}000$. Risk C has likelihood $0.6$ and impact $\\$70{,}000$. Compute each score and identify the top priority before considering treatment cost or risk tolerance.",
+      "options": [
+        "Risk A: $0.25 \\times \\$400{,}000 = \\$100{,}000$. Risk B: $0.08 \\times \\$1{,}200{,}000 = \\$96{,}000$. Risk C: $0.6 \\times \\$70{,}000 = \\$42{,}000$. The top priority by this score alone is Risk A, followed by Risk B, then Risk C.",
+        "expected",
+        "Risk A: $0.25 \\times \\$400{,}000 = \\$100{,}000$. Risk B: $0.08 \\times \\$1{,}200{,}000 = \\$96{,}000$. Risk C: $0.6 \\times \\$70{,}000 = \\$42{,}000$. The top priority by this score alone is Risk A, followed by Risk B, then Risk C."
+      ],
+      "expected": "Risk A: $0.25 \\times \\$400{,}000 = \\$100{,}000$. Risk B: $0.08 \\times \\$1{,}200{,}000 = \\$96{,}000$. Risk C: $0.6 \\times \\$70{,}000 = \\$42{,}000$. The top priority by this score alone is Risk A, followed by Risk B, then Risk C."
+    },
+    {
+      "id": "gen-06-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which item in the security documentation hierarchy is mandatory and answers the question, \"How much?\"",
+      "options": [
+        "Policy",
+        "Standard",
+        "Guideline",
+        "Practice"
+      ],
+      "expected": "Standard"
+    },
+    {
+      "id": "gen-06-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "An organization decides not to store sensitive customer documents locally because the local application is outdated and hard to secure. Which risk treatment strategy is this?",
+      "options": [
+        "Mitigate",
+        "Avoid",
+        "Transfer",
+        "Accept"
+      ],
+      "expected": "Avoid"
+    },
+    {
+      "id": "gen-06-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which framework is best described as a quantification framework that breaks information risk into measurable factors for financial analysis?",
+      "options": [
+        "ISO/IEC 27005",
+        "NIST",
+        "FAIR",
+        "OCTAVE"
+      ],
+      "expected": "FAIR"
+    },
+    {
+      "id": "gen-06-11",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "During a ransomware incident, the team disconnects affected servers from the network to limit spread before removing malware. Which incident-response phase is primarily represented by disconnecting the servers?",
+      "options": [
+        "Detection",
+        "Containment",
+        "Eradication",
+        "Post-incident review"
+      ],
+      "expected": "Containment"
+    },
+    {
+      "id": "gen-06-12",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Procedures are optional recommendations that answer \"How best?\", while guidelines are mandatory step-by-step instructions that answer \"How to?\"",
+      "options": [
+        "False. The statement reverses the terms. Guidelines are optional and answer \"How best?\"; procedures are mandatory step-by-step instructions and answer \"How to?\".",
+        "expected",
+        "False. The statement reverses the terms. Guidelines are optional and answer \"How best?\"; procedures are mandatory step-by-step instructions and answer \"How to?\"."
+      ],
+      "expected": "False. The statement reverses the terms. Guidelines are optional and answer \"How best?\"; procedures are mandatory step-by-step instructions and answer \"How to?\"."
+    },
+    {
+      "id": "gen-06-13",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Once risk treatment controls have been implemented, the risk management process is complete until the next major audit.",
+      "options": [
+        "False. Risk management includes continuous monitoring and review because threats, vulnerabilities, impacts, and business priorities change over time. Controls must be reassessed to ensure the current risk level remains acceptable.",
+        "expected",
+        "False. Risk management includes continuous monitoring and review because threats, vulnerabilities, impacts, and business priorities change over time. Controls must be reassessed to ensure the current risk level remains acceptable."
+      ],
+      "expected": "False. Risk management includes continuous monitoring and review because threats, vulnerabilities, impacts, and business priorities change over time. Controls must be reassessed to ensure the current risk level remains acceptable."
+    },
+    {
+      "id": "gen-06-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for ranking business functions in a Business Impact Analysis. Inputs should include functions, impact categories, category weights, and per-function scores. The output should rank functions by recovery criticality.",
+      "options": [
+        "```text\nfunction rank_bia_functions(functions, categories, weights, scores):\n    ranked = empty list\n\n    for each function_name in functions:\n        total_score = 0\n        for each category in categories:\n            category_weight = weights[category]\n            category_score = scores[function_name][category]\n            total_score = total_score + category_weight * category_score\n        append (function_name, total_score) to ranked\n\n    sort ranked by total_score descending\n    return ranked\n```\nThis algorithm computes a weighted impact score for each business function and ranks higher-scoring functions as more recovery-critical.",
+        "expected",
+        "```text\nfunction rank_bia_functions(functions, categories, weights, scores):\n    ranked = empty list\n\n    for each function_name in functions:\n        total_score = 0\n        for each category in categories:\n            category_weight = weights[category]\n            category_score = scores[function_name][category]\n            total_score = total_score + category_weight * category_score\n        append (function_name, total_score) to ranked\n\n    sort ranked by total_score descending\n    return ranked\n```\nThis algorithm computes a weighted impact score for each business function and ranks higher-scoring functions as more recovery-critical."
+      ],
+      "expected": "```text\nfunction rank_bia_functions(functions, categories, weights, scores):\n    ranked = empty list\n\n    for each function_name in functions:\n        total_score = 0\n        for each category in categories:\n            category_weight = weights[category]\n            category_score = scores[function_name][category]\n            total_score = total_score + category_weight * category_score\n        append (function_name, total_score) to ranked\n\n    sort ranked by total_score descending\n    return ranked\n```\nThis algorithm computes a weighted impact score for each business function and ranks higher-scoring functions as more recovery-critical."
+    },
+    {
+      "id": "gen-06-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for selecting a risk treatment option. Inputs should include assessed risks with likelihood, impact, control cost, whether the risky activity can be stopped, whether insurance or outsourcing is available, and risk tolerance. The output should assign one of mitigate, avoid, transfer, or accept.",
+      "options": [
+        "```text\nfunction choose_risk_treatments(risks, risk_tolerance):\n    decisions = empty map\n\n    for each risk in risks:\n        risk_score = risk.likelihood * risk.impact\n\n        if risk_score <= risk_tolerance:\n            decisions[risk.name] = \"accept\"\n        else if risk.can_stop_activity == true:\n            decisions[risk.name] = \"avoid\"\n        else if risk.transfer_available == true and risk.transfer_cost < risk_score:\n            decisions[risk.name] = \"transfer\"\n        else if risk.control_available == true and risk.control_cost < risk_score:\n            decisions[risk.name] = \"mitigate\"\n        else:\n            decisions[risk.name] = \"accept with documented exception\"\n\n    return decisions\n```\nA good answer should evaluate likelihood and impact against tolerance, then select avoid, transfer, mitigate, or accept based on feasibility and cost-benefit logic.",
+        "expected",
+        "```text\nfunction choose_risk_treatments(risks, risk_tolerance):\n    decisions = empty map\n\n    for each risk in risks:\n        risk_score = risk.likelihood * risk.impact\n\n        if risk_score <= risk_tolerance:\n            decisions[risk.name] = \"accept\"\n        else if risk.can_stop_activity == true:\n            decisions[risk.name] = \"avoid\"\n        else if risk.transfer_available == true and risk.transfer_cost < risk_score:\n            decisions[risk.name] = \"transfer\"\n        else if risk.control_available == true and risk.control_cost < risk_score:\n            decisions[risk.name] = \"mitigate\"\n        else:\n            decisions[risk.name] = \"accept with documented exception\"\n\n    return decisions\n```\nA good answer should evaluate likelihood and impact against tolerance, then select avoid, transfer, mitigate, or accept based on feasibility and cost-benefit logic."
+      ],
+      "expected": "```text\nfunction choose_risk_treatments(risks, risk_tolerance):\n    decisions = empty map\n\n    for each risk in risks:\n        risk_score = risk.likelihood * risk.impact\n\n        if risk_score <= risk_tolerance:\n            decisions[risk.name] = \"accept\"\n        else if risk.can_stop_activity == true:\n            decisions[risk.name] = \"avoid\"\n        else if risk.transfer_available == true and risk.transfer_cost < risk_score:\n            decisions[risk.name] = \"transfer\"\n        else if risk.control_available == true and risk.control_cost < risk_score:\n            decisions[risk.name] = \"mitigate\"\n        else:\n            decisions[risk.name] = \"accept with documented exception\"\n\n    return decisions\n```\nA good answer should evaluate likelihood and impact against tolerance, then select avoid, transfer, mitigate, or accept based on feasibility and cost-benefit logic."
+    }
+  ],
+  "generationError": null
+}
