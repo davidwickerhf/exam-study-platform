@@ -1323,8 +1323,21 @@ function refreshGenerateAllCourses() {
         generateAllCoursesPolling = false
         return
       }
+      const prev = generateAllCoursesJob
       generateAllCoursesJob = await resp.json()
       const stillRunning = generateAllCoursesJob.status === 'running' || generateAllCoursesJob.status === 'queued'
+      // Detect whether any sub-job transitioned from running→done since the
+      // last tick. If so, the corresponding course's coverage just changed
+      // (pieces moved from "not cached" → "cached") and any per-course view
+      // would show stale info until we re-fetch.
+      let aSubJobFinished = false
+      const prevSubs = prev?.subJobs || {}
+      const currSubs = generateAllCoursesJob?.subJobs || {}
+      for (const cid of Object.keys(currSubs)) {
+        const wasLive = prevSubs[cid] && (prevSubs[cid].status === 'running' || prevSubs[cid].status === 'queued')
+        const nowDone = currSubs[cid] && (currSubs[cid].status === 'done' || currSubs[cid].status === 'error')
+        if (wasLive && nowDone) { aSubJobFinished = true; break }
+      }
       if (stillRunning) {
         setTimeout(tick, 4000)
       } else {
@@ -1332,6 +1345,10 @@ function refreshGenerateAllCourses() {
         if (typeof mockQuestionsCache !== 'undefined') mockQuestionsCache.clear()
         if (typeof questionsSummaryCache !== 'undefined') questionsSummaryCache.clear()
       }
+      // Re-fetch coverage when a sub-job just finished (so the chip/CTA on
+      // each course's page reflects reality on the next render) or when the
+      // master finishes.
+      if (aSubJobFinished || !stillRunning) ensureCoverage({ force: true })
       // Update ONLY the master card in-place. A full render() here is what
       // was resetting dashboard scroll + closing expanded step lists every
       // 4 seconds. Falls back to full render if the card isn't in the DOM
@@ -1637,21 +1654,31 @@ function renderChapterSubTabs(course, chapter, activeTab) {
 // steps would be 'pending' if a job were planned right now.
 const courseCoverage = new Map() // cid -> { total, pending }
 let coverageState = 'idle' // 'idle' | 'loading' | 'loaded'
+let coverageFetchedAt = 0
+const COVERAGE_TTL_MS = 30 * 1000  // any revisit after 30s triggers a quiet refresh
 
-async function ensureCoverage() {
-  if (coverageState !== 'idle') return
+async function ensureCoverage({ force = false } = {}) {
+  if (coverageState === 'loading') return
+  const age = Date.now() - coverageFetchedAt
+  if (!force && coverageState === 'loaded' && age < COVERAGE_TTL_MS) return
   coverageState = 'loading'
   try {
     const r = await fetch('/api/coverage')
-    if (!r.ok) { coverageState = 'idle'; return }
+    if (!r.ok) { coverageState = age > 0 ? 'loaded' : 'idle'; return }
     const data = await r.json()
+    // Replace, not merge — courses can transition from N→0 pending, and a
+    // stale 'pending: 5' entry would still hide the chip for a course that's
+    // actually done.
+    courseCoverage.clear()
     for (const [cid, summary] of Object.entries(data.courses || {})) {
       courseCoverage.set(cid, summary)
     }
     coverageState = 'loaded'
+    coverageFetchedAt = Date.now()
     render()
   } catch {
-    coverageState = 'idle'
+    if (coverageFetchedAt === 0) coverageState = 'idle'
+    else coverageState = 'loaded' // keep last-known-good
   }
 }
 
@@ -1693,14 +1720,11 @@ function refreshGenerateJob(courseId) {
         generateAllJobs.set(courseId, e)
         if (typeof mockQuestionsCache !== 'undefined') mockQuestionsCache.delete(courseId)
         if (typeof questionsSummaryCache !== 'undefined') questionsSummaryCache.delete(courseId)
+        // Job just finished — refresh coverage so the chip appears, not the
+        // CTA. Triggers its own render() once done.
+        ensureCoverage({ force: true })
       }
-      // Update ONLY the progress card in-place. Wholesale render() would blow
-      // away scroll position, open <details>, focused elements, mid-edits etc.
-      // Falls back to a full render if the card isn't in the current view
-      // (e.g. user navigated to a different course).
       if (!refreshCourseCardInPlace(courseId) || !stillRunning) {
-        // If polling has stopped (job done), do one final full render so the
-        // page transitions cleanly (chip appears, big card gone).
         if (!stillRunning) render()
       }
     } catch {
