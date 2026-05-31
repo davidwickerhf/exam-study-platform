@@ -1,0 +1,197 @@
+{
+  "generatedAt": "2026-05-31T00:35:42.826Z",
+  "items": [
+    {
+      "title": "Computer Arithmetic and Algebraic Equations",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1(a) — Newton step from midpoint (4 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Newton method outcome (2 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) — Bisection step for smaller bracket (3 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(d) — Newton step from new midpoint (2 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(e) — Error expectation within 0.1 (2 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(f) — Matlab Newton step statement (3 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Differential Equations",
+      "page": 5,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q2(a) — Ralston method with h = 0.5 (10 marks)",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Error change for h = 0.2 (2 marks)",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(c) — Matlab ode_ralston function (8 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Polynomial Interpolation",
+      "page": 8,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q3(a) — Divided differences (6 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — Nested cubic interpolation polynomial (2 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(c) — Estimate y at x = 2.5 (3 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(d) — Matlab nested polynomial evaluator (5 marks)",
+      "page": 10,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Integration & Differentiation",
+      "page": 11,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q4(a) — Trapezoid rule with n = 4 (5 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(b) — Trapezoid error estimate (5 marks)",
+      "page": 12,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(c) — Adaptive trapezoid method (3 marks)",
+      "page": 12,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(d) — Matlab builtin integration code (3 marks)",
+      "page": 13,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Least-Squares Approximation",
+      "page": 14,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q5(a) — Discrete Fourier coefficients (6 marks)",
+      "page": 14,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Second Fourier approximation (2 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(c) — Evaluate s2(pi/3) (2 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(d) — Root-mean-square value (3 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(e) — Matlab Fourier coefficient a2 code (3 marks)",
+      "page": 16,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Linear Algebra",
+      "page": 17,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q6(a) — One QR-method step (9 marks)",
+      "page": 17,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(b) — Gershgorin bounds for eigenvalues (4 marks)",
+      "page": 18,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(c) — Matlab QR-method step code (3 marks)",
+      "page": 19,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Extra Paper",
+      "page": 20,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

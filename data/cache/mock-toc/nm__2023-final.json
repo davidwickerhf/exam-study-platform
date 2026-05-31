@@ -1,0 +1,179 @@
+{
+  "generatedAt": "2026-05-31T00:36:02.598Z",
+  "items": [
+    {
+      "title": "Q1 — Computer Arithmetic and Algebraic Equations",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q1(a) — Horner evaluation (5 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Absolute and relative errors (3 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) — Bisection steps and residual (3 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(d) — Required bisection steps (1 mark)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2 — Differential Equations",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2(a) — Predictor-corrector method (9 marks)",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Error of y(1.5) (1 mark)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(c) — Expected error with h = 0.25 (2 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3 — Polynomial Interpolation",
+      "page": 8,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3(a) — Cubic Taylor polynomial (3 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — Cubic interpolation by divided differences (5 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(c) — Compare Taylor and interpolation errors (4 marks)",
+      "page": 10,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4 — Numerical Integration & Differentiation",
+      "page": 11,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4(a) — Romberg estimate R3,3 (10 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(b) — Error estimate for R3,2 (2 marks)",
+      "page": 13,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5 — Least-Squares Approximation",
+      "page": 14,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5(a) — Evaluate Legendre polynomials (4 marks)",
+      "page": 14,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Compute q4(0.7) (2 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(c) — Orthogonality and square integral formula (3 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(d) — Compute square integral of q2 (3 marks)",
+      "page": 16,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6 — Linear Algebra",
+      "page": 17,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6(a) — Gauss-Seidel iterations (8 marks)",
+      "page": 17,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(b) — Error versus residual (2 marks)",
+      "page": 18,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(c) — Norm of residual (2 marks)",
+      "page": 19,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q7 — Modelling and Matlab",
+      "page": 20,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7(a) — Convert Duffing equation to first-order system (4 marks)",
+      "page": 20,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q7(b) — Matlab code for Duffing equation (4 marks)",
+      "page": 21,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Extra paper",
+      "page": 22,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

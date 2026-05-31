@@ -1,0 +1,128 @@
+{
+  "generatedAt": "2026-05-31T00:35:13.761Z",
+  "courseId": "nm",
+  "examId": "2012-sample",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Q1",
+      "marks": 6,
+      "sharedContext": "",
+      "text": "Use two iterations of Newton’s method to estimate the positive root of $x^2 - 3 = 0$, starting your iteration with $x_0 = 2$.",
+      "modelAnswer": "For $f(x)=x^2-3$,\n\n$$\nx_{n+1}=x_n-\\frac{x_n^2-3}{2x_n}=\\frac{1}{2}\\left(x_n+\\frac{3}{x_n}\\right).\n$$\n\nStarting with $x_0=2$:\n\n$$\nx_1=\\frac{1}{2}\\left(2+\\frac{3}{2}\\right)=1.75.\n$$\n\n$$\nx_2=\\frac{1}{2}\\left(1.75+\\frac{3}{1.75}\\right)=1.732142857\\ldots\n$$\n\nThe estimate after two iterations is $1.732143$.",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Compute the values $z_1 = s''(1)$ and $z_2 = s''(2)$ for the cubic spline $s(x)$ interpolating the data\n\n| x | 0 | 1 | 2 | 3 |\n|---|---|---|---|---|\n| y | 2 | 5 | 4 | 8 |\n\nusing the natural spline boundary conditions $s''(0) = s''(3) = 0$. Write down the polynomial $s_1(x)$ giving the values of $s$ for $1 \\leq x \\leq 2$.",
+      "modelAnswer": "With $h=1$ and natural boundary conditions $z_0=z_3=0$,\n\n$$\n4z_1+z_2=6((-1)-3)=-24,\n$$\n\n$$\nz_1+4z_2=6(4-(-1))=30.\n$$\n\nSolving gives\n\n$$\nz_1=-\\frac{42}{5}=-8.4, \\qquad z_2=\\frac{48}{5}=9.6.\n$$\n\nFor $1 \\leq x \\leq 2$,\n\n$$\ns_1(x)=\\frac{z_1(2-x)^3}{6}+\\frac{z_2(x-1)^3}{6}+\\left(5-\\frac{z_1}{6}\\right)(2-x)+\\left(4-\\frac{z_2}{6}\\right)(x-1).\n$$\n\nThus\n\n$$\ns_1(x)=-1.4(2-x)^3+1.6(x-1)^3+6.4(2-x)+2.4(x-1),\n$$\n\nor equivalently\n\n$$\ns_1(x)=5+0.2(x-1)-4.2(x-1)^2+3(x-1)^3.\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 8,
+      "sharedContext": "",
+      "text": "Compute the best linear approximation $l(x)$ in the least-squares sense to the following data:\n\n| x | 1 | 2 | 4 | 5 | 6 |\n|---|---|---|---|---|---|\n| y | 3 | 2 | 5 | 9 | 7 |\n\nUse $l(x)$ to estimate the value of $y$ when $x = 3$.",
+      "modelAnswer": "For $l(x)=a+bx$,\n\n$$\n\\sum x_i=18, \\qquad \\sum y_i=26, \\qquad \\sum x_i^2=82, \\qquad \\sum x_i y_i=114.\n$$\n\nThe slope is\n\n$$\nb=\\frac{5(114)-18(26)}{5(82)-18^2}=\\frac{102}{86}=\\frac{51}{43}.\n$$\n\nThe intercept is\n\n$$\na=\\frac{26-b(18)}{5}=\\frac{40}{43}.\n$$\n\nTherefore\n\n$$\nl(x)=\\frac{40}{43}+\\frac{51}{43}x.\n$$\n\nAt $x=3$,\n\n$$\nl(3)=\\frac{193}{43}=4.488372\\ldots\n$$\n\nThe estimated value is $y \\approx 4.488$.",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 8,
+      "sharedContext": "",
+      "text": "Estimate $\\int_0^2 1/(1 + x^3)\\,dx$ by applying Simpson’s rule with $h = 0.5$.",
+      "modelAnswer": "Using Simpson’s rule with $h=0.5$ gives the points $0,0.5,1,1.5,2$.\n\n$$\nf(0)=1, \\quad f(0.5)=0.888888889,\n$$\n\n$$\nf(1)=0.5, \\quad f(1.5)=0.228571429, \\quad f(2)=0.111111111.\n$$\n\n$$\n\\int_0^2 \\frac{1}{1+x^3}\\,dx \\approx \\frac{0.5}{3}\\left[f_0+f_4+4(f_1+f_3)+2f_2\\right].\n$$\n\n$$\n=\\frac{0.5}{3}\\left[1+0.111111111+4(0.888888889+0.228571429)+2(0.5)\\right]\n$$\n\n$$\n=1.096825397.\n$$\n\nThe estimate is $1.096825$.",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 8,
+      "sharedContext": "",
+      "text": "Use Heun’s method to estimate the solution of the differential equation\n\n$$\n\\dot{x} = x^2 - x/(1 + t), \\quad x(0) = 1;\n$$\n\nat $t = 0.5$ and $t = 1$.",
+      "modelAnswer": "Use $h=0.5$ and\n\n$$\nf(t,x)=x^2-\\frac{x}{1+t}.\n$$\n\nHeun’s method is\n\n$$\n\\tilde{x}_{n+1}=x_n+h f(t_n,x_n),\n$$\n\n$$\nx_{n+1}=x_n+\\frac{h}{2}\\left[f(t_n,x_n)+f(t_{n+1},\\tilde{x}_{n+1})\\right].\n$$\n\nFirst step:\n\n$$\nf(0,1)=0, \\qquad \\tilde{x}_1=1.\n$$\n\n$$\nf(0.5,1)=1-\\frac{1}{1.5}=\\frac{1}{3}.\n$$\n\n$$\nx(0.5)\\approx x_1=1+\\frac{0.5}{2}\\left(0+\\frac{1}{3}\\right)=1.083333333.\n$$\n\nSecond step:\n\n$$\nf(0.5,1.083333333)=0.451388889.\n$$\n\n$$\n\\tilde{x}_2=1.083333333+0.5(0.451388889)=1.309027778.\n$$\n\n$$\nf(1,1.309027778)=1.059039834.\n$$\n\n$$\nx(1)\\approx x_2=1.083333333+\\frac{0.5}{2}(0.451388889+1.059039834)=1.460940514.\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Compute the divided differences $f[x_i, \\ldots, x_j]$, $i < j$ for the data:\n\n| x | 0 | 0.5 | 1 | 1.5 | 2.0 |\n|---|---|---|---|---|---|\n| y | 1.000 | 0.959 | 0.841 | 0.665 | 0.455 |\n\nWrite down the nested form of the interpolating quartic polynomial. Estimate the value of $y$ when $x = 1.571$.",
+      "modelAnswer": "The divided differences are\n\n| $i$ | $x_i$ | $f[x_i]$ | first | second | third | fourth |\n|---|---:|---:|---:|---:|---:|---:|\n| 0 | 0.0 | 1.000 | -0.082000 | -0.154000 | 0.025333 | 0.003333 |\n| 1 | 0.5 | 0.959 | -0.236000 | -0.116000 | 0.032000 |  |\n| 2 | 1.0 | 0.841 | -0.352000 | -0.068000 |  |  |\n| 3 | 1.5 | 0.665 | -0.420000 |  |  |  |\n| 4 | 2.0 | 0.455 |  |  |  |  |\n\nThe nested form is\n\n$$\np(x)=1.000-0.082(x-0)-0.154(x-0)(x-0.5)+0.025333(x-0)(x-0.5)(x-1)\n$$\n\n$$\n+0.003333(x-0)(x-0.5)(x-1)(x-1.5).\n$$\n\nAt $x=1.571$,\n\n$$\np(1.571)=0.636632575\\ldots\n$$\n\nThe estimated value is $y \\approx 0.636633$.",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Compute the Romburg estimate $R_{4,4}$ to the definite integral\n\n$$\n\\int_0^5 \\frac{\\sin(x)}{x}\\,dx.\n$$\n\nWrite out the computed values of $R_{i,j}$ to 6 decimal places.\nNote: Use $R_{k,1}$ to denote the estimates obtained by the trapezoidal rule with $2^{k-1}$ subdivisions. Take $\\sin(x)/x = 1$ when $x = 0$.",
+      "modelAnswer": "The Romberg table to 6 decimal places is\n\n| $i$ | $R_{i,1}$ | $R_{i,2}$ | $R_{i,3}$ | $R_{i,4}$ |\n|---|---:|---:|---:|---:|\n| 1 | 2.020538 |  |  |  |\n| 2 | 1.608741 | 1.471475 |  |  |\n| 3 | 1.562835 | 1.547533 | 1.552603 |  |\n| 4 | 1.553058 | 1.549800 | 1.549951 | 1.549909 |\n\nTherefore\n\n$$\nR_{4,4}=1.549909.\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q8a",
+      "label": "Q8(a)",
+      "marks": 4,
+      "sharedContext": "Consider the ordinary differential equation $\\dot{x} = x - t^2$ with the initial conditions $x(0) = x_0 = 1.0$. Assume that an approximation $x_1 = 1.21859724$ has been computed to $x(0.2)$.",
+      "text": "(a) Use the two-step Adams-Bashforth method to compute an estimate $\\tilde{x}_2$ to $x(0.4)$.",
+      "modelAnswer": "Here $h=0.2$ and $f(t,x)=x-t^2$.\n\n$$\nf_0=f(0,1)=1,\n$$\n\n$$\nf_1=f(0.2,1.21859724)=1.17859724.\n$$\n\nThe two-step Adams-Bashforth method gives\n\n$$\n\\tilde{x}_2=x_1+h\\left(\\frac{3}{2}f_1-\\frac{1}{2}f_0\\right).\n$$\n\n$$\n\\tilde{x}_2=1.21859724+0.2\\left(\\frac{3}{2}(1.17859724)-\\frac{1}{2}(1)\\right)=1.472176412.\n$$\n\nSo\n\n$$\n\\tilde{x}_2 \\approx 1.472176.\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q8b",
+      "label": "Q8(b)",
+      "marks": 4,
+      "sharedContext": "Consider the ordinary differential equation $\\dot{x} = x - t^2$ with the initial conditions $x(0) = x_0 = 1.0$. Assume that an approximation $x_1 = 1.21859724$ has been computed to $x(0.2)$.",
+      "text": "(b) Apply the secant method starting with $x_1$ and $\\tilde{x}_2$ to solve for $x_2$ in the fully implicit equation of the two-step Adams-Moulton method.",
+      "modelAnswer": "The two-step Adams-Moulton equation is\n\n$$\nx_2=x_1+\\frac{h}{12}\\left(5f_2+8f_1-f_0\\right),\n$$\n\nwhere $h=0.2$, $t_2=0.4$, and $f_2=x_2-0.4^2=x_2-0.16$.\n\nDefine\n\n$$\ng(x)=x-x_1-\\frac{0.2}{12}\\left(5(x-0.16)+8(1.17859724)-1\\right).\n$$\n\nUsing $x_1=1.21859724$ and $\\tilde{x}_2=1.472176412$ as the secant starting values,\n\n$$\ng(1.21859724)=-0.228696069,\n$$\n\n$$\ng(1.472176412)=0.003751506.\n$$\n\nThe next secant iterate is\n\n$$\nx_2=1.472176412-0.003751506\\frac{1.472176412-1.21859724}{0.003751506-(-0.228696069)}=1.468083860.\n$$\n\nThus\n\n$$\nx_2 \\approx 1.468084.\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q8c",
+      "label": "Q8(c)",
+      "marks": 4,
+      "sharedContext": "Consider the ordinary differential equation $\\dot{x} = x - t^2$ with the initial conditions $x(0) = x_0 = 1.0$. Assume that an approximation $x_1 = 1.21859724$ has been computed to $x(0.2)$.",
+      "text": "(c) Continue your calculations to find a solution of the differential equation at $t = 1.0$. Show all your intermediate answers to 6 decimal places.",
+      "modelAnswer": "Using the same Adams-Bashforth predictor and fully implicit Adams-Moulton corrector with $h=0.2$ gives\n\n| $n$ | $t_n$ | predictor | corrected $x_n$ |\n|---|---:|---:|---:|\n| 0 | 0.0 |  | 1.000000 |\n| 1 | 0.2 |  | 1.218597 |\n| 2 | 0.4 | 1.472176 | 1.468084 |\n| 3 | 0.6 | 1.742649 | 1.737656 |\n| 4 | 0.8 | 2.020145 | 2.014046 |\n| 5 | 1.0 | 2.288495 | 2.281046 |\n\nTherefore the solution at $t=1.0$ is\n\n$$\nx(1.0) \\approx 2.281046.\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q9",
+      "label": "Q9",
+      "marks": 8,
+      "sharedContext": "",
+      "text": "Consider the second-order ordinary differential equation\n\n$$\n\\ddot{x} + 12\\dot{x} + 40x = \\cos(\\pi t/8); \\quad x(0) = 1, \\dot{x}(0) = 0.\n$$\n\nShow how to express this equation as a system of first-order equations, and write down a Matlab function $f(t,X)$ expressing the right-hand side of this system.\nCompute the solution of the equation at time $t = 300$ using the builtin Matlab functions ode45 and ode15s. Compare the properties of the two methods, both in terms of the number of steps taken, and the accuracy obtained. Which method is better for this problem? Explain your answer.\nNote: The exact solution has $x(300) = -0.002927$ to 6 decimal places.",
+      "modelAnswer": "Let\n\n$$\nX_1=x, \\qquad X_2=\\dot{x}.\n$$\n\nThen\n\n$$\n\\dot{X}_1=X_2,\n$$\n\n$$\n\\dot{X}_2=\\cos(\\pi t/8)-12X_2-40X_1.\n$$\n\nA Matlab function for the right-hand side is\n\n```matlab\nfunction dX = f(t,X)\ndX = zeros(2,1);\ndX(1) = X(2);\ndX(2) = cos(pi*t/8) - 12*X(2) - 40*X(1);\nend\n```\n\nThe computation can be performed using\n\n```matlab\n[t45,X45] = ode45(@f,[0 300],[1;0]);\n[t15,X15] = ode15s(@f,[0 300],[1;0]);\n\nx45 = X45(end,1)\nx15 = X15(end,1)\nsteps45 = length(t45)-1\nsteps15 = length(t15)-1\nerr45 = abs(x45 - (-0.002927))\nerr15 = abs(x15 - (-0.002927))\n```\n\nThe homogeneous equation has characteristic equation\n\n$$\n\\lambda^2+12\\lambda+40=0,\n$$\n\nso\n\n$$\n\\lambda=-6\\pm 2i.\n$$\n\nThe transient part decays quickly compared with the long interval $0 \\leq t \\leq 300$, while the forcing term varies slowly. This makes the problem stiff in practice: an explicit solver such as `ode45` is restricted by the rapidly decaying modes and normally takes many more steps. The stiff solver `ode15s` can take larger steps after the transient has decayed and should give a value close to\n\n$$\nx(300)=-0.002927.\n$$\n\nThus `ode15s` is the better method for this problem, because it should require fewer steps while retaining comparable or better accuracy at $t=300$.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

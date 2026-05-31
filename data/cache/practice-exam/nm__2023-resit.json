@@ -1,0 +1,227 @@
+{
+  "generatedAt": "2026-05-31T00:37:58.383Z",
+  "courseId": "nm",
+  "examId": "2023-resit",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 4,
+      "sharedContext": "Computer Arithmetic & Algebraic Equations\n\nConsider the quadratic polynomial $p(x) = ax^2 + bx + c$, where $a = 0.51$, $b = 1.96$, and $c = -0.05$.",
+      "text": "(a) Compute the positive root of $p(x)$ using the formula $x = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}$ in 3-digit rounded arithmetic.",
+      "modelAnswer": "Using 3-digit rounded arithmetic:\n\n$$b^2 = (1.96)^2 = 3.84$$\n\n$$4ac = 4(0.51)(-0.05) = -0.102$$\n\n$$b^2 - 4ac = 3.84 - (-0.102) = 3.94$$\n\n$$\\sqrt{3.94} = 1.98$$\n\n$$-b + \\sqrt{b^2 - 4ac} = -1.96 + 1.98 = 0.0200$$\n\n$$2a = 1.02$$\n\n$$x = \\frac{0.0200}{1.02} = 0.0196$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 3,
+      "sharedContext": "Computer Arithmetic & Algebraic Equations\n\nConsider the quadratic polynomial $p(x) = ax^2 + bx + c$, where $a = 0.51$, $b = 1.96$, and $c = -0.05$.",
+      "text": "(b) Compute the positive root of $p(x)$ using the alternative formula $x = \\frac{-2c}{\\sqrt{b^2 - 4ac} + b}$ in 3-digit rounded arithmetic.",
+      "modelAnswer": "Using 3-digit rounded arithmetic:\n\n$$b^2 - 4ac = 3.94$$\n\n$$\\sqrt{b^2 - 4ac} = 1.98$$\n\n$$-2c = -2(-0.05) = 0.100$$\n\n$$\\sqrt{b^2 - 4ac} + b = 1.98 + 1.96 = 3.94$$\n\n$$x = \\frac{0.100}{3.94} = 0.0254$$",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 2,
+      "sharedContext": "Computer Arithmetic & Algebraic Equations\n\nConsider the quadratic polynomial $p(x) = ax^2 + bx + c$, where $a = 0.51$, $b = 1.96$, and $c = -0.05$.",
+      "text": "(c) Compute the relative error for the estimates in subquestions (a) and (b), given that the exact value is $0.02534308$ (8 dp).",
+      "modelAnswer": "For subquestion (a):\n\n$$\\frac{|0.02534308 - 0.0196|}{|0.02534308|} = 0.2266\\ldots$$\n\nRelative error: approximately $0.227$, or $22.7\\%$.\n\nFor subquestion (b):\n\n$$\\frac{|0.02534308 - 0.0254|}{|0.02534308|} = 0.002245\\ldots$$\n\nRelative error: approximately $0.00225$, or $0.225\\%$.",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1d",
+      "label": "Q1(d)",
+      "marks": 3,
+      "sharedContext": "Computer Arithmetic & Algebraic Equations\n\nConsider the quadratic polynomial $p(x) = ax^2 + bx + c$, where $a = 0.51$, $b = 1.96$, and $c = -0.05$.",
+      "text": "(d) Which formula do you prefer for this root, and why?",
+      "modelAnswer": "The alternative formula is preferred for this root.\n\nIn the standard formula, the numerator $-b + \\sqrt{b^2 - 4ac}$ subtracts two nearly equal numbers, $-1.96 + 1.98$, causing cancellation and loss of significant digits. The alternative formula avoids this cancellation by using addition in the denominator, giving a much smaller relative error.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 10,
+      "sharedContext": "Differential Equations\n\nConsider the initial value problem $\\frac{dy}{dt} = \\frac{\\cos(ty)}{t}$ with $y(2.0) = 1.000$.",
+      "text": "Perform two steps of Ralston’s method, using step size $h_0 = 0.6$ for the first step and $h_1 = 0.4$ for the second step.",
+      "modelAnswer": "Ralston’s method:\n\n$$k_1 = f(t_i,y_i)$$\n\n$$k_2 = f\\left(t_i + \\frac{2h}{3}, y_i + \\frac{2h}{3}k_1\\right)$$\n\n$$y_{i+1} = y_i + h\\left(\\frac{1}{4}k_1 + \\frac{3}{4}k_2\\right)$$\n\nFirst step, $t_0 = 2.0$, $y_0 = 1.000$, $h_0 = 0.6$:\n\n$$k_1 = \\frac{\\cos(2.0)}{2.0} = -0.208073$$\n\n$$k_2 = \\frac{\\cos(2.4(1.0 + 0.4(-0.208073)))}{2.4} = \\frac{\\cos(2.200251)}{2.4} = -0.245866$$\n\n$$y_1 = 1.000 + 0.6\\left(\\frac{1}{4}(-0.208073) + \\frac{3}{4}(-0.245866)\\right) = 0.858890$$\n\nSo $t_1 = 2.6$, $y_1 \\approx 0.858890$.\n\nSecond step, $h_1 = 0.4$:\n\n$$k_1 = \\frac{\\cos(2.6 \\cdot 0.858890)}{2.6} = -0.237375$$\n\n$$k_2 = \\frac{\\cos\\left((2.6 + \\frac{2}{3}0.4)(0.858890 + \\frac{2}{3}0.4(-0.237375))\\right)}{2.6 + \\frac{2}{3}0.4} = -0.274318$$\n\n$$y_2 = 0.858890 + 0.4\\left(\\frac{1}{4}(-0.237375) + \\frac{3}{4}(-0.274318)\\right) = 0.752619$$\n\nAfter two steps:\n\n$$y(3.0) \\approx 0.752619$$",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3a",
+      "label": "Q3(a)",
+      "marks": 3,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the function $f$ on $[0,3]$ given by $f(x) = \\frac{1}{1+x}$.",
+      "text": "(a) For $n = 4$, write down the $n + 1 = 5$ Chebyshev nodes $x_0, \\ldots, x_n$ in $[0,3]$.",
+      "modelAnswer": "The Chebyshev nodes on $[0,3]$ are\n\n$$x_i = \\frac{3}{2} + \\frac{3}{2}\\cos\\left(\\frac{(2i+1)\\pi}{2(n+1)}\\right), \\quad i = 0,\\ldots,4.$$ \n\nFor $n = 4$:\n\n$$x_0 = 2.963526$$\n\n$$x_1 = 2.381678$$\n\n$$x_2 = 1.500000$$\n\n$$x_3 = 0.618322$$\n\n$$x_4 = 0.036474$$",
+      "page": 7,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3b",
+      "label": "Q3(b)",
+      "marks": 6,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the function $f$ on $[0,3]$ given by $f(x) = \\frac{1}{1+x}$.",
+      "text": "(b) Compute a fourth-degree polynomial $p(x)$ approximating $f(x)$ using Chebyshev nodes by means of divided differences. The following values are given: $f[x_0,x_1] = 1.088129$, $f[x_1,x_2] = 0.691811$, $f[x_2,x_3] = 0.391463$, $f[x_3,x_4] = 0.296950$, $f[x_0,x_1,x_2] = -0.416713$, $f[x_1,x_2,x_3] = -0.255492$, $f[x_2,x_3,x_4] = -0.099377$. Note there is no need to evaluate $f$ at every $x_i$ to complete this question.",
+      "modelAnswer": "Using the Chebyshev nodes\n\n$$x_0 = 2.963526,\\quad x_1 = 2.381678,\\quad x_2 = 1.500000,\\quad x_3 = 0.618322,\\quad x_4 = 0.036474,$$\n\nwe have\n\n$$f[x_0] = f(2.963526) = \\frac{1}{3.963526} = 0.252301.$$ \n\nThe third divided differences are\n\n$$f[x_0,x_1,x_2,x_3] = \\frac{-0.255492 - (-0.416713)}{x_3-x_0} = -0.068737,$$\n\n$$f[x_1,x_2,x_3,x_4] = \\frac{-0.099377 - (-0.255492)}{x_4-x_1} = -0.066566.$$ \n\nThe fourth divided difference is\n\n$$f[x_0,x_1,x_2,x_3,x_4] = \\frac{-0.066566 - (-0.068737)}{x_4-x_0} = -0.000742.$$ \n\nTherefore the Newton interpolation polynomial is\n\n$$p(x)=0.252301 + 1.088129(x-2.963526) - 0.416713(x-2.963526)(x-2.381678)$$\n\n$$\\quad -0.068737(x-2.963526)(x-2.381678)(x-1.500000)$$\n\n$$\\quad -0.000742(x-2.963526)(x-2.381678)(x-1.500000)(x-0.618322).$$",
+      "page": 7,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3c",
+      "label": "Q3(c)",
+      "marks": 2,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the function $f$ on $[0,3]$ given by $f(x) = \\frac{1}{1+x}$.",
+      "text": "(c) Use $p(x)$ to estimate the value of $f(x)$ at $x = 0.75$.",
+      "modelAnswer": "Using the polynomial from subquestion (b):\n\n$$p(0.75)=0.252301 + 1.088129(0.75-2.963526) - 0.416713(0.75-2.963526)(0.75-2.381678)$$\n\n$$\\quad -0.068737(0.75-2.963526)(0.75-2.381678)(0.75-1.500000)$$\n\n$$\\quad -0.000742(0.75-2.963526)(0.75-2.381678)(0.75-1.500000)(0.75-0.618322).$$\n\nThis gives\n\n$$p(0.75) \\approx 0.570670.$$",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3d",
+      "label": "Q3(d)",
+      "marks": 3,
+      "sharedContext": "Polynomial Interpolation\n\nConsider the function $f$ on $[0,3]$ given by $f(x) = \\frac{1}{1+x}$.",
+      "text": "(d) Determine a bound on the error, assuming $|f^{(5)}(\\xi)| \\leq 16$, for all $0 \\leq \\xi \\leq 3$.",
+      "modelAnswer": "The interpolation error satisfies\n\n$$|f(x)-p(x)| \\leq \\frac{\\max_{0\\leq \\xi \\leq 3}|f^{(5)}(\\xi)|}{5!}\\left|\\prod_{i=0}^4(x-x_i)\\right|.$$ \n\nAt $x = 0.75$:\n\n$$\\left|\\prod_{i=0}^4(0.75-x_i)\\right| = |(0.75-2.963526)(0.75-2.381678)(0.75-1.500000)(0.75-0.618322)(0.75-0.036474)|$$\n\n$$\\approx 0.254768.$$ \n\nThus\n\n$$|f(0.75)-p(0.75)| \\leq \\frac{16}{120}(0.254768) \\approx 0.033969.$$",
+      "page": 9,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4a",
+      "label": "Q4(a)",
+      "marks": 5,
+      "sharedContext": "Numerical Integration & Differentiation\n\nConsider the following data:\n\n| $x$ | $1.0$ | $1.5$ | $2.0$ | $2.5$ | $3.0$ |\n|---|---:|---:|---:|---:|---:|\n| $f(x)$ | $0.84$ | $1.52$ | $1.82$ | $1.48$ | $0.42$ |",
+      "text": "(a) Approximate $\\int_1^3 f(x)\\,dx$ using Simpson’s rule for the given data.",
+      "modelAnswer": "Here $h = 0.5$ and there are four subintervals. Simpson’s rule gives\n\n$$\\int_1^3 f(x)\\,dx \\approx \\frac{h}{3}\\left(f_0 + f_4 + 4(f_1+f_3) + 2f_2\\right).$$\n\nSubstituting the data:\n\n$$\\int_1^3 f(x)\\,dx \\approx \\frac{0.5}{3}\\left(0.84+0.42+4(1.52+1.48)+2(1.82)\\right).$$\n\n$$= \\frac{0.5}{3}(16.90) = 2.816666\\ldots$$\n\nTherefore\n\n$$\\int_1^3 f(x)\\,dx \\approx 2.817.$$",
+      "page": 10,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4b",
+      "label": "Q4(b)",
+      "marks": 2,
+      "sharedContext": "Numerical Integration & Differentiation\n\nConsider the following data:\n\n| $x$ | $1.0$ | $1.5$ | $2.0$ | $2.5$ | $3.0$ |\n|---|---:|---:|---:|---:|---:|\n| $f(x)$ | $0.84$ | $1.52$ | $1.82$ | $1.48$ | $0.42$ |",
+      "text": "(b) How would you expect the accuracy of your result to improve if you were to use Simpson’s rule with a spacing of $0.1$ between the data points?",
+      "modelAnswer": "Composite Simpson’s rule has error of order $O(h^4)$.\n\nChanging the spacing from $h = 0.5$ to $h = 0.1$ reduces $h$ by a factor of $5$, so the error is expected to decrease by a factor of\n\n$$5^4 = 625.$$ \n\nThus the result should be about $625$ times more accurate, assuming the function is sufficiently smooth.",
+      "page": 11,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q4c",
+      "label": "Q4(c)",
+      "marks": 5,
+      "sharedContext": "Numerical Integration & Differentiation\n\nConsider the following data:\n\n| $x$ | $1.0$ | $1.5$ | $2.0$ | $2.5$ | $3.0$ |\n|---|---:|---:|---:|---:|---:|\n| $f(x)$ | $0.84$ | $1.52$ | $1.82$ | $1.48$ | $0.42$ |",
+      "text": "(c) Using the most accurate $3$-point difference formula available, give approximations of $f'(1.0)$ and $f'(2.5)$.",
+      "modelAnswer": "The spacing is $h = 0.5$.\n\nAt $x=1.0$, use the three-point forward difference formula:\n\n$$f'(1.0) \\approx \\frac{-3f(1.0)+4f(1.5)-f(2.0)}{2h}.$$ \n\n$$f'(1.0) \\approx \\frac{-3(0.84)+4(1.52)-1.82}{1.0} = 1.74.$$ \n\nAt $x=2.5$, use the three-point central difference formula:\n\n$$f'(2.5) \\approx \\frac{f(3.0)-f(2.0)}{2h}.$$ \n\n$$f'(2.5) \\approx \\frac{0.42-1.82}{1.0} = -1.40.$$",
+      "page": 12,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5a",
+      "label": "Q5(a)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Least-Squares Approximation\n\n(a) Briefly explain the significance of the fast Fourier transform for large-scale signal processing, including a discussion of the computational complexity.",
+      "modelAnswer": "The fast Fourier transform is significant because it computes the discrete Fourier transform much more efficiently than direct evaluation.\n\nA direct computation of the discrete Fourier transform for $n$ data points requires $O(n^2)$ arithmetic operations. The fast Fourier transform reduces this to $O(n\\log n)$ operations. For large-scale signal processing this makes Fourier analysis practical, since very large data sets can be transformed, filtered, compressed, and analysed much faster.",
+      "page": 13,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q5b",
+      "label": "Q5(b)",
+      "marks": 8,
+      "sharedContext": "Least-Squares Approximation",
+      "text": "(b) Compute the second approximations $s_2$ of the discrete Fourier transform for the following $n = 8$ data points over the time interval $[0,2\\pi]$:\n\n| $t_j$ | $0$ | $\\frac{1}{4}\\pi$ | $\\frac{1}{2}\\pi$ | $\\frac{3}{4}\\pi$ | $\\pi$ | $\\frac{5}{4}\\pi$ | $\\frac{3}{2}\\pi$ | $\\frac{7}{4}\\pi$ |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|\n| $y_j$ | $3.42$ | $3.20$ | $1.16$ | $1.80$ | $4.46$ | $3.83$ | $1.16$ | $1.51$ |",
+      "modelAnswer": "For $n=8$, the trigonometric least-squares approximation of degree $2$ is\n\n$$s_2(t)=\\frac{a_0}{2}+a_1\\cos t+b_1\\sin t+a_2\\cos(2t)+b_2\\sin(2t).$$\n\nUsing\n\n$$a_k=\\frac{2}{n}\\sum_{j=0}^{n-1}y_j\\cos(kt_j), \\quad b_k=\\frac{2}{n}\\sum_{j=0}^{n-1}y_j\\sin(kt_j),$$\n\nwe obtain\n\n$$a_0 = \\frac{2}{8}(3.42+3.20+1.16+1.80+4.46+3.83+1.16+1.51)=5.135,$$\n\n$$a_1 = 0.5023, \\quad b_1 = 0.4220,$$\n\n$$a_2 = 1.3900, \\quad b_2 = 0.4925.$$ \n\nTherefore\n\n$$s_2(t)=2.5675+0.5023\\cos t+0.4220\\sin t+1.3900\\cos(2t)+0.4925\\sin(2t).$$",
+      "page": 13,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5c",
+      "label": "Q5(c)",
+      "marks": 2,
+      "sharedContext": "Least-Squares Approximation\n\nFor the following $n = 8$ data points over the time interval $[0,2\\pi]$:\n\n| $t_j$ | $0$ | $\\frac{1}{4}\\pi$ | $\\frac{1}{2}\\pi$ | $\\frac{3}{4}\\pi$ | $\\pi$ | $\\frac{5}{4}\\pi$ | $\\frac{3}{2}\\pi$ | $\\frac{7}{4}\\pi$ |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|\n| $y_j$ | $3.42$ | $3.20$ | $1.16$ | $1.80$ | $4.46$ | $3.83$ | $1.16$ | $1.51$ |",
+      "text": "(c) What is the strongest frequency present in the signal?",
+      "modelAnswer": "The amplitudes of the frequency components are\n\n$$A_1 = \\sqrt{a_1^2+b_1^2} = \\sqrt{0.5023^2+0.4220^2} \\approx 0.656,$$\n\n$$A_2 = \\sqrt{a_2^2+b_2^2} = \\sqrt{1.3900^2+0.4925^2} \\approx 1.475.$$ \n\nThe strongest frequency present in the signal is therefore frequency $2$.",
+      "page": 14,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6a",
+      "label": "Q6(a)",
+      "marks": 3,
+      "sharedContext": "",
+      "text": "Linear Algebra\n\n(a) State the Gershgorin circle theorem.",
+      "modelAnswer": "For an $n \\times n$ matrix $A=(a_{ij})$, every eigenvalue of $A$ lies in at least one of the Gershgorin discs\n\n$$D_i = \\left\\{z \\in \\mathbb{C}: |z-a_{ii}| \\leq \\sum_{j\\neq i}|a_{ij}|\\right\\}, \\quad i=1,\\ldots,n.$$ \n\nEquivalently, the spectrum of $A$ is contained in the union of these discs.",
+      "page": 15,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q6b",
+      "label": "Q6(b)",
+      "marks": 7,
+      "sharedContext": "Linear Algebra\n\nLet $A = \\begin{pmatrix}4 & 5 \\\\ 3 & 7\\end{pmatrix}$.",
+      "text": "(b) Apply one step of the QR method to $A$.",
+      "modelAnswer": "First compute a QR factorisation $A=QR$.\n\nThe columns of $A$ are\n\n$$a_1=\\begin{pmatrix}4\\\\3\\end{pmatrix}, \\quad a_2=\\begin{pmatrix}5\\\\7\\end{pmatrix}.$$ \n\nThen\n\n$$q_1=\\frac{a_1}{\\|a_1\\|}=\\frac{1}{5}\\begin{pmatrix}4\\\\3\\end{pmatrix}=\\begin{pmatrix}0.8\\\\0.6\\end{pmatrix},$$\n\nand an orthogonal vector is\n\n$$q_2=\\begin{pmatrix}-0.6\\\\0.8\\end{pmatrix}.$$ \n\nThus\n\n$$Q=\\begin{pmatrix}0.8 & -0.6\\\\0.6 & 0.8\\end{pmatrix}.$$ \n\nNow\n\n$$R=Q^TA=\\begin{pmatrix}0.8 & 0.6\\\\-0.6 & 0.8\\end{pmatrix}\\begin{pmatrix}4&5\\\\3&7\\end{pmatrix}=\\begin{pmatrix}5 & 8.2\\\\0 & 2.6\\end{pmatrix}.$$ \n\nOne step of the QR method gives\n\n$$A_1=RQ=\\begin{pmatrix}5 & 8.2\\\\0 & 2.6\\end{pmatrix}\\begin{pmatrix}0.8 & -0.6\\\\0.6 & 0.8\\end{pmatrix}=\\begin{pmatrix}8.92 & 3.56\\\\1.56 & 2.08\\end{pmatrix}.$$",
+      "page": 15,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6c",
+      "label": "Q6(c)",
+      "marks": 2,
+      "sharedContext": "Linear Algebra\n\nLet $A = \\begin{pmatrix}4 & 5 \\\\ 3 & 7\\end{pmatrix}$.",
+      "text": "(c) Give bounds on the eigenvalues of $A$,",
+      "modelAnswer": "Using Gershgorin’s theorem, the eigenvalues lie in the union of the discs\n\n$$|\\lambda-4| \\leq 5,$$\n\n$$|\\lambda-7| \\leq 3.$$ \n\nSince the matrix is real and the eigenvalues are real, this gives the interval bounds\n\n$$\\lambda \\in [-1,9] \\cup [4,10].$$\n\nThus all eigenvalues lie in\n\n$$[-1,10].$$",
+      "page": 16,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q7a",
+      "label": "Q7(a)",
+      "marks": 4,
+      "sharedContext": "",
+      "text": "Modelling and Matlab\n\n(a) Write Matlab code to find a solution of the equation $g(x) = 0$ up to a tolerance of $e$, using the secant method starting at points $p$ and $q$.",
+      "modelAnswer": "```matlab\nwhile abs(q-p) > e\n    r = q - g(q)*(q-p)/(g(q)-g(p));\n    p = q;\n    q = r;\nend\nx = q;\n```\n\nThis applies the secant iteration until the successive approximations differ by at most the tolerance $e$.",
+      "page": 17,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q7b",
+      "label": "Q7(b)",
+      "marks": 4,
+      "sharedContext": "Modelling and Matlab\n\nThe population (in millions) of a particular species in year depends on the population in the previous year as $x_{n+1} = f(x_n)$, where $f(x) = 7xe^{-x}$.",
+      "text": "(b) Write Matlab code to estimate the population at time $n = 4$ to an accuracy of a thousand individuals, assuming the population at time $n = 5$ is $2$ million.",
+      "modelAnswer": "Since the population is measured in millions, a thousand individuals corresponds to a tolerance of $0.001$.\n\nWe need solve\n\n$$f(x_4)-2=0.$$ \n\nSuitable Matlab code using a root-finding method is:\n\n```matlab\nf = @(x) 7*x.*exp(-x);\ng = @(x) f(x) - 2;\ne = 0.001;\np = 0.1;\nq = 1.0;\n\nwhile abs(q-p) > e\n    r = q - g(q)*(q-p)/(g(q)-g(p));\n    p = q;\n    q = r;\nend\n\nx4 = q;\n```\n\nThis gives the smaller solution\n\n$$x_4 \\approx 0.407.$$ \n\nDepending on the starting points, the larger solution may also be found:\n\n$$x_4 \\approx 2.578.$$",
+      "page": 18,
+      "type": "pseudocode",
+      "options": []
+    }
+  ]
+}

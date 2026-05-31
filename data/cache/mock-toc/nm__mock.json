@@ -1,0 +1,155 @@
+{
+  "generatedAt": "2026-05-31T00:36:38.257Z",
+  "items": [
+    {
+      "title": "Q1 — Root finding for exp(x) - 6x - 2",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q1(a) — One Newton step from midpoint",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Check whether Newton value is in bracket",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) — One bisection step for smaller bracket",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(d) — Newton step from new bracket midpoint",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(e) — Accuracy expectation within 0.1",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2 — IVP solution using Ralston's method",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2(a) — Ralston method with h = 0.5",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Error change for h = 0.25",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3 — Cubic interpolation from data",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3(a) — Compute divided differences",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — Nested form of cubic interpolant",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(c) — Estimate y at x = 2.5",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4 — Trapezoid rule for cos(x^2) integral",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4(a) — Trapezoid rule with n = 4",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(b) — Trapezoid error estimate on subintervals",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(c) — Adaptive trapezoid method explanation",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5 — Legendre least squares approximation",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5(a) — Compute Legendre values Pk(0.7)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Compute q4(0.7)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(c) — Orthogonality and square integral formula",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(d) — Compute square integral of q2",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6 — QR method for eigenvalues",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6(a) — Apply one QR step to A(1)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(b) — Estimate eigenvalues of A",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    }
+  ]
+}

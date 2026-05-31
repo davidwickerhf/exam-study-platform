@@ -1,0 +1,173 @@
+{
+  "generatedAt": "2026-05-31T00:38:17.869Z",
+  "items": [
+    {
+      "title": "Computer Arithmetic & Algebraic Equations",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1(a) — Positive root using quadratic formula (4 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Positive root using alternative formula (3 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) — Relative error of estimates (2 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(d) — Preferred formula and reason (3 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Differential Equations",
+      "page": 5,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q2 — Two steps of Ralston's method (10 marks)",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Polynomial Interpolation",
+      "page": 7,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q3(a) — Chebyshev nodes on [0,3] (3 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — Interpolation via divided differences (6 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(c) — Estimate f(0.75) using p(x) (2 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(d) — Error bound (3 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Numerical Integration & Differentiation",
+      "page": 10,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q4(a) — Simpson's rule approximation (5 marks)",
+      "page": 10,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(b) — Accuracy with spacing 0.1 (2 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(c) — Three-point derivative approximations (5 marks)",
+      "page": 12,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Least-Squares Approximation",
+      "page": 13,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q5(a) — FFT significance and complexity (2 marks)",
+      "page": 13,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Second DFT approximations (8 marks)",
+      "page": 13,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(c) — Strongest frequency in signal (2 marks)",
+      "page": 14,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Linear Algebra",
+      "page": 15,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q6(a) — Gershgorin circle theorem (3 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(b) — One QR method step (7 marks)",
+      "page": 15,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(c) — Eigenvalue bounds (2 marks)",
+      "page": 16,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Modelling and Matlab",
+      "page": 17,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q7(a) — Secant method Matlab code (4 marks)",
+      "page": 17,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q7(b) — Population estimate Matlab code (4 marks)",
+      "page": 18,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Extra paper",
+      "page": 19,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

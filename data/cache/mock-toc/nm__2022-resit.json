@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-05-31T00:36:20.232Z",
+  "items": [
+    {
+      "title": "Q1 — Algebraic Equations (14p)",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Differential Equations (14p)",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Polynomial Interpolation (12p)",
+      "page": 6,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Differentiation & Integration (12p)",
+      "page": 8,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Least-Squares Approximation (10p)",
+      "page": 10,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Linear Algebra (12p)",
+      "page": 12,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Modelling (6p)",
+      "page": 15,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Extra Paper",
+      "page": 17,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

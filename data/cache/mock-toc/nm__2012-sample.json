@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-05-31T00:36:58.561Z",
+  "items": [
+    {
+      "title": "Part I",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Newton's method (6 points)",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Natural cubic spline (10 points)",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Least-squares linear fit (8 points)",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Simpson's rule integral (8 points)",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Heun's method for ODE (8 points)",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part II",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q6 — Divided differences and interpolation (10 points)",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Romberg integration (10 points)",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 Note — Trapezoidal estimates and sin(x)/x",
+      "page": 2,
+      "depth": 1,
+      "kind": "note"
+    },
+    {
+      "title": "Q8 — Adams methods for ODE (12 points)",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q8(a) — Two-step Adams-Bashforth estimate",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q8(b) — Secant solve for Adams-Moulton equation",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q8(c) — Continue solution to t = 1.0",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q9 — Second-order ODE in Matlab (8 points)",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 Note — Exact solution value at t = 300",
+      "page": 2,
+      "depth": 1,
+      "kind": "note"
+    }
+  ]
+}
