@@ -1,0 +1,223 @@
+{
+  "generatedAt": "2026-05-30T23:50:16.300Z",
+  "chapterId": "06",
+  "questions": [
+    {
+      "id": "gen-06-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A team says an FPGA accelerator is simply a faster processor because it executes the neural-network layers more quickly. Which correction is most accurate?",
+      "options": [
+        "An FPGA is configured into hardware structure, so the computation is implemented as circuits and routing rather than as one fetched instruction stream.",
+        "An FPGA is a fixed-function ASIC with a small software interpreter added so it can be patched after manufacture.",
+        "An FPGA is mainly a larger cache attached to a CPU, so the speedup comes from avoiding external memory for every layer.",
+        "An FPGA is a GPU without vector lanes, so its advantage comes from running many ordinary threads in parallel."
+      ],
+      "expected": "The best answer is: An FPGA is configured into hardware structure, so the computation is implemented as circuits and routing rather than as one fetched instruction stream. The key distinction is configuration versus execution. A CPU changes behaviour by fetching, decoding, and executing instructions over time. An FPGA changes behaviour when its programmable fabric is configured into a circuit. After configuration, signals propagate through custom datapaths, which can exploit spatial parallelism for regular arithmetic-heavy work. The other answers confuse FPGAs with ASICs, caches, or threaded processors."
+    },
+    {
+      "id": "gen-06-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A design must compute many independent multiply-accumulate operations, keep a small sliding window of intermediate feature-map data on chip, and use arbitrary control signals for boundary cases. Which resource mapping is most defensible?",
+      "options": [
+        "Use DSP blocks for multiply-accumulate operations, BRAM for the sliding window, and LUTs or CLBs for the boundary-control logic.",
+        "Use only LUTs for all arithmetic and storage because specialised blocks make the design less programmable.",
+        "Use flip-flops for the full feature map, DSP blocks for branch decisions, and BRAM for arbitrary Boolean logic.",
+        "Use BRAM for multiplication, switch boxes for accumulation, and flip-flops only for routing configuration."
+      ],
+      "expected": "The best answer is: Use DSP blocks for multiply-accumulate operations, BRAM for the sliding window, and LUTs or CLBs for the boundary-control logic. DSP blocks are dedicated arithmetic resources intended for operations such as multiplication and accumulation. BRAM is dedicated on-chip memory and is a better match for larger local buffers than building the buffer out of individual flip-flops. LUTs and CLBs implement arbitrary combinational logic and small control structures. The wrong options either overuse generic fabric or assign resources to jobs they are not meant to perform."
+    },
+    {
+      "id": "gen-06-2",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A LUT in an FPGA is best described as a tiny instruction memory that stores the next instructions for the FPGA to execute.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "False. A LUT is a configurable logic element used to implement combinational Boolean functions. It is memory-like internally, but conceptually it maps input signal combinations to output signal values. That is not the same as storing program instructions for a processor-style fetch-decode-execute cycle. Confusing LUT contents with a CPU instruction stream is a common FPGA misconception."
+    },
+    {
+      "id": "gen-06-3",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A product needs low latency for a fixed vision model, may need field updates after deployment, and cannot justify a custom silicon spin. Which platform choice best matches the chapter's trade-off argument?",
+      "options": [
+        "FPGA, because it offers post-manufacturing hardware specialisation and custom parallel datapaths without the fixed-design commitment of an ASIC.",
+        "ASIC, because it is always cheaper and more flexible than FPGA once any acceleration is required.",
+        "General-purpose CPU, because field updates are impossible on FPGA hardware and neural-network inference is always instruction-stream limited.",
+        "Microcontroller only, because quantization removes the need for any accelerator or programmable logic."
+      ],
+      "expected": "The best answer is: FPGA, because it offers post-manufacturing hardware specialisation and custom parallel datapaths without the fixed-design commitment of an ASIC. The FPGA is the middle ground in the chapter: more hardware-specialised than a CPU, but reconfigurable after manufacturing unlike an ASIC. An ASIC can be very efficient for mature high-volume designs, but it lacks FPGA-style reprogrammability. Quantization helps constrained deployment, but it does not automatically remove compute, memory-bandwidth, or latency pressure."
+    },
+    {
+      "id": "gen-06-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why the phrase configurable hardware fabric is more precise than fast CPU for an FPGA. Your answer must contrast how behaviour is set in both systems and explain why this matters for embedded acceleration.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "A strong answer says that an FPGA is configured into a digital circuit using programmable logic and routing resources. Its behaviour is set by configuration data that determines the implemented structure. A CPU keeps largely fixed hardware and changes behaviour by executing different instructions over time. This matters because some embedded workloads, especially regular arithmetic-heavy workloads, can be mapped into custom parallel datapaths rather than stepped through serially as software instructions. The acceleration comes from spatially arranging hardware for the task, not merely from increasing the clock speed of a processor."
+    },
+    {
+      "id": "gen-06-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement best captures why switch boxes and routing fabric are central to the FPGA model rather than incidental wiring details?",
+      "options": [
+        "They determine how configured logic blocks, memories, and arithmetic blocks are connected, so the configured circuit structure depends on them.",
+        "They decode the instruction stream before sending operations to LUTs, so they play the same role as a CPU control unit.",
+        "They store the trained neural-network weights, while LUTs are used only for input buffering.",
+        "They replace the need for synthesis because the programmer manually toggles each wire at run time."
+      ],
+      "expected": "The best answer is: They determine how configured logic blocks, memories, and arithmetic blocks are connected, so the configured circuit structure depends on them. Programmable routing is part of the fabric that turns individual resources into a working circuit. Without routing, LUTs, flip-flops, BRAM, and DSP blocks would not form the desired datapath. The wrong options incorrectly describe instruction decoding, weight storage, or manual run-time wiring."
+    },
+    {
+      "id": "gen-06-6",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A bitstream is more like configuration data for hardware structure than like ordinary application code executed instruction by instruction.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "True. A bitstream configures the FPGA fabric, including logic behaviour and routing. It is not normally understood as a sequence of instructions fetched and executed by the FPGA fabric in the way a CPU executes a program. After loading the bitstream, the fabric behaves as the configured circuit."
+    },
+    {
+      "id": "gen-06-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A neural-network layer has many independent arithmetic operations, but its weights and activations exceed the fast on-chip storage available on the device. Which bottleneck is most likely to limit real edge performance even if the arithmetic engine is fast?",
+      "options": [
+        "Memory capacity and data movement, because inference cost is often constrained by moving weights and activations as well as by arithmetic.",
+        "The absence of recursion support in FPGA fabric, because neural-network inference fundamentally requires recursive calls.",
+        "The lack of a program counter in DSP blocks, because every multiply must fetch a separate software instruction.",
+        "The inability of quantized models to use convolutions, because quantization only applies to fully connected layers."
+      ],
+      "expected": "The best answer is: Memory capacity and data movement, because inference cost is often constrained by moving weights and activations as well as by arithmetic. Edge devices face tight limits on memory, power, bandwidth, and latency. A fast compute engine can stall or underperform if weights and activations cannot be kept close to the datapath. The other options are misconceptions about recursion, CPU-style instruction execution, and quantization scope."
+    },
+    {
+      "id": "gen-06-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A model has $12{,}000{,}000$ parameters stored as $32$-bit floating-point values. It is quantized to $8$-bit integer weights with no extra metadata counted. Compute the model-weight storage before and after quantization, in bytes and mebibytes, and state the reduction factor.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "Before quantization, storage is $12{,}000{,}000 \\times 32$ bits, which is $384{,}000{,}000$ bits. Dividing by $8$ gives $48{,}000{,}000$ bytes, which is approximately $45.8$ MiB using $1$ MiB $= 1{,}048{,}576$ bytes. After quantization, storage is $12{,}000{,}000 \\times 8$ bits, which is $96{,}000{,}000$ bits, or $12{,}000{,}000$ bytes, approximately $11.4$ MiB. The reduction factor is $\\frac{32}{8} = 4$, so the weights are $4$ times smaller before considering metadata or alignment overhead."
+    },
+    {
+      "id": "gen-06-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement about quantization for edge AI is the most accurate?",
+      "options": [
+        "Quantization reduces numerical precision, often shrinking memory and enabling more efficient integer arithmetic, but it can require calibration or retraining to preserve accuracy.",
+        "Quantization compresses only source code, so it improves deployment size but cannot change inference arithmetic or accelerator use.",
+        "Quantization always improves accuracy because smaller integers remove noise from trained floating-point weights.",
+        "Quantization converts a sequential CPU program into FPGA routing, so it replaces synthesis and compilation."
+      ],
+      "expected": "The best answer is: Quantization reduces numerical precision, often shrinking memory and enabling more efficient integer arithmetic, but it can require calibration or retraining to preserve accuracy. The main trade-off is efficiency versus possible accuracy loss. Good quantization workflows use representative data or quantization-aware methods to control that loss. It is not source-code compression, it does not guarantee higher accuracy, and it is not a substitute for hardware compilation."
+    },
+    {
+      "id": "gen-06-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Replacing $32$-bit floating-point values with $8$-bit integers can reduce memory traffic and may also make the computation better matched to specialised accelerator datapaths.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "True. Moving from $32$-bit values to $8$-bit values can reduce the number of bytes moved for weights or activations by a factor of $4$ in the ideal case. Many edge accelerators, including DPU-style inference engines, are designed to exploit efficient low-precision integer arithmetic. The caveat is that quantization must preserve acceptable model accuracy."
+    },
+    {
+      "id": "gen-06-11",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "In a Vitis AI style deployment onto a Zynq platform, which division of responsibility is most plausible?",
+      "options": [
+        "The ARM processing system runs Linux and host-side control code, while the DPU in programmable logic accelerates supported neural-network operators.",
+        "The DPU replaces the ARM cores entirely, so no runtime or host program is needed after the bitstream is loaded.",
+        "The ARM processing system performs all convolutions in software, while the FPGA fabric is used only to store the operating-system image.",
+        "Vitis AI converts the model into C source code that is interpreted directly by LUTs at run time."
+      ],
+      "expected": "The best answer is: The ARM processing system runs Linux and host-side control code, while the DPU in programmable logic accelerates supported neural-network operators. Zynq combines a processing system with programmable logic. In the course context, the DPU is placed in the programmable logic as an accelerator, while software on the ARM side manages execution, data movement, and runtime interaction. The wrong answers remove the host role, misuse the fabric, or describe LUTs as interpreters."
+    },
+    {
+      "id": "gen-06-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Describe the end-to-end purpose of the Vitis AI toolchain in deploying a trained neural network to an FPGA-based edge platform. Include the roles of quantization, compilation, runtime software, and the DPU.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "A strong answer explains that Vitis AI is used to prepare and deploy a trained model for execution on supported edge hardware. Quantization reduces precision, commonly toward integer arithmetic suitable for efficient inference. Compilation maps the supported model graph into instructions or artifacts for the target DPU architecture. Runtime software on the processing system loads and manages the compiled model, handles input and output buffers, and invokes accelerator execution. The DPU is the neural-network accelerator implemented in programmable logic, so the final system is a coordinated hardware and software stack rather than just a raw FPGA bitstream."
+    },
+    {
+      "id": "gen-06-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A student claims that once a DPU is present in programmable logic, any neural-network model can run unchanged at full accelerator speed. Which response is best?",
+      "options": [
+        "False, because the model must be compatible with the DPU and toolchain, and unsupported operators or unsuitable shapes may need conversion, partitioning, or fallback handling.",
+        "True, because LUTs can implement every possible neural-network operator automatically without compiler involvement.",
+        "True, because quantization mathematically preserves every floating-point value exactly, so the model is unchanged.",
+        "False only because the ARM processor must be physically removed before the DPU can run."
+      ],
+      "expected": "The best answer is: False, because the model must be compatible with the DPU and toolchain, and unsupported operators or unsuitable shapes may need conversion, partitioning, or fallback handling. A DPU accelerates a supported set of operations and data formats. Deployment requires model preparation, quantization, compilation, and runtime integration. It is not a magic target for every arbitrary graph with unchanged behaviour, and quantization is generally approximate rather than exact."
+    },
+    {
+      "id": "gen-06-14",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: The FPGA fabric, DPU, quantized model, and ARM runtime should be understood as one deployment stack rather than four unrelated topics.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "True. The chapter connects FPGA fundamentals to edge-AI deployment. The fabric provides reconfigurable hardware resources. The DPU is an accelerator implemented using programmable logic resources. Quantization helps make models smaller and more accelerator-friendly. The ARM runtime and Vitis AI software coordinate execution and data movement. Treating them as unrelated misses the embedded-systems purpose of the chapter."
+    },
+    {
+      "id": "gen-06-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A company must choose between running an image classifier on a CPU, implementing it in an FPGA DPU flow, or building an ASIC. Give a structured comparison using flexibility, performance, development cost, field updateability, and suitability for high-volume fixed products.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined from the chapter"
+      ],
+      "expected": "A strong answer compares the three options directly. A CPU is the most software-flexible and easiest to update, but it may be slower or less energy-efficient for regular high-throughput inference because it executes an instruction stream on general-purpose hardware. An FPGA DPU flow offers hardware acceleration with post-manufacturing reconfigurability, making it attractive when field updates, custom datapaths, or changing models matter. Its development flow is more specialised than pure CPU software and it may not match an ASIC's efficiency. An ASIC can offer the best power, area, and throughput for a stable high-volume design, but it has high non-recurring engineering cost and lacks FPGA-style reprogrammability after manufacture. The best choice depends on volume, update needs, latency, power, and how stable the model and product requirements are."
+    }
+  ],
+  "generationError": null
+}

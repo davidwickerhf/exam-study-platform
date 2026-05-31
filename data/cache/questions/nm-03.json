@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-31T00:05:07.513Z",
+  "chapterId": "03",
+  "questions": [
+    {
+      "id": "gen-03-0",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For the data $(-1,2)$, $(0,1)$, $(2,5)$, $(3,16)$, compute all first-, second-, and third-order divided differences, then identify $a_0$, $a_1$, $a_2$, and $a_3$ for Newton form using the node order shown.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Using $f[x_i,x_j]=\\frac{y_j-y_i}{x_j-x_i}$ and $f[x_i,\\ldots,x_j]=\\frac{f[x_{i+1},\\ldots,x_j]-f[x_i,\\ldots,x_{j-1}]}{x_j-x_i}$: $f[x_0,x_1]=-1$, $f[x_1,x_2]=2$, $f[x_2,x_3]=11$; $f[x_0,x_1,x_2]=1$, $f[x_1,x_2,x_3]=3$; $f[x_0,x_1,x_2,x_3]=\\frac{1}{2}$. Therefore $a_0=2$, $a_1=-1$, $a_2=1$, and $a_3=\\frac{1}{2}$."
+    },
+    {
+      "id": "gen-03-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Using the coefficients $a_0=2$, $a_1=-1$, $a_2=1$, $a_3=\\frac{1}{2}$ with nodes $x_0=-1$, $x_1=0$, $x_2=2$, write the nested Newton polynomial and evaluate it at $x=1$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $p(x)=a_0+(x-x_0)\\bigl(a_1+(x-x_1)(a_2+(x-x_2)a_3)\\bigr)$. Thus $p(x)=2+(x+1)\\bigl(-1+x(1+(x-2)\\frac{1}{2})\\bigr)$. At $x=1$: $v_2=1+(1-2)\\frac{1}{2}=\\frac{1}{2}$, $v_1=-1+(1-0)\\frac{1}{2}=-\\frac{1}{2}$, $p(1)=2+(1-(-1))(-\\frac{1}{2})=1$."
+    },
+    {
+      "id": "gen-03-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "The nodes are $x_0=2$, $x_1=4$, $x_2=5$, $x_3=7$ with values $y_0=3$, $y_1=11$, $y_2=18$, $y_3=42$. Given $f[x_0,x_1]=4$ and $f[x_1,x_2]=7$, compute $f[x_2,x_3]$, both second-order divided differences, and $f[x_0,x_1,x_2,x_3]$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Use $f[x_i,x_j]=\\frac{y_j-y_i}{x_j-x_i}$ and the higher-order recurrence. $f[x_2,x_3]=\\frac{42-18}{7-5}=12$. Then $f[x_0,x_1,x_2]=\\frac{7-4}{5-2}=1$, $f[x_1,x_2,x_3]=\\frac{12-7}{7-4}=\\frac{5}{3}$, and $f[x_0,x_1,x_2,x_3]=\\frac{\\frac{5}{3}-1}{7-2}=\\frac{2}{15}$."
+    },
+    {
+      "id": "gen-03-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Using $a_0=3$, $a_1=4$, $a_2=1$, $a_3=\\frac{2}{15}$ with nodes $x_0=2$, $x_1=4$, $x_2=5$, evaluate the nested Newton form at $x=6$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $v=a_3$, then $v=a_2+(x-x_2)v$, $v=a_1+(x-x_1)v$, and $p(x)=a_0+(x-x_0)v$. At $x=6$: $v_2=1+(6-5)\\frac{2}{15}=\\frac{17}{15}$, $v_1=4+(6-4)\\frac{17}{15}=\\frac{94}{15}$, and $p(6)=3+(6-2)\\frac{94}{15}=\\frac{421}{15}\\approx 28.0667$."
+    },
+    {
+      "id": "gen-03-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For the data $(0,1)$, $(1,3)$, $(2,9)$, $(4,81)$, compute the leading divided-difference coefficients $a_0$, $a_1$, $a_2$, and $a_3$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "First-order values are $f[x_0,x_1]=2$, $f[x_1,x_2]=6$, and $f[x_2,x_3]=36$. Second-order values are $f[x_0,x_1,x_2]=\\frac{6-2}{2-0}=2$ and $f[x_1,x_2,x_3]=\\frac{36-6}{4-1}=10$. Third-order value is $f[x_0,x_1,x_2,x_3]=\\frac{10-2}{4-0}=2$. Hence $a_0=1$, $a_1=2$, $a_2=2$, and $a_3=2$."
+    },
+    {
+      "id": "gen-03-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Use the Lagrange form to compute the interpolating value at $x=1$ for the three data points $(0,2)$, $(2,6)$, and $(3,11)$. Show the basis values $l_0(1)$, $l_1(1)$, and $l_2(1)$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $p(x)=\\sum_{i=0}^n y_i l_i(x)$ where $l_i(x)=\\prod_{j\\neq i}\\frac{x-x_j}{x_i-x_j}$. At $x=1$, $l_0(1)=\\frac{1-2}{0-2}\\frac{1-3}{0-3}=\\frac{1}{3}$, $l_1(1)=\\frac{1-0}{2-0}\\frac{1-3}{2-3}=1$, and $l_2(1)=\\frac{1-0}{3-0}\\frac{1-2}{3-2}=-\\frac{1}{3}$. Therefore $p(1)=2\\cdot\\frac{1}{3}+6\\cdot 1+11\\cdot(-\\frac{1}{3})=3$."
+    },
+    {
+      "id": "gen-03-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For nodes $x_0=0$, $x_1=0.5$, $x_2=1.5$, and $x_3=2$ with values $y_0=1$, $y_1=0.5$, $y_2=2.5$, and $y_3=5$, compute the divided-difference diagonal $a_0$, $a_1$, $a_2$, and $a_3$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "First-order: $f[x_0,x_1]=\\frac{0.5-1}{0.5-0}=-1$, $f[x_1,x_2]=\\frac{2.5-0.5}{1.5-0.5}=2$, and $f[x_2,x_3]=\\frac{5-2.5}{2-1.5}=5$. Second-order: $f[x_0,x_1,x_2]=\\frac{2-(-1)}{1.5-0}=2$ and $f[x_1,x_2,x_3]=\\frac{5-2}{2-0.5}=2$. Third-order: $f[x_0,x_1,x_2,x_3]=\\frac{2-2}{2-0}=0$. Thus $a_0=1$, $a_1=-1$, $a_2=2$, and $a_3=0$."
+    },
+    {
+      "id": "gen-03-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "The Newton polynomial has diagonal coefficients $a_0=1$, $a_1=-1$, $a_2=2$, $a_3=0$ and nodes $x_0=0$, $x_1=0.5$, $x_2=1.5$. Evaluate $p(1.25)$ using nested form.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $p(x)=a_0+(x-x_0)\\bigl(a_1+(x-x_1)(a_2+(x-x_2)a_3)\\bigr)$. Since $a_3=0$, $v_2=2+(1.25-1.5)0=2$, $v_1=-1+(1.25-0.5)2=0.5$, and $p(1.25)=1+(1.25-0)0.5=1.625$."
+    },
+    {
+      "id": "gen-03-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For the function $f(x)=\\sin(x)$ interpolated at $x_0=0$, $x_1=\\frac{\\pi}{6}$, and $x_2=\\frac{\\pi}{2}$, compute $f[x_0,x_1]$ and $f[x_0,x_1,x_2]$ exactly.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Using $f[x_i,x_j]=\\frac{f[x_j]-f[x_i]}{x_j-x_i}$, $f[x_0,x_1]=\\frac{\\frac{1}{2}-0}{\\frac{\\pi}{6}-0}=\\frac{3}{\\pi}$. Also $f[x_1,x_2]=\\frac{1-\\frac{1}{2}}{\\frac{\\pi}{2}-\\frac{\\pi}{6}}=\\frac{3}{2\\pi}$. Therefore $f[x_0,x_1,x_2]=\\frac{\\frac{3}{2\\pi}-\\frac{3}{\\pi}}{\\frac{\\pi}{2}-0}=-\\frac{3}{\\pi^2}$."
+    },
+    {
+      "id": "gen-03-9",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Suppose $|f^{(4)}(x)|\\leq 12$ on $[0,3]$. A cubic interpolant uses nodes $x_0=0$, $x_1=1$, $x_2=2$, and $x_3=3$. Bound $|f(1.5)-p(1.5)|$ using the interpolation error formula.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $|f(x)-p(x)|\\leq \\frac{M}{(n+1)!}\\left|\\prod_{i=0}^n(x-x_i)\\right|$ with $n=3$ and $M=12$. At $x=1.5$, the product is $|(1.5)(0.5)(-0.5)(-1.5)|=0.5625$. Thus $|f(1.5)-p(1.5)|\\leq \\frac{12}{4!}\\cdot 0.5625=0.28125$."
+    },
+    {
+      "id": "gen-03-10",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Using the Chebyshev-node error bound on $[a,b]=[-1,1]$ for degree $n=3$, with $\\\\max_\\xi |f^{(4)}(\\xi)|\\leq 24$, compute the numerical upper bound for $|f(x)-p(x)|$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Use $|f(x)-p(x)|\\leq \\frac{(b-a)^{n+1}}{2^{2n+1}(n+1)!}\\max_\\xi |f^{(n+1)}(\\xi)|$. With $b-a=2$, $n=3$, and $M=24$, the bound is $\\frac{2^4}{2^7\\cdot 4!}\\cdot 24=\\frac{16}{128}=0.125$."
+    },
+    {
+      "id": "gen-03-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why high-degree interpolation with equally spaced nodes can fail near the endpoints, and state why Chebyshev nodes improve the situation.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Equally spaced nodes can produce Runge's phenomenon, meaning the polynomial may oscillate strongly near the interval endpoints. In the error formula $f(x)-p(x)=\\frac{f^{(n+1)}(\\xi)}{(n+1)!}\\prod_{i=0}^n(x-x_i)$, Chebyshev nodes are chosen to reduce $\\max_x\\left|\\prod_{i=0}^n(x-x_i)\\right|$, so they reduce the worst-case interpolation error factor."
+    },
+    {
+      "id": "gen-03-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "State the connection between an $n$th-order divided difference and the $n$th derivative of the underlying function.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "For sufficiently smooth $f$, there exists some $\\xi$ in the interval containing the nodes such that $f[x_0,\\ldots,x_n]=\\frac{f^{(n)}(\\xi)}{n!}$. Thus the $n$th divided difference behaves like a scaled approximation to the $n$th derivative."
+    },
+    {
+      "id": "gen-03-13",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A student computes a divided-difference table and uses the bottom entry of each column as the Newton coefficient. Explain the mistake and identify which entries should be used instead.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "In Newton interpolation with node order $x_0,x_1,\\ldots,x_n$, the coefficients are the leading diagonal entries $a_k=f[x_0,\\ldots,x_k]$. The correct entries are $a_0=f[x_0]$, $a_1=f[x_0,x_1]$, $a_2=f[x_0,x_1,x_2]$, and so on, because the nested form expands from the first node $x_0$ in the chosen ordering."
+    },
+    {
+      "id": "gen-03-14",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which formula correctly gives the second-order divided difference $f[x_i,x_j,x_k]$?",
+      "options": [
+        "$\\frac{f[x_j,x_k]-f[x_i,x_j]}{x_k-x_i}$",
+        "$\\frac{f[x_i,x_j]-f[x_j,x_k]}{x_k-x_i}$",
+        "$\\frac{f[x_j]-f[x_i]}{x_k-x_i}$",
+        "$\\frac{f[x_i,x_j]+f[x_j,x_k]}{x_i+x_k}$"
+      ],
+      "expected": "The correct option is $\\frac{f[x_j,x_k]-f[x_i,x_j]}{x_k-x_i}$. It applies the recurrence $f[x_i,\\ldots,x_k]=\\frac{f[x_{i+1},\\ldots,x_k]-f[x_i,\\ldots,x_{k-1}]}{x_k-x_i}$ using the outer nodes in the denominator."
+    },
+    {
+      "id": "gen-03-15",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "For Newton interpolation, which statement about changing the order of the nodes is correct?",
+      "options": [
+        "The interpolating polynomial is unchanged, but the divided-difference coefficients and nested form may change.",
+        "The interpolating polynomial changes because the first node determines a different curve.",
+        "Only $a_0$ changes; all higher divided differences remain the same.",
+        "The method becomes invalid unless the nodes are increasing."
+      ],
+      "expected": "The correct option is: the interpolating polynomial is unchanged, but the divided-difference coefficients and nested form may change. The uniqueness theorem gives one polynomial of degree $\\leq n$ through the data, while Newton coefficients depend on the chosen node order."
+    }
+  ],
+  "generationError": null
+}

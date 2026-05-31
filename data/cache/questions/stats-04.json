@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:35:28.583Z",
+  "chapterId": "04",
+  "questions": [
+    {
+      "id": "gen-04-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why two events that are mutually exclusive and both have positive probability cannot be independent. Your answer should refer to $P(A \\cap B)$ and $P(A)P(B)$.",
+      "options": [
+        "A. $P(A \\cup B) = P(A) + P(B)$",
+        "B. $P(A \\cap B) = P(A)P(B)$",
+        "C. $P(A^c) = 1 - P(A)$",
+        "D. $P(A \\cup B) = P(A) + P(B) - P(A \\cap B)$"
+      ],
+      "expected": "D. $P(A \\cup B) = P(A) + P(B) - P(A \\cap B)$"
+    },
+    {
+      "id": "gen-04-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "In a class, $P(A)=0.48$, $P(B)=0.35$, and $P(A \\cap B)=0.18$. Compute $P(A \\cup B)$ and $P(A^c \\cap B)$.",
+      "options": [
+        "A. Independent, because $P(A \\cap B)=0$.",
+        "B. Not independent, because $P(A \\cap B) \\neq P(A)P(B)$.",
+        "C. Independent, because $P(A \\cup B)=P(A)+P(B)$.",
+        "D. Not independent, because $P(A^c)=P(B)$."
+      ],
+      "expected": "$P(A \\cup B)=0.48+0.35-0.18=0.65$. Also $P(A^c \\cap B)=P(B)-P(A \\cap B)=0.35-0.18=0.17$."
+    },
+    {
+      "id": "gen-04-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A discrete random variable $X$ takes values $1$, $2$, $4$, and $6$ with probabilities $0.10$, $0.25$, $0.40$, and $0.25$. Compute $E[X]$ and $\\operatorname{Var}(X)$.",
+      "options": [
+        "A. $P(X=2)=0.4$, because density height is probability.",
+        "B. $P(1\\leq X\\leq 2)=0$, because every point has probability $0$.",
+        "C. $P(X=2)=0$, because a single point has zero area under a continuous density.",
+        "D. $P(X=2)=1$, because $2$ is inside the support."
+      ],
+      "expected": "$E[X]=1(0.10)+2(0.25)+4(0.40)+6(0.25)=3.70$. Also $E[X^2]=1^2(0.10)+2^2(0.25)+4^2(0.40)+6^2(0.25)=16.50$, so $\\operatorname{Var}(X)=16.50-(3.70)^2=2.81$."
+    },
+    {
+      "id": "gen-04-3",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "For events $A$ and $B$ with $P(A)=0.6$, $P(B)=0.5$, and $P(A \\cap B)=0.3$, which statement is correct?",
+      "options": [
+        "A. $A$ and $B$ are mutually exclusive but not independent.",
+        "B. $A$ and $B$ are independent because $P(A \\cap B)=P(A)P(B)$.",
+        "C. $A$ and $B$ are independent because $P(A \\cup B)=1$.",
+        "D. $A$ and $B$ are mutually exclusive because $P(A)+P(B)>1$."
+      ],
+      "expected": "B. $A$ and $B$ are independent because $P(A \\cap B)=P(A)P(B)$."
+    },
+    {
+      "id": "gen-04-4",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: For a continuous random variable $X$, if $f(4)$ is large, then $P(X=4)$ is also large.",
+      "options": [
+        "A. $E[X]=1.25$ and $\\operatorname{Var}(X)=0.5625$",
+        "B. $E[X]=5$ and $\\operatorname{Var}(X)=1.25$",
+        "C. $E[X]=2.5$ and $\\operatorname{Var}(X)=1.25$",
+        "D. $E[X]=2.5$ and $\\operatorname{Var}(X)=0.25$"
+      ],
+      "expected": "False. For a continuous random variable, $P(X=4)=0$ because a single point has zero width. Density height affects interval probabilities through area, not point probability."
+    },
+    {
+      "id": "gen-04-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Let $f(x)=kx$ for $0\\leq x\\leq 2$ and $f(x)=0$ otherwise. Find $k$, then compute $P(1\\leq X\\leq 2)$ and $E[X]$.",
+      "options": [
+        "A. $2$ draws, because variance is largest for small samples.",
+        "B. $20$ draws, because the expected number of red draws is larger.",
+        "C. $200$ draws, because $\\hat p$ has smaller standard error and is more concentrated around $p>0.5$.",
+        "D. All sample sizes have the same chance, because draws are independent."
+      ],
+      "expected": "Normalize: $\\int_0^2 kx\\,dx=2k=1$, so $k=\\frac{1}{2}$. Then $P(1\\leq X\\leq 2)=\\int_1^2 \\frac{x}{2}\\,dx=\\frac{3}{4}$. Finally $E[X]=\\int_0^2 x\\cdot \\frac{x}{2}\\,dx=\\frac{4}{3}$."
+    },
+    {
+      "id": "gen-04-6",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A game has a true red-draw probability $p>0.5$ and uses independent draws with replacement. Explain why using a larger sample size makes winning with $\\hat p>0.5$ more likely, even though smaller samples vary more.",
+      "options": [
+        "A. Compute $P(A \\cup B)$ using only $P(A)$ and $P(B)$.",
+        "B. Compute $P(A \\cap B)$ as $P(A)+P(B)$.",
+        "C. Check whether $P(A \\cap B)=P(A)P(B)$, or equivalently whether $P(A\\mid B)=P(A)$.",
+        "D. Check whether $P(A^c)=P(B)$."
+      ],
+      "expected": "Because $E[\\hat p]=p$ and $\\operatorname{SE}(\\hat p)=\\sqrt{p(1-p)/n}$ decreases as $n$ increases. Since the true center $p$ is above $0.5$, a narrower sampling distribution leaves less probability below $0.5$, so $P(\\hat p>0.5)$ increases."
+    },
+    {
+      "id": "gen-04-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which condition is sufficient to conclude that two events $A$ and $B$ are independent, assuming $P(A)>0$ and $P(B)>0$?",
+      "options": [
+        "A. $A \\cap B=\\varnothing$",
+        "B. $P(A \\cup B)=P(A)+P(B)$",
+        "C. $P(A\\mid B)=P(A)$",
+        "D. $P(A^c)=1-P(B)$"
+      ],
+      "expected": "C. $P(A\\mid B)=P(A)$"
+    },
+    {
+      "id": "gen-04-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A fair six-sided die is rolled twice. Let $A$ be the event that the first roll is even, and let $B$ be the event that the sum of the two rolls is $7$. Compute $P(A)$, $P(B)$, $P(A\\cap B)$, and decide whether $A$ and $B$ are independent.",
+      "options": [
+        "A. The variance doubles only when $X$ and $Y$ are independent.",
+        "B. The expectation statement is always true, but the variance statement requires independence.",
+        "C. Both statements require $X$ and $Y$ to be normally distributed.",
+        "D. The variance statement is always true, but the expectation statement requires independence."
+      ],
+      "expected": "There are $36$ equally likely outcomes. $P(A)=18/36=1/2$, $P(B)=6/36=1/6$, and $P(A\\cap B)=3/36=1/12$. Since $P(A)P(B)=(1/2)(1/6)=1/12$, the events are independent."
+    },
+    {
+      "id": "gen-04-9",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: If $P(A\\cap B)=0$, then $A$ and $B$ must be independent.",
+      "options": [
+        "A. The expression equals $F(b)-F(a)$.",
+        "B. The expression equals $f(b)-f(a)$.",
+        "C. The expression equals $P(X=a)+P(X=b)$.",
+        "D. The expression equals $1-F(b)+F(a)$."
+      ],
+      "expected": "False. If $P(A)>0$ and $P(B)>0$, then independence would require $P(A\\cap B)=P(A)P(B)>0$. Thus disjoint positive-probability events are dependent."
+    },
+    {
+      "id": "gen-04-10",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Write pseudocode for a function that receives $P(A)$, $P(B)$, and $P(A\\cap B)$, then returns $P(A\\cup B)$ and whether $A$ and $B$ are independent.",
+      "options": [
+        "A. $P(A^c)=0.60$ and $P(A\\cup B)=0.52$",
+        "B. $P(A^c)=0.40$ and $P(A\\cup B)=0.88$",
+        "C. $P(A^c)=0.60$ and $P(A\\cup B)=0.88$",
+        "D. $P(A^c)=0.40$ and $P(A\\cup B)=0.52$"
+      ],
+      "expected": "A correct answer computes the general union rule and compares the intersection with the product of the marginal probabilities, allowing a small tolerance for rounding.\n```text\nfunction analyzeEvents(pA, pB, pAB)\n    pUnion <- $p_A + p_B - p_{AB}$\n    product <- $p_A \\cdot p_B$\n    tolerance <- $0.000001$\n    if absoluteValue($p_{AB} - product$) <= tolerance then\n        independent <- true\n    else\n        independent <- false\n    end if\n    return pUnion, independent\nend function\n```"
+    },
+    {
+      "id": "gen-04-11",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A random variable $X$ has pdf $f(x)$ and CDF $F(x)$. Which expression correctly gives $P(a\\leq X\\leq b)$ for $a<b$?",
+      "options": [
+        "A. $F(b)-F(a)$",
+        "B. $f(b)-f(a)$",
+        "C. $P(X=a)+P(X=b)$",
+        "D. $1-F(b)+F(a)$"
+      ],
+      "expected": "A. $$F(b)-F(a)$"
+    },
+    {
+      "id": "gen-04-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "State the two requirements for a function $f(x)$ to be a valid pdf for a continuous random variable $X$, and briefly explain why $P(a\\leq X\\leq b)$ is computed as an integral.",
+      "options": [
+        "A. $P(A \\cup B)=0.88$",
+        "B. $P(A \\cup B)=0.52$",
+        "C. $P(A \\cup B)=0.28$",
+        "D. $P(A \\cup B)=1.12$"
+      ],
+      "expected": "A valid pdf must satisfy $f(x)\\geq 0$ for all $x$ and $\\int_{-\\infty}^{\\infty} f(x)\\,dx=1$. For a continuous random variable, probability is area under the density, so $P(a\\leq X\\leq b)=\\int_a^b f(x)\\,dx$."
+    },
+    {
+      "id": "gen-04-13",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: For any random variables $X$ and $Y$, $E[3X-2Y]=3E[X]-2E[Y]$ even if $X$ and $Y$ are dependent.",
+      "options": [
+        "A. $k=2$, $P(0\\leq X\\leq 1/2)=1/4$, and $E[X]=2/3$",
+        "B. $k=1$, $P(0\\leq X\\leq 1/2)=1/2$, and $E[X]=1/2$",
+        "C. $k=2$, $P(0\\leq X\\leq 1/2)=1/2$, and $E[X]=1/3$",
+        "D. $k=1/2$, $P(0\\leq X\\leq 1/2)=1/8$, and $E[X]=4/3$"
+      ],
+      "expected": "True. Linearity of expectation does not require independence. Dependence matters for formulas such as $\\operatorname{Var}(X+Y)=\\operatorname{Var}(X)+\\operatorname{Var}(Y)$."
+    },
+    {
+      "id": "gen-04-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode that estimates $P(\\hat p>0.5)$ by simulation for $n$ independent draws from a Bernoulli distribution with success probability $p$. The function should run $R$ repetitions and return the estimated probability of winning.",
+      "options": [
+        "A. $P(A\\cap B)=0.18$",
+        "B. $P(A\\cap B)=0.30$",
+        "C. $P(A\\cap B)=0.50$",
+        "D. $P(A\\cap B)=0.68$"
+      ],
+      "expected": "A correct answer repeatedly simulates $n$ independent Bernoulli draws, checks whether the observed proportion exceeds $0.5$, and returns the fraction of successful repetitions.\n```text\nfunction estimateWinProbability(p, n, R)\n    wins <- $0$\n    for rep from $1$ to R do\n        successes <- $0$\n        for draw from $1$ to n do\n            u <- randomUniform($0$, $1$)\n            if u < p then\n                successes <- $successes + 1$\n            end if\n        end for\n        phat <- $successes / n$\n        if phat > $0.5$ then\n            wins <- $wins + 1$\n        end if\n    end for\n    return $wins / R$\nend function\n```"
+    },
+    {
+      "id": "gen-04-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why $\\operatorname{Var}(X+Y)=\\operatorname{Var}(X)+\\operatorname{Var}(Y)$ is not generally valid without independence, while $E[X+Y]=E[X]+E[Y]$ is generally valid.",
+      "options": [
+        "A. The pdf is valid and $E[X]=29/12$.",
+        "B. The pdf is invalid because its integral is $29/12$.",
+        "C. The pdf is valid and $E[X]=1$.",
+        "D. The pdf is invalid because $f(3)<0$."
+      ],
+      "expected": "Expectation is linear, so $E[X+Y]=E[X]+E[Y]$ holds regardless of dependence. Variance of a sum includes the dependence term $2\\operatorname{Cov}(X,Y)$, so $\\operatorname{Var}(X+Y)=\\operatorname{Var}(X)+\\operatorname{Var}(Y)$ only when that covariance is $0$, which is guaranteed by independence."
+    }
+  ],
+  "generationError": null
+}

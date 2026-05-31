@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:39:57.804Z",
+  "chapterId": "08",
+  "questions": [
+    {
+      "id": "gen-08-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A campus article claims that the mean weekly party time for freshmen is $7.5$ hours. An administrator suspects the true mean is lower. State the correct null and alternative hypotheses, and identify whether the test is one-sided or two-sided.",
+      "options": [
+        "$H_0: \\mu = 7.5$ and $H_a: \\mu < 7.5$; this is a left-tailed one-sided test.",
+        "$H_0: \\mu = 6.6$ and $H_a: \\mu < 6.6$; this is a left-tailed one-sided test.",
+        "$H_0: \\mu < 7.5$ and $H_a: \\mu = 7.5$; this is a left-tailed one-sided test.",
+        "$H_0: \\mu \\neq 7.5$ and $H_a: \\mu = 7.5$; this is a two-sided test."
+      ],
+      "expected": "$H_0: \\mu = 7.5$ and $H_a: \\mu < 7.5$; this is a left-tailed one-sided test. The null uses the claimed benchmark and includes equality, while the alternative reflects the administrator's lower-than claim."
+    },
+    {
+      "id": "gen-08-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A machine is calibrated to fill bottles with mean volume $\\mu_0 = 500$ ml. A sample of $n = 64$ bottles has mean $\\bar{x} = 497.6$ ml. The population standard deviation is known to be $\\sigma = 8$ ml. Test $H_0: \\mu = 500$ against $H_a: \\mu < 500$ at $\\alpha = 0.05$ using the critical-value method.",
+      "options": [
+        "$z = -2.40$; reject $H_0$ because $-2.40 < -1.645$. There is sufficient evidence that the mean fill is below $500$ ml.",
+        "$z = -0.30$; fail to reject $H_0$ because $-0.30 > -1.645$.",
+        "$z = 2.40$; reject $H_0$ because $2.40 > 1.645$.",
+        "$z = -2.40$; fail to reject $H_0$ because $|-2.40| < 1.96$."
+      ],
+      "expected": "$z = \\frac{497.6 - 500}{8/\\sqrt{64}} = \\frac{-2.4}{1} = -2.40$. For $H_a: \\mu < 500$ at $\\alpha = 0.05$, the critical value is $-1.645$; since $-2.40 < -1.645$, reject $H_0$."
+    },
+    {
+      "id": "gen-08-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement is the correct interpretation of a p-value of $p = 0.032$ in a test of $H_0: \\mu = \\mu_0$?",
+      "options": [
+        "If $H_0$ is true, the probability of observing data this extreme or more extreme is $0.032$.",
+        "The probability that $H_0$ is true is $0.032$.",
+        "The probability that $H_a$ is true is $1 - 0.032 = 0.968$.",
+        "There is a $0.032$ probability that the sample mean is exactly equal to $\\mu_0$."
+      ],
+      "expected": "If $H_0$ is true, the probability of observing data this extreme or more extreme is $0.032$."
+    },
+    {
+      "id": "gen-08-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: In a hypothesis test, failing to reject $H_0$ means that $H_0$ has been proven true.",
+      "options": [
+        "True. Failing to reject $H_0$ proves the null hypothesis because the test did not find a significant difference.",
+        "False. Failing to reject $H_0$ means the evidence was not strong enough to reject it; it does not prove $H_0$ is true.",
+        "True. A large p-value is the probability that $H_0$ is true.",
+        "False. Failing to reject $H_0$ means $H_a$ is proven true."
+      ],
+      "expected": "False. Failing to reject $H_0$ means the sample evidence is insufficient at the chosen $\\alpha$. It is not proof that $H_0$ is true."
+    },
+    {
+      "id": "gen-08-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A researcher wants to test whether a new teaching method changes the mean exam score compared with the historical mean $\\mu_0 = 68$. Explain whether the alternative hypothesis should be one-sided or two-sided, and write $H_0$ and $H_a$.",
+      "options": [
+        "$H_0: \\mu = 68$ and $H_a: \\mu \\neq 68$; the test is two-sided because the word changes does not specify higher or lower.",
+        "$H_0: \\mu = 68$ and $H_a: \\mu > 68$; the test is right-sided because a new method must improve scores.",
+        "$H_0: \\mu \\neq 68$ and $H_a: \\mu = 68$; the test is two-sided because the null should include difference.",
+        "$H_0: \\bar{x} = 68$ and $H_a: \\bar{x} \\neq 68$; the test is two-sided because the sample mean is tested."
+      ],
+      "expected": "Use a two-sided alternative: $H_0: \\mu = 68$ and $H_a: \\mu \\neq 68$. The wording changes is non-directional, so evidence in either direction would count against $H_0$."
+    },
+    {
+      "id": "gen-08-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A small sample of $n = 16$ observations has sample mean $\\bar{x} = 42.3$ and sample standard deviation $s = 4.8$. Test $H_0: \\mu = 40$ against $H_a: \\mu \\neq 40$. Compute the test statistic and name the correct reference distribution.",
+      "options": [
+        "$t = 1.92$ with $15$ degrees of freedom, so compare to a $t$ distribution because $n < 30$ and $\\sigma$ is unknown.",
+        "$z = 1.92$, so compare to the standard normal distribution because all hypothesis tests use $z$.",
+        "$t = 0.48$ with $16$ degrees of freedom, so compare to a $t$ distribution.",
+        "$z = 2.30$, so compare to $1.96$ because the test is two-sided."
+      ],
+      "expected": "$t = \\frac{42.3 - 40}{4.8/\\sqrt{16}} = \\frac{2.3}{1.2} \\approx 1.92$. Because $n = 16$ is small and $\\sigma$ is unknown, use a $t$ distribution with $n - 1 = 15$ degrees of freedom."
+    },
+    {
+      "id": "gen-08-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "At $\\alpha = 0.05$, which rejection rule is correct for a two-sided $z$-test of $H_0: \\mu = \\mu_0$ against $H_a: \\mu \\neq \\mu_0$?",
+      "options": [
+        "Reject $H_0$ if $|z| > 1.96$.",
+        "Reject $H_0$ if $z > 1.645$.",
+        "Reject $H_0$ if $z < -1.645$.",
+        "Reject $H_0$ if $|z| > 1.645$."
+      ],
+      "expected": "Reject $H_0$ if $|z| > 1.96$."
+    },
+    {
+      "id": "gen-08-7",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: For a right-tailed test with $H_a: \\mu > \\mu_0$ at $\\alpha = 0.05$, a realised statistic of $z = 1.50$ is statistically significant.",
+      "options": [
+        "True. Since $1.50 > 0.05$, the result is statistically significant.",
+        "False. For a right-tailed test at $\\alpha = 0.05$, the critical value is $1.645$, and $1.50 < 1.645$.",
+        "True. Any positive $z$ value supports $H_a$ strongly enough to reject $H_0$.",
+        "False. Right-tailed tests always require $z > 1.96$."
+      ],
+      "expected": "False. For a right-tailed test at $\\alpha = 0.05$, the critical value is $1.645$. Since $1.50 < 1.645$, fail to reject $H_0$."
+    },
+    {
+      "id": "gen-08-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A study tests $H_0: p = 0.40$ against $H_a: p > 0.40$. In a sample of $n = 200$, $92$ people support the policy. Compute the one-proportion $z$ statistic.",
+      "options": [
+        "$z \\approx 1.73$; use $\\hat{p} = 92/200 = 0.46$ and standard error $\\sqrt{0.40(0.60)/200} \\approx 0.0346$.",
+        "$z \\approx 0.12$; use $\\hat{p} = 0.46$ and standard error $0.50$.",
+        "$z \\approx 2.45$; use $\\sqrt{0.46(0.54)/200}$ as the null standard error.",
+        "$z \\approx -1.73$; subtract $\\hat{p}$ from $p_0$ for a right-tailed test."
+      ],
+      "expected": "$\\hat{p} = 92/200 = 0.46$ and $SE_0 = \\sqrt{0.40(1 - 0.40)/200} = \\sqrt{0.24/200} \\approx 0.0346$. Thus $z = \\frac{0.46 - 0.40}{0.0346} \\approx 1.73$."
+    },
+    {
+      "id": "gen-08-9",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why $H_0: \\mu \\neq 100$ is not a valid null hypothesis in the usual hypothesis-testing framework used in this course.",
+      "options": [
+        "It is invalid because $H_0$ should contain equality; the non-equality statement belongs in $H_a$ for a two-sided test.",
+        "It is invalid because a null hypothesis must always be less than the alternative hypothesis.",
+        "It is valid whenever the sample mean is not exactly $100$.",
+        "It is invalid only when $n < 30$."
+      ],
+      "expected": "$H_0: \\mu \\neq 100$ is not valid because the null hypothesis represents the benchmark or status quo and must include equality. For a two-sided test, the correct structure is $H_0: \\mu = 100$ and $H_a: \\mu \\neq 100$."
+    },
+    {
+      "id": "gen-08-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A classifier has ROC AUC $= 0.82$. Which interpretation is best?",
+      "options": [
+        "The classifier has good discrimination: a randomly chosen positive case is ranked above a randomly chosen negative case about $82\\%$ of the time.",
+        "The classifier is correct on exactly $82\\%$ of all test cases.",
+        "The classifier has a false positive rate of exactly $18\\%$ at every threshold.",
+        "The classifier rejects $H_0$ at $\\alpha = 0.05$ because $0.82 > 0.05$."
+      ],
+      "expected": "The classifier has good discrimination: a randomly chosen positive case is ranked above a randomly chosen negative case about $82\\%$ of the time."
+    },
+    {
+      "id": "gen-08-11",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A two-sided $z$-test has realised statistic $z = -2.12$ at $\\alpha = 0.05$. Use the critical-value method to decide whether to reject $H_0$.",
+      "options": [
+        "Reject $H_0$ because $|-2.12| = 2.12 > 1.96$.",
+        "Fail to reject $H_0$ because $-2.12 < 1.96$.",
+        "Reject $H_0$ because $-2.12 < -1.645$.",
+        "Fail to reject $H_0$ because two-sided tests require $|z| > 2.576$ at $\\alpha = 0.05$."
+      ],
+      "expected": "For a two-sided test at $\\alpha = 0.05$, reject when $|z| > 1.96$. Since $|-2.12| = 2.12 > 1.96$, reject $H_0$."
+    },
+    {
+      "id": "gen-08-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a function that performs a one-sample $z$-test for a mean when $\\sigma$ is known. The function should accept $\\bar{x}$, $\\mu_0$, $\\sigma$, $n$, $\\alpha$, and an alternative string equal to $\\text{less}$, $\\text{greater}$, or $\\text{two-sided}$, then return the realised statistic and decision.",
+      "options": [
+        "```pseudocode\nfunction one_sample_z_test($x_bar$, mu0, sigma, n, alpha, alternative):\n    se <- sigma / sqrt(n)\n    z <- ($x_bar$ - mu0) / se\n\n    if alternative == \"greater\":\n        critical <- inverse_standard_normal(1 - alpha)\n        reject <- z > critical\n    else if alternative == \"less\":\n        critical <- inverse_standard_normal(alpha)\n        reject <- z < critical\n    else:\n        critical <- inverse_standard_normal(1 - alpha / 2)\n        reject <- abs(z) > critical\n\n    return z, reject\n```",
+        "```pseudocode\nfunction one_sample_z_test($x_bar$, mu0, sigma, n, alpha, alternative):\n    z <- $x_bar$ - mu0\n    reject <- z > alpha\n    return z, reject\n```",
+        "```pseudocode\nfunction one_sample_z_test($x_bar$, mu0, sigma, n, alpha, alternative):\n    se <- sigma / n\n    z <- ($x_bar$ - mu0) / se\n    reject <- abs(z) > alpha\n    return z, reject\n```",
+        "```pseudocode\nfunction one_sample_z_test($x_bar$, mu0, sigma, n, alpha, alternative):\n    se <- sigma / sqrt(n)\n    z <- (mu0 - $x_bar$) / se\n    reject <- alternative == \"two-sided\"\n    return z, reject\n```"
+      ],
+      "expected": "```pseudocode\nfunction one_sample_z_test($x_bar$, mu0, sigma, n, alpha, alternative):\n    se <- sigma / sqrt(n)\n    z <- ($x_bar$ - mu0) / se\n\n    if alternative == \"greater\":\n        critical <- inverse_standard_normal(1 - alpha)\n        reject <- z > critical\n    else if alternative == \"less\":\n        critical <- inverse_standard_normal(alpha)\n        reject <- z < critical\n    else:\n        critical <- inverse_standard_normal(1 - alpha / 2)\n        reject <- abs(z) > critical\n\n    return z, reject\n```"
+    },
+    {
+      "id": "gen-08-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which choice correctly matches the situation to the test statistic?",
+      "options": [
+        "Small sample with unknown $\\sigma$: use a $t$ statistic with $n - 1$ degrees of freedom.",
+        "Large sample with known $\\sigma$: use a $t$ statistic because $n \\geq 30$.",
+        "Small sample with known $\\sigma$: use a $t$ statistic because the sample is small.",
+        "Any comparison of a mean to a value must use a $z$ statistic."
+      ],
+      "expected": "Small sample with unknown $\\sigma$: use a $t$ statistic with $n - 1$ degrees of freedom."
+    },
+    {
+      "id": "gen-08-14",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A study reports $p = 0.20$ for a test at $\\alpha = 0.05$. Write the correct conclusion in context-neutral exam language, and avoid claiming that either hypothesis has been proven.",
+      "options": [
+        "Since $p = 0.20 \\geq 0.05$, fail to reject $H_0$; there is insufficient evidence at the $5\\%$ level to support $H_a$.",
+        "Since $p = 0.20$, there is a $20\\%$ probability that $H_0$ is true.",
+        "Since $p = 0.20$, accept $H_0$ as proven true.",
+        "Since $p = 0.20 > 0.05$, reject $H_0$ because the p-value is large."
+      ],
+      "expected": "Since $p = 0.20 \\geq 0.05$, fail to reject $H_0$. There is insufficient evidence at the $5\\%$ significance level to support $H_a$; this does not prove $H_0$."
+    },
+    {
+      "id": "gen-08-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for selecting the correct hypothesis-test setup for a one-sample mean problem. Inputs are claim direction, sample size $n$, whether $\\sigma$ is known, and benchmark $\\mu_0$. The output should include $H_0$, $H_a$, and whether to use a $z$ or $t$ statistic.",
+      "options": [
+        "```pseudocode\nfunction choose_mean_test(direction, n, $sigma_known$, mu0):\n    H0 <- \"mu = \" + mu0\n\n    if direction == \"higher\":\n        Ha <- \"mu > \" + mu0\n    else if direction == \"lower\":\n        Ha <- \"mu < \" + mu0\n    else:\n        Ha <- \"mu != \" + mu0\n\n    if $sigma_known$ == true:\n        statistic <- \"z\"\n    else if n >= 30:\n        statistic <- \"z using s as an approximation\"\n    else:\n        statistic <- \"t with n - 1 degrees of freedom\"\n\n    return H0, Ha, statistic\n```",
+        "```pseudocode\nfunction choose_mean_test(direction, n, $sigma_known$, mu0):\n    H0 <- \"mu != \" + mu0\n    Ha <- \"mu = \" + mu0\n    statistic <- \"z\"\n    return H0, Ha, statistic\n```",
+        "```pseudocode\nfunction choose_mean_test(direction, n, $sigma_known$, mu0):\n    H0 <- \"$x_bar$ = \" + mu0\n    Ha <- \"$x_bar$ > \" + mu0\n    statistic <- \"t\"\n    return H0, Ha, statistic\n```",
+        "```pseudocode\nfunction choose_mean_test(direction, n, $sigma_known$, mu0):\n    H0 <- \"mu = $sample_mean$\"\n    Ha <- \"mu = \" + mu0\n    statistic <- \"z if p < alpha\"\n    return H0, Ha, statistic\n```"
+      ],
+      "expected": "```pseudocode\nfunction choose_mean_test(direction, n, $sigma_known$, mu0):\n    H0 <- \"mu = \" + mu0\n\n    if direction == \"higher\":\n        Ha <- \"mu > \" + mu0\n    else if direction == \"lower\":\n        Ha <- \"mu < \" + mu0\n    else:\n        Ha <- \"mu != \" + mu0\n\n    if $sigma_known$ == true:\n        statistic <- \"z\"\n    else if n >= 30:\n        statistic <- \"z using s as an approximation\"\n    else:\n        statistic <- \"t with n - 1 degrees of freedom\"\n\n    return H0, Ha, statistic\n```"
+    }
+  ],
+  "generationError": null
+}

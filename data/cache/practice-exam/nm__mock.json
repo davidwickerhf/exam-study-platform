@@ -1,0 +1,216 @@
+{
+  "generatedAt": "2026-05-31T00:30:27.744Z",
+  "courseId": "nm",
+  "examId": "mock",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 1,
+      "sharedContext": "1. Consider the problem of finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in\n the interval $[0, 4]$.",
+      "text": "(a) Compute one step of Newton’s algorithm, starting from the midpoint of the in-\n terval.",
+      "modelAnswer": "Newton’s method: $p_{n+1} = p_n - \\frac{f(p_n)}{f'(p_n)}$ with $f'(x) = e^x - 6$.\n\n$$\np_1 = p_0 - \\frac{f(p_0)}{f'(p_0)}\n$$\n\n$$\np_1 = 2 - \\frac{f(2)}{f'(2)}\n$$\n\n$$\np_1 = 2 - \\frac{(e^2 - 12 - 2)}{(e^2 - 6)}\n$$\n\n$$\np_1 = 2 - \\frac{(-6.6109)}{(1.3891)}\n$$\n\n$$\np_1 = 6.7593 \\text{ (4dp)}\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 1,
+      "sharedContext": "1. Consider the problem of finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in\n the interval $[0, 4]$.",
+      "text": "(b) Is the value obtained within the interval $[0, 4]$? Why?",
+      "modelAnswer": "We leave the interval $[0, 4]$. Newton’s algorithm doesn’t have the bracket pre-\n serving property. Divergence can occur if the initial guess is far from the actual\n root.",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 1,
+      "sharedContext": "1. Consider the problem of finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in\n the interval $[0, 4]$.",
+      "text": "(c) Perform one step of the bisection method to find a smaller bracket for the solution.",
+      "modelAnswer": "$f(0) = -1.00$, $f(4) = 28.60$ different signs so we can use bisection. $f(2) =\n-6.61 < 0$, new bracket should be $[2, 4]$ to ensure it contains a root.",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1d",
+      "label": "Q1(d)",
+      "marks": 1,
+      "sharedContext": "1. Consider the problem of finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in\n the interval $[0, 4]$.",
+      "text": "(d) Perform one step of Newton’s method starting from the midpoint of the interval\n (bracket) you found in part (c).",
+      "modelAnswer": "$$\np_1 = p_0 - \\frac{f(p_0)}{f'(p_0)}\n$$\n\n$$\np_1 = 3 - \\frac{f(3)}{f'(3)}\n$$\n\n$$\np_1 = 3 - \\frac{(e^3 - 18 - 2)}{(e^3 - 6)}\n$$\n\n$$\np_1 = 2.9939 \\text{ (4dp)}\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q1e",
+      "label": "Q1(e)",
+      "marks": 1,
+      "sharedContext": "1. Consider the problem of finding a solution of the algebraic equation $e^x - 6x - 2 = 0$ in\n the interval $[0, 4]$.",
+      "text": "(e) Do you expect your new approximation to be within $0.1$ of the true solution?\n Give a reason for your answer.",
+      "modelAnswer": "Based on the error estimate $|p_1 - p| \\lessapprox |p_1 - p_0| = |2.9939 - 3.0000| = 6.1e - 3$",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2a",
+      "label": "Q2(a)",
+      "marks": 1,
+      "sharedContext": "2. Consider the problem of finding the value of $y(3)$ for the initial value problem\n\n$$\n\\frac{dy}{dt} = \\frac{1}{t - 1} - y^2, \\quad y(2) = 1.4.\n$$",
+      "text": "(a) Solve the problem using Ralston’s method with a step size of $h = 0.5$.",
+      "modelAnswer": "$$\n\\omega_{i+1} = \\omega_i + \\frac{1}{4} h \\left(f(t_i, \\omega_i) + 3f\\left(t_i + \\frac{2}{3}h, w_i + \\frac{2}{3}hf(t_i, \\omega_i)\\right)\\right)\n$$\n\n$t_0 = 2$, $\\omega_0 = y(2) = 1.4$\n\n$$\nf(t_0, \\omega_0) = f(2.0000, 1.4000) = -0.9600\n$$\n\n$$\nf\\left(t_0 + \\frac{2}{3}h, \\omega_0 + \\frac{2}{3}hf(t_0, \\omega_0)\\right) = f(2.3333, 1.0800) = -0.4164\n$$\n\n$$\n\\omega_1 = 1.4000 + \\frac{1}{4} \\times 0.5 \\times (-0.9500 + 3 \\times -0.4164) = 1.1239\n$$\n\nSame thing for the next step $t_1 = 2.5$ and $\\omega_1 = 1.1239$\n\n$$\nf(t_1, \\omega_1) = f(2.5000, 1.1239) = -0.5964\n$$\n\n$$\nf\\left(t_1 + \\frac{2}{3}h, \\omega_1 + \\frac{2}{3}hf(t_1, \\omega_1)\\right) = f(2.8333, 0.9251) = -0.3103\n$$\n\n$$\n\\omega_2 = 1.1239 + \\frac{1}{4} \\times 0.5 \\times (-0.5964 + 3 \\times -0.3103) = 0.9329\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2b",
+      "label": "Q2(b)",
+      "marks": 1,
+      "sharedContext": "2. Consider the problem of finding the value of $y(3)$ for the initial value problem\n\n$$\n\\frac{dy}{dt} = \\frac{1}{t - 1} - y^2, \\quad y(2) = 1.4.\n$$",
+      "text": "(b) How would you expect the error to change if you were to take a stepsize of $h =\n 0.25$?",
+      "modelAnswer": "Ralston’s method is second order so the error is expected to decrease by a factor\n of $(0.25/0.5)^2 = (1/4)$.",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q3a",
+      "label": "Q3(a)",
+      "marks": 1,
+      "sharedContext": "3. Consider the following data\n\n| $x_i$ | $2.0$ | $1.5$ | $1.0$ | $3.0$ |\n|---|---:|---:|---:|---:|\n| $y_i = f(x_i)$ | $0.40$ | $1.00$ | $1.82$ | $0.03$ |",
+      "text": "(a) Compute the divided differences $f[x_i, . . . , x_j]$ for $0 \\leq i \\leq j \\leq 3$. You may assume\n $f[x_0 , x_1] = -1.200$ and $f[x_1 , x_2] = -1.640$.",
+      "modelAnswer": "Divided differences\n\n$$\nf[x_i, . . . , x_j] = \\frac{f[x_{i+1}, . . . , x_j] - f[x_i, . . . , x_{j-1}]}{x_j - x_i}\n$$\n\n$$\nf[x_2, x_3] = \\frac{0.03 - 1.82}{3.0 - 1.0} = -0.8950\n$$\n\n$$\nf[x_0, x_1, x_2] = \\frac{f[x_1, x_2] - f[x_0, x_1]}{x_2 - x_0} = 0.4400\n$$\n\n$$\nf[x_1, x_2, x_3] = \\frac{f[x_2, x_3] - f[x_1, x_2]}{x_3 - x_1} = 0.4967\n$$\n\n$$\nf[x_0, x_1, x_2, x_3] = \\frac{f[x_1, x_2, x_3] - f[x_0, x_1, x_2]}{x_3 - x_0} = 0.0567\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3b",
+      "label": "Q3(b)",
+      "marks": 1,
+      "sharedContext": "3. Consider the following data\n\n| $x_i$ | $2.0$ | $1.5$ | $1.0$ | $3.0$ |\n|---|---:|---:|---:|---:|\n| $y_i = f(x_i)$ | $0.40$ | $1.00$ | $1.82$ | $0.03$ |",
+      "text": "(b) Write down the nested form of the cubic polynomial $p_3$ interpolating the given\n data.",
+      "modelAnswer": "The cubic polynomial in nested form is\n\n$$\np_3(x) = 0.40 + (x - 2.0)(-1.200 + (x - 1.5)(0.4400 + (x - 1.0)0.0567))\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3c",
+      "label": "Q3(c)",
+      "marks": 1,
+      "sharedContext": "3. Consider the following data\n\n| $x_i$ | $2.0$ | $1.5$ | $1.0$ | $3.0$ |\n|---|---:|---:|---:|---:|\n| $y_i = f(x_i)$ | $0.40$ | $1.00$ | $1.82$ | $0.03$ |",
+      "text": "(c) Estimate the value of $y$ when $x = 2.5$, showing intermediate steps in your com-\n putations.",
+      "modelAnswer": "The value of $y$ when $x = 2.5$ is $p(2.5) = 0.0625$ (4dp) and $p(2.5) = 0.06$ (2dp)",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4a",
+      "label": "Q4(a)",
+      "marks": 1,
+      "sharedContext": "4. Consider the problem of computing to an accuracy of $0.01$ the integral\n\n$$\nI = \\int_{0.0}^{1.2} \\cos(x^2)dx.\n$$",
+      "text": "(a) Use the trapezoid rule with $n = 4$ subintervals to estimate the value of $I$. Work\n in 4dp.",
+      "modelAnswer": "Stepsize $h = 1.2/4 = 0.3$, $x_i$ are $(0.0, 0.3, 0.6, 0.9, 1.2)$.\n\n$$\nT_4 = h\\left(\\frac{1}{2}f(x_0) + \\sum_{i=1}^{3}f(x_i) + \\frac{1}{2}f(x_4)\\right)\n$$\n\n$$\nT_4 = 0.3 \\times \\left(\\frac{1}{2} \\times 1.0000 + 0.9960 + 0.9359 + 0.6895 + \\frac{1}{2} \\times 0.1304\\right)\n$$\n\n$$\nT_4 = 0.9560\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4b",
+      "label": "Q4(b)",
+      "marks": 1,
+      "sharedContext": "4. Consider the problem of computing to an accuracy of $0.01$ the integral\n\n$$\nI = \\int_{0.0}^{1.2} \\cos(x^2)dx.\n$$",
+      "text": "(b) Use the error estimate for the trapezoid rule to estimate the error over the subin-\n tervals $[0.0, 0.6]$ and $[0.6, 1.2]$. Do you expect the error to be less than the desired\n accuracy bound?",
+      "modelAnswer": "Over $[0.0, 0.6]$, the error estimate is\n\n$$\n\\frac{1}{3}|T_2(f; [0.0, 0.6]) - T_1(f; [0.0, 0.6])| = |0.5892 - 0.5808| = 2.8 \\times 10^{-3}\n$$\n\nOver $[0.6, 1.2]$, the error estimate is\n\n$$\n\\frac{1}{3}|T_2(f; [0.6, 1.2]) - T_1(f; [0.6, 1.2])| = |0.3668 - 0.3199| = 1.6 \\times 10^{-2}\n$$\n\nTotal error is $2.8 \\times 10^{-3} + 1.6 \\times 10^{-2} \\approx 1.8 \\times 10^{-2}$, so the error is not expected\n to be less than $0.01$.",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4c",
+      "label": "Q4(c)",
+      "marks": 1,
+      "sharedContext": "4. Consider the problem of computing to an accuracy of $0.01$ the integral\n\n$$\nI = \\int_{0.0}^{1.2} \\cos(x^2)dx.\n$$",
+      "text": "(c) Explain how to use the adaptive trapezoid method to obtain a better estimate to\n the integral. (You do not have to perform the computation).",
+      "modelAnswer": "Iteratively subdivide one of the intervals to reduce the expected error on that\n interval (about 1/4). At each iteration pick the interval with the largest estimate\n on the error.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q5a",
+      "label": "Q5(a)",
+      "marks": 1,
+      "sharedContext": "5. The least squares approximation to a function $f$ over the interval $[-1, 1]$ is given by\n\n$$\nq_n(x) = \\sum_{k=0}^{n} c_k P_k(x)\n$$\n\nwhere $P_k$ are the Legendre polynomials. Suppose $c_k$ for $k = 0, . . . , 5$ are given by\n\n| $k$ | $0$ | $1$ | $2$ | $3$ | $4$ | $5$ |\n|---|---:|---:|---:|---:|---:|---:|\n| $c_k$ | $0.3086$ | $0.2193$ | $-0.0842$ | $-0.1233$ | $-0.0267$ | $0.0262$ |",
+      "text": "(a) Use the recurrence equation to calculate $P_k(0.7)$ for $k = 0, 1, . . . , 4$.",
+      "modelAnswer": "$$\nP_0(0.7) = 1.0000\n$$\n\n$$\nP_1(0.7) = x = 0.7000\n$$\n\n$$\nP_2(0.7) = \\left(2 - \\frac{1}{2}\\right) \\times 0.7 \\times P_1(0.7) - \\left(1 - \\frac{1}{2}\\right) \\times P_0(0.7) = 0.2350\n$$\n\n$$\nP_3(0.7) = \\left(2 - \\frac{1}{3}\\right) \\times 0.7 \\times P_2(0.7) - \\left(1 - \\frac{1}{3}\\right) \\times P_1(0.7) = -0.1925\n$$\n\n$$\nP_4(0.7) = \\left(2 - \\frac{1}{4}\\right) \\times 0.7 \\times P_3(0.7) - \\left(1 - \\frac{1}{4}\\right) \\times P_3(0.7) = -0.4121.\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5b",
+      "label": "Q5(b)",
+      "marks": 1,
+      "sharedContext": "5. The least squares approximation to a function $f$ over the interval $[-1, 1]$ is given by\n\n$$\nq_n(x) = \\sum_{k=0}^{n} c_k P_k(x)\n$$\n\nwhere $P_k$ are the Legendre polynomials. Suppose $c_k$ for $k = 0, . . . , 5$ are given by\n\n| $k$ | $0$ | $1$ | $2$ | $3$ | $4$ | $5$ |\n|---|---:|---:|---:|---:|---:|---:|\n| $c_k$ | $0.3086$ | $0.2193$ | $-0.0842$ | $-0.1233$ | $-0.0267$ | $0.0262$ |",
+      "text": "(b) Compute $q_4(0.7)$.",
+      "modelAnswer": "$$\nq_4(0.7) = \\sum_{k=0}^{4} c_k P_k(0.7) = 0.4771\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5c",
+      "label": "Q5(c)",
+      "marks": 1,
+      "sharedContext": "5. The least squares approximation to a function $f$ over the interval $[-1, 1]$ is given by\n\n$$\nq_n(x) = \\sum_{k=0}^{n} c_k P_k(x)\n$$\n\nwhere $P_k$ are the Legendre polynomials. Suppose $c_k$ for $k = 0, . . . , 5$ are given by\n\n| $k$ | $0$ | $1$ | $2$ | $3$ | $4$ | $5$ |\n|---|---:|---:|---:|---:|---:|---:|\n| $c_k$ | $0.3086$ | $0.2193$ | $-0.0842$ | $-0.1233$ | $-0.0267$ | $0.0262$ |",
+      "text": "(c) Explain how orthogonality of the $P_k$ gives rise to the following simple formula for\n the square integral\n\n$$\n\\int_{-1}^{1} q_n(x)^2 dx = \\sum_{k=0}^{n} c_k^2 \\int_{-1}^{1} P_k(x)^2 dx.\n$$",
+      "modelAnswer": "We can write the integral as\n\n$$\n\\sum_{i,j}^{n} \\int_{-1}^{+1} c_i c_j P_i(x)P_j(x)dx\n$$\n\nBecause $\\int_{-1}^{+1} P_i(x)P_j(x)dx = 0$ when $i \\neq j$ by the orthogonality of Legendre\n polynomials, we are left only with the terms $\\int_{-1}^{+1} c_i^2 P_i(x)^2 dx$.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q5d",
+      "label": "Q5(d)",
+      "marks": 1,
+      "sharedContext": "5. The least squares approximation to a function $f$ over the interval $[-1, 1]$ is given by\n\n$$\nq_n(x) = \\sum_{k=0}^{n} c_k P_k(x)\n$$\n\nwhere $P_k$ are the Legendre polynomials. Suppose $c_k$ for $k = 0, . . . , 5$ are given by\n\n| $k$ | $0$ | $1$ | $2$ | $3$ | $4$ | $5$ |\n|---|---:|---:|---:|---:|---:|---:|\n| $c_k$ | $0.3086$ | $0.2193$ | $-0.0842$ | $-0.1233$ | $-0.0267$ | $0.0262$ |",
+      "text": "(d) Compute the square integral $\\int_{-1}^{1} q_2(x)^2 dx$.",
+      "modelAnswer": "$$\n\\int_{-1}^{1} q_2(x)^2 dx = \\sum_{k=0}^{2} \\alpha_k c_k^2.\n$$\n\n$\\alpha_k = 1/(k + \\frac{1}{2})$, and $\\int_{-1}^{1} q_2(x)^2 dx = 0.2254$.",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6a",
+      "label": "Q6(a)",
+      "marks": 1,
+      "sharedContext": "6. Let\n\n$$\nA = A^{(0)} = \\begin{pmatrix} 5 & 2 \\\\ 2 & 3 \\end{pmatrix}.\n$$\n\nAfter applying one step of QR method we obtain\n\n$$\nA^{(0)} = Q^{(0)}R^{(0)} = \\begin{pmatrix} 0.9285 & -0.3714 \\\\ 0.3714 & 0.9285 \\end{pmatrix}\\begin{pmatrix} 5.3852 & 2.9711 \\\\ 0 & 2.0426 \\end{pmatrix}; \\quad A^{(1)} = R^{(0)}Q^{(0)} = \\begin{pmatrix} 6.1036 & 0.7586 \\\\ 0.7586 & 1.8966 \\end{pmatrix}.\n$$",
+      "text": "(a) Apply one step of the QR method to the matrix $A^{(1)}$ .",
+      "modelAnswer": "$$\nv_1 = x_1 = (6.1036, 0.7586)^T\n$$\n\n$$\nv_2 = x_2 - \\frac{x_2 \\cdot v_1}{v_1 \\cdot v_1}v_1 \\quad v_2 = (-0.2206, 1.7748)^T\n$$\n\n$$\nr_{11} = ||v_1|| = 6.1504\n$$\n\n$$\nr_{22} = ||v_2|| = 1.7885\n$$\n\n$$\nu_1 = \\frac{v_1}{||v_1||}, \\quad u_2 = \\frac{v_2}{||v_2||}\n$$\n\n$$\nu_1 = (0.9924, 0.1233)^T, \\quad u_2 = (-0.1233, 0.9924)^T\n$$\n\n$$\nr_{12} = x_2 \\cdot u_1 = 0.9868, \\quad r_{21} = x_1 \\cdot u_2 = 0.0000\n$$\n\n$$\nA^{(2)} = R^{(1)}Q^{(1)} = \\begin{pmatrix} 6.2252 & 0.2206 \\\\ 0.2206 & 1.7748 \\end{pmatrix}\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6b",
+      "label": "Q6(b)",
+      "marks": 1,
+      "sharedContext": "6. Let\n\n$$\nA = A^{(0)} = \\begin{pmatrix} 5 & 2 \\\\ 2 & 3 \\end{pmatrix}.\n$$\n\nAfter applying one step of QR method we obtain\n\n$$\nA^{(0)} = Q^{(0)}R^{(0)} = \\begin{pmatrix} 0.9285 & -0.3714 \\\\ 0.3714 & 0.9285 \\end{pmatrix}\\begin{pmatrix} 5.3852 & 2.9711 \\\\ 0 & 2.0426 \\end{pmatrix}; \\quad A^{(1)} = R^{(0)}Q^{(0)} = \\begin{pmatrix} 6.1036 & 0.7586 \\\\ 0.7586 & 1.8966 \\end{pmatrix}.\n$$",
+      "text": "(b) Use your answer to part (a) to estimate the eigenvalues of $A$.",
+      "modelAnswer": "Eigenvalue estimates are the diagonal entries of $A$. $\\lambda_1 \\approx 6.2252$, $\\lambda_2 = 1.7748$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

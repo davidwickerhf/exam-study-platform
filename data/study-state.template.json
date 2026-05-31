@@ -1202,8 +1202,8 @@
         },
         {
           "id": "2023-resit",
-          "label": "Resit 2023 (solutions only)",
-          "solutionsPdf": "Materials/Mock Exams/2023-resit-solutions.pdf"
+          "label": "Resit 2023",
+          "pdf": "Materials/Mock Exams/2023-resit.pdf"
         },
         {
           "id": "mock",

@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:55:07.151Z",
+  "chapterId": "02",
+  "questions": [
+    {
+      "id": "gen-02-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes the encryption model notation $c = E_k(m)$ and $m = D_{k'}(c)$?",
+      "options": [
+        "$E_k$ transforms plaintext $m$ into ciphertext $c$, and $D_{k'}$ reverses this using the decryption key $k'$.",
+        "$D_{k'}$ transforms plaintext $m$ into ciphertext $c$, and $E_k$ checks message integrity.",
+        "The key space is the set of all possible plaintexts $m$, so larger messages always mean stronger encryption.",
+        "In every secure system $k$ and $k'$ must be identical, because asymmetric encryption is only used for hashing."
+      ],
+      "expected": "$E_k$ transforms plaintext $m$ into ciphertext $c$, and $D_{k'}$ reverses this using the decryption key $k'$."
+    },
+    {
+      "id": "gen-02-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A cipher has a $64$-bit key and an attacker can test $5 \\times 10^{11}$ keys per second. Compute the average exhaustive-search time in seconds and hours.",
+      "options": [
+        "$2^{52} \\approx 4.50 \\times 10^{15}$ attempts; time $= \\frac{2^{63}}{5 \\times 10^{11}} \\approx 1.84 \\times 10^7$ seconds $\\approx 5110$ hours.",
+        "$2^{63} \\approx 9.22 \\times 10^{18}$ attempts; time $= \\frac{2^{63}}{5 \\times 10^{11}} \\approx 1.84 \\times 10^7$ seconds $\\approx 5110$ hours.",
+        "$2^{64} \\approx 1.84 \\times 10^{19}$ attempts; time $= \\frac{2^{64}}{5 \\times 10^{11}} \\approx 3.69 \\times 10^7$ seconds $\\approx 10200$ hours.",
+        "$64 \\times 5 \\times 10^{11} = 3.2 \\times 10^{13}$ attempts; time $\\approx 64$ seconds."
+      ],
+      "expected": "$2^{63} \\approx 9.22 \\times 10^{18}$ attempts; time $= \\frac{2^{63}}{5 \\times 10^{11}} \\approx 1.84 \\times 10^7$ seconds $\\approx 5110$ hours."
+    },
+    {
+      "id": "gen-02-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why a Caesar cipher is insecure even if the attacker does not initially know the shift value. Your answer must mention key space and exhaustive search.",
+      "options": [
+        "The Caesar cipher has only $26$ possible shifts, so its key space is tiny. An attacker can decrypt the ciphertext under every possible shift and choose the readable plaintext, so exhaustive search is effectively immediate.",
+        "The Caesar cipher is insecure because it uses asymmetric keys, so everyone can compute the private key from the public key.",
+        "The Caesar cipher is secure against ciphertext-only attacks but insecure only if the sender reuses the same random pad.",
+        "The Caesar cipher fails only when the plaintext length is shorter than the key length."
+      ],
+      "expected": "The Caesar cipher has only $26$ possible shifts, so its key space is tiny. An attacker can try every key and inspect the resulting plaintexts. The weakness is not a software bug; it is that exhaustive search over $26$ keys is trivial."
+    },
+    {
+      "id": "gen-02-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Decrypt the Caesar-cipher ciphertext `KHOOR` assuming the encryption rule was $c_i = (m_i + 3) \\bmod 26$ with $A = 0, B = 1, \\dots, Z = 25$.",
+      "options": [
+        "Plaintext: `HELLO`. Method: subtract $3$ from each ciphertext letter position modulo $26$: $K \\to H$, $H \\to E$, $O \\to L$, $O \\to L$, $R \\to O$.",
+        "Plaintext: `NKRUX`. Method: add $3$ to each ciphertext letter position modulo $26$.",
+        "Plaintext: `KHOOR`. Method: the Caesar cipher leaves repeated letters unchanged.",
+        "Plaintext: `EBIIL`. Method: subtract $6$ from each ciphertext letter position modulo $26$."
+      ],
+      "expected": "Plaintext: `HELLO`. Method: subtract $3$ from each ciphertext letter position modulo $26$: $K \\to H$, $H \\to E$, $O \\to L$, $O \\to L$, $R \\to O$."
+    },
+    {
+      "id": "gen-02-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which attack model gives the adversary the strongest capability among the four listed in the chapter?",
+      "options": [
+        "Ciphertext-only attack, because the attacker must solve the problem with no extra information.",
+        "Known-plaintext attack, because the attacker sees some plaintext-ciphertext pairs.",
+        "Chosen-plaintext attack, because the attacker can ask for encryptions of chosen messages.",
+        "Chosen-ciphertext attack, because the attacker can ask for decryptions of chosen ciphertexts."
+      ],
+      "expected": "Chosen-ciphertext attack, because the attacker can ask for decryptions of chosen ciphertexts."
+    },
+    {
+      "id": "gen-02-5",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A passive adversary can modify messages in transit, while an active adversary can only observe ciphertexts.",
+      "options": [
+        "True. A passive adversary modifies messages, and an active adversary only reads them.",
+        "False. A passive adversary observes traffic without changing it; an active adversary may inject, delete, replay, or modify messages.",
+        "True. Passive and active adversaries differ only by whether they know the encryption algorithm.",
+        "False. Both passive and active adversaries are unable to see ciphertexts."
+      ],
+      "expected": "False. A passive adversary observes traffic without changing it; an active adversary may inject, delete, replay, or modify messages."
+    },
+    {
+      "id": "gen-02-6",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare a cryptographic hash, a MAC, and a digital signature. State what each one can guarantee and what key material, if any, it uses.",
+      "options": [
+        "A hash is unkeyed and supports integrity checks only when compared against a trusted value; it does not authenticate the sender by itself. A MAC uses a shared secret key and gives integrity plus symmetric authentication. A digital signature uses a private signing key and public verification key, giving integrity, origin authentication, and non-repudiation in the usual public-key model.",
+        "A hash, MAC, and digital signature all provide exactly the same guarantees because they all compress a message into a short tag.",
+        "A hash uses the sender's private key, a MAC uses no key, and a digital signature uses a shared password.",
+        "A MAC provides non-repudiation because anyone can verify it using a public key."
+      ],
+      "expected": "A hash is unkeyed and supports integrity checks only when the expected digest is trusted; it does not authenticate the sender alone. A MAC uses a shared secret key and provides message integrity plus symmetric origin authentication. A digital signature uses a private signing key and a public verification key, so it provides integrity, public verifiability, origin authentication, and practical non-repudiation."
+    },
+    {
+      "id": "gen-02-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A lab truncates an MD5 digest to $24$ bits. Estimate the expected number of random messages needed to find any collision by the birthday bound, using $1.25 \\sqrt{N}$ where $N = 2^{24}$.",
+      "options": [
+        "$N = 2^{24}$, so $1.25\\sqrt{N} = 1.25 \\cdot 2^{12} = 5120$ messages. Method: collision search scales with the square root of the output space.",
+        "$N = 2^{24}$, so $1.25N = 20,971,520$ messages. Method: collision search requires trying the full space.",
+        "$N = 24$, so $1.25\\sqrt{24} \\approx 6.1$ messages. Method: use the bit length directly.",
+        "$N = 2^{12}$, so $1.25\\sqrt{N} = 80$ messages. Method: halve the digest length before applying the birthday bound."
+      ],
+      "expected": "$N = 2^{24}$, so $1.25\\sqrt{N} = 1.25 \\cdot 2^{12} = 5120$ messages. Method: collision search scales with the square root of the output space."
+    },
+    {
+      "id": "gen-02-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Why do practical systems often use hybrid encryption instead of encrypting all application data directly with RSA?",
+      "options": [
+        "RSA is normally used to agree on or wrap a symmetric session key, while a fast symmetric cipher encrypts the bulk data.",
+        "RSA is a stream cipher, so it can encrypt only one bit at a time.",
+        "Symmetric encryption cannot provide confidentiality unless it is first hashed with RSA.",
+        "Hybrid encryption is used only to make ciphertexts look random; it has no performance or key-management benefit."
+      ],
+      "expected": "RSA is normally used to agree on or wrap a symmetric session key, while a fast symmetric cipher encrypts the bulk data."
+    },
+    {
+      "id": "gen-02-9",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "In a toy RSA system, let $p = 5$, $q = 11$, $e = 3$, and message $m = 9$. Compute $n$, $\\varphi(n)$, the private exponent $d$, the ciphertext $c$, and verify decryption.",
+      "options": [
+        "$n = 55$, $\\varphi(n) = 40$, $d = 27$ because $3 \\cdot 27 \\equiv 1 \\pmod{40}$. Encryption gives $c = 9^3 \\bmod 55 = 14$, and decryption gives $14^{27} \\bmod 55 = 9$.",
+        "$n = 16$, $\\varphi(n) = 55$, $d = 2$ because $3 + 2 = 5$. Encryption gives $c = 9^3 = 729$, and decryption gives $729^2 = 531441$.",
+        "$n = 55$, $\\varphi(n) = 60$, $d = 20$ because $3 \\cdot 20 = 60$. Encryption gives $c = 9 \\cdot 3 \\bmod 55 = 27$.",
+        "$n = 40$, $\\varphi(n) = 55$, $d = 3$ because public and private exponents are always equal. Encryption gives $c = 9^3 \\bmod 40 = 9$."
+      ],
+      "expected": "$n = 55$, $\\varphi(n) = 40$, $d = 27$ because $3 \\cdot 27 \\equiv 1 \\pmod{40}$. Encryption gives $c = 9^3 \\bmod 55 = 14$, and decryption gives $14^{27} \\bmod 55 = 9$."
+    },
+    {
+      "id": "gen-02-10",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "For X.509 certificates, explain what binding the certificate creates and why the issuer signature matters.",
+      "options": [
+        "An X.509 certificate binds a subject identity, such as a domain name or organization, to a public key. The issuer signs the certificate so verifiers can detect tampering and can decide whether to trust the binding through a certificate chain ending at a trusted root.",
+        "An X.509 certificate binds a ciphertext to a symmetric session key. The issuer signature hides the plaintext from passive attackers.",
+        "An X.509 certificate is just a salted password hash, and the issuer signature prevents offline dictionary attacks.",
+        "An X.509 certificate proves that the subject knows every private key in the issuer's certificate chain."
+      ],
+      "expected": "An X.509 certificate binds a subject identity, such as a DNS name or organization, to a public key. The issuer signature matters because it authenticates that binding and protects the certificate contents from undetected modification. A verifier trusts it only if the signature chains to an issuer it already trusts and the names, dates, and usage constraints are valid."
+    },
+    {
+      "id": "gen-02-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Reusing a one-time pad key on two different messages can reveal information about both plaintexts.",
+      "options": [
+        "True. If $c_1 = m_1 \\oplus k$ and $c_2 = m_2 \\oplus k$, then $c_1 \\oplus c_2 = m_1 \\oplus m_2$, which removes the key and exposes structure for attacks.",
+        "False. One-time pads remain perfectly secure no matter how many messages use the same key.",
+        "True. Reuse is safe only when both plaintexts have equal length.",
+        "False. XORing two ciphertexts produces the key directly but never reveals plaintext information."
+      ],
+      "expected": "True. If $c_1 = m_1 \\oplus k$ and $c_2 = m_2 \\oplus k$, then $c_1 \\oplus c_2 = m_1 \\oplus m_2$, so the key cancels out. Language redundancy and known fragments can then leak information about both messages."
+    },
+    {
+      "id": "gen-02-12",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best explains why ECB mode leaks patterns, as illustrated by the classic penguin example?",
+      "options": [
+        "ECB encrypts equal plaintext blocks under the same key to equal ciphertext blocks, so repeated image regions or records remain visible as repeated ciphertext structure.",
+        "ECB always uses a fresh random IV for every block, so its only weakness is slow performance.",
+        "ECB turns a block cipher into a stream cipher, so one flipped bit destroys the entire remaining message.",
+        "ECB is secure for images but insecure only for short text messages."
+      ],
+      "expected": "ECB encrypts equal plaintext blocks under the same key to equal ciphertext blocks, so repeated image regions or records remain visible as repeated ciphertext structure."
+    },
+    {
+      "id": "gen-02-13",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why storing salted password hashes is better than storing unsalted password hashes. Include what the salt does and what it does not do.",
+      "options": [
+        "A salt is a per-password random value stored with the hash. It prevents equal passwords from producing equal stored hashes and forces attackers to redo dictionary work per salt, but it is not secret and does not make weak passwords strong by itself.",
+        "A salt is a private key that must never be stored in the password database. It makes the password impossible to brute-force.",
+        "A salt encrypts the password before hashing, so the server can later decrypt the password for login.",
+        "A salt is useful only for MD5 and has no purpose with stronger password hashing schemes."
+      ],
+      "expected": "A salt is a per-password random value stored alongside the password hash. It prevents identical passwords from having identical stored hashes and defeats precomputed rainbow tables across many accounts. The salt is not secret, and it does not compensate for weak passwords or a fast general-purpose hash used where a password hash should be used."
+    },
+    {
+      "id": "gen-02-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Sketch pseudocode for verifying a received message protected by a MAC. The receiver is given message `msg`, received tag `tag`, and shared secret `key`. The algorithm should reject modified messages and avoid leaking timing information through tag comparison.",
+      "options": [
+        "Reference pseudocode:\n```text\nprocedure $VERIFY_MAC$(msg, tag, key)\n    computed tag gets MAC using key over msg\n    if length of computed tag differs from length of tag then\n        return reject\n    same gets constant time compare of computed tag and tag\n    if same then\n        return accept\n    return reject\nend procedure\n```",
+        "Reference pseudocode:\n```text\nprocedure $VERIFY_MAC$(msg, tag, key)\n    if first byte of tag matches first byte of msg then\n        return accept\n    return reject\nend procedure\n```",
+        "Reference pseudocode:\n```text\nprocedure $VERIFY_MAC$(msg, tag, key)\n    plaintext gets decrypt tag using key\n    return plaintext\nend procedure\n```",
+        "Reference pseudocode:\n```text\nprocedure $VERIFY_MAC$(msg, tag, key)\n    return accept\nend procedure\n```"
+      ],
+      "expected": "Reference pseudocode:\n```text\nprocedure $VERIFY_MAC$(msg, tag, key)\n    computed tag gets MAC using key over msg\n    if length of computed tag differs from length of tag then\n        return reject\n    same gets constant time compare of computed tag and tag\n    if same then\n        return accept\n    return reject\nend procedure\n```\nA correct answer recomputes the MAC over the received message using the shared key, compares the received and computed tags in constant time, and accepts only on an exact match."
+    },
+    {
+      "id": "gen-02-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Sketch pseudocode for validating the high-level structure of a certificate chain for a server name `host` at time `now`. Include issuer signatures, validity periods, name matching, and the trusted root decision.",
+      "options": [
+        "Reference pseudocode:\n```text\nprocedure $VALIDATE_CHAIN$(chain, host, now, $trust_store$)\n    if chain is empty then\n        return reject\n    leaf gets first certificate in chain\n    if host is not listed in names of leaf then\n        return reject\n    for each certificate cert in chain do\n        if now is before cert not before time then\n            return reject\n        if now is after cert not after time then\n            return reject\n    for each adjacent pair child and issuer in chain do\n        if child issuer name differs from issuer subject name then\n            return reject\n        if signature on child does not verify with issuer public key then\n            return reject\n    root gets last certificate in chain\n    if root is not trusted in $trust_store$ then\n        return reject\n    return accept\nend procedure\n```",
+        "Reference pseudocode:\n```text\nprocedure $VALIDATE_CHAIN$(chain, host, now, $trust_store$)\n    return accept when the leaf key can decrypt traffic\nend procedure\n```",
+        "Reference pseudocode:\n```text\nprocedure $VALIDATE_CHAIN$(chain, host, now, $trust_store$)\n    if the certificate file exists then\n        return accept\n    return reject\nend procedure\n```",
+        "Reference pseudocode:\n```text\nprocedure $VALIDATE_CHAIN$(chain, host, now, $trust_store$)\n    accept only when every certificate has the same subject name as host\nend procedure\n```"
+      ],
+      "expected": "Reference pseudocode:\n```text\nprocedure $VALIDATE_CHAIN$(chain, host, now, $trust_store$)\n    if chain is empty then\n        return reject\n    leaf gets first certificate in chain\n    if host is not listed in names of leaf then\n        return reject\n    for each certificate cert in chain do\n        if now is before cert not before time then\n            return reject\n        if now is after cert not after time then\n            return reject\n    for each adjacent pair child and issuer in chain do\n        if child issuer name differs from issuer subject name then\n            return reject\n        if signature on child does not verify with issuer public key then\n            return reject\n    root gets last certificate in chain\n    if root is not trusted in $trust_store$ then\n        return reject\n    return accept\nend procedure\n```\nA correct sketch checks the leaf name, validity periods, issuer-subject linkage, issuer signatures, and whether the chain ends at a trusted root."
+    }
+  ],
+  "generationError": null
+}

@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:56:05.892Z",
+  "chapterId": "03",
+  "questions": [
+    {
+      "id": "gen-03-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A login form asks for a username and password, then decides whether the account may open an admin panel. Distinguish authentication, identification, and authorization in this scenario, and state one limitation of treating a correct password as proof of identity.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Identification is the step of determining which account is being considered, usually from the supplied username. Authentication is the verifier checking whether the claimant can prove the claimed identity, here by presenting the correct password. Authorization is the later decision about whether that authenticated account may open the admin panel. A correct password proves knowledge of the password, not that the person typing is definitely the legitimate account owner."
+    },
+    {
+      "id": "gen-03-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why a salted password hash database is still vulnerable after theft, and contrast how stretching, peppering, and online rate limiting address different parts of the guessing problem.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A salt prevents reuse of precomputed tables and makes identical passwords produce different stored hashes, but if the database is stolen the attacker can still test guesses offline against each salt and hash. Stretching makes each offline guess more expensive by using many iterations or a slow memory-hard password hashing scheme. A pepper adds a secret value not stored in the database, so stealing only the database is insufficient for direct verification. Online rate limiting does not protect a stolen hash database directly; it slows guesses submitted to the live verifier."
+    },
+    {
+      "id": "gen-03-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A system uses a biometric fingerprint scan to search all enrolled users, then grants access to payroll if the matched user is in the finance group. Name the identity operation being performed by the scan, name the later access-control operation, and describe one biometric failure mode relevant to this design.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The scan is performing identification because it searches many enrolled identities rather than verifying one claimed identity. The payroll decision is authorization because it decides what the identified or authenticated entity may access. A relevant failure mode is false acceptance, where the system incorrectly matches an impostor to an enrolled user; false rejection is also relevant for availability because a legitimate user may fail to match."
+    },
+    {
+      "id": "gen-03-3",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Describe how a replay attack differs from a relay attack in entity authentication. Include the role of freshness in your answer and name one defense for each attack style.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "In a replay attack, the adversary records a valid authentication message and later resends it to make the verifier accept stale evidence. Freshness mechanisms such as nonces, timestamps, sequence numbers, and challenge-response prevent old messages from being accepted. In a relay attack, the adversary forwards live messages between a real claimant and verifier so the protocol evidence is fresh but used in the wrong context. Defenses include channel binding, distance-bounding where appropriate, explicit peer authentication, and transaction-specific confirmation."
+    },
+    {
+      "id": "gen-03-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A stolen password database contains $120000$ salted hashes. An attacker can test $800000$ password guesses per second against one hash when the password hash has no stretching. If stretching uses $20000$ iterations and the cost scales linearly, how many guesses per second can the attacker test against one hash, and how long to test a list of $10000000$ guesses for one account?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The stretched rate is $\\frac{800000}{20000} = 40$ guesses per second. The time is $\\frac{10000000}{40} = 250000$ seconds, which is about $69.4$ hours or $2.89$ days. Method: divide the original rate by the iteration count, then divide the guess count by the new rate."
+    },
+    {
+      "id": "gen-03-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A server locks an account for $10$ minutes after $5$ failed online password attempts. Ignoring reset edge cases, what is the maximum number of guesses an attacker can try against one account in $24$ hours?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "There are $\\frac{24 \\cdot 60}{10} = 144$ lockout windows in $24$ hours. At $5$ attempts per window, the maximum is $144 \\cdot 5 = 720$ guesses. Method: convert the day to minutes, divide by the lockout period, then multiply by the allowed failures."
+    },
+    {
+      "id": "gen-03-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A biometric system has a false accept rate of $0.2\\%$ per independent impostor attempt. If an attacker makes $300$ independent attempts, approximate the probability of at least one false accept. Give the exact expression and a decimal approximation.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The exact expression is $1 - (1 - 0.002)^{300} = 1 - 0.998^{300}$. This is approximately $0.451$, or $45.1\\%$. Method: compute the complement that all $300$ attempts are rejected, then subtract from $1$."
+    },
+    {
+      "id": "gen-03-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "In Diffie-Hellman, use the small teaching parameters $p = 23$ and $g = 5$. Alice chooses $a = 6$ and Bob chooses $b = 15$. Compute Alice's public value, Bob's public value, and the shared secret.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Alice sends $A = g^a \\bmod p = 5^6 \\bmod 23 = 8$. Bob sends $B = g^b \\bmod p = 5^{15} \\bmod 23 = 19$. The shared secret is $s = B^a \\bmod p = 19^6 \\bmod 23 = 2$, equivalently $s = A^b \\bmod p = 8^{15} \\bmod 23 = 2$. Method: exponentiate modulo $23$ for each public value and then again for the shared secret."
+    },
+    {
+      "id": "gen-03-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes the purpose of a salt in password storage?",
+      "options": [
+        "A secret server-wide value that must never be stored with the password database",
+        "A random per-password value that makes equal passwords hash differently and blocks reuse of precomputed tables",
+        "A rate limit that prevents online guessing after several failed login attempts",
+        "A one-time password generated by a hardware token"
+      ],
+      "expected": "A random per-password value that makes equal passwords hash differently and blocks reuse of precomputed tables"
+    },
+    {
+      "id": "gen-03-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A basic Diffie-Hellman exchange sends unauthenticated public values over the network. Which attack is the main reason this is insufficient for secure communication by itself?",
+      "options": [
+        "The attacker can always compute the private exponent from the public value in polynomial time",
+        "The attacker can perform a man-in-the-middle exchange by substituting public values and establishing separate keys",
+        "The attacker can replay the final ciphertext even when each message includes a fresh nonce",
+        "The attacker can recover the password because Diffie-Hellman public values are salted hashes"
+      ],
+      "expected": "The attacker can perform a man-in-the-middle exchange by substituting public values and establishing separate keys"
+    },
+    {
+      "id": "gen-03-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option is the best example of authorization rather than authentication?",
+      "options": [
+        "Checking whether a presented password matches the stored password verifier",
+        "Searching a fingerprint against all enrolled fingerprints to discover the user account",
+        "Deciding that an authenticated user may read one project folder but not another",
+        "Sending a nonce to prove that the peer is live"
+      ],
+      "expected": "Deciding that an authenticated user may read one project folder but not another"
+    },
+    {
+      "id": "gen-03-11",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "What security property is primarily added when a protocol signs the Diffie-Hellman transcript using each party's long-term signing key?",
+      "options": [
+        "It authenticates the exchanged public values and helps prevent man-in-the-middle substitution",
+        "It makes the discrete logarithm problem easier for legitimate users only",
+        "It removes the need for fresh nonces in all later application messages",
+        "It guarantees that passwords stored by the server are salted and stretched"
+      ],
+      "expected": "It authenticates the exchanged public values and helps prevent man-in-the-middle substitution"
+    },
+    {
+      "id": "gen-03-12",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A time-based one-time password prevents all phishing attacks because the code is valid only for a short time window.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. A short validity window improves freshness against later replay, but a real-time phishing proxy can relay the current code immediately. Stronger defenses need origin binding, transaction binding, or phishing-resistant authenticators."
+    },
+    {
+      "id": "gen-03-13",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A nonce in a challenge-response protocol is mainly used so the verifier can check that the claimant's response was generated for this run of the protocol, not copied from an old run.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. A fresh unpredictable nonce ties the response to the current session and defeats simple replay of an earlier valid response. The response must also be cryptographically bound to the claimant's secret or private key."
+    },
+    {
+      "id": "gen-03-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Sketch verifier-side pseudocode for checking a password using a stored salt, a server-side pepper, and a stretched password hash. The algorithm should avoid early success on malformed records and should use a constant-time comparison for the final verifier check.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Reference pseudocode:\n```text\nprocedure VerifyPassword(username, candidatePassword)\n    record := PasswordTable.lookup(username)\n    if record is missing then\n        salt := RandomLengthSaltForDummyWork\n        storedHash := DummyStoredHash\n        iterations := DefaultIterations\n    else\n        salt := record.salt\n        storedHash := record.passwordHash\n        iterations := record.iterations\n    end if\n\n    pepper := SecretStore.readPasswordPepper()\n    derived := PasswordKdf(candidatePassword, salt, pepper, iterations)\n    matches := ConstantTimeEqual(derived, storedHash)\n\n    if record is missing then\n        return reject\n    end if\n    if matches then\n        return accept\n    else\n        return reject\n    end if\nend procedure\n```\nA strong answer stores the salt with the account record, keeps the pepper outside the password database, applies the configured stretching cost before comparison, and uses constant-time equality for the derived verifier."
+    },
+    {
+      "id": "gen-03-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Sketch a mutual challenge-response protocol using nonces and a shared secret key. The protocol should give both parties freshness and key confirmation, and it should bind each response to the party names to avoid reflection.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Reference pseudocode:\n```text\nprocedure MutualAuthenticate(clientName, serverName, sharedKey)\n    clientNonce := SecureRandomNonce()\n    send clientName, clientNonce to serverName\n\n    serverNonce := SecureRandomNonce()\n    serverProof := Hmac(sharedKey, \"server\" || serverName || clientName || clientNonce || serverNonce)\n    send serverName, serverNonce, serverProof to clientName\n\n    expectedServerProof := Hmac(sharedKey, \"server\" || serverName || clientName || clientNonce || serverNonce)\n    if not ConstantTimeEqual(serverProof, expectedServerProof) then\n        abort authentication\n    end if\n\n    clientProof := Hmac(sharedKey, \"client\" || clientName || serverName || serverNonce || clientNonce)\n    send clientProof to serverName\n\n    expectedClientProof := Hmac(sharedKey, \"client\" || clientName || serverName || serverNonce || clientNonce)\n    if not ConstantTimeEqual(clientProof, expectedClientProof) then\n        abort authentication\n    end if\n\n    sessionKey := Hmac(sharedKey, \"session\" || clientName || serverName || clientNonce || serverNonce)\n    return sessionKey\nend procedure\n```\nThe nonces provide freshness, the two different role labels prevent reflection, and deriving the session key from both nonces gives both sides confirmation that they used the same shared secret in this run."
+    }
+  ],
+  "generationError": null
+}

@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:37:30.737Z",
+  "chapterId": "06",
+  "questions": [
+    {
+      "id": "gen-06-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain what the Central Limit Theorem says about the sampling distribution of the sample mean. Your answer must mention the role of sample size and standard error.",
+      "options": [
+        "The distribution of individual observations becomes normal as the sample size increases.",
+        "The sampling distribution of $\\bar{x}$ becomes approximately normal with mean $\\mu$ and standard error $\\frac{\\sigma}{\\sqrt{n}}$ as $n$ becomes large.",
+        "The population standard deviation becomes smaller as more samples are collected.",
+        "Every sample mean equals the population mean when $n$ is large enough."
+      ],
+      "expected": "The sampling distribution of $\\bar{x}$ becomes approximately normal as $n$ increases, even when the population is not normal, provided the population has finite $\\mu$ and $\\sigma$. Its centre is $\\mu$ and its spread is the standard error $SE = \\frac{\\sigma}{\\sqrt{n}}$."
+    },
+    {
+      "id": "gen-06-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A machine fills boxes with a normally distributed weight having mean $\\mu = 500$ grams and standard deviation $\\sigma = 8$ grams. Find the probability that one randomly selected box weighs less than $488$ grams.",
+      "options": [
+        "$P(X < 488) \\approx 0.067$",
+        "$P(X < 488) \\approx 0.134$",
+        "$P(X < 488) \\approx 0.933$",
+        "$P(X < 488) \\approx 0.500$"
+      ],
+      "expected": "$Z = \\frac{488 - 500}{8} = -1.50$. From the standard normal table, $P(Z < -1.50) \\approx 0.067$, so $P(X < 488) \\approx 0.067$."
+    },
+    {
+      "id": "gen-06-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes what the Central Limit Theorem applies to?",
+      "options": [
+        "The distribution of the raw population values.",
+        "The distribution of sample variances from repeated samples.",
+        "The distribution of sample means from repeated samples.",
+        "The exact distribution of every individual sample."
+      ],
+      "expected": "The distribution of sample means from repeated samples."
+    },
+    {
+      "id": "gen-06-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If the population is heavily skewed, the Central Limit Theorem says the raw data values become normally distributed when $n$ is large.",
+      "options": [
+        "True",
+        "False.",
+        "Only if $\\sigma = 1$",
+        "Only for $95\\%$ confidence intervals"
+      ],
+      "expected": "False. The Central Limit Theorem concerns the sampling distribution of $\\bar{x}$, not the distribution of the individual raw data values."
+    },
+    {
+      "id": "gen-06-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A student says that a $95\\%$ confidence interval means there is a $95\\%$ probability that the fixed population mean $\\mu$ lies inside the interval already computed from one sample. Give the better frequentist interpretation.",
+      "options": [
+        "The population mean changes randomly from sample to sample.",
+        "The computed interval contains $95\\%$ of all individual observations.",
+        "If the same sampling method were repeated many times, about $95\\%$ of the intervals would contain $\\mu$.",
+        "The sample mean has probability $0.95$ of equalling $\\mu$."
+      ],
+      "expected": "The better interpretation is: if the same sampling procedure were repeated many times, about $95\\%$ of the resulting confidence intervals would contain the true fixed mean $\\mu$. For one already computed interval, $\\mu$ is fixed and the interval either contains it or does not."
+    },
+    {
+      "id": "gen-06-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A sample of $n = 64$ cereal boxes has sample mean $\\bar{x} = 503.2$ grams. The process standard deviation is known to be $\\sigma = 12$ grams. Compute a $95\\%$ confidence interval for the true mean fill weight $\\mu$ using $z = 1.96$.",
+      "options": [
+        "$(500.26, 506.14)$ grams",
+        "$(501.70, 504.70)$ grams",
+        "$(499.28, 507.12)$ grams",
+        "$(503.20, 506.14)$ grams"
+      ],
+      "expected": "$SE = \\frac{12}{\\sqrt{64}} = 1.5$. Margin $= 1.96 \\cdot 1.5 = 2.94$, so the $95\\%$ confidence interval is $503.2 \\pm 2.94 = (500.26, 506.14)$ grams."
+    },
+    {
+      "id": "gen-06-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A factory must show that the mean fill weight is above $500$ grams. Which critical value is appropriate for a one-sided test at significance level $\\alpha = 0.05$?",
+      "options": [
+        "$z = 1.645$",
+        "$z = 1.96$",
+        "$z = 2.576$",
+        "$z = 0.05$"
+      ],
+      "expected": "$z = 1.645$"
+    },
+    {
+      "id": "gen-06-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Assume test scores are approximately normal with mean $\\mu = 50$ and standard deviation $\\sigma = 10$. In a class of $26$ students, about how many scores are at least $1.25$ standard deviations away from the mean? Use $P(|Z| > 1.25) \\approx 0.212$.",
+      "options": [
+        "About $3$ students",
+        "About $6$ students",
+        "About $11$ students",
+        "About $21$ students"
+      ],
+      "expected": "Expected count $= 26 \\cdot 0.212 = 5.512$, which rounds to about $6$ students. The event is two-tailed because scores can be either above or below the mean by at least $1.25\\sigma$."
+    },
+    {
+      "id": "gen-06-8",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why increasing sample size narrows a confidence interval for $\\mu$ when $\\sigma$ and the confidence level stay fixed.",
+      "options": [
+        "It narrows because $\\sigma$ must decrease as $n$ increases.",
+        "It narrows because $\\bar{x}$ becomes exactly equal to $\\mu$.",
+        "It narrows because $SE = \\frac{\\sigma}{\\sqrt{n}}$ decreases as $n$ increases.",
+        "It narrows because the confidence level becomes smaller automatically."
+      ],
+      "expected": "The margin of error is $z \\cdot SE$, where $SE = \\frac{\\sigma}{\\sqrt{n}}$. With fixed $z$ and $\\sigma$, increasing $n$ increases $\\sqrt{n}$, so $SE$ and the margin of error decrease."
+    },
+    {
+      "id": "gen-06-9",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: For a normal distribution, approximately $2.5\\%$ of observations lie above $\\mu + 2\\sigma$.",
+      "options": [
+        "True",
+        "False.",
+        "Only when $n > 30$",
+        "Only when $\\mu = 0$"
+      ],
+      "expected": "True. The empirical rule says about $95\\%$ lie within $\\mu \\pm 2\\sigma$, leaving about $5\\%$ outside; symmetry puts about $2.5\\%$ in each tail."
+    },
+    {
+      "id": "gen-06-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "For $X \\sim N(80, 25)$, what are the mean and standard deviation of $X$?",
+      "options": [
+        "Mean $80$, standard deviation $25$",
+        "Mean $80$, standard deviation $5$",
+        "Mean $25$, standard deviation $80$",
+        "Mean $5$, standard deviation $80$"
+      ],
+      "expected": "Mean $80$, standard deviation $5$"
+    },
+    {
+      "id": "gen-06-11",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A population has mean $\\mu = 72$ and standard deviation $\\sigma = 18$. Samples of size $n = 36$ are taken. Using the Central Limit Theorem, approximate $P(\\bar{x} > 78)$.",
+      "options": [
+        "$0.0228$",
+        "$0.1587$",
+        "$0.8413$",
+        "$0.9772$"
+      ],
+      "expected": "$SE = \\frac{18}{\\sqrt{36}} = 3$. Then $Z = \\frac{78 - 72}{3} = 2$, so $P(\\bar{x} > 78) = P(Z > 2) \\approx 0.0228$."
+    },
+    {
+      "id": "gen-06-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for computing a two-sided confidence interval for $\\mu$ when $\\sigma$ is known. Inputs should include $\\bar{x}$, $\\sigma$, $n$, and the confidence level.",
+      "options": [
+        "Use $\\bar{x} \\pm z \\cdot \\sigma$ without dividing by $\\sqrt{n}$.",
+        "Use $\\bar{x} \\pm z \\cdot \\frac{\\sigma}{\\sqrt{n}}$ after selecting the correct two-sided critical value.",
+        "Use $\\mu \\pm z \\cdot \\frac{\\sigma}{\\sqrt{n}}$ because $\\mu$ is known.",
+        "Return only the lower bound because the interval is two-sided."
+      ],
+      "expected": "A correct sketch selects the two-sided critical value, computes $SE$, computes the margin, and returns both bounds.\n```text\nprocedure $confidence_interval$($x_bar$, sigma, n, $confidence_level$)\n    $alpha_text$ <- \"one minus $confidence_level$\"\n    $z_text$ <- \"critical value for $alpha_text$ divided by two\"\n    $se_text$ <- \"sigma divided by square root of n\"\n    $margin_text$ <- \"$z_text$ multiplied by $se_text$\"\n    $lower_text$ <- \"$x_bar$ minus $margin_text$\"\n    $upper_text$ <- \"$x_bar$ plus $margin_text$\"\n    return $lower_text$, $upper_text$\nend procedure\n```\nFor example, for a $95\\%$ interval the critical value is $z = 1.96$ and the formula is $\\bar{x} \\pm 1.96 \\cdot \\frac{\\sigma}{\\sqrt{n}}$."
+    },
+    {
+      "id": "gen-06-13",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Describe the difference between standard deviation $\\sigma$ and standard error $SE$ in the context of sampling.",
+      "options": [
+        "$\\sigma$ measures spread of individual observations; $SE$ measures spread of sample means.",
+        "$SE$ measures spread of individual observations; $\\sigma$ measures spread of confidence levels.",
+        "They are always equal when the population is normal.",
+        "$SE$ is larger than $\\sigma$ whenever $n > 1$."
+      ],
+      "expected": "$\\sigma$ describes the spread of individual population observations. $SE = \\frac{\\sigma}{\\sqrt{n}}$ describes the spread of the sampling distribution of $\\bar{x}$, so it measures how much sample means vary across repeated samples."
+    },
+    {
+      "id": "gen-06-14",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A $99\\%$ confidence interval is computed using known $\\sigma$. Which critical value should be used for a two-sided interval?",
+      "options": [
+        "$z = 1.645$",
+        "$z = 1.96$",
+        "$z = 2.326$",
+        "$z = 2.576$"
+      ],
+      "expected": "$z = 2.576$"
+    },
+    {
+      "id": "gen-06-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for checking whether a normally distributed process meets a lower specification limit. Inputs should include process mean $\\mu$, process standard deviation $\\sigma$, lower limit $L$, and maximum allowed defect probability.",
+      "options": [
+        "Compare $\\mu$ directly with the allowed probability.",
+        "Compute a $Z$-score for $L$, calculate $P(X < L)$, and compare it with the allowed defect probability.",
+        "Use a two-sided confidence interval even though the specification is lower-sided.",
+        "Reject automatically whenever $L < \\mu$."
+      ],
+      "expected": "A correct sketch standardises the limit, finds the lower-tail probability, and compares that probability with the allowed defect rate.\n```text\nprocedure lower_spec_check(mu, sigma, $lower_limit$, max_defect_probability)\n    $z_text$ <- \"$lower_limit$ minus mu, divided by sigma\"\n    defect_probability_text <- \"standard normal cumulative probability at $z_text$\"\n    if defect_probability_text is less than or equal to max_defect_probability then\n        return \"meets specification\", defect_probability_text\n    else\n        return \"fails specification\", defect_probability_text\n    end if\nend procedure\n```\nThe key calculation is $z = \\frac{L - \\mu}{\\sigma}$ followed by $P(X < L) = P(Z < z)$."
+    }
+  ],
+  "generationError": null
+}

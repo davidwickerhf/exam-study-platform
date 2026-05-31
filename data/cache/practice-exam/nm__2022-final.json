@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-05-31T00:25:03.622Z",
+  "courseId": "nm",
+  "examId": "2022-final",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Q1",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Explain the similarity between decimal arithmetic rounded to 4 significant figures and binary double-precision floating-point arithmetic.\n\nApply one step of the bisection method, followed by one step of Newton’s method, to estimate a root of the function\n$$\nf(x)=x(x^2-2)-1\n$$\nin the interval $[0,2]$.\n\nWhen applying Newton’s method, start in the midpoint of the interval under consideration, and use rounded arithmetic to 4 significant figures throughout your calculation.",
+      "modelAnswer": "[2.5] Both are floating-point arithmetics, so have the same kind of roundoff errors, Double-precision is more accurate (16sf). Can use rounded decimal arithmetic to get insight into errors in double-precision computer arithmetic.\n\n[3] Take $a=0$, $b=2$, $c=(a+b)/2)=1$. $f(a)=f(0)=-1$, $f(b)=f(2)=2\\times(2^2-2)-1=3$, $f(c)=f(1)=-2$. $\\operatorname{sgn}(f(c))=\\operatorname{sgn}(f(a))$, so root in $[c,b]=[1,2]$.\n\n[1] Newton method $p_{n+1}=p_n-f(p_n)/f'(p_n)$\n\n[1] $f'(x)=3x^2-2$.\n\n[4.5] Take $p_0=(1+2)/2=1.5$, $f(p_0)=-0.6250$, $f'(p_0)=4.750$. $p_1=p_0-f(p_0)/f'(p_0)=1.5-(-0.6250)/4.750=1.5-0.1316=1.318$.",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Use the two-stage Adams-Bashforth method to find the solution of the initial value problem $\\dot{y}=1/(1+ty)$, $y(1)=2.0000$, $t\\in[0,1.5]$, with $h=0.5$.\n\nBootstrap your calculation using values of $w_1\\approx y(0.5)$ for the most appropriate of the methods below, giving a reason for your answer.\n\n1st-order Euler: $w_1=2.50000000$\n2nd-order Ralston: $w_1=2.33593750$\n3rd-order Heun: $w_1=2.33949416$\n4th-order Runge-Kutta: $w_1=2.33676365$\nCalculate the absolute and relative error of $y(1.5)$, given that the exact value is $2.63577585$ (8dp).\nRoughly what would you expect the absolute error to be if you were to use $h=0.25$?",
+      "modelAnswer": "The two-stage Adams-Bashforth method is second order, so bootstrap with the 2nd-order Ralston value:\n$$\nw_1=2.33593750.\n$$\n\nUsing the data in increasing $t$ order:\n$$\nt_0=0.5,\\quad w_0=2.33593750,\\quad t_1=1.0,\\quad w_1=2.0000.\n$$\n\n$$\nf(t,y)=\\frac{1}{1+ty}.\n$$\n\n$$\nf(t_0,w_0)=\\frac{1}{1+0.5\\cdot2.33593750}=0.46153846,\n$$\n\n$$\nf(t_1,w_1)=\\frac{1}{1+1\\cdot2.0000}=0.33333333.\n$$\n\nTwo-stage Adams-Bashforth:\n$$\nw_{i+1}=w_i+\\frac{h}{2}\\left(3f(t_i,w_i)-f(t_{i-1},w_{i-1})\\right).\n$$\n\nHence\n$$\nw_2=2.0000+\\frac{0.5}{2}\\left(3\\cdot0.33333333-0.46153846\\right)=2.13461538.\n$$\n\nThis is the approximation at $t=1.5$.\n\nAbsolute error:\n$$\n|2.63577585-2.13461538|=0.50116047.\n$$\n\nRelative error:\n$$\n\\frac{0.50116047}{2.63577585}=0.19013772.\n$$\n\nSince the two-stage Adams-Bashforth method is second order, halving $h$ should reduce the absolute error by about a factor $4$, so for $h=0.25$ the expected absolute error is roughly\n$$\n\\frac{0.50116047}{4}=0.12529012.\n$$",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Use divided differences to compute the cubic polynomial interpolating the following data:\n\n| $i$ | 0 | 1 | 2 | 3 | 4 |\n|---|---|---|---|---|---|\n| $x_i$ | 2.0 | 2.25 | 2.5 | 2.75 | 3.0 |\n| $f(x_i)$ | 0.838 | 0.509 | 0.180 | 0.041 | 0.020 |\n\nEstimate the value of $f(x)$ when $x=2.333$.\n\nProvide a bound on the error of your estimate if the data comes from a function $f$ satisfying $f''''(x)\\leq140$ for $x\\in[2,3]$.\n\nHint: You may assume $f[x_0,x_1]=f[x_1,x_2]=-1.3160$, $f[x_2,x_3]=-0.5560$, $f[x_0,x_1,x_2]=0.0000$ and $f[x_1,x_2,x_3]=1.5200$.",
+      "modelAnswer": "Using $x_0=2.0$, $x_1=2.25$, $x_2=2.5$, $x_3=2.75$:\n\n$$\nf[x_0]=0.838,\n$$\n\n$$\nf[x_0,x_1]=-1.3160,\n$$\n\n$$\nf[x_0,x_1,x_2]=0.0000,\n$$\n\n$$\nf[x_0,x_1,x_2,x_3]=\\frac{f[x_1,x_2,x_3]-f[x_0,x_1,x_2]}{x_3-x_0}=\\frac{1.5200-0.0000}{2.75-2.0}=2.02666667.\n$$\n\nThe cubic interpolating polynomial is\n$$\np_3(x)=0.838-1.3160(x-2.0)+0.0000(x-2.0)(x-2.25)+2.02666667(x-2.0)(x-2.25)(x-2.5).\n$$\n\nAt $x=2.333$:\n$$\np_3(2.333)=0.838-1.3160(0.333)+2.02666667(0.333)(0.083)(-0.167)=0.39014364.\n$$\n\nThe interpolation error is\n$$\nf(x)-p_3(x)=\\frac{f''''(\\xi)}{4!}(x-x_0)(x-x_1)(x-x_2)(x-x_3).\n$$\n\nTherefore\n$$\n|f(2.333)-p_3(2.333)|\\leq\\frac{140}{24}|0.333\\cdot0.083\\cdot(-0.167)\\cdot(-0.417)|=0.01119483.\n$$",
+      "page": 6,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Use the trapezoid rule with $n=4$ partitions to approximate\n$$\n\\int_2^3 \\frac{x}{x^3-6}\\,dx.\n$$\n\nUse the trapezoid rule error estimate to estimate the error of the trapezoid rule on each of the intervals $[2.0,2.5]$ and $[2.5,3.0]$. What is your estimate of the total error? On which interval should you subdivide in order to reduce the error the most?",
+      "modelAnswer": "Let\n$$\nf(x)=\\frac{x}{x^3-6}.\n$$\n\nWith $n=4$, $h=0.25$ and nodes $2,2.25,2.5,2.75,3$:\n\n$$\nf(2)=1.000000,\n$$\n\n$$\nf(2.25)=0.416185,\n$$\n\n$$\nf(2.5)=0.259740,\n$$\n\n$$\nf(2.75)=0.185497,\n$$\n\n$$\nf(3)=0.142857.\n$$\n\nThe trapezoid rule gives\n$$\nT_4=\\frac{0.25}{2}\\left(f(2)+2f(2.25)+2f(2.5)+2f(2.75)+f(3)\\right)=0.358250.\n$$\n\nFor the error estimate,\n$$\nf''(x)=\\frac{2x^3(2x^3+21)}{(x^3-6)^3}.\n$$\n\nOn $[2.0,2.5]$, using $\\max |f''(x)|\\approx f''(2)=116$, and $h=0.25$ with two subintervals,\n$$\n|E_{[2.0,2.5]}|\\leq\\frac{0.5}{12}(0.25)^2\\cdot116=0.302083.\n$$\n\nOn $[2.5,3.0]$, using $\\max |f''(x)|\\approx f''(2.5)=2.935$, and $h=0.25$ with two subintervals,\n$$\n|E_{[2.5,3.0]}|\\leq\\frac{0.5}{12}(0.25)^2\\cdot2.935=0.007643.\n$$\n\nEstimated total error:\n$$\n0.302083+0.007643=0.309726.\n$$\n\nThe interval $[2.0,2.5]$ should be subdivided in order to reduce the error the most.",
+      "page": 8,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Compute the first approximation $s_1$ of the discrete Fourier transform for the following $n=6$ data points over the time interval $[0,2\\pi]$:\n\n| $t_j$ | 0 | $\\frac{1}{3}\\pi$ | $\\frac{2}{3}\\pi$ | $\\pi$ | $\\frac{4}{3}\\pi$ | $\\frac{5}{3}\\pi$ |\n|---|---|---|---|---|---|---|\n| $y_j$ | 2.08 | 2.26 | 1.63 | 0.18 | 0.43 | 1.53 |\n\nHence estimate the value of $y$ when $t=\\pi/2$, and the value of $\\int_0^{2\\pi} f(t)^2\\,dt$.",
+      "modelAnswer": "[2] Take $m=3$, $n=6$. $a_0=\\frac{1}{m}\\sum_{j=0}^{n-1}y_j=\\frac{1}{3}\\sum_{j=0}^{5}y_j$, $a_1=\\frac{1}{3}\\sum_{j=0}^{5}y_j\\cos(t_j)$, $b_1=\\frac{1}{3}\\sum_{j=0}^{5}y_j\\sin(t_j)$.\n\n[1] $a_0=(2.08+2.26+1.63+0.18+0.43+1.53)/3=8.11/3=2.703$.\n\n[2] $\\cos(\\pi/3)=0.5$, $a_1=(1\\times2.08+\\frac{1}{2}\\times2.26-\\frac{1}{2}\\times1.63-1\\times0.18-\\frac{1}{2}\\times0.43+\\frac{1}{2}\\times1.53)/3=(2.080+1.130-0.815-0.180-0.215+0.765)/3=2.765/3=0.922$.\n\n[2] $\\sin(\\pi/3)=\\sqrt{3}/2=0.866$, $b_1=0.866\\times(0+2.26+1.63+0-0.43-1.53)/3=0.866\\times1.93/3=0.557$.\n\n[1] $s_1(t)=a_0/2+a_1\\cos(t)+b_1\\sin(t)$.\n\n[2] $s_1(\\pi/2)=2.703/2+0\\times1.352+1\\times0.557=1.352+0+0.557=1.909=1.91(2dp)$.\n\n[2] $\\int_0^{2\\pi}s_1(t)^2\\,dt=(a_0^2/2+a_1^2+b_1^2)\\pi=(2.703^2/2+0.922^2+0.557^2)\\times\\pi=(3.654+0.849+0.310)\\times\\pi=4.814\\times\\pi=15.12$.",
+      "page": 10,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Let\n$$\nA=\\begin{pmatrix}5&1&2\\\\-1&2&0\\\\2&0&-3\\end{pmatrix},\\quad b=\\begin{pmatrix}1\\\\3\\\\2\\end{pmatrix}.\n$$\n\nIs $A$ diagonally dominant? What does this tell you about the convergence of the Gauss–Seidel method?\n\nApply two steps of the Gauss–Seidel method to find an approximate solution $x_2$ of $Ax=b$.\nWhat is the residual of $x_2$?",
+      "modelAnswer": "$A$ is diagonally dominant, since\n$$\n|5|>|1|+|2|,\n$$\n\n$$\n|2|>|-1|+|0|,\n$$\n\n$$\n|-3|>|2|+|0|.\n$$\n\nTherefore the Gauss–Seidel method converges.\n\nThe equations are\n$$\nx_1=\\frac{1-x_2-2x_3}{5},\n$$\n\n$$\nx_2=\\frac{3+x_1}{2},\n$$\n\n$$\nx_3=\\frac{2x_1-2}{3}.\n$$\n\nStarting with $x^{(0)}=(0,0,0)^T$:\n\n$$\nx^{(1)}=\\begin{pmatrix}0.2\\\\1.6\\\\-0.53333333\\end{pmatrix}.\n$$\n\nSecond step:\n\n$$\nx_1^{(2)}=\\frac{1-1.6-2(-0.53333333)}{5}=0.09333333,\n$$\n\n$$\nx_2^{(2)}=\\frac{3+0.09333333}{2}=1.54666667,\n$$\n\n$$\nx_3^{(2)}=\\frac{2(0.09333333)-2}{3}=-0.60444444.\n$$\n\nThus\n$$\nx_2=\\begin{pmatrix}0.09333333\\\\1.54666667\\\\-0.60444444\\end{pmatrix}.\n$$\n\nThe residual is\n$$\nr=b-Ax_2=\\begin{pmatrix}1\\\\3\\\\2\\end{pmatrix}-\\begin{pmatrix}0.81333333\\\\3.00000000\\\\2.00000000\\end{pmatrix}=\\begin{pmatrix}0.18666667\\\\0\\\\0\\end{pmatrix}.\n$$",
+      "page": 12,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 8,
+      "sharedContext": "",
+      "text": "Consider the following equation for the forced Van der Pol oscillator:\n\n$$\n\\ddot{x}+\\mu(1-x^2)\\dot{x}+x=A\\cos(\\omega t)\n$$\n\nShow how to solve this differential equation in Matlab, including the code you would use.",
+      "modelAnswer": "[4] Introduce variable $v=\\dot{x}$. Then $\\dot{v}=\\ddot{x}=A\\cos(\\omega t)-\\mu(1-x^2)v-x=g(t,x,v)$.\nState $y=(x,v)$ with $\\dot{y}=(\\dot{x},\\dot{v})=(v,g(t,x,v))=(y_2,g(t,y_1,y_2))=:f(t,y)$.\n\n[4]\n```matlab\nParameters mu=...; A=...; omega=...;\nAcceleration g=@(t,x,v) A*cos(omega*t)-mu*(1-x^2)*v-x;\nRight-hand side f=@(t,y) [y(2);g(t,y(1),y(2))]\nInitial condition x0=...; v0=...; y0=[x0;v0];\nInitial and final times t0=0; tf=...;\nSolve system ode45(f,[t0,tf],y0);\n```",
+      "page": 14,
+      "type": "pseudocode",
+      "options": []
+    }
+  ]
+}

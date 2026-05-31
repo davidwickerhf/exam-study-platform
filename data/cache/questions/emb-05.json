@@ -1,0 +1,238 @@
+{
+  "generatedAt": "2026-05-30T23:49:05.466Z",
+  "chapterId": "05",
+  "questions": [
+    {
+      "id": "gen-05-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A. A student can build an STM32 project successfully, but pressing Run As uploads nothing and the board appears as an unknown USB device on the host. Which diagnosis best respects the embedded workflow stage model?",
+      "options": [
+        "Treat it as a build-stage problem and inspect syntax errors in Core/Src/main.c.",
+        "Treat it as a flash or connection-stage problem and first check the STLINK-V3E driver, the CN8 USB connection, and board switch settings.",
+        "Treat it as a runtime-stage problem and add breakpoints around HAL_GPIO_TogglePin.",
+        "Treat it as a CubeMX code-generation problem and regenerate the project with all library files copied."
+      ],
+      "expected": "The best answer is: Treat it as a flash or connection-stage problem and first check the STLINK-V3E driver, the CN8 USB connection, and board switch settings. A successful build means compilation and linking already produced an image. Failure to detect or program the board points to host-to-target connectivity: the STLINK-V3E driver such as STSW-LINK009, the correct USB connector CN8, and the required switch configuration SW5 OFF and SW4 ON. Changing application code is unlikely to fix a board enumeration or programming failure."
+    },
+    {
+      "id": "gen-05-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A. A team says: CubeMX and CubeIDE are basically the same thing because CubeIDE contains CubeMX panels. Which correction is most technically precise for this course workflow?",
+      "options": [
+        "CubeMX is only for debugging, while CubeIDE is only for flashing.",
+        "CubeMX handles project, peripheral, pin, and clock configuration and code generation; CubeIDE builds, flashes, and debugs the generated project, even when CubeMX features are embedded inside it.",
+        "CubeIDE configures the clock tree, while CubeMX compiles and links the executable image.",
+        "CubeProgrammer replaces both CubeMX and CubeIDE because it can configure peripherals and compile code."
+      ],
+      "expected": "The best answer is: CubeMX handles project, peripheral, pin, and clock configuration and code generation; CubeIDE builds, flashes, and debugs the generated project, even when CubeMX features are embedded inside it. The mental model separates configuration from build, flash, and debug. Confusing tool integration with workflow stage equivalence makes failure isolation harder."
+    },
+    {
+      "id": "gen-05-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A. After regenerating code from CubeMX, a student's LED loop disappeared from main.c. Which original project-generation choice and coding location would most directly prevent this?",
+      "options": [
+        "Select Copy only the necessary library files, and place application edits inside USER CODE blocks such as USER CODE BEGIN 3.",
+        "Select TrustZone activated, and place application edits above all include directives.",
+        "Use STM32CubeProgrammer instead of CubeIDE, and place application edits in the linker script.",
+        "Disable the STM32U5 package, and place application edits in generated HAL driver files."
+      ],
+      "expected": "The best answer is: Select Copy only the necessary library files, and place application edits inside USER CODE blocks such as USER CODE BEGIN 3. CubeMX regeneration preserves designated user sections when the project is configured to keep user code. Edits made outside those guarded regions may be overwritten when the generated skeleton is refreshed."
+    },
+    {
+      "id": "gen-05-3",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A. A debugger shows that a memory-mapped GPIO output register has the expected bit set, but no LED changes on the board. Which explanation is the strongest next hypothesis?",
+      "options": [
+        "The C compiler has failed because register writes cannot be debugged.",
+        "The GPIO pin may not be configured for output mode, or the code may be writing the wrong port or pin for the board wiring.",
+        "The binary must still be in SRAM because GPIO only works from Flash.",
+        "The ST-LINK probe cannot observe memory-mapped peripheral registers."
+      ],
+      "expected": "The best answer is: The GPIO pin may not be configured for output mode, or the code may be writing the wrong port or pin for the board wiring. Memory-mapped output writes only affect the external pin if the GPIO peripheral is clocked and the pin mode, port, and board mapping are correct. For the discovery board LEDs, the tutorial mapping includes PH6 for the red LED and PH7 for the green LED, so writing a different port or leaving the pin in its reset mode can produce a correct-looking register update with no visible LED effect."
+    },
+    {
+      "id": "gen-05-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A. Which statement best describes why the STM32U5 bus and memory architecture matters when debugging register-level code?",
+      "options": [
+        "The Cortex-M33 directly executes every peripheral without an address map, so register addresses are symbolic only.",
+        "The Cortex-M33 reaches Flash, SRAM, and peripheral regions through the bus fabric, so peripheral control is performed by ordinary load and store instructions to memory-mapped addresses.",
+        "APB peripherals are programmed by special debug-only instructions rather than by the application processor.",
+        "GPIO registers live in the project folder and are linked into the binary like C variables."
+      ],
+      "expected": "The best answer is: The Cortex-M33 reaches Flash, SRAM, and peripheral regions through the bus fabric, so peripheral control is performed by ordinary load and store instructions to memory-mapped addresses. This is why ARM load-modify-store sequences can control GPIO registers, and why debugging can inspect peripheral state as addresses rather than as abstract IDE-only objects."
+    },
+    {
+      "id": "gen-05-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A. A delay loop was calibrated by counting instructions, then the clock tree was changed in CubeMX. The source code of the loop is unchanged, but the observed timing changes. What is the best explanation?",
+      "options": [
+        "Instruction timing and timer periods depend on the configured clock tree, so the same source can run with different wall-clock timing after HCLK or timer clocks change.",
+        "C source code fixes real time, so any timing change must be caused by a damaged board.",
+        "Clock configuration affects only USB and never the Cortex-M33 or timers.",
+        "Changing HCLK changes Flash contents but not execution speed."
+      ],
+      "expected": "The best answer is: Instruction timing and timer periods depend on the configured clock tree, so the same source can run with different wall-clock timing after HCLK or timer clocks change. Embedded timing is not determined by source statements alone; it depends on clock configuration, prescalers, bus clocks, and peripheral timer setup."
+    },
+    {
+      "id": "gen-05-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A. A polling implementation repeatedly reads a button input register in a tight loop. An interrupt implementation lets the CPU execute other work until the button event occurs. Which trade-off is stated most accurately?",
+      "options": [
+        "Polling is always lower power and more responsive because it never enters the interrupt controller.",
+        "Interrupts can improve responsiveness and CPU availability for sparse events, but require correct interrupt configuration, handler design, and shared-state care.",
+        "Polling cannot read memory-mapped GPIO because only interrupts can access peripheral registers.",
+        "Interrupts remove the need for clock configuration and therefore make timing independent of HCLK."
+      ],
+      "expected": "The best answer is: Interrupts can improve responsiveness and CPU availability for sparse events, but require correct interrupt configuration, handler design, and shared-state care. Polling is simpler and can be acceptable for short waits or simple exercises, but it consumes CPU cycles while waiting. Interrupts add setup and concurrency concerns but avoid wasting the processor on constant checks."
+    },
+    {
+      "id": "gen-05-7",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A. True or false: If a project compiles and links, the embedded workflow is complete because the executable image has already been transferred to the STM32U5 target and verified on the board.",
+      "options": [
+        "True",
+        "False",
+        "True, but only when CubeMX generated the project",
+        "False, unless TrustZone is enabled"
+      ],
+      "expected": "False. Build only produces an executable image on the host. The image must still be flashed to the MCU, started on the target, and often inspected in a debug session. A clean build does not prove that ST-LINK connectivity, Flash programming, startup, GPIO configuration, or runtime behavior is correct."
+    },
+    {
+      "id": "gen-05-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A. True or false: On the B-U585I-IOT02A board used in the course, the built-in STLINK-V3E means an external programmer is not required, but the correct driver, CN8 connection, and switch settings still matter.",
+      "options": [
+        "True",
+        "False",
+        "True only for release builds",
+        "False because ST-LINK cannot debug"
+      ],
+      "expected": "True. The board has the STLINK-V3E probe built in, so no external programmer is required. However, the host must still recognize the probe and the probe must be connected to the target MCU path. The setup details include installing the STLINK-V3E driver, using the CN8 USB connector, and setting SW5 OFF and SW4 ON."
+    },
+    {
+      "id": "gen-05-9",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A. True or false: A cache can make debugging timing or memory behavior more subtle because observed performance and memory-access cost may differ from a simple one-load-equals-one-bus-access mental model.",
+      "options": [
+        "True",
+        "False",
+        "True only for GPIO output pins",
+        "False because cache is disabled by the assembler"
+      ],
+      "expected": "True. Cache is part of the execution environment, so performance and memory-observation assumptions can become more subtle than a direct-access model. Even when GPIO itself is memory-mapped, general code timing and memory fetch behavior may be affected by cache and clock configuration. The correct lesson is not to ignore cache, but to reason about the configured hardware path."
+    },
+    {
+      "id": "gen-05-10",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "SECTION A. A student reports: My LED program does not work. Give a staged failure-isolation answer that separates setup, configuration, build, flash, and runtime/debug possibilities. Mention at least one concrete check for each stage.",
+      "options": [
+        "A. Setup: check STLINK-V3E driver installation, host device detection, CN8 cable, and SW5 OFF with SW4 ON. Configuration: confirm the project was created for B-U585I-IOT02A, the STM32U5 package is installed, TrustZone is not unexpectedly enabled, and the LED pins match the board mapping such as PH6 and PH7. Build: inspect compiler and linker errors and confirm custom .c, .s, and .h files are in the expected Core/Src or Core/Inc locations. Flash: verify CubeIDE or CubeProgrammer can connect through ST-LINK and program the image. Runtime/debug: use breakpoints, watch variables, and peripheral register views to confirm the loop executes, the GPIO mode is output, and the correct ODR bits change.",
+        "B. Setup: rewrite the while loop. Configuration: ignore CubeMX. Build: press reset. Flash: change source indentation. Runtime/debug: reinstall the operating system.",
+        "C. Setup: only install CubeProgrammer. Configuration: delete generated files. Build: ignore linker errors. Flash: assume success if the cable is plugged in. Runtime/debug: avoid breakpoints because they change code."
+      ],
+      "expected": "A strong answer should classify symptoms before changing random code. Setup checks include STLINK-V3E driver installation, host enumeration, CN8, and switch settings. Configuration checks include selecting B-U585I-IOT02A, using the STM32U5 package, reviewing clock and GPIO pin setup, and ensuring TrustZone is not activated unless intended. Build checks include compiler and linker output plus correct placement of source and header files. Flash checks include ST-LINK connection and successful programming. Runtime checks include breakpoints, peripheral register views, correct GPIO mode, and confirming that the executing code reaches the LED toggle path."
+    },
+    {
+      "id": "gen-05-11",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B. Write ARM Thumb assembly for a function named set_bit_if_nonzero. The function receives a pointer to a 32-bit memory-mapped register in r0, a bit index in r1, and a value in r2. If r2 is nonzero, set that bit in the register. If r2 is zero, leave the register unchanged. Follow the calling convention and return with BX LR.",
+      "options": [
+        "Write a correct solution using LDR, LSL, ORR, STR, CMP, conditional branch, and BX LR.",
+        "Write C code using HAL_GPIO_WritePin.",
+        "Write pseudo-pseudocode only."
+      ],
+      "expected": "A correct solution performs a load-modify-store only on the nonzero path, builds the mask by shifting $1$ left by the requested bit index, and returns without corrupting callee-saved registers.\n```arm\n.syntax unified\n.thumb\n.global set_bit_if_nonzero\n\nset_bit_if_nonzero:\n    CMP     r2, #0\n    BEQ     done\n    MOVS    r3, #1\n    LSLS    r3, r3, r1      @ r3 = 1 << $bit_index$\n    LDR     r2, [r0]        @ read register\n    ORRS    r2, r2, r3      @ set selected bit\n    STR     r2, [r0]        @ write register back\ndone:\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-05-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B. Write ARM Thumb assembly for a function named clear_bit_if_set. The function receives a pointer to a 32-bit memory-mapped register in r0 and a bit index in r1. If the bit is currently set, clear it. If it is already clear, leave the register unchanged. Use a shift, AND-based test, BIC for clearing, and the calling convention.",
+      "options": [
+        "Write a correct solution using LDR, LSL, TST or ANDS, BEQ, BIC, STR, and BX LR.",
+        "Write a linker script fragment.",
+        "Write a CubeMX pin configuration checklist."
+      ],
+      "expected": "A correct answer must test the selected bit before writing, use BIC or an equivalent clear-mask operation, and return in the normal ARM calling convention.\n```arm\n.syntax unified\n.thumb\n.global clear_bit_if_set\n\nclear_bit_if_set:\n    MOVS    r2, #1\n    LSLS    r2, r2, r1      @ r2 = 1 << $bit_index$\n    LDR     r3, [r0]        @ current register value\n    TST     r3, r2\n    BEQ     done            @ already clear\n    BICS    r3, r3, r2      @ clear selected bit\n    STR     r3, [r0]\ndone:\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-05-13",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B. Write ARM Thumb assembly for a function named wait_until_bit_set. The function receives a pointer to a 32-bit memory-mapped input register in r0 and a bit index in r1. It must poll until that bit reads as set, then return 1 in r0. Use a loop, shift, load, AND or TST, and conditional branch.",
+      "options": [
+        "Write a correct polling loop in ARM Thumb assembly.",
+        "Write an interrupt handler in English.",
+        "Write C using while and $HAL_Delay$."
+      ],
+      "expected": "A correct solution builds the bit mask once, repeatedly reloads the volatile memory-mapped register, tests the bit, and returns $1$ in r0 when the input becomes set.\n```arm\n.syntax unified\n.thumb\n.global wait_until_bit_set\n\nwait_until_bit_set:\n    MOVS    r2, #1\n    LSLS    r2, r2, r1      @ r2 = 1 << $bit_index$\npoll:\n    LDR     r3, [r0]\n    TST     r3, r2\n    BEQ     poll\n    MOVS    r0, #1\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-05-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B. Write ARM Thumb assembly for a function named count_down_toggle. The function receives a pointer to a 32-bit GPIO output register in r0, a bit index in r1, and a loop count in r2. It must toggle that output bit exactly r2 times using load-modify-store. If r2 is zero, return immediately. Preserve any callee-saved registers you use.",
+      "options": [
+        "Write a correct ARM Thumb loop using EOR for toggle and PUSH/POP if callee-saved registers are used.",
+        "Write generic pseudocode with no registers.",
+        "Write only the CubeIDE menu sequence."
+      ],
+      "expected": "A correct answer should use a counter loop, construct the mask, perform a read-modify-write with EOR, and respect the calling convention. This version uses only caller-saved registers, so no PUSH or POP is required.\n```arm\n.syntax unified\n.thumb\n.global count_down_toggle\n\ncount_down_toggle:\n    CMP     r2, #0\n    BEQ     done\n    MOVS    r3, #1\n    LSLS    r3, r3, r1      @ r3 = 1 << $bit_index$\nloop:\n    LDR     r1, [r0]\n    EORS    r1, r1, r3      @ toggle selected bit\n    STR     r1, [r0]\n    SUBS    r2, r2, #1\n    BNE     loop\ndone:\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-05-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B. Write ARM Thumb assembly for a recursive function named sum_to_n. It receives n in r0 and returns 1 plus 2 plus ... plus n in r0. For n less than or equal to zero, return zero. Follow the calling convention, preserve LR across BL, and use the stack correctly.",
+      "options": [
+        "Write a correct recursive ARM Thumb function using PUSH, POP, BL, comparison, and BX LR.",
+        "Write an iterative C function.",
+        "Write a HAL callback."
+      ],
+      "expected": "A correct recursive solution must save LR before calling itself, preserve the original n across the recursive call, define the base case, and return the result in r0. This implementation also saves r4 because it uses r4 as a callee-saved register.\n```arm\n.syntax unified\n.thumb\n.global sum_to_n\n\nsum_to_n:\n    CMP     r0, #0\n    BLE     $base_case$\n    PUSH    {r4, lr}\n    MOV     r4, r0          @ save n\n    SUBS    r0, r0, #1\n    BL      sum_to_n\n    ADDS    r0, r0, r4      @ return sum_to_n(n - 1) + n\n    POP     {r4, pc}\n\n$base_case$:\n    MOVS    r0, #0\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-05-16",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B. Write ARM Thumb assembly for a function named gpio_masked_write. It receives a pointer to a 32-bit output register in r0, a mask in r1, and a value in r2. The function must update only the bits selected by the mask: clear the masked bits, then OR in value masked by the same mask. Return the new register value in r0. Follow the calling convention.",
+      "options": [
+        "Write a correct ARM Thumb implementation using LDR, BIC, AND, ORR, STR, and returning the written value.",
+        "Write C using volatile uint32_t only.",
+        "Write a linker map explanation."
+      ],
+      "expected": "A correct solution must not disturb unmasked bits. It should compute value masked by mask, clear the selected bits in the original register value, OR in the masked value, write back, and return the new value in r0.\n```arm\n.syntax unified\n.thumb\n.global gpio_masked_write\n\ngpio_masked_write:\n    LDR     r3, [r0]        @ current output register\n    ANDS    r2, r2, r1      @ keep only masked value bits\n    BICS    r3, r3, r1      @ clear selected destination bits\n    ORRS    r3, r3, r2      @ insert new selected bits\n    STR     r3, [r0]\n    MOV     r0, r3          @ return new register value\n    BX      lr\n```"
+    }
+  ],
+  "generationError": null
+}

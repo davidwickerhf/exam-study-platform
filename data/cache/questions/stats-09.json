@@ -1,0 +1,246 @@
+{
+  "generatedAt": "2026-05-30T23:41:05.997Z",
+  "chapterId": "09",
+  "questions": [
+    {
+      "id": "gen-09-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A study reports Pearson correlation $r = -0.80$ between weekly study hours $X$ and exam errors $Y$. Explain what this says about below-mean and above-mean values of $X$ and $Y$, and state whether it supports the claim that below-mean $X$ is associated with below-mean $Y$.",
+      "options": [
+        "Expected 1 option placeholder? Wait schema? options array strings. Need empty. But final schema must be object. Need no weird. I mistakenly in final? Must be valid JSON. Restart. Ensure no accidental. Need final only JSON. The schema output currently typed? We can provide valid. Need avoid ",
+        "? Let's construct fully. Use $response_format$? in final must be JSON object. Need enough detail. Need options empty for non-mc. JSON strings with escaped \n for fences. Need math inside strings. Need not include markdown outside JSON. Pseudocode code block has no math operators. Need maybe language text no math. Let's craft. Ensure exactly 16: written 4, calc 4, mc 4, tf 2, pseudocode 2 = 16. Most medium/hard. Need all expected. In JSON no unescaped newlines within strings except we can include \n. Need type values. Need mc expected exact text. Options array exactly 4. Need difficulty. Need avoid bare ",
+        "? Let's draft mentally. Q1 written. Q2 written Spearman vs Pearson close. Q3 written causation. Q4 written outlier. Calcs: Pearson simple maybe x [1,2,3], y [2,4,6] r=1 with method. Need math all arrays as `$[1,2,3]$`? Commas okay. Formulas. Calc Spearman ranks with reversed order $r_s$=-1. Calc covariance formula maybe compute rho. Calc Spearman formula using $d_i$ maybe formula. Need all math in delimiters. Options: MC Pearson captures? MC transform log affects Spearman? MC negative correlations interpretation; MC nonmonotonic U-shape. TF: Pearson zero no relationship false; Spearman ordinal true. Pseudocode: algorithm compute Spearman with ties maybe average ranks; expected contains code no symbols? Code needs maybe ",
+        "? No bare =. But ",
+        " okay. It can use "
+      ],
+      "expected": "```text\nprocedure ComputeSpearman\ninput xList and yList\nensure the two lists have the same length\nxRanks gets AverageRanks of xList\nyRanks gets AverageRanks of yList\nresult gets PearsonCorrelation of xRanks and yRanks\nreturn result\n\nprocedure AverageRanks\ninput values\npair each value with its original position\nsort pairs by value from smallest to largest\nscan equal value blocks\nfor each block\n    firstRank gets the first rank position in the block\n    lastRank gets the last rank position in the block\n    rankForBlock gets the average of firstRank and lastRank\n    write rankForBlock back to every original position in the block\nreturn ranks\n```"
+    },
+    {
+      "id": "gen-09-1",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for deciding whether Pearson correlation and Spearman correlation together suggest a linear relationship, a monotonic but curved relationship, or a possible outlier-driven linear result. Use thresholds such as large absolute correlation and a meaningful gap between the two measures.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "```text\nprocedure ClassifyCorrelationPattern\ninput pearsonValue and spearmanValue\nabsPearson gets absolute value of pearsonValue\nabsSpearman gets absolute value of spearmanValue\ngap gets absolute value of absSpearman minus absPearson\n\nif absPearson is high and absSpearman is high and gap is small then\n    return mostly linear monotonic association\n\nif absSpearman is high and absPearson is moderate or low then\n    return monotonic but curved association\n\nif absPearson is high and absSpearman is low then\n    return possible outlier driven linear association\n\nif absPearson is low and absSpearman is low then\n    return no strong monotonic or linear association detected\n\nreturn mixed evidence requiring a scatterplot\n```"
+    },
+    {
+      "id": "gen-09-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "For $X = [1,2,3]$ and $Y = [2,4,6]$, compute the sample Pearson correlation $r$ using centered values.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The answer is $r = 1$. Since $\bar{x} = 2$ and $\bar{y} = 4$, the centered vectors are $[-1,0,1]$ and $[-2,0,2]$, so $$r = \\frac{(-1)(-2)+0\\cdot 0+1\\cdot 2}{\\sqrt{(-1)^2+0^2+1^2}\\sqrt{(-2)^2+0^2+2^2}} = \\frac{4}{4} = 1.$$"
+    },
+    {
+      "id": "gen-09-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "For observations $X = [10,20,30,40]$ and $Y = [8,6,4,2]$, compute Spearman correlation by ranking both variables from smallest to largest.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The answer is $r_s = -1$. The ranks are $R_X = [1,2,3,4]$ and $R_Y = [4,3,2,1]$, which are perfectly reversed, so Pearson correlation on the ranks is $-1$."
+    },
+    {
+      "id": "gen-09-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A data set has $\text{cov}(X,Y) = -12$, $\\sigma_X = 3$, and $\\sigma_Y = 8$. Compute Pearson correlation $\rho$ and interpret the sign.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The answer is $\rho = -0.5$. Using $$\rho = \\frac{\\text{cov}(X,Y)}{\\sigma_X\\sigma_Y} = \\frac{-12}{3\\cdot 8} = -0.5,$$ the variables have a moderate negative linear association."
+    },
+    {
+      "id": "gen-09-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Use the no-ties Spearman shortcut $$r_s = 1 - \\frac{6\\sum d_i^2}{n(n^2-1)}$$ for rank pairs $(R_X,R_Y)$ equal to $(1,1)$, $(2,3)$, $(3,2)$, $(4,4)$, and $(5,5)$. Compute $r_s$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The rank differences are $d_i = [0,-1,1,0,0]$, so $\\sum d_i^2 = 2$ and $n = 5$. Therefore $$r_s = 1 - \\frac{6\\cdot 2}{5(5^2-1)} = 1 - \\frac{12}{120} = 0.90.$$"
+    },
+    {
+      "id": "gen-09-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes Pearson correlation?",
+      "options": [
+        "It measures the strength and direction of linear association between two quantitative variables.",
+        "It proves that changes in one variable cause changes in the other variable.",
+        "It measures any monotonic relationship equally well, whether curved or straight.",
+        "It can only be used when both variables are binary."
+      ],
+      "expected": "It measures the strength and direction of linear association between two quantitative variables."
+    },
+    {
+      "id": "gen-09-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A scatterplot follows a strictly increasing curve such as $Y = X^2$ for positive $X$. Which comparison is most likely?",
+      "options": [
+        "Spearman correlation is close to $1$, while Pearson correlation may be lower because the pattern is not exactly linear.",
+        "Pearson correlation must be $0$ because the relationship is curved.",
+        "Spearman correlation must be negative because the curve is not a straight line.",
+        "Both correlations must be exactly equal because they use the same raw values."
+      ],
+      "expected": "Spearman correlation is close to $1$, while Pearson correlation may be lower because the pattern is not exactly linear."
+    },
+    {
+      "id": "gen-09-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Pearson correlation is $r = -0.82$ and Spearman correlation is $r_s = -0.80$. Which interpretation is strongest?",
+      "options": [
+        "The association is strongly decreasing and likely monotonic, with roughly linear structure.",
+        "The association is positive for below-mean values and negative for above-mean values.",
+        "The Pearson value is invalid because it differs from Spearman correlation.",
+        "The variables must have a causal relationship because both correlations are strong."
+      ],
+      "expected": "The association is strongly decreasing and likely monotonic, with roughly linear structure."
+    },
+    {
+      "id": "gen-09-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which data feature most clearly explains a large difference between Pearson correlation and Spearman correlation?",
+      "options": [
+        "A monotonic but strongly curved relationship or influential outliers.",
+        "A perfectly straight-line relationship with evenly spaced points.",
+        "Two variables measured on exactly the same numerical scale.",
+        "A sample size larger than $30$."
+      ],
+      "expected": "A monotonic but strongly curved relationship or influential outliers."
+    },
+    {
+      "id": "gen-09-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If Pearson correlation is $r = 0$, then there is no relationship of any kind between the two variables.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. Pearson correlation $r = 0$ only means no linear association was detected; a curved or non-monotonic relationship may still exist."
+    },
+    {
+      "id": "gen-09-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Spearman correlation can be appropriate for ordinal data because it works with ranks rather than requiring interval-scale distances.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. Spearman correlation uses ranked values, so it can summarize monotonic association when the ordering is meaningful even if exact numerical gaps are not."
+    },
+    {
+      "id": "gen-09-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why correlation alone does not establish causation. In your answer, mention at least two alternative explanations for a correlation between $X$ and $Y$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A good answer says that correlation shows association, not causal direction. The observed relationship between $X$ and $Y$ could be caused by a confounder $Z$, reverse causation where $Y$ affects $X$, selection effects, or coincidence; a causal claim needs stronger design evidence such as randomization or credible causal identification."
+    },
+    {
+      "id": "gen-09-13",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A researcher reports Pearson correlation $r = 0.25$ and Spearman correlation $r_s = 0.92$ for the same variables. Explain what this suggests about the relationship and why the two measures differ.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "This suggests a strong increasing monotonic relationship that is not well described by a straight line, or possibly raw-scale features that weaken Pearson correlation. Spearman correlation $r_s = 0.92$ is high because the ranks of $X$ and $Y$ mostly move together, while Pearson correlation $r = 0.25$ is low because Pearson measures linear association in the original units."
+    },
+    {
+      "id": "gen-09-14",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A data set has one extreme observation with very large $X$ and very large $Y$. Explain why Pearson correlation may change more than Spearman correlation when this observation is added.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Pearson correlation uses raw deviations such as $(x_i - \\bar{x})(y_i - \\bar{y})$, so an extreme point can have high leverage and strongly affect the covariance and standard deviations. Spearman correlation converts values to ranks, so the extreme observation mainly receives the largest rank rather than keeping its extreme numerical distance."
+    },
+    {
+      "id": "gen-09-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Write pseudocode to compute Spearman correlation from two equal-length lists, including how tied values should be ranked.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "```text\nprocedure ComputeSpearman\ninput xList and yList\nensure the two lists have the same length\nxRanks gets AverageRanks of xList\nyRanks gets AverageRanks of yList\nresult gets PearsonCorrelation of xRanks and yRanks\nreturn result\n\nprocedure AverageRanks\ninput values\npair each value with its original position\nsort pairs by value from smallest to largest\nscan equal value blocks\nfor each block\n    firstRank gets the first rank position in the block\n    lastRank gets the last rank position in the block\n    rankForBlock gets the average of firstRank and lastRank\n    write rankForBlock back to every original position in the block\nreturn ranks\n```"
+    },
+    {
+      "id": "gen-09-16",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for classifying the relationship pattern using Pearson correlation and Spearman correlation. The algorithm should distinguish roughly linear monotonic association, monotonic but curved association, possible outlier-driven Pearson association, and weak evidence of association.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "```text\nprocedure ClassifyCorrelationPattern\ninput pearsonValue and spearmanValue\nabsPearson gets absolute value of pearsonValue\nabsSpearman gets absolute value of spearmanValue\ngap gets absolute value of absSpearman minus absPearson\n\nif absPearson is high and absSpearman is high and gap is small then\n    return roughly linear monotonic association\n\nif absSpearman is high and absPearson is moderate or low then\n    return monotonic but curved association\n\nif absPearson is high and absSpearman is low then\n    return possible outlier driven Pearson association\n\nif absPearson is low and absSpearman is low then\n    return weak evidence of linear or monotonic association\n\nreturn mixed evidence requiring a scatterplot\n```"
+    }
+  ],
+  "generationError": null
+}

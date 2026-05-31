@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:36:29.605Z",
+  "chapterId": "05",
+  "questions": [
+    {
+      "id": "gen-05-0",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A diagnostic test is used for a disease. The prevalence is $0.04$, the sensitivity is $0.92$, and the false positive rate is $0.08$. Compute $P(\\text{disease} \\mid \\text{positive})$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "$P(\\text{positive}) = 0.92 \\cdot 0.04 + 0.08 \\cdot 0.96 = 0.1136$. Therefore $P(\\text{disease} \\mid \\text{positive}) = \\frac{0.92 \\cdot 0.04}{0.1136} = 0.3239$, about $32.39\\%$."
+    },
+    {
+      "id": "gen-05-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which expression correctly applies the Law of Total Probability to compute $P(A)$ when $B$ and $B^c$ form a partition?",
+      "options": [
+        "$P(A) = P(A \\mid B)P(B) + P(A \\mid B^c)P(B^c)$",
+        "$P(A) = P(B \\mid A)P(B) + P(B^c \\mid A)P(B^c)$",
+        "$P(A) = \\frac{P(A \\mid B)P(B)}{P(B \\mid A)}$",
+        "$P(A) = P(A \\cap B)P(A \\cap B^c)$"
+      ],
+      "expected": "$P(A) = P(A \\mid B)P(B) + P(A \\mid B^c)P(B^c)$"
+    },
+    {
+      "id": "gen-05-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why the denominator in Bayes' rule is often computed using the Law of Total Probability. Use events $H$, $H^c$, and evidence $E$ in your explanation.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The denominator is $P(E)$, the total probability that the evidence occurs across all possible causes. If $H$ and $H^c$ partition the sample space, then $P(E) = P(E \\mid H)P(H) + P(E \\mid H^c)P(H^c)$, which gives the normalizing total needed in $P(H \\mid E)$."
+    },
+    {
+      "id": "gen-05-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If $P(A \\mid B) > P(A)$, then observing $B$ increases the probability of $A$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. The inequality $P(A \\mid B) > P(A)$ directly says that conditioning on $B$ raises the probability assigned to $A$."
+    },
+    {
+      "id": "gen-05-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "In a factory, machine $M_1$ produces $60\\%$ of items and has defect rate $3\\%$. Machine $M_2$ produces $40\\%$ of items and has defect rate $7\\%$. Compute $P(\\text{defective})$ and $P(M_2 \\mid \\text{defective})$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "$P(\\text{defective}) = 0.60 \\cdot 0.03 + 0.40 \\cdot 0.07 = 0.046$. Also $P(M_2 \\mid \\text{defective}) = \\frac{0.40 \\cdot 0.07}{0.046} = 0.6087$, about $60.87\\%$."
+    },
+    {
+      "id": "gen-05-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A plant dies with probability $0.70$ if a friend forgets to water it and probability $0.10$ if the friend waters it. The friend forgets with probability $0.25$. What is $P(\\text{forgot} \\mid \\text{dead})$?",
+      "options": [
+        "$0.25$",
+        "$0.30$",
+        "$0.70$",
+        "$0.75$"
+      ],
+      "expected": "$0.70$"
+    },
+    {
+      "id": "gen-05-6",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Describe the expected frequency tree method for a two-branch Bayes problem. Your answer should mention the prior branch, conditional branch, and how to read a reversed conditional probability.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Choose a convenient total such as $1000$. Split it by the prior probabilities, then split each prior branch by the relevant conditional probabilities. To compute a reversed conditional such as $P(B \\mid A)$, count leaves satisfying both $A$ and $B$, then divide by all leaves satisfying $A$."
+    },
+    {
+      "id": "gen-05-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "There are three boxes. Box $B_1$ is chosen with probability $0.20$ and contains red balls with probability $0.50$. Box $B_2$ is chosen with probability $0.50$ and contains red balls with probability $0.10$. Box $B_3$ is chosen with probability $0.30$ and contains red balls with probability $0.80$. If a red ball is drawn, compute $P(B_3 \\mid \\text{red})$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "$P(\\text{red}) = 0.20 \\cdot 0.50 + 0.50 \\cdot 0.10 + 0.30 \\cdot 0.80 = 0.39$. Thus $P(B_3 \\mid \\text{red}) = \\frac{0.30 \\cdot 0.80}{0.39} = 0.6154$, about $61.54\\%$."
+    },
+    {
+      "id": "gen-05-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: If $P(A \\mid B) = P(B \\mid A)$, then $P(A) = P(B)$ must be true whenever $P(A)$ and $P(B)$ are nonzero.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. Since $P(A \\mid B) = \\frac{P(A \\cap B)}{P(B)}$ and $P(B \\mid A) = \\frac{P(A \\cap B)}{P(A)}$, equality with $P(A \\cap B) > 0$ implies $P(A) = P(B)$; if $P(A \\cap B) = 0$, both conditionals are $0$ and the conclusion need not follow, so the statement needs that shared event probability is positive."
+    },
+    {
+      "id": "gen-05-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A student computes $P(H \\mid E)$ as $P(E \\mid H)P(H)$ and stops. What mistake did the student make?",
+      "options": [
+        "They computed the joint probability $P(H \\cap E)$, not the conditional probability $P(H \\mid E)$.",
+        "They used $P(H^c)$ instead of $P(H)$.",
+        "They assumed $H$ and $E$ are mutually exclusive.",
+        "They computed $P(E \\mid H^c)$, not $P(E \\mid H)$."
+      ],
+      "expected": "They computed the joint probability $P(H \\cap E)$, not the conditional probability $P(H \\mid E)$."
+    },
+    {
+      "id": "gen-05-10",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode that computes $P(H \\mid E)$ from a two-cause Bayes setup using inputs $P(H)$, $P(E \\mid H)$, and $P(E \\mid H^c)$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct algorithm computes $P(H^c)$, then uses the Law of Total Probability for $P(E)$ before applying Bayes' rule.\n```text\nINPUT pH\nINPUT pEGivenH\nINPUT pEGivenNotH\nSET pNotH TO $1 - pH$\nSET pE TO $pEGivenH \\cdot pH + pEGivenNotH \\cdot pNotH$\nSET answer TO $\\frac{pEGivenH \\cdot pH}{pE}$\nOUTPUT answer\n```"
+    },
+    {
+      "id": "gen-05-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A student says, \"$P(\\text{cause} \\mid \\text{effect})$ should equal $P(\\text{effect} \\mid \\text{cause})$ because they refer to the same relationship.\" Explain why this is wrong.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The two probabilities condition on different information and usually have different denominators. $P(\\text{effect} \\mid \\text{cause})$ measures how often the effect occurs within the cause group, while $P(\\text{cause} \\mid \\text{effect})$ measures how much of the observed effect group came from that cause; Bayes' rule connects them using the prior probability of the cause and the total probability of the effect."
+    },
+    {
+      "id": "gen-05-12",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "In a spam filter, $30\\%$ of emails are spam. The word \"prize\" appears in $40\\%$ of spam emails and $5\\%$ of non-spam emails. Compute $P(\\text{spam} \\mid \\text{prize})$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "$P(\\text{prize}) = 0.40 \\cdot 0.30 + 0.05 \\cdot 0.70 = 0.155$. Therefore $P(\\text{spam} \\mid \\text{prize}) = \\frac{0.40 \\cdot 0.30}{0.155} = 0.7742$, about $77.42\\%$."
+    },
+    {
+      "id": "gen-05-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A disease has prevalence $1\\%$. A test has sensitivity $99\\%$ and specificity $95\\%$. Which statement best explains why $P(\\text{disease} \\mid \\text{positive})$ is much less than $99\\%$?",
+      "options": [
+        "The false positives among the large healthy group contribute substantially to $P(\\text{positive})$.",
+        "Sensitivity and specificity must always add to $100\\%$.",
+        "A rare disease makes $P(\\text{positive} \\mid \\text{disease})$ equal to $P(\\text{disease} \\mid \\text{positive})$.",
+        "Specificity is irrelevant when computing $P(\\text{disease} \\mid \\text{positive})$."
+      ],
+      "expected": "The false positives among the large healthy group contribute substantially to $P(\\text{positive})$."
+    },
+    {
+      "id": "gen-05-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Write pseudocode for an expected frequency tree with total population $N$, prior $P(B)$, conditional probabilities $P(A \\mid B)$ and $P(A \\mid B^c)$, then output $P(A)$ and $P(B \\mid A)$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct algorithm builds the four leaf counts and uses the leaves matching $A$ as the denominator for the reversed conditional.\n```text\nINPUT N\nINPUT pB\nINPUT pAGivenB\nINPUT pAGivenNotB\nSET countB TO $N \\cdot pB$\nSET countNotB TO $N \\cdot (1 - pB)$\nSET countAAndB TO $countB \\cdot pAGivenB$\nSET countAAndNotB TO $countNotB \\cdot pAGivenNotB$\nSET countA TO $countAAndB + countAAndNotB$\nSET pA TO $\\frac{countA}{N}$\nSET pBGivenA TO $\\frac{countAAndB}{countA}$\nOUTPUT pA\nOUTPUT pBGivenA\n```"
+    },
+    {
+      "id": "gen-05-15",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A course has $45\\%$ first-year students and $55\\%$ upper-year students. The probability of passing is $0.68$ for first-year students and $0.84$ for upper-year students. Compute $P(\\text{upper-year} \\mid \\text{passed})$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "$P(\\text{passed}) = 0.45 \\cdot 0.68 + 0.55 \\cdot 0.84 = 0.768$. Therefore $P(\\text{upper-year} \\mid \\text{passed}) = \\frac{0.55 \\cdot 0.84}{0.768} = 0.6016$, about $60.16\\%$."
+    }
+  ],
+  "generationError": null
+}

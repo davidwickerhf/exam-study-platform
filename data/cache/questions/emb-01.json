@@ -1,0 +1,225 @@
+{
+  "generatedAt": "2026-05-30T23:43:22.242Z",
+  "chapterId": "01",
+  "questions": [
+    {
+      "id": "gen-01-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Which statement best separates an embedded system from a general-purpose computer in the context of this course?",
+      "options": [
+        "An embedded system is primarily defined by being physically small and having less memory than a desktop computer.",
+        "An embedded system is a computer specialised for a particular task and tightly coupled to the hardware or environment it controls.",
+        "An embedded system is any system programmed in C rather than in a high-level managed language.",
+        "An embedded system is a computer that cannot run an operating system and must always be programmed directly in assembly."
+      ],
+      "expected": "The best answer is: An embedded system is a computer specialised for a particular task and tightly coupled to the hardware or environment it controls. Size, memory capacity, and programming language are not the defining features. A modern embedded board may be powerful, may run an operating system, and may be programmed mostly in C, but it is still embedded when its purpose is tied to controlling or sensing a particular physical system."
+    },
+    {
+      "id": "gen-01-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: A student claims that the BCS2410 exam should only test microcontroller programming because quizzes and assignments are ungraded. Which option gives the best correction?",
+      "options": [
+        "The student is correct because only graded activities define exam scope.",
+        "The student is partly correct because tutorials are practical support, but lecture concepts are not exam content.",
+        "The student is wrong because the syllabus, lectures, tutorials, solution sheets, quizzes, and named tools together define the examinable boundary even when some activities are ungraded.",
+        "The student is wrong only because quizzes contribute directly to the final grade."
+      ],
+      "expected": "The best answer is: The syllabus, lectures, tutorials, solution sheets, quizzes, and named tools together define the examinable boundary even when some activities are ungraded. The final exam determines the grade apart from the bonus test, but ungraded learning material can still signal what the exam expects. A repeated concept across slides, quizzes, and practical sheets is especially likely to require both conceptual understanding and procedural fluency."
+    },
+    {
+      "id": "gen-01-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: In the course layering model, what is the most accurate order from programmer-facing source down to what the hardware physically executes?",
+      "options": [
+        "C source, ARM assembly, machine code, electrical switching activity in hardware.",
+        "Machine code, C source, ARM assembly, electrical switching activity in hardware.",
+        "C source, machine code, ARM assembly, electrical switching activity in hardware.",
+        "Electrical switching activity in hardware, machine code, ARM assembly, C source."
+      ],
+      "expected": "The best answer is: C source, ARM assembly, machine code, electrical switching activity in hardware. C is a higher-level description for humans and compilers. Assembly is a symbolic representation of instructions in the ISA. Machine code is the encoded binary form understood by the processor, and the processor realises that behaviour through physical electrical states and switching."
+    },
+    {
+      "id": "gen-01-3",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: A program works after flashing the board, then still exists after power is removed, while its local variables disappear after reset. Which memory explanation is most accurate?",
+      "options": [
+        "The program is stored in RAM because RAM is faster, while local variables are stored in Flash because Flash is non-volatile.",
+        "The program is stored in Flash because Flash is non-volatile, while local variables normally live in RAM because RAM is writable working memory.",
+        "Both the program and local variables must be stored permanently in Flash, otherwise the CPU cannot fetch instructions.",
+        "Both the program and local variables must be stored in registers, because registers are the only storage the ARM core can access."
+      ],
+      "expected": "The best answer is: The program is stored in Flash because Flash is non-volatile, while local variables normally live in RAM because RAM is writable working memory. Flash keeps firmware when power is removed. RAM is used for changing program state such as stack frames, local variables, and buffers, and its contents are lost across reset or power loss unless explicitly saved elsewhere."
+    },
+    {
+      "id": "gen-01-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Which statement best describes the ISA in an embedded ARM system?",
+      "options": [
+        "The ISA is the physical silicon layout of the microcontroller.",
+        "The ISA is the interface contract between software and processor hardware, defining visible instructions, registers, and behaviours that code can rely on.",
+        "The ISA is the STM32CubeIDE project format used to organise source files and linker scripts.",
+        "The ISA is the high-level C library that hides the board registers from the programmer."
+      ],
+      "expected": "The best answer is: The ISA is the interface contract between software and processor hardware, defining visible instructions, registers, and behaviours that code can rely on. The exact transistors and datapath implementation may vary, but assembly code targets the ISA-level model. This is why the course can discuss Thumb instructions, registers, branches, and calling convention as the bridge between C and the processor."
+    },
+    {
+      "id": "gen-01-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Why is power a first-class design constraint in the foundations of embedded programming rather than merely a battery-life concern?",
+      "options": [
+        "Because lower power always implies faster execution on ARM processors.",
+        "Because the power wall limits frequency scaling, affects heat, reliability, energy budget, packaging, and feasible deployment, especially in physically constrained systems.",
+        "Because embedded programs cannot use dynamic memory unless power consumption is exactly constant.",
+        "Because Flash memory consumes power only when the clock frequency is zero."
+      ],
+      "expected": "The best answer is: The power wall limits frequency scaling, affects heat, reliability, energy budget, packaging, and feasible deployment, especially in physically constrained systems. Power is not only about batteries. Even mains-powered embedded systems may have thermal, safety, cost, and enclosure limits. This is why architecture, clocking, memory traffic, and software behaviour all matter."
+    },
+    {
+      "id": "gen-01-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Which description best distinguishes a microcontroller from a microprocessor in the course context?",
+      "options": [
+        "A microcontroller integrates a CPU core with memory and peripherals on one chip, while a microprocessor normally relies more heavily on external support chips.",
+        "A microcontroller is a processor that only executes assembly, while a microprocessor executes C directly.",
+        "A microcontroller is always slower than a microprocessor and therefore cannot run interrupts.",
+        "A microcontroller has no registers because its peripherals replace the register file."
+      ],
+      "expected": "The best answer is: A microcontroller integrates a CPU core with memory and peripherals on one chip, while a microprocessor normally relies more heavily on external support chips. The important course idea is integration for control-oriented systems: CPU, Flash, RAM, GPIO, timers, buses, and other peripherals are packaged for direct interaction with hardware."
+    },
+    {
+      "id": "gen-01-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: During STM32CubeIDE development, which sequence most accurately matches the intended embedded workflow from source to board execution?",
+      "options": [
+        "Write source, build to produce machine code, flash the board, reset or debug, observe behaviour through registers, memory, or peripherals.",
+        "Write source, copy the C file into RAM manually, disconnect the debugger, and let the board compile it at startup.",
+        "Write source, convert it to a PDF listing, upload the listing to Flash, and let the CPU interpret the text.",
+        "Set GPIO pins first, then choose an ISA, then build the compiler after the program is running."
+      ],
+      "expected": "The best answer is: Write source, build to produce machine code, flash the board, reset or debug, observe behaviour through registers, memory, or peripherals. The board does not execute C text. The toolchain compiles and links code into an executable image, the debugger or programmer writes it to target memory, and the developer inspects state using debug tools and hardware observation."
+    },
+    {
+      "id": "gen-01-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: A memory-mapped peripheral register and an ordinary RAM variable can both be accessed with load and store instructions. What is the key conceptual difference?",
+      "options": [
+        "A RAM variable changes processor flags automatically, while a peripheral register cannot affect hardware state.",
+        "A peripheral register address is connected to device logic, so reading or writing it can observe or control hardware, while an ordinary RAM address stores program data.",
+        "A peripheral register is stored inside the compiler, while RAM variables are stored inside the ALU.",
+        "A RAM variable must be accessed with branch instructions, while a peripheral register must be accessed with multiply instructions."
+      ],
+      "expected": "The best answer is: A peripheral register address is connected to device logic, so reading or writing it can observe or control hardware, while an ordinary RAM address stores program data. The same load-store style may appear in assembly, but the meaning of the address differs. This is central to embedded programming because hardware control is often performed by setting, clearing, and testing bits in memory-mapped registers."
+    },
+    {
+      "id": "gen-01-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: The final grade rule is given as $\\text{final grade} = \\text{exam grade} + \\text{bonus grade}$, with the bonus test worth up to $1$ grade point. Which interpretation is most defensible from the course notes?",
+      "options": [
+        "Quizzes and assignments must be included in the formula because they support learning.",
+        "The final exam is the only graded component determining the base grade, and the bonus test can add up to $1$ point according to the stated formula.",
+        "The bonus test replaces the final exam when the student takes the resit.",
+        "The formula applies only to tutorials, not to the final course grade."
+      ],
+      "expected": "The best answer is: The final exam is the only graded component determining the base grade, and the bonus test can add up to $1$ point according to the stated formula. The resit uses the same structure with the resit exam substituted for the normal exam. Ungraded quizzes and assignments are still useful preparation but are not part of the grade formula described here."
+    },
+    {
+      "id": "gen-01-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "Section A: True or false: Because machine code is the only language the processor directly executes, assembly language is irrelevant once the C compiler is available.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined"
+      ],
+      "expected": "False. Machine code is what the processor directly executes, but assembly is still crucial because it exposes the ISA-level model: registers, instructions, branches, loads, stores, stack use, and calling convention. In this course, assembly helps explain what compiled C becomes and lets students reason precisely about hardware-facing behaviour."
+    },
+    {
+      "id": "gen-01-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "Section A: True or false: If a concept appears in lectures, tutorials, and quizzes, it should be treated as both conceptual exam material and practical skill material, even if the quiz itself is ungraded.",
+      "options": [
+        "True",
+        "False",
+        "Cannot be determined"
+      ],
+      "expected": "True. Repetition across course materials signals exam relevance. The quiz not counting toward the final grade does not remove the concept from scope; it often strengthens the signal that the student should understand both the idea and the procedure."
+    },
+    {
+      "id": "gen-01-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for a function named `test_and_set_bit5`. It receives a memory-mapped register address in `r0`. It must test bit `$5$` of the word at that address. If bit `$5$` was clear, set it. Return `$0$` in `r0` if the bit was originally clear, and return `$1$` in `r0` if the bit was originally set. Preserve any callee-saved registers you use.",
+      "options": [
+        "Write a complete ARM Thumb function.",
+        "Use `LDR`, `STR`, `LSL`, `AND`, `ORR`, comparison, and conditional branching as appropriate.",
+        "Follow the convention that the argument is in `r0`, the return value is in `r0`, and the function returns with `BX LR`."
+      ],
+      "expected": "A correct answer must load the pointed-to word, isolate bit `$5$`, branch on the test result, modify memory only when the bit was originally clear, and return through `BX LR`. One valid solution is:\n```arm\n    .syntax unified\n    .thumb\n    .global test_and_set_bit5\n\ntest_and_set_bit5:\n    LDR     r1, [r0]        @ r1 = *addr\n    MOVS    r2, #1\n    LSLS    r2, r2, #5      @ r2 = bit mask for bit 5\n    ANDS    r3, r1, r2      @ r3 = old bit value masked\n    CMP     r3, #0\n    BNE     $was_set$\n\n    ORRS    r1, r1, r2      @ set bit 5\n    STR     r1, [r0]\n    MOVS    r0, #0\n    BX      lr\n\n$was_set$:\n    MOVS    r0, #1\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-01-13",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for a function named `count_until_zero`. It receives in `r0` the address of an array of unsigned `$32$`-bit words. Count how many non-zero words occur before the first zero sentinel and return that count in `r0`. Use a loop with explicit comparison and conditional branching.",
+      "options": [
+        "Write a complete ARM Thumb function.",
+        "The argument address is in `r0`; return the count in `r0`.",
+        "Assume words are aligned and the sentinel value is `$0$`."
+      ],
+      "expected": "A correct answer must keep a running count, load one word per iteration, stop at the first `$0$`, advance by `$4$` bytes for each word, and return the count in `r0`. One valid solution is:\n```arm\n    .syntax unified\n    .thumb\n    .global count_until_zero\n\ncount_until_zero:\n    MOVS    r1, #0          @ count = 0\n\nloop:\n    LDR     r2, [r0]        @ current word\n    CMP     r2, #0\n    BEQ     done\n    ADDS    r1, r1, #1\n    ADDS    r0, r0, #4      @ next 32-bit word\n    B       loop\n\ndone:\n    MOV     r0, r1\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-01-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for a recursive function named `sum_to_n`. It receives an unsigned integer `n` in `r0` and returns `$1 + 2 + \\cdots + n$` in `r0`. Use the calling convention: argument in `r0`, return in `r0`, recursive call with `BL`, and restore `LR` correctly.",
+      "options": [
+        "Write a complete ARM Thumb function.",
+        "For `n = 0`, return `$0$`.",
+        "The solution must save enough state on the stack to survive the recursive call."
+      ],
+      "expected": "A correct answer must handle the base case, preserve the original `n` across the recursive call, save and restore `LR`, and return the sum in `r0`. One valid solution is:\n```arm\n    .syntax unified\n    .thumb\n    .global sum_to_n\n\nsum_to_n:\n    CMP     r0, #0\n    BNE     recurse\n    BX      lr\n\nrecurse:\n    PUSH    {r4, lr}\n    MOV     r4, r0          @ save n\n    SUBS    r0, r0, #1      @ argument n - 1\n    BL      sum_to_n\n    ADDS    r0, r0, r4      @ sum_to_n(n - 1) + n\n    POP     {r4, pc}\n```"
+    },
+    {
+      "id": "gen-01-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for a function named `clamp_and_clear_bit2`. It receives `x` in `r0` and a memory-mapped register address in `r1`. If `x` is less than `$10$`, return `$0$` and leave the register unchanged. Otherwise, clear bit `$2$` of the word at the address in `r1` using a mask and return the original `x` in `r0`. Use comparison, conditional branching, `BIC`, and the ARM calling convention.",
+      "options": [
+        "Write a complete ARM Thumb function.",
+        "Use `r0` for the incoming value and final return value.",
+        "The memory-mapped register address is in `r1`."
+      ],
+      "expected": "A correct answer must compare `x` with `$10$`, branch around the peripheral write when `x` is too small, clear bit `$2$` using a mask, preserve the original return value when modifying the register, and return with `BX LR`. One valid solution is:\n```arm\n    .syntax unified\n    .thumb\n    .global clamp_and_clear_bit2\n\nclamp_and_clear_bit2:\n    CMP     r0, #10\n    BHS     $do_clear$        @ unsigned x >= 10\n    MOVS    r0, #0\n    BX      lr\n\n$do_clear$:\n    LDR     r2, [r1]        @ read register\n    MOVS    r3, #1\n    LSLS    r3, r3, #2      @ mask for bit 2\n    BICS    r2, r2, r3      @ clear bit 2\n    STR     r2, [r1]\n    BX      lr\n```"
+    }
+  ],
+  "generationError": null
+}

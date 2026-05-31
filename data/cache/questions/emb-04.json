@@ -1,0 +1,238 @@
+{
+  "generatedAt": "2026-05-30T23:49:00.823Z",
+  "chapterId": "04",
+  "questions": [
+    {
+      "id": "gen-04-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: After a subroutine is entered by `BL`, the code immediately calls another helper using `BL` again and then tries to return with `BX LR`. Which statement best explains the bug if the first subroutine did not save `LR`?",
+      "options": [
+        "The second `BL` overwrites `LR`, so `BX LR` returns to the wrong place unless the original `LR` was saved, commonly with `PUSH {LR}` and restored with `POP {PC}` or equivalent.",
+        "The second `BL` overwrites `PC`, so the program must save `$r15$` before every nested function call.",
+        "The first four arguments in `$r0$`-$r3$ are automatically saved by `BL`, but `LR` is not changed until `BX LR`.",
+        "The bug only occurs when the callee uses high registers `$r8$`-$r12$; low-register code does not affect `LR`."
+      ],
+      "expected": "Correct answer: The second `BL` overwrites `LR`, so `BX LR` returns to the wrong place unless the original `LR` was saved. `BL` places the return address in `$r14$`, also called `LR`. A non-leaf function that itself performs another `BL` must preserve its own return address first. A common hand-written pattern is `PUSH {LR}` on entry and `POP {PC}` on exit, or saving `LR` in a callee-saved register that is itself preserved."
+    },
+    {
+      "id": "gen-04-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: A function receives unsigned integers in `$r0$`, `$r1$`, and `$r2$` and must return the largest one. After `CMP r0, r1`, which branch choice correctly reflects an unsigned comparison where the code should skip replacing `$r0$` if `$r0 \\geq r1$`?",
+      "options": [
+        "Use `BHS` or `BCS`, because unsigned greater-or-equal after `CMP` corresponds to carry set.",
+        "Use `BGE`, because greater-or-equal is independent of signedness.",
+        "Use `BMI`, because the negative flag means `$r0$` is smaller.",
+        "Use `BGT`, because it checks both carry and zero for unsigned greater-or-equal."
+      ],
+      "expected": "Correct answer: Use `BHS` or `BCS`, because unsigned greater-or-equal after `CMP` corresponds to carry set. `CMP r0, r1` computes flags as if `$r0 - r1$` had been performed. For unsigned values, no borrow means `$r0 \\geq r1$`, and ARM names that condition `HS` or `CS`. `BGE` is signed greater-or-equal and uses the relationship between `N` and `V`, so it can be wrong for values with the top bit set."
+    },
+    {
+      "id": "gen-04-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: Which instruction sequence most directly tests whether bit `$5$` of a memory-mapped status register is set, without accidentally changing the register contents?",
+      "options": [
+        "`LDR r1, [r0]`; `MOVS r2, #1`; `LSLS r2, r2, #5`; `TST r1, r2`; branch on `Z`.",
+        "`LDR r1, [r0]`; `MOVS r2, #1`; `LSLS r2, r2, #5`; `ORRS r1, r2`; branch on `Z`.",
+        "`LDR r1, [r0]`; `MOVS r2, #5`; `ANDS r1, r2`; branch on `C`.",
+        "`LDR r1, [r0]`; `BICS r1, r2`; `STR r1, [r0]`; branch on `N`."
+      ],
+      "expected": "Correct answer: `LDR r1, [r0]`; `MOVS r2, #1`; `LSLS r2, r2, #5`; `TST r1, r2`; branch on `Z`. The mask must be `$1 \\ll 5$`, not the literal value `$5$`. `TST` performs a flag-setting bitwise AND but does not write the result back, so it is appropriate for polling or checking a status bit. `ORR`, `BIC`, and `STR` would modify data and are wrong for a pure test."
+    },
+    {
+      "id": "gen-04-3",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: A programmer writes `CMP r0, #0` followed by `BEQ even` to test whether an integer is even. Why is this wrong, and what is the correct idea?",
+      "options": [
+        "It tests whether the whole value is zero; testing evenness should inspect bit `$0$`, for example using a mask `$1$` with `TST`.",
+        "It tests whether `$r0$` is negative; testing evenness requires `CMP r0, #2` and `BGE`.",
+        "It tests signed overflow; testing evenness requires checking `V` after `ADDS`.",
+        "It tests whether `$r0$` is aligned to `$4$` bytes; testing evenness requires shifting by `$2$`."
+      ],
+      "expected": "Correct answer: It tests whether the whole value is zero; testing evenness should inspect bit `$0$`. `CMP r0, #0` only tells whether `$r0 = 0$`. Evenness depends on the least significant bit: if `$r0 \\& 1 = 0$`, the value is even. A suitable ARM pattern is to create mask `$1$`, use `TST r0, r1`, and branch on `EQ` when the bitwise result is zero."
+    },
+    {
+      "id": "gen-04-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: Which register-use statement best matches the usual ARM procedure-call convention used in this chapter?",
+      "options": [
+        "`$r0$`-$r3$ carry the first four arguments, `$r0$` carries the return value, and a caller must not assume `$r0$`-$r3$ survive a call.",
+        "`$r4$`-$r7$ carry the first four arguments, `$r0$` carries only error codes, and `$r12$` must always be preserved by the callee.",
+        "`$r0$`-$r3$ are callee-saved, so a function may call another function without saving them if it needs their old values later.",
+        "`SP`, `LR`, and `PC` are general-purpose temporaries whenever interrupts are disabled."
+      ],
+      "expected": "Correct answer: `$r0$`-$r3$ carry the first four arguments, `$r0$` carries the return value, and a caller must not assume `$r0$`-$r3$ survive a call. These are caller-saved argument and result registers. If the caller needs values in `$r0$`-$r3$ after a `BL`, it must save them itself. Callee-saved registers such as `$r4$`-$r11$ must be restored by a function that uses them."
+    },
+    {
+      "id": "gen-04-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: In a counted loop that computes the sum `$1 + 2 + \\cdots + n$`, why is `SUBS r0, r0, #1` often preferred over `SUB r0, r0, #1` just before a conditional branch?",
+      "options": [
+        "`SUBS` updates the condition flags, allowing the following branch to use the new zero or sign result.",
+        "`SUBS` preserves `$r0$`, while `SUB` destroys it.",
+        "`SUBS` shifts the result right by `$1$`, which is required for loop termination.",
+        "`SUBS` automatically branches when the result is zero."
+      ],
+      "expected": "Correct answer: `SUBS` updates the condition flags. Conditional branches such as `BEQ`, `BNE`, `BMI`, and `BPL` use flags in the APSR. If the loop termination depends on the result of the decrement, the decrement must set flags or be followed by a separate `CMP`. `SUB` without the `S` suffix may leave stale flags from an earlier instruction."
+    },
+    {
+      "id": "gen-04-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: After `ADDS r0, r1, r2`, which explanation of the `C` and `V` flags is most accurate?",
+      "options": [
+        "`C` reports unsigned carry out, while `V` reports signed overflow; the same bit pattern can make one flag relevant and the other irrelevant depending on interpretation.",
+        "`C` and `V` are synonyms; both mean the result was too large for `$32$` bits.",
+        "`C` is only used by signed branches, while `V` is only used by unsigned branches.",
+        "`V` is set whenever the result is negative, and `C` is set whenever the result is zero."
+      ],
+      "expected": "Correct answer: `C` reports unsigned carry out, while `V` reports signed overflow. ARM flags are mechanical facts about the last flag-setting operation, but branch interpretation depends on signedness. Unsigned comparisons use conditions based on `C` and `Z`, such as `HS`, `LO`, `HI`, and `LS`. Signed comparisons use combinations involving `N` and `V`, such as `GE`, `LT`, `GT`, and `LE`."
+    },
+    {
+      "id": "gen-04-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: Which statement about low and high registers is most relevant when hand-writing Thumb assembly for Cortex-M code?",
+      "options": [
+        "Low registers `$r0$`-$r7$ are accepted by all common Thumb instruction forms, while high registers `$r8$`-$r12$ are only accepted by some forms.",
+        "High registers `$r8$`-$r12$ are faster than low registers and should always hold loop counters.",
+        "Low registers `$r0$`-$r7$ are special registers, while high registers `$r8$`-$r12$ are memory-mapped I/O aliases.",
+        "High registers `$r8$`-$r12$ are automatically saved on every `BL`."
+      ],
+      "expected": "Correct answer: Low registers `$r0$`-$r7$ are accepted by all common Thumb instruction forms, while high registers `$r8$`-$r12$ are only accepted by some forms. This matters on paper because an instruction that looks plausible may not be encodable in the intended Thumb form. It is usually safer in basic exam solutions to keep short arithmetic, loop counters, masks, and temporary values in low registers unless there is a clear reason to use high registers."
+    },
+    {
+      "id": "gen-04-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: A polling loop reads a memory-mapped register until bit `$3$` becomes `$1$`. Which risk is most important if the programmer reads the register once before the loop and then only tests the saved register value inside the loop?",
+      "options": [
+        "The loop may never observe hardware changes, because it keeps testing a stale copy instead of reloading from the memory-mapped address.",
+        "The loop will always exit immediately, because `TST` clears bit `$3$` in hardware.",
+        "The stack pointer will move on each test, eventually corrupting local variables.",
+        "The carry flag will force unsigned comparison semantics and skip the load."
+      ],
+      "expected": "Correct answer: The loop may never observe hardware changes, because it keeps testing a stale copy instead of reloading from the memory-mapped address. For memory-mapped I/O, hardware can change the register independently of the CPU. A polling loop must usually perform `LDR` inside the loop before the bit test, then branch back if the desired status has not appeared."
+    },
+    {
+      "id": "gen-04-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: Which return sequence is valid for a simple leaf function that does not call any other function and has not pushed `LR`?",
+      "options": [
+        "`BX LR`, because `LR` still contains the caller return address.",
+        "`POP {PC}`, because every function must pop a return address even if it never pushed one.",
+        "`BL LR`, because returning is just a branch with link to the caller.",
+        "`STR LR, [SP]`, because storing the link register to the stack automatically jumps to it."
+      ],
+      "expected": "Correct answer: `BX LR`, because `LR` still contains the caller return address in a leaf function that has not overwritten it. `POP {PC}` is appropriate only if a matching push placed the saved return address on the stack. `BL` is for calls, not returns; it would overwrite `LR` again."
+    },
+    {
+      "id": "gen-04-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A: True or false: After `CMP r0, r1`, using `BGE` is correct for both signed and unsigned greater-or-equal because both branches conceptually mean `$r0 \\geq r1$`.",
+      "options": [
+        "True",
+        "False",
+        "Not enough information"
+      ],
+      "expected": "False. `BGE` is signed greater-or-equal and is based on the signed flags relationship after subtraction. Unsigned greater-or-equal after `CMP r0, r1` should use `BHS` or `BCS`, because the key condition is no borrow. The mnemonic meaning sounds similar, but the flag logic is different."
+    },
+    {
+      "id": "gen-04-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A: True or false: `TST r0, r1` computes the same bitwise test as `ANDS r0, r1` for flags, but `TST` does not overwrite `$r0$` with the AND result.",
+      "options": [
+        "True",
+        "False",
+        "Not enough information"
+      ],
+      "expected": "True. `TST` performs a bitwise AND for the purpose of setting flags, especially `Z`, but discards the result. `ANDS` writes the result back to its destination. This distinction is critical when testing status bits or preserving an input argument."
+    },
+    {
+      "id": "gen-04-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for `is_bit_set`. The function receives a value in `$r0$` and a bit index in `$r1$`, where the bit index is in the range `$0 \\leq r1 < 32$`. Return `$1$` in `$r0$` if that bit is set, otherwise return `$0$`. Use shift plus a bit test, and follow the calling convention.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use `$r0$` for the return value.",
+        "Do not call helper functions."
+      ],
+      "expected": "One correct hand-writable solution is:\n```arm\n    .thumb\n    .global is_bit_set\nis_bit_set:\n    MOVS    r2, #1\n    LSLS    r2, r2, r1\n    TST     r0, r2\n    BEQ     $bit_clear$\n    MOVS    r0, #1\n    BX      LR\n$bit_clear$:\n    MOVS    r0, #0\n    BX      LR\n```\nThis builds mask `$1 \\ll r1$`, tests it against the original value, and returns the Boolean result in `$r0$`. `TST` is appropriate because the original input need not be overwritten before the branch decision."
+    },
+    {
+      "id": "gen-04-13",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for `set_clear_bit`. The function receives a pointer to a `$32$`-bit memory-mapped register in `$r0$`, a bit index in `$r1$`, and a mode in `$r2$`. If mode is nonzero, set that bit. If mode is zero, clear that bit. Store the updated word back and return.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use `ORR` for setting and `BIC` for clearing.",
+        "Assume the address in `$r0$` is word-aligned."
+      ],
+      "expected": "One correct hand-writable solution is:\n```arm\n    .thumb\n    .global set_clear_bit\nset_clear_bit:\n    LDR     r3, [r0]\n    MOVS    r12, #1\n    LSLS    r12, r12, r1\n    CMP     r2, #0\n    BEQ     $do_clear$\n    ORRS    r3, r3, r12\n    STR     r3, [r0]\n    BX      LR\n$do_clear$:\n    BICS    r3, r3, r12\n    STR     r3, [r0]\n    BX      LR\n```\nThe code constructs mask `$1 \\ll r1$`. The set path uses bitwise OR so the selected bit becomes `$1$`; the clear path uses bit clear so the selected bit becomes `$0$` while other bits are preserved."
+    },
+    {
+      "id": "gen-04-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for `max3u`. The function receives three unsigned integers in `$r0$`, `$r1$`, and `$r2$`. Return the maximum unsigned value in `$r0$`. Use the correct unsigned conditional branches.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use unsigned comparisons, not signed comparisons.",
+        "Do not use memory."
+      ],
+      "expected": "One correct hand-writable solution is:\n```arm\n    .thumb\n    .global max3u\nmax3u:\n    CMP     r0, r1\n    BHS     keep_r0_a\n    MOV     r0, r1\nkeep_r0_a:\n    CMP     r0, r2\n    BHS     keep_r0_b\n    MOV     r0, r2\nkeep_r0_b:\n    BX      LR\n```\nAfter each `CMP`, `BHS` keeps the current maximum when it is unsigned higher-or-same. This is important for values with bit `$31$` set; using signed branches such as `BGE` would give wrong answers for some unsigned inputs."
+    },
+    {
+      "id": "gen-04-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for `sum_to_n`. The function receives unsigned `$n$` in `$r0$` and returns `$1 + 2 + \\cdots + n$` in `$r0$`. For `$n = 0$`, return `$0$`. Use a loop with a counter and accumulator.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Return the result in `$r0$`.",
+        "Do not call helper functions."
+      ],
+      "expected": "One correct hand-writable solution is:\n```arm\n    .thumb\n    .global sum_to_n\nsum_to_n:\n    MOVS    r1, #0\n$loop_sum$:\n    CMP     r0, #0\n    BEQ     $done_sum$\n    ADDS    r1, r1, r0\n    SUBS    r0, r0, #1\n    B       $loop_sum$\n$done_sum$:\n    MOV     r0, r1\n    BX      LR\n```\nThe accumulator is in `$r1$` and the countdown counter is in `$r0$`. The loop terminates when the counter reaches `$0$`, so the edge case `$n = 0$` naturally returns `$0$`."
+    },
+    {
+      "id": "gen-04-16",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for recursive `fib`. The function receives `$n$` in `$r0$` and returns the Fibonacci value with base cases `$fib(0) = 0$` and `$fib(1) = 1$`. Use `BL`, preserve `LR`, and preserve any callee-saved registers you use.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use recursion with two calls.",
+        "Follow the calling convention and stack discipline."
+      ],
+      "expected": "One correct hand-writable solution is:\n```arm\n    .thumb\n    .global fib\nfib:\n    PUSH    {r4, r5, LR}\n    CMP     r0, #1\n    BHI     $fib_recurse$\n    POP     {r4, r5, PC}\n$fib_recurse$:\n    MOV     r4, r0\n    SUBS    r0, r4, #1\n    BL      fib\n    MOV     r5, r0\n    SUBS    r0, r4, #2\n    BL      fib\n    ADDS    r0, r0, r5\n    POP     {r4, r5, PC}\n```\nThe function is non-leaf because it calls itself with `BL`, so it must save the incoming `LR`. It also uses `$r4$` and `$r5$`, which are callee-saved registers, so they are pushed and popped. The base case returns `$n$` directly for `$n \\leq 1$`."
+    }
+  ],
+  "generationError": null
+}

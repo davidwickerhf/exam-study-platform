@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:58:47.890Z",
+  "chapterId": "06",
+  "questions": [
+    {
+      "id": "gen-06-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why Lab $1$ Challenge $1$ did not require breaking strong cryptography, even though some outputs looked unreadable. Your answer should distinguish encoding from weak encryption.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Base64 and hex are encodings: they use no secret key and are designed to be reversed by anyone who knows the representation. Caesar or ROT-style transformations are encryption in form, but the effective key space is only $|K| = 26$, so exhaustive search is trivial. The correct conclusion is that unreadability alone is not confidentiality."
+    },
+    {
+      "id": "gen-06-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A Caesar-style cipher has $|K| = 26$ possible shifts. A modified Vigenere key has length $4$, but $3$ key characters are already known and the remaining character is an uppercase English letter. How many candidate keys remain, and what fraction of the full $26^4$ key space is that?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "There are $26$ candidate keys remaining. The full space is $26^4 = 456976$, so the searched fraction is $\\frac{26}{26^4} = \\frac{1}{26^3} = \\frac{1}{17576} \\approx 0.0000569$, or about $0.00569\\%$. Method: only the unknown key position varies, so compare $26$ trials with the original $26^4$ possibilities."
+    },
+    {
+      "id": "gen-06-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which tool is the best first choice for identifying services and open ports on a lab target before choosing a more specific exploitation or evidence-gathering workflow?",
+      "options": [
+        "nmap",
+        "Ghidra",
+        "John the Ripper",
+        "Browser DevTools"
+      ],
+      "expected": "nmap"
+    },
+    {
+      "id": "gen-06-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Reusing a one-time pad remains secure if the pad was generated uniformly at random the first time.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. Uniform randomness is not enough; the pad must also be used exactly once. If two messages reuse the pad, $C_1 \\oplus C_2 = P_1 \\oplus P_2$, and known plaintext can recover the pad."
+    },
+    {
+      "id": "gen-06-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "In an OTP reuse case, suppose bytes are shown in hex. Given known plaintext byte $P_1 = \\texttt{0x41}$ and ciphertext byte $C_1 = \\texttt{0x2A}$, recover the pad byte. Then decrypt a second ciphertext byte $C_2 = \\texttt{0x0F}$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The pad byte is $\\texttt{0x41} \\oplus \\texttt{0x2A} = \\texttt{0x6B}$. The second plaintext byte is $P_2 = \\texttt{0x0F} \\oplus \\texttt{0x6B} = \\texttt{0x64}$. Method: compute $\\text{pad} = P_1 \\oplus C_1$, then $P_2 = C_2 \\oplus \\text{pad}$."
+    },
+    {
+      "id": "gen-06-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A lab file encrypted with a block cipher still reveals large visual regions of the original bitmap after decoding the outer representation. Which mode-of-operation mistake best explains this?",
+      "options": [
+        "ECB was used, so identical plaintext blocks produced identical ciphertext blocks.",
+        "CBC was used with a random IV, so every block became independently recognizable.",
+        "GCM was used, so authentication tags exposed repeated pixel values.",
+        "CTR was used with a nonce, so the file header was intentionally preserved."
+      ],
+      "expected": "ECB was used, so identical plaintext blocks produced identical ciphertext blocks."
+    },
+    {
+      "id": "gen-06-6",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Describe a defensible Lab $1$ binary reverse-engineering workflow for recovering a custom key accepted by a compiled validator. Mention the role of Ghidra or Binary Ninja and the kind of constraints a student should extract.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Import the binary into Ghidra or Binary Ninja, run auto-analysis, locate the entry point, and follow calls from main into the validation function. In the decompiled view, extract constraints such as required length, allowed character set, fixed positions, positional equalities, and checksum or arithmetic tests. Then translate those constraints into a small generator or solver and verify candidate keys against the program or lab server. The lesson is that hidden validation logic is not a security boundary."
+    },
+    {
+      "id": "gen-06-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A leaked database contains unsalted hashes. An attacker has a dictionary of $120000$ candidate passwords and wants to test them against $800$ users. How many hash computations are needed if the hashes are unsalted? How many are needed if every user has a unique salt and the attacker must test the full dictionary per user?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Unsalted case: $120000$ hash computations can be precomputed once and compared against all $800$ users. Unique-salt case: $120000 \\cdot 800 = 96000000$ hash computations. Method: salting prevents one dictionary hash table from being reused across accounts."
+    },
+    {
+      "id": "gen-06-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: Client-side validation is enough to protect an admin login if the JavaScript bundle hides the credential-checking logic in an unobvious file.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. Anything delivered to the browser is available to the user through DevTools, saved sources, or network inspection. Authentication decisions and secrets must be enforced server-side."
+    },
+    {
+      "id": "gen-06-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which observation from HTTP traffic is the strongest evidence of oversharing or information leakage rather than a cryptographic break?",
+      "options": [
+        "A response header discloses framework and version information useful for fingerprinting.",
+        "A ciphertext has no repeated blocks after decoding.",
+        "A password hash uses a unique salt per account.",
+        "A server rejects a malformed request with a generic error."
+      ],
+      "expected": "A response header discloses framework and version information useful for fingerprinting."
+    },
+    {
+      "id": "gen-06-10",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for recovering a second plaintext when a reused XOR pad is exposed by one known plaintext and its ciphertext. The algorithm should operate byte-by-byte and reject inconsistent input lengths.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct answer should compute the pad from the known pair and XOR it with the second ciphertext, while checking lengths.\n```pseudocode\nfunction recoverSecondPlaintext(knownPlaintext, knownCiphertext, secondCiphertext):\n    if length(knownPlaintext) != length(knownCiphertext):\n        raise Error(\"known plaintext and ciphertext lengths differ\")\n    if length(secondCiphertext) > length(knownPlaintext):\n        raise Error(\"not enough recovered pad bytes\")\n\n    pad = new byte array of length(knownPlaintext)\n    for i from 0 to $length(knownPlaintext) - 1$:\n        pad[i] = knownPlaintext[i] XOR knownCiphertext[i]\n\n    recovered = new byte array of length(secondCiphertext)\n    for i from 0 to $length(secondCiphertext) - 1$:\n        recovered[i] = secondCiphertext[i] XOR pad[i]\n\n    return recovered\n```"
+    },
+    {
+      "id": "gen-06-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "In Lab $3$, a kernel-compromise investigation involves suspicious persistence and watchdog behavior. Explain how process evidence and the proc filesystem can help distinguish a normal service from a stealthy recovery-resistant implant.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A good answer should compare process listings, parent-child relationships, executable paths, command lines, file descriptors, loaded modules, and restart behavior. The proc filesystem can reveal runtime details such as process arguments, environment, open files, network sockets, and links to deleted executables. Watchdog behavior is suggested when killing one suspicious process causes another process or service to recreate it. The examiner should accept answers that emphasize evidence collection before removal."
+    },
+    {
+      "id": "gen-06-12",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "During a web lab, a payload typed into a comment field later executes in another user's browser when the page is viewed. What vulnerability is this?",
+      "options": [
+        "Stored XSS",
+        "Reflected XSS only",
+        "SQL injection",
+        "CSRF without XSS"
+      ],
+      "expected": "Stored XSS"
+    },
+    {
+      "id": "gen-06-13",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: Burp Suite and Browser DevTools are interchangeable because both can inspect web requests.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. DevTools is strongest for browser-side evidence such as DOM state, JavaScript sources, cookies, local storage, and immediate network traces. Burp is designed as an intercepting proxy for modifying, replaying, and documenting HTTP traffic systematically."
+    },
+    {
+      "id": "gen-06-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a cautious Lab $3$ recovery workflow that identifies and disables a watchdog-backed suspicious process without immediately deleting evidence. The workflow should preserve observations before taking action.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct answer should collect evidence, identify restart relationships, disable persistence, stop processes in a controlled order, and verify that the suspicious process does not return.\n```pseudocode\nfunction recoverFromWatchdog(processName):\n    evidence = []\n    suspects = findProcessesByName(processName)\n\n    for proc in suspects:\n        evidence.append(readProcStatus(proc.pid))\n        evidence.append(readProcCmdline(proc.pid))\n        evidence.append(listOpenFiles(proc.pid))\n        evidence.append(readExecutableLink(proc.pid))\n        evidence.append(listNetworkSockets(proc.pid))\n\n    persistenceUnits = findPersistenceEntries(processName)\n    watchdogs = findProcessesThatRestart(suspects)\n\n    writeEvidenceBundle(evidence)\n\n    for unit in persistenceUnits:\n        disablePersistence(unit)\n\n    for watcher in watchdogs:\n        stopProcess(watcher.pid)\n\n    for proc in suspects:\n        stopProcess(proc.pid)\n\n    wait(seconds = 10)\n    if findProcessesByName(processName) is not empty:\n        return \"recovery incomplete: process restarted\"\n\n    return \"process stopped and persistence disabled; evidence preserved\"\n```"
+    },
+    {
+      "id": "gen-06-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Compare a Trojan and a worm in the context of the Lab $3$ stealth discussion. Your answer should focus on propagation and user deception, not just on whether the program is malicious.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A Trojan masquerades as legitimate or desirable software and relies on user execution, packaging, or trust abuse; it does not inherently self-propagate. A worm is defined by automated propagation from host to host, often exploiting a network weakness. In stealth analysis, the distinction matters because a Trojan investigation emphasizes how the payload was introduced, while a worm investigation emphasizes spread paths and containment."
+    }
+  ],
+  "generationError": null
+}

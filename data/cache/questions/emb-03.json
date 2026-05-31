@@ -1,0 +1,225 @@
+{
+  "generatedAt": "2026-05-30T23:46:13.149Z",
+  "chapterId": "03",
+  "questions": [
+    {
+      "id": "gen-03-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: A byte in memory contains the bit pattern $\\texttt{0b11110110}$. Which statement is the best interpretation of this byte?",
+      "options": [
+        "As an unsigned $8$-bit integer it is $246_{10}$, and as a signed two's-complement $8$-bit integer it is $-10_{10}$.",
+        "As an unsigned $8$-bit integer it is $118_{10}$, and as a signed two's-complement $8$-bit integer it is $-118_{10}$.",
+        "As an unsigned $8$-bit integer it is $246_{10}$, and as a signed two's-complement $8$-bit integer it is $-9_{10}$.",
+        "As an unsigned $8$-bit integer it is $-10_{10}$ because the most significant bit is $1$."
+      ],
+      "expected": "Correct answer: A. The same fixed-width bit pattern can be interpreted in more than one way. Unsigned interpretation gives $128 + 64 + 32 + 16 + 4 + 2 = 246$. For signed two's-complement with width $8$, the top bit has weight $-128$, so the value is $-128 + 64 + 32 + 16 + 4 + 2 = -10$. The bits themselves do not change; only the interpretation changes."
+    },
+    {
+      "id": "gen-03-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: A $32$-bit word stores $\\texttt{0x12345678}$ at address $\\texttt{0x20000000}$ on a little-endian ARM system. Which byte layout is correct?",
+      "options": [
+        "$\\texttt{0x20000000}:\\texttt{0x78}$, $\\texttt{0x20000001}:\\texttt{0x56}$, $\\texttt{0x20000002}:\\texttt{0x34}$, $\\texttt{0x20000003}:\\texttt{0x12}$",
+        "$\\texttt{0x20000000}:\\texttt{0x12}$, $\\texttt{0x20000001}:\\texttt{0x34}$, $\\texttt{0x20000002}:\\texttt{0x56}$, $\\texttt{0x20000003}:\\texttt{0x78}$",
+        "$\\texttt{0x20000000}:\\texttt{0x34}$, $\\texttt{0x20000001}:\\texttt{0x12}$, $\\texttt{0x20000002}:\\texttt{0x78}$, $\\texttt{0x20000003}:\\texttt{0x56}$",
+        "$\\texttt{0x20000000}:\\texttt{0x78}$, $\\texttt{0x20000001}:\\texttt{0x34}$, $\\texttt{0x20000002}:\\texttt{0x56}$, $\\texttt{0x20000003}:\\texttt{0x12}$"
+      ],
+      "expected": "Correct answer: A. Little-endian storage places the least significant byte at the lowest address. In $\\texttt{0x12345678}$, the bytes from most significant to least significant are $\\texttt{0x12}$, $\\texttt{0x34}$, $\\texttt{0x56}$, and $\\texttt{0x78}$. Therefore memory from the lowest address upward contains $\\texttt{0x78}$, then $\\texttt{0x56}$, then $\\texttt{0x34}$, then $\\texttt{0x12}$."
+    },
+    {
+      "id": "gen-03-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Let $\\texttt{uint32\\_t x = 0xA5A5000F}$. Which expression clears bits $4$ through $7$ while leaving every other bit unchanged?",
+      "options": [
+        "$x\\ \\&\\ \\sim(\\texttt{0xFu} \\ll 4)$",
+        "$x\\ |\\ (\\texttt{0xFu} \\ll 4)$",
+        "$x\\ \\&\\ (\\texttt{0xFu} \\ll 4)$",
+        "$x\\ \\oplus\\ (\\texttt{0xFu} \\ll 4)$"
+      ],
+      "expected": "Correct answer: A. The mask $\\texttt{0xFu} \\ll 4$ selects exactly bits $4$ through $7$. To clear selected bits and preserve all other bits, use bitwise AND with the inverted mask: $x\\ \\&\\ \\sim(\\texttt{0xFu} \\ll 4)$. OR would set the bits, XOR would toggle them, and AND with the non-inverted mask would discard all unselected bits."
+    },
+    {
+      "id": "gen-03-3",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Given $\\texttt{int a[5]}$ stored starting at address $\\texttt{0x20001000}$, with $\\texttt{sizeof(int)} = 4$, what does $*(a + 2)$ access?",
+      "options": [
+        "The $32$-bit integer beginning at address $\\texttt{0x20001008}$, namely $a[2]$.",
+        "The byte beginning at address $\\texttt{0x20001002}$, because $2$ is added directly to the address.",
+        "The $32$-bit integer beginning at address $\\texttt{0x20001002}$, because pointer arithmetic uses bytes.",
+        "The address $\\texttt{0x20001008}$ itself, not the value stored there."
+      ],
+      "expected": "Correct answer: A. In C pointer arithmetic, adding $2$ to an $\\texttt{int *}$ advances by $2 \\cdot \\texttt{sizeof(int)}$ bytes, not by $2$ bytes. Since $\\texttt{sizeof(int)} = 4$, $a + 2$ points to address $\\texttt{0x20001000} + 8 = \\texttt{0x20001008}$. Dereferencing it with $*(a + 2)$ reads the integer value stored there."
+    },
+    {
+      "id": "gen-03-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: On a $32$-bit ARM target, consider $\\texttt{struct S \\{ char c; int x; short h; \\};}$ with word alignment for $\\texttt{int}$. Which layout is most likely for an array of this struct?",
+      "options": [
+        "$c$ at offset $0$, padding at offsets $1$ through $3$, $x$ at offset $4$, $h$ at offset $8$, tail padding at offsets $10$ through $11$, so $\\texttt{sizeof(struct S)} = 12$.",
+        "$c$ at offset $0$, $x$ at offset $1$, $h$ at offset $5$, so $\\texttt{sizeof(struct S)} = 7$.",
+        "$c$ at offset $0$, padding at offset $1$, $x$ at offset $2$, $h$ at offset $6$, so $\\texttt{sizeof(struct S)} = 8$.",
+        "$c$ at offset $0$, $x$ at offset $4$, $h$ at offset $6$, so $\\texttt{sizeof(struct S)} = 8$."
+      ],
+      "expected": "Correct answer: A. The $\\texttt{char}$ can be placed at offset $0$, but the following $\\texttt{int}$ must be word-aligned, so padding is inserted until offset $4$. The $\\texttt{int}$ occupies offsets $4$ through $7$, and the $\\texttt{short}$ occupies offsets $8$ through $9$. The whole struct must also have suitable alignment for use in arrays, so tail padding brings the size to a multiple of $4$, giving $12$ bytes."
+    },
+    {
+      "id": "gen-03-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Which statement best explains signed overflow when adding $\\texttt{0x7FFFFFFF}$ and $\\texttt{0x00000001}$ as $32$-bit two's-complement integers?",
+      "options": [
+        "The bit pattern becomes $\\texttt{0x80000000}$; as signed $32$-bit this represents $-2147483648$, so the mathematical positive result cannot be represented.",
+        "The bit pattern becomes $\\texttt{0x80000000}$; as signed $32$-bit this represents $2147483648$, so there is no overflow.",
+        "The bit pattern becomes $\\texttt{0x00000000}$ because the carry out of bit $31$ is discarded.",
+        "The bit pattern remains $\\texttt{0x7FFFFFFF}$ because signed integers saturate on ARM by default."
+      ],
+      "expected": "Correct answer: A. $\\texttt{0x7FFFFFFF}$ is the largest positive signed $32$-bit two's-complement value. Adding $1$ produces the bit pattern $\\texttt{0x80000000}$. That pattern has the sign bit set and represents $-2147483648$ under signed interpretation. The wrapped bit pattern exists, but the exact mathematical result $2147483648$ is outside the signed $32$-bit range."
+    },
+    {
+      "id": "gen-03-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Let $\\texttt{uint32\\_t value = 0x000000A8}$ and $\\texttt{uint32\\_t index = 5}$. What does $(value >> index) \\& 1$ evaluate to, and why?",
+      "options": [
+        "$1$, because shifting right by $5$ moves original bit $5$ into bit $0$, and the final AND isolates that bit.",
+        "$0$, because $\\texttt{0xA8}$ is even, so any bit test must return $0$.",
+        "$1$, because $\\texttt{0xA8} \\& 5$ is nonzero.",
+        "$0$, because the expression checks bit $6$ after the shift."
+      ],
+      "expected": "Correct answer: A. $\\texttt{0xA8}$ is $\\texttt{0b10101000}$, where bits $7$, $5$, and $3$ are set. The expression $value >> index$ shifts original bit $5$ down to bit $0$. The final $\\& 1$ masks away every other bit, so the result is $1$."
+    },
+    {
+      "id": "gen-03-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Which C expression is the safest way to test whether bit $k$ of unsigned variable $x$ is set, assuming $0 \\leq k < 32$?",
+      "options": [
+        "$((x >> k) \\& 1u) != 0u$",
+        "$(x \\& k) != 0u$",
+        "$(x >> (k \\& 1u)) != 0u$",
+        "$(x | (1u << k)) != 0u$"
+      ],
+      "expected": "Correct answer: A. Shifting $x$ right by $k$ positions moves the target bit into the least significant position, and $\\& 1u$ isolates it. The expression $x \\& k$ confuses a bit index with a bit mask. The expression using $k \\& 1u$ only tests bit $0$ or bit $1$. OR with $1u << k$ sets the bit before testing, so it almost always reports true."
+    },
+    {
+      "id": "gen-03-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: A memory dump shows bytes at increasing addresses as $\\texttt{34 12 00 00}$. If these four bytes are loaded as a little-endian unsigned $32$-bit word, what value is obtained?",
+      "options": [
+        "$\\texttt{0x00001234}$",
+        "$\\texttt{0x34120000}$",
+        "$\\texttt{0x00003412}$",
+        "$\\texttt{0x12340000}$"
+      ],
+      "expected": "Correct answer: A. In little-endian order, the first byte in memory is the least significant byte of the word. The byte sequence $\\texttt{34 12 00 00}$ therefore corresponds to $\\texttt{0x00001234}$, not $\\texttt{0x34120000}$. Reading the memory dump left-to-right as a printed hexadecimal number is the common mistake."
+    },
+    {
+      "id": "gen-03-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Section A: Which statement about $\\texttt{char *p}$ and $\\texttt{int *q}$ pointer arithmetic is correct on a system where $\\texttt{sizeof(int)} = 4$?",
+      "options": [
+        "$p + 3$ advances by $3$ bytes, while $q + 3$ advances by $12$ bytes.",
+        "Both $p + 3$ and $q + 3$ advance by $3$ bytes because addresses are byte addresses.",
+        "$p + 3$ advances by $24$ bits, while $q + 3$ advances by $3$ bits.",
+        "$q + 3$ is illegal unless $q$ points to the first element of an array."
+      ],
+      "expected": "Correct answer: A. C pointer arithmetic scales by the size of the pointed-to type. A $\\texttt{char}$ has size $1$ byte, so $p + 3$ advances by $3$ bytes. An $\\texttt{int}$ has size $4$ bytes in this course model, so $q + 3$ advances by $3 \\cdot 4 = 12$ bytes. The machine address space may be byte-addressed, but the C expression is type-aware."
+    },
+    {
+      "id": "gen-03-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "Section A: True or false: For any fixed-width two's-complement integer, the bitwise operation $x \\& (x - 1)$ clears the least significant set bit of $x$.",
+      "options": [
+        "True",
+        "Falseと思われるが、$x$ が負のときだけ例外になる。",
+        "Falseと思われるが、$x$ が奇数のときだけ例外になる。"
+      ],
+      "expected": "True. Subtracting $1$ flips the least significant set bit of $x$ to $0$ and turns all less significant bits into $1$. ANDing the original value with $x - 1$ therefore preserves bits above that position, clears that least significant set bit, and clears or preserves lower bits in a way that cannot create a new set bit. This reasoning is about fixed-width bit patterns and works independently of whether the same pattern is later interpreted as signed or unsigned."
+    },
+    {
+      "id": "gen-03-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "Section A: True or false: If two variables contain identical $32$-bit patterns, C and ARM instructions must always treat them as the same numerical value.",
+      "options": [
+        "True",
+        "False",
+        "True for arithmetic instructions but false for memory loads only."
+      ],
+      "expected": "False. A bit pattern and its interpretation are separate ideas. The same $32$ bits may be interpreted as signed integer, unsigned integer, address, floating-point value, or raw mask depending on the C type and machine instruction. For example, $\\texttt{0xFFFFFFFF}$ is $4294967295$ as unsigned $32$-bit data but $-1$ as signed two's-complement data."
+    },
+    {
+      "id": "gen-03-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for a function $\\texttt{bit\\_check(value, index)}$ that receives $value$ in $r0$ and $index$ in $r1$, then returns $1$ in $r0$ if bit $index$ of $value$ is set and $0$ otherwise. Use the shift-and-AND pattern.",
+      "options": [
+        "The student must write real ARM Thumb assembly, not C.",
+        "The function must follow the calling convention.",
+        "The solution may use only caller-saved registers."
+      ],
+      "expected": "A correct solution shifts the input value right by the index, isolates bit $0$, returns through $r0$, and uses $BX LR$.\n```arm\n    .thumb\n    .global $bit_check$\n$bit_check$:\n    LSRS    r0, r0, r1      @ r0 = value >> index\n    ANDS    r0, r0, #1      @ r0 = r0 & 1\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-03-13",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for $\\texttt{set\\_clear(addr, bit, flag)}$. The function receives a pointer to a $32$-bit memory-mapped register in $r0$, a bit index in $r1$, and a flag in $r2$. If $flag$ is nonzero, set that bit. If $flag$ is zero, clear that bit. Preserve the other bits and return the new register value in $r0$.",
+      "options": [
+        "Use $LDR$ and $STR$ for the memory-mapped word.",
+        "Use $ORR$ to set and $BIC$ to clear.",
+        "Follow the ARM calling convention."
+      ],
+      "expected": "A correct solution builds a one-bit mask, branches on the flag, modifies only the selected bit, stores the result back, and returns the new value in $r0$.\n```arm\n    .thumb\n    .global $set_clear$\n$set_clear$:\n    PUSH    {r4, lr}\n    MOVS    r3, #1\n    LSLS    r3, r3, r1      @ r3 = 1 << bit\n    LDR     r4, [r0]        @ r4 = *addr\n    CMP     r2, #0\n    BEQ     $clear_bit$\n$set_bit$:\n    ORRS    r4, r4, r3      @ set selected bit\n    B       $store_result$\n$clear_bit$:\n    BICS    r4, r4, r3      @ clear selected bit\n$store_result$:\n    STR     r4, [r0]\n    MOV     r0, r4\n    POP     {r4, pc}\n```"
+    },
+    {
+      "id": "gen-03-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for $\\texttt{count\\_bytes(ptr, n, target)}$. The pointer $ptr$ is in $r0$, the byte count $n$ is in $r1$, and the target byte is in $r2$. Return in $r0$ the number of bytes equal to $target$. Use a loop, byte loads, comparison, and conditional branching.",
+      "options": [
+        "Use $LDRB$ rather than word loads.",
+        "Do not read past $n$ bytes.",
+        "Return the count in $r0$."
+      ],
+      "expected": "A correct solution keeps the pointer, remaining count, target, and running total in registers, uses $LDRB$ with post-increment, and stops exactly when $n$ reaches $0$.\n```arm\n    .thumb\n    .global $count_bytes$\n$count_bytes$:\n    PUSH    {r4, r5, lr}\n    MOVS    r3, #0          @ count = 0\n    MOV     r4, r0          @ current pointer\n    MOV     r5, r2          @ target byte\nloop:\n    CMP     r1, #0\n    BEQ     done\n    LDRB    r0, [r4]\n    ADDS    r4, r4, #1\n    SUBS    r1, r1, #1\n    CMP     r0, r5\n    BNE     loop\n    ADDS    r3, r3, #1\n    B       loop\ndone:\n    MOV     r0, r3\n    POP     {r4, r5, pc}\n```"
+    },
+    {
+      "id": "gen-03-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Section B: Write ARM Thumb assembly for recursive $\\texttt{sum\\_u32(ptr, n)}$. The function receives a pointer to an array of $32$-bit unsigned words in $r0$ and the number of elements in $r1$. Return the sum in $r0$. Use recursion and obey the calling convention.",
+      "options": [
+        "Base case: if $n = 0$, return $0$.",
+        "Recursive case: return $*ptr + \\texttt{sum\\_u32}(ptr + 1, n - 1)$.",
+        "Save anything needed across $BL$."
+      ],
+      "expected": "A correct recursive solution checks the base case, saves the current element across the recursive call, advances the pointer by $4$ bytes, decrements $n$, calls itself with $BL$, then adds the saved element to the returned sum.\n```arm\n    .thumb\n    .global $sum_u32$\n$sum_u32$:\n    PUSH    {r4, lr}\n    CMP     r1, #0\n    BNE     recurse\n    MOVS    r0, #0\n    POP     {r4, pc}\nrecurse:\n    LDR     r4, [r0]        @ save *ptr across BL\n    ADDS    r0, r0, #4      @ ptr = ptr + 1 word\n    SUBS    r1, r1, #1\n    BL      $sum_u32$\n    ADDS    r0, r0, r4      @ return $recursive_sum$ + saved word\n    POP     {r4, pc}\n```"
+    }
+  ],
+  "generationError": null
+}

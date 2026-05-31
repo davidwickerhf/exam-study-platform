@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:38:27.805Z",
+  "chapterId": "07",
+  "questions": [
+    {
+      "id": "gen-07-0",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A survey of $900$ students finds that $58\\%$ use flashcards weekly. Construct a $95\\%$ confidence interval for the true proportion of students who use flashcards weekly. State the formula before computing.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Use $\\hat{p} \\pm z_{\\alpha/2}\\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}}$ with $\\hat{p}=0.58$, $n=900$, and $z_{\\alpha/2}=1.96$. The standard error is $\\sqrt{\\frac{0.58\\cdot 0.42}{900}}\\approx 0.01645$, the margin is $1.96\\cdot 0.01645\\approx 0.0322$, so the interval is approximately $[0.548,0.612]$."
+    },
+    {
+      "id": "gen-07-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which interpretation of a $95\\%$ confidence interval is correct in frequentist statistics?",
+      "options": [
+        "There is a $95\\%$ probability that the fixed true parameter lies inside this particular interval.",
+        "If the same sampling method were repeated many times, about $95\\%$ of the constructed intervals would contain the true parameter.",
+        "The sample statistic has a $95\\%$ chance of equaling the true parameter.",
+        "Exactly $95\\%$ of all observations in the population lie inside the interval."
+      ],
+      "expected": "If the same sampling method were repeated many times, about $95\\%$ of the constructed intervals would contain the true parameter."
+    },
+    {
+      "id": "gen-07-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why a confidence interval has the generic form $\\hat{\\theta} \\pm K\\cdot SE$. In your answer, identify what $\\hat{\\theta}$, $K$, and $SE$ represent.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The point estimate $\\hat{\\theta}$ is the best estimate from the sample. The standard error $SE$ measures typical sampling variation in that estimate, and the critical value $K$ chooses how many standard errors are needed for the desired confidence level. The interval therefore gives plausible parameter values centered at $\\hat{\\theta}$."
+    },
+    {
+      "id": "gen-07-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A company samples $400$ customers and finds that $248$ prefer a new app layout. Construct a $99\\%$ confidence interval for the true preference proportion.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "First compute $\\hat{p}=\\frac{248}{400}=0.62$. For $99\\%$ confidence, use $z_{\\alpha/2}=2.576$, so $SE=\\sqrt{\\frac{0.62\\cdot 0.38}{400}}\\approx 0.02427$ and the margin is $2.576\\cdot 0.02427\\approx 0.0625$. The confidence interval is approximately $[0.558,0.683]$."
+    },
+    {
+      "id": "gen-07-4",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If a $95\\%$ confidence interval for a proportion is $[0.41,0.49]$, then the probability that the true population proportion lies in this already-computed interval is $0.95$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. In the frequentist interpretation, the true proportion is fixed and the interval is random before sampling. The correct statement is that the procedure captures the true proportion in about $95\\%$ of repeated samples."
+    },
+    {
+      "id": "gen-07-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Three independent $95\\%$ confidence intervals are constructed for three different proportions. Assuming independence, compute the probability that at least one interval misses its true proportion.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Each interval covers with probability $0.95$, so all three cover with probability $0.95^3\\approx 0.8574$. Therefore, at least one misses with probability $1-0.95^3\\approx 0.1426$, or about $14.3\\%$."
+    },
+    {
+      "id": "gen-07-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "You want a confidence interval for a population mean. The population standard deviation $\\sigma$ is known, and the sample size is $n=64$. Which formula is appropriate?",
+      "options": [
+        "$\\bar{x} \\pm z_{\\alpha/2}\\cdot \\frac{\\sigma}{\\sqrt{n}}$",
+        "$\\hat{p} \\pm z_{\\alpha/2}\\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}}$",
+        "$\\bar{x} \\pm z_{\\alpha/2}\\cdot \\frac{s}{n}$",
+        "$\\hat{p} \\pm t_{n-1,\\alpha/2}\\cdot \\frac{s}{\\sqrt{n}}$"
+      ],
+      "expected": "$\\bar{x} \\pm z_{\\alpha/2}\\cdot \\frac{\\sigma}{\\sqrt{n}}$"
+    },
+    {
+      "id": "gen-07-7",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A student constructs separate $95\\%$ confidence intervals for $5$ different survey proportions and claims this gives a joint $95\\%$ guarantee that all $5$ intervals contain their true values. Explain the mistake and name one correction method.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The mistake is ignoring the family-wise error rate. Even if each interval individually misses with probability $\\alpha=0.05$, the chance that at least one of several intervals misses is larger than $0.05$. One correction is Bonferroni, which uses $\\alpha/k$ for each interval to keep the overall family-wise error rate at approximately the target level."
+    },
+    {
+      "id": "gen-07-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A sample has mean $\\bar{x}=72$, sample standard deviation $s=8$, and size $n=100$. Using the large-sample normal approximation, construct a $95\\%$ confidence interval for the population mean.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Because $n=100$ is large and $\\sigma$ is unknown, use $\\bar{x}\\pm z_{\\alpha/2}\\cdot \\frac{s}{\\sqrt{n}}$. The standard error is $\\frac{8}{\\sqrt{100}}=0.8$, the margin is $1.96\\cdot 0.8=1.568$, and the interval is $[70.432,73.568]$."
+    },
+    {
+      "id": "gen-07-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "For $k=3$ confidence intervals and desired family-wise error rate $\\alpha=0.05$, what per-interval significance level does the Bonferroni correction use?",
+      "options": [
+        "$0.05$",
+        "$0.05/3\\approx 0.0167$",
+        "$1-0.95^3\\approx 0.1426$",
+        "$0.95/3\\approx 0.3167$"
+      ],
+      "expected": "$0.05/3\\approx 0.0167$"
+    },
+    {
+      "id": "gen-07-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: The formula $1-(1-\\alpha)^k$ for the chance that at least one interval misses assumes the $k$ intervals are independent.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. The multiplication step for all intervals covering, $(1-\\alpha)^k$, assumes independence. Without independence, Bonferroni gives a valid bound that does not require independence."
+    },
+    {
+      "id": "gen-07-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "When comparing a $90\\%$, $95\\%$, and $99\\%$ confidence interval built from the same sample proportion, explain how the interval width changes and why.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The interval becomes wider as confidence increases. Higher confidence uses a larger critical value, such as $z_{\\alpha/2}=1.645$ for $90\\%$, $1.96$ for $95\\%$, and $2.576$ for $99\\%$, so the margin of error increases while the sample estimate and standard error stay the same."
+    },
+    {
+      "id": "gen-07-12",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "In a survey of $1200$ teens, $70\\%$ play racing games, $65\\%$ play sports games, and $61\\%$ play rhythm games. Construct the three $95\\%$ confidence intervals for the true proportions.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Use $\\hat{p}\\pm 1.96\\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{1200}}$ for each proportion. Racing: $SE=\\sqrt{\\frac{0.70\\cdot 0.30}{1200}}\\approx 0.01323$, margin $\\approx 0.0259$, CI $[0.674,0.726]$. Sports: $SE=\\sqrt{\\frac{0.65\\cdot 0.35}{1200}}\\approx 0.01377$, margin $\\approx 0.0270$, CI $[0.623,0.677]$. Rhythm: $SE=\\sqrt{\\frac{0.61\\cdot 0.39}{1200}}\\approx 0.01408$, margin $\\approx 0.0276$, CI $[0.582,0.638]$."
+    },
+    {
+      "id": "gen-07-13",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for computing one confidence interval for a population proportion from a sample count. The algorithm should take the number of successes, sample size, and critical value as inputs, then return the lower and upper endpoints.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct algorithm computes $\\hat{p}$, the standard error, the margin, and then the two endpoints.\n```text\nprocedure proportionInterval(successes, sampleSize, zCritical)\n    pHat := successes divided by sampleSize\n    variancePart := pHat times openParen one minus pHat closeParen divided by sampleSize\n    standardError := squareRoot of variancePart\n    margin := zCritical times standardError\n    lower := pHat minus margin\n    upper := pHat plus margin\n    return lower, upper\nend procedure\n```"
+    },
+    {
+      "id": "gen-07-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for applying the Bonferroni correction to several confidence intervals. The algorithm should take an overall significance level and the number of intervals, then return the per-interval significance level and the confidence level each individual interval should use.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct algorithm divides the overall significance level by the number of intervals, then converts that into a per-interval confidence level.\n```text\nprocedure bonferroniLevels(overallAlpha, intervalCount)\n    perIntervalAlpha := overallAlpha divided by intervalCount\n    perIntervalConfidence := one minus perIntervalAlpha\n    return perIntervalAlpha, perIntervalConfidence\nend procedure\n```"
+    },
+    {
+      "id": "gen-07-15",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: For a fixed sample estimate and fixed sample size, a $99\\%$ confidence interval is narrower than a $95\\%$ confidence interval because it is more certain.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. A $99\\%$ interval uses a larger critical value than a $95\\%$ interval, so its margin of error is larger. More confidence requires a wider interval when the sample information is fixed."
+    }
+  ],
+  "generationError": null
+}

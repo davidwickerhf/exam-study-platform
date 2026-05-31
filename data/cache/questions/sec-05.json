@@ -1,0 +1,175 @@
+{
+  "generatedAt": "2026-05-30T23:57:53.640Z",
+  "chapterId": "05",
+  "questions": [
+    {
+      "id": "gen-05-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain how the Same-Origin Policy decides whether two pages are same-origin, and apply it to an HTTPS page at bank.example.com on port $443$ trying to read data from HTTPS api.bank.example.com on port $443$.",
+      "options": [
+        "Reduces risk from a stolen cookie but does not stop the browser from sending that cookie on matching requests.",
+        "Encrypts the cookie value in the browser so JavaScript cannot decode it.",
+        "Prevents the server from accepting any request that lacks a CSRF token.",
+        "Restricts the cookie to only the exact URL path that created it."
+      ],
+      "expected": "Reduces risk from a stolen cookie but does not stop the browser from sending that cookie on matching requests."
+    },
+    {
+      "id": "gen-05-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best explains why CSRF is possible in cookie-based web authentication?",
+      "options": [
+        "Browsers automatically attach in-scope cookies to requests, so an attacker can trigger a state-changing request from another site.",
+        "Same-Origin Policy allows attacker scripts to read any response if the request uses HTTPS.",
+        "SQL injection lets the attacker overwrite all CSRF tokens in the database.",
+        "CSP disables browser cookie handling unless unsafe-inline is enabled."
+      ],
+      "expected": "Browsers automatically attach in-scope cookies to requests, so an attacker can trigger a state-changing request from another site."
+    },
+    {
+      "id": "gen-05-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A NIDS processes $10{,}000$ events. There are $200$ real attacks. It raises alerts on $180$ attacks and also raises $490$ alerts on benign events. Compute true positives, false negatives, false positives, true negatives, true positive rate, false positive rate, and precision.",
+      "options": [
+        "Place public-facing services such as a web server in a DMZ, restrict inbound Internet traffic to those services, restrict DMZ-to-internal traffic, and allow internal hosts controlled outbound access.",
+        "Place the database server directly on the Internet and rely on host passwords only.",
+        "Put all servers and user desktops on the same flat network behind one allow-all firewall rule.",
+        "Replace the firewall with NAT because NAT alone is equivalent to a full application-layer policy."
+      ],
+      "expected": "Place public-facing services such as a web server in a DMZ, restrict inbound Internet traffic to those services, restrict DMZ-to-internal traffic, and allow internal hosts controlled outbound access."
+    },
+    {
+      "id": "gen-05-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A host-based IDS can observe process activity and local file changes that a pure network IDS may miss.",
+      "options": [
+        "Validates the file extension only after upload, then stores the file under the web root.",
+        "Checks MIME type, magic bytes, size, randomized server-side name, storage outside the web root, malware scanning, and authorization before retrieval.",
+        "Trusts the Content-Type header and blocks only files larger than the browser-reported size.",
+        "Allows images to be uploaded unchanged because image formats cannot contain active content."
+      ],
+      "expected": "Checks MIME type, magic bytes, size, randomized server-side name, storage outside the web root, malware scanning, and authorization before retrieval."
+    },
+    {
+      "id": "gen-05-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A site displays user comments by inserting raw comment text into the DOM with a script API that interprets HTML. Describe the attack mechanism, name the vulnerability class, and give three targeted defenses.",
+      "options": [
+        "They create an encrypted point-to-point path into a network, but they can bypass perimeter visibility or expose internal services if poorly controlled.",
+        "They replace authentication because encryption proves the user is authorized.",
+        "They make malware impossible because packets are encrypted in transit.",
+        "They eliminate the need for host hardening on the destination machine."
+      ],
+      "expected": "They create an encrypted point-to-point path into a network, but they can bypass perimeter visibility or expose internal services if poorly controlled."
+    },
+    {
+      "id": "gen-05-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "An IDS watches a network with $1{,}000{,}000$ daily events. The attack base rate is $0.1\\%$. The detector has true positive rate $99\\%$ and false positive rate $1\\%$. Compute expected true alerts, false alerts, and precision.",
+      "options": [
+        "TLS prevents all DNS poisoning because DNS records are inside the encrypted HTTP connection.",
+        "DNS poisoning can redirect the victim to an attacker-controlled address; TLS certificate validation helps detect the mismatch if the attacker lacks a valid certificate for the target name.",
+        "DNS poisoning only works against HTTP cookies, not against network routing.",
+        "DNS poisoning changes the Same-Origin Policy so all subdomains become same-origin."
+      ],
+      "expected": "DNS poisoning can redirect the victim to an attacker-controlled address; TLS certificate validation helps detect the mismatch if the attacker lacks a valid certificate for the target name."
+    },
+    {
+      "id": "gen-05-6",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: A low false positive rate always means an IDS produces mostly useful alerts.",
+      "options": [
+        "Reflected XSS depends on tricking the user into submitting a malicious request; stored XSS persists in server-side content and can affect later visitors.",
+        "Stored XSS only occurs in cookies, while reflected XSS only occurs in SQL statements.",
+        "Reflected XSS is prevented by prepared statements, while stored XSS is prevented only by VPNs.",
+        "Stored XSS requires physical network access, while reflected XSS requires ARP poisoning."
+      ],
+      "expected": "Reflected XSS depends on tricking the user into submitting a malicious request; stored XSS persists in server-side content and can affect later visitors."
+    },
+    {
+      "id": "gen-05-7",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for server-side CSRF validation on a state-changing POST request. Include token generation, session storage, validation, and token rotation after success.",
+      "options": [
+        "A public service that is deliberately hardened and exposed as a controlled entry point, often with minimal services and strong monitoring.",
+        "A normal user laptop that is allowed to bypass firewall rules for convenience.",
+        "A web browser feature that relaxes SOP between related subdomains.",
+        "A DNS cache that stores unsigned records for faster lookup."
+      ],
+      "expected": "A public service that is deliberately hardened and exposed as a controlled entry point, often with minimal services and strong monitoring."
+    },
+    {
+      "id": "gen-05-8",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why broad cookie domain scope across subdomains can be dangerous. Include one example involving a weaker subdomain and one safer design choice.",
+      "options": [
+        "Block all SYN packets because legitimate clients never send them.",
+        "Use SYN cookies, rate limiting, backlog tuning, upstream filtering, and scalable load balancing.",
+        "Disable TLS so the handshake uses fewer server resources.",
+        "Move the web server into the internal LAN so attackers cannot see it."
+      ],
+      "expected": "Use SYN cookies, rate limiting, backlog tuning, upstream filtering, and scalable load balancing."
+    },
+    {
+      "id": "gen-05-9",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A DNS amplification attack sends $800$ spoofed queries per second. Each query is $60$ bytes and each response is $3{,}000$ bytes. Compute the amplification factor and the victim bandwidth in bytes per second.",
+      "options": [
+        "A WLAN using weak encryption, shared passphrases, or rogue access points can enable eavesdropping and man-in-the-middle attacks; WPA2 or WPA3, strong authentication, and certificate validation reduce risk.",
+        "Wireless networks are safe by default because radio signals cannot leave the building.",
+        "A rogue access point is harmless if it uses the same SSID as the legitimate network.",
+        "MAC filtering is sufficient because MAC addresses cannot be spoofed."
+      ],
+      "expected": "A WLAN using weak encryption, shared passphrases, or rogue access points can enable eavesdropping and man-in-the-middle attacks; WPA2 or WPA3, strong authentication, and certificate validation reduce risk."
+    },
+    {
+      "id": "gen-05-10",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a simple NIDS rule that detects a possible SYN flood from one source IP. Use a sliding time window, count SYN packets without matching ACK completion, and emit an alert when the count exceeds a threshold.",
+      "options": [
+        "It blocks inline by default and therefore cannot merely alert.",
+        "It can prevent traffic but has no false positive risk.",
+        "It can drop or modify traffic inline, so false positives can interrupt legitimate activity more directly than a passive IDS.",
+        "It only runs on endpoints and cannot see network packets."
+      ],
+      "expected": "It can drop or modify traffic inline, so false positives can interrupt legitimate activity more directly than a passive IDS."
+    },
+    {
+      "id": "gen-05-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare SQL injection and XSS in terms of where attacker-controlled input is interpreted, what asset is directly threatened, and which primary mitigation is most appropriate for each.",
+      "options": [
+        "The user can read all same-origin cookies and local storage, but cannot view HTML.",
+        "The user can inspect or change client-side DOM state because the browser already received it, so client-side hiding is not a security boundary.",
+        "DevTools bypasses server authentication and downloads any missing private resource automatically.",
+        "DevTools changes the origin tuple from HTTPS to HTTP."
+      ],
+      "expected": "The user can inspect or change client-side DOM state because the browser already received it, so client-side hiding is not a security boundary."
+    }
+  ],
+  "generationError": null
+}

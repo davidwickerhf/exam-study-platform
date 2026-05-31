@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:57:06.338Z",
+  "chapterId": "04",
+  "questions": [
+    {
+      "id": "gen-04-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Distinguish a Trojan horse from a worm using the two exam axes: user interaction and propagation mechanism. Include one example delivery path for each.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "A Trojan horse masquerades as useful or legitimate software and normally needs the victim to run it, such as a fake update or repackaged installer. A worm propagates autonomously without user action by exploiting network-reachable vulnerabilities. The key distinction is deception-driven execution for the Trojan versus self-directed network spread for the worm."
+    },
+    {
+      "id": "gen-04-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which scenario is the best example of a drive-by download?",
+      "options": [
+        "A user installs a cracked game that secretly includes a credential stealer.",
+        "A vulnerable browser plugin is exploited when the user visits a compromised website, causing malware to install without deliberate execution.",
+        "A worm scans the local subnet and exploits an unpatched file-sharing service.",
+        "A malicious insider adds a date-triggered logic bomb to a payroll application."
+      ],
+      "expected": "A vulnerable browser plugin is exploited when the user visits a compromised website, causing malware to install without deliberate execution."
+    },
+    {
+      "id": "gen-04-2",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A machine suspected of having a kernel rootkit can be reliably cleaned by running normal antivirus software from the already infected operating system.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "False. A kernel rootkit may hook or substitute operating-system interfaces, so tools running inside the compromised system may see forged results. Trusted recovery should boot from known-clean media or rebuild from trusted images."
+    },
+    {
+      "id": "gen-04-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A ransomware sample encrypts $800{,}000$ files. Symmetric file encryption takes $4\\text{ ms}$ per file, and wrapping each file key with public-key encryption takes $6\\text{ ms}$ per file. How long does the hybrid encryption phase take in seconds and minutes?",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "Total time is $800{,}000 \\cdot (4 + 6)\\text{ ms} = 8{,}000{,}000\\text{ ms} = 8{,}000\\text{ s}$. In minutes, $8{,}000 / 60 \\approx 133.3\\text{ min}$, so the phase takes about $133.3$ minutes."
+    },
+    {
+      "id": "gen-04-4",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain how a rootkit can hide files or processes using hooking, overwriting, substituting, and DKOM. For each method, state what the defender may incorrectly observe.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "Hooking intercepts calls such as directory or process enumeration and filters malicious entries, so defenders see incomplete listings. Overwriting changes legitimate code or data structures in place, so trusted-looking components may execute attacker logic. Substituting replaces a legitimate binary or library with a malicious version, so commands appear normal while returning attacker-controlled output. DKOM directly edits kernel objects, so a process or driver can exist in memory while being absent from normal kernel-maintained lists."
+    },
+    {
+      "id": "gen-04-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which statement best describes DKOM in rootkit stealth?",
+      "options": [
+        "It encrypts user files and stores the decryption key on a remote server.",
+        "It modifies kernel memory objects directly so normal operating-system lists no longer reflect reality.",
+        "It tricks users into launching malware by pretending to be a useful program.",
+        "It uses peer-to-peer command routing so bots can survive a single server takedown."
+      ],
+      "expected": "It modifies kernel memory objects directly so normal operating-system lists no longer reflect reality."
+    },
+    {
+      "id": "gen-04-6",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a host-based detector that classifies a newly observed executable as a likely dropper, downloader, or neither using execution telemetry. Use file-write behavior, process creation, and outbound network fetches as signals.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "A strong answer separates bundled payload installation from remote payload fetching and avoids classifying ordinary installers as malicious without suspicious context.\n\n```pseudocode\nfunction classifyExecutable(events):\n    wroteExecutable = false\n    launchedChildExecutable = false\n    fetchedRemotePayload = false\n    suspiciousInstallPath = false\n\n    for event in events:\n        if event.type == \"$file_write$\" and event.extension in [\"exe\", \"dll\", \"sys\", \"ps1\"]:\n            wroteExecutable = true\n            if event.path contains \"Temp\" or event.path contains \"AppData\" or event.path contains \"Startup\":\n                suspiciousInstallPath = true\n\n        if event.type == \"$process_start$\" and event.parent == events.subjectProcess:\n            if event.imagePath was written by events.subjectProcess:\n                launchedChildExecutable = true\n\n        if event.type == \"$network_download$\":\n            if event.responseContentType in [\"application/octet-stream\", \"application/x-msdownload\"]:\n                fetchedRemotePayload = true\n\n    if fetchedRemotePayload and wroteExecutable and launchedChildExecutable:\n        return \"likely downloader\"\n\n    if wroteExecutable and launchedChildExecutable and suspiciousInstallPath:\n        return \"likely dropper\"\n\n    return \"neither or insufficient evidence\"\n```"
+    },
+    {
+      "id": "gen-04-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A worm starts with $5$ infected hosts and each infected host successfully compromises $3$ new hosts per round. Assume every infected host remains active and there is no overlap. How many total infected hosts exist after $4$ rounds?",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "Each round multiplies the total by $1 + 3 = 4$. After $4$ rounds, the total is $5 \\cdot 4^4 = 5 \\cdot 256 = 1{,}280$ infected hosts."
+    },
+    {
+      "id": "gen-04-8",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Describe the four phases of the virus lifecycle and explain why visible damage may appear late even though the compromise has already spread.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "The four phases are dormancy, propagation, trigger condition, and payload. During dormancy the virus is present but inactive; during propagation it copies itself to other files, programs, or machines. The trigger condition activates the payload, which produces the visible effect. Damage can appear late because propagation can happen before the destructive or visible payload runs."
+    },
+    {
+      "id": "gen-04-9",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option best matches the defense to the compromise path?",
+      "options": [
+        "Against worms, rely mainly on user training because worms require victims to run fake installers.",
+        "Against drive-by downloads, disable patching because browser changes increase exploit surface.",
+        "Against Trojans, reduce deception risk with software provenance checks, code signing, and user awareness.",
+        "Against keyloggers, focus only on disk backups because confidentiality is not affected."
+      ],
+      "expected": "Against Trojans, reduce deception risk with software provenance checks, code signing, and user awareness."
+    },
+    {
+      "id": "gen-04-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A keylogger is mainly a confidentiality threat even if it does not delete files, encrypt data, or visibly slow the machine.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "True. A keylogger can silently capture passwords, messages, and other sensitive input. The absence of visible disruption does not reduce the confidentiality impact."
+    },
+    {
+      "id": "gen-04-11",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A botnet has $12{,}000$ bots. In a centralized command-and-control design, defenders seize the single command server, disabling $95\\%$ of bots. In a peer-to-peer design, defenders sinkhole $30\\%$ of peers. How many bots remain controllable in each case?",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "Centralized remaining bots are $12{,}000 \\cdot (1 - 0.95) = 600$. Peer-to-peer remaining bots are $12{,}000 \\cdot (1 - 0.30) = 8{,}400$. The calculation illustrates why peer-to-peer command-and-control can be more resilient."
+    },
+    {
+      "id": "gen-04-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a trusted recovery workflow after suspected rootkit compromise. The workflow must avoid trusting process lists, files, or tools from the infected operating system.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "A strong answer boots from clean media, preserves evidence if needed, verifies backups, rebuilds or reimages, patches, rotates credentials, and only restores known-good data.\n\n```pseudocode\nfunction recoverFromRootkit(host):\n    disconnectNetwork(host)\n    recordIncidentMetadata(host)\n\n    cleanMedia = getTrustedBootMedia()\n    boot(host, cleanMedia)\n\n    if investigationRequired(host):\n        imageDiskReadOnly(host.disk, destination=\"$evidence_store$\")\n        hashEvidenceImage(destination=\"$evidence_store$\")\n\n    backup = selectBackupBefore(host.firstSuspiciousTime)\n    if not verifyBackupIntegrity(backup):\n        raise \"no trusted backup available\"\n\n    wipeDisk(host.disk)\n    installOperatingSystemFromTrustedImage(host)\n    applySecurityPatches(host)\n    installEndpointProtection(host)\n\n    restoreUserDataOnly(host, backup)\n    rotateCredentials(host.users)\n    validateWithOfflineAndOnlineScans(host)\n    reconnectNetwork(host)\n\n    return \"recovered from trusted baseline\"\n```"
+    },
+    {
+      "id": "gen-04-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best explains why modern ransomware commonly uses hybrid cryptography?",
+      "options": [
+        "Symmetric cryptography is used for bulk file encryption because it is fast, while public-key cryptography protects the smaller symmetric keys.",
+        "Public-key cryptography is used for every byte of every file because it is always faster than symmetric cryptography.",
+        "Hashing is reversible, so ransomware hashes files and later reverses the hashes after payment.",
+        "Hybrid cryptography prevents backups from being useful even when backups are offline and immutable."
+      ],
+      "expected": "Symmetric cryptography is used for bulk file encryption because it is fast, while public-key cryptography protects the smaller symmetric keys."
+    },
+    {
+      "id": "gen-04-14",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "An incident responder finds $240$ suspicious executables. Static triage flags $35\\%$ of them. Dynamic sandboxing of the remaining executables flags $25\\%$ of what static triage did not flag. How many total executables are flagged after both stages?",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "Static triage flags $240 \\cdot 0.35 = 84$ executables, leaving $240 - 84 = 156$. Sandboxing flags $156 \\cdot 0.25 = 39$. Total flagged is $84 + 39 = 123$ executables."
+    },
+    {
+      "id": "gen-04-15",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare centralized, peer-to-peer, and multi-tier botnet command-and-control architectures. For each, give one operational advantage for the attacker and one defensive weakness.",
+      "options": [
+        "$x_i$",
+        "$x_i$",
+        "$x_i$",
+        "$x_i$"
+      ],
+      "expected": "Centralized command-and-control is simple for the attacker to manage and gives fast coordination, but seizure or blocking of the central server can disrupt many bots. Peer-to-peer command-and-control is more resilient because bots can relay commands among themselves, but defenders can still infiltrate, poison, or sinkhole parts of the network. Multi-tier command-and-control hides the real controller behind layers of proxies or intermediaries, but each tier creates infrastructure that defenders may trace, block, or monitor."
+    }
+  ],
+  "generationError": null
+}

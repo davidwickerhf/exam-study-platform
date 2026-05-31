@@ -1,0 +1,224 @@
+{
+  "generatedAt": "2026-05-30T23:44:34.225Z",
+  "chapterId": "02",
+  "questions": [
+    {
+      "id": "gen-02-0",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: A student says: \"In a stored-program computer, the processor can always tell whether a memory word is code or data by inspecting the word itself.\" Which option is the best correction?",
+      "options": [
+        "False, because instruction words and data words are both binary numbers; whether a word is treated as code depends on the control flow and fetch-decode-execute context.",
+        "True, because instruction words are physically stored in a different transistor technology from runtime data words.",
+        "True for Von Neumann machines, but false for Harvard machines, because Harvard machines store code and data in one shared memory.",
+        "False only when the cache is enabled; without cache, the processor can inspect memory words directly."
+      ],
+      "expected": "The correct answer is the first option. The stored-program concept says instructions are represented as numbers and programs are stored in memory like data. A bit pattern has no intrinsic label saying \"instruction\" or \"variable\". It becomes an instruction when the processor fetches it through the program counter and decodes it. Harvard architecture may separate instruction and data memories or buses, but the key idea remains that machine instructions are binary encodings, not self-describing semantic objects."
+    },
+    {
+      "id": "gen-02-1",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: During the fetch-decode-execute cycle, which statement best distinguishes the program counter from the instruction register?",
+      "options": [
+        "The program counter holds the address of the next instruction to fetch, while the instruction register holds the fetched instruction currently being decoded or executed.",
+        "The program counter stores the opcode field, while the instruction register stores the address of the next instruction.",
+        "The program counter performs arithmetic and logic, while the instruction register selects the next control signal sequence.",
+        "The program counter stores runtime variables, while the instruction register stores only branch targets."
+      ],
+      "expected": "The correct answer is the first option. The program counter is an address-holding register used to locate the next instruction. The instruction register holds the actual instruction after fetch, so the control unit can decode fields such as opcode, register specifiers, and immediates. Branches modify the program counter, not because it stores the instruction itself, but because it controls where the next fetch comes from."
+    },
+    {
+      "id": "gen-02-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: A design has one memory used for instructions and data, and a single shared path from that memory to the processor. Which performance issue follows most directly from this organization?",
+      "options": [
+        "Instruction fetches and data accesses can contend for the same memory path, creating the Von Neumann bottleneck.",
+        "The ALU cannot perform addition because instruction and data words have the same width.",
+        "The control unit cannot decode opcodes because memory no longer distinguishes source code from machine code.",
+        "The register file must be implemented using Flash cells instead of flip-flops."
+      ],
+      "expected": "The correct answer is the first option. A Von Neumann-style organization stores instructions and data in the same memory address space and often uses a shared access path. This can limit throughput because fetching the next instruction and loading or storing data compete for memory bandwidth. The other options confuse memory organization with ALU capability, instruction decoding, or register implementation."
+    },
+    {
+      "id": "gen-02-3",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: Which answer best explains why registers are faster than main memory in a processor system?",
+      "options": [
+        "Registers are small storage elements placed inside the CPU datapath, so operands can be read and written with very short wiring and tightly timed control.",
+        "Registers are faster because they are non-volatile, while main memory loses state when power is removed.",
+        "Registers are faster because they store only instructions, while memory stores only data.",
+        "Registers are faster because they are addressed using decimal numbers rather than binary addresses."
+      ],
+      "expected": "The correct answer is the first option. Registers are physically close to the ALU and control logic, have very small capacity, and are designed for rapid access in the processor datapath. Main memory is larger and further away, so access has higher latency and often needs buses, caches, and memory controllers. Volatility, decimal addressing, and code-versus-data distinctions are not the cause."
+    },
+    {
+      "id": "gen-02-4",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: In a single-cycle datapath diagram, the instruction decoder observes an opcode and selects ALU operation, register write-enable, memory-read, and branch-control signals. What is the decoder doing conceptually?",
+      "options": [
+        "It is translating instruction fields into coordinated control signals that steer datapath components for the current instruction.",
+        "It is converting high-level source code into machine code before execution begins.",
+        "It is adding the operands and writing the result into cache.",
+        "It is storing the next instruction address permanently in Flash memory."
+      ],
+      "expected": "The correct answer is the first option. Decode is not compilation. It is a hardware control step that interprets the binary instruction fields and chooses signals for multiplexers, register-file ports, ALU control, memory access, and write-back. The datapath performs movement and computation; the control unit decides which datapath actions occur for that instruction."
+    },
+    {
+      "id": "gen-02-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: A half adder and a full adder are both built from logic gates. Which statement is most accurate?",
+      "options": [
+        "A half adder adds two input bits and produces sum and carry-out, while a full adder also accepts a carry-in so adders can be chained for multi-bit addition.",
+        "A half adder stores one bit of memory, while a full adder stores two bits of memory.",
+        "A full adder is required only for subtraction, while addition uses half adders exclusively.",
+        "A half adder is sequential logic, while a full adder is a cache component."
+      ],
+      "expected": "The correct answer is the first option. A half adder handles two bits and cannot directly include an incoming carry from a less significant bit. A full adder includes carry-in, sum, and carry-out, which makes ripple-carry multi-bit addition possible. Adders are combinational logic blocks, not memory cells or cache structures."
+    },
+    {
+      "id": "gen-02-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: Which description best matches the role of the ALU in the CPU datapath?",
+      "options": [
+        "It performs arithmetic and logical operations on selected operands, often producing result bits and condition flags used by later control decisions.",
+        "It stores the entire program image and all runtime variables.",
+        "It fetches instructions from memory and increments the program counter without help from control logic.",
+        "It converts C source code directly into ARM Thumb assembly during execution."
+      ],
+      "expected": "The correct answer is the first option. The ALU is the datapath block for operations such as addition, subtraction, bitwise AND, bitwise OR, shifts, and comparisons. It can also set flags such as zero, negative, carry, or overflow, depending on the architecture and instruction. It is not the memory system, compiler, or complete fetch controller."
+    },
+    {
+      "id": "gen-02-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: The chapter emphasizes SRAM, DRAM, and Flash at the cell-mechanism level. Which pairing is most accurate?",
+      "options": [
+        "SRAM uses bistable latch-like circuitry, DRAM stores charge on a capacitor that must be refreshed, and Flash stores charge in a floating-gate or charge-trap structure for non-volatile storage.",
+        "SRAM stores charge on a capacitor, DRAM uses floating-gate transistors, and Flash uses CPU registers.",
+        "SRAM and DRAM are both non-volatile, while Flash is volatile but faster.",
+        "SRAM, DRAM, and Flash differ only in software addressing mode; their cell hardware is the same."
+      ],
+      "expected": "The correct answer is the first option. SRAM is typically built from multiple transistors forming a stable state as long as power is supplied. DRAM uses a tiny capacitor whose charge leaks, so refresh is required. Flash stores charge in an insulated structure so it can retain data without power, but writes and erases are slower and more constrained than SRAM or DRAM."
+    },
+    {
+      "id": "gen-02-8",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "SECTION A: Which explanation best connects cache memory to the memory hierarchy and the power wall?",
+      "options": [
+        "Cache exploits locality by keeping recently or nearby used data close to the CPU, reducing average memory latency and energy spent on long-distance memory accesses.",
+        "Cache removes the need for registers because all operands can be read from Flash at ALU speed.",
+        "Cache exists mainly to make binary numbers human-readable during debugging.",
+        "Cache solves the power wall by increasing clock frequency without increasing energy use."
+      ],
+      "expected": "The correct answer is the first option. Cache is a small, fast memory level between CPU registers and main memory. It improves average access time when programs show temporal locality and spatial locality. It can reduce traffic to slower memory and therefore help energy efficiency, but it does not eliminate the power wall or allow unlimited clock scaling."
+    },
+    {
+      "id": "gen-02-9",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A: True or false: In a Harvard architecture, separating instruction and data memories or buses can allow instruction fetch and data access to occur in parallel, but it does not mean instructions stop being binary numbers.",
+      "options": [
+        "True",
+        "False क्योकि Harvard architecture uses analog instructions.",
+        "False क्योकि only Von Neumann machines use a program counter."
+      ],
+      "expected": "True. Harvard organization changes the memory structure, often separating instruction and data paths, which can reduce contention. It does not change the fundamental fact that machine instructions are encoded as binary values. A Harvard machine still fetches instruction encodings and decodes them into control actions."
+    },
+    {
+      "id": "gen-02-10",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A: True or false: A transistor should be described in this chapter primarily as a controlled switch and amplifier, not as a permanent storage device equivalent to Flash memory.",
+      "options": [
+        "True",
+        "False क्योकि every transistor is automatically non-volatile.",
+        "False क्योकि transistors directly interpret programming languages."
+      ],
+      "expected": "True. The exam-level concept is functional: transistors switch and amplify signals. Logic gates, flip-flops, SRAM cells, DRAM access devices, and Flash cells are built using transistor behavior, but a plain transistor is not the same concept as a complete persistent storage device."
+    },
+    {
+      "id": "gen-02-11",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "SECTION A: True or false: The control unit and datapath are interchangeable terms because both directly perform arithmetic on operand bits.",
+      "options": [
+        "True",
+        "False",
+        "True only when the processor has no cache."
+      ],
+      "expected": "False. The datapath contains structures that move and transform data, such as registers, multiplexers, buses, the ALU, and memory interfaces. The control unit generates signals that coordinate those structures. The ALU performs arithmetic and logical operations; the control unit selects and sequences actions."
+    },
+    {
+      "id": "gen-02-12",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for a function named setIfBitClear. The input value is in $r0$. If bit $5$ of $r0$ is clear, set bit $1$ and return the modified value in $r0$. If bit $5$ is already set, return $r0$ unchanged. Use shift plus bit-test logic and conditional branching.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use $r0$ for the input and return value.",
+        "Do not use generic pseudocode."
+      ],
+      "expected": "A correct solution tests bit $5$ by shifting or masking, branches based on the zero result, and returns in $r0$ without corrupting the link register.\n```arm\n    .thumb\n    .global setIfBitClear\nsetIfBitClear:\n    MOVS    r1, r0\n    LSRS    r1, r1, #5\n    ANDS    r1, r1, #1\n    CMP     r1, #0\n    BNE     done\n    MOVS    r1, #1\n    LSLS    r1, r1, #1\n    ORRS    r0, r0, r1\ndone:\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-02-13",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for a function named countDownSum. The input $n$ is in $r0$. Return $n + (n - 1) + \\cdots + 1$ in $r0$. Use a loop, comparison, conditional branch, and the ARM calling convention. Assume $n \\geq 0$.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use $r0$ for the argument and return value.",
+        "Use a loop rather than a closed-form formula."
+      ],
+      "expected": "A correct solution keeps an accumulator, repeatedly adds the current counter, decrements the counter, and exits when the counter reaches zero. It returns the result in $r0$.\n```arm\n    .thumb\n    .global countDownSum\ncountDownSum:\n    MOVS    r1, r0      @ counter\n    MOVS    r0, #0      @ accumulator\nloop:\n    CMP     r1, #0\n    BEQ     done\n    ADDS    r0, r0, r1\n    SUBS    r1, r1, #1\n    B       loop\ndone:\n    BX      lr\n```"
+    },
+    {
+      "id": "gen-02-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for a recursive function named fact. The input $n$ is in $r0$. Return $1$ when $n \\leq 1$; otherwise return $n \\cdot fact(n - 1)$ in $r0$. Follow the calling convention and preserve values needed across the recursive call using the stack.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use $BL$ for the recursive call and $BX LR$ or an equivalent stack return pattern.",
+        "Assume the target supports the $MULS$ instruction."
+      ],
+      "expected": "A correct recursive solution saves the link register and the original $n$, handles the base case, calls itself with $n - 1$, restores $n$, multiplies, and returns in $r0$.\n```arm\n    .thumb\n    .global fact\nfact:\n    PUSH    {r4, lr}\n    CMP     r0, #1\n    BGT     recurse\n    MOVS    r0, #1\n    POP     {r4, pc}\nrecurse:\n    MOV     r4, r0\n    SUBS    r0, r0, #1\n    BL      fact\n    MULS    r0, r4, r0\n    POP     {r4, pc}\n```"
+    },
+    {
+      "id": "gen-02-15",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "SECTION B: Write ARM Thumb assembly for a function named updateControl. The input register value is in $r0$. If bit $7$ is set, clear bit $2$. If bit $7$ is clear, set bit $2$. Return the updated value in $r0$. Use shift plus AND-style testing, conditional branching, and either $ORR$ or $BIC$ for the update.",
+      "options": [
+        "Write ARM Thumb assembly.",
+        "Use $r0$ for the input and return value.",
+        "Do not use memory variables."
+      ],
+      "expected": "A correct solution tests bit $7$, chooses one of two branches, and updates bit $2$ using a mask. The function is leaf-level, so it can return directly through the link register.\n```arm\n    .thumb\n    .global updateControl\nupdateControl:\n    MOVS    r1, r0\n    LSRS    r1, r1, #7\n    ANDS    r1, r1, #1\n    MOVS    r2, #1\n    LSLS    r2, r2, #2\n    CMP     r1, #0\n    BEQ     setbit\n    BICS    r0, r0, r2\n    BX      lr\nsetbit:\n    ORRS    r0, r0, r2\n    BX      lr\n```"
+    }
+  ],
+  "generationError": null
+}

@@ -1,0 +1,218 @@
+{
+  "generatedAt": "2026-05-31T00:03:50.237Z",
+  "chapterId": "02",
+  "questions": [
+    {
+      "id": "gen-02-0",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Use Ralston's second-order method for $y'=t-y^2$, $y(0)=1$, and $h=0.2$. Compute the approximation after one step, $w_1\\approx y(0.2)$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $k_1=h f(t_i,w_i)$, $k_2=h f(t_i+\\frac{2}{3}h,w_i+\\frac{2}{3}k_1)$, $w_{i+1}=w_i+\\frac{1}{4}(k_1+3k_2)$. Here $f(t,w)=t-w^2$. Compute $k_1=0.2(0-1^2)=-0.2$. Then $t_i+\\frac{2}{3}h=0.133333$ and $w_i+\\frac{2}{3}k_1=0.866667$. Thus $k_2=0.2(0.133333-0.866667^2)=0.2(-0.617778)=-0.123556$. Therefore $w_1=1+\\frac{1}{4}(-0.2+3(-0.123556))=0.857333$."
+    },
+    {
+      "id": "gen-02-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For $y'=\\frac{1}{t-1}-y^2$, $y(2)=1.4$, and $h=0.5$, use Ralston's second-order method for two steps to approximate $y(3)$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $k_1=h f(t_i,w_i)$, $k_2=h f(t_i+\\frac{2}{3}h,w_i+\\frac{2}{3}k_1)$, $w_{i+1}=w_i+\\frac{1}{4}(k_1+3k_2)$. Step $1$: $k_1=0.5(1-1.4^2)=-0.48$, $k_2=0.5(\\frac{1}{1.333333}-1.08^2)=-0.2082$, so $w_1=1.12385$. Step $2$: $k_1=0.5(\\frac{1}{1.5}-1.12385^2)=-0.29814$, $k_2=0.5(\\frac{1}{1.833333}-0.92509^2)=-0.15528$, so $w_2=1.12385+\\frac{1}{4}(-0.29814+3(-0.15528))=0.93285$. Hence $y(3)\\approx 0.93285$."
+    },
+    {
+      "id": "gen-02-2",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "Apply Euler's method to $y'=2t-y$, $y(1)=0.5$, with $h=0.25$. Find $w_1\\approx y(1.25)$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $w_{i+1}=w_i+h f(t_i,w_i)$. Here $f(t,w)=2t-w$. At $t_0=1$ and $w_0=0.5$, $f(1,0.5)=2(1)-0.5=1.5$. Therefore $w_1=0.5+0.25(1.5)=0.875$."
+    },
+    {
+      "id": "gen-02-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Use the classical fourth-order Runge-Kutta method for one step on $y'=t+y$, $y(0)=1$, with $h=0.1$. Compute $w_1$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $k_1=h f(t_i,w_i)$, $k_2=h f(t_i+\\frac{1}{2}h,w_i+\\frac{1}{2}k_1)$, $k_3=h f(t_i+\\frac{1}{2}h,w_i+\\frac{1}{2}k_2)$, $k_4=h f(t_i+h,w_i+k_3)$, $w_{i+1}=w_i+\\frac{1}{6}(k_1+2k_2+2k_3+k_4)$. With $f(t,w)=t+w$, $k_1=0.1$, $k_2=0.1(0.05+1.05)=0.11$, $k_3=0.1(0.05+1.055)=0.1105$, and $k_4=0.1(0.1+1.1105)=0.12105$. Thus $w_1=1+\\frac{1}{6}(0.1+2(0.11)+2(0.1105)+0.12105)=1.1103417$."
+    },
+    {
+      "id": "gen-02-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For the stiff test equation $y'=-20y$, apply explicit Euler with $h=0.12$ from $w_0=1$. Compute $w_1$ and decide whether the Euler stability condition is satisfied.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: for $y'=-\\lambda y$, Euler gives $w_{i+1}=(1-z)w_i$ with $z=h\\lambda$, stable when $0\\leq z\\leq 2$. Here $z=0.12(20)=2.4$, so $w_1=(1-2.4)(1)=-1.4$. Since $2.4>2$, the stability condition is not satisfied."
+    },
+    {
+      "id": "gen-02-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For $y'=-8y$, use backward Euler with $h=0.25$ and $w_0=3$. Compute $w_1$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $w_{i+1}=w_i+h f(t_{i+1},w_{i+1})$. For $y'=-\\lambda y$, backward Euler gives $w_{i+1}=\\frac{w_i}{1+h\\lambda}$. Here $h\\lambda=0.25(8)=2$, so $w_1=\\frac{3}{1+2}=1$."
+    },
+    {
+      "id": "gen-02-6",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Apply one Ralston step to $y'=y-t^2+1$, $y(0)=0.5$, with $h=0.5$. Compute $k_1$, $k_2$, and $w_1$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $k_1=h f(t_i,w_i)$, $k_2=h f(t_i+\\frac{2}{3}h,w_i+\\frac{2}{3}k_1)$, $w_{i+1}=w_i+\\frac{1}{4}(k_1+3k_2)$. Here $f(t,w)=w-t^2+1$. Compute $k_1=0.5(0.5-0^2+1)=0.75$. The second evaluation point is $t=\\frac{1}{3}$ and $w=0.5+\\frac{2}{3}(0.75)=1$. Then $k_2=0.5(1-(\\frac{1}{3})^2+1)=0.5(\\frac{17}{9})=0.944444$. Thus $w_1=0.5+\\frac{1}{4}(0.75+3(0.944444))=1.395833$."
+    },
+    {
+      "id": "gen-02-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "An Ralston computation with step size $h=0.4$ has estimated global error $0.0128$. Estimate the global error if the same problem is solved with step size $h=0.2$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: Ralston's second-order method has global error $O(h^2)$, so halving $h$ multiplies the global error by $(\\frac{1}{2})^2=\\frac{1}{4}$. Therefore the new estimated error is $0.0128\\cdot \\frac{1}{4}=0.0032$."
+    },
+    {
+      "id": "gen-02-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "For explicit Euler applied to $y'=-\\lambda y$, derive the stability multiplier $R(z)$ using $z=h\\lambda$, then state the stable interval for $z\\geq 0$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Formula: $w_{i+1}=w_i+h(-\\lambda w_i)=(1-h\\lambda)w_i$. With $z=h\\lambda$, the multiplier is $R(z)=1-z$. Stability requires $|R(z)|\\leq 1$, so $|1-z|\\leq 1$. For $z\\geq 0$, this gives $0\\leq z\\leq 2$."
+    },
+    {
+      "id": "gen-02-9",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Explain why Ralston's second-order method usually gives a better approximation than Euler's method for the same step size $h$.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Euler uses only the starting slope $f(t_i,w_i)$, so it approximates the whole interval using one slope value. Ralston's method uses two slope evaluations, $k_1$ and $k_2$, and forms the weighted average $\\frac{1}{4}(k_1+3k_2)$ to better approximate the average slope over the step. This raises the local error from $O(h^2)$ for Euler to $O(h^3)$ for Ralston, and the global error from $O(h)$ to $O(h^2)$."
+    },
+    {
+      "id": "gen-02-10",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "State the difference between local error and global error for a one-step ODE method.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Local error is the error introduced in one step assuming the previous value $w_i$ is exact. Global error is the accumulated error in $w_i\\approx y(t_i)$ after many steps from $t_0$ to the target time. If a method has local error $O(h^{p+1})$, its global error is typically $O(h^p)$."
+    },
+    {
+      "id": "gen-02-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A problem is suspected to be stiff. Explain why backward Euler may be preferred over explicit Euler.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "For the test equation $y'=-\\lambda y$, explicit Euler has multiplier $R(z)=1-z$ and is stable only when $0\\leq z\\leq 2$, where $z=h\\lambda$. If $\\lambda$ is large, explicit Euler may require very small $h$ for stability. Backward Euler has multiplier $R(z)=\\frac{1}{1+z}$, so $|R(z)|\\leq 1$ for all $z\\geq 0$. This makes backward Euler useful for stiff ODEs, despite requiring an implicit solve for $w_{i+1}$."
+    },
+    {
+      "id": "gen-02-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare Runge-Kutta methods and Adams methods in terms of what previous information they require.",
+      "options": [
+        "",
+        "",
+        ""
+      ],
+      "expected": "Runge-Kutta methods are one-step methods: they compute $w_{i+1}$ using only the current value $w_i$ and slope evaluations inside the current interval. Adams methods are multi-step methods: they use several previous approximations such as $w_i$, $w_{i-1}$, and $w_{i-2}$. Adams-Bashforth methods are explicit, while Adams-Moulton methods are implicit because they involve $w_{i+1}$ on the right-hand side."
+    },
+    {
+      "id": "gen-02-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement correctly describes the error orders of the classical fourth-order Runge-Kutta method?",
+      "options": [
+        "Local error $O(h^4)$ and global error $O(h^3)$",
+        "Local error $O(h^5)$ and global error $O(h^4)$",
+        "Local error $O(h^2)$ and global error $O(h)$",
+        "Local error $O(h^3)$ and global error $O(h^2)$"
+      ],
+      "expected": "The correct option is: Local error $O(h^5)$ and global error $O(h^4)$. Classical RK4 has four stages and fourth-order global accuracy."
+    },
+    {
+      "id": "gen-02-14",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "For the test equation $y'=-\\lambda y$ with $\u001b[0mlambda>0$, which method is stable for every $z=h\\lambda\\geq 0$?",
+      "options": [
+        "Explicit Euler",
+        "Ralston's second-order method",
+        "Backward Euler",
+        "Classical fourth-order Runge-Kutta"
+      ],
+      "expected": "The correct option is: Backward Euler. For backward Euler, $R(z)=\\frac{1}{1+z}$, so $|R(z)|\\leq 1$ for every $z\\geq 0$."
+    },
+    {
+      "id": "gen-02-15",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which formula is the Ralston second-stage slope for $y'=f(t,y)$?",
+      "options": [
+        "$k_2=h f(t_i+h,w_i+k_1)$",
+        "$k_2=h f(t_i+\\frac{1}{2}h,w_i+\\frac{1}{2}k_1)$",
+        "$k_2=h f(t_i+\\frac{2}{3}h,w_i+\\frac{2}{3}k_1)$",
+        "$k_2=f(t_i+\\frac{2}{3}h,w_i+\\frac{2}{3}k_1)$"
+      ],
+      "expected": "The correct option is: $k_2=h f(t_i+\\frac{2}{3}h,w_i+\\frac{2}{3}k_1)$. Ralston's method uses the point two-thirds across the interval and includes the factor $h$ in each scaled slope."
+    }
+  ],
+  "generationError": null
+}

@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:41:48.452Z",
+  "chapterId": "10",
+  "questions": [
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q1",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "For each CSV file:\n   - Load into a DataFrame\n   - Add a 'state' column extracted from the filename",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q2",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Inspect unique values per column across files to find missing-value strings\n   (varies between files — could be \"NA\", \"-\", \"?\", \"999\", etc.)",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q3",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Replace each candidate string with a standard NaN",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q4",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Decide how to handle missing:\n   - Drop rows where critical field (income) is NaN\n   - Impute non-critical fields with median (numeric) or mode (categorical)",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q5",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Concatenate all DataFrames into one",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q6",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Verify: total row count == sum of individual file rows; no string-encoded missing remain\n```\n### Q10b (4 pts) — Test income difference between men and women (overall + per-state)\n```\n# Overall\nmale_income = df[df.gender == \"M\"].income\nfemale_income = df[df.gender == \"F\"].income\ntest_stat, p_value = two_sample_test(male_income, female_income)\n# CLT applies due to large n; use a Z- or t-test for means\nreport mean_male, mean_female, 95% CI of difference, effect size (Cohen's d)\nconclude based on p < 0.05\n# Per state\nfor state in unique(df.state):\n    state_df = df[df.state == state]\n    repeat the above on state_df\n# Multiple-testing correction\n50 separate tests → use Bonferroni: significance threshold = 0.05 / 50 = 0.001\n```\n### Q10c (3 pts) — Classify state from individual attributes\n```",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q1",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "X = df[demographic_columns]; y = df.state",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q2",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "One-hot encode categorical features",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q3",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Stratified train/test split (80/20)",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q4",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Fit a multi-class classifier (logistic regression, random forest, gradient boosting)",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q5",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "Evaluate on test:\n   - Accuracy\n   - Confusion matrix\n   - Compare to baseline = 1/50 ≈ 2% (random guess)",
+      "expected": ""
+    },
+    {
+      "id": "selftest-q10-pseudo-coding-statistics-10-points--q6",
+      "source": "Self test: Q10 — Pseudo-Coding Statistics (10 points)",
+      "type": "written",
+      "question": "(Optional) 5-fold cross-validation for stability\n```\n> See [[10 Pseudo-Code and Data Workflows]].",
+      "expected": ""
+    },
+    {
+      "id": "gen-10-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A directory contains one CSV per state. The files use different string labels for missing values, such as `NA`, `N/A`, `missing`, blank cells, and sentinel values such as `$999$`. Explain the main preprocessing steps needed before the files can be merged into one analysis-ready table.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A strong answer says to load each file, preserve the state as a column, inspect unique values to discover all missing-value encodings, standardize those encodings to one missing marker such as `NaN`, decide whether to drop or impute missing values based on column importance and type, concatenate the files row-wise, and verify row counts plus remaining missing-value labels."
+    },
+    {
+      "id": "gen-10-1",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "In a workflow that compares income by gender across the USA and within each state, why is it not enough to report only the country-wide mean difference?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The country-wide comparison can hide state-level variation. A complete answer should explain that the workflow should report the national comparison and then repeat the comparison within each state, because the size and direction of the difference may vary by state. It should also mention that many state-level tests create a multiple-testing problem, so a correction such as Bonferroni should be considered."
+    },
+    {
+      "id": "gen-10-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Describe two ways data leakage can enter a classification workflow that predicts a person’s state, and explain how the workflow should avoid them.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "One leakage risk is fitting preprocessing steps, such as scaling, imputation, or one-hot encoding, using the full dataset before the train/test split. These should be fitted on the training data and then applied to the test data. Another risk is including the target itself or a direct proxy for it, such as a state abbreviation field, in the feature matrix. The workflow should define features carefully, separate `$X$` from target `$y$`, split data before model fitting, and evaluate only on held-out data."
+    },
+    {
+      "id": "gen-10-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A classifier predicts one of `$50$` states. If random guessing treats all states equally, what is the baseline accuracy? If a model gets `$740$` correct predictions out of `$2000$` test cases, what is its test accuracy, and how many times larger is it than the random baseline?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The random baseline is `$\\frac{1}{50} = 0.02 = 2\\%$`. The model accuracy is `$\\frac{740}{2000} = 0.37 = 37\\%$`. The ratio is `$\\frac{0.37}{0.02} = 18.5$`, so the model is `$18.5$` times the equal-guess baseline."
+    },
+    {
+      "id": "gen-10-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A preprocessing task loads `$50$` state files. Each file has `$1200$` rows before cleaning. After cleaning, `$1800$` rows are dropped in total across all files. What row count should the merged DataFrame have, and what verification check should be made?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The starting row count is `$50 \\cdot 1200 = 60000$`. After dropping `$1800$` rows, the merged table should have `$60000 - 1800 = 58200$` rows. The workflow should verify that the merged row count equals the sum of cleaned input row counts and that each row still has a state label."
+    },
+    {
+      "id": "gen-10-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A workflow performs one national income comparison and `$50$` separate state-level income comparisons at significance level `$\\alpha = 0.05$`. Using Bonferroni correction for the state-level tests only, what per-state threshold should be used? If `$7$` states have uncorrected `$p < 0.05$` but only `$2$` have `$p < 0.001$`, how many state results should be called significant after correction?",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The Bonferroni threshold is `$\\frac{0.05}{50} = 0.001$`. After correction, only the `$2$` states with `$p < 0.001$` should be called significant. The `$7$` uncorrected results are not all valid discoveries because repeated testing inflates false positives."
+    },
+    {
+      "id": "gen-10-6",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which option is the best first step when `$50$` CSV files use inconsistent missing-value labels?",
+      "options": [
+        "Immediately concatenate the files and train a classifier.",
+        "Inspect unique values per relevant column, build a set of missing-value labels, then standardize them before cleaning.",
+        "Delete every row containing any string value.",
+        "Replace all categorical columns with numeric codes before checking missingness."
+      ],
+      "expected": "Inspect unique values per relevant column, build a set of missing-value labels, then standardize them before cleaning."
+    },
+    {
+      "id": "gen-10-7",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which evaluation choice is most appropriate for a multi-class state classifier with `$50$` possible classes?",
+      "options": [
+        "Use only the training accuracy because it measures what the model learned.",
+        "Use held-out test accuracy, a confusion matrix, and compare against a `$\\frac{1}{50}$` baseline.",
+        "Use a two-sample test between predicted and actual labels.",
+        "Evaluate by checking whether the average predicted state number is close to the average true state number."
+      ],
+      "expected": "Use held-out test accuracy, a confusion matrix, and compare against a `$\\frac{1}{50}$` baseline."
+    },
+    {
+      "id": "gen-10-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: In a train/test classification workflow, it is acceptable to fit the model on all rows and then report performance on a subset of those same rows, as long as the subset is randomly selected.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. The test rows must be held out before model fitting. If the model has already learned from those rows, the reported accuracy is contaminated by leakage and is likely too optimistic."
+    },
+    {
+      "id": "gen-10-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write reference pseudo-code for testing whether income differs between men and women nationally and within each state. Include test choice, decision rule, effect size, and multiple-testing handling.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A full-credit answer should follow a clear load, preprocess, analyze, evaluate, interpret structure and explicitly handle both national and state-level comparisons.\n\n```text\nload preprocessed income table\nkeep rows where gender and income are present\nstandardize gender labels into two groups\n\nset alpha to 0.05\nselect male income values from all rows\nselect female income values from all rows\ncompute mean income for each group\nrun two sample test comparing the two independent groups\ncompute confidence interval for the difference in means\ncompute effect size using Cohen d\nif national p value is less than alpha:\n    report significant national income difference\nelse:\n    report no significant national income difference\n\nset $state_alpha$ to alpha divided by number of states\ncreate empty results table\nfor each state in unique state values:\n    select rows for this state\n    select male income values within this state\n    select female income values within this state\n    if both groups have enough observations:\n        run two sample test\n        compute effect size\n        store state, group means, p value, effect size, and corrected decision using $state_alpha$\n    else:\n        mark state as insufficient data\n\ninterpret national result, state results, effect sizes, and limits of repeated testing\n```"
+    }
+  ],
+  "generationError": null
+}

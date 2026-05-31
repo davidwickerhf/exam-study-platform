@@ -1,0 +1,149 @@
+{
+  "generatedAt": "2026-05-30T23:42:03.741Z",
+  "items": [
+    {
+      "title": "Multiple Choice Questions",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1(a) — Confidence interval choice (2 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Set visualization (2 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) — Sampling distribution of variance (2 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(d) — Geary's test blank (2 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "True/False Statements",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q2(a) — Binomial normal approximation (1 mark)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Binomial approximation motivation (5 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(c) — P-value interpretation (1 mark)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(d) — P-value motivation (5 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3 — Random Drawing (10 marks)",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Joint Distributions",
+      "page": 6,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q4(a) — Correlation coefficient (6 marks)",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(b) — Variance of X (4 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(c) — Conditional expectation (4 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5 — Competitive prices?",
+      "page": 8,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5(a) — CI for noncompetitive prices (6 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Interpret supplier competitiveness (2 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(c) — CI for students changing majors (4 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6 — Snobby salespeople and retail prices",
+      "page": 10,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6(a) — Luxury store hypothesis test (6 marks)",
+      "page": 10,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q6(b) — Mass market hypothesis test (6 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q7 — Dropped calls goodness-of-fit test (12 marks)",
+      "page": 12,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Extra Space",
+      "page": 13,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

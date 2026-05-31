@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-05-31T00:28:26.821Z",
+  "courseId": "nm",
+  "examId": "2022-resit",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Q1",
+      "marks": 14,
+      "sharedContext": "",
+      "text": "Explain the difference between the error and the residual of an approximate solution $\\tilde{x}$ to an equation of the form $f(x) = 0$.\n\nNext, use two steps of the secant method to estimate the root of $f(x) = e^x - 3x - 1$ in the interval $[1, 2]$, starting at $p_0 = 1$ and $p_1 = 2$. Afterwards, compute $f(p_3)$, give the best bracket for the root that you have found, and give an estimate of the error.",
+      "modelAnswer": "The error is the difference between the true root $x^*$ and the approximation $\\tilde{x}$, i.e. $|x^* - \\tilde{x}|$. The residual is the value of the function at the approximation, i.e. $|f(\\tilde{x})|$.\n\nFor $f(x)=e^x-3x-1$:\n\n$$\nf(1)=e-4=-1.2817181715,\n$$\n\n$$\nf(2)=e^2-7=0.3890560989.\n$$\n\nUsing the secant method\n\n$$\np_{n+1}=p_n-f(p_n)\\frac{p_n-p_{n-1}}{f(p_n)-f(p_{n-1})},\n$$\n\n$$\np_2=2-0.3890560989\\frac{2-1}{0.3890560989-(-1.2817181715)}=1.7671402380.\n$$\n\n$$\nf(p_2)=-0.4473326121.\n$$\n\n$$\np_3=1.7671402380-(-0.4473326121)\\frac{1.7671402380-2}{-0.4473326121-0.3890560989}=1.8916825282.\n$$\n\n$$\nf(p_3)=-0.0445322543.\n$$\n\nSince $f(p_3)<0$ and $f(2)>0$, the best bracket found is\n\n$$\n[1.8916825282,2].\n$$\n\nAn error bound for using $p_3$ is therefore\n\n$$\n|x^*-p_3|\\leq 2-p_3=0.1083174718.\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 14,
+      "sharedContext": "",
+      "text": "Use two steps of Heun’s third order method to estimate the solution of the initial value problem $\\dot{y} = t - y^2$, $y(0.5) = 2.500$ up to time $t = 1.0$. You should aim to compute the solution using Heun’s method to an accuracy of at least 3 decimal places, and use sufficient precision in your working to do this.\n\nCompare your answer with the exact solution, which has $y(1.0) = 1.32733490$ (8dp). What would you expect the absolute error to be if you were to use Heun’s method with 10 steps?",
+      "modelAnswer": "With two steps from $t=0.5$ to $t=1.0$, the step size is\n\n$$\nh=\\frac{1.0-0.5}{2}=0.25.\n$$\n\nHeun’s third order method:\n\n$$\nk_1=f(t_n,y_n),\n$$\n\n$$\nk_2=f\\left(t_n+\\frac{h}{3},y_n+\\frac{h}{3}k_1\\right),\n$$\n\n$$\nk_3=f\\left(t_n+\\frac{2h}{3},y_n+\\frac{2h}{3}k_2\\right),\n$$\n\n$$\ny_{n+1}=y_n+\\frac{h}{4}(k_1+3k_3).\n$$\n\nStep 1:\n\n$$\nt_0=0.5,\\quad y_0=2.500,\n$$\n\n$$\nk_1=0.5-2.5^2=-5.75,\n$$\n\n$$\nk_2=f(0.5833333333,2.0208333333)=-3.5004340278,\n$$\n\n$$\nk_3=f(0.6666666667,1.9166308310)=-3.0066671542,\n$$\n\n$$\ny_1=2.5+\\frac{0.25}{4}(-5.75+3(-3.0066671542))=1.5768749086.\n$$\n\nStep 2:\n\n$$\nt_1=0.75,\\quad y_1=1.5768749086,\n$$\n\n$$\nk_1=0.75-1.5768749086^2=-1.7365344774,\n$$\n\n$$\nk_2=f(0.8333333333,1.4321637022)=-1.2177595364,\n$$\n\n$$\nk_3=f(0.9166666667,1.3730816868)=-0.9709757217,\n$$\n\n$$\ny_2=1.5768749086+\\frac{0.25}{4}(-1.7365344774+3(-0.9709757217))=1.2862835559.\n$$\n\nThus\n\n$$\ny(1.0)\\approx 1.286283556.\n$$\n\nThe absolute error is\n\n$$\n|1.32733490-1.2862835559|=0.0410513441.\n$$\n\nHeun’s method is third order globally, so using 10 steps gives $h=0.05$ instead of $h=0.25$. The expected absolute error is approximately\n\n$$\n0.0410513441\\left(\\frac{0.05}{0.25}\\right)^3=0.0003284108.\n$$",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Use divided differences to compute the cubic polynomial interpolating the following data:\n\n| $i$ | 0 | 1 | 2 | 3 |\n|---|---:|---:|---:|---:|\n| $x_i$ | 2.3 | 2.7 | 2.0 | 3.0 |\n| $y_i$ | 0.60 | 0.23 | 0.98 | 0.06 |\n\nEstimate the value of $y$ when $x = 2.5$. How does the ordering of the data points affect the interpolating polynomial?",
+      "modelAnswer": "The divided differences are\n\n| $i$ | $x_i$ | $f[x_i]$ | first | second | third |\n|---:|---:|---:|---:|---:|---:|\n| 0 | 2.3 | 0.60 | | | |\n| 1 | 2.7 | 0.23 | $-0.925000$ | | |\n| 2 | 2.0 | 0.98 | $-1.071429$ | $0.488095$ | |\n| 3 | 3.0 | 0.06 | $-0.920000$ | $0.504762$ | $0.023810$ |\n\nThus the Newton interpolating polynomial is\n\n$$\np_3(x)=0.60-0.925(x-2.3)+0.4880952381(x-2.3)(x-2.7)+0.0238095238(x-2.3)(x-2.7)(x-2.0).\n$$\n\nAt $x=2.5$:\n\n$$\np_3(2.5)=0.60-0.925(0.2)+0.4880952381(0.2)(-0.2)+0.0238095238(0.2)(-0.2)(0.5).\n$$\n\n$$\np_3(2.5)=0.395.\n$$\n\nThe ordering of the data points changes the divided-difference table and the Newton form of the polynomial, but it does not change the interpolating polynomial itself in exact arithmetic. With finite precision arithmetic, different orderings may give slightly different numerical round-off errors.",
+      "page": 6,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Use the most accurate three-point formulae available to complete the following table:\n\n| $x$ | $f(x)$ | $f'(x)$ | $\\sqrt{1 + f'(x)^2}$ |\n|---:|---:|---:|---:|\n| 2.0 | $-0.57844$ | | |\n| 2.2 | $-0.96792$ | $-0.8093$ | $1.2865$ |\n| 2.4 | $-0.90217$ | $1.3895$ | $1.7119$ |\n| 2.6 | $-0.41212$ | $2.9348$ | $3.1005$ |\n| 2.8 | $0.27176$ | | |\n| 3.0 | $0.82783$ | | |\n\nUse the trapezoid rule to estimate $\\int_2^3 \\sqrt{1 + f'(x)^2}\\,dx$.",
+      "modelAnswer": "Here $h=0.2$. Use the three-point forward formula at $x=2.0$, the three-point centred formula at interior points, and the three-point backward formula at $x=3.0$.\n\n$$\nf'(2.0)\\approx \\frac{-3f(2.0)+4f(2.2)-f(2.4)}{2h}=-3.0855.\n$$\n\n$$\nf'(2.8)\\approx \\frac{f(3.0)-f(2.6)}{2h}=3.0999.\n$$\n\n$$\nf'(3.0)\\approx \\frac{3f(3.0)-4f(2.8)+f(2.6)}{2h}=2.4608.\n$$\n\nCompleted table:\n\n| $x$ | $f(x)$ | $f'(x)$ | $\\sqrt{1+f'(x)^2}$ |\n|---:|---:|---:|---:|\n| 2.0 | $-0.57844$ | $-3.0855$ | $3.2435$ |\n| 2.2 | $-0.96792$ | $-0.8093$ | $1.2865$ |\n| 2.4 | $-0.90217$ | $1.3895$ | $1.7119$ |\n| 2.6 | $-0.41212$ | $2.9348$ | $3.1005$ |\n| 2.8 | $0.27176$ | $3.0999$ | $3.2572$ |\n| 3.0 | $0.82783$ | $2.4608$ | $2.6562$ |\n\nUsing the trapezoid rule,\n\n$$\n\\int_2^3 \\sqrt{1+f'(x)^2}\\,dx \\approx 0.2\\left(\\frac{3.2435}{2}+1.2865+1.7119+3.1005+3.2572+\\frac{2.6562}{2}\\right).\n$$\n\n$$\n\\int_2^3 \\sqrt{1+f'(x)^2}\\,dx \\approx 2.4612.\n$$",
+      "page": 8,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "The least-squares approximation to a function $f$ is given by $q_n(x) = \\sum_{k=0}^n c_k P_k(x)$ where the $P_k$ are the Legendre polynomials, and the $c_k$ are given by\n\n| $k$ | 0 | 1 | 2 | 3 | 4 | 5 |\n|---|---:|---:|---:|---:|---:|---:|\n| $c_k$ | 0.2267 | $-0.1341$ | $-0.0570$ | 0.0620 | $-0.0077$ | $-0.0122$ |\n\nUse the recurrence relation to evaluate $P_k(x)$ for $k = 0, 1, \\ldots, 4$ for $x = 0.3$, and hence compute $q_4(x)$. Compute the total square error $\\int_{-1}^{+1} (q_2(x) - f(x))^2\\,dx$, assuming $\\int_{-1}^{+1} f(x)^2\\,dx = 0.117242$ (6dp).",
+      "modelAnswer": "The Legendre recurrence is\n\n$$\n(k+1)P_{k+1}(x)=(2k+1)xP_k(x)-kP_{k-1}(x),\n$$\n\nwith $P_0(x)=1$ and $P_1(x)=x$.\n\nAt $x=0.3$:\n\n$$\nP_0(0.3)=1,\n$$\n\n$$\nP_1(0.3)=0.3,\n$$\n\n$$\nP_2(0.3)=\\frac{3(0.3)^2-1}{2}=-0.365,\n$$\n\n$$\nP_3(0.3)=\\frac{5(0.3)P_2(0.3)-2P_1(0.3)}{3}=-0.3825,\n$$\n\n$$\nP_4(0.3)=\\frac{7(0.3)P_3(0.3)-3P_2(0.3)}{4}=0.0729375.\n$$\n\nTherefore\n\n$$\nq_4(0.3)=0.2267-0.1341(0.3)-0.0570(-0.365)+0.0620(-0.3825)-0.0077(0.0729375).\n$$\n\n$$\nq_4(0.3)=0.18299838125\\approx 0.1830.\n$$\n\nUsing orthogonality of Legendre polynomials,\n\n$$\n\\int_{-1}^{1}P_k(x)^2\\,dx=\\frac{2}{2k+1}.\n$$\n\nThus\n\n$$\n\\int_{-1}^{1}(q_2(x)-f(x))^2\\,dx=\\int_{-1}^{1}f(x)^2\\,dx-\\sum_{k=0}^{2}c_k^2\\frac{2}{2k+1}.\n$$\n\n$$\n=0.117242-0.2267^2\\cdot 2-(-0.1341)^2\\cdot \\frac{2}{3}-(-0.0570)^2\\cdot \\frac{2}{5}.\n$$\n\n$$\n=0.00116808.\n$$",
+      "page": 10,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 12,
+      "sharedContext": "",
+      "text": "Let\n\n$$\nA=\\begin{pmatrix}3&0&0\\\\0&1&2\\\\0&2&2\\end{pmatrix}.\n$$\n\nAfter applying one step of the QR method we obtain\n\n$$\nA=QR=\\begin{pmatrix}1&0&0\\\\0&-0.4472&-0.8944\\\\0&-0.8944&0.4472\\end{pmatrix}\\begin{pmatrix}3&0&0\\\\0&-2.2361&-2.6833\\\\0&0&-0.8944\\end{pmatrix}.\n$$\n\nand\n\n$$\nA^{(1)}=R^{(0)}Q^{(0)}=RQ=\\begin{pmatrix}3&0&0\\\\0&3.4000&0.8000\\\\0&0.8000&-0.4000\\end{pmatrix}.\n$$\n\nApply another step of the QR method to estimate the eigenvalues of $A$. Give bounds on the eigenvalues using the Gersgorin circle theorem.",
+      "modelAnswer": "Apply QR factorisation to\n\n$$\nA^{(1)}=\\begin{pmatrix}3&0&0\\\\0&3.4000&0.8000\\\\0&0.8000&-0.4000\\end{pmatrix}.\n$$\n\nFor the lower $2\\times 2$ block,\n\n$$\n\\left\\|\\begin{pmatrix}3.4\\\\0.8\\end{pmatrix}\\right\\|=\\sqrt{3.4^2+0.8^2}=3.492849839.\n$$\n\nOne QR factorisation is\n\n$$\nQ^{(1)}\\approx\\begin{pmatrix}1&0&0\\\\0&0.9734&0.2290\\\\0&0.2290&-0.9734\\end{pmatrix},\n$$\n\n$$\nR^{(1)}\\approx\\begin{pmatrix}3&0&0\\\\0&3.4928&0.6871\\\\0&0&0.5726\\end{pmatrix}.\n$$\n\nThen\n\n$$\nA^{(2)}=R^{(1)}Q^{(1)}\\approx\\begin{pmatrix}3&0&0\\\\0&3.5574&0.1311\\\\0&0.1311&-0.5574\\end{pmatrix}.\n$$\n\nThe eigenvalue estimates from the diagonal are therefore\n\n$$\n\\lambda_1\\approx 3,\n$$\n\n$$\n\\lambda_2\\approx 3.5574,\n$$\n\n$$\n\\lambda_3\\approx -0.5574.\n$$\n\nUsing Gersgorin circles on $A^{(2)}$ gives the intervals\n\n$$\n[3,3],\n$$\n\n$$\n[3.5574-0.1311,3.5574+0.1311]=[3.4263,3.6885],\n$$\n\n$$\n[-0.5574-0.1311,-0.5574+0.1311]=[-0.6885,-0.4263].\n$$\n\nHence the eigenvalues lie in\n\n$$\n\\{3\\}\\cup[3.4263,3.6885]\\cup[-0.6885,-0.4263].\n$$",
+      "page": 12,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 6,
+      "sharedContext": "",
+      "text": "In a compartmental model of an infectious disease with two variants, individuals are either susceptible (S), infections with the first variant ($I_1$), or with the second variant ($I_2$). The progress of the disease is modelled by\n\n$$\n\\dot{S}=-(\\alpha_1 I_1+\\alpha_2 I_2)S/N,\\quad \\dot{I}_1=\\alpha_1 I_1S/N-\\beta_1I_1,\\quad \\dot{I}_2=\\alpha_2I_2S/N-\\beta_2I_2.\n$$\n\nAssume initially 340 individuals infected with variant 1 and 1 individual infected with variant 2, in a population with size $N = 17\\ 000\\ 000$.\n\nShow how to solve this system of differential equations in Matlab, including writing the code you would use.",
+      "modelAnswer": "A correct Matlab solution defines the state vector, initial data, parameters, right-hand side, and calls an ODE solver such as `ode45`.\n\n```matlab\nN = 17000000;\nalpha1 = ...;     % infection rate variant 1\nalpha2 = ...;     % infection rate variant 2\nbeta1  = ...;     % recovery/removal rate variant 1\nbeta2  = ...;     % recovery/removal rate variant 2\n\nS0 = N - 340 - 1;\nI10 = 340;\nI20 = 1;\ny0 = [S0; I10; I20];\n\ntspan = [0 100];  % choose final time as required\n\nrhs = @(t,y) [-(alpha1*y(2) + alpha2*y(3))*y(1)/N;\n              alpha1*y(2)*y(1)/N - beta1*y(2);\n              alpha2*y(3)*y(1)/N - beta2*y(3)];\n\n[t,y] = ode45(rhs,tspan,y0);\n\nS  = y(:,1);\nI1 = y(:,2);\nI2 = y(:,3);\n\nplot(t,S,t,I1,t,I2)\nlegend('S','I_1','I_2')\nxlabel('time')\nylabel('number of individuals')\n```\n\nEquivalently, the right-hand side may be written as a separate function:\n\n```matlab\nfunction dydt = variants(t,y,alpha1,alpha2,beta1,beta2,N)\n    S = y(1);\n    I1 = y(2);\n    I2 = y(3);\n\n    dydt = zeros(3,1);\n    dydt(1) = -(alpha1*I1 + alpha2*I2)*S/N;\n    dydt(2) = alpha1*I1*S/N - beta1*I1;\n    dydt(3) = alpha2*I2*S/N - beta2*I2;\nend\n```\n\ncalled by\n\n```matlab\n[t,y] = ode45(@(t,y) variants(t,y,alpha1,alpha2,beta1,beta2,N),tspan,y0);\n```",
+      "page": 15,
+      "type": "pseudocode",
+      "options": []
+    }
+  ]
+}

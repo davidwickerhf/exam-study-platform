@@ -1,0 +1,245 @@
+{
+  "generatedAt": "2026-05-31T00:09:55.894Z",
+  "chapterId": "05",
+  "questions": [
+    {
+      "id": "gen-05-0",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Using the Legendre recurrence, compute $P_0(x), P_1(x), P_2(x), P_3(x), P_4(x)$ at $x = 0.6$.",
+      "options": [
+        "A. Use $P_k(x) = \\frac{2k - 1}{k}xP_{k-1}(x) - \\frac{k - 1}{k}P_{k-2}(x)$, with no cross terms in the final norm.",
+        "B. Use $P_k(x) = 2xP_{k-1}(x) - P_{k-2}(x)$, because all orthogonal polynomial families have the same recurrence.",
+        "C. Use $P_k(x) = x^k$, because Legendre polynomials are monomials on $[-1,1]$.",
+        "D. Use $P_k(x) = \\sin(kx)$, because Legendre expansions are Fourier expansions."
+      ],
+      "expected": "Correct option: A. The Legendre recurrence is $P_k(x) = \\frac{2k - 1}{k}xP_{k-1}(x) - \\frac{k - 1}{k}P_{k-2}(x)$. Option B is the Chebyshev recurrence, option C confuses the basis with monomials, and option D confuses Legendre series with Fourier series."
+    },
+    {
+      "id": "gen-05-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Given $x = 0.6$ and coefficients $c_0 = 0.4$, $c_1 = -0.2$, $c_2 = 0.5$, $c_3 = -0.1$, $c_4 = 0.3$, use your Legendre values to compute $q_4(0.6) = \\sum_{k=0}^{4} c_kP_k(0.6)$.",
+      "options": [
+        "A. Use $c_k = \\int_{-1}^{1}P_k(x)f(x)\\,dx$, without dividing by the norm.",
+        "B. Use $c_k = \\frac{\\int_{-1}^{1}P_k(x)f(x)\\,dx}{\\int_{-1}^{1}P_k(x)^2\\,dx}$, so each coefficient is independent.",
+        "C. Solve a full coupled linear system, because orthogonality does not affect the normal equations.",
+        "D. Set $c_k = f(k)$, because Legendre coefficients are function samples."
+      ],
+      "expected": "Correct option: B. Orthogonality gives $c_k = \\frac{\\int_{-1}^{1}P_k(x)f(x)\\,dx}{\\int_{-1}^{1}P_k(x)^2\\,dx}$. The denominator is essential, and the off-diagonal terms vanish because $\\int_{-1}^{1}P_i(x)P_j(x)\\,dx = 0$ for $i \\neq j$."
+    },
+    {
+      "id": "gen-05-2",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain why orthogonality makes $\\int_{-1}^{1}q_n(x)^2\\,dx$ easy to compute when $q_n(x) = \\sum_{k=0}^{n}c_kP_k(x)$.",
+      "options": [
+        "A. Legendre minimizes $\\sum_i |y_i - g(x_i)|$, while Chebyshev minimizes $\\int_{-1}^{1}(f(x)-g(x))^2\\,dx$.",
+        "B. Legendre targets $L^2$ square-error approximation on $[-1,1]$, while Chebyshev is associated with minimizing maximum pointwise error and uses weight $w(x)=\\frac{1}{\\sqrt{1-x^2}}$.",
+        "C. Legendre uses interpolation nodes only, while Chebyshev uses no nodes or weights.",
+        "D. Legendre and Chebyshev are identical bases, but Chebyshev has larger coefficients."
+      ],
+      "expected": "Correct option: B. Legendre polynomials are orthogonal for the unweighted $L^2$ inner product on $[-1,1]$, so they suit least-squares square-error approximation. Chebyshev polynomials are orthogonal with weight $w(x)=\\frac{1}{\\sqrt{1-x^2}}$ and are linked to controlling maximum pointwise error."
+    },
+    {
+      "id": "gen-05-3",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Compute $\\int_{-1}^{1} q_4(x)^2\\,dx$ for $q_4(x)=0.4P_0(x)-0.2P_1(x)+0.5P_2(x)-0.1P_3(x)+0.3P_4(x)$.",
+      "options": [
+        "A. $\\frac{2}{2k+1}$",
+        "B. $\\frac{1}{2k+1}$",
+        "C. $2k+1$",
+        "D. $\\frac{2k+1}{2}$"
+      ],
+      "expected": "Correct option: A. The squared norm is $\\int_{-1}^{1}P_k(x)^2\\,dx = \\frac{2}{2k+1}$. Hence $P_0$ has norm squared $2$, $P_1$ has norm squared $\\frac{2}{3}$, and higher modes get smaller norm factors."
+    },
+    {
+      "id": "gen-05-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "At $x=-0.4$, compute $P_0(x),P_1(x),P_2(x),P_3(x),P_4(x)$ using the Legendre recurrence.",
+      "options": [
+        "A. $\\cos(kx)$ terms and $\\sin(kx)$ terms with equal weights.",
+        "B. Only $\\sin(kx)$ terms, because least squares removes constants.",
+        "C. A constant term, cosine terms, and sine terms such as $a_0$, $a_k\\cos(kx)$, and $b_k\\sin(kx)$.",
+        "D. Only Legendre terms $P_k(x)$, because Fourier and Legendre bases are the same."
+      ],
+      "expected": "Correct option: C. A Fourier least-squares expansion uses trigonometric basis functions, typically a constant term plus $\\cos(kx)$ and $\\sin(kx)$ terms. Legendre expansions instead use polynomial basis functions $P_k(x)$ on $[-1,1]$."
+    },
+    {
+      "id": "gen-05-5",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Using the values at $x=-0.4$, compute $q_3(-0.4)$ for $q_3(x)=1.2P_0(x)+0.5P_1(x)-0.8P_2(x)+0.25P_3(x)$.",
+      "options": [
+        "A. Use all coefficients, because every extra basis function always lowers the square error exactly by $c_k^2$.",
+        "B. Use the term $\\alpha_4c_4^2$, because the square-error reduction from adding mode $P_4$ is $\\alpha_4c_4^2$ with $\\alpha_4=\\frac{2}{9}$.",
+        "C. Use $c_4$, because the norm of every Legendre polynomial is $1$.",
+        "D. Use $2c_4$, because $\\int_{-1}^{1}P_4(x)^2\\,dx=2$."
+      ],
+      "expected": "Correct option: B. For an orthogonal projection, adding $c_4P_4(x)$ reduces the squared error by $\\alpha_4c_4^2$, where $\\alpha_4=\\int_{-1}^{1}P_4(x)^2\\,dx=\\frac{2}{9}$. The improvement is not just $c_4^2$ unless the basis is orthonormal."
+    },
+    {
+      "id": "gen-05-6",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "A student expands $q_n(x)^2$ and keeps terms $c_ic_j\\int_{-1}^{1}P_i(x)P_j(x)\\,dx$ for every $i$ and $j$. Explain exactly which terms vanish and why.",
+      "options": [
+        "A. $a = 1$ and $b = 0$",
+        "B. $a = 2$ and $b = -1$",
+        "C. $a = 2$ and $b = 1$",
+        "D. $a = \\frac{3}{2}$ and $b = -\\frac{1}{2}$"
+      ],
+      "expected": "Correct option: B. Here $\\bar{X}=1$, $\\bar{Y}=1$, $\\overline{XY}=\\frac{5}{3}$, and $\\overline{X^2}=\\frac{4}{3}$. Thus $a=\\frac{\\overline{XY}-\\bar{X}\\bar{Y}}{\\overline{X^2}-\\bar{X}^2}=\\frac{\\frac{5}{3}-1}{\\frac{4}{3}-1}=2$, and $b=\\bar{Y}-a\\bar{X}=1-2=-1$."
+    },
+    {
+      "id": "gen-05-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Compute the least-squares line $g(x)=ax+b$ through the data $(-1,2)$, $(0,1)$, $(1,1)$, $(2,4)$ using $a = \\frac{\\overline{XY}-\\bar{X}\\bar{Y}}{\\overline{X^2}-\\bar{X}^2}$ and $b=\\bar{Y}-a\\bar{X}$.",
+      "options": [
+        "A. The basis is not orthogonal, so the coefficient matrix becomes singular.",
+        "B. The basis functions are orthogonal, but $\\int_{-1}^{1}P_k(x)^2\\,dx = 0$.",
+        "C. The denominator $\\int_{-1}^{1}P_k(x)^2\\,dx$ is nonzero, so each coefficient can be computed independently.",
+        "D. The function $f(x)$ must be a polynomial of degree exactly $k$."
+      ],
+      "expected": "Correct option: C. The formula $c_k=\\frac{\\int_{-1}^{1}P_k(x)f(x)\\,dx}{\\int_{-1}^{1}P_k(x)^2\\,dx}$ works because the Legendre basis is orthogonal and each norm squared is $\\frac{2}{2k+1}$, which is nonzero."
+    },
+    {
+      "id": "gen-05-8",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "For $f(x)=x^2$, compute the Legendre coefficient $c_2$ using $c_2=\\frac{\\int_{-1}^{1}P_2(x)f(x)\\,dx}{\\int_{-1}^{1}P_2(x)^2\\,dx}$ and $P_2(x)=\\frac{3x^2-1}{2}$.",
+      "options": [
+        "A. $q_n(x)=\\sum_{k=0}^{n}c_kP_k(x)$",
+        "B. $q_n(x)=\\prod_{k=0}^{n}(x-c_k)$",
+        "C. $q_n(x)=\\sum_{k=0}^{n}c_kx^k$ with monomials only",
+        "D. $q_n(x)=\\sum_{k=0}^{n}P_k(c_kx)$"
+      ],
+      "expected": "Correct option: A. A Legendre least-squares approximation has the form $q_n(x)=\\sum_{k=0}^{n}c_kP_k(x)$. The coefficients multiply basis functions; they are not roots, node values, or inputs to $P_k$."
+    },
+    {
+      "id": "gen-05-9",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "For $f(x)=3+2x-x^2$, compute the Legendre coefficients $c_0$, $c_1$, and $c_2$ in $q_2(x)=c_0P_0(x)+c_1P_1(x)+c_2P_2(x)$.",
+      "options": [
+        "A. $\\int_{-1}^{1}(f(x)-q_n(x))^2\\,dx = \\int_{-1}^{1}f(x)^2\\,dx + \\sum_{k=0}^{n}\\alpha_kc_k^2$",
+        "B. $\\int_{-1}^{1}(f(x)-q_n(x))^2\\,dx = \\int_{-1}^{1}f(x)^2\\,dx - \\sum_{k=0}^{n}\\alpha_kc_k^2$",
+        "C. $\\int_{-1}^{1}(f(x)-q_n(x))^2\\,dx = \\sum_{k=0}^{n}c_k$",
+        "D. $\\int_{-1}^{1}(f(x)-q_n(x))^2\\,dx = \\prod_{k=0}^{n}\\alpha_kc_k^2$"
+      ],
+      "expected": "Correct option: B. For an orthogonal projection, $\\int_{-1}^{1}(f(x)-q_n(x))^2\\,dx = \\int_{-1}^{1}f(x)^2\\,dx - \\sum_{k=0}^{n}\\alpha_kc_k^2$, where $\\alpha_k=\\frac{2}{2k+1}$. The minus sign represents the squared contribution captured by the approximation."
+    },
+    {
+      "id": "gen-05-10",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Assume $\\int_{-1}^{1}f(x)^2\\,dx=6$ and the Legendre coefficients are $c_0=1$, $c_1=-\\frac{3}{2}$, and $c_2=\\frac{1}{2}$. Compute the squared error $\\int_{-1}^{1}(f(x)-q_2(x))^2\\,dx$.",
+      "options": [
+        "A. Use Chebyshev, because it targets maximum pointwise error and is associated with reducing oscillatory interpolation behavior.",
+        "B. Use Legendre, because it is the only basis with any recurrence relation.",
+        "C. Use Fourier, because every nonperiodic polynomial fit must use sine terms.",
+        "D. Use monomials, because they are always orthogonal on $[-1,1]$."
+      ],
+      "expected": "Correct option: A. Chebyshev methods are preferred when the objective is to control maximum pointwise error. Legendre methods are natural for $L^2$ least-squares error, while monomials are not orthogonal on $[-1,1]$."
+    },
+    {
+      "id": "gen-05-11",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "State one failure condition for the straight-line least-squares formula $a = \\frac{\\overline{XY}-\\bar{X}\\bar{Y}}{\\overline{X^2}-\\bar{X}^2}$, and explain what it means geometrically.",
+      "options": [
+        "A. Increase by $\\frac{2}{7}c_3^2$",
+        "B. Decrease by $\\frac{2}{7}c_3^2$",
+        "C. Increase by $\\frac{7}{2}c_3^2$",
+        "D. Stay exactly unchanged"
+      ],
+      "expected": "Correct option: B. Since $\\alpha_3=\\int_{-1}^{1}P_3(x)^2\\,dx=\\frac{2}{7}$, adding the orthogonal mode $c_3P_3(x)$ decreases the squared error by $\\alpha_3c_3^2=\\frac{2}{7}c_3^2$."
+    },
+    {
+      "id": "gen-05-12",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "Which statement best describes the role of the denominator in $c_k = \\frac{\\int_{-1}^{1}P_k(x)f(x)\\,dx}{\\int_{-1}^{1}P_k(x)^2\\,dx}$?",
+      "options": [
+        "It normalizes by the squared length of $P_k(x)$ so the coefficient measures projection onto that basis function.",
+        "It makes all Legendre coefficients equal to $1$.",
+        "It cancels the function $f(x)$ so the coefficient depends only on $k$.",
+        "It converts a Legendre approximation into a Chebyshev approximation."
+      ],
+      "expected": "Correct answer: It normalizes by the squared length of $P_k(x)$ so the coefficient measures projection onto that basis function. Since $\\int_{-1}^{1}P_k(x)^2\\,dx=\\frac{2}{2k+1}$, the Legendre basis is orthogonal but not orthonormal."
+    },
+    {
+      "id": "gen-05-13",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Compute the Chebyshev values $T_0(0.5)$, $T_1(0.5)$, $T_2(0.5)$, and $T_3(0.5)$ using $T_{k+1}(x)=2xT_k(x)-T_{k-1}(x)$.",
+      "options": [
+        "A. The normal equations are uncoupled because every basis pair has inner product $0$.",
+        "B. The normal equations are generally coupled because the monomials are not mutually orthogonal on the data set.",
+        "C. The denominator $\\overline{X^2}-\\bar{X}^2$ must always be $0$.",
+        "D. The slope formula can be used only when the data are exactly collinear."
+      ],
+      "expected": "Correct option: B. Orthogonal bases such as Legendre polynomials decouple coefficient formulas under their inner product. Ordinary monomials or data-based bases generally lead to coupled normal equations unless the design columns happen to be orthogonal."
+    },
+    {
+      "id": "gen-05-14",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Compare Legendre and Fourier least-squares expansions. Mention the basis functions and the type of problem each is naturally suited to.",
+      "options": [
+        "A. Vanish by orthogonality, so only diagonal terms remain.",
+        "B. Become equal to $1$, so every cross term is kept.",
+        "C. Are replaced by Chebyshev weights, so no integrals are needed.",
+        "D. Are undefined because $P_i(x)P_j(x)$ cannot be integrated."
+      ],
+      "expected": "Correct option: A. For $i\\neq j$, orthogonality gives $\\int_{-1}^{1}P_i(x)P_j(x)\\,dx=0$. Therefore only terms with $i=j$ remain in $\\int_{-1}^{1}q_n(x)^2\\,dx$."
+    },
+    {
+      "id": "gen-05-15",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Let $q_3(x)=2P_0(x)-P_1(x)+\\frac{1}{2}P_2(x)-\\frac{3}{2}P_3(x)$. Compute $\\int_{-1}^{1}q_3(x)^2\\,dx$.",
+      "options": [
+        "A. $\\int_{-1}^{1}P_k(x)^2\\,dx=2$",
+        "B. $\\int_{-1}^{1}P_k(x)^2\\,dx=\\frac{2}{2k+1}$",
+        "C. $\\int_{-1}^{1}P_k(x)^2\\,dx=\\frac{1}{k}$",
+        "D. $\\int_{-1}^{1}P_k(x)^2\\,dx=0$"
+      ],
+      "expected": "Correct option: B. Legendre polynomials satisfy $\\int_{-1}^{1}P_k(x)^2\\,dx=\\frac{2}{2k+1}$. This norm factor is used in both $\\int_{-1}^{1}q_n(x)^2\\,dx$ and the coefficient formula."
+    },
+    {
+      "id": "gen-05-16",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "A function is approximated on $[-1,1]$ by $q_n(x)=\\sum_{k=0}^{n}c_kP_k(x)$. Which formula correctly computes $\\int_{-1}^{1}q_n(x)^2\\,dx$?",
+      "options": [
+        "$\\sum_{k=0}^{n}c_k^2\\frac{2}{2k+1}$",
+        "$\\sum_{k=0}^{n}c_k\\frac{2}{2k+1}$",
+        "$\\left(\\sum_{k=0}^{n}c_k\\right)^2$",
+        "$\\sum_{i=0}^{n}\\sum_{j=0}^{n}c_ic_j$"
+      ],
+      "expected": "Correct answer: $\\sum_{k=0}^{n}c_k^2\\frac{2}{2k+1}$. Expanding the square gives double sums, but orthogonality removes all cross terms with $i\\neq j$."
+    }
+  ],
+  "generationError": null
+}

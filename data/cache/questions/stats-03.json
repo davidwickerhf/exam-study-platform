@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-05-30T23:34:14.502Z",
+  "chapterId": "03",
+  "questions": [
+    {
+      "id": "gen-03-0",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "Explain the difference between relative risk and odds ratio in a contingency-table setting. Your answer should name what each ratio compares and state why confusing them can mislead interpretation when the outcome is common.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Relative risk compares probabilities: $\\text{RR}=p/q$, where $p$ is the outcome probability in the exposed group and $q$ is the outcome probability in the unexposed group. Odds ratio compares odds: $\\text{OR}=\\frac{p/(1-p)}{q/(1-q)}$. When the outcome is common, odds are not close to probabilities, so $\\text{OR}$ can make the association look larger than $\\text{RR}$."
+    },
+    {
+      "id": "gen-03-1",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "medium",
+      "question": "A headline says a supplement gives a $40\\%$ higher risk of nausea. The baseline rate is $25$ cases per $1000$ people. Assuming this is a relative-risk claim, compute the expected rate among supplement users and the number of extra cases per $1000$ people.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A $40\\%$ higher risk means multiply by $1.40$. New rate: $25 \\times 1.40 = 35$ cases per $1000$. Extra cases: $35-25=10$ extra cases per $1000$ people."
+    },
+    {
+      "id": "gen-03-2",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A study reports $\\text{RR}=1$. Which interpretation is best?",
+      "options": [
+        "The exposed group has no difference in risk compared with the unexposed group.",
+        "The outcome never occurs in the exposed group.",
+        "The exposed group has odds that are twice as high.",
+        "The study must be statistically significant."
+      ],
+      "expected": "The exposed group has no difference in risk compared with the unexposed group."
+    },
+    {
+      "id": "gen-03-3",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: If an outcome is rare, an odds ratio can often be used as an approximate relative risk.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. When $p$ and $q$ are small, $1-p$ and $1-q$ are close to $1$, so odds are close to probabilities. That makes $\\text{OR} \\approx \\text{RR}$ for rare outcomes."
+    },
+    {
+      "id": "gen-03-4",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "Use the table to compute the relative risk of disease for exposed versus unexposed people: exposed with disease $=48$, exposed without disease $=552$, unexposed with disease $=30$, unexposed without disease $=570$. Round to two decimal places and interpret the result.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Exposed risk: $p=48/(48+552)=48/600=0.08$. Unexposed risk: $q=30/(30+570)=30/600=0.05$. Relative risk: $\\text{RR}=0.08/0.05=1.60$. The exposed group has $1.60$ times the risk, or $60\\%$ higher risk."
+    },
+    {
+      "id": "gen-03-5",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "Which formula correctly computes the odds ratio from a $2\\times2$ table with exposed outcome yes $=a$, exposed outcome no $=b$, unexposed outcome yes $=c$, and unexposed outcome no $=d$?",
+      "options": [
+        "$\\text{OR}=\\frac{a/(a+b)}{c/(c+d)}$",
+        "$\\text{OR}=\\frac{a/b}{c/d}=\\frac{ad}{bc}$",
+        "$\\text{OR}=\\frac{a+c}{b+d}$",
+        "$\\text{OR}=\\frac{a}{a+b+c+d}$"
+      ],
+      "expected": "$\\text{OR}=\\frac{a/b}{c/d}=\\frac{ad}{bc}$"
+    },
+    {
+      "id": "gen-03-6",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "medium",
+      "question": "A newspaper says a behavior causes a $20\\%$ higher risk of a rare disease, but the baseline rate is only $5$ cases per $10000$ people. Explain why the headline may be misleading and give a more honest absolute-risk framing.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The headline uses relative framing, which sounds large because it hides the tiny baseline rate. The absolute change is from $5/10000$ to $5\\times1.20=6/10000$, so a more honest framing is about $1$ extra case per $10000$ exposed people."
+    },
+    {
+      "id": "gen-03-7",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A baseline probability is $q=0.20$. A study reports $\\text{OR}=2.25$ for the exposed group. Compute the exposed probability $p$ using the strict odds-ratio calculation. Round $p$ to three decimals.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Baseline odds are $q/(1-q)=0.20/0.80=0.25$. Exposed odds are $2.25\\times0.25=0.5625$. Convert odds to probability: $p=0.5625/(1+0.5625)=0.5625/1.5625=0.360$. So the exposed probability is $0.360$, or $36.0\\%$."
+    },
+    {
+      "id": "gen-03-8",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "medium",
+      "question": "True or false: A reported odds ratio of $2$ always means the exposed group has exactly twice the probability of the outcome.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "False. An odds ratio of $2$ means the odds are doubled, not necessarily the probability. It is close to twice the probability only when the outcome is rare."
+    },
+    {
+      "id": "gen-03-9",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "hard",
+      "question": "Write pseudocode for a routine that receives the four cell counts from a $2\\times2$ table and returns both relative risk and odds ratio. It should also reject tables where either denominator needed for the calculation is zero.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct algorithm computes group totals, checks denominators, then computes $\\text{RR}$ and $\\text{OR}$ separately.\n```text\nSTART routine ComputeRatios with inputs $a$, $b$, $c$, $d$\nSet exposedTotal to $a+b$\nSet unexposedTotal to $c+d$\nIF exposedTotal is $0$ OR unexposedTotal is $0$ OR $b$ is $0$ OR $c$ is $0$ THEN\n    Return error \"ratio undefined\"\nEND IF\nSet p to $a/(a+b)$\nSet q to $c/(c+d)$\nSet relativeRisk to $p/q$\nSet oddsRatio to $(a/b)/(c/d)$\nReturn relativeRisk and oddsRatio\nEND routine\n```"
+    },
+    {
+      "id": "gen-03-10",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "medium",
+      "question": "A disease has baseline risk $2/100$. A headline reports an odds ratio of $1.6$. Which exam-style approximation is most appropriate for the expected rate when the outcome is rare?",
+      "options": [
+        "About $0.4/100$",
+        "About $2.0/100$",
+        "About $3.2/100$",
+        "About $16/100$"
+      ],
+      "expected": "About $3.2/100$"
+    },
+    {
+      "id": "gen-03-11",
+      "source": "Generated",
+      "type": "calc",
+      "difficulty": "hard",
+      "question": "A case-control-style table records outcome status first: cases exposed $=80$, cases unexposed $=120$, controls exposed $=160$, controls unexposed $=640$. Compute the odds ratio for exposure among cases versus controls, and interpret it in one sentence.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "Using $a=80$, $b=120$, $c=160$, and $d=640$ for exposed among cases versus controls, $\\text{OR}=ad/bc=(80\\times640)/(120\\times160)=51200/19200=2.67$. The odds of exposure among cases are about $2.67$ times the odds among controls."
+    },
+    {
+      "id": "gen-03-12",
+      "source": "Generated",
+      "type": "written",
+      "difficulty": "hard",
+      "question": "Why do confidence intervals matter when interpreting an odds ratio or relative risk? Use the example of an estimate near $2$ with a very wide interval that includes $1$.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "The point estimate alone can suggest a large association, such as $\\text{OR}\\approx2$, but the confidence interval shows uncertainty. If the interval includes $1$, then no effect is compatible with the data, so the result should not be treated as clear evidence of increased risk."
+    },
+    {
+      "id": "gen-03-13",
+      "source": "Generated",
+      "type": "mc",
+      "difficulty": "hard",
+      "question": "In a $2\\times2$ table, which statement correctly describes a key difference between odds ratio and relative risk?",
+      "options": [
+        "$\\text{OR}$ compares rates, while $\\text{RR}$ compares odds.",
+        "$\\text{RR}$ is symmetric when swapping outcome and exposure, while $\\text{OR}$ is not.",
+        "$\\text{OR}$ is symmetric under certain row-column swaps, which is why it is useful in case-control studies; $\\text{RR}$ depends on risk denominators.",
+        "Both $\\text{OR}$ and $\\text{RR}$ are always equal when the baseline rate is above $50\\%$."
+      ],
+      "expected": "$\\text{OR}$ is symmetric under certain row-column swaps, which is why it is useful in case-control studies; $\\text{RR}$ depends on risk denominators."
+    },
+    {
+      "id": "gen-03-14",
+      "source": "Generated",
+      "type": "pseudocode",
+      "difficulty": "medium",
+      "question": "Write pseudocode for converting a relative-risk headline into absolute frequencies. Inputs are a baseline count, population size, and relative-risk multiplier. The routine should return the new expected count and the extra count.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "A correct algorithm turns the baseline count into a rate, multiplies by the relative-risk factor, and converts back to a count.\n```text\nSTART routine ApplyRelativeRisk with inputs baselineCount, populationSize, multiplier\nIF populationSize is $0$ THEN\n    Return error \"population size must be positive\"\nEND IF\nSet baselineRate to $\\text{baselineCount}/\\text{populationSize}$\nSet newRate to $\\text{baselineRate}\\times\\text{multiplier}$\nSet newExpectedCount to $\\text{newRate}\\times\\text{populationSize}$\nSet extraCount to $\\text{newExpectedCount}-\\text{baselineCount}$\nReturn newExpectedCount and extraCount\nEND routine\n```"
+    },
+    {
+      "id": "gen-03-15",
+      "source": "Generated",
+      "type": "tf",
+      "difficulty": "hard",
+      "question": "True or false: If $\\text{RR}=0.75$, the exposed group has $25\\%$ lower risk than the unexposed group.",
+      "options": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "expected": "True. Since $\\text{RR}=p/q=0.75$, the exposed risk is $75\\%$ of the unexposed risk. That corresponds to a relative decrease of $1-0.75=0.25$, or $25\\%$."
+    }
+  ],
+  "generationError": null
+}
