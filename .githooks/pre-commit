@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# Block any personal-progress file from being committed, even if it slips
+# past .gitignore (force-added, gitignore edited, etc). Lives in .githooks/
+# so it's tracked and shared with collaborators; activate with:
+#
+#   git config core.hooksPath .githooks
+#
+# setup.mjs does this automatically on first run.
+
+set -euo pipefail
+
+# Regex of paths that hold per-user state and must NEVER be committed.
+# Anchored at the repo root so a file like content/.../mistakes.md isn't
+# falsely flagged.
+PERSONAL_RE='^(data/study-state\.json$|data/flashcards\.json$|data/sr-state\.json$|data/mistakes/|data/mocks/|data/llm-config\.json$|data/.*\.bak.*)'
+
+# What's staged?
+staged="$(git diff --cached --name-only --diff-filter=AM)"
+
+leaks="$(printf '%s\n' "$staged" | grep -E "$PERSONAL_RE" || true)"
+
+if [ -n "$leaks" ]; then
+  printf '\n\033[1;31m✗ Commit blocked: personal progress files are staged\033[0m\n\n'
+  printf '%s\n' "$leaks" | sed 's/^/   /'
+  printf '\nThese hold per-user state (attempts, grades, SR scheduling, mistake bank, etc.)\n'
+  printf 'and must stay local. Either:\n'
+  printf '   • git restore --staged <files>     # un-stage and keep the file\n'
+  printf '   • git rm --cached <files>          # un-track but keep on disk\n'
+  printf '   • check why .gitignore missed them — the pattern set is in .githooks/pre-commit\n\n'
+  exit 1
+fi

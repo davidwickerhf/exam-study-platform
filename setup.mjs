@@ -129,6 +129,21 @@ function ensureCacheDirs() {
   ok(`Cache directories ready under data/cache/`)
 }
 
+// Install the tracked pre-commit hook (.githooks/pre-commit) so anyone who
+// commits from this clone gets the "block personal progress files" safety net.
+// No-op if this isn't a git checkout (e.g. downloaded zip).
+function activateHooks() {
+  const hookDir = resolve(__dirname, '.githooks')
+  if (!existsSync(hookDir)) return
+  if (!existsSync(resolve(__dirname, '.git'))) return
+  try {
+    execFileSync('git', ['config', 'core.hooksPath', '.githooks'], { cwd: __dirname, stdio: 'ignore' })
+    ok(`Git hooks armed (block personal-progress files on commit)`)
+  } catch {
+    warn(`Couldn't set core.hooksPath — install hook manually if you plan to commit`)
+  }
+}
+
 function summary(cfg) {
   head('All set')
   print(`  Start the platform with:`)
@@ -155,6 +170,7 @@ function summary(cfg) {
   writeLlmConfig(cfg)
   bootstrapState()
   ensureCacheDirs()
+  activateHooks()
   summary(cfg)
   rl.close()
 })().catch((e) => {
