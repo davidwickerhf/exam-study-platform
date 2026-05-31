@@ -3572,6 +3572,76 @@ svg.diag-svg .d-arr-dan { fill: var(--danger); }
   gap: 8px;
 }
 
+/* ----- "Clear progress" affordances ---------------------------------------- */
+.hero-actions-row {
+  margin-top: 10px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.clear-link {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+}
+.clear-link:hover {
+  color: #b66355;
+  border-color: rgba(182, 99, 85, 0.4);
+  background: rgba(182, 99, 85, 0.06);
+}
+/* When used inline next to other toolbar buttons (.tb-btn .clear-link) — keep
+   the danger styling but match the toolbar baseline */
+.tb-btn.clear-link {
+  border: 1px solid var(--line);
+}
+.tb-btn.clear-link:hover {
+  border-color: #b66355;
+  color: #b66355;
+}
+/* On per-question cards — same .btn baseline, danger-on-hover */
+.btn.clear-link {
+  color: var(--muted);
+}
+.btn.clear-link:hover {
+  color: #b66355;
+  border-color: rgba(182, 99, 85, 0.5);
+}
+
+/* Tiny "×" on each chapter heatmap tile, only visible on tile hover */
+.spine-tile { position: relative; }
+.spine-tile-clear {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(0,0,0,0.35);
+  font: 700 12px/14px var(--font, sans-serif);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s, color 0.1s, border-color 0.1s, background 0.1s;
+}
+.spine-tile:hover .spine-tile-clear {
+  opacity: 1;
+}
+.spine-tile-clear:hover {
+  color: #b66355;
+  border-color: rgba(182, 99, 85, 0.5);
+  background: rgba(255,255,255,0.7);
+}
+
 /* ----- "Contents populated" chip in the course hero ----------------------- */
 .course-populated-chip {
   display: inline-flex;

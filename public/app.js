@@ -668,6 +668,167 @@ function setChapterRead(courseId, chapterId, read = true) {
   }
 }
 
+// ─── Clear progress ──────────────────────────────────────────────────────────
+// Single entry point used by every "Clear progress" button across the app.
+// Wraps showConfirm with a scope-specific irreversibility warning, then wipes
+// the matching client-side localStorage entries AND fires the server endpoint
+// for SR / mistakes / mock sessions.
+const CLEAR_DESCRIPTIONS = {
+  course:           (o) => `Reset every trace of progress on ${o.courseName || 'this course'}.\n\n• Chapter read flags (every chapter)\n• Self-test attempts, grades, and revealed answers (every chapter)\n• Mock-question attempts and grades (entire course-wide bank)\n• Practice-exam attempts, grades, guidance, and uploaded images (every mock exam)\n• Flashcards' spaced-repetition state (every card resets to fresh)\n• Per-chapter mistake bank entries\n• Mini-mock session history\n\nThis is IRREVERSIBLE.`,
+  chapter:          (o) => `Reset every trace of progress on Ch ${o.chapterId} of ${o.courseName || 'this course'}.\n\n• Chapter read flag\n• Self-test attempts + grades for this chapter\n• Mock-question attempts + grades for this chapter\n• Flashcards' spaced-repetition state for cards in this chapter\n• This chapter's mistake bank entries\n\nThis is IRREVERSIBLE.`,
+  'self-test':      (o) => `Clear all self-test attempts, grades, and revealed answers for Ch ${o.chapterId}.\n\nReading status, mock questions, and flashcards are kept.\n\nThis is IRREVERSIBLE.`,
+  'esq':            (o) => `Clear all exam-style-question attempts and grades for Ch ${o.chapterId}.\n\nThe questions themselves stay; only your answers, grades, and revealed-answer toggles are cleared.\n\nThis is IRREVERSIBLE.`,
+  'mock-questions': (o) => `Clear all course-wide mock-question attempts and grades for ${o.courseName || 'this course'}.\n\nThe question bank itself stays; only your answers, grades, and revealed answers are cleared.\n\nThis is IRREVERSIBLE.`,
+  exam:             (o) => `Clear all attempts, grades, guidance hints, and uploaded images for ${o.examLabel || 'this practice exam'}.\n\nThe parsed paper itself stays.\n\nThis is IRREVERSIBLE.`,
+  question:         (o) => `Clear your answer and grade for this question.\n\nThis is IRREVERSIBLE.`,
+  flashcards:       (o) => `Reset spaced-repetition state for every flashcard in Ch ${o.chapterId || 'this scope'}. The cards themselves stay; only your due-dates, ease, and review history are wiped.\n\nThis is IRREVERSIBLE.`
+}
+
+async function clearProgress(opts) {
+  const { scope, courseId, chapterId, examId, questionId, courseName, examLabel, skipConfirm } = opts
+  const describe = CLEAR_DESCRIPTIONS[scope]
+  if (!describe) { console.warn('clearProgress: unknown scope', scope); return }
+  if (!skipConfirm) {
+    const ok = await showConfirm({
+      title: scope === 'course' ? 'Reset course progress?' : scope === 'question' ? 'Clear this answer?' : 'Clear progress?',
+      message: describe(opts),
+      okLabel: scope === 'question' ? 'Clear answer' : 'Yes, clear progress',
+      cancelLabel: 'Cancel',
+      danger: true
+    })
+    if (!ok) return false
+  }
+
+  // Client-side: attemptState (self-test + mock-questions), chapter-read,
+  // practice-exam localStorage. The Maps are mutated in place; the localStorage
+  // back-pen syncs via the monkey-patched .set / our explicit removeItem calls.
+  const wipeAttemptKey = (k) => attemptState.delete(k)
+  const wipeAttemptsMatching = (prefixOrFn) => {
+    const pred = typeof prefixOrFn === 'function' ? prefixOrFn : (k) => k.startsWith(prefixOrFn)
+    for (const k of [...attemptState.keys()]) if (pred(k)) attemptState.delete(k)
+  }
+  const persistAttempts = () => {
+    try {
+      const obj = {}
+      for (const [k, v] of attemptState) obj[k] = v
+      localStorage.setItem(ATTEMPT_STORAGE_KEY, JSON.stringify(obj))
+    } catch {}
+  }
+  const wipePracticeExam = (cid, eid) => {
+    try { localStorage.removeItem(practiceStorageKey(cid, eid)) } catch {}
+    if (practiceExamView.courseId === cid && practiceExamView.examId === eid) {
+      practiceExamView.attempts = {}
+      practiceExamView.attemptImages = {}
+      practiceExamView.grades = {}
+      practiceExamView.guidance = {}
+      practiceExamView.grading = {}
+      practiceExamView.showGuidance = {}
+      practiceExamView.showAnswer = {}
+      practiceExamView.currentQid = null
+    }
+  }
+  const wipePracticeExamsForCourse = (cid) => {
+    const course = state.courses?.find((c) => c.id === cid)
+    for (const e of (getMockExams ? getMockExams(course) : [])) wipePracticeExam(cid, e.id)
+  }
+
+  switch (scope) {
+    case 'question': {
+      wipeAttemptKey(`${courseId}/${chapterId}/${questionId}`)
+      // Practice-exam questions live in practiceExamView, not attemptState.
+      if (practiceExamView.courseId === courseId && practiceExamView.attempts[questionId] !== undefined) {
+        delete practiceExamView.attempts[questionId]
+        delete practiceExamView.attemptImages[questionId]
+        delete practiceExamView.grades[questionId]
+        delete practiceExamView.guidance[questionId]
+        delete practiceExamView.grading[questionId]
+        delete practiceExamView.showGuidance[questionId]
+        delete practiceExamView.showAnswer[questionId]
+        persistPracticeAttempts(courseId, practiceExamView.examId)
+      }
+      persistAttempts()
+      break
+    }
+    case 'self-test': {
+      // Only the IDs that belong to the chapter's self-test bank — the same
+      // attemptState Map also holds mock-question attempts under the same
+      // prefix, and clearing those would be too aggressive for a per-chapter
+      // self-test reset.
+      const cache = questionsCache.get(`${courseId}/${chapterId}`)
+      const ids = new Set((cache?.questions || []).map((q) => q.id))
+      for (const k of [...attemptState.keys()]) {
+        if (!k.startsWith(`${courseId}/${chapterId}/`)) continue
+        const qid = k.slice(k.lastIndexOf('/') + 1)
+        if (ids.has(qid)) attemptState.delete(k)
+      }
+      persistAttempts()
+      break
+    }
+    case 'esq': {
+      // Only the mock-question IDs for this chapter
+      const cache = (typeof mockQuestionsCache !== 'undefined') ? mockQuestionsCache.get(courseId) : null
+      const ids = new Set((cache?.questions || []).filter((q) => q.chapterId === chapterId).map((q) => q.id))
+      for (const k of [...attemptState.keys()]) {
+        if (!k.startsWith(`${courseId}/${chapterId}/`)) continue
+        const qid = k.slice(k.lastIndexOf('/') + 1)
+        if (ids.has(qid)) attemptState.delete(k)
+      }
+      persistAttempts()
+      break
+    }
+    case 'mock-questions': {
+      wipeAttemptsMatching((k) => k.startsWith(`${courseId}/`))
+      persistAttempts()
+      break
+    }
+    case 'exam': {
+      wipePracticeExam(courseId, examId)
+      break
+    }
+    case 'chapter': {
+      setChapterRead(courseId, chapterId, false)
+      wipeAttemptsMatching(`${courseId}/${chapterId}/`)
+      persistAttempts()
+      await fetch('/api/progress/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'chapter', courseId, chapterId })
+      }).catch(() => {})
+      break
+    }
+    case 'course': {
+      // Chapter-read flags for every chapter of the course
+      const course = state.courses?.find((c) => c.id === courseId)
+      for (const ch of course?.chapters || []) setChapterRead(courseId, ch.id, false)
+      // attemptState: any key beginning with the course id
+      wipeAttemptsMatching((k) => k.startsWith(`${courseId}/`))
+      persistAttempts()
+      // Practice exams: clear local state for each exam
+      wipePracticeExamsForCourse(courseId)
+      // Server-side: mistakes (all chapters), SR (all course cards), mock sessions
+      await fetch('/api/progress/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'course', courseId })
+      }).catch(() => {})
+      break
+    }
+    case 'flashcards': {
+      await fetch('/api/progress/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: chapterId ? 'flashcards-chapter' : 'flashcards-course', courseId, chapterId })
+      }).catch(() => {})
+      if (typeof flashcardsCache !== 'undefined') flashcardsCache.delete(courseId)
+      break
+    }
+  }
+  // Invalidate caches that summarize progress so the UI reflects the wipe
+  if (typeof questionsSummaryCache !== 'undefined') questionsSummaryCache.delete(courseId)
+  render()
+  return true
+}
+
 // Per-chapter progress derived from real activity. Each "signal" returns 0..1.
 // The final masteryPct is the weighted average of signals that have any data.
 function chapterProgress(course, chapter) {
@@ -1936,6 +2097,9 @@ function renderCourse(courseId) {
               <h1>${course.name}</h1>
               <p>${course.exam} · ${course.role}</p>
               ${renderCoursePopulatedChip(course)}
+              <div class="hero-actions-row">
+                <button type="button" class="clear-link" data-clear-scope="course" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset every trace of your progress on this course">Reset course progress</button>
+              </div>
             </div>
             ${renderSurfaceTabs(course, { active: 'overview', surface: 'overview' })}
           </section>
@@ -2100,6 +2264,7 @@ function renderCourseSpine(course, chapters = course.chapters || []) {
         const title = `Ch ${escapeHtml(ch.id)} — ${escapeHtml(ch.name)}\nOverall: ${p.masteryPct}%\nRead: ${readPct}%\nPractice: ${p.practice.done}/${p.practice.total || 0}${p.practice.total ? ` (avg ${p.practice.avg.toFixed(1)}/10)` : ''}\nMock: ${p.mock.done}/${p.mock.total || 0}${p.mock.total ? ` (avg ${p.mock.avg.toFixed(1)}/10)` : ''}\nFlashcards: ${p.flashcards.mature}/${p.flashcards.total || 0} mature`
         return `
           <a class="spine-tile spine-${bucket}" href="#/course/${course.id}/chapter/${ch.id}" title="${escapeHtml(title)}">
+            <button type="button" class="spine-tile-clear" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${ch.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset progress for Ch ${escapeHtml(ch.id)}">×</button>
             <div class="spine-tile-head">
               <span class="spine-num">${escapeHtml(ch.id)}</span>
               <span class="spine-pct">${p.masteryPct}%</span>
@@ -2500,6 +2665,9 @@ function renderChapterPage() {
             <p class="eyebrow">${course.code} ${course.shortName || ''} · Chapter</p>
             <h1>Ch ${chapter.id} · ${chapter.name}</h1>
             <p class="chapter-path"><code>${data.path}</code></p>
+            <div class="hero-actions-row">
+              <button type="button" class="clear-link" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset reading status, self-test, ESQ, flashcards SR, and mistakes for this chapter">Reset chapter progress</button>
+            </div>
           </div>
           <div class="chapter-hero-bar">
             ${renderSurfaceTabs(course, { active: null, surface: 'chapter', chapter })}
@@ -2797,6 +2965,7 @@ function renderQuestionsPanel(course, chapter) {
         ${renderMultiSelect('types', 'All types', typeOptionsList)}
         ${renderMultiSelect('sources', 'All sources', sourceOptionsList)}
         <button type="button" class="tb-btn tb-btn-primary" data-extend-open="${course.id}/${chapter.id}" title="Generate more questions to add to the bank">＋ Generate more</button>
+        <button type="button" class="tb-btn clear-link" data-clear-scope="self-test" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear all your self-test answers, grades, and revealed answers for this chapter">Clear answers</button>
         ${renderToolbarMore(course, chapter)}
       </div>
     </div>
@@ -2932,6 +3101,7 @@ function renderQuestionCard(q, index, course, chapter) {
         <button type="button" class="btn btn-primary" data-grade="${attemptKey}" ${grading ? 'disabled' : ''}>${grading ? 'Grading…' : 'Check my answer'}</button>
         <button type="button" class="btn btn-ghost" data-reveal="${attemptKey}">${showAnswer ? 'Hide answer' : 'Reveal answer'}</button>
         ${srButtonHtml(q.id)}
+        <button type="button" class="btn btn-ghost clear-link" data-clear-scope="question" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-question="${q.id}" title="Clear your answer and grade for this question">Clear answer</button>
       </div>
       ${grade ? `<div class="q-grade">${renderCorrectionMarkdown(grade, att.score, 10)}</div>` : ''}
       ${showAnswer && q.expected ? `<div class="q-expected"><strong>Reference answer:</strong>${renderMarkdown(q.expected)}</div>` : ''}
@@ -4560,6 +4730,9 @@ function renderMockQuestionsView(course) {
         ${renderMqMultiSelect('topics', 'All topics', topicOpts)}
         ${renderMqMultiSelect('types', 'All types', typeOpts)}
         <button type="button" class="tb-btn" data-mq-regenerate="${course.id}" title="Regenerate the whole bank">↻ Regenerate</button>
+        ${mockQuestionsView.chapterId !== 'all'
+          ? `<button type="button" class="tb-btn clear-link" data-clear-scope="esq" data-clear-course="${course.id}" data-clear-chapter="${mockQuestionsView.chapterId}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear your answers + grades for the current chapter filter">Clear chapter answers</button>`
+          : `<button type="button" class="tb-btn clear-link" data-clear-scope="mock-questions" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear all your answers + grades across the entire mock-question bank">Clear all answers</button>`}
       </div>
     </div>
 
@@ -4683,6 +4856,7 @@ function renderMockQuestionCard(q, index, course) {
         <button type="button" class="btn btn-primary" data-grade="${attemptKey}" ${grading ? 'disabled' : ''}>${grading ? 'Grading…' : 'Check my answer'}</button>
         <button type="button" class="btn btn-ghost" data-reveal="${attemptKey}">${showAnswer ? 'Hide answer' : 'Reveal answer'}</button>
         ${srButtonHtml(q.id)}
+        <button type="button" class="btn btn-ghost clear-link" data-clear-scope="question" data-clear-course="${course.id}" data-clear-chapter="${q.chapterId}" data-clear-question="${q.id}" title="Clear your answer and grade for this question">Clear answer</button>
       </div>
       ${grade ? `<div class="q-grade">${renderCorrectionMarkdown(grade, att.score, 10)}</div>` : ''}
       ${showAnswer && q.expected ? `<div class="q-expected"><strong>Reference answer:</strong>${renderMarkdown(q.expected)}</div>` : ''}
@@ -5108,6 +5282,7 @@ function renderPracticeExam(course) {
     <div class="practice-exam">
       <div class="practice-toolbar">
         <small class="rail-meta">${questions.length} questions · shared problem statements stay visible, one sub-question at a time</small>
+        <button type="button" class="tb-btn clear-link" data-clear-scope="exam" data-clear-course="${course.id}" data-clear-exam="${practiceExamView.examId || ''}" data-clear-exam-label="${escapeHtml(getCurrentMockExam(course)?.label || 'this practice exam')}" title="Clear all your answers, grades, guidance hints, and uploaded images for this practice exam">Clear my work</button>
         <button type="button" class="regen-btn" data-practice-reparse="${course.id}">↻ Regenerate exam</button>
       </div>
 
@@ -5326,6 +5501,7 @@ function renderPracticePart(q) {
         <button type="button" class="btn btn-primary" data-practice-grade="${qid}" ${grading ? 'disabled' : ''}>${grading ? 'Grading…' : 'Check my answer'}</button>
         <button type="button" class="btn btn-ghost" data-toggle-answer="${qid}">${showAnswer ? 'Hide ideal answer' : 'Reveal ideal answer'}</button>
         <button type="button" class="btn btn-ghost" data-toggle-guidance="${qid}">${showGuidance ? 'Hide guidance' : 'Show guidance'}</button>
+        <button type="button" class="btn btn-ghost clear-link" data-clear-scope="question" data-clear-course="${course.id}" data-clear-question="${qid}" title="Clear your answer, grade, and guidance for this question">Clear answer</button>
       </div>
 
       ${showGuidance ? `
@@ -6761,6 +6937,25 @@ function bindEvents() {
   })
   document.querySelectorAll('[data-genall-all-start]').forEach((btn) => {
     btn.addEventListener('click', () => startGenerateAllCourses())
+  })
+  // Single click handler for every "Clear progress" affordance in the app.
+  // Buttons carry data-clear-scope plus the scope's required parameters as
+  // data-clear-* attributes.
+  document.querySelectorAll('[data-clear-scope]').forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const d = event.currentTarget.dataset
+      clearProgress({
+        scope: d.clearScope,
+        courseId: d.clearCourse,
+        chapterId: d.clearChapter,
+        examId: d.clearExam,
+        questionId: d.clearQuestion,
+        courseName: d.clearCourseName,
+        examLabel: d.clearExamLabel
+      })
+    })
   })
   document.querySelectorAll('[data-mq-regenerate]').forEach((btn) => {
     btn.addEventListener('click', async (event) => {

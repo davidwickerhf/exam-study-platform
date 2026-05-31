@@ -3142,6 +3142,109 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // ── Clear progress ─────────────────────────────────────────────────────
+    // Wipes server-side personal data for the requested scope. Client-side
+    // state (localStorage attempts, chapter-read flags, etc.) is cleared by
+    // the client around the same call.
+    //
+    //   POST /api/progress/clear   { scope, courseId, chapterId?, examId? }
+    //
+    // Scopes:
+    //   course             — every chapter's mistake bank, every flashcard's
+    //                        SR entry, mock-session records for the course.
+    //   chapter            — that chapter's mistake file + that chapter's
+    //                        flashcards' SR entries.
+    //   flashcards-chapter — flashcards SR only, for one chapter.
+    //   flashcards-course  — flashcards SR only, course-wide.
+    //   mistakes-chapter   — mistake file for one chapter.
+    //   mistakes-course    — every mistake file for the course.
+    //   mock-sessions      — mini-mock session records for one course.
+    if (url.pathname === '/api/progress/clear' && req.method === 'POST') {
+      const body = await readBody(req)
+      const scope = String(body.scope || '')
+      const courseId = String(body.courseId || '')
+      const chapterId = body.chapterId ? String(body.chapterId) : null
+      if (!courseId) {
+        send(res, 400, JSON.stringify({ error: 'courseId is required' }))
+        return
+      }
+      const out = { scope, courseId, removed: { mistakes: 0, sr: 0, mocks: 0 } }
+
+      const wipeMistakesForChapter = async (cid, chid) => {
+        const p = resolve(mistakesDir, `${cid}-${chid}.json`)
+        if (existsSync(p)) { await unlink(p).catch(() => {}); out.removed.mistakes++ }
+      }
+      const wipeMistakesForCourse = async (cid) => {
+        if (!existsSync(mistakesDir)) return
+        const files = await readdir(mistakesDir)
+        for (const f of files) {
+          if (f.startsWith(`${cid}-`) && f.endsWith('.json')) {
+            await unlink(resolve(mistakesDir, f)).catch(() => {})
+            out.removed.mistakes++
+          }
+        }
+      }
+      const wipeSrForCards = async (filterFn) => {
+        const fc = await readFlashcards()
+        const cardIds = new Set((fc.cards || []).filter(filterFn).map((c) => c.id))
+        if (!cardIds.size) return
+        const sr = await readSrState()
+        sr.cards = sr.cards || {}
+        let removed = 0
+        for (const id of cardIds) {
+          if (sr.cards[id]) { delete sr.cards[id]; removed++ }
+        }
+        if (removed) {
+          await writeSrState(sr)
+          out.removed.sr += removed
+        }
+        // Also reset the embedded sr field on each card so the flashcards UI
+        // shows them as un-studied immediately.
+        const fresh = { ease: 2.5, interval: 0, repetitions: 0, lastReviewed: null, dueAt: new Date().toISOString(), history: [] }
+        let touched = false
+        for (const c of fc.cards || []) {
+          if (cardIds.has(c.id)) { c.sr = { ...fresh }; touched = true }
+        }
+        if (touched) await writeFlashcards(fc)
+      }
+      const wipeMockSessionsForCourse = async (cid) => {
+        if (!existsSync(mocksDir)) return
+        const files = await readdir(mocksDir)
+        for (const f of files) {
+          if (!f.endsWith('.json')) continue
+          const p = resolve(mocksDir, f)
+          try {
+            const data = JSON.parse(await readFile(p, 'utf8'))
+            if (data?.courseId === cid) { await unlink(p).catch(() => {}); out.removed.mocks++ }
+          } catch {}
+        }
+      }
+
+      try {
+        if (scope === 'chapter' || scope === 'mistakes-chapter') {
+          if (!chapterId) { send(res, 400, JSON.stringify({ error: 'chapterId is required' })); return }
+          await wipeMistakesForChapter(courseId, chapterId)
+        }
+        if (scope === 'chapter' || scope === 'flashcards-chapter') {
+          if (!chapterId) { send(res, 400, JSON.stringify({ error: 'chapterId is required' })); return }
+          await wipeSrForCards((c) => c.courseId === courseId && c.chapterId === chapterId)
+        }
+        if (scope === 'course' || scope === 'mistakes-course') {
+          await wipeMistakesForCourse(courseId)
+        }
+        if (scope === 'course' || scope === 'flashcards-course') {
+          await wipeSrForCards((c) => c.courseId === courseId)
+        }
+        if (scope === 'course' || scope === 'mock-sessions') {
+          await wipeMockSessionsForCourse(courseId)
+        }
+        send(res, 200, JSON.stringify({ ok: true, ...out }))
+      } catch (err) {
+        send(res, 500, JSON.stringify({ error: err.message }))
+      }
+      return
+    }
+
     // ----- Per-course / per-chapter flashcards -----
     const fcGenAllMatch = url.pathname.match(/^\/api\/flashcards\/([^/]+)\/generate-all$/)
     if (fcGenAllMatch && req.method === 'POST') {
