@@ -3572,6 +3572,61 @@ svg.diag-svg .d-arr-dan { fill: var(--danger); }
   gap: 8px;
 }
 
+/* ----- Code editor (CodeMirror) attempt boxes ----------------------------- */
+.code-attempt {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.code-editor-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--panel-2, #ebe7dc);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  font-size: 11px;
+}
+.code-lang-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.code-lang-select {
+  font: inherit;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 2px 6px;
+}
+.code-attempt .CodeMirror {
+  font-family: ui-monospace, SF Mono, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--line);
+  min-height: 160px;
+  background: var(--paper);
+}
+.code-attempt .CodeMirror-gutters {
+  background: var(--panel-2, #ebe7dc);
+  border-right: 1px solid var(--line);
+}
+.code-attempt .CodeMirror-linenumber {
+  color: var(--muted);
+  font-size: 11px;
+}
+.code-attempt .CodeMirror-cursor { border-left-color: var(--accent); }
+/* keep image upload affordance flush */
+.code-attempt .image-thumbs,
+.code-attempt .attempt-drop-hint {
+  margin-top: 4px;
+}
+
 /* ----- "Clear progress" affordances ---------------------------------------- */
 .hero-actions-row {
   margin-top: 10px;

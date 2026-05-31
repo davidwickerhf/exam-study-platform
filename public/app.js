@@ -3067,9 +3067,19 @@ function renderQuestionCard(q, index, course, chapter) {
       </div>
     `
   } else if (q.type === 'pseudocode') {
+    const lang = att.codeLang || 'pseudocode'
     input = `
-      <div class="attempt-drop" data-attempt-drop="${attemptKey}">
-        <textarea class="q-input code" placeholder="Write your pseudocode (or drop a screenshot of your work)..." data-attempt="${attemptKey}">${escapeHtml(att.value || '')}</textarea>
+      <div class="attempt-drop code-attempt" data-attempt-drop="${attemptKey}">
+        <div class="code-editor-toolbar">
+          <label class="code-lang-label">Language
+            <select class="code-lang-select" data-code-lang-select="${attemptKey}">
+              <option value="pseudocode"${lang === 'pseudocode' ? ' selected' : ''}>Pseudocode</option>
+              <option value="c"${lang === 'c' ? ' selected' : ''}>C / C++</option>
+              <option value="asm"${lang === 'asm' ? ' selected' : ''}>Assembly (ARM / GAS)</option>
+            </select>
+          </label>
+        </div>
+        <textarea class="q-input code cm-target" placeholder="Write your answer (or drop a screenshot of your work)..." data-attempt="${attemptKey}" data-code-lang="${lang}">${escapeHtml(att.value || '')}</textarea>
         ${renderImageThumbs(att.images, `remove-image="${attemptKey}"`)}
         <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-attempt-file="${attemptKey}"> upload image</label>
       </div>
@@ -4400,6 +4410,7 @@ function restorePracticeAttempts(courseId, examId) {
   practiceExamView.showGuidance = {}
   practiceExamView.showAnswer = {}
   practiceExamView.currentQid = null
+  practiceExamView.codeLang = {}
   try {
     const raw = localStorage.getItem(practiceStorageKey(courseId, examId))
     if (raw) {
@@ -4408,6 +4419,7 @@ function restorePracticeAttempts(courseId, examId) {
       practiceExamView.attemptImages = data.attemptImages || {}
       practiceExamView.grades = data.grades || {}
       practiceExamView.currentQid = data.currentQid || null
+      practiceExamView.codeLang = data.codeLang || {}
     }
   } catch {}
 }
@@ -4419,7 +4431,8 @@ function persistPracticeAttempts(courseId, examId) {
       attempts: practiceExamView.attempts,
       attemptImages: practiceExamView.attemptImages,
       grades: practiceExamView.grades,
-      currentQid: practiceExamView.currentQid
+      currentQid: practiceExamView.currentQid,
+      codeLang: practiceExamView.codeLang || {}
     }))
   } catch (e) {
     // Quota exceeded (likely from images) — try saving without images
@@ -4427,7 +4440,8 @@ function persistPracticeAttempts(courseId, examId) {
       localStorage.setItem(key, JSON.stringify({
         attempts: practiceExamView.attempts,
         grades: practiceExamView.grades,
-        currentQid: practiceExamView.currentQid
+        currentQid: practiceExamView.currentQid,
+        codeLang: practiceExamView.codeLang || {}
       }))
     } catch {}
   }
@@ -4823,9 +4837,19 @@ function renderMockQuestionCard(q, index, course) {
       </div>
     `
   } else if (q.type === 'pseudocode') {
+    const lang = att.codeLang || 'pseudocode'
     input = `
-      <div class="attempt-drop" data-attempt-drop="${attemptKey}">
-        <textarea class="q-input code" placeholder="Write your pseudocode (or drop a screenshot of your work)..." data-attempt="${attemptKey}">${escapeHtml(att.value || '')}</textarea>
+      <div class="attempt-drop code-attempt" data-attempt-drop="${attemptKey}">
+        <div class="code-editor-toolbar">
+          <label class="code-lang-label">Language
+            <select class="code-lang-select" data-code-lang-select="${attemptKey}">
+              <option value="pseudocode"${lang === 'pseudocode' ? ' selected' : ''}>Pseudocode</option>
+              <option value="c"${lang === 'c' ? ' selected' : ''}>C / C++</option>
+              <option value="asm"${lang === 'asm' ? ' selected' : ''}>Assembly (ARM / GAS)</option>
+            </select>
+          </label>
+        </div>
+        <textarea class="q-input code cm-target" placeholder="Write your answer (or drop a screenshot of your work)..." data-attempt="${attemptKey}" data-code-lang="${lang}">${escapeHtml(att.value || '')}</textarea>
         ${renderImageThumbs(att.images, `remove-image="${attemptKey}"`)}
         <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-attempt-file="${attemptKey}"> upload image</label>
       </div>
@@ -5475,10 +5499,28 @@ function renderPracticePart(q) {
         `).join('')}
       </div>
     `
+  } else if (type === 'pseudocode') {
+    const lang = (practiceExamView.codeLang && practiceExamView.codeLang[qid]) || 'pseudocode'
+    input = `
+      <div class="attempt-drop code-attempt" data-practice-drop="${qid}">
+        <div class="code-editor-toolbar">
+          <label class="code-lang-label">Language
+            <select class="code-lang-select" data-code-lang-select="${qid}">
+              <option value="pseudocode"${lang === 'pseudocode' ? ' selected' : ''}>Pseudocode</option>
+              <option value="c"${lang === 'c' ? ' selected' : ''}>C / C++</option>
+              <option value="asm"${lang === 'asm' ? ' selected' : ''}>Assembly (ARM / GAS)</option>
+            </select>
+          </label>
+        </div>
+        <textarea class="q-input code cm-target" data-practice-attempt="${qid}" data-code-lang="${lang}" placeholder="Your answer for ${escapeHtml(q.label)} (or drop a screenshot/photo)…">${escapeHtml(attempt)}</textarea>
+        ${renderImageThumbs(practiceExamView.attemptImages[qid], `practice-remove-image="${qid}"`)}
+        <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-practice-file="${qid}"> upload image</label>
+      </div>
+    `
   } else {
     input = `
       <div class="attempt-drop" data-practice-drop="${qid}">
-        <textarea class="q-input ${type === 'pseudocode' ? 'code' : ''}" data-practice-attempt="${qid}" placeholder="Your answer for ${escapeHtml(q.label)} (or drop a screenshot/photo)…">${escapeHtml(attempt)}</textarea>
+        <textarea class="q-input" data-practice-attempt="${qid}" placeholder="Your answer for ${escapeHtml(q.label)} (or drop a screenshot/photo)…">${escapeHtml(attempt)}</textarea>
         ${renderImageThumbs(practiceExamView.attemptImages[qid], `practice-remove-image="${qid}"`)}
         <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-practice-file="${qid}"> upload image</label>
       </div>
@@ -6174,6 +6216,84 @@ function typesetMath() {
         throwOnError: false
       })
     } catch (e) { console.error('KaTeX error', e) }
+  })
+}
+
+// ─── CodeMirror mount for pseudocode/C/ASM attempt boxes ───────────────────
+// Each render() replaces the DOM, so newly-rendered .cm-target textareas need
+// CodeMirror re-mounted. mountCodeEditors() is idempotent — it skips anything
+// already wearing data-cm-mounted. The CM instance proxies changes back to the
+// underlying textarea and dispatches an 'input' event so the existing attempt
+// listeners (data-attempt, data-practice-attempt) fire as before.
+function codeLangToCmMode(lang) {
+  switch (lang) {
+    case 'c':         return 'text/x-csrc'
+    case 'asm':       return 'gas'
+    default:          return 'text/plain'   // 'pseudocode'
+  }
+}
+
+function mountCodeEditors() {
+  if (typeof CodeMirror === 'undefined') return
+  document.querySelectorAll('textarea.cm-target:not([data-cm-mounted])').forEach((ta) => {
+    const lang = ta.dataset.codeLang || 'pseudocode'
+    let cm
+    try {
+      cm = CodeMirror.fromTextArea(ta, {
+        mode: codeLangToCmMode(lang),
+        theme: 'eclipse',
+        lineNumbers: true,
+        indentUnit: 2,
+        tabSize: 2,
+        smartIndent: true,
+        lineWrapping: false,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        viewportMargin: Infinity   // grow to content height
+      })
+    } catch (e) {
+      console.warn('CodeMirror mount failed; falling back to textarea', e)
+      return
+    }
+    cm.on('change', () => {
+      ta.value = cm.getValue()
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    ta._cm = cm
+    ta.dataset.cmMounted = 'true'
+  })
+}
+
+// Language dropdown change handler — wired via event delegation so it works
+// across re-renders without re-binding.
+if (typeof window !== 'undefined' && !window.__codeLangDelegated) {
+  window.__codeLangDelegated = true
+  document.addEventListener('change', (event) => {
+    const sel = event.target.closest('[data-code-lang-select]')
+    if (!sel) return
+    const attemptKey = sel.dataset.codeLangSelect
+    // Find the matching textarea — covers both data-attempt and data-practice-attempt
+    const ta = document.querySelector(
+      `textarea.cm-target[data-attempt="${CSS.escape(attemptKey)}"], ` +
+      `textarea.cm-target[data-practice-attempt="${CSS.escape(attemptKey)}"]`
+    )
+    if (!ta) return
+    const lang = sel.value
+    ta.dataset.codeLang = lang
+    if (ta._cm) ta._cm.setOption('mode', codeLangToCmMode(lang))
+    // Persist the preference on the attempt
+    const isPractice = ta.hasAttribute('data-practice-attempt')
+    if (isPractice) {
+      // Practice exam: persist via existing practiceExamView state mechanism.
+      // The codeLang lives alongside the attempt body in localStorage.
+      const cur = practiceExamView.codeLang || (practiceExamView.codeLang = {})
+      cur[attemptKey] = lang
+      try { persistPracticeAttempts(practiceExamView.courseId, practiceExamView.examId) } catch {}
+    } else {
+      const att = attemptState.get(attemptKey) || {}
+      att.codeLang = lang
+      attemptState.set(attemptKey, att)
+    }
   })
 }
 
@@ -7507,11 +7627,13 @@ function bindEvents() {
     typesetMath()
     renderMermaid()
     bindSteppers()
+    mountCodeEditors()
   }
   if (route.page === 'mistakes' || route.page === 'sr' || route.page === 'mocks') {
     typesetMath()
     renderMermaid()
     bindSteppers()
+    mountCodeEditors()
   }
   if (route.page === 'mock-exam' && (
     practiceExamView.tab === 'mock-questions' ||
@@ -7521,6 +7643,7 @@ function bindEvents() {
     typesetMath()
     renderMermaid()
     bindSteppers()
+    mountCodeEditors()
   }
 
   document.querySelectorAll('[data-sr-add]').forEach((btn) => {
