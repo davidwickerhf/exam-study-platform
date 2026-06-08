@@ -4592,15 +4592,19 @@ async function ensurePracticeExam(courseId, examId) {
   practiceExamCache.set(key, { status: 'extracting' })
   render()
   const examIdEnc = encodeURIComponent(examId || 'default')
+  // Try the server-side cache first. Only the fetch is wrapped in try/catch —
+  // not the render() that follows — so a render error doesn't silently fall
+  // through to the PDF.js path and trigger an infinite re-parse loop.
+  let cached = null
   try {
-    const cached = await fetch(`/api/practice-exam/${encodeURIComponent(courseId)}/${examIdEnc}`).then((r) => r.ok ? r.json() : null)
-    if (cached?.questions?.length) {
-      practiceExamCache.set(key, { status: 'ready', questions: cached.questions })
-      if (!practiceExamView.currentQid) practiceExamView.currentQid = cached.questions[0].id
-      render()
-      return
-    }
+    cached = await fetch(`/api/practice-exam/${encodeURIComponent(courseId)}/${examIdEnc}`).then((r) => r.ok ? r.json() : null)
   } catch {}
+  if (cached?.questions?.length) {
+    practiceExamCache.set(key, { status: 'ready', questions: cached.questions })
+    if (!practiceExamView.currentQid) practiceExamView.currentQid = cached.questions[0].id
+    render()
+    return
+  }
 
   // Need to extract via PDF.js and POST to parse
   try {
@@ -5326,7 +5330,7 @@ function renderPracticeExam(course) {
 
         ${renderSharedContext(group)}
 
-        ${group.parts.map((q) => renderPracticePart(q)).join('')}
+        ${group.parts.map((q) => renderPracticePart(q, course)).join('')}
       </div>
     </div>
   `
@@ -5452,7 +5456,7 @@ function detectPracticeQuestionType(q) {
   return { type: 'written', options: [], cleanText: text }
 }
 
-function renderPracticePart(q) {
+function renderPracticePart(q, course) {
   const qid = q.id
   const attempt = practiceExamView.attempts[qid] || ''
   const guidance = practiceExamView.guidance[qid]
