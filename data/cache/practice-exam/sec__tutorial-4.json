@@ -1,0 +1,299 @@
+{
+  "generatedAt": "2026-06-13T15:31:23.677Z",
+  "courseId": "sec",
+  "examId": "tutorial-4",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement best describes the difference between key\ntransport and key agreement?",
+      "modelAnswer": "B. In key transport, one party picks the key and securely sends it; in key agreement, both parties’ inputs determine the shared key.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "In key transport, the shared key is a result of both\nparties’ private contributions, while in key\nagreement one party unilaterally chooses the session\nkey.",
+        "In key transport, one party picks the key and\nsecurely sends it; in key agreement, both parties’\ninputs determine the shared key.",
+        "Key transport always ensures forward secrecy, while\nkey agreement never does.",
+        "Key transport is used only for symmetric algorithms;\nkey agreement is used only for asymmetric algorithms."
+      ]
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following is not a time-variant parameter\n(TVP) typically used to prevent replay attacks?",
+      "modelAnswer": "D. Symmetric key (it’s not a typical TVP, but a long-term or session key, not a fresh parameter like a nonce/timestamp).",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Nonce",
+        "Timestamp",
+        "Sequence number",
+        "Symmetric key"
+      ]
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In a Diffie-Hellman key exchange, if an active attacker\nperforms a middle-person (man-in-the-middle) attack, what\nis the primary vulnerability being exploited?",
+      "modelAnswer": "A. The parties do not verify each other’s public parameters.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "The parties do not verify each other’s public\nparameters.",
+        "The prime modulus (p) is too large for practical\nusage.",
+        "The discrete log problem is easy to solve.",
+        "Both endpoints are using ephemeral keys with perfect\nforward secrecy."
+      ]
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement about a reflection attack is accurate?",
+      "modelAnswer": "B. It involves sending a copy of a message back to the original sender.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "It is an attack where the adversary tries many\ndictionary passwords offline.",
+        "It involves sending a copy of a message back to the\noriginal sender to confuse or bypass authentication\nsteps.",
+        "It uses advanced polynomial-time algorithms to invert\na one-way function.",
+        "It always requires physical proximity to the victim’s\ndevice."
+      ]
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which scenario best illustrates a relay attack?",
+      "modelAnswer": "B. Actively forwarding protocol messages in real time between two unsuspecting parties.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Reusing an old message to trick the server into\naccepting stale credentials",
+        "Actively forwarding protocol messages in real time\nbetween two unsuspecting parties to impersonate one\nside",
+        "Using reflection to replay the server’s random\nchallenge back to it",
+        "Flooding the network with random guesses of session\nkeys"
+      ]
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In an entity-authentication protocol, why might using a\nsimple hash of the secret key (e.g., H(K)) to prove\nknowledge be insecure?",
+      "modelAnswer": "B. Offline attackers can replay $H(K)$ without knowing $K$.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Hash functions are always collision-resistant, so\nreplays cannot occur.",
+        "Offline attackers can replay H(K) without knowing\nK.",
+        "The hash output is too large to fit in typical\nprotocol messages.",
+        "The server must reveal its own secret for the\nhandshake to complete."
+      ]
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which property distinguishes implicit key authentication\nfrom explicit key authentication?",
+      "modelAnswer": "A. Explicit key authentication ensures key confirmation, while implicit only assures the key is shared by correct parties.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Explicit key authentication ensures the key is not\nonly known to the correct parties but also confirmed\nby them, while implicit authentication only assures\nthe key is shared by correct parties.",
+        "Implicit key authentication uses ephemeral keys,\nexplicit uses static keys.",
+        "Implicit key authentication always provides forward\nsecrecy, explicit never does.",
+        "They are identical properties; the terms are\ninterchangeable."
+      ]
+    },
+    {
+      "id": "q8",
+      "label": "Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Why is forward secrecy often desired in key-establishment\nprotocols?",
+      "modelAnswer": "B. It ensures that compromising a long-term key does not reveal past session keys.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "It allows for usage of older, weaker ciphers without\nrisk.",
+        "It ensures that compromising a long-term key does not\nreveal past session keys.",
+        "It eliminates the need for ephemeral keys entirely.",
+        "It requires fewer computational resources on each\nside."
+      ]
+    },
+    {
+      "id": "q9",
+      "label": "Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following is not a fundamental challenge in\nkey management for secure protocols?",
+      "modelAnswer": "C. Keeping track of large prime factorization results is not typically a key-management concern.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Securely generating random keys",
+        "Preventing key reuse across multiple sessions",
+        "Keeping track of large prime factorization results\nfor future reference",
+        "Distributing or establishing keys without leaking\nthem to adversaries"
+      ]
+    },
+    {
+      "id": "q10",
+      "label": "Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A replay attack on a password-based protocol can be\nmitigated by:",
+      "modelAnswer": "B. Using nonce-based challenges or timestamps.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Storing the password in plaintext on the server",
+        "Using nonce-based challenges or timestamps to ensure\neach response is fresh",
+        "Disabling hashing in favor of direct key usage",
+        "Relying on IP address binding for user authentication"
+      ]
+    },
+    {
+      "id": "q11",
+      "label": "Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Replays and Nonces\n\n– Question: Explain how a nonce can protect a protocol\nfrom replay attacks. Include a scenario where a replay\ncould succeed if the nonce is not verified properly.",
+      "modelAnswer": "- A nonce is a random, one-time-use value included in a challenge to the other party. If the protocol ensures the responder’s reply includes this nonce in a cryptographically secure manner (e.g., signed or hashed with a secret), an attacker cannot replay old messages successfully.\n- If the recipient does not verify that the nonce was recently generated, the attacker might replay an old nonce-response pair that once worked, tricking the protocol into accepting it.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q12",
+      "label": "Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Authenticated Key Establishment\n\n– Question: Compare a purely unauthenticated Diffie-\nHellman exchange with an authenticated one (e.g., using\ndigital signatures or shared secret-based proofs). What\nsecurity risks does unauthenticated DH pose, and how\ndoes authentication mitigate them?",
+      "modelAnswer": "- Unauthenticated DH means an attacker can insert themselves (man-in-the-middle) and negotiate separate keys with each party. The parties do not confirm each other’s identity or public parameters.\n- Authenticated DH (using public-key signatures or shared secrets) ensures each ephemeral message is bound to a known identity. This prevents MITM by letting each side confirm the other’s ephemeral exponent belongs to the correct entity.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q13",
+      "label": "Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Forward Secrecy Concepts\n\n– Question: Define forward secrecy in your own words. Why\nis it desirable in protocols like TLS? Give an example\nof how failing to provide forward secrecy could harm a\nuser after a key compromise.",
+      "modelAnswer": "- Forward secrecy means that if long-term keys are compromised in the future, past session keys remain protected. This is crucial in TLS to ensure that recorded traffic cannot be decrypted retroactively.\n- Without forward secrecy, an attacker who obtains the server’s private key can decrypt all previously captured TLS sessions. That can expose old passwords, credit card data, etc.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q14",
+      "label": "Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Reflection vs. Relay\n\n– Question: Differentiate reflection attacks from relay\nattacks in authentication protocols. Provide an example\nof a scenario or protocol each might exploit.",
+      "modelAnswer": "- Reflection: The attacker replays a challenge from the server back to the server itself (or from the client back to the client) by interleaving parallel runs.\n- Relay: The attacker simply passes messages in real time between two legitimate parties who think they are talking to each other, but in fact the attacker stands in the middle.\n- Example: Relay might fool a car’s proximity sensor by capturing signals from the key fob in the house and relaying them to the car outside.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q15",
+      "label": "Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Dictionary Attack Defenses\n\n– Question: In what ways can a system or protocol limit\nthe success of offline dictionary attacks? Suggest both\ntechnical and policy solutions.",
+      "modelAnswer": "- Technical:\n1. Use protocols that do not reveal direct hashes or short challenge responses.\n2. Implement rate-limiting or lockout after a few failed attempts.\n\nPolicy: 1. Require stronger (longer) passwords, possibly passphrases. 2. Encourage multi-factor auth so even if the password is guessed, an additional factor is needed.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q16",
+      "label": "Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "DH-EKE\n\n– Question: Sketch a simplified Diffie-Hellman Encrypted\nKey Exchange (DH-EKE) message flow. Explain the\nsignificance of encrypting DH shares with the user’s\npassword.",
+      "modelAnswer": "Basic flow:\n1. A→B: A’s ephemeral $g^a$ encrypted under the password.\n2. B→A: B’s ephemeral $g^b$ encrypted under the password.\n3. Both derive a key from $g^{ab}$.\n\n- Encrypting the ephemeral shares with the password hides them from offline attackers. Attackers can’t reliably test guesses if they can’t confirm which ephemeral exponent is correct.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q17",
+      "label": "Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Single Sign-On Threats\n\n– Question: Single Sign-On (SSO) can increase convenience\nbut also enlarge the attack surface if not designed\ncarefully. Explain two significant security risks in an\nSSO system and how they can be mitigated.",
+      "modelAnswer": "- Risk 1: If the SSO provider is compromised, all connected services are compromised.\n- Risk 2: Token replay or forging SSO tokens (in OIDC or SAML), letting an attacker impersonate a user across multiple apps.\n- Mitigations:\n- Harden the SSO IdP with strong security and monitoring.\n- Sign and validate tokens with short lifetimes; implement audience checks and signature verification at each service.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q18",
+      "label": "Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Number of Offline Guesses\n\n– Question: Suppose an attacker has intercepted a\ntranscript from a password-based challenge-response\nprotocol. They can test $10^7$ password guesses per second\noffline. How many hours until they exhaust a dictionary\nof $10^{11}$ possible passwords?",
+      "modelAnswer": "- $10^{11}$ possible passwords, attacker tests $10^7$ guesses/second.\n- Time = $10^{11} / 10^7 = 10^4$ seconds = $10^4 / 3600 \\approx 2.78$ hours.",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q19",
+      "label": "Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Diffie-Hellman Security\n\n– Question: A standard Diffie-Hellman exchange uses a\n2048-bit prime (p). If an attacker attempts to break it\nvia discrete log, they can perform $2^{60}$ operations in a\nfeasible timeframe. Why is this still not enough for\npractical success, considering typical estimates for\ndiscrete log complexity (e.g., sub-exponential LMM or\nNFS algorithms)? (Provide a short conceptual\nexplanation rather than exact numeric estimates.)",
+      "modelAnswer": "- The discrete log problem for a 2048-bit prime is considered beyond $2^{60}$ operations in practice. Sub-exponential algorithms (e.g., number field sieve) still require huge resources. So performing $2^{60}$ direct tries is not nearly enough to break 2048-bit DH. The complexity is significantly higher than a naive approach might suggest.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q20",
+      "label": "Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Replay with Timestamps\n\n– Question: A protocol uses timestamps with a 2-minute\nvalidity window to prevent replay. If an attacker\nobtains a valid message at time (t=0), how long can\nthey replay it successfully (assuming no other checks)?",
+      "modelAnswer": "- A message is valid within 2 minutes of its timestamp. The attacker can replay it successfully only within that 2-minute window. After that, the receiver rejects it as stale.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q21",
+      "label": "Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Diffie-Hellman EKE Overhead\n\n– Question: In DH-EKE, each side encrypts the other’s\npublic DH share with a symmetric cipher keyed by the\npassword. If encryption and decryption each take ~1ms,\nand there are 2 exchanges, how many total milliseconds\nare spent purely on encryption/decryption overhead\n(ignoring exponentiations) per session?",
+      "modelAnswer": "- 2 exchanges, each side does encryption & decryption = 4 total operations if we count each direction separately (A encrypt, B decrypt, B encrypt, A decrypt).\n- If each operation is 1ms, that’s 4ms total. Or if we interpret “2 exchanges” as (A→B + B→A), that’s 2 encryption + 2 decryption = 4ms overhead total.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q22",
+      "label": "Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "SSO: Single Sign-On Attempt Time\n\n– Question: In an SSO environment, each authentication to\nthe SSO provider takes ~50ms. A user accessing 5\nfederated services in quick succession triggers 5 SSO\nchecks (one for each service). How many total\nmilliseconds does the user wait on average due to these\nSSO calls (assuming no session caching)?",
+      "modelAnswer": "- 5 SSO checks × 50ms each = 250ms total wait. (Unless the system caches the first SSO token, but we ignore that.)",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

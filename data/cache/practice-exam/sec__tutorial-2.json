@@ -1,0 +1,343 @@
+{
+  "generatedAt": "2026-06-13T15:28:29.736Z",
+  "courseId": "sec",
+  "examId": "tutorial-2",
+  "questions": [
+    {
+      "id": "parta1",
+      "label": "Part A Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following best describes the advantage of\npublic-key (asymmetric) encryption compared to symmetric\nencryption?",
+      "modelAnswer": "C. It simplifies secure key distribution\n\nExplanation:\n- Symmetric encryption often requires a pre-shared key\n(both sides must have the same secret key).\n- Public-key systems allow one to publish a public key\nwhile keeping a private key secret, making key\ndistribution more convenient.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Faster encryption for large data",
+        "The same key is used by both sender and receiver",
+        "It simplifies secure key distribution",
+        "It eliminates the need for any private key"
+      ]
+    },
+    {
+      "id": "parta2",
+      "label": "Part A Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which cryptographic property ensures that a given hash\noutput does not reveal any information about the original\nmessage?",
+      "modelAnswer": "B. One-way property\n\nExplanation:\n- One-way means it should be infeasible to invert the\nhash.\n- Collision resistance (A) is about finding two inputs\nwith the same hash.\n- Second-preimage resistance (D) is about creating a\nsecond input matching an existing hash.\n- Key encapsulation (C) is unrelated to standard hash\nproperties.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Collision resistance",
+        "One-way property",
+        "Key encapsulation",
+        "Second-preimage resistance"
+      ]
+    },
+    {
+      "id": "parta3",
+      "label": "Part A Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In a chosen-ciphertext attack model, the adversary can...",
+      "modelAnswer": "B. Submit ciphertexts to a decryption\noracle and observe the results\n\nExplanation:\n- Ciphertext-only: The adversary only sees ciphertext.\n- Known-plaintext: The adversary knows some\nplaintext/ciphertext pairs.\n- Chosen-plaintext: The adversary can encrypt plaintext\nof their choosing.\n- Chosen-ciphertext: The adversary can decrypt chosen\nciphertexts and analyze responses.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Only observe ciphertexts without modifying them",
+        "Submit ciphertexts to a decryption oracle and observe\nthe results",
+        "Pick plaintext and obtain its encryption from an\noracle",
+        "Obtain a set of plaintext-ciphertext pairs without\ninfluencing them"
+      ]
+    },
+    {
+      "id": "parta4",
+      "label": "Part A Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement about the Vernam cipher is correct?",
+      "modelAnswer": "D. It can provide perfect secrecy only if\nthe key is truly random and used exactly once.\n\nExplanation:\n- Also known as the one-time pad.\n- Reusing the key breaks the perfect secrecy property.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "It encrypts data in 64-bit blocks.",
+        "It provides perfect secrecy if the key is reused\ncarefully.",
+        "It uses modular exponentiation with prime numbers.",
+        "It can provide perfect secrecy only if the key is\ntruly random and used exactly once."
+      ]
+    },
+    {
+      "id": "parta5",
+      "label": "Part A Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In a hybrid encryption scheme, typically...",
+      "modelAnswer": "C. A symmetric key is randomly generated\nfor data encryption, then encrypted with a public key.\n\nExplanation:\n- Hybrid encryption uses a symmetric key for efficiency.\nThis key is then protected (encrypted) with the\nrecipient’s asymmetric public key.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Only the public key is needed to encrypt large\nmessages directly.",
+        "Symmetric keys are never involved.",
+        "A symmetric key is randomly generated for data\nencryption, then encrypted with a public key.",
+        "The private key is used for both encryption and\ndecryption."
+      ]
+    },
+    {
+      "id": "parta6",
+      "label": "Part A Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following is an active adversary action?",
+      "modelAnswer": "C. Injecting malicious packets into a\nconversation\n\nExplanation:\n- An active adversary modifies or injects data.\n- A passive adversary only observes or eavesdrops.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Eavesdropping on network traffic without modifying it",
+        "Recording ciphertext for later analysis",
+        "Injecting malicious packets into a conversation",
+        "Archiving all messages for offline cryptanalysis"
+      ]
+    },
+    {
+      "id": "parta7",
+      "label": "Part A Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Collision resistance in a hash function means...",
+      "modelAnswer": "A. Finding two distinct inputs with the\nsame hash is computationally infeasible.\n\nExplanation:\n- “Collision” = different inputs same hash.\n- Being hard/impractical to find any two inputs with the\nsame digest is collision resistance.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Finding two distinct inputs with the same hash is\ncomputationally infeasible.",
+        "Reconstructing the original message from the hash is\ninfeasible.",
+        "Finding any input that produces a given hash is easy.",
+        "Only one hash value is possible for a given input."
+      ]
+    },
+    {
+      "id": "parta8",
+      "label": "Part A Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which block cipher mode directly concatenates each\nplaintext block with the preceding ciphertext block (via\nXOR) before encryption?",
+      "modelAnswer": "B. CBC\n\nExplanation:\n- CBC (Cipher Block Chaining) mode XORs each plaintext\nblock with the previous block’s ciphertext before\nencrypting.\n- ECB (A) encrypts blocks independently; CTR (C) uses\ncounters; OFB (D) generates keystream blocks.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "ECB",
+        "CBC",
+        "CTR",
+        "OFB"
+      ]
+    },
+    {
+      "id": "parta9",
+      "label": "Part A Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Digital signatures aim to provide which of the following?",
+      "modelAnswer": "B. Non-repudiation, integrity, and origin\nauthentication\n\nExplanation:\n- Digital signatures help prove who signed it (origin\nauth), ensure the message is unaltered (integrity), and\nprevent the signer from denying having signed (non-\nrepudiation).",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Confidentiality and authentication only",
+        "Non-repudiation, integrity, and origin authentication",
+        "Key management and collision resistance",
+        "Simple encryption of large files"
+      ]
+    },
+    {
+      "id": "parta10",
+      "label": "Part A Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A 56-bit key space (as in original DES) implies how many\npossible keys?",
+      "modelAnswer": "A. $2^{56}$\n\nExplanation:\n- A 56-bit key space has $2^{56}$ possible keys. Other\nexpressions are incorrect for that bit size.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "$2^{56}$",
+        "$56^2$",
+        "$10^{56}$",
+        "$2 \\times 10^{16}$"
+      ]
+    },
+    {
+      "id": "partb1",
+      "label": "Part B Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Comparing Passive vs. Active Adversaries:\n- Briefly define passive and active adversaries in\ncryptography.\n- Provide one real-world example scenario of each.\n- Why might defending against active adversaries be more\nchallenging?",
+      "modelAnswer": "Comparing Passive vs. Active Adversaries\n- Passive Adversary: Observes or eavesdrops on\ncommunications without modifying or injecting messages.\n- Example: A hacker passively sniffing Wi-Fi traffic\nto capture data (e.g., passwords).\n- Active Adversary: Can alter messages in transit, inject\nnew ones, or impersonate legitimate users.\n- Example: A man-in-the-middle attack where an\nattacker intercepts and modifies messages between\ntwo parties, or an attacker sending forged commands\nin a network protocol.\n- Why more challenging to defend against active\nadversaries?\n- Active adversaries can manipulate data flows, alter\nmessages, and exploit protocols more dynamically.\nThis requires not just confidentiality but also\ndata integrity checks, authentication protocols,\nand robust handshake mechanisms.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb2",
+      "label": "Part B Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Attack Models:\n- Summarize the four attack models discussed (ciphertext-\nonly, known-plaintext, chosen-plaintext, chosen-\nciphertext).\n- Which model imposes the strongest requirement on a\ncryptosystem’s security, and why?",
+      "modelAnswer": "Attack Models\n- Ciphertext-Only Attack (COA): Adversary only has\nciphertext and attempts to recover plaintext or key.\n- Known-Plaintext Attack (KPA): Adversary knows some\nplaintext/ciphertext pairs and tries to recover the key\nor decrypt future ciphertext.\n- Chosen-Plaintext Attack (CPA): Adversary can choose\nplaintexts to be encrypted and sees corresponding\nciphertexts (e.g., can query an encryption oracle).\n- Chosen-Ciphertext Attack (CCA): Adversary can submit\nchosen ciphertexts to a decryption oracle and see the\nresulting plaintext.\n- Strongest Requirement: CCA is generally the most\ndemanding for a cryptosystem because the adversary can\nfully interact with decryption, providing the highest\npotential for discovering weaknesses.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb3",
+      "label": "Part B Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Key Space and Security:\n- Explain the concept of key space.\n- Discuss how an increase in key length affects the\nfeasibility of brute-force attacks.\n- Give two practical factors (beyond key length) that\nalso determine a cipher’s real-world resistance to\nbrute-force.",
+      "modelAnswer": "Key Space and Security\n- Key Space: All possible keys that can be used by a\ncryptographic algorithm. Larger key space → more brute-\nforce attempts required.\n- Effect of Increasing Key Length:\n- Makes brute-force attacks exponentially harder, as each\nadditional bit doubles the key space.\n- Other Practical Factors:\n1. Implementation robustness: Side-channel leaks or\npoor random number generation can reduce effective\nsecurity.\n2. Speed of encryption/decryption: Slower ciphers can\nbe costlier to brute force, but also can hinder\nlegitimate use if too slow.\n3. (Bonus) Cryptanalytic breakthroughs: Algorithms\nthemselves may be broken, reducing effective key\nlength in practice.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb4",
+      "label": "Part B Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Designing a Secure Symmetric Cipher:\n- Suppose you aim to design a new symmetric encryption\nsystem. What core properties must it have to resist\nmodern cryptanalytic attacks?\n- Mention any two advanced cryptanalytic methods and how\na well-designed cipher can mitigate them.",
+      "modelAnswer": "Designing a Secure Symmetric Cipher\n- Core Properties:\n1. Confusion (makes relationship between key and\nciphertext complex).\n2. Diffusion (spreads plaintext information over many\nparts of ciphertext).\n3. Large key space + no known structural weaknesses\n(e.g., no easy differential or linear\ncryptanalysis).\n- Two Advanced Cryptanalytic Methods:\n1. Differential Cryptanalysis: Looks at how\ndifferences in plaintext input affect differences\nin ciphertext output. A well-designed cipher\nincorporates strong non-linear components to resist\nthis.\n2. Linear Cryptanalysis: Exploits statistical biases\nin linear combinations of plaintext bits and\nciphertext bits. Substitution-permutation networks\nhelp mitigate these biases.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb5",
+      "label": "Part B Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Public-Key Infrastructure (PKI):\n- What is a certificate and how does it relate to trust\nin PKI?\n- Illustrate how an organization could use PKI to ensure\nsecure email communication among its employees.",
+      "modelAnswer": "Public-Key Infrastructure (PKI)\n- Certificates: Signed data structures that bind a public\nkey to a subject’s identity (e.g., a domain or an\nindividual). A Certificate Authority (CA) vouches for\ncorrectness by signing.\n- This relies on the trust placed in the CA.\n- Use in an Organization:\n1. Each employee gets a certificate with their public\nkey.\n2. To send secure email, you retrieve the recipient’s\npublic key (via their certificate).\n3. You encrypt (or sign) email accordingly, trusting\nthe CA’s verification of the key’s ownership.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb6",
+      "label": "Part B Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Hash Functions vs. Encryption Functions:\n- Compare the roles of a cryptographic hash function and\na symmetric encryption function.\n- Why is it generally inappropriate to use a block cipher\nin place of a hash function?",
+      "modelAnswer": "Hash Functions vs. Encryption Functions\n- Hash Functions:\n- One-way transformations, fixed-length output, used\nfor integrity checks.\n- No secret key necessarily; no direct “decryption”\nprocess.\n- Encryption Functions:\n- Transform plaintext to ciphertext with a key;\nreversible by the corresponding decryption\nfunction.\n- Why not use a block cipher as a hash:\n- Block ciphers are designed for two-way\nencryption/decryption.\n- Hashes require an irreversible property. Simply\nencrypting with a block cipher does not guarantee\ncollision resistance or the one-way property at\nscale.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb7",
+      "label": "Part B Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Digital Signatures and Non-Repudiation:\n- What does “non-repudiation” mean in the context of\ndigital signatures?\n- Give an example in an e-commerce transaction where non-\nrepudiation is crucial.",
+      "modelAnswer": "Digital Signatures and Non-Repudiation\n- Non-Repudiation: The signer cannot deny having signed a\nmessage because only they hold the private key used in\ngenerating the signature.\n- E-Commerce Example: When a customer signs an electronic\ncontract or purchase agreement, the signature ensures\nthey cannot later claim they didn’t authorize the\ntransaction.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb8",
+      "label": "Part B Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Block Cipher Modes:\n- Discuss the main weakness of ECB mode.\n- Why is CBC mode generally preferred over ECB for\nencrypting multiple blocks?\n- Provide a high-level use-case for CTR (counter) mode.",
+      "modelAnswer": "Block Cipher Modes\n- Weakness of ECB: Identical plaintext blocks produce\nidentical ciphertext blocks → patterns leak.\n- CBC Mode: Each block is XORed with the previous\nciphertext block before encryption, hiding repeated\nplaintext patterns.\n- CTR Mode Use-Case**: High-speed streaming or parallel\nencryption. Each block is encrypted by XORing the\nplaintext with a keystream block generated from a\ncounter. Often used where random access to encrypted\ndata is needed.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb9",
+      "label": "Part B Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Hybrid Encryption Scenario:\n- You want to encrypt a 1GB file for secure storage. Why\nmight you opt to use a hybrid encryption approach\ninstead of directly using a public-key cipher for the\nentire file?\n- Summarize the key steps in hybrid encryption for this\nscenario.",
+      "modelAnswer": "Hybrid Encryption Scenario\n- Why Hybrid?\n- Public-key algorithms are computationally intensive\nfor large data (e.g., 1GB).\n- Symmetric algorithms are fast; so you generate a\nrandom symmetric key to encrypt the bulk data, then\nuse the recipient’s public key only for encrypting\nthe small symmetric key.\n- Steps:\n1. Generate a random symmetric key $k$ .\n2. Encrypt the 1GB file with $k$ using a fast symmetric\ncipher (e.g., AES).\n3. Encrypt $k$ with the recipient’s public key.\n4. Store/transmit both (encrypted data + encrypted\nsymmetric key).",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb10",
+      "label": "Part B Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "MAC vs. Digital Signature:\n- In which scenarios is a Message Authentication Code\n(MAC) more suitable than a digital signature?\n- Conversely, give an example scenario where a digital\nsignature is more beneficial.",
+      "modelAnswer": "MAC vs. Digital Signature\n- When MAC is more suitable:\n- In a closed system where all participants share a\nsecret key, and the goal is message authentication\n+ integrity (e.g., within a single company’s\ninternal API).\n- MACs are typically faster and simpler to implement\nthan a signature scheme.\n- When a Digital Signature is better:\n- In open systems where you need non-repudiation and\npublicly verifiable proof of authenticity (e.g., a\nsigned contract, public software release).\n- A signature does not require sharing a secret key\nwith the verifier.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partc1",
+      "label": "Part C Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Brute-Force Feasibility\n- A cryptographic system has a key space of $2^{40}$.\n- How many keys are there in total?\n- If an attacker can try $10^9$ (1 billion) keys per second,\nhow many seconds to exhaust the key space in the worst\ncase? Convert this to days (approx.).\n- Comment on whether this is feasible with today’s\ntechnology.",
+      "modelAnswer": "Brute-Force Feasibility\n- Key space: $2^{40}$ .\n- This is $1,099,511,627,776$ possible keys\n(approximately $1.1 \\times 10^{12}$).\n- Attacker speed: $10^9$ keys/sec.\n- Worst-case time = $\\frac{2^{40}}{10^9} \\approx \\frac{1.1 \\times 10^{12}}{10^9} = 1.1 \\times 10^3$ seconds =\n1100 seconds.\n- In days $\\approx \\frac{1100}{86400} \\approx 0.0127$ days $\\approx 0.3$ hours.\n- Feasibility: With modern hardware, cracking a 40-bit\nkey might be feasible in under an hour. This is why 40-\nbit ciphers are no longer considered secure.",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc2",
+      "label": "Part C Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Key Length Impact\n- You are deciding between a 128-bit key and a 256-bit\nkey.\n- By how many orders of magnitude does a 256-bit key\nspace exceed a 128-bit key space?\n- Does doubling the key length from 128 bits to 256 bits\ndouble the security, or provide more? Briefly explain.",
+      "modelAnswer": "Key Length Impact\n- 128-bit vs. 256-bit keys:\n- Key space(128-bit): $2^{128}$\n- Key space(256-bit): $2^{256}$\n- The ratio: $\\frac{2^{256}}{2^{128}} = 2^{128}$ .\n- This is an increase of $2^{128}$ times, which is\nastronomically larger.\n- More than just double: Doubling key length squares\nthe size of the key space when going from 128 to\n256 bits.",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc3",
+      "label": "Part C Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Simple Caesar Cipher Computation\n- The Caesar cipher shifts letters by 3. Given the\nciphertext “FODCGR” (assuming A=0, B=1, ... Z=25),\ndecrypt it back to plaintext.\n- Show your steps.\n- How many possible shifts (keys) are there in total if\nwe only consider the English alphabet?",
+      "modelAnswer": "Simple Caesar Cipher Computation\n- Ciphertext: “FODCGR”\n- Assume ‘A’ = 0, ‘B’ = 1, ..., ‘Z’ = 25.\n- Caesar shift by 3 (encryption shifts forward by 3). To\ndecrypt, shift backward by 3.\n- Steps (letter by letter):\n- F → F’s position is 5 (A=0, B=1, C=2, D=3, E=4, F=5).\n- 5 - 3 = 2 → C.\n- O → O’s position is 14.\n- 14 - 3 = 11 → L.\n- D → D’s position is 3.\n- 3 - 3 = 0 → A.\n- C → C’s position is 2.\n- 2 - 3 = -1 → wrap around: -1 + 26 = 25 → Z.\n- G → G’s position is 6.\n- 6 - 3 = 3 → D.\n- R → R’s position is 17.\n- 17 - 3 = 14 → O.\n- Plaintext = “CLAZDO” (assuming standard Caesar with\nshift of 3).\n- Number of possible shifts: For the English alphabet, 26\npossible shifts (0 to 25).",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc4",
+      "label": "Part C Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Block Cipher Encryption Rate\n- A block cipher encrypts 128-bit blocks. The\nimplementation can process 1 million blocks per second.\n- How many bits per second does this correspond to?\n- How many megabytes per second is this (assuming 1 byte\n= 8 bits)?\n- How long would it take to encrypt a 10 GB file?",
+      "modelAnswer": "Block Cipher Encryption Rate\n- Block size: 128 bits\n- Throughput: 1 million $10^6$ blocks per second\n- In bits/sec: $10^6 \\times 128 = 1.28 \\times 10^8$ bits/sec = 128\nMbps.\n- In megabytes/sec: $\\frac{128\\text{ Mbps}}{8} = 16$ MB/s.\n- Time for a 10 GB file:\n- 10 GB = $10 \\times 1024 \\approx 10,240$ MB.\n- At 16 MB/s → $\\approx \\frac{10,240}{16} = 640$ seconds $\\approx 10.7$ minutes.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc5",
+      "label": "Part C Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Hash Collisions\n- A cryptographic hash has an n-bit output. By the\nbirthday paradox, collisions typically appear after\nabout $2^n$ operations.\n- For a 128-bit hash, how many operations (roughly) might\nbe needed to find a collision?\n- Why might attackers find collisions sooner if the hash\nfunction is poorly designed?",
+      "modelAnswer": "Hash Collisions - n-bit hash: collisions around $2^n = 2^{n/2}$ .\n- For a 128-bit hash → ~ $2^{128} = 2^{64}$ .\n- That’s $1.84 \\times 10^{19}$ .\n- Why sooner if poorly designed?\n- Structural weaknesses or patterns can reduce actual\ncomplexity needed to find collisions below $2^{64}$ .",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc6",
+      "label": "Part C Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Public-Key Encryption Overhead\n- An organization wants to transmit 10,000 messages, each\n1KB in size, using pure public-key encryption with RSA\n(no hybrid approach). Each RSA encryption takes 5ms.\n- How long (in seconds) will it take to encrypt all\nmessages?\n- Why might the organization prefer hybrid encryption in\nthis scenario?",
+      "modelAnswer": "Public-Key Encryption Overhead\n- Message count: 10,000 messages, each 1KB.\n- RSA encryption: 5ms per message → total time =\n10,000 × 0.005 s = 50 s.\n- Why prefer hybrid?\n- Public-key operations (RSA) are much slower than\nsymmetric. For large volumes of data or numerous\nmessages, using a hybrid scheme drastically reduces\ntotal encryption time.\n- Also reduces computational overhead on the\nsender/receiver.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

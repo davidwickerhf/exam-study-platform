@@ -1,0 +1,167 @@
+{
+  "generatedAt": "2026-06-13T15:39:02.001Z",
+  "items": [
+    {
+      "title": "Part A: Multiple choice",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part A Q1 — Undecidability of malware detection",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q2 — Worm vs virus distinction",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q3 — System-call hiding malware",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q4 — Ransomware attack description",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q5 — Polymorphic malware techniques",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q6 — Drive-by download factor",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q7 — Rootkit system-call hooking",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q8 — False statement about botnets",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q9 — Keylogger purpose",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q10 — Kernel-mode rootkit stealth",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B: Short-answer questions",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part B Q1 — Malware installation pathways",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q2 — Virus vs worm differences",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q3 — Rootkit detection challenges",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q4 — Polymorphic and metamorphic malware",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q5 — Ransomware workflows",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q6 — Botnet control structures",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q7 — Drive-by download mechanisms",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q8 — Kernel-mode vs user-mode rootkits",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q9 — Trojan horses and backdoors",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q10 — Vulnerability exploits and malware",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part C: Quantitative questions",
+      "page": 5,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part C Q1 — Worm spread rate",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q2 — Ransomware file-encryption scale",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q3 — Botnet attack throughput",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q4 — Polymorphic signature coverage",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    }
+  ]
+}

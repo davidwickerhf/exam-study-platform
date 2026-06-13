@@ -1,0 +1,354 @@
+{
+  "generatedAt": "2026-06-13T15:34:34.435Z",
+  "courseId": "sec",
+  "examId": "tutorial-l8",
+  "questions": [
+    {
+      "id": "parta1",
+      "label": "Part A Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement correctly describes the difference between an Intrusion Detection System (IDS) and an Intrusion Prevention System (IPS)?",
+      "modelAnswer": "2. An IDS passively monitors… while an IPS can actively block or modify traffic.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "An IDS can block malicious packets in real time, while an IPS can only alert.",
+        "An IDS passively monitors and alerts on suspicious activity, while an IPS can also actively block or modify traffic.",
+        "Both IDS and IPS require real-time packet dropping.",
+        "An IPS always uses anomaly-based detection, whereas an IDS is purely signature-based."
+      ]
+    },
+    {
+      "id": "parta2",
+      "label": "Part A Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "An anomaly-based IDS has a 1% false positive rate and detects 90% of attacks. If the actual rate of attacks is extremely low, which outcome is most likely in practice?",
+      "modelAnswer": "2. Most alarms raised will be false alarms in very low incidence scenarios.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "The IDS rarely triggers alarms at all.",
+        "Most alarms raised will be false alarms.",
+        "Nearly all alarms will be true positives.",
+        "The base rate does not affect the proportion of false alarms."
+      ]
+    },
+    {
+      "id": "parta3",
+      "label": "Part A Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "What is a fundamental limitation of signature-based intrusion detection?",
+      "modelAnswer": "2. It can only detect known attack patterns… must be updated.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "It cannot process more than 1 Gbps of traffic.",
+        "It can only detect known attack patterns and must be frequently updated.",
+        "It has zero false positives but high false negatives.",
+        "It exclusively relies on user-provided rule sets to define normal behavior."
+      ]
+    },
+    {
+      "id": "parta4",
+      "label": "Part A Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A specification-based approach to intrusion detection:",
+      "modelAnswer": "3. Checks events against an explicit spec for allowed behavior.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Learns normal behavior from a training dataset automatically.",
+        "Raises alarms when events match known malicious signatures.",
+        "Checks events against explicitly defined rules for allowed behavior, flagging anything outside that specification.",
+        "Relies primarily on packet header inspection rather than content."
+      ]
+    },
+    {
+      "id": "parta5",
+      "label": "Part A Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which factor contributes most to high false positives in anomaly-based IDS?",
+      "modelAnswer": "3. Profiles may not capture the entire normal range → many false positives.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Deficient hardware resources",
+        "Intruder-free training data",
+        "Profiles that may not accurately capture the full range of normal behavior",
+        "Excessive reliance on known attack patterns"
+      ]
+    },
+    {
+      "id": "parta6",
+      "label": "Part A Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A host-based intrusion detection system (HIDS) typically monitors:",
+      "modelAnswer": "2. Monitors OS logs, file integrity, etc. on a single host.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Network traffic at the perimeter router only",
+        "OS logs, file integrity, and processes on a single host",
+        "ARP broadcasts on a local network",
+        "Physical security cameras inside a data center"
+      ]
+    },
+    {
+      "id": "parta7",
+      "label": "Part A Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In the context of IDS terminology, a false negative is:",
+      "modelAnswer": "2. The system fails to detect a real intrusion.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "When the system incorrectly flags benign activity as malicious",
+        "When the system fails to detect a real intrusion",
+        "When the alarm precision is below 50%",
+        "When an anomaly-based system incorrectly classifies new attacks as normal"
+      ]
+    },
+    {
+      "id": "parta8",
+      "label": "Part A Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Network-based IDS often uses packet sniffer components. Why might sniffing be harder on a switched LAN compared to a hub-based LAN?",
+      "modelAnswer": "1. Switches isolate traffic to intended ports, so promiscuous mode sees minimal traffic unless special measures are used.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Switches do not forward all traffic to every port, making promiscuous capture of packets more difficult.",
+        "Switches automatically decrypt all packets at layer 2.",
+        "Hub-based LANs are usually physically protected and cannot be tapped.",
+        "Switches seldom store ARP entries in memory."
+      ]
+    },
+    {
+      "id": "parta9",
+      "label": "Part A Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "How does DNS cache poisoning enable an attacker to redirect user traffic?",
+      "modelAnswer": "3. Insert false name-to-IP mappings in DNS cache.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "By substituting a malicious local hosts file on the client",
+        "By manipulating the user’s private IP address to MAC address mapping",
+        "By inserting false name-to-IP mappings in a DNS resolver’s cache",
+        "By encrypting DNS queries end-to-end"
+      ]
+    },
+    {
+      "id": "parta10",
+      "label": "Part A Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which scenario best represents ARP spoofing on a LAN?",
+      "modelAnswer": "2. Unsolicited ARP reply linking gateway IP to attacker’s MAC.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "An attacker forges IP source addresses in TCP packets destined for a remote host.",
+        "An attacker sends unsolicited ARP replies claiming the gateway’s IP belongs to the attacker’s MAC.",
+        "An attacker manipulates DNS queries to point to a malicious server.",
+        "An attacker runs Nmap to scan open TCP ports."
+      ]
+    },
+    {
+      "id": "partb1",
+      "label": "Part B Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Detecting DDoS Question: In large networks, how can an IDS differentiate between normal traffic spikes (e.g., flash crowds) and an actual DDoS ? Describe two advanced techniques or heuristics an IDS might employ.",
+      "modelAnswer": "Techniques or Heuristics :\n\n1. Flow-based detection analyzing anomalies in traffic patterns or distribution of source IPs.\n2. Correlation with known baseline profiles and rate- limits—if many concurrent connections from diverse IPs spike abnormally. They might also check if the incoming wave correlates to a legitimate campaign (flash crowd) via external signals like social media or logs.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb2",
+      "label": "Part B Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Base Rate Fallacy Question: Suppose an anomaly-based IDS has a 1% false positive rate and 95% detection rate, but actual intrusions happen only once per 10,000 events. Calculate conceptually how many false alarms vs. real alarms to expect in 100,000 events. Explain why the result might be problematic for analysts.",
+      "modelAnswer": "With 100,000 events:\n\nAttacks: 10 (1 in 10k). Detected attacks = 95% of 10 => ~9.5.\n\nNon-attacks = 99,990. 1% false positives => ~999.9 false alarms.\n\nSo ~9 true positives vs. ~1000 false positives. The IDS yields an overwhelming false alarm rate, leading to “alarm fatigue.”",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partb3",
+      "label": "Part B Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Signature vs. Anomaly Question: Compare two real-world scenarios—one ideally suited for signature-based detection and another for anomaly-based detection. Justify why each approach fits the scenario.",
+      "modelAnswer": "Signature-based scenario : e.g., a known vulnerability exploit (like a specific MS-SQL injection). It’s best to quickly detect that known pattern.\n\nAnomaly-based scenario : zero-day attacks with unusual traffic patterns (like stealthy exfiltration). No signature yet, so anomaly detection might catch weird usage or novel processes.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb4",
+      "label": "Part B Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Specification-Based IDS Complexity Question: Why can specification-based IDS be labor- intensive? Give one example of a complex system or protocol where writing a correct specification is challenging.",
+      "modelAnswer": "Time-intensive as experts manually define precise “allowed” behaviors. E.g., building a spec for a complex protocol like SIP (VoIP) or a large web application with numerous dynamic endpoints. Getting the specification correct is challenging.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb5",
+      "label": "Part B Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Vulnerability Scanners Question: Outline how a vulnerability scanner like Nessus or OpenVAS might systematically check for known security holes. Mention two limitations or risks of relying on such automated scans.",
+      "modelAnswer": "Systematic approach : They test open ports, try known exploits, check versions for vulnerabilities in a large plugin library.\n\nLimitations : They might miss newly discovered zero-days or raise false positives if they incorrectly identify a service version. Also, scanning can be risky if it disrupts fragile systems.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb6",
+      "label": "Part B Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Mitigating ARP Spoofing Question: In a large corporate LAN, how might network admins reduce ARP spoofing attacks? Discuss two solutions and potential drawbacks.",
+      "modelAnswer": "Solution 1 : Use static ARP mappings for critical devices. Downside: Maintenance overhead if network addresses or hardware changes frequently.\n\nSolution 2 : Deploy 802.1X or dynamic ARP inspection (DAI) on switches. Potential drawback: Complex configuration or need for modern switch support.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb7",
+      "label": "Part B Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "DNS Cache Poisoning Question: Provide one attacker method for DNS cache poisoning (without DNSSEC) and two countermeasures that resolvers or OSes can implement.",
+      "modelAnswer": "Attacker method : Sending forged DNS responses faster than the legitimate server, hoping to match the correct transaction ID or source port.\n\nCountermeasures :\n\n1. Randomizing source ports + transaction IDs.\n2. Use 0x20 randomization or DNSSEC for cryptographic authenticity.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb8",
+      "label": "Part B Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "SYN Flooding Question: Summarize how a classic SYN flood can cause a DoS and explain how SYN cookies specifically mitigate the resource exhaustion problem.",
+      "modelAnswer": "Cause : The attacker floods half-open TCP connections (SYNs) but never completes them, depleting server resources.\n\nSYN cookies : The server encodes essential connection info into the SYN-ACK’s sequence number. No allocation needed until final ACK. This drastically reduces resource usage per half-open connection.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb9",
+      "label": "Part B Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Smurf/Amplification Question: The Smurf attack is an older but instructive example of ICMP-based amplification. If an attacker can produce an amplified factor of 100, how does that occur, and how do modern networks mitigate it?",
+      "modelAnswer": "Amplification factor 100 means an ICMP echo request goes to a broadcast address with 100 responding hosts. Each reply goes to the victim’s spoofed IP.\n\nMitigation : Disallow directed broadcast at routers, so broadcast pings are dropped or do not forward.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb10",
+      "label": "Part B Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "IDS Evasion Question: Attackers can craft packets or flows to evade detection by certain IDS. Give two examples of evasion techniques and how modern IDS might counter them.",
+      "modelAnswer": "Evasion Techniques :\n\n- Fragmentation or unusual TCP segment ordering to slip past signature checks.\n- Polymorphic shellcode or encryption to hide exploit content.\n\nModern IDS defenses : Reassemble or normalize streams, decode or decrypt known packers, compare multiple signature patterns across segments.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partc1a",
+      "label": "Part C Q1(1)",
+      "marks": 1,
+      "sharedContext": "False Positives and Negatives Question: You have an IDS with a 2% false positive rate (FPR) and 90% detection rate (true positive rate). Each day there are 200 real intrusions and 10,000 non- intrusive events.",
+      "text": "1. How many false negatives occur daily?",
+      "modelAnswer": "False negatives : 10% of real intrusions => 0.10 × 200 = 20 missed.",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc1b",
+      "label": "Part C Q1(2)",
+      "marks": 1,
+      "sharedContext": "False Positives and Negatives Question: You have an IDS with a 2% false positive rate (FPR) and 90% detection rate (true positive rate). Each day there are 200 real intrusions and 10,000 non- intrusive events.",
+      "text": "2. How many false positives ?",
+      "modelAnswer": "False positives : 2% of 10,000 benign => 0.02 × 10,000 = 200 .",
+      "page": 4,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc2a",
+      "label": "Part C Q2(1)",
+      "marks": 1,
+      "sharedContext": "Anomaly Alert Volume Question: An anomaly-based IDS sees 1 million events/day, among which only 200 are actual attacks. Suppose it catches 90% of these attacks but triggers alarms on 2% of benign events.",
+      "text": "1. How many total alarms?",
+      "modelAnswer": "1 million events/day, 200 attacks, 90% detection => 180 real detections.\n\n2% false alarm on 999,800 benign => 0.02 × 999,800 = 19,996 false alarms.\n\nTotal alarms = 180 + 19,996 ≈ 20,176 .",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc2b",
+      "label": "Part C Q2(2)",
+      "marks": 1,
+      "sharedContext": "Anomaly Alert Volume Question: An anomaly-based IDS sees 1 million events/day, among which only 200 are actual attacks. Suppose it catches 90% of these attacks but triggers alarms on 2% of benign events.",
+      "text": "2. How many of these alarms correspond to real attacks?",
+      "modelAnswer": "Real = 180.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc3",
+      "label": "Part C Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Base Rate Question: If an IDS is 99% accurate (meaning for any event, it has a 1% chance to misclassify), but actual intrusions are 0.1% of all events, what is the probability an alarm is a real intrusion ? (Hint: apply Bayes’ Theorem or conceptual reasoning.)",
+      "modelAnswer": "99% accuracy => 1% error each way. Intrusions 0.1% => for each 1000 events, 1 intrusion.\n\nProbability an alarm is real = typically well under 50% if the base rate is low. The intuitive result: even with high accuracy, many alarms are false if intrusions are rare.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc4a",
+      "label": "Part C Q4(1)",
+      "marks": 1,
+      "sharedContext": "DoS Bandwidth Question: An attacker floods 100,000 pps at 512 bytes each.",
+      "text": "1. What is the approximate bandwidth of this DoS in Mbps?",
+      "modelAnswer": "100,000 pps × 512 bytes = 51200,000 bytes/s = ~51.2 MB/s = 409.6 Mb/s (8 bits/byte). So ~ 410 Mbps .",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc4b",
+      "label": "Part C Q4(2)",
+      "marks": 1,
+      "sharedContext": "DoS Bandwidth Question: An attacker floods 100,000 pps at 512 bytes each.",
+      "text": "2. If the target’s uplink is 100 Mbps , can this alone saturate the link (assuming no overhead)?",
+      "modelAnswer": "If target link is 100 Mbps, yes, it can saturate it.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

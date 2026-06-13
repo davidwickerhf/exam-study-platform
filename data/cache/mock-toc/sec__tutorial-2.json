@@ -1,0 +1,179 @@
+{
+  "generatedAt": "2026-06-13T15:37:45.450Z",
+  "items": [
+    {
+      "title": "Part A",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Advantage of public-key encryption",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Hash property hiding original message",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Chosen-ciphertext attack model",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Vernam cipher correctness",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Hybrid encryption scheme",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Active adversary action",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Collision resistance meaning",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Block cipher mode with XOR chaining",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Digital signature goals",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — DES 56-bit key space",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Comparing passive vs. active adversaries",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Attack models",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Key space and security",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Designing a secure symmetric cipher",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Public-Key Infrastructure (PKI)",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Hash functions vs. encryption functions",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Digital signatures and non-repudiation",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Block cipher modes",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Hybrid encryption scenario",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — MAC vs. digital signature",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part C",
+      "page": 4,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Brute-force feasibility",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Key length impact",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Simple Caesar cipher computation",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Block cipher encryption rate",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Hash collisions",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Public-key encryption overhead",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    }
+  ]
+}

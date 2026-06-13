@@ -1,0 +1,221 @@
+{
+  "generatedAt": "2026-06-13T15:40:03.223Z",
+  "items": [
+    {
+      "title": "Part A: Multiple choice",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Same-Origin Policy",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Drive-by download attack",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — HttpOnly cookies",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — CSRF statement",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Stored XSS defense",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Reflected XSS scenario",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Purpose of CSRF tokens",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — SQL injection prevention",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Secure cookie attribute",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — DOM-based XSS mitigation",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B: Short-answer questions",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — HTTP cookies and authentication",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Mixed content and HTTPS",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — CSRF vs. XSS",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Subdomain scoping of cookies",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — SQL injection attack patterns",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Prepared statements vs. escaping",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Content Security Policy",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Impact of XSS on SOP",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Browser security vs. server security",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — Secure file upload design",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C: Quantitative and applied questions",
+      "page": 5,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Estimating cookie expiration risks",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q1(a) — Success probability within 4 hours",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Success probability with 1-hour Max-Age",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2 — SQL injection and database size",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2(a) — Worst-case enumeration time",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Method to reduce enumeration time",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3 — XSS injection surface",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3(a) — Payload attempts in one post",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — XSS despite escaped angle brackets",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4 — Reflected XSS via URL parameters",
+      "page": 6,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Cookie domain scope",
+      "page": 6,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5(a) — Subdomains that can read the cookie",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Compromised subdomain implications",
+      "page": 6,
+      "depth": 1,
+      "kind": "subquestion"
+    }
+  ]
+}

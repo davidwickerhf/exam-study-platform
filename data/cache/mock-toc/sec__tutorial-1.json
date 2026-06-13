@@ -1,0 +1,125 @@
+{
+  "generatedAt": "2026-06-13T15:37:26.707Z",
+  "items": [
+    {
+      "title": "Part A: Multiple choice",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part A Q1 — Fundamental security goals",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q2 — Authentication principle",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q3 — Adversary funding level",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q4 — Attack trees in threat modeling",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q5 — Risk equation vulnerability term",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B: Short-answer discussion",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part B Q1 — Real-world security incidents",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q2 — Security policy and attacks",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q3 — Threat modeling methods",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q4 — Insider vs outsider threats",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q5 — Model-reality gaps",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C: Applied risk calculations",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part C Q1 — Applying the risk equation",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q1(a) — Calculate annual risk",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q1(b) — Reduce risk technically and procedurally",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q2 — Comparing security controls",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q2(a) — Option A new risk",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q2(b) — Option B new risk",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q2(c) — Recommend lower-risk option",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "generatedAt": "2026-06-13T15:38:30.224Z",
+  "items": [
+    {
+      "title": "Part A: Multiple choice",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Key transport vs key agreement",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Time-variant parameters",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — DH middle-person vulnerability",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Reflection attack",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Relay attack",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Hashing a secret key",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Implicit vs explicit key authentication",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Forward secrecy",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Key management challenges",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — Replay attack mitigation",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B: Short answer",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Replays and nonces",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Authenticated key establishment",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Forward secrecy concepts",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Reflection vs relay",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Dictionary attack defenses",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — DH-EKE",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Single Sign-On threats",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C: Calculation and analysis",
+      "page": 4,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Number of offline guesses",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Diffie-Hellman security",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Replay with timestamps",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Diffie-Hellman EKE overhead",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — SSO attempt time",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    }
+  ]
+}

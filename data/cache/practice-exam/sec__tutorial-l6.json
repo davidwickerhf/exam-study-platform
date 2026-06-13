@@ -1,0 +1,376 @@
+{
+  "generatedAt": "2026-06-13T15:38:11.242Z",
+  "courseId": "sec",
+  "examId": "tutorial-l6",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement about the Same-Origin Policy (SOP) is incorrect?",
+      "modelAnswer": "D. SOP does not apply if two pages share the same top-level domain (TLD, e.g., .com ).\n\nExplanation: SOP checks scheme, host, port, not just TLD. So evil.com vs bank.com are different origins even though they share .com .",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "SOP compares the scheme, host, and port to decide if two resources share the same origin.",
+        "SOP forbids a script from https://bank.com to directly access any data from https://bank.com:8443 .",
+        "SOP can sometimes be relaxed by changing the document.domain property to a shared parent domain.",
+        "SOP does not apply if two pages share the same top- level domain (TLD, e.g., .com )."
+      ]
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following best describes a drive-by download attack?",
+      "modelAnswer": "B. The browser automatically fetches malicious scripts from a compromised website, exploiting vulnerabilities without explicit user action.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "An attacker sends a phishing email with a malicious attachment that requires user execution.",
+        "The browser automatically fetches malicious scripts from a compromised website, exploiting vulnerabilities without explicit user action.",
+        "A user intentionally installs a Trojan horse from a third-party software repository.",
+        "The attacker physically installs malicious firmware on the victim’s device."
+      ]
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Why are HttpOnly cookies often used to store session identifiers?",
+      "modelAnswer": "C. They protect cookies from direct access by client-side scripts, mitigating some XSS-based theft attempts.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "They reduce the size of HTTP requests by removing the domain field.",
+        "They ensure that the cookie is only accessible via client-side JavaScript.",
+        "They protect cookies from direct access by client- side scripts, mitigating some XSS-based theft attempts.",
+        "They automatically encrypt the cookie’s contents in transit."
+      ]
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following statements about Cross-Site Request Forgery (CSRF) is true?",
+      "modelAnswer": "B. CSRF exploits the fact that browsers automatically attach cookies to outgoing requests for a domain.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "CSRF relies on malicious code injected into the victim’s browser via script tags.",
+        "CSRF exploits the fact that browsers automatically attach cookies to outgoing requests for a domain.",
+        "CSRF is prevented by using a strictly long URL for requests.",
+        "CSRF cannot affect sites protected by HTTPS."
+      ]
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which defense is best suited for preventing stored XSS attacks?",
+      "modelAnswer": "B. Stripping or sanitizing potentially dangerous HTML and script tags from user-generated content.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Using an HTTPS connection for all pages",
+        "Stripping or sanitizing potentially dangerous HTML and script tags from user-generated content",
+        "Requiring a secret validation token in POST requests",
+        "Disallowing cookies completely"
+      ]
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which scenario exemplifies Reflected XSS ?",
+      "modelAnswer": "C. A malicious link contains script code that the target server includes in its error message, immediately returning it to the user’s browser.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "An attacker stores a malicious script in a site’s comment section, and all visitors see the injected script.",
+        "An attacker uses a hidden IFRAME to submit a form to another origin.",
+        "A malicious link contains script code that the target server includes in its error message, immediately returning it to the user’s browser.",
+        "A malicious script modifies the browser’s DOM on a single-page application without server involvement."
+      ]
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "What is the main purpose of CSRF tokens ?",
+      "modelAnswer": "C. To verify that an HTTP request originated from the legitimate site’s page/form rather than a third-party injection.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "To encrypt all request parameters in transit",
+        "To allow the attacker to reuse the user’s session on a different machine",
+        "To verify that an HTTP request originated from the legitimate site’s page/form rather than a third-party injection",
+        "To log out the user if suspicious behavior is detected"
+      ]
+    },
+    {
+      "id": "q8",
+      "label": "Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which SQL injection prevention method is recommended in modern web frameworks?",
+      "modelAnswer": "B. Using parameterized (prepared) statements that keep SQL logic separate from user input.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Escaping all user input with backslashes before concatenation",
+        "Using parameterized (prepared) statements that keep SQL logic separate from user input",
+        "Disabling all forms that accept user input",
+        "Converting user input to uppercase before adding it to the query"
+      ]
+    },
+    {
+      "id": "q9",
+      "label": "Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "The “Secure” cookie attribute is meant to:",
+      "modelAnswer": "B. Ensure a cookie is only sent over HTTPS connections.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Restrict a cookie’s usage to only the same origin domain",
+        "Ensure a cookie is only sent over HTTPS connections",
+        "Make the cookie accessible by client-side JavaScript",
+        "Invalidate the cookie if the user’s IP address changes"
+      ]
+    },
+    {
+      "id": "q10",
+      "label": "Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which approach helps mitigate DOM-based XSS vulnerabilities?",
+      "modelAnswer": "B. Sanitizing or encoding any untrusted data before adding it into the DOM or URL fragments.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Changing the default port to 8080 for web traffic",
+        "Sanitizing or encoding any untrusted data before adding it into the DOM or URL fragments",
+        "Disabling all cross-domain iframes",
+        "Using a multi-factor authentication token in each GET request"
+      ]
+    },
+    {
+      "id": "q11",
+      "label": "Q11",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "HTTP Cookies and Authentication\n\nQuestion: In web-based authentication, why are cookies so critical to maintaining sessions? Explain how malicious attackers might steal or abuse these cookies, and propose two different defensive measures (beyond HttpOnly ) to protect them.",
+      "modelAnswer": "HTTP Cookies and Authentication\n\nWhy critical? Cookies provide continuity across stateless HTTP by storing session identifiers or login states.\n\nAttacks :\n\n1. Cookie theft via XSS or malicious script reading document.cookie .\n2. Network sniffing if no HTTPS is used.\n3. Session fixation or replay if cookies aren’t invalidated or bound to session constraints.\n\nDefenses :\n\n1. TLS (HTTPS) to prevent interception.\n2. Cookie binding with IP or user agent checks, or cryptographic signing of cookie content.\n3. Short session lifetimes plus re-auth on critical actions.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q12",
+      "label": "Q12",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Mixed Content and HTTPS\n\nQuestion: A website loads its main page over HTTPS but includes some scripts and images over HTTP. Discuss why this is dangerous. In your answer, explain how an active network attacker could exploit this setup to compromise the site’s security.",
+      "modelAnswer": "Mixed Content and HTTPS\n\nMixed content is dangerous because an attacker controlling or hijacking the HTTP elements can inject malicious scripts or modify content. If the attacker intercepts an HTTP script, they can rewrite it to perform malicious actions, effectively defeating the security of the main HTTPS page. This breaks the authenticity and integrity guarantees of HTTPS.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q13",
+      "label": "Q13",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "CSRF vs. XSS\n\nQuestion: Compare and contrast Cross-Site Request Forgery (CSRF) with Cross-Site Scripting (XSS). How can an application be vulnerable to both simultaneously, and how do the mitigation strategies differ?",
+      "modelAnswer": "CSRF vs. XSS\n\nCSRF : Exploits automatic cookie sending to cause unintended actions on a site where the user is already authenticated.\n\nXSS : Involves injecting scripts into a trusted site’s pages so they run in a victim’s browser.\n\nA site can be vulnerable to both: XSS can steal user cookies or embed hidden forms (CSRF).\n\nMitigations:\n\nCSRF : Use secret tokens, SameSite cookies, user re- auth.\n\nXSS : Input/output sanitization, Content Security Policy, HttpOnly cookies.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q14",
+      "label": "Q14",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Subdomain Scoping of Cookies\n\nQuestion: How do the Domain and Path attributes of an HTTP cookie affect which subdomains (and URLs) can read the cookie? Provide an example scenario where misconfigured domain scoping leads to a security vulnerability.",
+      "modelAnswer": "Subdomain Scoping of Cookies\n\nDomain attribute = .example.com → the cookie is accessible to all subdomains under example.com .\n\nPath attribute further restricts which URL paths can see the cookie.\n\nVulnerability : If you set .example.com but there’s an untrusted subdomain ( untrusted.example.com ), that subdomain can read the cookie, leading to a compromise of user sessions.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q15",
+      "label": "Q15",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "SQL Injection Attack Patterns\n\nQuestion: What are two advanced SQL injection patterns (beyond the simple ' OR 1=1 -- )? For each pattern, briefly explain the exploitation idea and why naive sanitization might fail against it.",
+      "modelAnswer": "SQL Injection Attack Patterns\n\nAdvanced Patterns :\n\n1. UNION-based injection : UNION SELECT password,1,1 FROM admin_table appended to the query.\n2. Time-based blind injection : Use SLEEP(5) or WAITFOR DELAY '0:0:5' to test values.\n\nNaive sanitization might fail because attackers can nest or obfuscate queries (hex-encode, comments, etc.).",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q16",
+      "label": "Q16",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Prepared Statements vs. Escaping\n\nQuestion: In the context of mitigating SQL injection, why do prepared statements (parameterized queries) often outperform manual escaping or blacklist -based sanitization? Provide a short example in pseudo-code that illustrates how prepared statements prevent injection.",
+      "modelAnswer": "Prepared Statements vs. Escaping\n\nPrepared statements separate the SQL logic from the user input. The DB engine handles placeholders safely.\n\nExample (pseudo-code):\n\n```\nstmt = connection.prepare(\"SELECT * FROM users WHERE username=? AND password=?\")\nstmt.bind(usernameInput)\nstmt.bind(passwordInput)\nresult = stmt.execute()\n```\n\nThis approach ensures user input can’t break the query structure.",
+      "page": 4,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q17",
+      "label": "Q17",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "CSP (Content Security Policy)\n\nQuestion: Outline how a Content Security Policy can help mitigate XSS attacks. Mention at least two specific directives (e.g., default-src , script-src ) and how they reduce the attack surface.",
+      "modelAnswer": "CSP (Content Security Policy)\n\nCSP can specify default-src 'self' to restrict resources to the same origin. script-src 'self' 'nonce-xyz' can limit scripts to those with a particular nonce or from a trusted domain. This drastically reduces or blocks inline scripts or external resources from unknown domains, mitigating many XSS attacks.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q18",
+      "label": "Q18",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Impact of XSS on SOP\n\nQuestion: If an attacker successfully injects JavaScript into a legitimate domain (via stored XSS), how might this effectively bypass the browser’s same- origin policy? Detail the potential consequences for user data stored or accessible under that domain.",
+      "modelAnswer": "Impact of XSS on SOP\n\nIf an attacker injects malicious JavaScript into the legitimate domain, that code runs with that domain’s origin privileges. They can read or modify any data accessible under that origin: cookies, local storage, or even the site’s private user data. Essentially, it’s as if the site’s own script performed those actions, bypassing the SOP.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q19",
+      "label": "Q19",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Browser Security vs. Server Security\n\nQuestion: Discuss the interplay between client-side (browser-based) security mechanisms (e.g., same-origin policy, XSS filters) and server-side measures (e.g., input validation, authentication checks). Why is a “defense in depth” approach necessary?",
+      "modelAnswer": "Browser Security vs. Server Security\n\nClient-side : SOP, XSS filters, sandboxing, same-site cookies, etc.\n\nServer-side : Input validation, encryption, session management.\n\nRelying on only one side is insufficient because malicious actors can bypass client checks or exploit server misconfigurations. Multiple layers (defense in depth) ensure if one layer fails, others still protect the system.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q20",
+      "label": "Q20",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Designing a Secure File-Upload\n\nQuestion: A web application allows users to upload images. What steps should the server take to ensure malicious scripts or executables cannot be uploaded or executed? Provide at least three distinct measures.",
+      "modelAnswer": "Designing a Secure File-Upload\n\nMeasures :\n\nValidate file type and MIME type (e.g., only allow image/jpeg ).\n\nRename the file on the server (avoid user-supplied filenames).\n\nStore files outside the webroot or serve them via a separate domain to prevent direct script execution.\n\nPerform virus scans or sanitize images (strip EXIF or metadata).\n\nSet correct Content-Type headers on download to avoid forced execution as HTML.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q21a",
+      "label": "Q21(a)",
+      "marks": 1,
+      "sharedContext": "Estimating Cookie Expiration Risks\n\nQuestion: A session cookie has a Max-Age of 4 hours . Assume an attacker can guess or brute-force a random session token with a probability of success 1 in 2 million per hour.",
+      "text": "(a) What is the approximate probability the attacker succeeds within 4 hours if attacks are continuous?",
+      "modelAnswer": "Estimating Cookie Expiration Risks\n\n(a) Probability of success in 4 hours:\n\nAttacker success rate ~ (1/2{,}000{,}000) per hour.\n\nOver 4 hours, an approximate bounding approach:\n\n$$\nP( success in 4 hrs ) \\approx 1 - ( 1 - p )^4\n$$\n\n$$\np = 1/2,000,000\n$$\n\n$$\n1 - ( 1 - 0.5 \\times 10^{-6} )^4 \\approx 1 - ( 0.9999995 )^4 \\approx 2 \\times 10^{-6}\n$$\n\nwith . (this is a rough estimate, still around 1 in 500,000).",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q21b",
+      "label": "Q21(b)",
+      "marks": 1,
+      "sharedContext": "Estimating Cookie Expiration Risks\n\nQuestion: A session cookie has a Max-Age of 4 hours . Assume an attacker can guess or brute-force a random session token with a probability of success 1 in 2 million per hour.",
+      "text": "(b) If the server decides to reduce Max-Age to 1 hour , what does the success probability become?",
+      "modelAnswer": "(b) With Max-Age = 1 hour, the probability is roughly:\n\n$$\n1 - ( 1 - 0.5 \\times 10^{-6} ) \\approx 0.5 \\times 10^{-6}\n$$\n\nReducing session length cuts success probability proportionally in this scenario.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q22a",
+      "label": "Q22(a)",
+      "marks": 1,
+      "sharedContext": "SQL Injection and Database Size\n\nQuestion: An attacker performs a blind SQL injection on a user table containing ~1,000,000 rows. Each guess to confirm a single row’s column value takes ~1 second via a timing-based technique.",
+      "text": "(a) If the attacker tries to enumerate an entire column (e.g., username) with a maximum length of 10 ASCII characters, how many total seconds might be required in the worst case (assuming 95 printable characters)?",
+      "modelAnswer": "SQL Injection and Database Size\n\n(a) Worst case : enumerating 1,000,000 rows × each row’s username of max length 10, from 95 characters. For each character, attacker does a 1-second test (timing- based):\n\nActually, a naive approach might do a binary search per character . Then total checks:\n\n$$\n1,000,000 rows \\times 10 chars/row \\times log_2(95) tests?\n$$\n\n$$\nlog_2(95) \\approx 6.57\n$$\n\n$$\n1,000,000 \\times 10 \\times 7 \\times 1s \\approx 70,000,000s \\approx 2.22 years.\n$$\n\n(This is a simplified estimate. If they do single attempts per possible char, it might be even more.)",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q22b",
+      "label": "Q22(b)",
+      "marks": 1,
+      "sharedContext": "SQL Injection and Database Size\n\nQuestion: An attacker performs a blind SQL injection on a user table containing ~1,000,000 rows. Each guess to confirm a single row’s column value takes ~1 second via a timing-based technique.",
+      "text": "(b) Propose one method to reduce this enumeration time for the attacker.",
+      "modelAnswer": "(b) Reduction : Use faster out-of-band channels, exploit advanced queries (dump many rows at once), or find a direct injection that enumerates entire tables with fewer queries (e.g., union-based injection or more efficient conditional checks).",
+      "page": 5,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q23a",
+      "label": "Q23(a)",
+      "marks": 1,
+      "sharedContext": "XSS Injection Surface - Question: A forum restricts posts to 2,000 characters. An attacker attempts to insert malicious JavaScript using inline event handlers or <script> tags.",
+      "text": "(a) Suppose each inserted payload is ~100 characters. How many potential injection attempts can they embed in a single post if the forum does not sanitize it?",
+      "modelAnswer": "XSS Injection Surface\n\n(a) Each payload ~100 chars; total limit = 2,000 chars.\n\n$$\n2000 / 100 = 20\n$$\n\n20 possible attempts embedded.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q23b",
+      "label": "Q23(b)",
+      "marks": 1,
+      "sharedContext": "XSS Injection Surface - Question: A forum restricts posts to 2,000 characters. An attacker attempts to insert malicious JavaScript using inline event handlers or <script> tags.",
+      "text": "(b) If the forum actively escapes all angle brackets < and > , how might an attacker still attempt XSS?",
+      "modelAnswer": "(b) Even if < and > are escaped, attackers might use other encodings (e.g., &#x3C; for < ) or manipulate attributes (e.g., onerror in <img src=... onerror=...> ). They could also exploit unescaped quotes or use JavaScript protocol URIs if not filtered.",
+      "page": 6,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q24",
+      "label": "Q24",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Reflected XSS via URL Parameters\n\nQuestion: A website echoes user input from a URL parameter into its error message (reflected XSS). If each request takes ~500ms to confirm whether the injection succeeded, how many attempts can an attacker perform in 1 minute of testing on a single URL?",
+      "modelAnswer": "Reflected XSS via URL Parameters\n\nEach request test: ~500ms to see result. In 1 minute = 60 seconds → if done sequentially.\n\n$$\n500ms = 0.5 s/request\n$$\n\n$$\n60s / 0.5s = 120 attempts\n$$",
+      "page": 6,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q25a",
+      "label": "Q25(a)",
+      "marks": 1,
+      "sharedContext": "Cookie Domain Scope\n\nQuestion: A site sets the Domain attribute of its cookie to .example.com . The organization has subdomains a.example.com and b.example.com .",
+      "text": "(a) Which subdomains can read the cookie?",
+      "modelAnswer": "",
+      "page": 6,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q25b",
+      "label": "Q25(b)",
+      "marks": 1,
+      "sharedContext": "Cookie Domain Scope\n\nQuestion: A site sets the Domain attribute of its cookie to .example.com . The organization has subdomains a.example.com and b.example.com .",
+      "text": "(b) If there are 10 subdomains, what are the security implications if one subdomain is compromised?",
+      "modelAnswer": "",
+      "page": 6,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

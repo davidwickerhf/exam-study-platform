@@ -1,0 +1,137 @@
+{
+  "generatedAt": "2026-06-13T15:40:27.059Z",
+  "items": [
+    {
+      "title": "Part A: Multiple choice",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Firewall policy on port 80",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Stateful vs stateless firewall advantage",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — DMZ segment purpose",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Traditional firewall limitations",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Proxy firewalls",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — SSH local port forwarding security",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Default-allow firewall policy",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — IPsec tunnel mode VPN",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Port knocking with firewalls",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — Stateful firewall support for FTP",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B: Written questions",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Choke-point security",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Default-deny vs default-allow",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Stateful vs stateless firewall",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — VPN modes",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — SSH security",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Proxy-based firewalls",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — DMZ architecture",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Firewall limitations",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — SSH port forwarding",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — Layered defense",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    }
+  ]
+}

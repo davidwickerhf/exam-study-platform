@@ -1,0 +1,277 @@
+{
+  "generatedAt": "2026-06-13T15:34:33.811Z",
+  "courseId": "sec",
+  "examId": "tutorial-l7",
+  "questions": [
+    {
+      "id": "pa1",
+      "label": "Part A Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A company has a strict firewall configuration that drops all incoming connections except on port 80 (HTTP). Which statement about this policy is correct?",
+      "modelAnswer": "It enforces a default-deny stance, reducing the attack surface except for allowed ports.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "It completely prevents attackers from sending malicious content over HTTP.",
+        "It enforces a default-deny stance, reducing the attack surface except for allowed ports.",
+        "It is useless if the network has internal malicious insiders.",
+        "It automatically protects against tunneling protocols."
+      ]
+    },
+    {
+      "id": "pa2",
+      "label": "Part A Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which scenario best demonstrates the advantage of using stateful firewalls over stateless ones?",
+      "modelAnswer": "Allowing inbound HTTP responses only if they correspond to an established outbound HTTP session.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Dropping malformed packets based solely on IP header checks.",
+        "Allowing inbound HTTP responses only if they correspond to an established outbound HTTP session.",
+        "Logging all ICMP packets from external networks.",
+        "Rejecting all incoming traffic from private IP addresses."
+      ]
+    },
+    {
+      "id": "pa3",
+      "label": "Part A Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A DMZ segment in a firewall architecture is primarily used to:",
+      "modelAnswer": "Host public-facing services (e.g., web servers) with restricted connectivity to the internal network.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Provide a trusted internal subnet that only employees can access.",
+        "Host public-facing services (e.g., web servers) with restricted connectivity to the internal network.",
+        "Encrypt all traffic crossing the perimeter.",
+        "Replace the need for a dedicated bastion host."
+      ]
+    },
+    {
+      "id": "pa4",
+      "label": "Part A Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following is not a typical limitation or weakness of traditional firewalls?",
+      "modelAnswer": "They automatically detect malicious insiders and block their traffic.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "They assume a clearly defined network perimeter that might not exist in modern environments.",
+        "They cannot inspect or block encrypted content (unless configured with special mechanisms).",
+        "They automatically detect malicious insiders and block their traffic.",
+        "They can be bypassed by protocols tunneled over allowed ports."
+      ]
+    },
+    {
+      "id": "pa5",
+      "label": "Part A Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement about proxy firewalls is true ?",
+      "modelAnswer": "They relay traffic at the application or circuit level, potentially examining content for malicious patterns.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "They only operate at the network layer (layer 3) and cannot inspect application data.",
+        "They relay traffic at the application or circuit level, potentially examining content for malicious patterns.",
+        "They are always slower than packet filters because they drop all packets.",
+        "They do not require any specialized software—just normal router firmware."
+      ]
+    },
+    {
+      "id": "pa6",
+      "label": "Part A Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "How does SSH port forwarding (local forwarding) increase security for an application protocol that normally sends data in the clear?",
+      "modelAnswer": "It encapsulates the application’s plaintext traffic within an encrypted SSH session, preventing eavesdropping.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "It compresses the data to reduce bandwidth.",
+        "It encapsulates the application’s plaintext traffic within an encrypted SSH session, preventing eavesdropping.",
+        "It blocks all inbound connections to the server.",
+        "It automatically replaces user authentication with a certificate."
+      ]
+    },
+    {
+      "id": "pa7",
+      "label": "Part A Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A firewall with a default-allow policy means:",
+      "modelAnswer": "All traffic is allowed unless specifically denied by a rule.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "All traffic is blocked unless specifically permitted by a rule.",
+        "All traffic is allowed unless specifically denied by a rule.",
+        "The firewall denies all traffic to or from port 80 and 443.",
+        "The firewall logs inbound traffic but does not enforce rules."
+      ]
+    },
+    {
+      "id": "pa8",
+      "label": "Part A Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "What is the key characteristic of tunnel mode VPN in IPsec?",
+      "modelAnswer": "It encapsulates the entire IP packet (including headers) within a new IP header, providing site-to-site encryption.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "It encrypts only the TCP header, leaving IP addresses unencrypted.",
+        "It encapsulates the entire IP packet (including headers) within a new IP header, providing site-to-site encryption.",
+        "It never authenticates packet sources, only encryption.",
+        "It is used solely for host-to-host encryption, not site-to-site."
+      ]
+    },
+    {
+      "id": "pa9",
+      "label": "Part A Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Why is port knocking sometimes used in conjunction with firewalls?",
+      "modelAnswer": "To open inbound ports only after a secret sequence of connection attempts (knocks) is made, enhancing stealth and reducing exposed services.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "To open inbound ports only after a secret sequence of connection attempts (knocks) is made, enhancing stealth and reducing exposed services.",
+        "To forcibly close all ephemeral ports once a user logs out.",
+        "To automatically switch the firewall from default- deny to default-allow.",
+        "To enable dynamic NAT for inbound connections."
+      ]
+    },
+    {
+      "id": "pa10",
+      "label": "Part A Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Traditional FTP uses separate control and data channels. A stateful firewall that supports FTP typically:",
+      "modelAnswer": "Dynamically opens the required data port upon seeing the PORT/PASV command on the control channel.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Rejects all inbound data connections since they are never recognized.",
+        "Dynamically opens the required data port upon seeing the PORT/PASV command on the control channel.",
+        "Depends on default-allow policy for inbound ports.",
+        "Cannot handle passive FTP at all."
+      ]
+    },
+    {
+      "id": "pb1",
+      "label": "Part B Q1",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Choke-Point Security\n\nQuestion: In a modern enterprise with distributed, cloud-based services, how does the traditional concept of a network choke point (single firewall perimeter) become less effective? Propose two ways organizations adapt firewall usage to handle this shift.",
+      "modelAnswer": "The traditional choke point becomes less effective because modern enterprise traffic no longer crosses one clearly defined perimeter. Users, cloud services, SaaS platforms, mobile devices, remote workers, and partner systems may communicate directly over the Internet, so traffic can bypass a single corporate firewall. Encrypted traffic and cloud-to-cloud communication also reduce the visibility of a perimeter device.\n\nTwo ways organizations adapt firewall usage are:\n\n- Deploy distributed controls such as cloud firewalls, virtual firewalls, security groups, web application firewalls, and host-based firewalls close to the workloads they protect.\n- Use zero-trust or identity-aware access controls, where access is based on user, device, application, and context rather than assuming that everything inside the perimeter is trusted.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb2",
+      "label": "Part B Q2",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Default-Deny vs. Default-Allow\n\nQuestion: Compare the default-deny and default-allow approaches in firewall rulesets. Discuss one advantage and one disadvantage of each approach, and clarify which is typically more secure by default.",
+      "modelAnswer": "Default-deny blocks all traffic unless a rule explicitly permits it. Its advantage is that it reduces the attack surface and follows least privilege. Its disadvantage is that it requires careful planning and may accidentally block legitimate services if rules are incomplete.\n\nDefault-allow permits all traffic unless a rule explicitly denies it. Its advantage is that it is easier to deploy and less likely to disrupt normal connectivity at first. Its disadvantage is that unknown, unnecessary, or newly introduced services may remain exposed.\n\nDefault-deny is typically more secure by default because only approved traffic is allowed.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb3",
+      "label": "Part B Q3",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Stateful vs. Stateless Firewall\n\nQuestion: Outline the functional difference between a stateless packet filter and a stateful inspection firewall. Give a real-world example (beyond the standard TCP handshake check) where stateful behavior clearly outperforms stateless filtering.",
+      "modelAnswer": "A stateless packet filter examines each packet independently, using fields such as source IP address, destination IP address, protocol, and port number. It does not remember previous packets or the state of a connection.\n\nA stateful inspection firewall maintains a state table of active sessions and uses connection context when deciding whether to allow traffic. It can distinguish packets that belong to an established session from unrelated inbound packets.\n\nA real-world example is FTP. Traditional FTP uses a control channel and a separate data channel. A stateful firewall can inspect the FTP control connection, observe the PORT or PASV command, and dynamically permit the related data connection. A stateless firewall would need broad static port openings or would block the data channel.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb4",
+      "label": "Part B Q4",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "VPN Modes\n\nQuestion: Explain the difference between transport mode and tunnel mode in IPsec-based VPNs. In which scenario might transport mode be preferable, and why?",
+      "modelAnswer": "In IPsec transport mode, the original IP header remains in place and IPsec protects the payload of the IP packet. It is commonly used for host-to-host communication where the original endpoints are also the IPsec endpoints.\n\nIn IPsec tunnel mode, the entire original IP packet is encapsulated inside a new IP packet. The original packet, including its original header, is protected, and a new outer IP header is used for routing between VPN gateways.\n\nTransport mode might be preferable for direct host-to-host protection, such as securing traffic between two servers, because it adds less overhead and does not need to hide or replace the original IP header.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb5",
+      "label": "Part B Q5",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "SSH Security\n\nQuestion: Traditional telnet is insecure because data flows in plaintext. Demonstrate how SSH addresses confidentiality and integrity for remote shell connections. Also, describe how server authentication works in SSH to prevent MITM.",
+      "modelAnswer": "SSH addresses confidentiality by encrypting the remote shell session after the client and server negotiate keys. Commands, output, usernames, passwords, and other session data are protected from eavesdropping.\n\nSSH addresses integrity by using cryptographic message authentication so that modified packets can be detected. An attacker who changes encrypted traffic in transit should cause integrity verification to fail.\n\nServer authentication works by using the server’s host key. The client checks the server’s public host key against a known_hosts entry or asks the user to verify it on first connection. On later connections, if the host key changes unexpectedly, the client warns the user because this may indicate a man-in-the-middle attack.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb6",
+      "label": "Part B Q6",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Proxy-based Firewalls\n\nQuestion: Compare circuit-level and application-level proxy firewalls. Which type can filter at the level of HTTP or FTP commands, and which is more limited in protocol understanding? Also mention how proxies can hamper performance.",
+      "modelAnswer": "A circuit-level proxy operates at the session or circuit level. It relays connections and can control whether a session is allowed, but it has limited understanding of application-specific commands and content.\n\nAn application-level proxy understands a particular application protocol, such as HTTP or FTP. It can inspect and filter protocol commands, URLs, headers, methods, file transfers, or other application data.\n\nThe application-level proxy can filter at the level of HTTP or FTP commands. The circuit-level proxy is more limited in protocol understanding.\n\nProxies can hamper performance because they terminate and relay connections, inspect traffic, maintain application state, and may require extra processing compared with simple packet filtering.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb7",
+      "label": "Part B Q7",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "DMZ Architecture\n\nQuestion: Illustrate a DMZ architecture with at least two screening routers and a bastion host. Show how external users reach the DMZ but have limited access to the internal network. Why is this design favored for public-facing servers?",
+      "modelAnswer": "A suitable DMZ architecture is:\n\n```text\nInternet\n   |\n[Screening Router 1]\n   |\n  DMZ ---- [Bastion Host / Public Web Server]\n   |\n[Screening Router 2]\n   |\nInternal Network\n```\n\nExternal users are allowed through the first screening router only to approved services in the DMZ, such as HTTP or HTTPS on the bastion host. The second screening router restricts traffic from the DMZ to the internal network, allowing only necessary connections and blocking direct external access to internal hosts.\n\nThis design is favored for public-facing servers because compromise of a public server does not immediately expose the internal network. The bastion host is placed in a controlled subnet, and traffic between the Internet, DMZ, and internal network is filtered at separate points.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb8",
+      "label": "Part B Q8",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Firewall Limitations\n\nQuestion: Summarize two fundamental firewall limitations that cannot be solved by more advanced filtering rules. For each limitation, suggest a complementary security measure to mitigate it.",
+      "modelAnswer": "Two fundamental firewall limitations are:\n\n- Firewalls cannot fully protect against malicious insiders or compromised internal accounts. A complementary measure is to use least privilege, strong authentication, monitoring, endpoint protection, and user behavior analytics.\n- Firewalls cannot reliably inspect encrypted content without additional mechanisms, and even then inspection may be limited or privacy-sensitive. A complementary measure is to use endpoint security, TLS-aware proxies where appropriate, certificate management, application-layer security controls, and logging at the server or application.\n\nOther valid limitations include attacks tunneled through allowed ports, misconfigured rules, and traffic that bypasses the firewall entirely. These can be mitigated with application allow-listing, intrusion detection, host-based firewalls, network segmentation, and zero-trust access controls.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb9",
+      "label": "Part B Q9",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "SSH Port Forwarding\n\nQuestion: Provide a scenario where local SSH port forwarding solves a security or connectivity problem. Describe how data from an insecure protocol is encapsulated and how the user sets up such a tunnel.",
+      "modelAnswer": "A scenario is accessing an internal database or legacy web application that is reachable from an SSH server but not exposed directly to the Internet. The application protocol may send data in plaintext or may be blocked by the firewall.\n\nWith local SSH port forwarding, the user opens a local listening port. Traffic sent to that local port is carried inside the encrypted SSH connection to the SSH server, and the SSH server forwards it to the target host and port. The insecure protocol is therefore encapsulated inside SSH, protecting it from eavesdropping between the client and SSH server.\n\nAn example command is:\n\n```bash\nssh -L 8080:internal.example.com:80 user@gateway.example.com\n```\n\nThe user then connects to:\n\n```text\nhttp://localhost:8080\n```\n\nThe browser traffic to localhost:8080 is encrypted inside the SSH tunnel and forwarded to internal.example.com:80 from the gateway.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "pb10",
+      "label": "Part B Q10",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "Layered Defense\n\nQuestion: Why do organizations often deploy multiple firewall layers (e.g., perimeter firewall + host-based firewall)? Discuss how a host-based firewall on a server can complement the perimeter firewall’s policy, including an example of an insider threat scenario.",
+      "modelAnswer": "Organizations deploy multiple firewall layers because no single control sees all traffic or protects against every path of attack. A perimeter firewall controls traffic entering and leaving the network, while host-based firewalls enforce policy directly on individual servers or endpoints.\n\nA host-based firewall can complement the perimeter firewall by restricting which local services accept connections, limiting management ports to approved administrators, blocking lateral movement, and applying rules even when traffic originates from inside the network.\n\nAn insider threat example is an employee or compromised internal workstation scanning internal servers. The perimeter firewall may not block this traffic because it is already inside the network. A host-based firewall on a server can still reject connections to administrative ports such as SSH, RDP, or database ports unless they come from approved management hosts.",
+      "page": 5,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

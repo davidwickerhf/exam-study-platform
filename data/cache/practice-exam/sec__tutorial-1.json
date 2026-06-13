@@ -1,0 +1,197 @@
+{
+  "generatedAt": "2026-06-13T15:26:31.904Z",
+  "courseId": "sec",
+  "examId": "tutorial-1",
+  "questions": [
+    {
+      "id": "parta1",
+      "label": "Part A Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following is not one of the fundamental goals\nof computer security?",
+      "modelAnswer": "Correct Answer: C. Repudiation\n\nExplanation: The primary, classic goals of computer\nsecurity are often summarized as CIA (Confidentiality,\nIntegrity, Availability). Other important security\nproperties include authentication, authorization, and\naccountability. Repudiation (or its opposite, non-\nrepudiation) is an important concept but not typically\nlisted as one of the foundational goals.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Confidentiality",
+        "Integrity",
+        "Repudiation",
+        "Availability"
+      ]
+    },
+    {
+      "id": "parta2",
+      "label": "Part A Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement best characterizes the principle of\nauthentication in computer security?",
+      "modelAnswer": "Correct Answer: C. Confirming the identity or genuineness\nof an entity or data source\n\nExplanation:\n- A (Ensuring data are unaltered) is Integrity.\n- B (Ensuring only authorized users can access resources)\nis Authorization.\n- C (Correct) describes what Authentication actually does\n—verifying identity.\n- D (Guaranteeing system availability) is Availability.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Ensuring data are unaltered except by authorized\nparties.",
+        "Ensuring only authorized users can access resources.",
+        "Confirming the identity or genuineness of an entity\nor data source.",
+        "Guaranteeing continuous operational readiness of\nsystems and networks."
+      ]
+    },
+    {
+      "id": "parta3",
+      "label": "Part A Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following adversary attributes deals primarily\nwith the financial resources at an attacker’s disposal?",
+      "modelAnswer": "Correct Answer: D. Funding Level\n\nExplanation:\n- Objectives = attacker goals.\n- Methods = techniques used.\n- Capabilities = skill set, knowledge, or computational\npower.\n- Funding Level = amount of money or financial backing\nthey have, which directly influences the scale of their\noperations.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Objectives",
+        "Methods",
+        "Capabilities",
+        "Funding Level"
+      ]
+    },
+    {
+      "id": "parta4",
+      "label": "Part A Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In threat modeling, which approach specifically uses a\nvisual hierarchical structure where the root node is the\noverall attack goal and leaves represent methods to achieve\nit?",
+      "modelAnswer": "Correct Answer: B. Attack Trees\n\nExplanation:\n- Attack Trees start with a top-level goal (root) and\nbranch out into different possible ways (children\nnodes) to achieve that goal.\n- STRIDE, Diagram-Driven Modeling, and Checklists follow\ndifferent methods of enumerating and analyzing threats.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "STRIDE",
+        "Attack Trees",
+        "Diagram-Driven Modeling",
+        "Checklists"
+      ]
+    },
+    {
+      "id": "parta5",
+      "label": "Part A Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "In the risk equation $R = T \\times V \\times C$, the term $V$ refers to:",
+      "modelAnswer": "Correct Answer: B. The vulnerability level of a system\n\nExplanation:\n- T = Threat probability\n- V = Vulnerability (likelihood the threat will succeed\nif attempted)\n- C = Cost (impact if the threat succeeds)",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "The cost of a successful attack",
+        "The vulnerability level of a system",
+        "The probability of a threat occurring",
+        "The total number of adversaries involved"
+      ]
+    },
+    {
+      "id": "partb1",
+      "label": "Part B Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Real-World Incidents: From the lecture examples (WannaCry,\nNotPetya, Stuxnet, TRITON), choose one and discuss:\n- The nature of the attack (e.g., malware type, exploit\nused)\n- Its broader impact (financial, operational,\nreputational)\n- Why it represents a significant turning point in cyber\nthreats.",
+      "modelAnswer": "Real-World Incidents\n\nSample Answer (WannaCry):\n- Nature of the Attack: WannaCry was a ransomware attack\nexploiting a Microsoft Windows vulnerability\n(EternalBlue) to spread rapidly across networks. Once\ninfected, it encrypted user data and demanded Bitcoin\npayment for decryption.\n- Broader Impact: The attack affected over 230,000\ncomputers in more than 150 countries. Organizations\nlike the UK’s National Health Service (NHS) faced\nsignificant operational disruptions, canceled medical\nappointments, and reputational damage. The financial\nimpact was substantial for organizations needing to\nrestore systems and manage data recovery.\n- Significance: WannaCry underscored how quickly a\nransomware campaign could propagate worldwide and\nhighlighted the importance of timely patching. It\nrepresented a milestone in global awareness of\nransomware and the vulnerabilities inherent in outdated\nsystems.\n\nNote: You can apply a similar structured approach if you\nchose NotPetya, Stuxnet, or TRITON.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb2",
+      "label": "Part B Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Security Policy and Attacks : Describe the relationship\nbetween a security policy and an attack. In your answer,\nexplain how a policy violation can lead to a non-secure\nstate and give one example of a practical policy from an\norganizational context.",
+      "modelAnswer": "Security Policy and Attacks\n\nKey Points:\n\n- A security policy defines what is allowed and\ndisallowed in a system. It includes rules and\nguidelines that enforce confidentiality, integrity,\navailability, etc.\n- An attack is a deliberate action intended to violate\nthe security policy. When an attacker exploits a\nvulnerability, they cause a deviation from the secure\nstate defined by the policy.\n- Example of Policy: An organization’s policy might state\nthat only authorized personnel can access sensitive\nfinancial data. A policy violation (e.g., an\nunauthorized user gaining access) leads to a non-secure\nstate where the confidentiality and integrity of that\ndata are compromised.\n\nSample Answer:\n“A security policy is the formal expression of what\nactions are permitted and prohibited on a system. An\nattack occurs when an adversary takes steps to force a\nviolation of these rules, resulting in a non-secure\nstate. For instance, a company might enforce a policy\nthat only employees with certain clearance levels can\nview customer financial records. If a malicious\noutsider (or even an insider without clearance) obtains\naccess, that violation undermines confidentiality—\nmoving the system into a non-secure state.”",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb3",
+      "label": "Part B Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Threat Modeling Methods : Compare two different approaches\nto threat modeling (e.g., Diagram-Driven vs. STRIDE).\nClearly outline:\n- How each approach identifies threats\n- Their advantages and disadvantages for complex systems",
+      "modelAnswer": "Threat Modeling Methods\n\nCompare: Diagram-Driven vs. STRIDE\n\n- Diagram-Driven Modeling\n- How it Identifies Threats:\n- You draw detailed architectural diagrams\nhighlighting system components, data flows, and\ntrust boundaries.\n- You ask, “What could go wrong at each boundary\nor component?”\n- Advantages:\n- Helps visualize complex systems.\n- Good for discovering unknown issues by walking\nthrough data flows and user actions.\n- Disadvantages:\n- Can be time-consuming for large systems.\n- Quality relies on the accuracy and completeness\nof the diagram.\n- STRIDE\n- How it Identifies Threats:\n1. Uses six predefined threat categories: Spoofing,\nTampering, Repudiation, Information Disclosure,\nDenial of Service, Escalation of Privilege.\n2. You systematically check each component or data\nflow against these categories.\n- Advantages:\n- A straightforward mnemonic to ensure common\nthreat types are not missed.\n- Particularly useful in brainstorming sessions\nand checklists.\n- Disadvantages:\n- Might overlook new or unusual threat types not\nencapsulated by these six categories.\n- Less architectural detail than the Diagram-\nDriven approach.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb4",
+      "label": "Part B Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Insider vs. Outsider Threats : Analyze the security\nimplications of insiders compared to outsiders. Which\nscenario is potentially more dangerous, and how might\nsecurity measures differ in addressing the two?",
+      "modelAnswer": "Insider vs. Outsider Threats\n\nKey Points:\n- Insiders are individuals with legitimate access (e.g.,\nemployees, contractors) who can misuse that access.\nThey often pose a greater risk because they know\ninternal systems, processes, and vulnerabilities.\n- Outsiders have to breach perimeter defenses (firewalls,\nauthentication), so they may be more limited initially\nbut can still launch sophisticated attacks (e.g.,\nphishing, malware).\n- Security Measures:\n- For insiders: Strict access controls, monitoring and\nlogging, separation of duties, regular audits.\n- For outsiders: Firewalls, intrusion detection, strong\nexternal authentication, network segmentation.\n\nSample Conclusion: “Although both outsiders and insiders\npose serious threats, insiders can be more dangerous due to\ntheir intimate knowledge of the organization’s systems and\ndata. Therefore, robust internal controls, user access\nreviews, and monitoring are crucial in mitigating the risks\nposed by individuals already within the network perimeter.”",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partb5",
+      "label": "Part B Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Model-Reality Gaps : The lecture discussed how invalid\nassumptions can undermine even the best security models.\nGive an example of how such a gap might arise in a cloud\nservice context. Propose one strategy to mitigate this gap.",
+      "modelAnswer": "Model-Reality Gaps\n\nKey Points:\n- Security models can fail when they rely on assumptions\nthat do not hold in real-world situations (e.g.,\ntrusting a third-party cloud service to always\nimplement strong encryption or monitoring).\n- In a cloud service context, an organization might\nassume the cloud provider enforces top-tier security\nmeasures. If the provider’s internal policies or\nsecurity settings are weaker than expected, this\nmismatch leads to a gap.\n- Strategy to Mitigate: Regular audits, verifying logs,\nthird-party penetration tests, and establishing clear\nService-Level Agreements (SLAs) that detail security\nresponsibilities and requirements.\n\nSample Answer: “In a cloud service scenario, companies\noften assume their data is fully protected by the\nprovider’s security controls. However, if the cloud\nprovider does not enforce strong tenant isolation, or if\nmulti-tenant vulnerabilities exist, attackers could pivot\nbetween different cloud tenants. To mitigate such gaps,\norganizations should perform due diligence by reviewing\nsecurity certifications of their provider, requesting audit\nreports, and conducting periodic penetration tests.”",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partc1a",
+      "label": "Part C Q1(a)",
+      "marks": 1,
+      "sharedContext": "Applying the Risk Equation: A company uses an internal\napplication that handles critical financial transactions.\n- Threat probability, T : 0.02 (2% chance of occurring\neach year)\n- System vulnerability, V : 0.7 (70% chance the attack\nwill succeed if attempted)\n- Potential cost of a successful attack, C : € 5,000,000",
+      "text": "(a) Calculate the annual risk R using the equation: R = T ×\nV ×C",
+      "modelAnswer": "Calculate $R = T \\times V \\times C$\n\n$R = 0.02 \\times 0.7 \\times 5,000,000$\n\n$R = 0.014 \\times 5,000,000$\n\n$R = €70,000$\n\nThus, the annual risk is €70,000.",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc1b",
+      "label": "Part C Q1(b)",
+      "marks": 1,
+      "sharedContext": "Applying the Risk Equation: A company uses an internal\napplication that handles critical financial transactions.\n- Threat probability, T : 0.02 (2% chance of occurring\neach year)\n- System vulnerability, V : 0.7 (70% chance the attack\nwill succeed if attempted)\n- Potential cost of a successful attack, C : € 5,000,000",
+      "text": "(b) Briefly discuss two ways the organization might reduce\nR from both the technical and procedural standpoints.",
+      "modelAnswer": "Discuss two ways to reduce ( R )\n\n1. Technical:\n- Implement stricter access controls, regular\npatching, and advanced intrusion detection systems\nto reduce the vulnerability ( V ).\n- Encrypt sensitive data and limit user privileges to\nprevent successful exploitation.\n\n2. Procedural:\n- Provide employee security awareness training to\nlower the chance of successful phishing or social\nengineering (this can reduce the effective threat\nand/or vulnerability).\n- Have a solid incident response plan, ensuring quick\ndetection and recovery to minimize the cost ( C )\nof a successful breach (e.g., backups, disaster\nrecovery).",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "partc2a",
+      "label": "Part C Q2(a)",
+      "marks": 1,
+      "sharedContext": "Comparing Security Controls: A university estimates that a\nsuccessful breach of its research data would cost € 2\nmillion in damages. They can invest in Option A (improved\nfirewalls) that reduces the system’s vulnerability from 0.8\nto 0.3, or Option B (advanced intrusion detection + staff\ntraining) that lowers the threat probability from 0.1 to\n0.02.\n- Threat probability (original): T = 0.1\n- Vulnerability (original): V = 0.8\n- Potential cost: C = €2,000,000",
+      "text": "(a). Option A: Calculate the new risk RA .",
+      "modelAnswer": "Option A: New risk RA\n\n$RA = T \\times Vnew \\times C = 0.1 \\times 0.3 \\times 2,000,000 = 0.03 \\times 2,000,000 = €60,000$",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc2b",
+      "label": "Part C Q2(b)",
+      "marks": 1,
+      "sharedContext": "Comparing Security Controls: A university estimates that a\nsuccessful breach of its research data would cost € 2\nmillion in damages. They can invest in Option A (improved\nfirewalls) that reduces the system’s vulnerability from 0.8\nto 0.3, or Option B (advanced intrusion detection + staff\ntraining) that lowers the threat probability from 0.1 to\n0.02.\n- Threat probability (original): T = 0.1\n- Vulnerability (original): V = 0.8\n- Potential cost: C = €2,000,000",
+      "text": "(b). Option B: Calculate the new risk RB .",
+      "modelAnswer": "Option B: New risk ( $R_B$ ) RB = Tnew × V × C = 0.02 ×\n0.8 × 2,000,000 = 0.016 × 2,000,000 = €32,000",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "partc2c",
+      "label": "Part C Q2(c)",
+      "marks": 1,
+      "sharedContext": "Comparing Security Controls: A university estimates that a\nsuccessful breach of its research data would cost € 2\nmillion in damages. They can invest in Option A (improved\nfirewalls) that reduces the system’s vulnerability from 0.8\nto 0.3, or Option B (advanced intrusion detection + staff\ntraining) that lowers the threat probability from 0.1 to\n0.02.\n- Threat probability (original): T = 0.1\n- Vulnerability (original): V = 0.8\n- Potential cost: C = €2,000,000",
+      "text": "(c). Which option yields a lower risk? Suppose both options\ncost the same. Which would you recommend and why?",
+      "modelAnswer": "Which is lower & Recommendation?\n- Option B yields €32,000 annual risk, which is lower\nthan Option A at €60,000.\n- If both options cost the same, Option B appears\nmore cost-effective since it reduces the overall\nrisk more significantly. Additionally, improved\nstaff training has long-term benefits (e.g., fewer\nsecurity incidents overall).",
+      "page": 3,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

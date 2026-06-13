@@ -1,0 +1,321 @@
+{
+  "generatedAt": "2026-06-13T15:35:21.330Z",
+  "courseId": "sec",
+  "examId": "tutorial-5",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which statement about the undecidability of detecting\nmalware is correct?",
+      "modelAnswer": "Answer: A. It is theoretically proven that a perfect\nmalware detector cannot exist in all cases.\n\nExplanation: The theoretical proof resembles the\nundecidability problem in computability theory (akin to the\nHalting Problem).",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "It is theoretically proven that a perfect malware\ndetector cannot exist in all cases.",
+        "Malware detection is easily automated with zero false\npositives.",
+        "Any code that modifies system files is necessarily\nmalware.",
+        "Commercial antivirus tools already achieve perfect\ndetection."
+      ]
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which feature distinguishes a worm from a virus?",
+      "modelAnswer": "Answer: B. Worms spread autonomously through network\nvulnerabilities, whereas viruses typically rely on users\nexecuting infected files.\n\nExplanation: This is the hallmark difference: worms do not\nneed user intervention to propagate.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "Worms require user intervention (e.g., opening an\nattachment), while viruses do not.",
+        "Worms spread autonomously through network\nvulnerabilities, whereas viruses typically rely on\nusers executing infected files.",
+        "Worms cannot replicate, but viruses replicate\naggressively.",
+        "Worms are always detected by signature-based\nantivirus, while viruses often go undetected."
+      ]
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A piece of malware that intercepts system calls to hide its\nprocesses from user utilities is typically classified as:",
+      "modelAnswer": "Answer: C. A rootkit\n\nExplanation: Rootkits hide themselves by intercepting\nsystem calls, returning filtered results that exclude their\npresence.",
+      "page": 1,
+      "type": "mc",
+      "options": [
+        "A logic bomb",
+        "A worm",
+        "A rootkit",
+        "Ransomware"
+      ]
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which best describes a ransomware attack?",
+      "modelAnswer": "Answer: C. Malware that encrypts user data and demands\npayment to restore access\n\nExplanation: This is the essence of ransomware: holding the\ndata hostage.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Malware that primarily spreads via self-replicating\nnetwork exploits",
+        "A Trojan horse that silently steals keystrokes for\nindefinite periods",
+        "Malware that encrypts user data and demands payment\nto restore access",
+        "A rootkit that replaces the kernel’s system-call\ntable"
+      ]
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "When malware uses polymorphic techniques, it means that:",
+      "modelAnswer": "Answer: A. The malware’s encrypted body changes with each\ninfection to evade signature detection.\n\nExplanation: Polymorphic malware modifies its decryptor\nand/or encryption layer frequently.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "The malware’s encrypted body changes with each\ninfection to evade signature detection.",
+        "The malware cannot be disinfected without\nreformatting the system.",
+        "It specifically targets multiple operating systems\nequally.",
+        "The malware does not replicate but changes user\nprivileges frequently."
+      ]
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which factor is most associated with a drive-by download\nattack?",
+      "modelAnswer": "Answer: B. Exploiting browser or plugin vulnerabilities\nwithout user awareness\n\nExplanation: Drive-by downloads rely on silent exploits in\na user’s web session.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Relying on user curiosity to click an email\nattachment",
+        "Exploiting browser or plugin vulnerabilities without\nuser awareness",
+        "Attaching malicious macros to Microsoft Office\ndocuments",
+        "Replacing user-mode libraries after the OS boots"
+      ]
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "What is the main purpose of hooking or replacing system\ncalls in a rootkit?",
+      "modelAnswer": "Answer: B. To stealthily manipulate API results, hiding the\nrootkit’s presence or actions\n\nExplanation: Hooking allows the rootkit to alter returned\ndata from OS functions.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "To detect other malicious software by scanning the\nkernel",
+        "To stealthily manipulate API results, hiding the\nrootkit’s presence or actions",
+        "To accelerate cryptographic operations",
+        "To forcibly reinstall the operating system in a loop"
+      ]
+    },
+    {
+      "id": "q8",
+      "label": "Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which of the following statements about botnets is false?",
+      "modelAnswer": "Answer: C. A single centralized server is the only way to\nmanage botnets.\n\nExplanation: This is false. Botnets can have peer-to-peer\nor multi-layer command structures.",
+      "page": 2,
+      "type": "mc",
+      "options": [
+        "Botnets typically consist of compromised machines\nunder remote command-and-control.",
+        "Botnets may communicate using peer-to-peer or multi-\ntiered architectures.",
+        "A single centralized server is the only way to manage\nbotnets.",
+        "Botnets can be used for DDoS attacks, spam campaigns,\nor credential theft."
+      ]
+    },
+    {
+      "id": "q9",
+      "label": "Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A keylogger is primarily designed to:",
+      "modelAnswer": "Answer: C. Capture user keystrokes to harvest passwords or\nother sensitive data\n\nExplanation: Keyloggers specifically record keystrokes.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Render the OS unbootable until a ransom is paid",
+        "Replace standard binaries (like ls or ps ) to hide\nmalicious processes",
+        "Capture user keystrokes to harvest passwords or other\nsensitive data",
+        "Create duplicates of infected files to spread to\nother machines"
+      ]
+    },
+    {
+      "id": "q10",
+      "label": "Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Which technique might a kernel-mode rootkit use to remain\nundetected?",
+      "modelAnswer": "Answer: B. Manipulating the kernel’s internal data\nstructures (DKOM) to hide processes or network connections\n\nExplanation: Kernel-mode rootkits often use DKOM to avoid\ndetection by standard system utilities.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Including a special self-destruct button in the user\ninterface",
+        "Manipulating the kernel’s internal data structures\n(DKOM) to hide processes or network connections",
+        "Encouraging the user to run system updates frequently",
+        "Conducting a phone-based phishing campaign"
+      ]
+    },
+    {
+      "id": "q11",
+      "label": "Part B Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Malware Installation Pathways\n\n– Question: Summarize three different malware delivery\nmethods (e.g., email attachments, drive-by downloads)\nand describe one real-world example for each method.",
+      "modelAnswer": "Malware Installation Pathways\n\n– Email Attachments: Example – The “ILOVEYOU” worm. Users\nopen a suspicious attachment, inadvertently executing\nmalware.\n\n– Drive-by Downloads: Malicious website injects exploits\ninto a user’s browser (e.g., exploit kits hosted on\ncompromised sites).\n\n– Trojanized Software: A legitimate installer repackaged\nwith hidden malware (e.g., infected game mods or “free\nsoftware” found on shady websites).",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q12",
+      "label": "Part B Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Virus vs. Worm Differences\n\n– Question: Compare and contrast viruses and worms in\nterms of infection mechanism, propagation, and user\ninvolvement. What implications do these differences\nhave for designing effective defensive measures?",
+      "modelAnswer": "Virus vs. Worm Differences\n\n– Infection Mechanism: Viruses infect files or boot\nsectors; worms propagate via network scanning and\nexploiting vulnerabilities.\n\n– Propagation: Viruses rely on user actions (e.g.,\nrunning an infected file); worms self-propagate\nautomatically.\n\n– User Involvement: Viruses typically need user\nexecution; worms do not.\n\n– Implications: Defenses must consider limiting user\naccess (to mitigate viruses) and network-based\npatching/intrusion detection (for worms).",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q13",
+      "label": "Part B Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Rootkit Detection Challenges\n\n– Question: Why are rootkits considered especially\ndifficult to detect and remove? Discuss two stealth\ntechniques rootkits commonly use and how these pose\nchallenges to traditional antivirus.",
+      "modelAnswer": "Rootkit Detection Challenges\n\n– Stealth Techniques:\n1. System Call Hooking: Intercepts OS calls to hide\nmalicious processes and files.\n2. Direct Kernel Object Modification (DKOM): Alters\nkernel data structures to falsify system views.\n\n– Why Hard to Remove: Rootkits operate at low levels\n(kernel space). Traditional antivirus at user level may\nnot see the tampered system calls, and removing them\nmight require a complete OS reinstall.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q14",
+      "label": "Part B Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Polymorphic and Metamorphic Malware\n\n– Question: Explain the difference between polymorphic\nand metamorphic malware. Illustrate how each makes\nsignature-based detection difficult.",
+      "modelAnswer": "Polymorphic vs. Metamorphic Malware\n\n– Polymorphic: Maintains the same underlying malicious\ncode but encrypts the body with a variable decryptor.\nPrimary difference is the changed “wrapper,” but core\nlogic remains the same.\n\n– Metamorphic: Rewrites its own code (instructions,\nstructure) for each infection, potentially no static\nsignature.\n\n– Effect on Signature Detection: Both hamper static\nsignatures. Polymorphic changes the decryptor portion;\nmetamorphic can significantly alter code structure.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q15",
+      "label": "Part B Q5",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Ransomware Workflows\n\n– Question: Outline the key steps in a modern ransomware\nattack, from initial compromise to payment demand. How\ndo advanced ransomware strains ensure that even offline\nbackups might be compromised?",
+      "modelAnswer": "Ransomware Workflows\n\n– Steps:\n1. Initial compromise (phishing or exploit).\n2. Malware execution and stealthily scanning for\nfiles.\n3. Encryption of key files with a unique symmetric\nkey.\n4. Encryption of the symmetric key with attacker’s\npublic key.\n5. Ransom note demanding payment to decrypt.\n\n– Offline Backup Attacks: Modern strains often seek and\nencrypt or corrupt backups to ensure no easy recovery\npath.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q16",
+      "label": "Part B Q6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Botnet Control Structures\n\n– Question: Describe two different C2 (command-and-\ncontrol) architectures for botnets (e.g., centralized\nvs. peer-to-peer). For each architecture, note a\nstrength and a weakness from the botmaster’s\nperspective.",
+      "modelAnswer": "Botnet Control Structures\n\n– Centralized: Strength – easy for botmaster to issue\ncommands; weakness – single point of failure if the C2\nserver is shut down.\n\n– Peer-to-Peer: Strength – more resilient, no single\ntakedown point; weakness – more complex to design,\npossibly slower command propagation.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q17",
+      "label": "Part B Q7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Drive-by Download Mechanisms\n\n– Question: Analyze a typical drive-by download scenario.\nHow do attackers exploit browser vulnerabilities, and\nwhat redirection or obfuscation techniques might they\nuse?",
+      "modelAnswer": "Drive-by Download Mechanisms\n\n– Browser Exploit: Attackers embed JavaScript or\nmalicious payloads that exploit a plugin or browser\nvulnerability.\n\n– Redirection/Obfuscation: The user might be sent through\nmultiple redirect links or encoded scripts to hide the\nfinal payload URL. Harder for defenders to block or\ntrack.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q18",
+      "label": "Part B Q8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Kernel-Mode vs. User-Mode Rootkits\n\n– Question: Distinguish between kernel-mode and user-mode\nrootkits in terms of system privileges, potential\nstealth, and risk. Why might a kernel-mode rootkit be\nmore powerful?",
+      "modelAnswer": "Kernel-Mode vs. User-Mode Rootkits\n\n– Kernel-Mode: Full privileges, can manipulate system\ncalls at the OS core. Potentially more powerful and\nstealthy.\n\n– User-Mode: Intercepts calls at the application level\n(e.g., hooking IAT). Easier to develop but less control\nthan kernel-level.\n\n– Kernel-mode rootkits are more dangerous because they\noperate where security software also runs, making\ndetection and removal difficult.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q19",
+      "label": "Part B Q9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Trojan Horses and Backdoors\n\n– Question: Many Trojan horses include hidden backdoors.\nDiscuss how attackers typically embed these backdoors\nand why they are valuable for long-term system\ncompromise.",
+      "modelAnswer": "Trojan Horses and Backdoors\n\n– Embedding: Attackers modify legitimate software,\ninjecting malicious code that opens a hidden port or\nuser account.\n\n– Value: Provides persistent, secret access for\nexfiltration or advanced attacks. Maintains stealth if\ndisguised as a legitimate process.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q20",
+      "label": "Part B Q10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Vulnerability Exploits and Malware\n\n– Question: Malware often relies on software\nvulnerabilities to gain elevated privileges or execute\narbitrary code. Describe two example vulnerabilities\n(e.g., buffer overflow, SQL injection) commonly\ntargeted by malware, and why patching them quickly is\ncrucial.",
+      "modelAnswer": "Vulnerability Exploits and Malware\n\n– Example Vulnerabilities:\n1. Buffer Overflow: Allows arbitrary code execution at\nthe privilege level of the vulnerable program.\n2. SQL Injection: Attackers can insert commands to\nmanipulate backend databases or retrieve sensitive\ninfo.\n\n– Importance of Patching: Quick patching prevents malware\nfrom exploiting known flaws, limiting widespread\ninfection.",
+      "page": 4,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q21",
+      "label": "Part C Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Worm Spread Rate\n\n– Question: Suppose a worm scans the internet for\nvulnerable hosts at a rate of (106) probes per hour. If\nroughly 0.01% of all hosts probed are unpatched and\nbecome newly infected, estimate how many new infections\noccur per hour. If the infected population doubles each\nhour, how many infections might there be after 5 hours?",
+      "modelAnswer": "Worm Spread Rate\n\n– Rate: $10^6$ probes/hour.\n\n– Vulnerable fraction: 0.01% = 0.0001.\n\n– New infections/hour = $10^6 \\times 0.0001 = 100$.\n\n– If the infected population doubles every hour, after 5\nhours:\n\n– Initial = 100 (hour 1).\n\n– Hour 2 = 200, Hour 3 = 400, Hour 4 = 800, Hour 5 =\n1600.\n\n– Or if we strictly track from “start,” we might say\n100 → 200 → 400 → 800 → 1600, so about 1,600\ninfected after 5 cycles.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q22",
+      "label": "Part C Q2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Ransomware File-Encryption Scale\n\n– Question: A ransomware variant encrypts user files\nusing a hybrid approach. It generates a 256-bit AES key\nper system to encrypt all files, then encrypts that AES\nkey using a 2048-bit RSA public key. If the RSA\nencryption step takes 20ms on average, how long would\nit take to encrypt the AES key across 5000 infected\nsystems?",
+      "modelAnswer": "Ransomware File-Encryption Scale\n\n– RSA encryption step: 20ms per encryption of the AES\nkey.\n\n– 5000 systems → 5000 × 20ms = 100,000ms = 100 seconds.\n\n– ≈ 1.67 minutes to encrypt all those AES keys across\n5000 victims.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q23",
+      "label": "Part C Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Botnet Attack Throughput\n\n– Question: A botnet with 50,000 active zombies can each\nsend 10,000 spam emails per hour. What is the total\nspam-sending capacity per day (24 hours)? Express your\nanswer in billions of emails per day.",
+      "modelAnswer": "Botnet Attack Throughput\n\n– 50,000 zombies, each can send 10,000 spam emails/hour.\n\n– Per day: 24 hours →\n\n– Hourly total = 50,000 × 10,000 = $5 \\times 10^8$\nemails/hour.\n\n– Daily total = $5 \\times 10^8 \\times 24 = 1.2 \\times 10^{10}$ emails 12\nbillion emails/day.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q24",
+      "label": "Part C Q4",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Polymorphic Malware Signature Coverage\n\n– Question: A polymorphic malware variant can create 100\ndistinct decryptor shapes per day. An antivirus vendor\ncan only generate 1 new signature update per day.\nExplain quantitatively how the malware’s mutation rate\nmight outpace signature-based detection (e.g., how many\nforms remain undetected over a week).",
+      "modelAnswer": "Polymorphic Malware Signature Coverage\n\n– Malware generates 100 new decryptor shapes per day.\n\n– Antivirus can issue 1 signature update daily.\n\n– In 7 days, malware = $(100 \\times 7 = 700)$ forms.\nAntivirus = 7 new signatures.\n\n– Even if each signature covers 1 variant, $(700 - 7 =\n693)$ forms remain uncovered. The gap grows, outpacing\ndaily signature updates.",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

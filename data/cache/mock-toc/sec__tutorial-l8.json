@@ -1,0 +1,203 @@
+{
+  "generatedAt": "2026-06-13T15:40:59.726Z",
+  "items": [
+    {
+      "title": "Part A: Multiple choice",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part A Q1 — IDS vs IPS",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q2 — Anomaly IDS false positives",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q3 — Signature detection limits",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q4 — Specification-based IDS",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q5 — Causes of false positives",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q6 — Host-based IDS monitoring",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q7 — False negative definition",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q8 — Sniffing on switched LANs",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q9 — DNS cache poisoning",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part A Q10 — ARP spoofing scenario",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part B Q1 — Detecting DDoS",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q2 — Base rate fallacy",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q3 — Signature vs anomaly",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q4 — Specification-based IDS complexity",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q5 — Vulnerability scanners",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q6 — Mitigating ARP spoofing",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q7 — DNS cache poisoning",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q8 — SYN flooding",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q9 — Smurf amplification",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part B Q10 — IDS evasion",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C",
+      "page": 4,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Part C Q1 — False positives and negatives",
+      "page": 4,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q1(a) — False negatives",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q1(b) — False positives",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q2 — Anomaly alert volume",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q2(a) — Total alarms",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q2(b) — Real attack alarms",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q3 — Base rate probability",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q4 — DoS bandwidth",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Part C Q4(a) — Bandwidth in Mbps",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Part C Q4(b) — Link saturation",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    }
+  ]
+}

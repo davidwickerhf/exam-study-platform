@@ -1,0 +1,191 @@
+{
+  "generatedAt": "2026-06-13T15:38:05.269Z",
+  "items": [
+    {
+      "title": "Part A: Multiple choice",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Online vs offline password guessing",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Rainbow table prevention",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Password stretching",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Biometric FAR factors",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Lamport hash chain server value",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Rate-limiting side effect",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Derived application passwords",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Failure to Enroll impact",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Secret salt / pepper",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — Time-based passcode generator",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part B: Short answer",
+      "page": 3,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Offline vs online attacks",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Biometric system thresholds",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Salting vs peppering",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q4 — Lamport hash chain",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q5 — Password composition rules",
+      "page": 3,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q6 — Account recovery",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q7 — Rate-limiting and lockout policies",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q8 — Graphical password schemes",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q9 — Multi-factor authentication",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q10 — Biometrics as non-secrets",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Part C: Calculations and applied questions",
+      "page": 4,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Password space calculation",
+      "page": 4,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q1(a) — Total possible passwords",
+      "page": 4,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Worst-case cracking time",
+      "page": 4,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2 — Time to crack with iterated hashing",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q3 — Biometric error rates",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Q3(a) — Expected FRR failures",
+      "page": 5,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — Expected FAR acceptances",
+      "page": 5,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4 — One-time password rate",
+      "page": 5,
+      "depth": 1,
+      "kind": "question"
+    }
+  ]
+}
