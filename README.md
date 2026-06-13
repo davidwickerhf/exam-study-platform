@@ -19,14 +19,21 @@ Anthropic API directly.
 ## Quick start
 
 ```bash
-git clone <repo-url> exam-study-platform
+git clone https://github.com/davidwickerhf/exam-study-platform.git
 cd exam-study-platform
+npm install
 npm run setup     # interactive: detects providers, picks one, seeds state
 npm start         # serves at http://localhost:4177
 ```
 
 That's it. `npm run setup` is idempotent — re-run any time to switch LLM
 provider, paste a new API key, or reset cache directories.
+
+After the first start, the only command you need to launch it again is:
+
+```bash
+npm start
+```
 
 ## Prerequisites
 
@@ -53,11 +60,12 @@ generation required:
 | Surface | Pre-loaded content |
 |---|---|
 | Chapter notes | ~50 chapters of markdown, every diagram inlined as SVG |
-| Mock exam PDFs | 12 past papers across the 5 courses, with solutions where available |
-| Practice exam parsing | All papers pre-parsed into individual questions with model answers |
-| Mock question bank | ~600 AI-generated questions across the 5 courses, tagged by chapter + topic |
-| Flashcards | 209 cards (Statistics) |
-| PDF outlines | All shipped papers come with their content TOC pre-built |
+| Mock exam PDFs | 11 past papers across the 5 courses, with solutions where available |
+| Tutorials (Computer Security only) | 8 tutorial sheets, with solutions where available |
+| Practice exam parsing | All papers + tutorials pre-parsed into individual questions with model answers (~190 questions in the tutorials alone) |
+| Mock question bank | 303 AI-generated questions across the 5 courses, tagged by chapter + topic |
+| Flashcards | 743 cards across all 5 courses |
+| PDF outlines | All shipped PDFs come with their content TOC pre-built |
 
 You can regenerate or add to any of these via the platform's UI once an LLM
 provider is configured.
