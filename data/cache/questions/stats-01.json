@@ -199,34 +199,6 @@
       "expected": "Person A is classified as poor because $19{,}950 < 20{,}000$. Person B is classified as not poor because $20{,}050 \\geq 20{,}000$. This illustrates a threshold artifact: a continuous amount is forced into categories, creating a sharp discontinuity for very similar incomes."
     },
     {
-      "id": "gen-01-14",
-      "source": "Generated",
-      "type": "pseudocode",
-      "difficulty": "hard",
-      "question": "Write pseudocode for choosing an appropriate visualization from variable metadata. It should distinguish categorical, ordinal, discrete, and continuous variables, handle group comparisons, and avoid strip charts for extremely large datasets.",
-      "options": [
-        "bad",
-        "bad",
-        "bad",
-        "bad"
-      ],
-      "expected": "```text\nProcedure ChooseVisualization with inputs variableType, hasGroup, sampleSize, orderedTime\nIf orderedTime is yes\n    Return line plot\nIf variableType is categorical or variableType is ordinal\n    Return bar chart\nIf variableType is discrete and hasGroup is no\n    Return bar chart or dot plot for counts\nIf variableType is continuous and hasGroup is yes\n    Return box plot\nIf variableType is continuous and sampleSize is small\n    Return strip chart or dot plot\nIf variableType is continuous and sampleSize is large\n    Return histogram\nReturn written explanation that more metadata is needed\n```"
-    },
-    {
-      "id": "gen-01-15",
-      "source": "Generated",
-      "type": "pseudocode",
-      "difficulty": "hard",
-      "question": "Write pseudocode for grading a conservative multi-select answer on measurement caveats with negative scoring. The algorithm should add credit for correct selected statements, subtract credit for incorrect selected statements, and avoid going below $0$.",
-      "options": [
-        "bad",
-        "bad",
-        "bad",
-        "bad"
-      ],
-      "expected": "```text\nProcedure GradeMultiSelect with inputs selectedStatements, correctStatements, creditEach, penaltyEach\nSet score to zero\nFor each statement in selectedStatements\n    If statement is in correctStatements\n        Set score to score plus creditEach\n    Otherwise\n        Set score to score minus penaltyEach\nIf score is below zero\n    Set score to zero\nReturn score\n```"
-    },
-    {
       "id": "gen-01-16",
       "source": "Generated",
       "type": "mc",
