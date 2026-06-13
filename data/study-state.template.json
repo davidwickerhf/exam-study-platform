@@ -1105,7 +1105,7 @@
         }
       ],
       "items": [],
-      "examProfile": "HARD exam — favour multi-step questions over recall. Two sections. SECTION A (Theory): closed multiple-choice. Generate many mc and some tf questions; distractors must be genuinely tricky plausible misconceptions; the expected answer must be detailed and explanatory (teach the concept, do not just name the correct option). SECTION B (Practical): hand-written ARM assembly. Generate pseudocode-type questions that ask the student to WRITE real ARM Thumb assembly (NOT generic pseudocode) — bit manipulation (shift + AND/ORR/BIC to test/set/clear a bit), comparison + conditional branching, loops, recursion, and functions following the calling convention (args in r0-r3, return in r0, BL/BX LR, stack PUSH/POP). The expected answer must contain a fenced ```arm block with a correct, hand-writable solution. Apply Section-B coding questions to assembly/coding-capable chapters (ARM ISA, data representation, workflow); for conceptual chapters (architecture, FPGA/Edge AI) lean on hard mc/tf plus detailed written questions. Skew all difficulty to hard."
+      "examProfile": "HARD exam \u2014 favour multi-step questions over recall. Two sections. SECTION A (Theory): closed multiple-choice. Generate many mc and some tf questions; distractors must be genuinely tricky plausible misconceptions; the expected answer must be detailed and explanatory (teach the concept, do not just name the correct option). SECTION B (Practical): hand-written ARM assembly. Generate pseudocode-type questions that ask the student to WRITE real ARM Thumb assembly (NOT generic pseudocode) \u2014 bit manipulation (shift + AND/ORR/BIC to test/set/clear a bit), comparison + conditional branching, loops, recursion, and functions following the calling convention (args in r0-r3, return in r0, BL/BX LR, stack PUSH/POP). The expected answer must contain a fenced ```arm block with a correct, hand-writable solution. Apply Section-B coding questions to assembly/coding-capable chapters (ARM ISA, data representation, workflow); for conceptual chapters (architecture, FPGA/Edge AI) lean on hard mc/tf plus detailed written questions. Skew all difficulty to hard."
     },
     {
       "id": "sec",
@@ -1117,8 +1117,8 @@
         {
           "id": "2025-sample",
           "label": "Sample 2025-03-21",
-          "pdf": "Materials/04 Past Exams/Sample Paper — 2025-03-21.pdf",
-          "solutionsPdf": "Materials/04 Past Exams/Sample Paper Solution — 2025-03-21.pdf"
+          "pdf": "Materials/04 Past Exams/Sample Paper \u2014 2025-03-21.pdf",
+          "solutionsPdf": "Materials/04 Past Exams/Sample Paper Solution \u2014 2025-03-21.pdf"
         }
       ],
       "exam": "June 2026",
@@ -1163,7 +1163,56 @@
           "file": "07 Exam Skills/07 Exam Skills.md"
         }
       ],
-      "items": []
+      "items": [],
+      "tutorials": [
+        {
+          "id": "tutorial-1",
+          "label": "Tutorial 1",
+          "pdf": "Materials/02 Tutorials/Tutorial 1.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Tutorial 1 Solution.pdf"
+        },
+        {
+          "id": "tutorial-2",
+          "label": "Tutorial 2",
+          "pdf": "Materials/02 Tutorials/Tutorial 2.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Tutorial 2 Solution.pdf"
+        },
+        {
+          "id": "tutorial-3",
+          "label": "Tutorial 3",
+          "pdf": "Materials/02 Tutorials/Tutorial 3.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Tutorial 3 Solution.pdf"
+        },
+        {
+          "id": "tutorial-4",
+          "label": "Tutorial 4",
+          "pdf": "Materials/02 Tutorials/Tutorial 4.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Tutorial 4 Solution.pdf"
+        },
+        {
+          "id": "tutorial-5",
+          "label": "Tutorial 5",
+          "pdf": "Materials/02 Tutorials/Tutorial 5.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Tutorial 5 Solution.pdf"
+        },
+        {
+          "id": "tutorial-l6",
+          "label": "Tutorial L6",
+          "pdf": "Materials/02 Tutorials/Tutorial L6.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Tutorial L6 Solution.pdf"
+        },
+        {
+          "id": "tutorial-l7",
+          "label": "Tutorial L7",
+          "pdf": "Materials/02 Tutorials/Tutorial L7.pdf"
+        },
+        {
+          "id": "tutorial-l8",
+          "label": "Tutorial L8",
+          "pdf": "Materials/02 Tutorials/Tutorial L8.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Tutorial L8 Solution.pdf"
+        }
+      ]
     },
     {
       "id": "nm",
@@ -1171,7 +1220,7 @@
       "name": "Numerical Methods",
       "shortName": "NM",
       "visualStyle": "Formula-sheet exam. Lead with the formula in code/KaTeX, then a one-line numeric example. Use HTML/SVG diagrams for method workflows (Newton step, divided-difference table, Simpson rule, Euler/RK step, power method).",
-      "exam": "June 2026 — Thu 18 Jun 12:00-14:00",
+      "exam": "June 2026 \u2014 Thu 18 Jun 12:00-14:00",
       "role": "June exam (resit, A1 only)",
       "knowledgeBase": "BCS2540 Numerical Methods Knowledge Base",
       "accent": "#3a7d9a",
@@ -1217,7 +1266,7 @@
           "pdf": "Materials/Mock Exams/2012-sample.pdf"
         }
       ],
-      "examProfile": "HARD resit exam — closed book + supplied formula sheet + calculator, 2 hours, 6 questions (one per topic). Each question has part (a) computational (highest marks; apply a method to specific numbers) and parts (b-e) conceptual follow-up (convergence order, error bound, when does this method fail, method choice and why, derive a simple identity). GENERATE: many \"calc\" questions asking for one-step numerical applications (one Newton iteration, one Simpson sub-interval, one Euler step, build a divided-difference cell, one power-method iteration); \"written\" short-answer questions for conceptual follow-up (state convergence order; identify failure conditions; compare two methods; explain why a method suits a problem); \"mc\" for must-know definitions and method-recognition. AVOID \"pseudocode\" and \"tf\" — this is a quantitative math exam, not an algorithm or true/false course. For every \"calc\" the \"expected\" must include the worked numeric answer, 1-2 line method, and the relevant formula. Skew difficulty to HARD. Prioritise Topics 1 (root finding), 3 (polynomial interpolation), 4 (numerical integration/differentiation) for both quantity and depth — these are the formulaic high-yield topics for a pass-targeted resit. Topics 2 (ODEs), 5 (least squares), 6 (eigenvalues/linear algebra) still get coverage but less depth.",
+      "examProfile": "HARD resit exam \u2014 closed book + supplied formula sheet + calculator, 2 hours, 6 questions (one per topic). Each question has part (a) computational (highest marks; apply a method to specific numbers) and parts (b-e) conceptual follow-up (convergence order, error bound, when does this method fail, method choice and why, derive a simple identity). GENERATE: many \"calc\" questions asking for one-step numerical applications (one Newton iteration, one Simpson sub-interval, one Euler step, build a divided-difference cell, one power-method iteration); \"written\" short-answer questions for conceptual follow-up (state convergence order; identify failure conditions; compare two methods; explain why a method suits a problem); \"mc\" for must-know definitions and method-recognition. AVOID \"pseudocode\" and \"tf\" \u2014 this is a quantitative math exam, not an algorithm or true/false course. For every \"calc\" the \"expected\" must include the worked numeric answer, 1-2 line method, and the relevant formula. Skew difficulty to HARD. Prioritise Topics 1 (root finding), 3 (polynomial interpolation), 4 (numerical integration/differentiation) for both quantity and depth \u2014 these are the formulaic high-yield topics for a pass-targeted resit. Topics 2 (ODEs), 5 (least squares), 6 (eigenvalues/linear algebra) still get coverage but less depth.",
       "chapters": [
         {
           "id": "01",

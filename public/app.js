@@ -716,7 +716,7 @@ async function clearProgress(opts) {
   }
   const wipePracticeExam = (cid, eid) => {
     try { localStorage.removeItem(practiceStorageKey(cid, eid)) } catch {}
-    if (practiceExamView.courseId === cid && practiceExamView.examId === eid) {
+    if (practiceExamView.courseId === cid && practiceExamView._loadedPaperId === eid) {
       practiceExamView.attempts = {}
       practiceExamView.attemptImages = {}
       practiceExamView.grades = {}
@@ -729,7 +729,9 @@ async function clearProgress(opts) {
   }
   const wipePracticeExamsForCourse = (cid) => {
     const course = state.courses?.find((c) => c.id === cid)
+    if (!course) return
     for (const e of (getMockExams ? getMockExams(course) : [])) wipePracticeExam(cid, e.id)
+    for (const t of (getTutorials ? getTutorials(course) : [])) wipePracticeExam(cid, t.id)
   }
 
   switch (scope) {
@@ -744,7 +746,7 @@ async function clearProgress(opts) {
         delete practiceExamView.grading[questionId]
         delete practiceExamView.showGuidance[questionId]
         delete practiceExamView.showAnswer[questionId]
-        persistPracticeAttempts(courseId, practiceExamView.examId)
+        persistPracticeAttempts(courseId, practiceExamView._loadedPaperId)
       }
       persistAttempts()
       break
@@ -1730,6 +1732,7 @@ function isSupportChapter(chapter) {
 function renderSurfaceTabs(course, opts = {}) {
   const { active, surface, chapter } = opts
   const hasExams = getMockExams(course).length > 0
+  const hasTutorials = getTutorials(course).length > 0
 
   // Click attribute differs by surface:
   // - mock-exam: switch tab in place (preserves scroll)
@@ -1749,6 +1752,7 @@ function renderSurfaceTabs(course, opts = {}) {
       <button type="button" class="${cls('mock-questions')}" ${jumpAttr('mock-questions')}>Mock questions</button>
       <button type="button" class="${cls('flashcards')}" ${jumpAttr('flashcards')}>Flashcards</button>
       ${hasExams ? `<button type="button" class="${cls('exams')}" ${jumpAttr('exams')}>Mock Exams</button>` : ''}
+      ${hasTutorials ? `<button type="button" class="${cls('tutorials')}" ${jumpAttr('tutorials')}>Tutorials</button>` : ''}
     </nav>
   `
 }
@@ -4301,10 +4305,13 @@ function renderMqMultiSelect(filterKey, allLabel, options) {
 /**
  * Practice surface view state.
  *
- *   tab          — Top-level surface: 'mock-questions' | 'flashcards' | 'exams'
- *                  ('exams' shows the multi-exam selector + per-exam sub-tabs)
- *   examId       — Selected exam paper id when tab === 'exams'
- *   examSubtab   — Sub-tab inside the selected exam: 'pdf' | 'solutions' | 'practice'
+ *   tab          — Top-level surface: 'mock-questions' | 'flashcards' | 'exams' | 'tutorials'
+ *                  ('exams' and 'tutorials' both show the chip-selector + per-paper sub-tabs;
+ *                  they share renderMockExamsSurface and just point at different paper lists)
+ *   examId       — Selected paper id when tab === 'exams'
+ *   tutorialId   — Selected paper id when tab === 'tutorials' (remembered separately so
+ *                  switching tabs preserves your spot in each list)
+ *   examSubtab   — Sub-tab inside the selected paper: 'pdf' | 'solutions' | 'practice'
  *
  * Old 'pdf' / 'solutions' / 'practice' tab values are migrated transparently
  * into tab='exams' + the matching examSubtab on first read.
@@ -4312,6 +4319,7 @@ function renderMqMultiSelect(filterKey, allLabel, options) {
 const practiceExamView = {
   tab: 'mock-questions',
   examId: null,
+  tutorialId: null,
   examSubtab: 'pdf',
   courseId: null,
   currentQid: null,
@@ -4344,6 +4352,33 @@ function getCurrentMockExam(course) {
   if (!exams.length) return null
   const id = practiceExamView.examId
   return exams.find((e) => e.id === id) || exams[0]
+}
+
+/** Course's tutorial papers (same shape as mockExams). */
+function getTutorials(course) {
+  return Array.isArray(course?.tutorials) ? course.tutorials : []
+}
+
+/**
+ * Paper list / selected-id helpers for the chip-strip + sub-tabs surface.
+ * The 'exams' and 'tutorials' top-level tabs share the exact same UI; these
+ * helpers pick which collection (and which remembered id) to drive it with.
+ */
+function getActivePapers(course) {
+  return practiceExamView.tab === 'tutorials' ? getTutorials(course) : getMockExams(course)
+}
+function getActivePaperId() {
+  return practiceExamView.tab === 'tutorials' ? practiceExamView.tutorialId : practiceExamView.examId
+}
+function setActivePaperId(id) {
+  if (practiceExamView.tab === 'tutorials') practiceExamView.tutorialId = id
+  else practiceExamView.examId = id
+}
+function getCurrentPaper(course) {
+  const papers = getActivePapers(course)
+  if (!papers.length) return null
+  const id = getActivePaperId()
+  return papers.find((p) => p.id === id) || papers[0]
 }
 
 /** Compose the practice-exam cache key used both client-side and on the server. */
@@ -4399,10 +4434,15 @@ function practiceStorageKey(courseId, examId) {
 }
 
 function restorePracticeAttempts(courseId, examId) {
-  const sameScope = practiceExamView.courseId === courseId && practiceExamView.examId === examId
+  // _loadedPaperId tracks which (courseId, paperId) scope is currently in memory,
+  // so a no-op re-entry doesn't blow away in-flight state. We do NOT write to
+  // practiceExamView.examId here, because that field is the user's mock-exam
+  // selection — when we're loading a tutorial's attempts, we must leave the
+  // remembered mock-exam id alone (and vice versa).
+  const sameScope = practiceExamView.courseId === courseId && practiceExamView._loadedPaperId === examId
   if (sameScope) return
   practiceExamView.courseId = courseId
-  practiceExamView.examId = examId
+  practiceExamView._loadedPaperId = examId
   practiceExamView.attempts = {}
   practiceExamView.attemptImages = {}
   practiceExamView.guidance = {}
@@ -4448,8 +4488,10 @@ function persistPracticeAttempts(courseId, examId) {
 }
 
 function resetPracticeExamState(courseId, examId) {
+  // Mirrors restorePracticeAttempts: track the loaded scope in _loadedPaperId,
+  // not in practiceExamView.examId (which is the mock-exam selection).
   practiceExamView.courseId = courseId
-  practiceExamView.examId = examId
+  practiceExamView._loadedPaperId = examId
   practiceExamView.currentQid = null
   practiceExamView.attempts = {}
   practiceExamView.attemptImages = {}
@@ -5004,7 +5046,9 @@ function renderMockExamPage() {
   if (!course) return '<p class="empty">Unknown course.</p>'
 
   const exams = getMockExams(course)
+  const tutorials = getTutorials(course)
   const hasExams = exams.length > 0
+  const hasTutorials = tutorials.length > 0
 
   // Migrate legacy tab values from the old single-exam topbar (pdf/solutions/practice
   // were standalone tabs) into the new {tab:'exams', examSubtab} shape.
@@ -5013,11 +5057,15 @@ function renderMockExamPage() {
     practiceExamView.tab = 'exams'
   }
   if (!hasExams && practiceExamView.tab === 'exams') {
-    practiceExamView.tab = 'mock-questions'
+    practiceExamView.tab = hasTutorials ? 'tutorials' : 'mock-questions'
+  }
+  if (!hasTutorials && practiceExamView.tab === 'tutorials') {
+    practiceExamView.tab = hasExams ? 'exams' : 'mock-questions'
   }
 
-  // Make sure a selected exam exists (default to first when none chosen, or when
-  // the previously chosen one is no longer in this course's list).
+  // Make sure a selected paper exists in BOTH lists (default to first when none
+  // chosen, or when the previously chosen one is no longer in this course's list).
+  // We keep examId and tutorialId separately so switching tabs preserves each spot.
   if (hasExams) {
     if (!practiceExamView.examId || !exams.some((e) => e.id === practiceExamView.examId)) {
       practiceExamView.examId = exams[0].id
@@ -5025,19 +5073,28 @@ function renderMockExamPage() {
   } else {
     practiceExamView.examId = null
   }
-  const currentExam = getCurrentMockExam(course)
+  if (hasTutorials) {
+    if (!practiceExamView.tutorialId || !tutorials.some((t) => t.id === practiceExamView.tutorialId)) {
+      practiceExamView.tutorialId = tutorials[0].id
+    }
+  } else {
+    practiceExamView.tutorialId = null
+  }
+
+  const isPaperSurface = practiceExamView.tab === 'exams' || practiceExamView.tab === 'tutorials'
+  const currentExam = getCurrentPaper(course)
   const examId = currentExam?.id || null
   const hasPaperPdf     = !!currentExam?.pdf
   const hasSolutionsPdf = !!currentExam?.solutionsPdf
 
-  // PDF sub-tab availability — bounce to whatever this exam actually has
-  if (practiceExamView.tab === 'exams') {
+  // PDF sub-tab availability — bounce to whatever this paper actually has
+  if (isPaperSurface) {
     if (practiceExamView.examSubtab === 'pdf' && !hasPaperPdf) practiceExamView.examSubtab = hasSolutionsPdf ? 'solutions' : 'practice'
     if (practiceExamView.examSubtab === 'solutions' && !hasSolutionsPdf) practiceExamView.examSubtab = hasPaperPdf ? 'pdf' : 'practice'
     if (practiceExamView.examSubtab === 'practice' && !hasPaperPdf) practiceExamView.examSubtab = hasSolutionsPdf ? 'solutions' : 'pdf'
   }
 
-  if (practiceExamView.courseId !== course.id || practiceExamView.examId !== examId) {
+  if (practiceExamView.courseId !== course.id || practiceExamView._loadedPaperId !== examId) {
     restorePracticeAttempts(course.id, examId)
   }
 
@@ -5045,9 +5102,9 @@ function renderMockExamPage() {
   const pdfUrl = hasPaperPdf ? `/api/pdf/${encodeURIComponent(course.id)}/${examIdEnc}` : ''
   const solutionsUrl = hasSolutionsPdf ? `/api/pdf/${encodeURIComponent(course.id)}/${examIdEnc}/solutions` : ''
   const outlineKey = examId ? `${course.id}__${examId}` : course.id
-  const outline = (practiceExamView.tab === 'exams' && hasPaperPdf) ? pdfOutlineCache.get(outlineKey) : null
-  if (practiceExamView.tab === 'exams' && hasPaperPdf && !outline) loadPdfOutline(course.id, examId)
-  if (practiceExamView.tab === 'exams' && practiceExamView.examSubtab === 'practice' && hasPaperPdf) {
+  const outline = (isPaperSurface && hasPaperPdf) ? pdfOutlineCache.get(outlineKey) : null
+  if (isPaperSurface && hasPaperPdf && !outline) loadPdfOutline(course.id, examId)
+  if (isPaperSurface && practiceExamView.examSubtab === 'practice' && hasPaperPdf) {
     ensurePracticeExam(course.id, examId)
   }
   if (practiceExamView.tab === 'mock-questions') {
@@ -5119,9 +5176,9 @@ function renderMockExamPage() {
     // Flashcards panel groups itself by chapter
     tocTitle = 'Flashcards'
     tocBody = '<p class="empty">Flashcards are grouped by chapter in the main panel.</p>'
-  } else if (practiceExamView.tab === 'exams') {
+  } else if (isPaperSurface) {
     if (!hasPaperPdf) {
-      tocTitle = currentExam ? `${currentExam.label}` : 'Mock Exams'
+      tocTitle = currentExam ? `${currentExam.label}` : (practiceExamView.tab === 'tutorials' ? 'Tutorials' : 'Mock Exams')
       tocBody = '<p class="empty">No question PDF for this paper — use the Solutions or Practice sub-tabs.</p>'
     } else if (!outline || outline.status === 'loading') {
       tocBody = '<p class="empty">Reading PDF…</p>'
@@ -5159,7 +5216,7 @@ function renderMockExamPage() {
           <h4>${tocTitle}</h4>
           ${tocHeader}
           ${tocBody}
-          ${practiceExamView.tab !== 'mock-questions' && outline?.totalPages ? `<small class="rail-meta" style="margin-top:10px;display:block">${outline.totalPages} pages</small>` : ''}
+          ${(isPaperSurface) && outline?.totalPages ? `<small class="rail-meta" style="margin-top:10px;display:block">${outline.totalPages} pages</small>` : ''}
         </div>
       </aside>
       <div class="resize-handle vertical-handle" data-resize="toc" title="Drag to resize · double-click to reset"></div>
@@ -5172,7 +5229,7 @@ function renderMockExamPage() {
           </div>
           ${renderSurfaceTabs(course, { active: practiceExamView.tab, surface: 'mock-exam' })}
         </header>
-        ${practiceExamView.tab === 'exams' && hasExams ? renderMockExamsSurface(course, currentExam, exams, { pdfUrl, solutionsUrl, hasPaperPdf, hasSolutionsPdf })
+        ${isPaperSurface ? renderMockExamsSurface(course, currentExam, getActivePapers(course), { pdfUrl, solutionsUrl, hasPaperPdf, hasSolutionsPdf })
           : practiceExamView.tab === 'flashcards' ? `
           <div class="fc-panel">${renderFlashcardsView(course)}</div>
         ` : `
@@ -5185,12 +5242,14 @@ function renderMockExamPage() {
         <button class="rail-collapse-btn rail-side" type="button" data-rail-toggle title="${layoutState.railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.railCollapsed ? '‹' : '›'}</button>
         <div class="rail-collapsible">
           <section class="rail-card">
-            <h4>${practiceExamView.tab === 'exams' ? 'About this paper' : 'Practice & flashcards'}</h4>
-            <p class="rail-meta">${practiceExamView.tab === 'exams'
-              ? 'Pick an exam in the selector above, then jump between PDF, Solutions, and Practice. The tutor on the right has the full course context — ask for hints on a question rather than the answer.'
+            <h4>${isPaperSurface ? 'About this paper' : 'Practice & flashcards'}</h4>
+            <p class="rail-meta">${isPaperSurface
+              ? (practiceExamView.tab === 'tutorials'
+                  ? 'Pick a tutorial in the selector above, then jump between PDF, Solutions, and Practice. The tutor on the right has the full course context — ask for hints on a question rather than the answer.'
+                  : 'Pick an exam in the selector above, then jump between PDF, Solutions, and Practice. The tutor on the right has the full course context — ask for hints on a question rather than the answer.')
               : 'Mock questions and flashcards are generated from the chapter notes — use the tabs above. The tutor on the right has full course context.'}</p>
           </section>
-          ${practiceExamView.tab === 'exams' && currentExam?.pdf && (state.meta.vaultRoot || '').startsWith('/') ? `
+          ${isPaperSurface && currentExam?.pdf && (state.meta.vaultRoot || '').startsWith('/') ? `
             <section class="rail-card">
               <h4>Open original</h4>
               <a class="rail-kb-link" href="file:///${state.meta.vaultRoot}/${course.knowledgeBase}/${currentExam.pdf}">${currentExam.pdf.split('/').slice(-2).join('/')}</a>
@@ -5278,7 +5337,7 @@ function groupQuestions(questions) {
 }
 
 function renderPracticeExam(course) {
-  const examId = practiceExamView.examId
+  const examId = getActivePaperId()
   const cache = practiceExamCache.get(practiceExamCacheKey(course.id, examId))
   if (!cache || cache.status === 'extracting') {
     return `<div class="loader practice-loader">Extracting question paper text via PDF.js…</div>`
@@ -5310,7 +5369,7 @@ function renderPracticeExam(course) {
     <div class="practice-exam">
       <div class="practice-toolbar">
         <small class="rail-meta">${questions.length} questions · shared problem statements stay visible, one sub-question at a time</small>
-        <button type="button" class="tb-btn clear-link" data-clear-scope="exam" data-clear-course="${course.id}" data-clear-exam="${practiceExamView.examId || ''}" data-clear-exam-label="${escapeHtml(getCurrentMockExam(course)?.label || 'this practice exam')}" title="Clear all your answers, grades, guidance hints, and uploaded images for this practice exam">Clear my work</button>
+        <button type="button" class="tb-btn clear-link" data-clear-scope="exam" data-clear-course="${course.id}" data-clear-exam="${getActivePaperId() || ''}" data-clear-exam-label="${escapeHtml(getCurrentPaper(course)?.label || 'this practice exam')}" title="Clear all your answers, grades, guidance hints, and uploaded images for this practice exam">Clear my work</button>
         <button type="button" class="regen-btn" data-practice-reparse="${course.id}">↻ Regenerate exam</button>
       </div>
 
@@ -6292,7 +6351,7 @@ if (typeof window !== 'undefined' && !window.__codeLangDelegated) {
       // The codeLang lives alongside the attempt body in localStorage.
       const cur = practiceExamView.codeLang || (practiceExamView.codeLang = {})
       cur[attemptKey] = lang
-      try { persistPracticeAttempts(practiceExamView.courseId, practiceExamView.examId) } catch {}
+      try { persistPracticeAttempts(practiceExamView.courseId, getActivePaperId()) } catch {}
     } else {
       const att = attemptState.get(attemptKey) || {}
       att.codeLang = lang
@@ -6919,7 +6978,7 @@ function bindEvents() {
         flashcardsView.expanded = flashcardsView.expanded || {}
         // Collapse all chapters so the user sees the full grouped overview
         for (const k of Object.keys(flashcardsView.expanded)) flashcardsView.expanded[k] = false
-      } else if (target === 'exams') {
+      } else if (target === 'exams' || target === 'tutorials') {
         // Default sub-tab: PDF (page state will be re-validated inside renderMockExamPage)
         if (!practiceExamView.examSubtab) practiceExamView.examSubtab = 'pdf'
       }
@@ -7029,7 +7088,7 @@ function bindEvents() {
     btn.addEventListener('click', (event) => {
       const target = event.currentTarget.dataset.mockTab
       practiceExamView.tab = target
-      if (target === 'exams' && !practiceExamView.examSubtab) practiceExamView.examSubtab = 'pdf'
+      if ((target === 'exams' || target === 'tutorials') && !practiceExamView.examSubtab) practiceExamView.examSubtab = 'pdf'
       _suppressNextScrollRestore = true
       render()
     })
@@ -7469,12 +7528,14 @@ function bindEvents() {
     })
   })
 
-  // Exam selector chips inside the Mock Exams surface
+  // Paper-selector chips inside the Mock Exams / Tutorials surface.
+  // Writes to the active list's id slot via setActivePaperId so each tab
+  // remembers its own selection independently.
   document.querySelectorAll('[data-exam-pick]').forEach((btn) => {
     btn.addEventListener('click', (event) => {
       const id = event.currentTarget.dataset.examPick
-      if (practiceExamView.examId === id) return
-      practiceExamView.examId = id
+      if (getActivePaperId() === id) return
+      setActivePaperId(id)
       practiceExamView.currentQid = null
       _suppressNextScrollRestore = true
       render()
@@ -7493,7 +7554,7 @@ function bindEvents() {
 
   document.querySelectorAll('[data-practice-nav]').forEach((ctrl) => {
     const handler = (event) => {
-      const examId = practiceExamView.examId
+      const examId = getActivePaperId()
       const cache = practiceExamCache.get(practiceExamCacheKey(route.courseId, examId))
       if (!cache?.questions) return
       const groups = groupQuestions(cache.questions)
@@ -7531,7 +7592,7 @@ function bindEvents() {
       } else {
         practiceExamView.attempts[qid] = event.currentTarget.value
       }
-      persistPracticeAttempts(route.courseId, practiceExamView.examId)
+      persistPracticeAttempts(route.courseId, getActivePaperId())
     }
     // textareas fire 'input'; radios fire 'change' — register both so all input types work.
     el.addEventListener('input', handler)
@@ -7543,7 +7604,7 @@ function bindEvents() {
     cell.addEventListener('click', (event) => {
       const qid = event.currentTarget.dataset.practiceJumpQid
       practiceExamView.currentQid = qid
-      persistPracticeAttempts(route.courseId, practiceExamView.examId)
+      persistPracticeAttempts(route.courseId, getActivePaperId())
       render()
       // Scroll to the specific part within the group
       setTimeout(() => {
@@ -7558,7 +7619,7 @@ function bindEvents() {
       const qid = event.currentTarget.dataset.toggleGuidance
       practiceExamView.showGuidance[qid] = !practiceExamView.showGuidance[qid]
       if (practiceExamView.showGuidance[qid] && !practiceExamView.guidance[qid]) {
-        requestGuidance(route.courseId, practiceExamView.examId, qid)
+        requestGuidance(route.courseId, getActivePaperId(), qid)
       } else {
         render()
       }
@@ -7574,12 +7635,12 @@ function bindEvents() {
   })
 
   document.querySelectorAll('[data-practice-grade]').forEach((btn) => {
-    btn.addEventListener('click', (event) => gradePracticeQuestion(route.courseId, practiceExamView.examId, event.currentTarget.dataset.practiceGrade))
+    btn.addEventListener('click', (event) => gradePracticeQuestion(route.courseId, getActivePaperId(), event.currentTarget.dataset.practiceGrade))
   })
 
   document.querySelectorAll('[data-practice-retry]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const examId = practiceExamView.examId
+      const examId = getActivePaperId()
       practiceExamCache.delete(practiceExamCacheKey(route.courseId, examId))
       ensurePracticeExam(route.courseId, examId)
     })
@@ -7588,7 +7649,7 @@ function bindEvents() {
   document.querySelectorAll('[data-practice-reparse]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('Re-parse this exam? This resets the parsed exam, guidance, answers, images, and scores for this practice exam.')) return
-      const examId = practiceExamView.examId
+      const examId = getActivePaperId()
       const examIdEnc = encodeURIComponent(examId || 'default')
       await fetch(`/api/practice-exam/${encodeURIComponent(route.courseId)}/${examIdEnc}`, { method: 'DELETE' })
       practiceExamCache.delete(practiceExamCacheKey(route.courseId, examId))
@@ -7609,7 +7670,7 @@ function bindEvents() {
   document.querySelectorAll('[data-build-toc]').forEach((btn) => {
     btn.addEventListener('click', (event) => {
       const courseId = event.currentTarget.dataset.buildToc
-      const examId = event.currentTarget.dataset.buildExam || practiceExamView.examId
+      const examId = event.currentTarget.dataset.buildExam || getActivePaperId()
       const cacheKey = examId ? `${courseId}__${examId}` : courseId
       const cached = pdfOutlineCache.get(cacheKey)
       const force = cached?.status === 'codex'
@@ -7642,7 +7703,7 @@ function bindEvents() {
   if (route.page === 'mock-exam' && (
     practiceExamView.tab === 'mock-questions' ||
     practiceExamView.tab === 'flashcards' ||
-    (practiceExamView.tab === 'exams' && practiceExamView.examSubtab === 'practice')
+    ((practiceExamView.tab === 'exams' || practiceExamView.tab === 'tutorials') && practiceExamView.examSubtab === 'practice')
   )) {
     typesetMath()
     renderMermaid()

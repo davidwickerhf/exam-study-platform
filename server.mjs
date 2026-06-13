@@ -968,6 +968,25 @@ function getMockExam(course, examId) {
   return exams.find((e) => e.id === examId) || exams[0]
 }
 
+/** Course's list of tutorial papers — same shape as mockExams: { id, label, pdf, solutionsPdf? }. */
+function getTutorials(course) {
+  return Array.isArray(course?.tutorials) ? course.tutorials : []
+}
+
+/**
+ * Resolve a "paper" (mock exam OR tutorial) by id. Tutorials share the same
+ * /api/pdf and /api/practice-exam routes as mock exams; the id alone tells us
+ * which collection it belongs to. Falls back to the first paper available when
+ * no id is given, but returns null (not a fallback) when an id is provided but
+ * doesn't match anything — so a bad id doesn't silently serve the wrong PDF.
+ */
+function findCoursePaper(course, paperId) {
+  const exams = getMockExams(course)
+  const tuts = getTutorials(course)
+  if (!paperId) return exams[0] || tuts[0] || null
+  return exams.find((e) => e.id === paperId) || tuts.find((t) => t.id === paperId) || null
+}
+
 /** Cache key used for per-paper caches: practice-exam parse output, guidance, etc. */
 function examCacheKey(courseId, examId) {
   return `${courseId}__${examId || 'default'}`
@@ -1028,7 +1047,7 @@ async function extractPdfPageText(pdfPath) {
 }
 
 async function extractBoldOptionKeys(state, course, examId) {
-  const exam = getMockExam(course, examId)
+  const exam = findCoursePaper(course, examId) || getMockExam(course, examId)
   if (!exam?.solutionsPdf) return {}
   const courseRoot = await courseRootFor(state, course)
   const pdfPath = resolve(courseRoot, exam.solutionsPdf)
@@ -2339,28 +2358,36 @@ function planGenerateAllSteps(state, course) {
       chapterId: ch.id
     })
   }
-  // 4. Mock exam parses, one per exam paper
-  for (const exam of getMockExams(course)) {
-    if (!exam.pdf) continue // no question paper, can't parse
-    const examCachePath = resolve(cacheDir, 'practice-exam', `${examCacheKey(course.id, exam.id)}.json`)
+  // 4. Mock exam + tutorial parses, one per paper. Both flow through the same
+  //    parseExamPaper pipeline — only the label changes so the user can see
+  //    which step is running. We resolve paper paths by id at execute time via
+  //    findCoursePaper, so it doesn't matter that 'examId' here may point at a
+  //    tutorial in the tutorials array.
+  const allPapers = [
+    ...getMockExams(course).map((e) => ({ ...e, _label: `Mock exam — ${e.label}`, _tocLabel: `Content TOC — ${e.label}` })),
+    ...getTutorials(course).map((t) => ({ ...t, _label: `Tutorial — ${t.label}`, _tocLabel: `Content TOC — ${t.label}` }))
+  ]
+  for (const paper of allPapers) {
+    if (!paper.pdf) continue // no question paper, can't parse
+    const examCachePath = resolve(cacheDir, 'practice-exam', `${examCacheKey(course.id, paper.id)}.json`)
     steps.push({
-      key: `exam:${exam.id}`,
-      label: `Mock exam — ${exam.label}`,
+      key: `exam:${paper.id}`,
+      label: paper._label,
       status: existsSync(examCachePath) ? 'skipped' : 'pending',
       kind: 'exam',
-      examId: exam.id
+      examId: paper.id
     })
   }
-  // 5. PDF content TOC, one per exam paper (for the in-page outline navigator)
-  for (const exam of getMockExams(course)) {
-    if (!exam.pdf) continue
-    const tocCachePath = mockTocPath(course.id, exam.id)
+  // 5. PDF content TOC, one per paper (for the in-page outline navigator)
+  for (const paper of allPapers) {
+    if (!paper.pdf) continue
+    const tocCachePath = mockTocPath(course.id, paper.id)
     steps.push({
-      key: `mock-toc:${exam.id}`,
-      label: `Content TOC — ${exam.label}`,
+      key: `mock-toc:${paper.id}`,
+      label: paper._tocLabel,
       status: existsSync(tocCachePath) ? 'skipped' : 'pending',
       kind: 'mock-toc',
-      examId: exam.id
+      examId: paper.id
     })
   }
   return steps
@@ -2409,8 +2436,8 @@ async function runGenerateAllJob(jobId) {
           await writeFlashcards(all)
           step.generatedCount = newCards.length
         } else if (step.kind === 'exam') {
-          const exam = getMockExams(course).find((e) => e.id === step.examId)
-          if (!exam?.pdf) throw new Error(`Exam ${step.examId} has no PDF`)
+          const exam = findCoursePaper(course, step.examId)
+          if (!exam?.pdf) throw new Error(`Paper ${step.examId} has no PDF`)
           const vaultRoot = getVaultRoot(state)
           const pdfPath = resolve(vaultRoot, course.knowledgeBase, exam.pdf)
           const questionPages = await extractPdfPageText(pdfPath)
@@ -2422,8 +2449,8 @@ async function runGenerateAllJob(jobId) {
           if (!questionPages.length) throw new Error('No text extracted from PDF')
           await parseExamPaper(job.courseId, step.examId, questionPages, solutionsPages)
         } else if (step.kind === 'mock-toc') {
-          const exam = getMockExams(course).find((e) => e.id === step.examId)
-          if (!exam?.pdf) throw new Error(`Exam ${step.examId} has no PDF`)
+          const exam = findCoursePaper(course, step.examId)
+          if (!exam?.pdf) throw new Error(`Paper ${step.examId} has no PDF`)
           const vaultRoot = getVaultRoot(state)
           const pdfPath = resolve(vaultRoot, course.knowledgeBase, exam.pdf)
           const pages = await extractPdfPageText(pdfPath)
@@ -2765,10 +2792,10 @@ const server = createServer(async (req, res) => {
       const examId = examIdRaw ? decodeURIComponent(examIdRaw) : null
       const state = await readState()
       const course = state.courses.find((c) => c.id === courseId)
-      const exam = course ? getMockExam(course, examId) : null
+      const exam = course ? findCoursePaper(course, examId) : null
       const filePath = variant === 'solutions' ? exam?.solutionsPdf : exam?.pdf
       if (!course || !exam || !filePath) {
-        send(res, 404, JSON.stringify({ error: `No ${variant === 'solutions' ? 'solutions' : 'mock exam'} configured for this course/exam` }))
+        send(res, 404, JSON.stringify({ error: `No ${variant === 'solutions' ? 'solutions' : 'paper'} configured for this course/paper id` }))
         return
       }
       const vaultRoot = getVaultRoot(state)
