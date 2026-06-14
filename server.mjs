@@ -1391,9 +1391,17 @@ function normalizeOptionText(s) {
 }
 
 function selectedOptionLetters(q, attempt) {
-  const selected = String(attempt || '').split('\n').map((x) => x.trim()).filter(Boolean)
   const options = Array.isArray(q?.options) ? q.options : []
-  if (!selected.length || !options.length) return []
+  const raw = String(attempt || '')
+  if (!raw.trim() || !options.length) return []
+  // For checkbox-style multi-select, the client joins each picked option with
+  // '\n'. For single-choice (mc/tf), the attempt IS one option's full text —
+  // which may itself contain a '\n' if the parser kept a line-break inside it.
+  // Splitting on '\n' there would shatter the single answer into fragments that
+  // match nothing.
+  const selected = q?.type === 'multi'
+    ? raw.split('\n').map((x) => x.trim()).filter(Boolean)
+    : [raw.trim()]
   const normalizedOptions = options.map(normalizeOptionText)
   return selected.map((choice) => {
     const letterMatch = choice.match(/^([a-f])\)/i)
