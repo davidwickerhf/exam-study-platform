@@ -465,11 +465,6 @@
           "label": "Week 1 Exercises",
           "pdf": "Materials/02 Tutorials/Week 1 Exercises.pdf",
           "solutionsPdf": "Materials/02 Tutorials/Week 1 Exercises Solution.pdf"
-        },
-        {
-          "id": "tutorial-exam-notes",
-          "label": "Exam Solutions & Grading Notes",
-          "pdf": "Materials/03 Past Exams and Solutions/AD-solsandnotes.pdf"
         }
       ]
     },
