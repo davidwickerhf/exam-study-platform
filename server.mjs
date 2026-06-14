@@ -1311,15 +1311,68 @@ async function generateGuidance(courseId, examId, questionId) {
   return guidance
 }
 
+/**
+ * Recover the correct option letter(s) for an mc/multi/tf question by reading
+ * the modelAnswer field. Codex's modelAnswer formatting is inconsistent across
+ * papers — sometimes "b) Monoalphabetic", sometimes "Correct Answer: C.",
+ * sometimes "2. <option text>" (when the source PDF numbered its options),
+ * sometimes just "<option text> — explanation". We try the unambiguous forms
+ * first and fall back to verbatim-text matching only as a last resort. The
+ * last resort used to indiscriminately accept every option mentioned in the
+ * explanation paragraph, which credited "all of the above" for any single-
+ * choice question whose explanation reasoned over multiple options.
+ */
 function correctOptionLetters(q) {
   const text = String(q?.modelAnswer || '')
-  const letters = Array.from(text.matchAll(/(?:^|[\n\s;-])([a-f])\)\s+/gi)).map((m) => m[1].toLowerCase())
-  if (letters.length) return [...new Set(letters)]
   const options = Array.isArray(q?.options) ? q.options : []
-  return options
-    .map((opt, idx) => ({ letter: optionLetterForIndex(idx), opt }))
-    .filter(({ opt }) => opt && text.includes(opt))
-    .map(({ letter }) => letter)
+  const numOpts = options.length
+
+  // 1. Canonical "a) ..." / "b) ..." markers — what we ask Codex to emit.
+  const parenLetters = [...new Set(
+    Array.from(text.matchAll(/(?:^|[\n\s;-])([a-f])\)\s+/gi)).map((m) => m[1].toLowerCase())
+  )]
+  if (parenLetters.length) return parenLetters
+
+  // 2. Leading "A.", "(A)", or "a)" — modelAnswer opens with the answer letter.
+  const leadingLetter = text.match(/^\s*\(?([a-f])\)?[.,):]\s/i)
+  if (leadingLetter) return [leadingLetter[1].toLowerCase()]
+
+  // 3. Leading "1.", "2.", "(3)" — source PDF numbered its options; the
+  //    1-based index maps to a letter.
+  const leadingNumber = text.match(/^\s*\(?(\d+)\)?[.,):]\s/)
+  if (leadingNumber) {
+    const idx = parseInt(leadingNumber[1], 10) - 1
+    if (idx >= 0 && idx < numOpts) return [optionLetterForIndex(idx)]
+  }
+
+  // 4. Explicit "Correct Answer: C" / "Answer: c" / "Correct: D" prefix.
+  const letterAnswer = [...new Set(
+    Array.from(text.matchAll(/(?:correct\s+answer|correct\s+option[s]?|answer|correct)\s*[:\-]\s*\(?([a-f])\)?\b/gi))
+      .map((m) => m[1].toLowerCase())
+  )]
+  if (letterAnswer.length) return letterAnswer
+
+  // 5. Same prefix but a NUMBER (e.g. "Correct Answer: 2").
+  const numberAnswer = [...new Set(
+    Array.from(text.matchAll(/(?:correct\s+answer|correct\s+option[s]?|answer|correct)\s*[:\-]\s*\(?(\d+)\)?\b/gi))
+      .map((m) => parseInt(m[1], 10) - 1)
+      .filter((idx) => idx >= 0 && idx < numOpts)
+      .map((idx) => optionLetterForIndex(idx))
+  )]
+  if (numberAnswer.length) return numberAnswer
+
+  // 6. Last resort — verbatim option text in the modelAnswer. For single-choice
+  //    (mc/tf) we deliberately take only the FIRST option mentioned in document
+  //    order, because the explanation paragraph commonly enumerates several
+  //    options to compare them. For multi-select, return every mentioned option.
+  if (!numOpts) return []
+  const mentions = options
+    .map((opt, idx) => ({ letter: optionLetterForIndex(idx), pos: opt ? text.indexOf(opt) : -1 }))
+    .filter((x) => x.pos >= 0)
+    .sort((a, b) => a.pos - b.pos)
+  if (!mentions.length) return []
+  if (q?.type === 'multi') return mentions.map((x) => x.letter)
+  return [mentions[0].letter]
 }
 
 function selectedOptionLetters(q, attempt) {
