@@ -1361,13 +1361,19 @@ function correctOptionLetters(q) {
   )]
   if (numberAnswer.length) return numberAnswer
 
-  // 6. Last resort — verbatim option text in the modelAnswer. For single-choice
-  //    (mc/tf) we deliberately take only the FIRST option mentioned in document
-  //    order, because the explanation paragraph commonly enumerates several
-  //    options to compare them. For multi-select, return every mentioned option.
+  // 6. Last resort — verbatim option text in the modelAnswer. Both sides are
+  //    whitespace-normalised so a multi-line option still matches when the
+  //    modelAnswer flattened the line-break to a space. For single-choice
+  //    (mc/tf) we take only the FIRST option mentioned in document order,
+  //    because the explanation paragraph commonly enumerates several options
+  //    to compare them. For multi-select, return every mentioned option.
   if (!numOpts) return []
+  const normalizedText = normalizeOptionText(text)
   const mentions = options
-    .map((opt, idx) => ({ letter: optionLetterForIndex(idx), pos: opt ? text.indexOf(opt) : -1 }))
+    .map((opt, idx) => ({
+      letter: optionLetterForIndex(idx),
+      pos: opt ? normalizedText.indexOf(normalizeOptionText(opt)) : -1
+    }))
     .filter((x) => x.pos >= 0)
     .sort((a, b) => a.pos - b.pos)
   if (!mentions.length) return []
@@ -1375,14 +1381,25 @@ function correctOptionLetters(q) {
   return [mentions[0].letter]
 }
 
+// Collapse whitespace so we can compare option text written different ways:
+// the parse may have kept a hard line-break inside an option ("…of an entity\nor data
+// source."), but HTML attribute-value parsing flattens that newline to a single
+// space when the radio's value is read back from the DOM. Without normalising,
+// the server's "options[i] === choice" check misses every multi-line option.
+function normalizeOptionText(s) {
+  return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
 function selectedOptionLetters(q, attempt) {
   const selected = String(attempt || '').split('\n').map((x) => x.trim()).filter(Boolean)
   const options = Array.isArray(q?.options) ? q.options : []
   if (!selected.length || !options.length) return []
+  const normalizedOptions = options.map(normalizeOptionText)
   return selected.map((choice) => {
     const letterMatch = choice.match(/^([a-f])\)/i)
     if (letterMatch) return letterMatch[1].toLowerCase()
-    const idx = options.findIndex((opt) => opt === choice)
+    const norm = normalizeOptionText(choice)
+    const idx = normalizedOptions.findIndex((opt) => opt === norm)
     return idx >= 0 ? optionLetterForIndex(idx) : ''
   }).filter(Boolean)
 }
