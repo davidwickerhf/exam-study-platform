@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-06-14T21:07:35.932Z",
+  "items": [
+    {
+      "title": "Homework 2 — Dynamic Programming",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "1 — Anchored common subsequences",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "2 — Examples",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "3 — Your Tasks",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Task 1 — DP algorithm, correctness, runtime",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "Task 2 — Implement Anchored.java",
+      "page": 1,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "4 — Hints",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    }
+  ]
+}

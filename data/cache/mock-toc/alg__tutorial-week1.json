@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-06-14T21:07:55.207Z",
+  "items": [
+    {
+      "title": "Exercises: In these slides",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1 — Picking Coins greedy algorithm",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2 — Task Scheduling greedy rules",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2(a) — Optimality of greedy rules",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(a)(i) — Earliest finish time first",
+      "page": 1,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(a)(ii) — Latest finish time first",
+      "page": 1,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — Earliest start time pseudocode and runtime",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3 — MST cheapest-edge greedy algorithm",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Recommended textbook exercises",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "GT 10.4 A-10.1 — Art gallery guarding",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "CLRS 16.1-3 — Non-optimal greedy activity selection",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "CLRS 23-4 — Alternative MST algorithms",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    }
+  ]
+}

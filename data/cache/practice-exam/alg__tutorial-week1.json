@@ -1,0 +1,95 @@
+{
+  "generatedAt": "2026-06-14T21:06:36.806Z",
+  "courseId": "alg",
+  "examId": "tutorial-week1",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Q1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Give a greedy algorithm for the Picking Coins problem that runs in $O(n \\log t)$ time.",
+      "modelAnswer": "Sketch of the solution:\n\n- Idea: Put the first $t$ coins into a min-heap.\n- For each $c$ of the remaining coins:\n  - If the value of $c$ is bigger than the min of the heap, remove the min and add $c$.\n- Return all the coins in the heap.",
+      "page": 1,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q2ai",
+      "label": "Q2(a)(i)",
+      "marks": 1,
+      "sharedContext": "For the Task Scheduling problem\n\n(a) Are the following greedy rules optimal? (if so prove it, otherwise give an example input to break it)",
+      "text": "i. Earliest finish time first.",
+      "modelAnswer": "To show that i. is also optimal requires some more care. Here, the events are ordered by finish time. When the next event can be placed into an active channel, it is necessary to pick the channel with the latest finish time where this new event fits. With this extra detail, an exchange argument can be used to prove this greedy rule is optimal (similar to the one used for activity selection). Note that without this extra care, the greedy rule could result in a suboptimal number of channels, eg, [0,1], [0,3], [4,5], [2,6]. Without the extra care, greedy could assign [0,1] and [4,5] to channel 1, but then [0,3] and [2,6] do not fit into channel 2 whereas with the extra care [4,5] would be placed into channel 2 with [0,3], and then [2,6] would fit into channel 1 with [0,1].",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2aii",
+      "label": "Q2(a)(ii)",
+      "marks": 1,
+      "sharedContext": "For the Task Scheduling problem\n\n(a) Are the following greedy rules optimal? (if so prove it, otherwise give an example input to break it)",
+      "text": "ii. Latest finish time first.",
+      "modelAnswer": "ii. is optimal as written. Namely, the proof of ii. is just the same as in lecture but mirrored (flip start and finish times).",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2b",
+      "label": "Q2(b)",
+      "marks": 1,
+      "sharedContext": "For the Task Scheduling problem",
+      "text": "(b) For the greedy rule (earliest start time first) implement it in pseudocode and analyze the runtime. [GT 10.4, R-10.2]",
+      "modelAnswer": "Input: array A of $n$ start-finish time pairs: A[i].s, A[i].f\n\n```text\ngreedy-task-scheduling(A) {\n sort A by start times so that A[1].s <= A[2].s <= ... <= A[n].s\n Create an array channel of length n; // at the end, channel[i] = index of channel for task i.\n Create list F of the final finish time of each active channel.\n for (i = 1 to n) do { // classify the ith request\n  addedToSchedule = false // track if A[i] has been added to a channel\n  for (j = 1 to length(F)) do {\n   if [A[i].s >= F[j] {\\\\add A[i] to channel j.\n    F[j] = A[i].f; channel[i] = j; addedToSchedule = true\n    break\n   } }\n  if not addedToSchedule{ // create a new channel\n   F.add(A[i].f); channel[i] = length(A);\n  } }\n return A, channel //need to return reordered A\n}\n```\n\nRuntime:\n\n- before the loop we do $O(n)$ work to setup,\n- the outerloop runs $n$ iterations, each iteration involves some constant work together with an inner loop that considers all active channels (at most $n$ iterations) and does constant work per iteration.\nThus, we have $O(n^2)$ time in total.\n- Note that the implementation can be improved to $O(n \\log n)$ by (similarly to 1. above) using a min-heap to track the finish times F of the active channels (keyed by these finish times). This change would replace the inner loop by checking the min-heap if the minimum value is compatible with the start time A[i].s (if so, we increase the key of this minimum element; otherwise, we add a new channel).",
+      "page": 1,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q3",
+      "label": "Q3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "For the Minimum Spanning Tree problem, implement the greedy rule (cheapest edge to grow the tree) in pseudocode and analyze the runtime. [CLRS 23.2-2]",
+      "modelAnswer": "See https://en.wikipedia.org/wiki/Prim\\%27s_algorithm",
+      "page": 1,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 1,
+      "sharedContext": "Recommended from the textbooks:",
+      "text": "[GT 10.4, A-10.1] Art gallery guarding. Given a line L representing a long, and real numbers X = {x0 , x1 , . . . , xn−1 } specifing positions of paintings in this hallway. Suppose that a single guard can protect all the paintings within distance at most 1 of his or her position (on both sides). Design an algorithm for finding a placement of guards that uses the minimum number of guards to guard all the paintings with positions in X. (see [CLRS 16.2-5] for same problem phrased differently)",
+      "modelAnswer": "[GT 10.4 A10.1]\n\n- k-Partial Solution G: For the leftmost k paintings, a set G of guards that covers all of them.\n\n- Greedy Rule: For a given k-partial Solution G, let x be the position of the left-most unguarded painting (painting k + 1 from the left). Place the next guard g at the position x + 1. The idea here is that we need to cover this painting at position x, and we can place g to do so while covering as much as possible further to the right.\n- Correctness:\n\n  - Let G be a solution constructed by the greedy rule, and let OPT be an optimal solution that shares as much in common with G as possible.\n  - If G and OPT are the same, G is optimal and we are done.\n  - Suppose G and OPT are different, and let g be the leftmost guard in G that is not in OPT. Further let x be the position of the leftmost painting which cuased us to add g into G. Since G and OPT agree on the guards further the to the left, none of these guards cover position x. So OPT must have a different guard $g^*$ that is used for the painting at position x. However, since we choose g to be the rightmost guard that can cover the painting at position x, $g^*$ must be on to the left of g. Now consider the new guard set $OPT^*$ obtained from OPT by removing $g^*$ and inserting g. From our choice of g we have that $OPT^*$ still covers all the paintings and uses the same number of guards as OPT, but now $OPT^*$ has more guards in common with G than OPT. This contadicts our choice of OPT, and shows that indeed G and OPT must be the same.\n\n- Implementation and runtime.\n  - Sort the paintings in increasing order of $x_i$. Thus we have $x_1 \\leq x_2 \\leq \\ldots \\leq x_n$.\n  - Place the first guard at position $g = x_1 + 1$, and add it to our initial guard set G. (g will always be the rightmost guard in our guard set)\n  - For 2 = 1 to n\n    - If $x_i \\leq g + 1$ this painting is already gaurded, no new guards needed.\n    - Else create a new gaurd at position $x_i + 1$ and revise g to be $x_i + 1$.\n  - Runtime: Sorting is $O(n \\log n)$, then we loop over all the n paintings doing $O(1)$ work per painting.\nThus, $O(n \\log n)$ in total.",
+      "page": 1,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 1,
+      "sharedContext": "Recommended from the textbooks:",
+      "text": "[CLRS 16.1-3] Not just any greedy approach to the activity-selection problem produces a maximum-size set of mutually compatible activities. Give an example to show that the approach of selecting the activity of least duration from among those that are compatible with previously selected activities does not work. Do the same for the approaches of always selecting the compatible activity that overlaps the fewest other remaining activities and always selecting the compatible remaining activity with the earliest start time.",
+      "modelAnswer": "",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 1,
+      "sharedContext": "Recommended from the textbooks:",
+      "text": "[CLRS 23-4] Alternative minimum-spanning-tree algorithms In this problem, we give pseudocode for three different algorithms. Each one takes a connected graph and a weight function as input and returns a set of edges T . For each algorithm, either prove that T is a minimum spanning tree or prove that T is not a minimum spanning tree. Also describe the most efficient implementation of each algorithm, whether or not it computes a minimum spanning tree.",
+      "modelAnswer": "[CLRS 23-4] (partial solutions) The focus here is on optimality. We provide an outline of the steps needed to prove this, but the full proofs are not included. Also, efficient implementations are not included.\n\na. This is basically Prim in reverse. In particular, when Prim stops, a set E of (smallest weight) edges will have been seen (a subset of those were chosen for the MST T built by Prim). Importantly, since E includes T , the subgraph (V (G), E) is connected. Thus, the edges beyond E are discarded by this algorithm.\nLet T be the output of the given algorithm, and let $T^*$ be an MST that has as many edges in common with T as possible.\nIf T and $T^*$ are the same, we are done.\nSo suppose for a contradition that they are different. Let e be the first edge considered by the algorithm where T and $T^*$ disagrree. This gives two cases (1) e is in T but not in $T^*$ ; (2) e is in $T^*$ but not in T . In both cases you need to find a contradiction (doing so is very similar to what we did for Prim’s algorithm).\n\nb. This is not optimal. Graph G with vertices a,b,c, edges ab,ac, ab, weights w(ab) = 10, w(ac)=5, w(bc)=1. If the edges are considered as ab,ac,bc, then it will be ab,ac with total cost 15. However, the MST here is made by the edges ac,bc and has cost 6.\n\nc. This is optimal, but it follows the approach in Kruskal’s algorithm (see section CLRS 23.2) instead of Prim’s. To prove it is correct, you should show that at every iteration, T is a set of minimum spanning tree for the connected components of edges seen up to this point. You can prove this by induction.",
+      "page": 1,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

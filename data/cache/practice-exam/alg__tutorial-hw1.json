@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-06-14T21:03:43.891Z",
+  "courseId": "alg",
+  "examId": "tutorial-hw1",
+  "questions": [
+    {
+      "id": "q2a",
+      "label": "Q2(A)",
+      "marks": 1,
+      "sharedContext": "2 The important machine (think Activity Selection)\nConsider a single machine scheduling problem where we are given a set, $T$, of tasks specified\nby their start and finish times. All tasks run on only one, important, machine, and the\nimportant machine can only perform one task at a time. If a task cannot be scheduled at\nits assigned starting time it cannot be performed at all. We wish to maximize the number\nof tasks that this single machine performs.\n The rules of scheduling are as follows ([$a$, $b$] denotes the start and end times of a task):\n\n- Times [$a$, $b$] means the task must start at time step $a$ (or not at all).\n\n- Times [$a$, $b$] means that the task ends before time step $b$ starts. This agrees with the\n real-world convention for scheduling meetings (e.g., if a meeting is from 1-3, it starts\n at 1 o’clock and ends at 3 o’clock. It takes up the entire hours of 1 o’clock and 2\n o’clock, and none of 3 o’clock).\n\n- Therefore, the sequence [$a$, $b$], [$b$, $c$] is allowable.\n\n Note that in the input the tasks are not necessarily ordered according to start time,\nfinish time, duration, or any other criteria. There may be multiple tasks with the same\nstart and finish times.",
+      "text": "(A) One greedy algorithm to schedule jobs on this machine is as follows:\n\n- start from the first time slot and go chronologically\n- if the machine is unused, schedule a task $t \\in T$ that starts at that time slot (if\n one exists)\n- if more than one task starts at that time slot, schedule the shortest task\n\nWrite a program that will accept a set of tasks and use the above algorithm to\n schedule them. Your program will output the tasks that the important machine can\n accomplish.\n The first line of the input will be an integer $k < 10^7$. Each of the following $k$ lines\n will consist of a pair of integers $ab$, with $a \\leq b \\leq 10^7$, the start and finish times of\n the kth task.\n The output of your program should be similar: a sequence of lines, each containing\n a pair of integers $ab$, the start and finish times of a scheduled task. You must list\n the scheduled tasks in chronological order.\n To test your program name it MachineA.java and submit it to Codegrade.",
+      "modelAnswer": "A correct implementation should:\n\n- read the filename from the terminal;\n- read $k$ tasks from that file;\n- process time slots in chronological order;\n- when the machine is free at time $s$, choose among all unscheduled tasks with start time $s$ the one with smallest finish time;\n- output every scheduled task in chronological order.\n\nOne suitable algorithm is:\n\n```java\nimport java.io.*;\nimport java.util.*;\n\npublic class MachineA {\n    static class Task {\n        int start, finish;\n        Task(int start, int finish) {\n            this.start = start;\n            this.finish = finish;\n        }\n    }\n\n    public static void main(String[] args) throws Exception {\n        Scanner terminal = new Scanner(System.in);\n        String filename = terminal.nextLine().trim();\n\n        Scanner in = new Scanner(new File(filename));\n        int k = in.nextInt();\n\n        TreeMap<Integer, PriorityQueue<Task>> byStart = new TreeMap<>();\n        for (int i = 0; i < k; i++) {\n            int a = in.nextInt();\n            int b = in.nextInt();\n            Task t = new Task(a, b);\n            byStart.computeIfAbsent(a, x -> new PriorityQueue<>(Comparator.comparingInt(task -> task.finish))).add(t);\n        }\n\n        StringBuilder out = new StringBuilder();\n        int currentTime = Integer.MIN_VALUE;\n\n        for (Map.Entry<Integer, PriorityQueue<Task>> entry : byStart.entrySet()) {\n            int start = entry.getKey();\n            if (start >= currentTime) {\n                Task chosen = entry.getValue().poll();\n                out.append(chosen.start).append(' ').append(chosen.finish).append('\\n');\n                currentTime = chosen.finish;\n            }\n        }\n\n        System.out.print(out.toString());\n    }\n}\n```",
+      "page": 1,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q2bi",
+      "label": "Q2(B)(i)",
+      "marks": 1,
+      "sharedContext": "2 The important machine (think Activity Selection)\nConsider a single machine scheduling problem where we are given a set, $T$, of tasks specified\nby their start and finish times. All tasks run on only one, important, machine, and the\nimportant machine can only perform one task at a time. If a task cannot be scheduled at\nits assigned starting time it cannot be performed at all. We wish to maximize the number\nof tasks that this single machine performs.\n The rules of scheduling are as follows ([$a$, $b$] denotes the start and end times of a task):\n\n- Times [$a$, $b$] means the task must start at time step $a$ (or not at all).\n\n- Times [$a$, $b$] means that the task ends before time step $b$ starts. This agrees with the\n real-world convention for scheduling meetings (e.g., if a meeting is from 1-3, it starts\n at 1 o’clock and ends at 3 o’clock. It takes up the entire hours of 1 o’clock and 2\n o’clock, and none of 3 o’clock).\n\n- Therefore, the sequence [$a$, $b$], [$b$, $c$] is allowable.\n\n Note that in the input the tasks are not necessarily ordered according to start time,\nfinish time, duration, or any other criteria. There may be multiple tasks with the same\nstart and finish times.\n\n(B) The algorithm described in part 2 is not optimal. Your task here consists of three\n parts.",
+      "text": "(i) Provide an example input that demonstrates that the algorithm in part 2 is\n not optimal.",
+      "modelAnswer": "One counterexample is:\n\n```text\n3\n0 10\n0 1\n1 2\n```\n\nThe algorithm from part (A) starts at time $0$ and schedules the shortest task starting at time $0$, namely $[0,1]$. It then schedules $[1,2]$, so it schedules 2 tasks.\n\nHowever, this example does not demonstrate non-optimality. A valid counterexample is:\n\n```text\n3\n0 3\n1 2\n2 3\n```\n\nThe algorithm from part (A) reaches time $0$ and schedules $[0,3]$. It cannot then schedule $[1,2]$ or $[2,3]$, so it schedules 1 task.\n\nAn optimal schedule is:\n\n```text\n1 2\n2 3\n```\n\nThis schedules 2 tasks, so the algorithm from part (A) is not optimal.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2bii",
+      "label": "Q2(B)(ii)",
+      "marks": 1,
+      "sharedContext": "2 The important machine (think Activity Selection)\nConsider a single machine scheduling problem where we are given a set, $T$, of tasks specified\nby their start and finish times. All tasks run on only one, important, machine, and the\nimportant machine can only perform one task at a time. If a task cannot be scheduled at\nits assigned starting time it cannot be performed at all. We wish to maximize the number\nof tasks that this single machine performs.\n The rules of scheduling are as follows ([$a$, $b$] denotes the start and end times of a task):\n\n- Times [$a$, $b$] means the task must start at time step $a$ (or not at all).\n\n- Times [$a$, $b$] means that the task ends before time step $b$ starts. This agrees with the\n real-world convention for scheduling meetings (e.g., if a meeting is from 1-3, it starts\n at 1 o’clock and ends at 3 o’clock. It takes up the entire hours of 1 o’clock and 2\n o’clock, and none of 3 o’clock).\n\n- Therefore, the sequence [$a$, $b$], [$b$, $c$] is allowable.\n\n Note that in the input the tasks are not necessarily ordered according to start time,\nfinish time, duration, or any other criteria. There may be multiple tasks with the same\nstart and finish times.\n\n(B) The algorithm described in part 2 is not optimal. Your task here consists of three\n parts.",
+      "text": "(ii) Design and implement an algorithm which is guaranteed to always schedule\n the maximum possible number of jobs. The input will be in the same format\n as before, but now you should output only a single integer $m$, the maximum\n number of jobs that can be scheduled.",
+      "modelAnswer": "Use the standard interval scheduling greedy algorithm: sort all tasks by increasing finish time, and whenever a task starts no earlier than the finish time of the last chosen task, schedule it.\n\n```java\nimport java.io.*;\nimport java.util.*;\n\npublic class MachineB {\n    static class Task {\n        int start, finish;\n        Task(int start, int finish) {\n            this.start = start;\n            this.finish = finish;\n        }\n    }\n\n    public static void main(String[] args) throws Exception {\n        Scanner terminal = new Scanner(System.in);\n        String filename = terminal.nextLine().trim();\n\n        Scanner in = new Scanner(new File(filename));\n        int k = in.nextInt();\n        Task[] tasks = new Task[k];\n\n        for (int i = 0; i < k; i++) {\n            int a = in.nextInt();\n            int b = in.nextInt();\n            tasks[i] = new Task(a, b);\n        }\n\n        Arrays.sort(tasks, (x, y) -> {\n            if (x.finish != y.finish) return Integer.compare(x.finish, y.finish);\n            return Integer.compare(x.start, y.start);\n        });\n\n        int count = 0;\n        int currentFinish = Integer.MIN_VALUE;\n\n        for (Task task : tasks) {\n            if (task.start >= currentFinish) {\n                count++;\n                currentFinish = task.finish;\n            }\n        }\n\n        System.out.println(count);\n    }\n}\n```\n\nThe running time is $O(k \\log k)$ because the tasks are sorted once and then scanned once.",
+      "page": 2,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q2biii",
+      "label": "Q2(B)(iii)",
+      "marks": 1,
+      "sharedContext": "2 The important machine (think Activity Selection)\nConsider a single machine scheduling problem where we are given a set, $T$, of tasks specified\nby their start and finish times. All tasks run on only one, important, machine, and the\nimportant machine can only perform one task at a time. If a task cannot be scheduled at\nits assigned starting time it cannot be performed at all. We wish to maximize the number\nof tasks that this single machine performs.\n The rules of scheduling are as follows ([$a$, $b$] denotes the start and end times of a task):\n\n- Times [$a$, $b$] means the task must start at time step $a$ (or not at all).\n\n- Times [$a$, $b$] means that the task ends before time step $b$ starts. This agrees with the\n real-world convention for scheduling meetings (e.g., if a meeting is from 1-3, it starts\n at 1 o’clock and ends at 3 o’clock. It takes up the entire hours of 1 o’clock and 2\n o’clock, and none of 3 o’clock).\n\n- Therefore, the sequence [$a$, $b$], [$b$, $c$] is allowable.\n\n Note that in the input the tasks are not necessarily ordered according to start time,\nfinish time, duration, or any other criteria. There may be multiple tasks with the same\nstart and finish times.\n\n(B) The algorithm described in part 2 is not optimal. Your task here consists of three\n parts.",
+      "text": "(iii) Prove that your algorithm always provides the optimal answer.\n\n To test your program from (ii), name MachineB.java, and submit it to CodeGrade.",
+      "modelAnswer": "Let $G$ be the schedule produced by the algorithm that repeatedly chooses the available task with earliest finish time. Let $O$ be an optimal schedule with the maximum possible number of tasks.\n\nWe prove that there is an optimal schedule whose first task is the first task chosen by the greedy algorithm. Let $g$ be the task chosen first by the greedy algorithm, and let $o$ be the first task in $O$. Since $g$ has the earliest finish time among all tasks, $f(g) \\leq f(o)$. Replace $o$ in $O$ by $g$. This replacement is valid because every task scheduled after $o$ starts at or after $f(o)$, and therefore also starts at or after $f(g)$. The number of tasks in the schedule is unchanged.\n\nAfter choosing $g$, the remaining problem is the same scheduling problem restricted to tasks that start at or after $f(g)$. By the same exchange argument, the greedy choice can be made at every step without reducing the size of an optimal solution.\n\nTherefore the greedy algorithm schedules the maximum possible number of tasks.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q3_1a",
+      "label": "Q3.1(a)",
+      "marks": 1,
+      "sharedContext": "3 Divide and Conquer and Master Theorem exercises\nFor each question, briefly justify your answer.\n\n1. Suppose we have recursive algorithms whose running times are given by each of the\n following definitions (together with $T(1) = 1$ in each case). Calculate the aysmptotic\n runtime for each.",
+      "text": "(a) $T(n) = 7T(n/3) + n^2$.",
+      "modelAnswer": "Here $a = 7$, $b = 3$, and $f(n) = n^2$.\n\n$$\nn^{\\log_b a} = n^{\\log_3 7}\n$$\n\nSince $\\log_3 7 < 2$, we have $f(n) = n^2 = \\Omega(n^{\\log_3 7 + \\epsilon})$ for some $\\epsilon > 0$.\n\nThe regularity condition holds:\n\n$$\n7f(n/3) = 7(n/3)^2 = \\frac{7}{9}n^2 \\leq cn^2\n$$\n\nfor some $c < 1$. Therefore by Master Theorem case 3,\n\n$$\nT(n) = \\Theta(n^2).\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3_1b",
+      "label": "Q3.1(b)",
+      "marks": 1,
+      "sharedContext": "3 Divide and Conquer and Master Theorem exercises\nFor each question, briefly justify your answer.\n\n1. Suppose we have recursive algorithms whose running times are given by each of the\n following definitions (together with $T(1) = 1$ in each case). Calculate the aysmptotic\n runtime for each.",
+      "text": "(b) $T(n) = 3T(n/9) + \\sqrt{n}$.",
+      "modelAnswer": "Here $a = 3$, $b = 9$, and $f(n) = \\sqrt{n}$.\n\n$$\nn^{\\log_b a} = n^{\\log_9 3} = n^{1/2} = \\sqrt{n}\n$$\n\nThus $f(n) = \\Theta(n^{\\log_b a})$. By Master Theorem case 2,\n\n$$\nT(n) = \\Theta(\\sqrt{n}\\log n).\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3_1c",
+      "label": "Q3.1(c)",
+      "marks": 1,
+      "sharedContext": "3 Divide and Conquer and Master Theorem exercises\nFor each question, briefly justify your answer.\n\n1. Suppose we have recursive algorithms whose running times are given by each of the\n following definitions (together with $T(1) = 1$ in each case). Calculate the aysmptotic\n runtime for each.",
+      "text": "(c) $T(n) = 4T(n/3) + n \\log n$.",
+      "modelAnswer": "Here $a = 4$, $b = 3$, and $f(n) = n\\log n$.\n\n$$\nn^{\\log_b a} = n^{\\log_3 4}\n$$\n\nSince $\\log_3 4 > 1$, $n\\log n = O(n^{\\log_3 4 - \\epsilon})$ for some $\\epsilon > 0$. Therefore by Master Theorem case 1,\n\n$$\nT(n) = \\Theta(n^{\\log_3 4}).\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3_2",
+      "label": "Q3.2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "3 Divide and Conquer and Master Theorem exercises\nFor each question, briefly justify your answer.\n\n2. I am hoping to improve on Karatsuba’s algorithm for integer multiplication, by\n spliting each $n$-bit integer into three parts rather than two. What is the largest\n number of multiplies (of $n/3$-bit integers) I can use in order to beat Karatsuba’s\n algorithm (which uses 3 multiplies of $n/2$-bit integers)?",
+      "modelAnswer": "Karatsuba’s algorithm has recurrence\n\n$$\nT(n) = 3T(n/2) + O(n)\n$$\n\nand runtime\n\n$$\n\\Theta(n^{\\log_2 3}).\n$$\n\nIf the new algorithm uses $a$ multiplications of size $n/3$, its recurrence is\n\n$$\nT(n) = aT(n/3) + O(n)\n$$\n\nand, for $a > 3$, the multiplication part gives runtime\n\n$$\n\\Theta(n^{\\log_3 a}).\n$$\n\nTo beat Karatsuba we need\n\n$$\n\\log_3 a < \\log_2 3.\n$$\n\nEquivalently,\n\n$$\na < 3^{\\log_2 3} \\approx 5.7.\n$$\n\nSince $a$ must be an integer, the largest possible number is\n\n$$\n5.\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3_3a",
+      "label": "Q3.3(a)",
+      "marks": 1,
+      "sharedContext": "3 Divide and Conquer and Master Theorem exercises\nFor each question, briefly justify your answer.\n\n3. For which of the following does the Master Theorem apply? Where it does apply,\n calculate asymptotic runtime.",
+      "text": "(a) $T(n) = 3T(n/3) + n \\log \\log n$.",
+      "modelAnswer": "Here $a = 3$, $b = 3$, and\n\n$$\nn^{\\log_b a} = n^{\\log_3 3} = n.\n$$\n\nThe additive term is $f(n) = n\\log\\log n$.\n\nThe standard Master Theorem does not apply, because $n\\log\\log n$ is not polynomially larger than $n$ and is not of the form $\\Theta(n^{\\log_b a}\\log^k n)$ for a constant $k \\geq 0$.\n\nSo the Master Theorem does not apply.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q3_3b",
+      "label": "Q3.3(b)",
+      "marks": 1,
+      "sharedContext": "3 Divide and Conquer and Master Theorem exercises\nFor each question, briefly justify your answer.\n\n3. For which of the following does the Master Theorem apply? Where it does apply,\n calculate asymptotic runtime.",
+      "text": "(b) $T(n) = 8T(n/2) + n^3 \\log n \\log(n^2)$.",
+      "modelAnswer": "Here $a = 8$, $b = 2$, and\n\n$$\nn^{\\log_b a} = n^{\\log_2 8} = n^3.\n$$\n\nAlso,\n\n$$\n\\log(n^2) = 2\\log n,\n$$\n\nso\n\n$$\nf(n) = n^3\\log n\\log(n^2) = 2n^3\\log^2 n = \\Theta(n^3\\log^2 n).\n$$\n\nThis is Master Theorem case 2 with $k = 2$. Therefore,\n\n$$\nT(n) = \\Theta(n^3\\log^3 n).\n$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

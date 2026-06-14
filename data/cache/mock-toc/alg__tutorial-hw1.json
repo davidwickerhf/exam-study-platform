@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-06-14T21:07:19.451Z",
+  "items": [
+    {
+      "title": "1 Introduction",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "2 The important machine",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "2(A) — Greedy scheduling implementation",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "2(B) — Optimal scheduling algorithm",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "2(B)(i) — Counterexample input",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "2(B)(ii) — Implement optimal algorithm",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "2(B)(iii) — Prove optimality",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "3 Divide and Conquer and Master Theorem exercises",
+      "page": 2,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "3.1 — Asymptotic runtimes",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "3.1(a) — T(n)=7T(n/3)+n^2",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "3.1(b) — T(n)=3T(n/9)+sqrt(n)",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "3.1(c) — T(n)=4T(n/3)+n log n",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "3.2 — Karatsuba improvement",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "3.3 — Master Theorem applicability",
+      "page": 2,
+      "depth": 1,
+      "kind": "question"
+    },
+    {
+      "title": "3.3(a) — T(n)=3T(n/3)+n log log n",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    },
+    {
+      "title": "3.3(b) — T(n)=8T(n/2)+n^3 log n log(n^2)",
+      "page": 2,
+      "depth": 2,
+      "kind": "subquestion"
+    }
+  ]
+}
