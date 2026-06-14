@@ -1,0 +1,125 @@
+{
+  "generatedAt": "2026-06-14T19:55:42.356Z",
+  "items": [
+    {
+      "title": "Q1 — Greedy: Interview Scheduling",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q1(a) — Counterexample to GreedyA (3 marks)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) — Prove GreedyB optimal (8 marks)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) — Implement GreedyB and runtime (5 marks)",
+      "page": 4,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2 — The Master Theorem",
+      "page": 5,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q2(a) — 12 subproblems recurrence (3 marks)",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) — 9 subproblems recurrence (3 marks)",
+      "page": 5,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3 — Minimum-cost broadcast towers",
+      "page": 6,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q3(a) — Define DP subproblems (3 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(b) — DP recurrence and correctness (8 marks)",
+      "page": 7,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q3(c) — Runtime and output optimal towers (5 marks)",
+      "page": 8,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4 — NP-completeness",
+      "page": 9,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q4(a) — Decision versions of IS and VC (4 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(b) — Prove Independent-Set in NP (2 marks)",
+      "page": 9,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q4(c) — Reduction proving IS NP-hard (4 marks)",
+      "page": 10,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5 — Backtracking, LP & branch-and-bound",
+      "page": 11,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Q5(a) — Backtracking delivery routes (5 marks)",
+      "page": 11,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(b) — Integer linear program formulation (4 marks)",
+      "page": 12,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q5(c) — Fractional relaxation branch-and-bound (3 marks)",
+      "page": 13,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Extra Space",
+      "page": 14,
+      "depth": 0,
+      "kind": "note"
+    }
+  ]
+}

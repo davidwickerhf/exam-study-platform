@@ -33,6 +33,17 @@
       "visualStyle": "Pseudocode + math first. Use mermaid for search trees, recursion trees, and graph algorithms.",
       "mockExams": [
         {
+          "id": "2026-final",
+          "label": "Final 2026",
+          "pdf": "Materials/03 Past Exams and Solutions/AD26-exam.pdf",
+          "solutionsPdf": "Materials/03 Past Exams and Solutions/AD-solsandnotes.pdf"
+        },
+        {
+          "id": "midterm-grading-guideline",
+          "label": "Midterm grading guide",
+          "solutionsPdf": "Materials/03 Past Exams and Solutions/Midterm_Grading_guideline.pdf"
+        },
+        {
           "id": "2024-final",
           "label": "Final 2024",
           "pdf": "Materials/03 Past Exams and Solutions/cs1540-FinalExam2024.pdf",
@@ -436,7 +447,31 @@
           "notes": ""
         }
       ],
-      "order": 1
+      "order": 1,
+      "gradingNotesPdf": "Materials/03 Past Exams and Solutions/AD-solsandnotes.pdf",
+      "tutorials": [
+        {
+          "id": "tutorial-hw1",
+          "label": "Homework 1 \u2014 Programming and More",
+          "pdf": "Materials/02 Tutorials/Homework 1 \u2014 Programming and More.pdf"
+        },
+        {
+          "id": "tutorial-hw2",
+          "label": "Homework 2 \u2014 Dynamic Programming",
+          "pdf": "Materials/02 Tutorials/Homework 2 \u2014 Dynamic Programming.pdf"
+        },
+        {
+          "id": "tutorial-week1",
+          "label": "Week 1 Exercises",
+          "pdf": "Materials/02 Tutorials/Week 1 Exercises.pdf",
+          "solutionsPdf": "Materials/02 Tutorials/Week 1 Exercises Solution.pdf"
+        },
+        {
+          "id": "tutorial-exam-notes",
+          "label": "Exam Solutions & Grading Notes",
+          "pdf": "Materials/03 Past Exams and Solutions/AD-solsandnotes.pdf"
+        }
+      ]
     },
     {
       "id": "stats",

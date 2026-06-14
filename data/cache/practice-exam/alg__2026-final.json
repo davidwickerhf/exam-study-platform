@@ -1,0 +1,161 @@
+{
+  "generatedAt": "2026-06-14T19:57:58.322Z",
+  "courseId": "alg",
+  "examId": "2026-final",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 3,
+      "sharedContext": "Greedy: Interview Scheduling\n\nInput: A set of $n$ applicants $A(1), \\ldots, A(n)$ where, for each $i \\in \\{1, \\ldots, n\\}$, the availability of $A(i)$ is given as a time interval $[A(i).s, A(i).f]$ starting at time $A(i).s$ and finishing at time $A(i).f)$ with $A(i).s < A(i).f$. There is also one interviewer wanting to interview as many applicants as possible. The interviewer has setup $m$ possible start times $t_1, t_2, \\ldots, t_m$ for the interviews. An interview lasts 1 unit of time. These times are given in increasing order, and are spaced at least one unit apart, ie, . for each $j \\in \\{1, \\ldots, m - 1\\}$, $t_{j+1} \\leq t_j + 1$.\n\nApplicant $i$ can be scheduled for an interview at time $t_j$ if: . $t_j \\geq A(i).s$ and $t_j + 1 \\leq A(i).f$, and no other applicant is scheduled at time $t_j$.\n\nObjective: Schedule a maximum size subset of the applicants.\n\nNote: The applicants are also ordered by finish time: $A(1).f \\leq A(2).f \\leq \\ldots \\leq A(n).f)$.\n\nExample Input: $[A[1].s, A[1].f] = [0, 3]$, $[A[2].s, A[2].f] = [0, 4]$, $[A[3].s, A[3].f] = [3, 6]$; and $t_1 = 0$, $t_2 = 4$, $t_3 = 6$. An optimal solution is to schedule $A[2]$ at time $t_1$ and $A[3]$ at time $t_2$. Note that only $A[3]$ can be scheduled at time $t_2$ and none of the applicants can be scheduled at time $t_3$.\n\nTwo greedy rules: GreedyA (given next), and GreedyB (on the next page) are given to be considered.\n\n- GreedyA: A $k$-partial solution is a schedule for the last $k$ interview time slots, ie, for each $j \\in \\{m - k + 1, \\ldots, m\\}$, we have decided whether or not there is an applicant scheduled at time $t_j$. Rule: Start with $k = 0$. Consider the next starting time ($t_{m-k}$). If no unscheduled applicant can be scheduled at time $t_{m-k}$, skip it. Otherwise, among applicants that can be scheduled at time $t_{m-k}$, schedule one with the earliest finish time at time $t_{m-k}$.\n\n- GreedyB: A $k$-partial solution is a schedule for the first $k$ interview time slots, ie, for each $j \\in \\{1, \\ldots, k\\}$, we have decided whether or not there is an applicant scheduled at time $t_j$. Rule: Start with $k = 0$. Consider the next starting time ($t_{k+1}$). If no unscheduled applicant can be scheduled at time $t_{k+1}$, skip it. Otherwise, among applicants that can be scheduled at time $t_{k+1}$, schedule one with the earliest finish time at time $t_{k+1}$.",
+      "text": "(a) Provide a counterexample to the optimality of GreedyA.",
+      "modelAnswer": "$A[1] = [0, 2]$, $A[2] = [1, 3]$, $t_1 = 0$, $t_2 = 1$.\n\nGreedyA only assigns one applicant:\n\n- assigns $A[1] \\to t_2$, nothing to $t_1$.\n\nBut we can assign $A[1] \\to t_1$ and $A[2] \\to t_2$. Thus greedyA is not optimal.\n\nGenerally any input with two applicants and two time slots such that $A[1].s \\leq t_1 < A[2].s \\leq t_2 < A[1].f < A[2].f$ breaks optimality of greedyA.\n\nIf more applicants are involved with no other dedicated timeslot, they need to not be available at $t_1$ for the input to remain a valid counter example.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 8,
+      "sharedContext": "Greedy: Interview Scheduling\n\nInput: A set of $n$ applicants $A(1), \\ldots, A(n)$ where, for each $i \\in \\{1, \\ldots, n\\}$, the availability of $A(i)$ is given as a time interval $[A(i).s, A(i).f]$ starting at time $A(i).s$ and finishing at time $A(i).f)$ with $A(i).s < A(i).f$. There is also one interviewer wanting to interview as many applicants as possible. The interviewer has setup $m$ possible start times $t_1, t_2, \\ldots, t_m$ for the interviews. An interview lasts 1 unit of time. These times are given in increasing order, and are spaced at least one unit apart, ie, . for each $j \\in \\{1, \\ldots, m - 1\\}$, $t_{j+1} \\leq t_j + 1$.\n\nApplicant $i$ can be scheduled for an interview at time $t_j$ if: . $t_j \\geq A(i).s$ and $t_j + 1 \\leq A(i).f$, and no other applicant is scheduled at time $t_j$.\n\nObjective: Schedule a maximum size subset of the applicants.\n\nNote: The applicants are also ordered by finish time: $A(1).f \\leq A(2).f \\leq \\ldots \\leq A(n).f)$.\n\nExample Input: $[A[1].s, A[1].f] = [0, 3]$, $[A[2].s, A[2].f] = [0, 4]$, $[A[3].s, A[3].f] = [3, 6]$; and $t_1 = 0$, $t_2 = 4$, $t_3 = 6$. An optimal solution is to schedule $A[2]$ at time $t_1$ and $A[3]$ at time $t_2$. Note that only $A[3]$ can be scheduled at time $t_2$ and none of the applicants can be scheduled at time $t_3$.\n\nTwo greedy rules: GreedyA (given next), and GreedyB (on the next page) are given to be considered.\n\n- GreedyA: A $k$-partial solution is a schedule for the last $k$ interview time slots, ie, for each $j \\in \\{m - k + 1, \\ldots, m\\}$, we have decided whether or not there is an applicant scheduled at time $t_j$. Rule: Start with $k = 0$. Consider the next starting time ($t_{m-k}$). If no unscheduled applicant can be scheduled at time $t_{m-k}$, skip it. Otherwise, among applicants that can be scheduled at time $t_{m-k}$, schedule one with the earliest finish time at time $t_{m-k}$.\n\n- GreedyB: A $k$-partial solution is a schedule for the first $k$ interview time slots, ie, for each $j \\in \\{1, \\ldots, k\\}$, we have decided whether or not there is an applicant scheduled at time $t_j$. Rule: Start with $k = 0$. Consider the next starting time ($t_{k+1}$). If no unscheduled applicant can be scheduled at time $t_{k+1}$, skip it. Otherwise, among applicants that can be scheduled at time $t_{k+1}$, schedule one with the earliest finish time at time $t_{k+1}$.",
+      "text": "(b) Prove that GreedyB is optimal.",
+      "modelAnswer": "Let $M$ be the (applicant, start time) pairs matched in the greedy output. Let OPT be an optimal set of pairings that is as similar as possible to $M$. If they are the same, greedy is optimal. Otherwise:\n\n- Let $j$ be the index of the first starting time where $M$ and OPT disagree.\n- Case 1: OPT uses $t_j$ but $M$ does not.\n  - Since OPT uses $t_j$, when greedyB processed $t_j$, there was an applicant available. Thus $M$ would have also used $t_j$. Contradiction.\n- Case 2: $M$ assigns $A[\\ell]$ to $t_j$ but OPT does not.\n  - 2a: OPT does not use $t_j$.\n    - Modify OPT by (re-)assigning $A[\\ell]$ to $t_j$. This does not change the size of OPT, but does make it more similar to $M$. Contradiction.\n    - Note: if $A[\\ell]$ was not used in OPT, then OPT would not be optimal since $A[\\ell] \\to t_j$ can be added to OPT.\n  - 2b: OPT uses $t_j$ but with a different applicant, $A[\\ell^*]$.\n    - If $A[\\ell]$ is not used in OPT, swap $A[\\ell^*]$ for $A[\\ell]$.\n    - If $A[\\ell]$ is used in OPT, say for time $t_x$, then by the greedy rule, $t_x \\geq t_j$.\n    - Change $A[\\ell] \\to t_x$ to $A[\\ell] \\to t_j$ (valid by greedy) and change $A[\\ell^*] \\to t_j$ to $A[\\ell^*] \\to t_x$ (valid because $A[\\ell^*]$ has a later finish time than $A[\\ell]$ and $t_j \\leq t_x$).\n    - Both lead to greater similarity with $M$. Contradiction.",
+      "page": 3,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 5,
+      "sharedContext": "Greedy: Interview Scheduling\n\nInput: A set of $n$ applicants $A(1), \\ldots, A(n)$ where, for each $i \\in \\{1, \\ldots, n\\}$, the availability of $A(i)$ is given as a time interval $[A(i).s, A(i).f]$ starting at time $A(i).s$ and finishing at time $A(i).f)$ with $A(i).s < A(i).f$. There is also one interviewer wanting to interview as many applicants as possible. The interviewer has setup $m$ possible start times $t_1, t_2, \\ldots, t_m$ for the interviews. An interview lasts 1 unit of time. These times are given in increasing order, and are spaced at least one unit apart, ie, . for each $j \\in \\{1, \\ldots, m - 1\\}$, $t_{j+1} \\leq t_j + 1$.\n\nApplicant $i$ can be scheduled for an interview at time $t_j$ if: . $t_j \\geq A(i).s$ and $t_j + 1 \\leq A(i).f$, and no other applicant is scheduled at time $t_j$.\n\nObjective: Schedule a maximum size subset of the applicants.\n\nNote: The applicants are also ordered by finish time: $A(1).f \\leq A(2).f \\leq \\ldots \\leq A(n).f)$.\n\nExample Input: $[A[1].s, A[1].f] = [0, 3]$, $[A[2].s, A[2].f] = [0, 4]$, $[A[3].s, A[3].f] = [3, 6]$; and $t_1 = 0$, $t_2 = 4$, $t_3 = 6$. An optimal solution is to schedule $A[2]$ at time $t_1$ and $A[3]$ at time $t_2$. Note that only $A[3]$ can be scheduled at time $t_2$ and none of the applicants can be scheduled at time $t_3$.\n\nTwo greedy rules: GreedyA (given next), and GreedyB (on the next page) are given to be considered.\n\n- GreedyA: A $k$-partial solution is a schedule for the last $k$ interview time slots, ie, for each $j \\in \\{m - k + 1, \\ldots, m\\}$, we have decided whether or not there is an applicant scheduled at time $t_j$. Rule: Start with $k = 0$. Consider the next starting time ($t_{m-k}$). If no unscheduled applicant can be scheduled at time $t_{m-k}$, skip it. Otherwise, among applicants that can be scheduled at time $t_{m-k}$, schedule one with the earliest finish time at time $t_{m-k}$.\n\n- GreedyB: A $k$-partial solution is a schedule for the first $k$ interview time slots, ie, for each $j \\in \\{1, \\ldots, k\\}$, we have decided whether or not there is an applicant scheduled at time $t_j$. Rule: Start with $k = 0$. Consider the next starting time ($t_{k+1}$). If no unscheduled applicant can be scheduled at time $t_{k+1}$, skip it. Otherwise, among applicants that can be scheduled at time $t_{k+1}$, schedule one with the earliest finish time at time $t_{k+1}$.",
+      "text": "(c) Describe how you would implement GreedyB and analyze the runtime.",
+      "modelAnswer": "The following block of pseudocode implements greedyB.\n\n```text\nAlgorithm 1 Greedy Matching\n1: boolean array USED, initially all false. ▷ USED[i] := if an applicant has been used or not.\n2: solution = {}. ▷ This will store the matched pairs of applicants and start times.\n3: for j ← 1 to m do ▷ O(m) iterations\n4:     ▷ process start time t_j\n5:     for i ← 1 to n do ▷ O(n) iterations\n6:         ▷ consider applicant i, constant if-condition and add; O(1) time\n7:         if not USED[i] and A[i].s ≤ t_j and t_j + 1 ≤ A[i].f then\n8:             ▷ this is the applicant with the earliest finish time\n9:             ▷ that can be scheduled and is not used\n10:            solution.add((A[i], t_j))\n11:            set USED[i] = true\n12:            break\n13:        end if\n14:    end for\n15: end for\n```\n\nRuntime: See also inline in the pseudocode. Two nested loops: $O(m)$ iterations for the outer loop, $O(n)$ iterations for the inner, and $O(1)$ work in the inner loop. Thus, $O(mn)$ total.",
+      "page": 4,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q2a",
+      "label": "Q2(a)",
+      "marks": 3,
+      "sharedContext": "The Master Theorem",
+      "text": "(a) I have an algorithm that solves a problem instance of size $n$ by solving 12 instances of size $n / 3$, plus additional work taking time $n \\log n$. Give the recurrence satisfied by my algorithm, and solve it using the Master Theorem to find the asymptotic runtime of my algorithm.",
+      "modelAnswer": "$T(n) = 12T(n/3) + n \\log n$\n\n$n^{\\log_3 12} > n \\log n$\n\nRecurrence work wins, so overall $\\Theta(n^{\\log_3 12})$ (accepted O or nothing instead of $\\Theta$)",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2b",
+      "label": "Q2(b)",
+      "marks": 3,
+      "sharedContext": "The Master Theorem",
+      "text": "(b) Suppose now I improve my algorithm to use only 9 instances of size $n / 3$, plus the same additional work as before. Give the recurrence and solve it to find the runtime of my new algorithm.",
+      "modelAnswer": "$T(n) = 9T(n/3) + n \\log n$\n\n$n^{\\log_3 9} = n^2 > n \\log n$\n\nRecurrence work wins, so overall $\\Theta(n^2)$ (accepted O or nothing instead of $\\Theta$, accepted $\\log_3 9$)",
+      "page": 5,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3a",
+      "label": "Q3(a)",
+      "marks": 3,
+      "sharedContext": "Constructing broadcast towers of varying cost to cover a highway.\n\nInput: The highway is continuous and has length $\\ell > 0$: starting at position 0 and ending $\\ell$ km away. There are $n$ candidate towers that can be built. Each candidate tower $i \\in \\{1, \\ldots, n\\}$ has an interval $[a_i, b_i]$ ($a_i < b_i$) and a positive cost $c_i$ in EUROs such that if the tower is built, we pay the cost $c_i$ and the highway is covered from and including position $a_i$ up to and including position $b_i$.\n\nObjective: Select a minimum cost set $S$ of towers so that every position on the highway is covered by some tower. The set $S$ is allowed to contain towers with overlapping intervals. You may assume that every position on the highway can be covered by some candidate tower, i.e., for every value $x \\in [0, \\ell]$ there is some tower $i$ such that $x \\in [a_i, b_i]$.\n\nNote: The input has the form $([a_1, b_1], c_1), \\ldots ([a_n, b_n], c_n)$ where $b_1 \\leq b_2 \\leq \\ldots \\leq b_n$.\n\nExample Input: $\\ell = 10$ and 6 candidate towers: $([0, 3], 2)$, $([0, 5], 4)$, $([3, 8], 1)$, $([2, 9], 2)$, $([4, 10], 2)$, $([7, 10], 1)$. An optimal solution would be to use $([0, 3], 2)$, $([3, 8], 1)$, and $([7, 10], 1)$. The cost is $4 = 2 + 1 + 1$.\n\nYour Task: Provide a dynamic programming algorithm to optimally solve this problem as outlined next. For full credit, your algorithm must run in time polynomial in terms of the input size.",
+      "text": "(a) Define the table OPT(...) of subproblems: (i) what parameter(s) (...) should it have, (ii) what value is stored in each entry, and (iii) what entry in your table represents an optimal solution to the problem?",
+      "modelAnswer": "i. Table: OPT has one entry for each tower, that is, the entries are $OPT[i]$, for $i \\in \\{1, \\ldots, n\\}$. Here $i$ is the only parameter and it indicates that only the first $i$ towers are considered.\n\nii. Value: $OPT[i] :=$ the minimum cost to cover up to $b_i$ and we insist on using tower $i$.\n\niii. Final answer: $X = \\min\\{OPT[i] : i \\in \\{1, \\ldots, n\\}$ and $b_i = \\ell\\}$.",
+      "page": 7,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q3b",
+      "label": "Q3(b)",
+      "marks": 8,
+      "sharedContext": "Constructing broadcast towers of varying cost to cover a highway.\n\nInput: The highway is continuous and has length $\\ell > 0$: starting at position 0 and ending $\\ell$ km away. There are $n$ candidate towers that can be built. Each candidate tower $i \\in \\{1, \\ldots, n\\}$ has an interval $[a_i, b_i]$ ($a_i < b_i$) and a positive cost $c_i$ in EUROs such that if the tower is built, we pay the cost $c_i$ and the highway is covered from and including position $a_i$ up to and including position $b_i$.\n\nObjective: Select a minimum cost set $S$ of towers so that every position on the highway is covered by some tower. The set $S$ is allowed to contain towers with overlapping intervals. You may assume that every position on the highway can be covered by some candidate tower, i.e., for every value $x \\in [0, \\ell]$ there is some tower $i$ such that $x \\in [a_i, b_i]$.\n\nNote: The input has the form $([a_1, b_1], c_1), \\ldots ([a_n, b_n], c_n)$ where $b_1 \\leq b_2 \\leq \\ldots \\leq b_n$.\n\nExample Input: $\\ell = 10$ and 6 candidate towers: $([0, 3], 2)$, $([0, 5], 4)$, $([3, 8], 1)$, $([2, 9], 2)$, $([4, 10], 2)$, $([7, 10], 1)$. An optimal solution would be to use $([0, 3], 2)$, $([3, 8], 1)$, and $([7, 10], 1)$. The cost is $4 = 2 + 1 + 1$.\n\nYour Task: Provide a dynamic programming algorithm to optimally solve this problem as outlined next. For full credit, your algorithm must run in time polynomial in terms of the input size.",
+      "text": "(b) State and justify the correctness of a recurrence that you can use to fill in the table. Don’t forget the base cases!",
+      "modelAnswer": "In the base case we have zero towers, and cover none of the highway. This gives us $OPT[0] = 0$.\n\nRecursive Case: Either we use tower $i$ or not.\n\n- If $a_i > b_{i-1}$. This means tower $i$ cannot extend any prior solution and we discard it.\n  - $OPT[i] = INF$. (this ensures we don’t use this tower)\n- Otherwise, we look for the best prior solution that we can extend when insisting on using tower $i$.\n  - $OPT[i] = \\min(c_i + \\min(OPT[j] : j < i \\text{ and } b_j \\geq a_i))$.",
+      "page": 7,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q3c",
+      "label": "Q3(c)",
+      "marks": 5,
+      "sharedContext": "Constructing broadcast towers of varying cost to cover a highway.\n\nInput: The highway is continuous and has length $\\ell > 0$: starting at position 0 and ending $\\ell$ km away. There are $n$ candidate towers that can be built. Each candidate tower $i \\in \\{1, \\ldots, n\\}$ has an interval $[a_i, b_i]$ ($a_i < b_i$) and a positive cost $c_i$ in EUROs such that if the tower is built, we pay the cost $c_i$ and the highway is covered from and including position $a_i$ up to and including position $b_i$.\n\nObjective: Select a minimum cost set $S$ of towers so that every position on the highway is covered by some tower. The set $S$ is allowed to contain towers with overlapping intervals. You may assume that every position on the highway can be covered by some candidate tower, i.e., for every value $x \\in [0, \\ell]$ there is some tower $i$ such that $x \\in [a_i, b_i]$.\n\nNote: The input has the form $([a_1, b_1], c_1), \\ldots ([a_n, b_n], c_n)$ where $b_1 \\leq b_2 \\leq \\ldots \\leq b_n$.\n\nExample Input: $\\ell = 10$ and 6 candidate towers: $([0, 3], 2)$, $([0, 5], 4)$, $([3, 8], 1)$, $([2, 9], 2)$, $([4, 10], 2)$, $([7, 10], 1)$. An optimal solution would be to use $([0, 3], 2)$, $([3, 8], 1)$, and $([7, 10], 1)$. The cost is $4 = 2 + 1 + 1$.\n\nYour Task: Provide a dynamic programming algorithm to optimally solve this problem as outlined next. For full credit, your algorithm must run in time polynomial in terms of the input size.",
+      "text": "(c) Analyze the runtime needed to implement the algorithm. Make sure to state the size of your table and the time to compute each entry. Your analysis must also include outputting an optimal set of towers and not only the optimal value.",
+      "modelAnswer": "The size of the table is $O(n)$ since we have one entry for each tower. To compute an entry for each tower we look into all previous entries. This means it takes $O(n)$ time. Thus to compute the table it takes $O(n^2)$ time.\n\nTo recover a solution we back track the table (as in the pseudocode below).\n\n```text\nAlgorithm 2 Backtracking\n1: Starting from the final answer X\n2: Find the last tower used\n3: i ← n\n4: while OPT[i] != X do ▷ loop over each interval, O(n)\n5:     i ← i − 1 ▷ constant O(1)\n6: end while\n7: Report i ▷ store the most recent tower added to the solution\n8: for j ← i − 1 downto 1 do ▷ loop over each interval O(n)\n9:     if OPT[j] = OPT[i] − c_i then ▷ use interval j\n10:        Report j ▷ constant, O(1)\n11:        i ← j ▷ revise most recent tower\n12:    end if\n13: end for\n```\n\nRuntime for backtracking: $O(n)$. Namely, look back through the towers one time each with constant work per tower.\n\nTotal Runtime: $O(n^2)$ to build the table and $O(n)$ for backtracking. Thus $O(n^2)$ total.",
+      "page": 8,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q4a",
+      "label": "Q4(a)",
+      "marks": 4,
+      "sharedContext": "NP-completeness\n\nRecall the two problems Independent-Set and Vertex-Cover, whose optimisation versions are as follows:\n\nIndependent-Set: given a graph $G$, what is the largest set of vertices $X$ such that no two vertices are joined by an edge?\n\nVertex-Cover: given a graph $G$, what is the smallest set of vertices $Y$ such that for every edge of $G$, one of its two endpoints is in $Y$?",
+      "text": "(a) Formulate the decision problem versions of these two problems.",
+      "modelAnswer": "Independent-set: Input: $(G, k)$, with $G$ a graph and $k$ an integer. Output: YES if $G$ contains an independent set of size $\\geq k$, NO otherwise.\n\nVertex-cover: Input: $(G, k)$, $G$ a graph and $k$ an integer. Output: YES if $G$ contains vertex cover of size $\\leq k$, NO otherwise.",
+      "page": 9,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q4b",
+      "label": "Q4(b)",
+      "marks": 2,
+      "sharedContext": "NP-completeness\n\nRecall the two problems Independent-Set and Vertex-Cover, whose optimisation versions are as follows:\n\nIndependent-Set: given a graph $G$, what is the largest set of vertices $X$ such that no two vertices are joined by an edge?\n\nVertex-Cover: given a graph $G$, what is the smallest set of vertices $Y$ such that for every edge of $G$, one of its two endpoints is in $Y$?",
+      "text": "(b) Prove that Independent-Set $\\in$ NP.",
+      "modelAnswer": "Certificate for a YES instance is a set of $k$ vertices of $G$ with no edges between them (both size $\\geq k$ and no internal edges can be verified in polynomial time).",
+      "page": 9,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q4c",
+      "label": "Q4(c)",
+      "marks": 4,
+      "sharedContext": "NP-completeness\n\nRecall the two problems Independent-Set and Vertex-Cover, whose optimisation versions are as follows:\n\nIndependent-Set: given a graph $G$, what is the largest set of vertices $X$ such that no two vertices are joined by an edge?\n\nVertex-Cover: given a graph $G$, what is the smallest set of vertices $Y$ such that for every edge of $G$, one of its two endpoints is in $Y$?",
+      "text": "(c) Suppose we know that Vertex-Cover is NP-hard, and we want to prove that Independent-Set is also NP-hard. Give an appropriate polynomial-time reduction from one of these two problems to the other that allows us to conclude this. Make sure you describe your reduction clearly and precisely.",
+      "modelAnswer": "We reduce Vertex-cover to Independent-set. Define a function $f$ from Vertex-cover instances to Independent-set instances by $f((G, k)) = (G, |G| - k)$. We now show that $f(l)$ is a YES-instance if and only if $l$ is.\n\nObserve that $S \\subseteq V(G)$ is a vertex cover if and only if $V(G) \\setminus S$ is an independent set, so $G$ contains a vertex cover of size at most $k$ if and only if it contains an independent set of size at least $|G| - k$.",
+      "page": 10,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q5a",
+      "label": "Q5(a)",
+      "marks": 5,
+      "sharedContext": "Backtracking, LP & branch-and-bound\n\nPostNL have asked you to help design an algorithm to plan routes for their delivery drivers. They have $D$ drivers, each of whom is allowed to drive up to $L$ kilometers, starting and ending at the depot. There are $N$ locations to deliver to, each of which must be visited by a driver. They have a table of distances $c_{i,j}$ of distances between locations (for $0 \\leq i, j \\leq n$ the distance between location $i$ and location $j$ is $c_{i,j} = c_{j,i}$; the depot is location 0).",
+      "text": "(a) Describe (with pseudocode or an equivalent level of detail and precision) a backtracking algorithm to solve this problem.",
+      "modelAnswer": "Define partial solutions $a$ as containing a route for each driver, starting but not necessarily ending at the depot.\n\n```text\ndead(a):\n    for d in a.drivers:\n        if length(d.route) > L: return true\n    return false\n\ncomplete(a):\n    for l in locations:\n        if !(a.visited(l)): return false\n    for d in drivers:\n        if d.route.last != 0: return false\n    return true\n\nextend(a,l):\n    b := emptyset\n    for d in drivers:\n        c := a\n        c.drivers(d).route.apppend(l)\n        b.add(c)\n    return b\n\nbacktrack:\n    stack X = {emptyroutes}\n    while !(X.empty):\n        a = X.pop\n        l = min(a.unvisited)\n        for b in extend(a,l):\n            if dead(b): continue\n            if complete(b): return b\n            X.push(b)\n```",
+      "page": 11,
+      "type": "pseudocode",
+      "options": []
+    },
+    {
+      "id": "q5b",
+      "label": "Q5(b)",
+      "marks": 4,
+      "sharedContext": "Backtracking, LP & branch-and-bound\n\nPostNL have asked you to help design an algorithm to plan routes for their delivery drivers. They have $D$ drivers, each of whom is allowed to drive up to $L$ kilometers, starting and ending at the depot. There are $N$ locations to deliver to, each of which must be visited by a driver. They have a table of distances $c_{i,j}$ of distances between locations (for $0 \\leq i, j \\leq n$ the distance between location $i$ and location $j$ is $c_{i,j} = c_{j,i}$; the depot is location 0).",
+      "text": "(b) Formulate the problem as an integer linear program, using variables $x_{d,k,i,j}$, where\n\n$$\nx_{d,k,i,j} = \\begin{cases}\n1 & \\text{if the } k\\text{th trip segment made by driver } d \\text{ is from location } i \\text{ to location } j\\\\\n0 & \\text{otherwise}\n\\end{cases}.\n$$\n\nFor example, if driver 3 delivers to locations 7, 3 and 11 in that order, then we would have $x_{3,1,0,7} = x_{3,2,7,3} = x_{3,3,3,11} = x_{3,4,11,0} = 1$, and all other $x_{3,d,k,i,j} = 0$.",
+      "modelAnswer": "Maximise 1, subject to:\n\nFor each $d$: $\\sum_{k,i,j} c_{i,j} x_{d,i,j,k} \\leq L$ (each driver drives distance at most $L$)\n\nFor each $i \\neq 0$: $\\sum_{d,k,j} x_{d,i,j,k} \\geq 1$ (each location is visited at least once)\n\nFor each $d$, each $k$ and each $i \\neq 0$: $\\sum_j x_{d,k,j,i} - x_{d,k+1,i,j} = 0$ (a driver leaves a location if and only if they arrived at it, i.e. their path is continuous, except they can stop at the depot)\n\nFor each $d$: $\\sum_j x_{d,1,0,j} = 1$, $\\sum_{k>1,j} x_{d,k,0,j} = 0$ (each driver starts at the depot and doesn’t leave it later)\n\nFor each $d, i, j, k$: $0 \\leq x_{d,i,j,k} \\leq 1$, $x_{d,i,j,k} \\in Z$.",
+      "page": 12,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q5c",
+      "label": "Q5(c)",
+      "marks": 3,
+      "sharedContext": "Backtracking, LP & branch-and-bound\n\nPostNL have asked you to help design an algorithm to plan routes for their delivery drivers. They have $D$ drivers, each of whom is allowed to drive up to $L$ kilometers, starting and ending at the depot. There are $N$ locations to deliver to, each of which must be visited by a driver. They have a table of distances $c_{i,j}$ of distances between locations (for $0 \\leq i, j \\leq n$ the distance between location $i$ and location $j$ is $c_{i,j} = c_{j,i}$; the depot is location 0).",
+      "text": "(c) State what is meant by the fractional relaxation of this ILP, and explain precisely how to update your algorithm from part a to use branch-and-bound with this fractional relaxation.",
+      "modelAnswer": "Fractional relaxation: drop the integrality constraints.\n\nSince we only dropped constraints, if the original ILP was feasible then so is the relaxed LP/the optimum of the relaxed LP is no worse than the optimum of the ILP.\n\nFor partial solution $a$, write $LP(a)$ for the relaxed LP corresponding to $a$ (i.e. with additional constraints setting the variables in accordance with $a$). Replace the function dead:\n\n```text\ndead(a):\n    if opt(LP(a)) = -infty: return true\n    else: return false\n```",
+      "page": 13,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

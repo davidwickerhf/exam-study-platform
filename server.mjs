@@ -1157,6 +1157,37 @@ async function loadPracticeExamPayload(courseId, examId, { writeBack = true } = 
   return normalized.payload
 }
 
+/**
+ * Course-wide grading-notes content: optional PDF the course points at via
+ * course.gradingNotesPdf. Its extracted text is folded into both the parse
+ * prompt and the grader prompt as marking guidance / sample-solution style,
+ * so the model uses the course's actual rubric instead of generic textbook
+ * phrasing. Cached per server lifetime — the PDF doesn't change at runtime.
+ */
+const gradingNotesCache = new Map() // courseId -> string | null
+async function loadCourseGradingNotes(state, course) {
+  if (!course?.id) return null
+  if (gradingNotesCache.has(course.id)) return gradingNotesCache.get(course.id)
+  const rel = course.gradingNotesPdf
+  if (!rel) { gradingNotesCache.set(course.id, null); return null }
+  try {
+    const courseRoot = await courseRootFor(state, course)
+    const target = resolve(courseRoot, rel)
+    if (!pathInside(courseRoot, target) || !existsSync(target)) {
+      gradingNotesCache.set(course.id, null); return null
+    }
+    const pages = await extractPdfPageText(target)
+    const text = pages.length
+      ? pages.map((p) => `=== GRADING-PAGE ${p.page} ===\n${(p.text || '').trim()}`).join('\n\n')
+      : null
+    gradingNotesCache.set(course.id, text)
+    return text
+  } catch {
+    gradingNotesCache.set(course.id, null)
+    return null
+  }
+}
+
 async function parseExamPaper(courseId, examId, questionPages, solutionsPages) {
   const cachePath = resolve(practiceExamDir, `${examCacheKey(courseId, examId)}.json`)
   if (existsSync(cachePath)) {
@@ -1209,6 +1240,13 @@ async function parseExamPaper(courseId, examId, questionPages, solutionsPages) {
   const solutionsBlob = (solutionsPages || []).length
     ? '\n\n=== SOLUTIONS PDF ===\n' + solutionsPages.map((p) => `=== S-PAGE ${p.page} ===\n${cleanPage(p.text)}`).join('\n\n')
     : '\n\n(No solutions/model-answers PDF provided — fill modelAnswer using your knowledge of ' + course.code + ' best practice.)'
+  // If the course supplies a marking-criteria / sample-solutions PDF, fold its
+  // text in as authoritative guidance. Codex should mirror its phrasing and
+  // structure when writing modelAnswer for any related question.
+  const gradingNotesText = await loadCourseGradingNotes(state, course)
+  const gradingNotesBlob = gradingNotesText
+    ? `\n\n=== COURSE-WIDE GRADING NOTES & SAMPLE SOLUTIONS (authoritative for marking) ===\n${gradingNotesText}`
+    : ''
 
   const prompt = [
     `You are parsing a past/mock exam paper for ${course.code} — ${course.name} into individual gradable questions.`,
@@ -1252,7 +1290,8 @@ async function parseExamPaper(courseId, examId, questionPages, solutionsPages) {
     ``,
     `=== QUESTION PAPER ===`,
     questionsBlob,
-    solutionsBlob
+    solutionsBlob,
+    gradingNotesBlob
   ].join('\n')
 
   const out = await runCodex(prompt, { schemaPath })
@@ -1470,12 +1509,22 @@ async function gradePracticeAttempt(courseId, examId, questionId, attempt, attem
 
   const imagePaths = await writeAttemptImages(attemptImages)
   const imageBlurb = imagePaths.length ? `\n[${imagePaths.length} image attachment${imagePaths.length === 1 ? '' : 's'} attached — examine carefully. The student's answer is in the image; treat the typed text as supplementary unless the image is unreadable.]` : ''
+  const gradingNotesText = await loadCourseGradingNotes(state, course)
+  const gradingNotesBlock = gradingNotesText
+    ? [
+        ``,
+        `=== COURSE-WIDE GRADING NOTES (authoritative — defer to these over the generic policy where they apply) ===`,
+        gradingNotesText,
+        `=== END GRADING NOTES ===`,
+        ``
+      ].join('\n')
+    : ''
 
   const prompt = [
     `You are an exam grader for ${course.code} — ${course.name}.`,
     ``,
     MATH_FORMATTING_RULE,
-    ``,
+    gradingNotesBlock,
     `GRADING POLICY — focus on SUBSTANTIVE CORRECTNESS only:`,
     `- Award marks for: correct concepts, accurate application, named relationships, valid frameworks, correct logical structure.`,
     `- Deduct for: missing required elements, wrong concept/acronym names, factual errors, missing connections asked for in the question.`,
