@@ -2947,6 +2947,47 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // Chapter-local asset (image / pdf / etc.) referenced from a chapter's
+    // markdown via Obsidian's ![[file.png]] embed syntax. Path is resolved
+    // *within* the chapter folder; anything that tries to escape with ../
+    // is rejected.
+    const chapterAssetMatch = url.pathname.match(/^\/api\/chapter-asset\/([^/]+)\/([^/]+)\/(.+)$/)
+    if (chapterAssetMatch && req.method === 'GET') {
+      const [, courseIdRaw, chapterIdRaw, fileRaw] = chapterAssetMatch
+      const courseId = decodeURIComponent(courseIdRaw)
+      const chapterId = decodeURIComponent(chapterIdRaw)
+      const file = decodeURIComponent(fileRaw)
+      try {
+        const state = await readState()
+        const course = state.courses.find((c) => c.id === courseId)
+        if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+        const chapter = course.chapters?.find((c) => c.id === chapterId)
+        if (!chapter) { send(res, 404, JSON.stringify({ error: 'Unknown chapter' })); return }
+        const vaultRoot = getVaultRoot(state)
+        const courseRoot = resolve(vaultRoot, course.knowledgeBase)
+        const chapterDir = dirname(resolve(courseRoot, chapter.file))
+        const target = resolve(chapterDir, file)
+        if (!pathInside(chapterDir, target)) { send(res, 400, JSON.stringify({ error: 'Path escapes chapter folder' })); return }
+        if (!existsSync(target)) { send(res, 404, JSON.stringify({ error: 'Not found' })); return }
+        const ext = target.toLowerCase().split('.').pop()
+        const mime = ({
+          png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+          gif: 'image/gif', svg: 'image/svg+xml', webp: 'image/webp',
+          pdf: 'application/pdf'
+        })[ext] || 'application/octet-stream'
+        const buf = await readFile(target)
+        res.writeHead(200, {
+          'Content-Type': mime,
+          'Content-Length': buf.length,
+          'Cache-Control': 'private, max-age=3600'
+        })
+        res.end(buf)
+      } catch (err) {
+        send(res, 500, JSON.stringify({ error: err.message }))
+      }
+      return
+    }
+
     const chapterMatch = url.pathname.match(/^\/api\/chapter\/([^/]+)\/([^/]+)\/?(.*)$/)
     if (chapterMatch && req.method === 'GET') {
       const [, courseId, chapterId, rest] = chapterMatch

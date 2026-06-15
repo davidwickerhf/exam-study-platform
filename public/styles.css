@@ -2437,6 +2437,19 @@ details.review-log .empty-log {
   padding: 0;
 }
 
+/* Inline images embedded from a chapter folder via Obsidian's ![[file.png]]
+   syntax. Sized to match the chapter's diagram figures so they don't blow up
+   on wide screens. */
+.md-embed-img {
+  display: block;
+  margin: 18px auto;
+  max-width: 760px;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
 .diag-figure > figcaption {
   font-family: Avenir Next, Optima, Candara, "Segoe UI", sans-serif;
   font-size: 11px;

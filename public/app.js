@@ -6007,6 +6007,17 @@ function renderMarkdown(md, courseId, chapterId) {
     return `<details class="callout callout-${type.toLowerCase()}" ${open}>\n<summary>${escapeHtml(title || type)}</summary>\n\n${inner}\n\n</details>\n\n`
   })
 
+  // Obsidian image-embed syntax: ![[file.png]] → <img> served from the
+  // chapter folder. Must run BEFORE the [[…]] wikilink handler, else the
+  // wikilink regex eats the inner [[…]] and the ! gets stranded outside a
+  // text-only span. courseId+chapterId are passed into renderMarkdown so the
+  // server's /api/chapter-asset route knows where to look.
+  if (courseId && chapterId) {
+    s = s.replace(/!\[\[([^\]\n]+\.(?:png|jpg|jpeg|gif|svg|webp))\]\]/gi, (_, file) => {
+      const url = `/api/chapter-asset/${encodeURIComponent(courseId)}/${encodeURIComponent(chapterId)}/${encodeURIComponent(file.trim())}`
+      return `<img class="md-embed-img" src="${url}" alt="${escapeHtml(file)}">`
+    })
+  }
   s = s.replace(/\[\[([^\]]+)\]\]/g, (_, link) => {
     const [target, label] = link.split('|')
     return `<span class="wikilink" title="${escapeHtml(target)}">${escapeHtml(label || target)}</span>`

@@ -57,6 +57,12 @@ The CIA triad is the classical starting set, but Lecture 1 names **six** foundat
 
 Lecture 1's central diagram places **access control** as the enforcement hub: it consumes an authenticated identity together with a policy, then enforces confidentiality, integrity, and authorization. Accountability sits to the side, supported by digital evidence such as logs.
 
+The lecture slide itself, kept here for reference (the cleaned-up reconstruction follows):
+
+![[security-goals-and-access-control-map.png]]
+
+In the slide's colour coding: **green** ovals are the six goals; **blue** boxes are the mechanisms (access control + the two flavours of authentication); **orange** boxes are the raw inputs (`msg data`, `secret`, `identity`, `policy`, `digital evidence`). Read it bottom-up: inputs feed mechanisms, mechanisms enforce goals.
+
 <figure class="diag-figure">
   <figcaption>Security goal dependencies — access control is the enforcement hub; identity, secret, and policy are the inputs</figcaption>
   <svg viewBox="0 0 820 320" class="diag-svg" role="img" aria-label="Six security goals and their dependencies">
