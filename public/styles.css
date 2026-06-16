@@ -6608,14 +6608,27 @@ button.extend-btn:hover {
   margin-bottom: 10px;
 }
 
+/* Block label with the radio/checkbox absolutely positioned. This keeps the
+   text + inline `.katex` spans as ordinary inline content, so they wrap on
+   ordinary line boundaries instead of each math span and each word becoming
+   its own "column". (Previously `display: flex` turned every contiguous
+   text run between `.katex` spans into a separate anonymous flex item.) */
 .q-options label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  display: block;
+  position: relative;
+  padding: 6px 10px 6px 30px;
   border: 1px solid var(--line);
   background: var(--panel);
   cursor: pointer;
+  line-height: 1.45;
+}
+
+.q-options label > input[type="radio"],
+.q-options label > input[type="checkbox"] {
+  position: absolute;
+  left: 8px;
+  top: 10px;
+  margin: 0;
 }
 
 .q-options label:hover {
