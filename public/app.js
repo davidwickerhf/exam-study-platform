@@ -6280,7 +6280,11 @@ function extractToc(html) {
 
 function typesetMath() {
   if (typeof renderMathInElement === 'undefined') return
-  document.querySelectorAll('.markdown-body, .q-body, .q-grade, .q-expected, .sr-question, .mistake-question, .practice-q-body, .chat-body, .fc-card-side, .fc-study-front, .fc-study-back').forEach((el) => {
+  // .q-options must be in this list — mc/multi/tf option labels are rendered
+  // via renderInlineMarkdown (which preserves $…$ for KaTeX to pick up later)
+  // but they sit OUTSIDE .q-body, so without an explicit selector they were
+  // never typeset and the dollar-delimited LaTeX leaked into the visible text.
+  document.querySelectorAll('.markdown-body, .q-body, .q-options, .q-grade, .q-expected, .sr-question, .mistake-question, .practice-q-body, .chat-body, .fc-card-side, .fc-study-front, .fc-study-back').forEach((el) => {
     try {
       renderMathInElement(el, {
         delimiters: [
