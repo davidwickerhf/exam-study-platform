@@ -1,0 +1,227 @@
+{
+  "generatedAt": "2026-06-17T18:03:19.906Z",
+  "courseId": "stats",
+  "examId": "tutorial-cond-prob",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Exercise 1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Exercise 1\nA class in advanced physics is composed of 10 juniors, 30 seniors, and 10 graduate students. The final\ngrades show that 3 of the juniors, 10 of the seniors, and 5 of the graduate students received an A for the\ncourse. If a student is chosen at random from this class and is found to have earned an A, what is the\nprobability that he or she is a senior?",
+      "modelAnswer": "Let $A$ : student earned an A; $B$ : student is senior. Then we want $P(B|A)$. So:\n\n$$P(B|A)=\\frac{P(A\\cap B)}{P(A)}=\\frac{\\frac{10}{50}}{\\frac{18}{50}}=\\frac{10}{18}$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2a",
+      "label": "Exercise 2(a)",
+      "marks": 1,
+      "sharedContext": "Exercise 2\n A random sample of 200 adults are classified b elow by s ex a nd t heir l evel o f e ducation attained.\n Education Male Female\n Elementary 38 45\n Secondary 28 50\n College 22 17\n If a person is picked at random from this group, find the probability that",
+      "text": "a) the person is a male, given that the person has a secondary education.",
+      "modelAnswer": "$$\\frac{28}{78}$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2b",
+      "label": "Exercise 2(b)",
+      "marks": 1,
+      "sharedContext": "Exercise 2\n A random sample of 200 adults are classified b elow by s ex a nd t heir l evel o f e ducation attained.\n Education Male Female\n Elementary 38 45\n Secondary 28 50\n College 22 17\n If a person is picked at random from this group, find the probability that",
+      "text": "b) the person does not have a college degree, given that the person is female.",
+      "modelAnswer": "$$\\frac{95}{112}$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3a",
+      "label": "Exercise 3(a)",
+      "marks": 1,
+      "sharedContext": "Exercise 3\n In an experiment to study the relationship of hypertension and smoking habits, the following data\nare collected for 180 individuals:\n Nonsmokers Moderate Smokers Heavy Smokers\n H 21 36 30\n NH 48 26 19\n Here H and NH stand for Hypertension and Nonhypertension, respectively. If one of these individuals\nis selected at random, find the probability that the person is",
+      "text": "a) experiencing hypertension, given that the person is a heavy smoker.",
+      "modelAnswer": "$$\\frac{30}{49}$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3b",
+      "label": "Exercise 3(b)",
+      "marks": 1,
+      "sharedContext": "Exercise 3\n In an experiment to study the relationship of hypertension and smoking habits, the following data\nare collected for 180 individuals:\n Nonsmokers Moderate Smokers Heavy Smokers\n H 21 36 30\n NH 48 26 19\n Here H and NH stand for Hypertension and Nonhypertension, respectively. If one of these individuals\nis selected at random, find the probability that the person is",
+      "text": "b) a nonsmoker, given that the person is experiencing no hypertension.",
+      "modelAnswer": "$$\\frac{48}{93}$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4a",
+      "label": "Exercise 4(a)",
+      "marks": 1,
+      "sharedContext": "Exercise 4\n In the senior year of a high school graduating class of 100 students, 42 studied mathematics, 68 studied\npsychology, 54 studied history, 22 studied both mathematics and history, 25 studied both mathematics\nand psychology, 7 studied history but neither mathematics nor psychology, 10 studied all three subjects,\nand 8 did not take any of the three. Randomly select a student from the class and find the probability\nof the following events.",
+      "text": "a) A person enrolled in psychology takes all three subjects",
+      "modelAnswer": "Let $H$, $M$ and $P$ denote a person taking history, mathematics, and psychology, respectively.\n\n$$P(M\\cap P\\cap H)=\\frac{10}{68}=\\frac{5}{34}$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4b",
+      "label": "Exercise 4(b)",
+      "marks": 1,
+      "sharedContext": "Exercise 4\n In the senior year of a high school graduating class of 100 students, 42 studied mathematics, 68 studied\npsychology, 54 studied history, 22 studied both mathematics and history, 25 studied both mathematics\nand psychology, 7 studied history but neither mathematics nor psychology, 10 studied all three subjects,\nand 8 did not take any of the three. Randomly select a student from the class and find the probability\nof the following events.",
+      "text": "b) A person not taking psychology is taking both history and mathematics",
+      "modelAnswer": "Let $H$, $M$ and $P$ denote a person taking history, mathematics, and psychology, respectively.\n\n$$P(M\\cap H\\mid P')=\\frac{P(M\\cap H\\cap P')}{P(P')}=\\frac{22-10}{100-68}=\\frac{12}{32}=\\frac{3}{8}$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6a",
+      "label": "Exercise 6(a)",
+      "marks": 1,
+      "sharedContext": "Exercise 6\n The probability that a married man watches a certain television show is 0.45, and the probability\nthat a married woman watches the show is 0.5. The probability that a man watches the show, given\nthat his wife does, is 0.8. Find the probability that",
+      "text": "a) a married couple watches the show;",
+      "modelAnswer": "Consider the events: $H$ husband watches a certain show, and $W$ denotes that the wife watches the\nsame show.\n\n$$P(W\\cap H)=P(W)\\cdot P(H\\mid W)=0.5\\cdot 0.8=0.4$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6b",
+      "label": "Exercise 6(b)",
+      "marks": 1,
+      "sharedContext": "Exercise 6\n The probability that a married man watches a certain television show is 0.45, and the probability\nthat a married woman watches the show is 0.5. The probability that a man watches the show, given\nthat his wife does, is 0.8. Find the probability that",
+      "text": "b) a wife watches the show, given that her husband does;",
+      "modelAnswer": "Consider the events: $H$ husband watches a certain show, and $W$ denotes that the wife watches the\nsame show.\n\n$$P(W\\mid H)=\\frac{P(W\\cap H)}{P(H)}=\\frac{0.4}{0.45}=\\frac{8}{9}$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q6c",
+      "label": "Exercise 6(c)",
+      "marks": 1,
+      "sharedContext": "Exercise 6\n The probability that a married man watches a certain television show is 0.45, and the probability\nthat a married woman watches the show is 0.5. The probability that a man watches the show, given\nthat his wife does, is 0.8. Find the probability that",
+      "text": "c) at least one member of a married couple watches the show.",
+      "modelAnswer": "Consider the events: $H$ husband watches a certain show, and $W$ denotes that the wife watches the\nsame show.\n\n$$P(W\\cup H)=P(W)+P(H)-P(W\\cap H)=0.5+0.45-0.4=0.55$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7a",
+      "label": "Exercise 7(a)",
+      "marks": 1,
+      "sharedContext": "Exercise 7\n A fair coin is flipped twice. What is the probability that both flips land on heads given that",
+      "text": "a) the first flip lands on heads",
+      "modelAnswer": "$$S=\\{HH, HT, TH, TT\\}$$\n\n$$P(HH\\mid \\text{first outcome heads})=\\frac{P(HH)}{P(HH)+P(HT)}=\\frac{1}{2}$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7b",
+      "label": "Exercise 7(b)",
+      "marks": 1,
+      "sharedContext": "Exercise 7\n A fair coin is flipped twice. What is the probability that both flips land on heads given that",
+      "text": "b) at least one flips lands on heads",
+      "modelAnswer": "$$S=\\{HH, HT, TH, TT\\}$$\n\n$$P(HH\\mid \\text{at least one heads})=\\frac{P(HH)}{P(HH)+P(HT)+P(TH)}=\\frac{1}{3}$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q8",
+      "label": "Exercise 8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Exercise 8\n A paint-store chain produces and sells latex and semigloss paint. Based on long-range sales, the\nprobability that a customer will purchase latex paint is 0.75. Of those that purchase latex paint, 60%\nalso purchase rollers. But only 30% of semigloss paint buyers purchase rollers. A randomly selected\nbuyer purchases a roller and a can of paint. What is the probability that the paint is latex?",
+      "modelAnswer": "Consider the events: $A$ denotes a customer purchasing latex paint, $A'$ denotes a customer purchasing\nsemigloss paint, and $B$ denotes a customer purchasing rollers.\n\n$$P(A\\mid B)=\\frac{P(B\\mid A)\\cdot P(A)}{P(B\\mid A)\\cdot P(A)+P(B\\mid A')\\cdot P(A')}=\\frac{0.60\\cdot 0.75}{0.60\\cdot 0.75+0.25\\cdot 0.30}=0.857$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q9",
+      "label": "Exercise 9",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Exercise 9\n Denote by A, B, and C the events that a grand prize is behind doors A, B, and C, respectively.\nSuppose you randomly picked a door, say A. The game host opened a door, say B, and showed there\nwas no prize behind it. Now the host offers you the option of either staying at the door that you picked\n(A) or switching to the remaining unopened door (C). Use probability to explain whether you should\nswitch or not.",
+      "modelAnswer": "If we use the assumptions that the host would not open the door you picked nor the door with the prize\nbehind it, we can use Bayes rule to solve the problem. First, observe that $P(A)=P(B)=P(C)=\\frac{1}{3}$.\nDenote by $H$ the event that you picked door $A$ and the host opened door $B$, while there is no prize\nbehind the door $B$. Then\n\n$$P(A\\mid H)=\\frac{P(H\\mid A)\\cdot P(A)}{P(H\\mid A)\\cdot P(A)+P(H\\mid B)\\cdot P(B)+P(H\\mid C)\\cdot P(C)}$$\n\n$$=\\frac{P(H\\mid A)}{P(H\\mid A)+P(H\\mid B)+P(H\\mid C)}=\\frac{\\frac{1}{2}}{\\frac{1}{2}+0+1}=\\frac{1}{3}.$$\n\nThe intuition is as follows: since the player initially chose door A, the chance that the host opens door\nB is 1/2 if the prize is behind door A, 0 if the prize is behind door B, and 1 if the prize is behind door\nC. Given the outcome, you should switch doors.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q10",
+      "label": "Exercise 10",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Exercise 10\n Every morning during college weeks, a period of 6 weeks, a student rolls a die. If the outcome is a\nsix, then he will study; otherwise he goes back to sleep. During examination week, rather than rolling a\ndie, our student flips a coin and he will study if he flips heads. If our student is studying one morning,\nwhat is the probability that it is examination week?",
+      "modelAnswer": "$E$ : Exam week $S$ : Studying. We have $P(E)=\\frac{1}{7}$, $P(S|E)=\\frac{1}{2}$ and $P(S|E')=\\frac{1}{6}$. So $P(E\\cap S)=P(E)\\cdot P(S|E)=\\frac{1}{14}$ and $P(E'\\cap S)=P(E')\\cdot P(S|E')=\\frac{6}{7}\\cdot \\frac{1}{6}=\\frac{1}{7}$. Hence\n\n$$P(E|S)=\\frac{P(E\\cap S)}{P(S)}=\\frac{\\frac{1}{14}}{\\frac{1}{14}+\\frac{1}{7}}=\\frac{1}{3}$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q11",
+      "label": "Exercise 11",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Exercise 11\n A truth serum has the property that 90 % of the guilty suspects are properly judged while, of course,\n10 % of the guilty suspects are improperly found innocent. On the other hand, innocent suspects are\nmisjudged 1 % of the time. If the suspect was selected from a group of suspects of which only 5 % have\never committed a crime, and the serum indicates that he is guilty, what is the probability that he is\ninnocent?",
+      "modelAnswer": "$G$ : Guilty $F$ : Found guilty. We are interested in $P(G' |F)$.\nWe have $P(G)=0.05$, $P(F |G)=0.90$ and $P(F |G')=0.01$. So $P(F\\cap G)=P(G)\\cdot P(F |G)=0.05\\cdot 0.90=0.045$ and $P(F\\cap G')=P(G')\\cdot P(F |G')=0.95\\cdot 0.01=0.0095$. So $P(F)=P(F\\cap G)+P(F\\cap G')=0.045+0.0095=0.0545$. Hence\n\n$$P(G' |F)=\\frac{P(F\\cap G')}{P(F)}=\\frac{0.0095}{0.0545}=0.174$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q12a",
+      "label": "Exercise 12(a)",
+      "marks": 1,
+      "sharedContext": "Exercise 12\n A large industrial firm uses three local motels to provide overnight accomodations for its clients.\nFrom past experience it is know that 20% of the clients are assigned rooms at the Ramada Inn, 50% at\nthe Sheraton, and 30% at the Lakeview Motor Lodge. If the plumbing is faulty in 5% of the rooms at\nthe Ramadan Inn, in 4% of the rooms at the Sheraton, and in 8% of the rooms in the Lakeview Motor\nLodge, what is the probability that",
+      "text": "a) a client will be assigned a room with faulty plumbing?",
+      "modelAnswer": "Let $R$, $S$, and $L$ resperesnt the events that a client is assigned a room at the Ramada Inn, Sheraton,\nand Lakeview Motor Lodge, respectively, and let $F$ represent the event that the plumbing is faulty.\n\n$$P(F)=P(F\\mid R)P(R)+P(F\\mid S)P(S)+P(F\\mid L)P(L)=0.05\\cdot 0.2+0.04\\cdot 0.4+0.08\\cdot 0.3=0.054.$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q12b",
+      "label": "Exercise 12(b)",
+      "marks": 1,
+      "sharedContext": "Exercise 12\n A large industrial firm uses three local motels to provide overnight accomodations for its clients.\nFrom past experience it is know that 20% of the clients are assigned rooms at the Ramada Inn, 50% at\nthe Sheraton, and 30% at the Lakeview Motor Lodge. If the plumbing is faulty in 5% of the rooms at\nthe Ramadan Inn, in 4% of the rooms at the Sheraton, and in 8% of the rooms in the Lakeview Motor\nLodge, what is the probability that",
+      "text": "b) a person with a room having faulty plumbing was assigned accommodations at the Lakeview Motor\n Lodge?",
+      "modelAnswer": "Let $R$, $S$, and $L$ resperesnt the events that a client is assigned a room at the Ramada Inn, Sheraton,\nand Lakeview Motor Lodge, respectively, and let $F$ represent the event that the plumbing is faulty.\n\n$$P(L\\mid F)=\\frac{0.08\\cdot 0.3}{0.054}=\\frac{4}{9}.$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q13",
+      "label": "Exercise 13",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Exercise 13\n A certain form of cancer is known to be found in women over 60 with probability 0.06, A blood test\nexists for the detection of the disease, but the test is not infallible. In fact, it is known that 10% of the\ntime, the test gives a false negative and 5% of the time the test gives a false positive. If a woman over\n60 is known to have taken the test and received a favorable (i.e., negative) result, what is the probability\nthat she has the disease?",
+      "modelAnswer": "Consider the events: $C$ denotes that a woman over 60 has cancer and $P$ denotes that the test gives\na positive result. So $P(C)=0.06$, $P(P' | C)=0.1$ and $P(P | C')=0.05$.\n\n$$P(C\\mid P')=\\frac{P(P'\\mid C)P(C)}{P(P'\\mid C)P(C)+P(P'\\mid C')P(C')}=\\frac{0.1\\cdot 0.06}{0.1\\cdot 0.06+(1-0.05)(1-0.06)}=0.0067$$",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q14",
+      "label": "Exercise 14",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Exercise 14\n A firm is accustomed to training operators who do certain tasks on a production line. Those operators\nwho attend the training course are known to be able to meet their production quotas 90% of the time.\nNew operators who do not take the training course only meet their quotas 65% of the time. Forty percent\nof new operators attend the course. Given that a new operator meets her production quota, what is the\nprobability that she attended the program?",
+      "modelAnswer": "Consider the events: $T$ denotes that an operator is trained, so $P(T)=0.4$, and $M$ denotes an operator\nmeets quota, $P(M | T)=0.9$ and $P(M | T')=0.65$.\n\n$$P(T\\mid M)=\\frac{P(M\\mid T)P(T)}{P(M\\mid T)P(T)+P(M\\mid T')P(T')}=\\frac{0.9\\cdot 0.4}{0.9\\cdot 0.4+0.65\\cdot 0.6}=0.48$$",
+      "page": 3,
+      "type": "calc",
+      "options": []
+    }
+  ]
+}

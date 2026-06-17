@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-06-17T18:07:45.836Z",
+  "items": [
+    {
+      "title": "Exercise 1 — Pain reliever hypothesis test",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 2 — Telephone call mean decrease test",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 3 — Household size two-sided test",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 4 — Calorie intake lower-tail test",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 5 — Package delivery time test",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 6 — Mean age confidence interval test",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 6(a) — Conclusion for H0",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 6(b) — One-sided or two-sided test",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 7 — Hypothesis test for mean 15",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 7(a) — Assumptions and distribution",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 7(b) — P-value range from table",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 7(c) — Conclusion on null hypothesis",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 8 — Brown trout IQ hypothesis test",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 9 — Working mothers talk time test",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 10 — Small-sample version of Exercise 9",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 11 — Child behaviour checklist with known sigma",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 12 — Child behaviour checklist with unknown sigma",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    }
+  ]
+}

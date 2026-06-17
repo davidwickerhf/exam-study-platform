@@ -1,0 +1,305 @@
+{
+  "generatedAt": "2026-06-17T18:06:52.356Z",
+  "items": [
+    {
+      "title": "Exercise 1 — Probability distribution constant c",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 1(a)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 1(b)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2 — Classify random variables",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 2(a)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2(b)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2(c)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2(d)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2(e)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2(f)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 3 — Coin toss sample space and W",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 4 — Defective television sets distribution",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 5 — Cumulative distribution function",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 6 — Medicine shelf life density",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 6(a)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 6(b)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 7 — Vacuum cleaner usage density",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 7(a)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 7(b)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 8 — Uniform density from 1 to 3",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 8(a)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 8(b)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 8(c)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 9 — Density from 2 to 5",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 9(a)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 9(b)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 10 — Mail-order response proportion",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 10(a)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 10(b)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 11 — Missile fuel particle size",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 11(a)",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 11(b)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 11(c)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 12 — Washing machine repair time",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 12(a)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 12(b)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 13 — Firms making profit density",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 13(a)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 13(b)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 13(c)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 14 — Subject enrollment probabilities",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 14(a)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 14(b)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 15 — Oil change and filter probabilities",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 15(a)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 15(b)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 16 — Luray Caverns vehicle probabilities",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 16(a)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 16(b)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 16(c)",
+      "page": 3,
+      "depth": 1,
+      "kind": "subquestion"
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "generatedAt": "2026-06-17T18:07:13.874Z",
+  "items": [
+    {
+      "title": "Conditional Probability Exercises",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Exercise 1 — A grades by class standing",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 2 — Sex and education table",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 2(a) — Male given secondary education",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2(b) — No college degree given female",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 3 — Hypertension and smoking habits",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 3(a) — Hypertension given heavy smoker",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 3(b) — Nonsmoker given no hypertension",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 4 — Course enrollment probabilities",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 4(a) — All three subjects given psychology",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 4(b) — History and mathematics without psychology",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 6 — Married couple watching TV show",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 6(a) — Couple watches the show",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 6(b) — Wife watches given husband does",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 6(c) — At least one watches the show",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 7 — Two coin flips",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 7(a) — Both heads given first head",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 7(b) — Both heads given at least one head",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 8 — Paint type given roller purchase",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 9 — Monty Hall switching probability",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 10 — Studying during examination week",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 11 — Truth serum innocence probability",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 12 — Motel faulty plumbing",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 12(a) — Room with faulty plumbing",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 12(b) — Faulty plumbing from Lakeview",
+      "page": 2,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 13 — Cancer test negative result",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 14 — Training attendance given quota met",
+      "page": 3,
+      "depth": 0,
+      "kind": "question"
+    }
+  ]
+}

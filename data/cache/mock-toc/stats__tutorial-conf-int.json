@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-06-17T18:07:32.729Z",
+  "items": [
+    {
+      "title": "Confidence Limits (15-05-2025)",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Exercise 1 — Bootstrap sampling distributions",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 1(a) — Bank account balance",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 1(b) — Cereal sugar content",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 1(c) — Female student heights",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 2 — 95% confidence interval for mean",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 3 — Sample size for margin of error",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 4 — Mean assembly time study",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 4(a) — 92% CI for assembly time",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 4(b) — Sample size for 15-second margin",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 5 — Concurrent server users",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 5(a) — 90% CI for mean users",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 5(b) — Significance evidence mean > 35",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Exercise 6 — Mean and variance of sample proportion",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 7 — CI for engineer proportion",
+      "page": 1,
+      "depth": 0,
+      "kind": "question"
+    },
+    {
+      "title": "Exercise 8 — Transform Uniform(a,b) to Uniform(0,1)",
+      "page": 2,
+      "depth": 0,
+      "kind": "question"
+    }
+  ]
+}

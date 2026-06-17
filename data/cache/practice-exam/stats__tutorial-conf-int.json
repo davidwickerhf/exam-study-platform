@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-06-17T18:04:21.125Z",
+  "courseId": "stats",
+  "examId": "tutorial-conf-int",
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Exercise 1",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "For the following datasets on Bootstrap Sampling, generate a sampling distribution for the mean and\nmedian using bootstrapping:\n- Bank Account Balance\n- Cereal Sugar Content\n- Female Student Heights\n\nFor each dataset this means you need to create at least 200 bootstrap derived datasets (the “bootstrap\nsamples”) and the program will automatically generate a sampling distribution for the “Statistic of\nInterest”. You can then click on the tab “Get Confidence Interval” on the top title row next to “Build\nSampling Distribution”. Comment on how the Central Limit Theorem is relevant in each case and how\nsampling distributions compare between the mean and the median.",
+      "modelAnswer": "Answer given as a separate PDF",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2",
+      "label": "Exercise 2",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "A sample of size $n = 100$ produced a sample mean of $\\bar{x} = 16$. Assuming the population standard\ndeviation is 3, compute a 95% confidence interval where we expect the population mean $\\mu$.",
+      "modelAnswer": "CLT tells us that $Z = \\frac{X-\\mu}{S/\\sqrt{n}} \\approx N(0, 1)$ due to the large sample size. In this case $Z = \\frac{16-\\mu}{3/\\sqrt{100}} \\approx N(0, 1)$, so $P(Z \\leq 1.96) = 0.975$ and $P(Z \\leq -1.96) = 0.025$. This gives the following 95% CI for $\\mu$:\n$$\n[16 - \\frac{1.96\\cdot 3}{10}, 16 + \\frac{1.96\\cdot 3}{10}] = [15.412, 16.588]\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3",
+      "label": "Exercise 3",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Assuming a population standard deviation of $\\sigma = 3$, how large should a sample be to estimate the\npopulation mean $\\mu$, using a 95% confidence interval, such that margin of error does not exceed 0.5?\n(This means that the confidence interval may contain only values between $x − 0.5$ and $x + 0.5$.) You can\ntry to invert the formula for confidence intervals to get this value.",
+      "modelAnswer": "A 95% CI contains values between $x - \\frac{z\\cdot\\sigma}{\\sqrt{n}}$ and $x + \\frac{z\\cdot\\sigma}{\\sqrt{n}}$, where $z = 1.96$. In this case solving\n$$\nx - \\frac{1.96\\cdot 3}{\\sqrt{n}} \\geq x - 0.5\n$$\n(or $x + \\frac{1.96\\cdot 3}{\\sqrt{n}} \\leq x + 0.5$) yields $n \\geq 139$.",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4a",
+      "label": "Exercise 4(a)",
+      "marks": 1,
+      "sharedContext": "The operations manager of a large production plant would like to estimate the mean amount of time\na worker takes to assemble a new electronic component.",
+      "text": "a) After observing 120 workers assembling similar devices, the manager noticed that their average time\nwas 16.2 minutes with a standard deviation of 3.6 minutes. Construct a 92 % confidence interval for\nthe mean assembly time.",
+      "modelAnswer": "a) The Central Limit Theorem tells us that $Z = \\frac{X-\\mu}{S/\\sqrt{n}} \\approx N(0, 1)$. In this case $Z = \\frac{16.2-\\mu}{3.6/\\sqrt{120}} \\approx N(0, 1)$. So $P(Z \\leq 1.75) = 0.96$ and $P(T \\leq -1.75) = 0.04$. This gives the following CI for $\\mu$:\n$$\n[16.2 - \\frac{1.75\\cdot 3.6}{\\sqrt{120}}, 16.2 + \\frac{1.75\\cdot 3.6}{\\sqrt{120}}] = [15.625, 16.775]\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q4b",
+      "label": "Exercise 4(b)",
+      "marks": 1,
+      "sharedContext": "The operations manager of a large production plant would like to estimate the mean amount of time\na worker takes to assemble a new electronic component.",
+      "text": "b) How many workers should be involved in this study in order to have the mean assembly time estimated\nup to ±15 seconds with 92 % confidence?",
+      "modelAnswer": "b) We need to find $n$ such that $16.2 - \\frac{1.75\\cdot 3.6}{\\sqrt{n}} \\geq 15.95$ (notice that 15 seconds is 0.25 minutes). This gives $n \\geq 636$ (635 is not quite enough).",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5a",
+      "label": "Exercise 5(a)",
+      "marks": 1,
+      "sharedContext": "In order to ensure efficient usage of a server, it is necessary to estimate the mean number of concurrent\nusers. According to records, the sample mean and sample standard deviation of number of concurrent\nusers at 100 randomly selected times is 37.7 and 9.2, respectively.",
+      "text": "a) Construct a 90% confidence interval for the mean number of concurrent users.",
+      "modelAnswer": "a) CLT tells us that $Z = \\frac{X-\\mu}{S/\\sqrt{n}} \\approx N(0, 1)$ due to the large sample size. In this case $Z = \\frac{37.7-\\mu}{9.2/\\sqrt{100}} \\approx N(0, 1)$, so $P(Z \\leq 1.645) = 0.95$ and $P(Z \\leq -1.645) = 0.05$. This gives the following 90% CI for $\\mu$:\n$$\n[37.7 - \\frac{1.645\\cdot 9.2}{10}, 37.7 + \\frac{1.645\\cdot 9.2}{10}] = [36.186, 39.214]\n$$",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5b",
+      "label": "Exercise 5(b)",
+      "marks": 1,
+      "sharedContext": "In order to ensure efficient usage of a server, it is necessary to estimate the mean number of concurrent\nusers. According to records, the sample mean and sample standard deviation of number of concurrent\nusers at 100 randomly selected times is 37.7 and 9.2, respectively.",
+      "text": "b) (A question phrased as a chapter 10 question. You should be able to come up with a good answer\nwithout having studied chapter 10.) Do these data provide significant evidence, at 10 % significance\nlevel, that the mean number of concurrent users is greater than 35?",
+      "modelAnswer": "b) Yes, we are 90% confident (i.e. in 90 out of 100 experiments, we expect...) that the population mean\n$\\mu$ is between 36.186 and 39.214, so bigger than 35.",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q6",
+      "label": "Exercise 6",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Show that when calculating a confidence interval for an unknown population proportion $p$ (say of left-\nhanders) from some sample of people $n$, $E(\\hat{p}) = p$ and $V(\\hat{p}) = \\frac{p(1−p)}{n}$. Hint: Write out the expectations\nin terms of the random variable $X$: Number of successes in the sample and use the expectations of the\nBinomial Distribution.",
+      "modelAnswer": "$X$ is the number of successes in the sample. We have: $E(\\hat{p}) = E(\\frac{X}{n}) = \\frac{np}{n} = p$ and $V(\\hat{p}) = V(\\frac{X}{n}) = \\frac{1}{n^2}V(X) = \\frac{1}{n^2}\\cdot np(1 - p) = \\frac{p(1-p)}{n}$",
+      "page": 1,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q7",
+      "label": "Exercise 7",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "Of 48 engineers that were interviewed about the topic, 36 think that the new reinforcement of a\nconcrete building is not earthquake proof. Give a 95% confidence interval for the true proportion of\nengineers that thinks that the new reinforcement is not earthquake proof. [Note that we haven’t yet\ncovered this in lecture - but it is there in Lecture 7 and accompanying chapter.]",
+      "modelAnswer": "We have $\\hat{p} = \\frac{36}{48} = 0.75$. The 0.025- and 0.975-quantiles of the normal distribution are $z = 1.96$ and $z = -1.96$. So $P(p \\leq \\hat{p} - z \\cdot \\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}} = 0.75 - 1.96 \\cdot \\sqrt{\\frac{0.75\\cdot 0.25}{48}} = 0.6275) = 0.025$ and $P(p \\leq \\hat{p} + z \\cdot \\sqrt{\\frac{\\hat{p}(1-\\hat{p})}{n}} = 0.75 + 1.96 \\cdot \\sqrt{\\frac{0.75\\cdot 0.25}{48}} = 0.8725) = 0.975$. So our 95% CI for $p$ is: $[0.6275, 0.8725]$.",
+      "page": 1,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q8",
+      "label": "Exercise 8",
+      "marks": 1,
+      "sharedContext": "",
+      "text": "The Normal Distribution can always be rescaled and shifted to a $N(0, 1)$ distribution. See slides in\nLecture 7. Demonstrate that we can similarly transform a Uniform Distribution $U(a, b)$ to $U(0, 1)$.",
+      "modelAnswer": "The central idea here is to identify the appropriate transformation required to go from $U(a, b)$ to $U(0, 1)$. For $U(a, b)$, $f(x) = \\frac{1}{b-a}$. Further, $f(x)$ is defined between $a$ and $b$ and the probability goes to 0 elsewhere. Thus, we use the transformation, $k = \\frac{x-a}{b-a}$. Now, we can apply this transformation in the cumulative distribution function to confirm that this does what we intend:\n$$\nF(\\tilde{x}) = \\int_a^{\\tilde{x}} \\frac{1}{b-a}\\,dx,\n$$\nwe have $dk = \\frac{1}{b-a}dx$, then we have\n$$\nF(k) = \\int_0^{\\tilde{k}} \\frac{1}{b-a}(b-a)\\,dk,\n$$\nthus,\n$$\nF(k) = \\int_0^{\\tilde{k}} dk.\n$$\nThis is now the cumulative distribution function for the $U(0, 1)$ as intended.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    }
+  ]
+}
