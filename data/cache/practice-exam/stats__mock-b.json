@@ -33,6 +33,9 @@
         "III",
         "II",
         "I"
+      ],
+      "figures": [
+        "venn-diagrams.png"
       ]
     },
     {
@@ -57,7 +60,7 @@
       "label": "Q1(d)",
       "marks": 2,
       "sharedContext": "",
-      "text": "Fill in the blank: In Geary’s test for normality, the ____ of the test statistic is a good estimator for $\\sigma$ if $X$ follows a normal distribution with mean $\\mu$ and variance $\\sigma^2$, but it will over- or underestimate for any other distribution.",
+      "text": "Fill in the blank: In Geary\u2019s test for normality, the ____ of the test statistic is a good estimator for $\\sigma$ if $X$ follows a normal distribution with mean $\\mu$ and variance $\\sigma^2$, but it will over- or underestimate for any other distribution.",
       "modelAnswer": "b) numerator",
       "page": 2,
       "type": "mc",
@@ -167,7 +170,7 @@
       "label": "Q5(a)",
       "marks": 6,
       "sharedContext": "Competitive prices?\n\nA retailer entered into an exclusive agreement with a supplier who guaranteed to provide all products at competitive prices. The retailer eventually began to purchase supplies from other vendors who offered better prices. The original supplier filed a legal action claiming violation of the agreement. In defense, the retailer had an audit performed on a random sample of invoices. For each audited invoice, all purchases made from other suppliers were examined and the prices were compared with those offered by the original supplier. For each invoice, the percent of purchases for which the alternate supplier offered a lower price than the original supplier was recorded. Here are the data:\n\n$0$ $100$ $0$ $100$ $33$ $34$ $100$ $48$ $78$ $100$ $77$ $100$ $38$ $68$ $100$ $79$ $100$ $100$ $100$ $100$ $100$ $100$ $89$ $100$ $100$",
-      "text": "Based on the information above, construct a $95\\%$ CI for the average percentage of the supplier’s prices that are not competitive.",
+      "text": "Based on the information above, construct a $95\\%$ CI for the average percentage of the supplier\u2019s prices that are not competitive.",
       "modelAnswer": "Let $\\mu$ be the average percentage of the supplier's prices that are not competitive. Since $\\sigma$ is unknown, use a one-sample $t$-confidence interval.\n\nThe sample size is\n\n$$\nn=25.\n$$\n\nThe sample mean is\n\n$$\n\\bar{x}=75.36.\n$$\n\nThe sample standard deviation is\n\n$$\ns \\approx 33.72.\n$$\n\nFor a $95\\%$ confidence interval with $df=24$,\n\n$$\nt_{0.975,24} \\approx 2.064.\n$$\n\nThus,\n\n$$\n\\bar{x} \\pm t_{0.975,24}\\frac{s}{\\sqrt{n}}\n=75.36 \\pm 2.064\\frac{33.72}{5}\n=75.36 \\pm 13.92.\n$$\n\nSo the $95\\%$ confidence interval is\n\n$$\n(61.44, 89.28).\n$$\n\nThe average percentage of the supplier's prices that are not competitive is estimated to lie between about $61.4\\%$ and $89.3\\%$.",
       "page": 8,
       "type": "calc",
@@ -178,7 +181,7 @@
       "label": "Q5(b)",
       "marks": 2,
       "sharedContext": "Competitive prices?\n\nA retailer entered into an exclusive agreement with a supplier who guaranteed to provide all products at competitive prices. The retailer eventually began to purchase supplies from other vendors who offered better prices. The original supplier filed a legal action claiming violation of the agreement. In defense, the retailer had an audit performed on a random sample of invoices. For each audited invoice, all purchases made from other suppliers were examined and the prices were compared with those offered by the original supplier. For each invoice, the percent of purchases for which the alternate supplier offered a lower price than the original supplier was recorded. Here are the data:\n\n$0$ $100$ $0$ $100$ $33$ $34$ $100$ $48$ $78$ $100$ $77$ $100$ $38$ $68$ $100$ $79$ $100$ $100$ $100$ $100$ $100$ $100$ $89$ $100$ $100$",
-      "text": "Keeping in mind that the supplier guaranteed to provide all products at competitive prices, does this CI suggest that the original supplier’s prices are on average not competitive?",
+      "text": "Keeping in mind that the supplier guaranteed to provide all products at competitive prices, does this CI suggest that the original supplier\u2019s prices are on average not competitive?",
       "modelAnswer": "Yes. The $95\\%$ confidence interval from part (a) is approximately\n\n$$\n(61.44, 89.28).\n$$\n\nThis interval is entirely above $0\\%$, so it suggests that, on average, a substantial percentage of the supplier's prices are not competitive. Therefore, the data suggest that the original supplier's prices are on average not competitive.",
       "page": 9,
       "type": "written",

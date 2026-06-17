@@ -5526,6 +5526,23 @@ function detectPracticeQuestionType(q) {
   return { type: 'written', options: [], cleanText: text }
 }
 
+// Figures attached to a practice question (charts / diagrams / headlines
+// cropped from the source paper). Stored as image files under the exam's
+// asset dir and referenced by q.figures = ["fig1.png", ...]. Inline SVG /
+// markdown figures live in the question text itself and are handled by
+// renderMarkdown, so this only deals with the image-file case.
+function renderPracticeFigures(q, course) {
+  const figs = Array.isArray(q.figures) ? q.figures.filter(Boolean) : []
+  if (!figs.length) return ''
+  const examId = getActivePaperId()
+  const base = `/api/practice-exam-asset/${encodeURIComponent(course.id)}/${encodeURIComponent(examId || 'default')}`
+  return `
+    <div class="practice-figures">
+      ${figs.map((f) => `<img class="practice-figure" src="${base}/${encodeURIComponent(f)}" alt="Figure for ${escapeHtml(q.label)}">`).join('')}
+    </div>
+  `
+}
+
 function renderPracticePart(q, course) {
   const qid = q.id
   const attempt = practiceExamView.attempts[qid] || ''
@@ -5612,6 +5629,7 @@ function renderPracticePart(q, course) {
         </div>
       </div>
       <div class="q-body markdown-body">${renderMarkdown(cleanText)}</div>
+      ${renderPracticeFigures(q, course)}
       ${input}
       <div class="q-actions">
         <button type="button" class="btn btn-primary" data-practice-grade="${qid}" ${grading ? 'disabled' : ''}>${grading ? 'Grading…' : 'Check my answer'}</button>

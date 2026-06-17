@@ -2437,6 +2437,28 @@ details.review-log .empty-log {
   padding: 0;
 }
 
+/* Figures attached to a practice-exam question (charts, diagrams, headlines
+   cropped from the source paper). White matte so dark-on-transparent plots
+   stay legible; bordered and centered like the chapter diagrams. */
+.practice-figures {
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.practice-figure {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  max-height: 420px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
 /* Inline images embedded from a chapter folder via Obsidian's ![[file.png]]
    syntax. Sized to match the chapter's diagram figures so they don't blow up
    on wide screens. */

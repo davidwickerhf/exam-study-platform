@@ -14,7 +14,7 @@
       "options": [
         "Neither the subjects, nor the doctors know but the statisticians do.",
         "The subjects and statisticians do know, but the doctors do not know.",
-        "The subjects, the doctors and statisticians don’t know.",
+        "The subjects, the doctors and statisticians don\u2019t know.",
         "The doctors and statisticians do know, but the subjects do not know."
       ]
     },
@@ -66,6 +66,9 @@
         "Husband completed more than 16 years of schooling.",
         "Wife completed 16 years of schooling.",
         "Wife completed more years of schooling than husband."
+      ],
+      "figures": [
+        "scatter-education.png"
       ]
     },
     {
@@ -95,7 +98,7 @@
       "type": "mc",
       "options": [
         "Choice 2 gives a better chance of winning",
-        "Can’t tell without more information",
+        "Can\u2019t tell without more information",
         "Choice 1 gives a better chance of winning",
         "Choices 1 and 2 give the same chance of winning"
       ]
@@ -170,7 +173,7 @@
       "label": "Q1(k)",
       "marks": 2,
       "sharedContext": "",
-      "text": "A researcher records each participant’s gender, age, and number of times they visited a doctor in the past year. Which pairing below correctly classifies the types of these three variables in order?",
+      "text": "A researcher records each participant\u2019s gender, age, and number of times they visited a doctor in the past year. Which pairing below correctly classifies the types of these three variables in order?",
       "modelAnswer": "(Categorical, Continuous, Discrete)",
       "page": 7,
       "type": "mc",
@@ -186,7 +189,7 @@
       "label": "Q1(l)",
       "marks": 3,
       "sharedContext": "",
-      "text": "We are given the following probability distribution function: $f ( x ) = ( 7 − 2 x ) 2$ for $2 ≤ x ≤ 3$ and $f ( x ) = 0$ otherwise. What is the population mean for this distribution?",
+      "text": "We are given the following probability distribution function: $f ( x ) = ( 7 \u2212 2 x ) 2$ for $2 \u2264 x \u2264 3$ and $f ( x ) = 0$ otherwise. What is the population mean for this distribution?",
       "modelAnswer": "2.417",
       "page": 8,
       "type": "mc",
@@ -212,6 +215,9 @@
         "3.6/100",
         "5/100",
         "3.2/100"
+      ],
+      "figures": [
+        "telegraph-cat-cancer.png"
       ]
     },
     {
@@ -219,7 +225,7 @@
       "label": "Q2(b)",
       "marks": 2,
       "sharedContext": "Judging statistical claims\n\nThe news article below claims that cat parasites cause brain cancer. In the article they state:\n\n\"Across the range of infection prevalence, from 4% to 67% of the population, T. gondii [cat parasite] was associated with a 1.6-fold increase in the risk of brain cancer.\"\n\n\"Cat parasite linked to brain cancer\"",
-      "text": "In reality, it turns out that cats do not cause cancer. A follow-up study that prospectively analyzed women with cats found confirmed that the cats cause cancer story was wrong. They created the following contingency table:\n\n|  | Own Cat | Don’t Own Cat |\n|---|---:|---:|\n| Brain Cancer | 171 | 645 |\n| No Brain Cancer | 114614 | 378066 |\n\nWhat is the relative risk of getting brain cancer when you have a cat compared to when you do not have a cat?",
+      "text": "In reality, it turns out that cats do not cause cancer. A follow-up study that prospectively analyzed women with cats found confirmed that the cats cause cancer story was wrong. They created the following contingency table:\n\n|  | Own Cat | Don\u2019t Own Cat |\n|---|---:|---:|\n| Brain Cancer | 171 | 645 |\n| No Brain Cancer | 114614 | 378066 |\n\nWhat is the relative risk of getting brain cancer when you have a cat compared to when you do not have a cat?",
       "modelAnswer": "0.9",
       "page": 8,
       "type": "mc",
@@ -228,14 +234,17 @@
         "0.9",
         "0.4",
         "0.7"
+      ],
+      "figures": [
+        "telegraph-cat-cancer.png"
       ]
     },
     {
       "id": "q3a",
       "label": "Q3(a)",
       "marks": 3,
-      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes’ theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
-      "text": "(a) What’s the chance that your plant will survive the week? [3 points]",
+      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes\u2019 theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
+      "text": "(a) What\u2019s the chance that your plant will survive the week? [3 points]",
       "modelAnswer": "$$P(\\text{survive}) = P(\\text{survive} \\mid \\text{watered})P(\\text{watered}) + P(\\text{survive} \\mid \\text{forgot})P(\\text{forgot})$$\n\n$$= 0.90 \\times 0.75 + 0.30 \\times 0.25 = 0.675 + 0.075 = 0.75$$\n\nThe chance that your plant will survive the week is 75%.",
       "page": 9,
       "type": "calc",
@@ -245,9 +254,9 @@
       "id": "q3b",
       "label": "Q3(b)",
       "marks": 3,
-      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes’ theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
-      "text": "(b) If it’s dead when you return, what’s the chance that your friend forgot to water it? [3 points]",
-      "modelAnswer": "$$P(\\text{dead}) = 0.10 \\times 0.75 + 0.70 \\times 0.25 = 0.075 + 0.175 = 0.25$$\n\n$$P(\\text{forgot} \\mid \\text{dead}) = \\frac{P(\\text{dead} \\mid \\text{forgot})P(\\text{forgot})}{P(\\text{dead})} = \\frac{0.70 \\times 0.25}{0.25} = 0.70$$\n\nIf it’s dead when you return, the chance that your friend forgot to water it is 70%.",
+      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes\u2019 theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
+      "text": "(b) If it\u2019s dead when you return, what\u2019s the chance that your friend forgot to water it? [3 points]",
+      "modelAnswer": "$$P(\\text{dead}) = 0.10 \\times 0.75 + 0.70 \\times 0.25 = 0.075 + 0.175 = 0.25$$\n\n$$P(\\text{forgot} \\mid \\text{dead}) = \\frac{P(\\text{dead} \\mid \\text{forgot})P(\\text{forgot})}{P(\\text{dead})} = \\frac{0.70 \\times 0.25}{0.25} = 0.70$$\n\nIf it\u2019s dead when you return, the chance that your friend forgot to water it is 70%.",
       "page": 9,
       "type": "calc",
       "options": []
@@ -256,9 +265,9 @@
       "id": "q3c",
       "label": "Q3(c)",
       "marks": 3,
-      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes’ theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
-      "text": "(c) If your friend forgot to water it, what’s the chance it’ll be alive when you return? [3 points]",
-      "modelAnswer": "$$P(\\text{alive} \\mid \\text{forgot}) = 1 - P(\\text{dead} \\mid \\text{forgot}) = 1 - 0.70 = 0.30$$\n\nIf your friend forgot to water it, the chance it’ll be alive when you return is 30%.",
+      "sharedContext": "Conditional Probability\n\nBefore going on vacation for a week, you ask your spacey friend to water your ailing plant. Without water, the plant has a 70 percent chance of dying. Even with proper watering, it has a 10 percent chance of dying. And the probability that your friend will forget to water it is 25 percent.\n\nEither create the expected frequency tree or use Bayes\u2019 theorem alongside the appropriate probability rules and use that to calculate the probabilities for the following questions:",
+      "text": "(c) If your friend forgot to water it, what\u2019s the chance it\u2019ll be alive when you return? [3 points]",
+      "modelAnswer": "$$P(\\text{alive} \\mid \\text{forgot}) = 1 - P(\\text{dead} \\mid \\text{forgot}) = 1 - 0.70 = 0.30$$\n\nIf your friend forgot to water it, the chance it\u2019ll be alive when you return is 30%.",
       "page": 9,
       "type": "calc",
       "options": []
@@ -268,8 +277,8 @@
       "label": "Q4",
       "marks": 8,
       "sharedContext": "",
-      "text": "Design a Research Study\n\nA regional government has issued a large study of the high schools in the region. As part of this study, an overview has been made of both the central exam and the school exam results of all students in the region. Note that in the Netherlands, someone’s graduation grades are determined based on both these results. For each student, it is listed what grades were obtained for which course. Moreover, it is also known which teachers taught each course to the students and at which school they taught the course. Based on the average grades per school (for the central exam) that were calculated based on this information and subsequently communicated to the schools, the top school (highest average grades on the central exam) requests another analysis to be performed on the data.\n\nThe school requests the following analysis to be performed :\n\n1. How do our students perform on each subject relative to the other schools in the region? Specifically, are there courses where our students under-perform relative to the other schools in the region?\n2. Are the findings about performance across courses consistent across teachers?\n\nDescribe your approach to process the data described above (note that it has already been collected) in such a way as to answer the research questions above. Consider the full process of setting up the analysis. Do not worry about how this would done in Python/elsewhere (that is, don’t write pseudocode, focus on how the analysis would be performed and what you would assess).",
-      "modelAnswer": "A full-credit answer should describe the complete analysis process:\n\n- Define the observational units: student-course exam results, with school, teacher, course, central exam grade, and school exam grade.\n- Clean and validate the data, checking missing values, duplicates, inconsistent course labels, teacher identifiers, and impossible grade values.\n- Restrict or flag analyses to comparable courses and exam types, especially central exam grades because the research question refers to central exam performance.\n- For each subject, compare the top school’s students to students from other schools in the region using subject-specific summaries such as means, standard deviations, sample sizes, confidence intervals, and differences in means.\n- Assess uncertainty rather than only ranking schools, because some courses may have few students.\n- Identify courses where the top school under-performs relative to the regional comparison, using estimated differences and confidence intervals or suitable hypothesis tests.\n- Account for relevant structure in the data: students are nested within courses, teachers, and schools, and course difficulty and student composition may differ.\n- For consistency across teachers, repeat the subject-level comparisons within teacher groups where possible, or use a model with teacher effects and school/course effects.\n- Check whether under-performance is concentrated among particular teachers or appears across teachers teaching the same course.\n- Report limitations: the data are observational, so the analysis can compare performance but cannot by itself prove that a school or teacher caused the differences.",
+      "text": "Design a Research Study\n\nA regional government has issued a large study of the high schools in the region. As part of this study, an overview has been made of both the central exam and the school exam results of all students in the region. Note that in the Netherlands, someone\u2019s graduation grades are determined based on both these results. For each student, it is listed what grades were obtained for which course. Moreover, it is also known which teachers taught each course to the students and at which school they taught the course. Based on the average grades per school (for the central exam) that were calculated based on this information and subsequently communicated to the schools, the top school (highest average grades on the central exam) requests another analysis to be performed on the data.\n\nThe school requests the following analysis to be performed :\n\n1. How do our students perform on each subject relative to the other schools in the region? Specifically, are there courses where our students under-perform relative to the other schools in the region?\n2. Are the findings about performance across courses consistent across teachers?\n\nDescribe your approach to process the data described above (note that it has already been collected) in such a way as to answer the research questions above. Consider the full process of setting up the analysis. Do not worry about how this would done in Python/elsewhere (that is, don\u2019t write pseudocode, focus on how the analysis would be performed and what you would assess).",
+      "modelAnswer": "A full-credit answer should describe the complete analysis process:\n\n- Define the observational units: student-course exam results, with school, teacher, course, central exam grade, and school exam grade.\n- Clean and validate the data, checking missing values, duplicates, inconsistent course labels, teacher identifiers, and impossible grade values.\n- Restrict or flag analyses to comparable courses and exam types, especially central exam grades because the research question refers to central exam performance.\n- For each subject, compare the top school\u2019s students to students from other schools in the region using subject-specific summaries such as means, standard deviations, sample sizes, confidence intervals, and differences in means.\n- Assess uncertainty rather than only ranking schools, because some courses may have few students.\n- Identify courses where the top school under-performs relative to the regional comparison, using estimated differences and confidence intervals or suitable hypothesis tests.\n- Account for relevant structure in the data: students are nested within courses, teachers, and schools, and course difficulty and student composition may differ.\n- For consistency across teachers, repeat the subject-level comparisons within teacher groups where possible, or use a model with teacher effects and school/course effects.\n- Check whether under-performance is concentrated among particular teachers or appears across teachers teaching the same course.\n- Report limitations: the data are observational, so the analysis can compare performance but cannot by itself prove that a school or teacher caused the differences.",
       "page": 10,
       "type": "written",
       "options": []
@@ -290,7 +299,7 @@
       "label": "Q5(b)",
       "marks": 4,
       "sharedContext": "Video game genres\n\nA survey of 1200 teens collected data about video game use by teens. According to the survey, the following are among the most popular game genres:\n\n| Genre | Examples | Percent who play |\n|---|---|---:|\n| Racing | NASCAR, Mario Kart, Burnout | 70 |\n| Sports | Madden, FIFA, Tony Hawk | 65 |\n| Rhythm | Guitar Hero, Dance Dance Revolution, Lumines | 61 |",
-      "text": "Explain why the chance that at least one of your intervals does not contain the true value of the parameter (that is, the population percentage of teens playing any of these genres of games) is greater than the $α$ of 5% that we set for the confidence interval in part (a).",
+      "text": "Explain why the chance that at least one of your intervals does not contain the true value of the parameter (that is, the population percentage of teens playing any of these genres of games) is greater than the $\u03b1$ of 5% that we set for the confidence interval in part (a).",
       "modelAnswer": "Each 95% confidence interval has a 5% error rate when considered on its own. In part (a), three intervals are constructed. The probability that all three intervals contain their true parameters is less than 95%, so the probability that at least one interval misses its true parameter is greater than 5%.\n\nIf the intervals were independent, the probability that at least one misses would be:\n\n$$1 - 0.95^3 = 0.142625$$\n\nor about 14.3%. Even without assuming independence, doing multiple confidence intervals increases the chance of at least one error compared with a single interval.",
       "page": 12,
       "type": "written",
@@ -313,7 +322,7 @@
       "marks": 8,
       "sharedContext": "Box of cereal\n\nA packaging company is asked by a producer of cereal to fill boxes of their newest brand. The cereal company would like to have at least 200 grams of cereal in their boxes and they are willing to accept that in general, five out of a thousand boxes are filled with less than 200 grams. Suppose the packaging company has a filling machine that fills boxes with a weight that is normally distributed with an unknown mean and a known standard deviation of 4 grams. Upon an inspection of 16 boxes that were filled by the machine, the company found that the boxes were filled with sample mean 211 grams.",
       "text": "After further analysis of the initial output of the machine, the company finds that the machine fills boxes with a mean of 211 grams.\n\nBased on this information, does the machine adhere to the standards that the cereal company demanded (i.e., at most five out of a thousand boxes are filled with less than 400 grams)?",
-      "modelAnswer": "The standard in the setup is at most five out of a thousand boxes below 200 grams. Using the stated normal distribution with mean $\\mu = 211$ and standard deviation $\\sigma = 4$:\n\n$$P(X < 200) = P\\left(Z < \\frac{200 - 211}{4}\\right) = P(Z < -2.75)$$\n\n$$P(Z < -2.75) \\approx 0.0030$$\n\nThis is about 3 boxes per 1000, which is less than 5 boxes per 1000. Therefore, using the 200 gram standard described in the setup, the machine adheres to the cereal company’s demand.\n\nIf the threshold is read literally as 400 grams in the final sentence, then no: since the machine has mean 211 grams, essentially all boxes would be below 400 grams. This appears inconsistent with the earlier 200 gram standard.",
+      "modelAnswer": "The standard in the setup is at most five out of a thousand boxes below 200 grams. Using the stated normal distribution with mean $\\mu = 211$ and standard deviation $\\sigma = 4$:\n\n$$P(X < 200) = P\\left(Z < \\frac{200 - 211}{4}\\right) = P(Z < -2.75)$$\n\n$$P(Z < -2.75) \\approx 0.0030$$\n\nThis is about 3 boxes per 1000, which is less than 5 boxes per 1000. Therefore, using the 200 gram standard described in the setup, the machine adheres to the cereal company\u2019s demand.\n\nIf the threshold is read literally as 400 grams in the final sentence, then no: since the machine has mean 211 grams, essentially all boxes would be below 400 grams. This appears inconsistent with the earlier 200 gram standard.",
       "page": 13,
       "type": "calc",
       "options": []
@@ -355,7 +364,7 @@
       "id": "q8a",
       "label": "Q8(a)",
       "marks": 2,
-      "sharedContext": "Correlation\n\nSuppose the correlation coefficient between an independent and a dependent variable is $− 0 . 80$ and the spearman rank correlation is $− 0 . 75$ .\n\nStatement : Below-mean values of the dependent variable (relative to its own mean) are associated with below-mean values of the independent variable (relative to its own mean).",
+      "sharedContext": "Correlation\n\nSuppose the correlation coefficient between an independent and a dependent variable is $\u2212 0 . 80$ and the spearman rank correlation is $\u2212 0 . 75$ .\n\nStatement : Below-mean values of the dependent variable (relative to its own mean) are associated with below-mean values of the independent variable (relative to its own mean).",
       "text": "Is the statement true or false?",
       "modelAnswer": "False",
       "page": 15,
@@ -369,7 +378,7 @@
       "id": "q8b",
       "label": "Q8(b)",
       "marks": 4,
-      "sharedContext": "Correlation\n\nSuppose the correlation coefficient between an independent and a dependent variable is $− 0 . 80$ and the spearman rank correlation is $− 0 . 75$ .\n\nStatement : Below-mean values of the dependent variable (relative to its own mean) are associated with below-mean values of the independent variable (relative to its own mean).",
+      "sharedContext": "Correlation\n\nSuppose the correlation coefficient between an independent and a dependent variable is $\u2212 0 . 80$ and the spearman rank correlation is $\u2212 0 . 75$ .\n\nStatement : Below-mean values of the dependent variable (relative to its own mean) are associated with below-mean values of the independent variable (relative to its own mean).",
       "text": "Your motivation on why the statement is either true or false and why the spearman rank correlation matters to explain this:",
       "modelAnswer": "The statement is false. A correlation coefficient of $-0.80$ means that values above the mean on one variable tend to be associated with values below the mean on the other variable, and values below the mean on one variable tend to be associated with values above the mean on the other variable. The statement describes a positive association, not a negative one.\n\nThe Spearman rank correlation of $-0.75$ matters because it shows that the negative association is also present in the ranked data. This means the relationship is not only a linear negative relationship measured by Pearson correlation, but also a strong negative monotonic relationship in the ranks.",
       "page": 15,

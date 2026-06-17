@@ -3725,6 +3725,28 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // Figure assets attached to a parsed exam's questions (charts, diagrams,
+    // headlines cropped from the source PDF). Stored under
+    //   data/cache/practice-exam/assets/{courseId}__{examId}/{file}
+    // and referenced from a question's `figures: []` array. Served read-only
+    // with a path-traversal guard.
+    const examAssetMatch = url.pathname.match(/^\/api\/practice-exam-asset\/([^/]+)\/([^/]+)\/(.+)$/)
+    if (examAssetMatch && req.method === 'GET') {
+      const courseId = decodeURIComponent(examAssetMatch[1])
+      const examId = decodeURIComponent(examAssetMatch[2])
+      const file = decodeURIComponent(examAssetMatch[3])
+      const dir = resolve(practiceExamDir, 'assets', examCacheKey(courseId, examId))
+      const target = resolve(dir, file)
+      if (!pathInside(dir, target)) { send(res, 400, JSON.stringify({ error: 'Path escapes asset folder' })); return }
+      if (!existsSync(target)) { send(res, 404, JSON.stringify({ error: 'Not found' })); return }
+      const ext = target.toLowerCase().split('.').pop()
+      const mime = ({ png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', gif:'image/gif', svg:'image/svg+xml', webp:'image/webp' })[ext] || 'application/octet-stream'
+      const buf = await readFile(target)
+      res.writeHead(200, { 'Content-Type': mime, 'Content-Length': buf.length, 'Cache-Control': 'private, max-age=3600' })
+      res.end(buf)
+      return
+    }
+
     // Practice-exam routes are now exam-scoped:
     //   /api/practice-exam/{courseId}/{examId}/parse
     //   /api/practice-exam/{courseId}/{examId}                  (GET / DELETE)
