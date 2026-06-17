@@ -4412,8 +4412,12 @@ function practiceCanonicalKey(value) {
 
 function practiceGradeKeys(qOrKey) {
   if (!qOrKey) return []
+  // Use ONLY `id` (not `label`) — some parses give repeated labels across
+  // sections (e.g. tutorial 3 of sec has the label "Q1" for both the Part A
+  // mc question and the Part B written one). Storing or looking up by
+  // `label` causes one section's grade to leak into another's.
   const rawKeys = typeof qOrKey === 'object'
-    ? [qOrKey.id, qOrKey.label]
+    ? [qOrKey.id]
     : [qOrKey]
   const out = []
   rawKeys.forEach((key) => {
@@ -5635,7 +5639,11 @@ function practiceGradeFor(q) {
   for (const key of keys) {
     if (practiceExamView.grades[key]) return practiceExamView.grades[key]
   }
-  const normalizedId = practiceCanonicalKey(q.id || q.label)
+  // Canonical fallback — ONLY by id, never label, for the same reason as in
+  // practiceGradeKeys. If a tutorial has two questions both labelled "Q1"
+  // because they belong to different sections, falling through to the label
+  // here would silently match the other section's grade.
+  const normalizedId = practiceCanonicalKey(q.id)
   if (normalizedId) {
     const entry = Object.entries(practiceExamView.grades).find(([key]) =>
       practiceCanonicalKey(key) === normalizedId
