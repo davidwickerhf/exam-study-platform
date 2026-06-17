@@ -1,0 +1,267 @@
+{
+  "generatedAt": "2026-06-17T20:30:00.000Z",
+  "courseId": "stats",
+  "examId": "2026-final",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "According to a study done at Kaiser Permanente in Walnut Creek, California, users of oral contraceptives have a higher rate of cervical cancer than non-users, even after adjusting for age, education, and marital status. When the researchers saw that not including age changed the overall result, they understood that age was a ________?",
+      "modelAnswer": "b) confounding factor\n\nAge changes the apparent relationship between the two variables, which is exactly what a confounder does.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "controlling factor",
+        "confounding factor",
+        "conflicting factor",
+        "explaining factor"
+      ]
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "You can choose one of the two following options:\n\n1. You toss a fair coin 100 times. On each toss, if the coin lands on heads, you win \\$2. If it lands on tails, you lose \\$2.\n2. You draw 100 times at random with replacement from a box that consists of three tickets (i.e., 2, 0 and -1). On each draw, you are paid (in dollars) the number on the ticket.\n\nWhich of the options is better?",
+      "modelAnswer": "a) Option 2 is better.\n\nOption 1 expected value per toss = $0.5(2) + 0.5(-2) = 0$. Option 2 expected value per draw = $(2 + 0 - 1)/3 = 1/3 \\approx 0.33 > 0$.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "Option 2 is better.",
+        "Both options are equal.",
+        "Option 1 is better."
+      ]
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Which of the following statements is correct?",
+      "modelAnswer": "c) The P-value indicates the probability that the data is at least as extreme as that observed assuming the distribution present under the null-hypothesis.\n\nThe P-value is computed *under the null hypothesis* and never expresses a probability of accepting a hypothesis.",
+      "page": 3,
+      "type": "mc",
+      "options": [
+        "The P-value indicates the probability with which we can accept the alternative hypothesis.",
+        "The P-value indicates the probability that the data is at least as extreme as that observed assuming the distribution present under the alternative hypothesis.",
+        "The P-value indicates the probability that the data is at least as extreme as that observed assuming the distribution present under the null-hypothesis.",
+        "The P-value indicates the probability with which we can accept the null-hypothesis."
+      ]
+    },
+    {
+      "id": "q1d",
+      "label": "Q1(d)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Germany is evaluating a new program to rehabilitate prisoners before their release; the objective is to reduce the recidivism rate - the percentage who will be back in prison within two years of release. The program involves several months of \"boot camp\" - military-style basic training with very strict discipline. Admission to the program is randomly chosen. According to a prison spokesman, \"Those who complete boot camp are expected to be less likely to return to prison than other inmates.\" Is the prison spokesman's comparison based on an observational study or a randomized controlled experiment?",
+      "modelAnswer": "a) randomized controlled experiment\n\nThe deciding clue is \"Admission to the program is randomly chosen\" - random assignment is the hallmark of a randomized controlled experiment.",
+      "page": 4,
+      "type": "mc",
+      "options": [
+        "randomized controlled experiment",
+        "observational study"
+      ]
+    },
+    {
+      "id": "q1e",
+      "label": "Q1(e)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "Central Park temperatures. The first figure (left) shows a histogram of the annual average temperatures from 1869-2010 in Fahrenheit. The second figure (right) shows the temperature across years. Note that for the histogram, the x-axis starts at 40.\n\n**Statement:** Figure (a) (the histogram) is the optimal figure to use by a news agency to demonstrate the effects of climate change on temperatures. Is this statement true or false?",
+      "modelAnswer": "b) False\n\nA histogram has no time axis, so it cannot show a trend over years. The time plot (figure b) is the correct choice for demonstrating change over time.",
+      "page": 4,
+      "type": "tf",
+      "options": [
+        "True",
+        "False"
+      ]
+    },
+    {
+      "id": "q1f",
+      "label": "Q1(f)",
+      "marks": 3,
+      "sharedContext": "",
+      "text": "When we want to represent the data distribution for a discrete random variable, we can use the following types of plots?\n\n*(Multiple answers are possible, but negative points when only incorrect answers are selected.)*",
+      "modelAnswer": "c) Pie Chart\nd) Bar chart\n\nPie charts and bar charts represent the distribution of a discrete variable. Violin plots are for continuous data and a line graph implies an ordered/continuous x-axis (each of those scores -0.5).",
+      "page": 5,
+      "type": "multi",
+      "options": [
+        "Violin plot",
+        "Line Graph",
+        "Pie Chart",
+        "Bar chart"
+      ]
+    },
+    {
+      "id": "q1g",
+      "label": "Q1(g)",
+      "marks": 2,
+      "sharedContext": "",
+      "text": "A packaging company is asked by a producer of cereal to fill boxes of their newest brand. The cereal company would like to have at least 200 grams of cereal in their boxes and they are willing to accept that in general, five out of a thousand boxes are filled with less than 200 grams.\n\nSuppose the packaging company has a filling machine that fills boxes with a weight that is normally distributed with an unknown mean and an unknown standard deviation and we have information only about 20 boxes.\n\nWhat type of confidence interval is most appropriate in this instance?",
+      "modelAnswer": "a) t-Distribution based CI\n\nUnknown population standard deviation combined with a small sample ($n = 20$) means a t-distribution based interval is appropriate.",
+      "page": 5,
+      "type": "mc",
+      "options": [
+        "t-Distribution based CI",
+        "z-Distribution based Confidence Interval"
+      ]
+    },
+    {
+      "id": "q1h",
+      "label": "Q1(h)",
+      "marks": 3,
+      "sharedContext": "",
+      "text": "Suppose that we have events $A$ and $B$, with the following probabilities: $P(A) = 0.4$, $P(A\\mid B) = 0.5$, $P(A \\cap B) = 0.25$. What is $P(A \\cup B)$?",
+      "modelAnswer": "e) 0.65\n\nFrom $P(A\\mid B) = P(A\\cap B)/P(B)$: $0.5 = 0.25/P(B) \\Rightarrow P(B) = 0.5$. Then $P(A \\cup B) = P(A) + P(B) - P(A \\cap B) = 0.4 + 0.5 - 0.25 = 0.65$.",
+      "page": 5,
+      "type": "mc",
+      "options": [
+        "0.5",
+        "0.9",
+        "None of the above",
+        "0.8",
+        "0.65"
+      ]
+    },
+    {
+      "id": "q2",
+      "label": "Q2",
+      "marks": 6,
+      "sharedContext": "",
+      "text": "**Family property.** Fifty percent of the families in a certain community own their own car, thirty percent own their own home, and ten percent own both their own car and their own home. If a family is randomly chosen, what is the probability that this family owns a car or a house but not both?",
+      "modelAnswer": "**Answer: 0.6.**\n\nLet $C$ = owns a car, $H$ = owns a house. The requested probability is $P(C \\cap H') + P(C' \\cap H)$.\n\n$$P(C \\cap H') = P(C) - P(C \\cap H) = 0.5 - 0.1 = 0.4$$\n$$P(C' \\cap H) = P(H) - P(C \\cap H) = 0.3 - 0.1 = 0.2$$\n$$P(C \\cap H') + P(C' \\cap H) = 0.4 + 0.2 = 0.6$$\n\n**Grading (6 pts):** 2 pts for setting up $P(C\\cap H') + P(C'\\cap H)$ (e.g. via a Venn diagram); 2 pts for $P(C\\cap H') = 0.4$; 2 pts for $P(C'\\cap H) = 0.2$.",
+      "page": 6,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q3a",
+      "label": "Q3(a)",
+      "marks": 2,
+      "sharedContext": "**Kidney Stones.** A contingency table compares Treatment A and Treatment B success rates. Treatment B has the higher overall success rate, but Treatment A has the higher success rate within each stone-size subgroup (small stones and large stones).",
+      "text": "**Statement:** Since Treatment B is better overall, we should give Treatment B to all patients. Is the statement True or False?",
+      "modelAnswer": "a) False\n\nThis is Simpson's paradox - Treatment A is actually better within each subgroup.",
+      "page": 7,
+      "type": "tf",
+      "options": [
+        "False",
+        "True"
+      ]
+    },
+    {
+      "id": "q3b",
+      "label": "Q3(b)",
+      "marks": 5,
+      "sharedContext": "**Kidney Stones.** A contingency table compares Treatment A and Treatment B success rates. Treatment B has the higher overall success rate, but Treatment A has the higher success rate within each stone-size subgroup (small stones and large stones).",
+      "text": "Motivate your response to the previous question on why you think the statement is True or False. Please be as complete as possible in your answer.",
+      "modelAnswer": "**Model answer:** This is an example of **Simpson's paradox**. Treatment B is being given much less often for large kidney stones, and this imbalance is what produces the misleading overall rate. If we examine the two stone-size groups separately and weight success by the number of small/large stones, we find that **Treatment A is actually better than Treatment B**. Therefore the statement is false.",
+      "page": 7,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q4",
+      "label": "Q4",
+      "marks": 8,
+      "sharedContext": "",
+      "text": "**Cumulative Distribution Function.** The probability mass function of $X$ (i.e. $P(X=x)$), the number of imperfections per 10 meters of a synthetic fabric in continuous rolls of uniform width, is given by:\n\n| $x$ | 0 | 1 | 2 | 3 | 4 |\n|---|---|---|---|---|---|\n| $f(x)$ | 0.5 | 0.16 | 0.14 | 0.1 | 0.1 |\n\n1. Construct the cumulative distribution function of $X$. **[4 points]**\n2. What set of values should we expect 90% of the time? **[2 points]**\n3. How often should we expect there to be 7 imperfections? **[2 points]**",
+      "modelAnswer": "**1. CDF $F(x)$:**\n\n| $x$ | <0 | 0 | 1 | 2 | 3 | 4 |\n|---|---|---|---|---|---|---|\n| $F(x)$ | 0 | 0.5 | 0.66 | 0.8 | 0.9 | 1.0 |\n\n**2.** $\\{0, 1, 2, 3\\}$ - since $F(3) = 0.9$ (90%).\n\n**3. 0%** - 7 imperfections is outside the range of possible values $\\{0,1,2,3,4\\}$ for this random variable.\n\n**Grading (8 pts):** 4 pts accurate CDF ($0, 0.5, 0.66, 0.8, 0.9, 1$); 2 pts the set $\\{0,1,2,3\\}$; 2 pts 0% (outside the support).",
+      "page": 8,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q5",
+      "label": "Q5",
+      "marks": 6,
+      "sharedContext": "",
+      "text": "**Probability functions.** We have two potential probability functions for a random variable $x$ shown below, both as CDFs. The **left** is a step CDF rising over $0\\ldots4$; the **right** is a smooth (continuous) CDF rising over $-3\\ldots3$. Filled circles imply inclusion of the value on the x-axis and open circles denote exclusion.\n\n1. What set of values are possible for a variable following the probability function on the left? **[2 points]**\n2. What set of values are possible for a variable following the probability function on the right? **[2 points]**\n3. What is the probability $P(X = 1)$ for (i) the right probability function and (ii) the left probability function? **[2 points]**",
+      "modelAnswer": "**1.** Range **0 - 4** (the x-axis range of the left step CDF).\n\n**2.** Range **$\\approx -3$ to $3$** (the x-axis range of the right smooth CDF).\n\n**3.** Model answer: **0 and undefined**.\n- Right (continuous) CDF: $P(X = 1) = 0$ for any single point (reading a small jump $\\approx 0.05$ was also accepted).\n- Left (step) CDF: $P(X = 1)$ equals the size of the jump at $x = 1$; where no jump is defined the value is undefined.\n\n**Grading (6 pts):** 2 pts range 0-4; 2 pts range $\\approx -3$ to 3; 1 pt $\\approx 0.05$; 1 pt undefined.",
+      "page": 9,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q6",
+      "label": "Q6",
+      "marks": 10,
+      "sharedContext": "",
+      "text": "**Expectation.** A certain country has four regions: North, East, South, and West. The populations of these regions are 3 million, 4 million, 5 million, and 8 million, respectively. There are 4 cities in the North, 3 in the East, 2 in the South, and there is only 1 city in the West. Each person in the country lives in exactly one of these cities.\n\n1. What is the average size of a city in the country? (This is the arithmetic mean of the populations of the cities, and is also the expected value of the population of a city chosen uniformly at random.) **[3 points]**\n2. Show that without further information it is impossible to find the variance of the population of a city chosen uniformly at random. That is, the variance depends on how the people within each region are allocated between the cities in that region. **[3 points]**\n3. A region of the country is chosen uniformly at random, and then a city within that region is chosen uniformly at random. What is the expected population size of this randomly chosen city? **[4 points]**\n\n*(Hint: consider drawing out the probability tree / expected frequency tree.)*",
+      "modelAnswer": "**1. 2 million.** Total population $= 3+4+5+8 = 20$M; total cities $= 4+3+2+1 = 10$; mean $= 20/10 = 2$M.\n\n**2.** The region populations are known, but not how each region's population splits across its cities. The variance of city size depends on that within-region allocation (e.g. equal split vs one dominant city), which is unspecified - so the variance cannot be determined.\n\n**3. $\\approx 3.146$ million.**\n$$E = \\tfrac14\\!\\left(\\tfrac{3\\text{M}}{4}\\right) + \\tfrac14\\!\\left(\\tfrac{4\\text{M}}{3}\\right) + \\tfrac14\\!\\left(\\tfrac{5\\text{M}}{2}\\right) + \\tfrac14\\!\\left(\\tfrac{8\\text{M}}{1}\\right) = \\tfrac14(0.75 + 1.333 + 2.5 + 8)\\text{M} \\approx 3.146\\text{M}$$\n\n**Grading (10 pts):** 3 pts (a) 2 million; 3 pts (b) populations can be allotted many ways; 4 pts (c) $\\approx 3.146$M. Common error: identifying $1/4$ per region but not combining it with the number of cities in each region.",
+      "page": 10,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q7",
+      "label": "Q7",
+      "marks": 9,
+      "sharedContext": "",
+      "text": "**Conditional Probability.** The probability that a married man watches a certain television show is 0.45, and the probability that a married woman watches the show is 0.5. The probability that a man watches the show, given that his wife does, is 0.8. Find the probability that:\n\na) a married couple watches the show; **[3 points]**\nb) a wife watches the show, given that her husband does; **[3 points]**\nc) at least one member of a married couple watches the show. **[3 points]**",
+      "modelAnswer": "Let $H$ = husband watches, $W$ = wife watches. Given $P(H) = 0.45$, $P(W) = 0.5$, $P(H\\mid W) = 0.8$.\n\n**a)** $P(W \\cap H) = P(W)\\,P(H\\mid W) = 0.5 \\times 0.8 = \\mathbf{0.4}$\n\n**b)** $P(W\\mid H) = \\dfrac{P(W\\cap H)}{P(H)} = \\dfrac{0.4}{0.45} = \\mathbf{8/9}$\n\n**c)** $P(W \\cup H) = P(W) + P(H) - P(W\\cap H) = 0.5 + 0.45 - 0.4 = \\mathbf{0.55}$\n\n**Grading (9 pts):** 3 pts each for $P(W\\cap H)=0.4$, $P(W\\mid H)=8/9$, $P(W\\cup H)=0.55$.",
+      "page": 11,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q8",
+      "label": "Q8",
+      "marks": 9,
+      "sharedContext": "",
+      "text": "**Hypothesis Testing: Dogs and Cancer.** Six dogs of varying breeds were trained to discriminate between urine from bladder-cancer patients and from controls, indicating the cancer specimen by lying beside it. Each of the six dogs was tested with nine trials (54 trials total). In each trial, one urine sample from a bladder-cancer patient was randomly placed among six control samples. In the 54 trials the dogs made the correct selection 22 times. Let $p$ be the probability a dog makes the correct selection on a trial; with random guessing $p = 1/7$ (the cancer sample is one of seven specimens).\n\nWhat are the null and alternative hypotheses for this experiment? Can you run a hypothesis test to judge whether the dogs are better than chance at detecting bladder cancer at a significance level $\\alpha$ of 0.01?",
+      "modelAnswer": "**Hypotheses:** $H_0: p = \\tfrac17$,  $H_1: p > \\tfrac17$ (one-sided).\n\n**Sample proportion:** $\\hat p = 22/54 = 0.407$.\n\n**Standard error under $H_0$:** $SE = \\sqrt{\\dfrac{p_0(1-p_0)}{n}} = \\sqrt{\\dfrac{(1/7)(6/7)}{54}} \\approx 0.0476$.\n\n**Test statistic:** $z = \\dfrac{\\hat p - p_0}{SE} = \\dfrac{0.407 - 0.143}{0.0476} \\approx 5.6$.\n\nSince $z \\approx 5.6 \\gg z_{0.01} = 2.33$, we **reject $H_0$** - the dogs are significantly better than chance.\n\n**Grading (9 pts):** 2 pts hypotheses; 2 pts $\\hat p = 0.407$; 2 pts $SE = 0.0476$; 3 pts $z \\approx 5.6$ and reject $H_0$ (a CI around $p_0$ with $z=1.96$ was also accepted).",
+      "page": 12,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q9a",
+      "label": "Q9(a)",
+      "marks": 2,
+      "sharedContext": "**Judging Statistical Claims.** In the lectures, we discussed how exposure to smoking increases the risk of cancer. Use the following data to make this relationship more quantitative:\n\n| | Current Smoker | Former Smoker | Total |\n|---|---|---|---|\n| **Lung Cancer** | 89 | 37 | 126 |\n| **No Lung Cancer** | 6063 | 5711 | 11774 |\n| **Total** | 6152 | 5748 | 11900 |",
+      "text": "What is the response variable?",
+      "modelAnswer": "c) Cancer\n\nCancer (lung-cancer status) is the outcome being measured; smoking status is the explanatory variable.",
+      "page": 13,
+      "type": "mc",
+      "options": [
+        "Smoking",
+        "Neither of the above",
+        "Cancer"
+      ]
+    },
+    {
+      "id": "q9b",
+      "label": "Q9(b)",
+      "marks": 3,
+      "sharedContext": "**Judging Statistical Claims.** In the lectures, we discussed how exposure to smoking increases the risk of cancer. Use the following data to make this relationship more quantitative:\n\n| | Current Smoker | Former Smoker | Total |\n|---|---|---|---|\n| **Lung Cancer** | 89 | 37 | 126 |\n| **No Lung Cancer** | 6063 | 5711 | 11774 |\n| **Total** | 6152 | 5748 | 11900 |",
+      "text": "What is the relative risk of continued exposure to smoking on lung cancer incidence?",
+      "modelAnswer": "a) 2.25\n\n$RR = \\dfrac{89/6152}{37/5748} = \\dfrac{0.01447}{0.006437} \\approx 2.25$.",
+      "page": 13,
+      "type": "mc",
+      "options": [
+        "2.25",
+        "2.41",
+        "2.3",
+        "None of the above"
+      ]
+    },
+    {
+      "id": "q9c",
+      "label": "Q9(c)",
+      "marks": 2,
+      "sharedContext": "**Judging Statistical Claims.** In the lectures, we discussed how exposure to smoking increases the risk of cancer. Use the following data to make this relationship more quantitative:\n\n| | Current Smoker | Former Smoker | Total |\n|---|---|---|---|\n| **Lung Cancer** | 89 | 37 | 126 |\n| **No Lung Cancer** | 6063 | 5711 | 11774 |\n| **Total** | 6152 | 5748 | 11900 |",
+      "text": "What is the expected frequency of cancer across former and current smokers?",
+      "modelAnswer": "c) 126\n\nThe total number of lung-cancer cases across both smoker groups is $89 + 37 = 126$.",
+      "page": 14,
+      "type": "mc",
+      "options": [
+        "89",
+        "37",
+        "126",
+        "None of the above"
+      ]
+    }
+  ]
+}

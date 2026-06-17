@@ -476,6 +476,11 @@
       "visualStyle": "Tables for distributions and formulas. Mermaid probability trees for Bayes. (Future: Chart.js plots for normal/CLT.)",
       "mockExams": [
         {
+          "id": "2026-final",
+          "label": "Final 2026 (reconstructed)",
+          "practiceBank": true
+        },
+        {
           "id": "mock",
           "label": "Mock exam A (11 Q)",
           "pdf": "Materials/Mock Exams/mock-paper.pdf",

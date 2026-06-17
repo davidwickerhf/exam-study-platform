@@ -5090,12 +5090,17 @@ function renderMockExamPage() {
   const examId = currentExam?.id || null
   const hasPaperPdf     = !!currentExam?.pdf
   const hasSolutionsPdf = !!currentExam?.solutionsPdf
+  // A practice bank can exist even without a question PDF — e.g. an exam
+  // reconstructed from photos where we shipped a pre-built parse cache and
+  // marked the exam with practiceBank:true. In that case the Practice subtab
+  // is available even though hasPaperPdf is false.
+  const hasPracticeBank = hasPaperPdf || !!currentExam?.practiceBank
 
   // PDF sub-tab availability — bounce to whatever this paper actually has
   if (isPaperSurface) {
     if (practiceExamView.examSubtab === 'pdf' && !hasPaperPdf) practiceExamView.examSubtab = hasSolutionsPdf ? 'solutions' : 'practice'
     if (practiceExamView.examSubtab === 'solutions' && !hasSolutionsPdf) practiceExamView.examSubtab = hasPaperPdf ? 'pdf' : 'practice'
-    if (practiceExamView.examSubtab === 'practice' && !hasPaperPdf) practiceExamView.examSubtab = hasSolutionsPdf ? 'solutions' : 'pdf'
+    if (practiceExamView.examSubtab === 'practice' && !hasPracticeBank) practiceExamView.examSubtab = hasPaperPdf ? 'pdf' : 'solutions'
   }
 
   if (practiceExamView.courseId !== course.id || practiceExamView._loadedPaperId !== examId) {
@@ -5108,7 +5113,7 @@ function renderMockExamPage() {
   const outlineKey = examId ? `${course.id}__${examId}` : course.id
   const outline = (isPaperSurface && hasPaperPdf) ? pdfOutlineCache.get(outlineKey) : null
   if (isPaperSurface && hasPaperPdf && !outline) loadPdfOutline(course.id, examId)
-  if (isPaperSurface && practiceExamView.examSubtab === 'practice' && hasPaperPdf) {
+  if (isPaperSurface && practiceExamView.examSubtab === 'practice' && hasPracticeBank) {
     ensurePracticeExam(course.id, examId)
   }
   if (practiceExamView.tab === 'mock-questions') {
@@ -5272,6 +5277,7 @@ function renderMockExamPage() {
  */
 function renderMockExamsSurface(course, currentExam, exams, opts) {
   const { pdfUrl, solutionsUrl, hasPaperPdf, hasSolutionsPdf } = opts
+  const hasPracticeBank = hasPaperPdf || !!currentExam?.practiceBank
   const subtab = practiceExamView.examSubtab
 
   const selector = `
@@ -5281,6 +5287,7 @@ function renderMockExamsSurface(course, currentExam, exams, opts) {
         const flags = []
         if (e.pdf) flags.push('paper')
         if (e.solutionsPdf) flags.push('solutions')
+        if (!e.pdf && e.practiceBank) flags.push('practice')
         const partial = flags.length === 1
         const tip = `${e.label} — ${flags.join(' + ') || 'no files'}`
         return `
@@ -5299,7 +5306,7 @@ function renderMockExamsSurface(course, currentExam, exams, opts) {
     <nav class="exam-subtabs" role="tablist" aria-label="Exam view">
       <button type="button" role="tab" class="exam-subtab${subtab === 'pdf' ? ' active' : ''}${!hasPaperPdf ? ' disabled' : ''}" data-exam-subtab="pdf" ${hasPaperPdf ? '' : 'disabled'}>PDF</button>
       <button type="button" role="tab" class="exam-subtab${subtab === 'solutions' ? ' active' : ''}${!hasSolutionsPdf ? ' disabled' : ''}" data-exam-subtab="solutions" ${hasSolutionsPdf ? '' : 'disabled'}>Solutions PDF</button>
-      <button type="button" role="tab" class="exam-subtab${subtab === 'practice' ? ' active' : ''}${!hasPaperPdf ? ' disabled' : ''}" data-exam-subtab="practice" ${hasPaperPdf ? '' : 'disabled'}>Practice</button>
+      <button type="button" role="tab" class="exam-subtab${subtab === 'practice' ? ' active' : ''}${!hasPracticeBank ? ' disabled' : ''}" data-exam-subtab="practice" ${hasPracticeBank ? '' : 'disabled'}>Practice</button>
     </nav>
   `
 
@@ -5308,7 +5315,7 @@ function renderMockExamsSurface(course, currentExam, exams, opts) {
     body = `<div class="pdf-viewer"><iframe id="mock-pdf-iframe" src="${pdfUrl}#view=FitH" title="Mock exam PDF" allow="fullscreen"></iframe></div>`
   } else if (subtab === 'solutions' && hasSolutionsPdf) {
     body = `<div class="pdf-viewer"><iframe id="mock-solutions-iframe" src="${solutionsUrl}#view=FitH" title="Solutions PDF" allow="fullscreen"></iframe></div>`
-  } else if (subtab === 'practice' && hasPaperPdf) {
+  } else if (subtab === 'practice' && hasPracticeBank) {
     body = renderPracticeExam(course)
   } else {
     body = '<p class="empty">This view is unavailable for the selected exam.</p>'
