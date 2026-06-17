@@ -2117,7 +2117,11 @@ async function gradeFlashcardRecall({ courseCode, chapterName, card, attempt }) 
 
 function parseScore(correction) {
   if (!correction) return null
-  const m = correction.match(/score[:\s*]*?(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/i)
+  // The grader prompt tells the LLM to use LaTeX for math, and the model
+  // sometimes wraps the score itself: "**Score:** $0/1$". Allow '$' (and
+  // any of the markdown delimiters \, _, () \[ etc.) between the word
+  // 'score' and the digit so the score is still recovered.
+  const m = correction.match(/score[:\s*$()\\[\]_]*?(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/i)
   return m ? Number(m[1]) : null
 }
 

@@ -5925,7 +5925,11 @@ function renderCorrectionMarkdown(md, score = null, maxScore = 10) {
 }
 
 function scoreFromCorrection(correction) {
-  const m = String(correction || '').match(/score[:\s*]*?(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/i)
+  // Mirror parseScore() in server.mjs: allow LaTeX/markdown delimiters between
+  // "Score" and the numeric ratio, since the grader sometimes emits
+  // "**Score:** $0/1$". Without this the heat-map cells stay grey on every
+  // LLM-graded written question.
+  const m = String(correction || '').match(/score[:\s*$()\\[\]_]*?(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/i)
   return m ? Number(m[1]) : null
 }
 
