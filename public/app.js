@@ -5867,7 +5867,7 @@ function renderInlineMarkdown(s) {
     blocks.push({ display: true, body: m })
     return placeholder(blocks.length - 1)
   })
-  str = str.replace(/(^|[^\\])\$([^\n$]+?)\$/g, (_, lead, m) => {
+  str = str.replace(/(^|[^\\])\$((?:\\\$|[^\n$])+?)\$/g, (_, lead, m) => {
     blocks.push({ display: false, body: m })
     return `${lead}${placeholder(blocks.length - 1)}`
   })
@@ -5878,12 +5878,15 @@ function renderInlineMarkdown(s) {
     blocks.push({ display: true, body: m })
     return placeholder(blocks.length - 1)
   })
-  str = str.replace(/(^|[^\\])\$([^\n$]+?)\$/g, (_, lead, m) => {
+  str = str.replace(/(^|[^\\])\$((?:\\\$|[^\n$])+?)\$/g, (_, lead, m) => {
     blocks.push({ display: false, body: m })
     return `${lead}${placeholder(blocks.length - 1)}`
   })
   try {
     let html = marked.parseInline(str, { gfm: true })
+    // Protect currency/stray '$' from KaTeX auto-render — see renderMarkdown.
+    // Real math is still in placeholders here; restore it to bare $…$ after.
+    html = html.replace(/\$/g, '<span class="nomath">$</span>')
     html = html.replace(/<span data-mathblock="(\d+)"><\/span>/g, (_, idx) => {
       const b = blocks[+idx]
       if (!b) return ''
@@ -6022,7 +6025,7 @@ function renderMarkdown(md, courseId, chapterId) {
     blocks.push({ kind: 'math', display: true, body: m })
     return `\n\n${placeholder(blocks.length - 1)}\n\n`
   })
-  s = s.replace(/(^|[^\\])\$([^\n$]+?)\$/g, (_, lead, m) => {
+  s = s.replace(/(^|[^\\])\$((?:\\\$|[^\n$])+?)\$/g, (_, lead, m) => {
     blocks.push({ kind: 'math', display: false, body: m })
     return `${lead}${placeholder(blocks.length - 1)}`
   })
@@ -6033,7 +6036,7 @@ function renderMarkdown(md, courseId, chapterId) {
     blocks.push({ kind: 'math', display: true, body: m })
     return `\n\n${placeholder(blocks.length - 1)}\n\n`
   })
-  s = s.replace(/(^|[^\\])\$([^\n$]+?)\$/g, (_, lead, m) => {
+  s = s.replace(/(^|[^\\])\$((?:\\\$|[^\n$])+?)\$/g, (_, lead, m) => {
     blocks.push({ kind: 'math', display: false, body: m })
     return `${lead}${placeholder(blocks.length - 1)}`
   })
@@ -6061,6 +6064,14 @@ function renderMarkdown(md, courseId, chapterId) {
   })
 
   let html = marked.parse(s, { gfm: true, breaks: false })
+
+  // Protect currency / stray dollar signs. At this point every real math span
+  // is still a <span data-mathblock> placeholder, so any literal '$' left in
+  // the HTML is NON-math (e.g. "win $2 ... lose $2"). Wrap each in a span that
+  // KaTeX auto-render is told to ignore, otherwise renderMathInElement would
+  // pair the two dollars and turn the prose between them into math. The real
+  // math placeholders are restored to bare $…$ AFTER this, so they're untouched.
+  html = html.replace(/\$/g, '<span class="nomath">$</span>')
 
   const restoreBlock = (_, idx) => {
     const b = blocks[+idx]
@@ -6328,6 +6339,9 @@ function typesetMath() {
           { left: '$$', right: '$$', display: true },
           { left: '$', right: '$', display: false }
         ],
+        // Currency / stray dollar signs are wrapped in <span class="nomath">$</span>
+        // by renderMarkdown / renderInlineMarkdown so they don't get paired as math.
+        ignoredClasses: ['nomath'],
         throwOnError: false
       })
     } catch (e) { console.error('KaTeX error', e) }
