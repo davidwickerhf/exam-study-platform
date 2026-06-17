@@ -1084,7 +1084,39 @@
           "notes": ""
         }
       ],
-      "order": 3
+      "order": 3,
+      "tutorials": [
+        {
+          "id": "tutorial-prob1",
+          "label": "Probability Theory I",
+          "pdf": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory I Tutorial.pdf",
+          "solutionsPdf": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory I_with_solutions.pdf"
+        },
+        {
+          "id": "tutorial-prob2",
+          "label": "Probability Theory II",
+          "pdf": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory II Tutorial.pdf",
+          "solutionsPdf": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory II_with_solutions.pdf"
+        },
+        {
+          "id": "tutorial-cond-prob",
+          "label": "Conditional Probability & Bayes",
+          "pdf": "Materials/02 Exercises by Topic/05 Conditional Probability and Bayes/Conditional Probability Exercises.pdf",
+          "solutionsPdf": "Materials/02 Exercises by Topic/05 Conditional Probability and Bayes/Conditiional Probability Exercise Solution.pdf"
+        },
+        {
+          "id": "tutorial-conf-int",
+          "label": "Confidence Intervals",
+          "pdf": "Materials/02 Exercises by Topic/07 Confidence Intervals/Confidence Limits.pdf",
+          "solutionsPdf": "Materials/02 Exercises by Topic/07 Confidence Intervals/ConfidenceLimitsSolutions.pdf"
+        },
+        {
+          "id": "tutorial-hyp-test",
+          "label": "Hypothesis Testing",
+          "pdf": "Materials/02 Exercises by Topic/08 Hypothesis Testing/HypothesisTesting_exercises.pdf",
+          "solutionsPdf": "Materials/02 Exercises by Topic/08 Hypothesis Testing/HypothesisTesting_solutions.pdf"
+        }
+      ]
     },
     {
       "id": "emb",
