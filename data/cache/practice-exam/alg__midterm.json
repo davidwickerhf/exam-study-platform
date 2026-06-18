@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-06-18T22:05:00.000Z",
+  "courseId": "alg",
+  "examId": "midterm",
+  "questions": [
+    {
+      "id": "q1a",
+      "label": "Q1(a)",
+      "marks": 2,
+      "sharedContext": "**Constructing broadcast towers to cover a highway.**\n\n**Input:** The highway has length $\\ell > 0$, starting at position 0 and ending $\\ell$ km away. There are $n$ candidate towers that can be built. Each candidate tower $i \\in \\{1, \\ldots, n\\}$ has an interval $[a_i, b_i]$ ($a_i < b_i$) such that if the tower is built, the highway is covered from and including position $a_i$ up to and including position $b_i$.\n\n**Objective:** Select a smallest set of towers so that every position on the highway is covered by some tower. You may assume that every position on the highway can be covered by some candidate tower, i.e., for every value $x \\in [0, \\ell]$ there is some tower $i$ such that $x \\in [a_i, b_i]$.",
+      "text": "Consider the example $[0,5]$, $[3,8]$, $[2,9]$, $[0,3]$, $[4,10]$, $[7,10]$ where $\\ell = 10$. Provide an optimal solution.",
+      "modelAnswer": "**Optimal solution: $\\{[0,5],\\ [4,10]\\}$.**\n\nThese two intervals cover $[0,10]$ (the first covers $[0,5]$, the second covers $[4,10]$, and they overlap on $[4,5]$ so there is no gap) and use the minimum possible number of towers \u2014 one tower cannot cover all of $[0,10]$.\n\n*Grading note:* The intended model assumes the highway is **continuous** and towers **may overlap**. A discrete non-overlapping answer such as $\\{[0,3],[4,10]\\}$ incurs a $-1$ penalty (and 0 points if it contradicts the exercise instructions).",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1b",
+      "label": "Q1(b)",
+      "marks": 7,
+      "sharedContext": "**Constructing broadcast towers to cover a highway.**\n\n**Input:** The highway has length $\\ell > 0$, starting at position 0 and ending $\\ell$ km away. There are $n$ candidate towers that can be built. Each candidate tower $i \\in \\{1, \\ldots, n\\}$ has an interval $[a_i, b_i]$ ($a_i < b_i$) such that if the tower is built, the highway is covered from and including position $a_i$ up to and including position $b_i$.\n\n**Objective:** Select a smallest set of towers so that every position on the highway is covered by some tower. You may assume that every position on the highway can be covered by some candidate tower, i.e., for every value $x \\in [0, \\ell]$ there is some tower $i$ such that $x \\in [a_i, b_i]$.",
+      "text": "Provide a greedy rule to optimally solve this problem. Make sure to clearly define the partial solution and how to extend it according to your greedy rule.\n\n*Hint: think about how to implement the rule; this will tell you how you should define your partial solutions.*",
+      "modelAnswer": "**Partial solution (1 pt):** a set of towers that covers a prefix $[0, p]$ of the highway, where $p$ is the furthest point covered so far (coverage is contiguous from 0).\n\n**Greedy rule (6 pts):** at each step, among all towers with $a_i \\le p$ (i.e. towers that start at or before the current covered boundary, so adding one leaves no gap), choose the one with the **maximum $b_i$**. Add it and update $p := b_i$. Repeat until $p \\ge \\ell$.\n\nStart with the empty set and $p = 0$; the first choice is the tower covering position 0 with the largest right endpoint.\n\n*Discrete variant (also accepted if consistent):* define coverage up to $p$ and choose a tower covering $p+1$ with maximum $b_i$.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1c",
+      "label": "Q1(c)",
+      "marks": 8,
+      "sharedContext": "**Constructing broadcast towers to cover a highway.**\n\n**Input:** The highway has length $\\ell > 0$, starting at position 0 and ending $\\ell$ km away. There are $n$ candidate towers that can be built. Each candidate tower $i \\in \\{1, \\ldots, n\\}$ has an interval $[a_i, b_i]$ ($a_i < b_i$) such that if the tower is built, the highway is covered from and including position $a_i$ up to and including position $b_i$.\n\n**Objective:** Select a smallest set of towers so that every position on the highway is covered by some tower. You may assume that every position on the highway can be covered by some candidate tower, i.e., for every value $x \\in [0, \\ell]$ there is some tower $i$ such that $x \\in [a_i, b_i]$.",
+      "text": "Prove that your greedy rule is correct.",
+      "modelAnswer": "**Setup (2 pts):** Let greedy choose towers $G_1, G_2, \\ldots, G_k$. Let $OPT = (O_1, \\ldots, O_m)$ be an optimal solution using the minimum number of towers. Among all optimal solutions, choose one that agrees with the greedy solution for as many initial choices as possible \u2014 i.e. $O_1 = G_1, \\ldots, O_r = G_r$ for some maximal $r \\ge 0$.\n\n**Exchange argument (6 pts):** Suppose for contradiction $OPT$ does not fully agree with greedy, so $r < k$ and $O_{r+1} \\ne G_{r+1}$. Let $p$ be the furthest point covered by the first $r$ towers (covered identically by $G_1..G_r$ and $O_1..O_r$). By the greedy rule, $G_{r+1}$ is a tower containing $p$ with the largest possible right endpoint. Since $OPT$ is feasible and covers the highway contiguously, its next tower $O_{r+1}$ must also contain $p$ (otherwise $p$ would be left uncovered), so $O_{r+1}$ is a candidate for the greedy step and therefore $b(G_{r+1}) \\ge b(O_{r+1})$.\n\nReplace $O_{r+1}$ by $G_{r+1}$ in $OPT$: the first $r$ towers still cover $[0,p]$, $G_{r+1}$ reaches at least as far right as $O_{r+1}$, so all later $OPT$ towers still cover whatever remained. This yields another optimal solution (same size) that agrees with greedy on the first $r+1$ choices \u2014 contradicting the maximality of $r$.\n\nHence no disagreement can occur: $OPT$ agrees with greedy at every step, so the greedy solution is optimal. $\\blacksquare$",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q1d",
+      "label": "Q1(d)",
+      "marks": 3,
+      "sharedContext": "**Constructing broadcast towers to cover a highway.**\n\n**Input:** The highway has length $\\ell > 0$, starting at position 0 and ending $\\ell$ km away. There are $n$ candidate towers that can be built. Each candidate tower $i \\in \\{1, \\ldots, n\\}$ has an interval $[a_i, b_i]$ ($a_i < b_i$) such that if the tower is built, the highway is covered from and including position $a_i$ up to and including position $b_i$.\n\n**Objective:** Select a smallest set of towers so that every position on the highway is covered by some tower. You may assume that every position on the highway can be covered by some candidate tower, i.e., for every value $x \\in [0, \\ell]$ there is some tower $i$ such that $x \\in [a_i, b_i]$.",
+      "text": "Given a partial solution as you have defined it, what is the runtime needed to find the next tower to add according to your greedy rule? Clearly justify your answer.",
+      "modelAnswer": "**$O(n)$.**\n\nGiven the current covered boundary $p$, finding the next tower means scanning all $n$ candidate towers once: for each, check $a_i \\le p$ ($O(1)$) and track the maximum $b_i$ seen ($O(1)$). That is $O(n)$ work per extension step.\n\n*Grading note:* $O(n \\log n)$ is accepted only with a clear statement that the selection of the next tower itself is at most $O(n)$.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    },
+    {
+      "id": "q2a",
+      "label": "Q2(a)",
+      "marks": 4,
+      "sharedContext": "Recall that Karatsuba's algorithm multiplies two $n$-bit integers using three multiplications of $n/2$-bit integers, plus some addition taking linear time. This gives a recurrence of $T(n) = 3T(n/2) + n$, and hence an overall time complexity of $\\Theta(n^{\\log_2 3}) \\approx \\Theta(n^{1.585})$.\n\nI am considering two alternative algorithms for integer multiplication.",
+      "text": "Algorithm A multiplies two $n$-bit integers using **7 multiplications of $n/4$-bit integers**, plus some addition taking linear time. Write down the recurrence relation for this algorithm, and solve it using the Master Theorem to find the overall asymptotic time complexity.",
+      "modelAnswer": "**Recurrence (2 pts):** $T(n) = 7\\,T(n/4) + \\Theta(n)$.\n\n**Master Theorem (2 pts):** here $a = 7$, $b = 4$, $f(n) = \\Theta(n)$. Compare with $n^{\\log_b a} = n^{\\log_4 7}$. Since $\\log_4 7 \\approx 1.404 > 1$, the recursion term dominates (case 1):\n$$T(n) = \\Theta\\!\\left(n^{\\log_4 7}\\right) \\approx \\Theta(n^{1.404}).$$",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2b",
+      "label": "Q2(b)",
+      "marks": 4,
+      "sharedContext": "Recall that Karatsuba's algorithm multiplies two $n$-bit integers using three multiplications of $n/2$-bit integers, plus some addition taking linear time. This gives a recurrence of $T(n) = 3T(n/2) + n$, and hence an overall time complexity of $\\Theta(n^{\\log_2 3}) \\approx \\Theta(n^{1.585})$.\n\nI am considering two alternative algorithms for integer multiplication.",
+      "text": "Algorithm B multiplies two $n$-bit integers using **5 multiplications of $n/5$-bit integers**, plus sorting an $n$-element list using a $\\Theta(n \\log n)$ sorting algorithm. Write down the recurrence relation for this algorithm, and solve it using the Master Theorem to find the overall asymptotic time complexity.",
+      "modelAnswer": "**Recurrence (2 pts):** $T(n) = 5\\,T(n/5) + \\Theta(n \\log n)$.\n\n**Master Theorem (2 pts):** here $a = 5$, $b = 5$, so $n^{\\log_b a} = n^{\\log_5 5} = n$. The driving term is $f(n) = \\Theta(n \\log n) = \\Theta(n^{\\log_b a}\\log^1 n)$ \u2014 the borderline (case 2) with an extra log factor, which gives one more log:\n$$T(n) = \\Theta(n \\log^2 n).$$\n\n*Grading note:* answering $\\Theta(n \\log n)$ loses 1 point.",
+      "page": 2,
+      "type": "calc",
+      "options": []
+    },
+    {
+      "id": "q2c",
+      "label": "Q2(c)",
+      "marks": 2,
+      "sharedContext": "Recall that Karatsuba's algorithm multiplies two $n$-bit integers using three multiplications of $n/2$-bit integers, plus some addition taking linear time. This gives a recurrence of $T(n) = 3T(n/2) + n$, and hence an overall time complexity of $\\Theta(n^{\\log_2 3}) \\approx \\Theta(n^{1.585})$.\n\nI am considering two alternative algorithms for integer multiplication.",
+      "text": "Which of these three algorithms should I use to multiply extremely large numbers? Briefly justify your answer.",
+      "modelAnswer": "**Algorithm B.**\n\nComparing the three complexities:\n$$\\Theta(n \\log^2 n) \\ll \\Theta(n^{1.404}) \\ll \\Theta(n^{1.585}).$$\nAlgorithm B's $\\Theta(n \\log^2 n)$ is near-linear and grows asymptotically slower than Algorithm A's $\\Theta(n^{1.404})$ and Karatsuba's $\\Theta(n^{1.585})$. So for extremely large $n$, Algorithm B is fastest.",
+      "page": 2,
+      "type": "written",
+      "options": []
+    }
+  ]
+}

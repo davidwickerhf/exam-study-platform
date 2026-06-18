@@ -39,9 +39,10 @@
           "solutionsPdf": "Materials/03 Past Exams and Solutions/AD-solsandnotes.pdf"
         },
         {
-          "id": "midterm-grading-guideline",
-          "label": "Midterm grading guide",
-          "solutionsPdf": "Materials/03 Past Exams and Solutions/Midterm_Grading_guideline.pdf"
+          "id": "midterm",
+          "label": "Midterm",
+          "solutionsPdf": "Materials/03 Past Exams and Solutions/Midterm_Grading_guideline.pdf",
+          "pdf": "Materials/03 Past Exams and Solutions/Midterm \u2014 Question Paper.pdf"
         },
         {
           "id": "2024-final",

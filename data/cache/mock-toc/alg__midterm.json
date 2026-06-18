@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-18T22:05:00.000Z",
+  "items": [
+    {
+      "title": "Q1 \u2014 Constructing broadcast towers (20 marks)",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q1(a) \u2014 Optimal solution for the example (2 marks)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(b) \u2014 Greedy rule + partial solution (7 marks)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(c) \u2014 Correctness proof (8 marks)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q1(d) \u2014 Runtime of finding the next tower (3 marks)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2 \u2014 Recurrences and the Master Theorem (10 marks)",
+      "page": 1,
+      "depth": 0,
+      "kind": "section"
+    },
+    {
+      "title": "Q2(a) \u2014 Algorithm A: 7\u00d7T(n/4)+\u0398(n) (4 marks)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(b) \u2014 Algorithm B: 5\u00d7T(n/5)+\u0398(n log n) (4 marks)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    },
+    {
+      "title": "Q2(c) \u2014 Best algorithm for huge numbers (2 marks)",
+      "page": 1,
+      "depth": 1,
+      "kind": "subquestion"
+    }
+  ]
+}
