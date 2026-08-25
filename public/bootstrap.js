@@ -78,7 +78,33 @@ async function main() {
   if (!clerk.user) {
     const gate = document.getElementById('auth-gate')
     gate.hidden = false
-    clerk.mountSignIn(document.getElementById('clerk-sign-in'), { afterSignInUrl: window.location.href, afterSignUpUrl: window.location.href })
+    clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
+      afterSignInUrl: window.location.href,
+      afterSignUpUrl: window.location.href,
+      appearance: {
+        variables: {
+          colorPrimary: '#8b2635',
+          colorText: '#17243a',
+          colorTextSecondary: '#667084',
+          colorBackground: '#fffdf8',
+          colorInputBackground: '#fffdf8',
+          colorInputText: '#17243a',
+          borderRadius: '4px',
+          fontFamily: '"IBM Plex Sans", sans-serif',
+          fontSize: '15px'
+        },
+        elements: {
+          rootBox: 'clerk-root',
+          cardBox: 'clerk-card-box',
+          card: 'clerk-card',
+          header: 'clerk-header',
+          footer: 'clerk-footer',
+          socialButtonsBlockButton: 'clerk-social-button',
+          formButtonPrimary: 'clerk-primary-button',
+          formFieldInput: 'clerk-input'
+        }
+      }
+    })
     return
   }
 

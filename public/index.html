@@ -3,11 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Exam Study Platform</title>
+    <title>Wicker Study — Academic exam preparation</title>
+    <meta name="description" content="A private academic workspace for structured course study, practice, and exam readiness." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="mask-icon" href="/favicon.svg" color="#3b6f5b" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
-    <meta name="theme-color" content="#3b6f5b" />
+    <meta name="theme-color" content="#12233f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" />
@@ -36,13 +40,40 @@
     </script>
   </head>
   <body>
+    <a class="skip-link" href="#app">Skip to study workspace</a>
     <main id="auth-gate" class="auth-gate" hidden>
-      <section>
-        <p class="eyebrow">Your study workspace</p>
-        <h1>Sign in to continue</h1>
-        <p>Your notes, attempts, mastery and spaced-repetition schedule stay private to your account.</p>
-        <div id="clerk-sign-in"></div>
-      </section>
+      <div class="auth-frame">
+        <aside class="auth-intro" aria-labelledby="auth-title">
+          <a class="auth-brand" href="/" aria-label="Wicker Study home">
+            <span class="auth-brand-mark" aria-hidden="true">W</span>
+            <span><strong>Wicker Study</strong><small>Academic examination workspace</small></span>
+          </a>
+          <div class="auth-intro-copy">
+            <p class="auth-kicker">Private course workspace · 2026</p>
+            <h1 id="auth-title">Study with the structure of a syllabus, not the noise of a dashboard.</h1>
+            <p>Editorial course material, focused practice, and a personal record of what you actually know.</p>
+          </div>
+          <dl class="auth-register" aria-label="Workspace features">
+            <div><dt>05</dt><dd>Courses in one curriculum</dd></div>
+            <div><dt>140</dt><dd>Source PDFs indexed</dd></div>
+            <div><dt>Private</dt><dd>Notes and progress by account</dd></div>
+          </dl>
+          <p class="auth-provenance">Built for deliberate exam preparation. Course sources remain editorial; your annotations remain yours.</p>
+        </aside>
+        <section class="auth-panel" aria-label="Sign in">
+          <header class="auth-panel-head">
+            <span class="auth-folio">Access / 01</span>
+            <span class="auth-status"><i aria-hidden="true"></i> Secure workspace</span>
+          </header>
+          <div class="auth-panel-copy">
+            <p class="eyebrow">Continue your studies</p>
+            <h2>Sign in</h2>
+            <p>Use your existing account to open your notes, attempts, mastery history, and review schedule.</p>
+          </div>
+          <div id="clerk-sign-in"></div>
+          <footer class="auth-panel-foot">Authentication by Clerk · Personal study data stored separately from course material</footer>
+        </section>
+      </div>
     </main>
     <div id="app"></div>
     <script type="module" src="/bootstrap.js?v=20260825-cloud"></script>

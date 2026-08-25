@@ -1239,8 +1239,8 @@ function renderSidebar() {
     <aside class="sidebar">
       <div class="sidebar-head">
         <a class="brand" href="#/">
-          <span class="brand-mark">EX</span>
-          <span class="brand-text"><strong>Exam Platform</strong><small>May 2026 pass path</small></span>
+          <span class="brand-mark">W</span>
+          <span class="brand-text"><strong>Wicker Study</strong><small>Academic workspace</small></span>
         </a>
         <button class="sidebar-toggle" type="button" data-sidebar-toggle title="${layoutState.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.sidebarCollapsed ? '›' : '‹'}</button>
       </div>
@@ -1254,9 +1254,10 @@ function renderSidebar() {
         <a class="nav-tool ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mock sessions</span></a>
       </nav>
       <section class="state-card">
-        <small>JSON state</small>
-        <code>exam-study-platform/data/study-state.json</code>
-        <small class="legend">Mastery 0–4: 0 Untouched · 1 Seen · 2 Understood · 3 Fluent · 4 Exam-ready</small>
+        <small>Personal record</small>
+        <strong>Synced privately</strong>
+        <small class="legend">Mastery scale: untouched · seen · understood · fluent · exam-ready</small>
+        ${window.__clerk ? '<button type="button" class="sidebar-signout" data-sign-out>Sign out</button>' : ''}
       </section>
     </aside>
   `
@@ -6430,6 +6431,13 @@ function bindEvents() {
   window.__platformState = state
   window.__autoWrap = autoWrapBareLatex
   window.__renderMarkdown = renderMarkdown
+
+  document.querySelectorAll('[data-sign-out]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true
+      await window.__clerk?.signOut({ redirectUrl: window.location.origin })
+    })
+  })
 
   // ----- Course search (popup) -----
   document.querySelectorAll('[data-search-open]').forEach((btn) => {
