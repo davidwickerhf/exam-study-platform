@@ -8,6 +8,19 @@
   "scripts": {
     "setup": "node setup.mjs",
     "dev": "node server.mjs",
-    "start": "node runner.mjs"
+    "start": "node runner.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "content:check": "node scripts/content-ingest.mjs",
+    "content:ingest": "node scripts/content-ingest.mjs --write",
+    "user:import": "node scripts/import-local-user.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@clerk/backend": "^3.16.12",
+    "@neondatabase/serverless": "^1.1.0",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0"
   }
 }

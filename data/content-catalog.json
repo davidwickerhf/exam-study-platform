@@ -1,0 +1,3498 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-25T14:45:17.733Z",
+  "source": "data/study-state.template.json",
+  "courses": [
+    {
+      "id": "alg",
+      "code": "BCS1540",
+      "name": "Algorithmic Design",
+      "knowledgeBase": "BCS1540 Algorithmic Design Knowledge Base",
+      "materials": [
+        {
+          "path": "00 Home.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10541,
+          "sha256": "cdec677a01a0da4057e82f374d6ebfdb1a003f8b95e780bf10d8653c76814eeb"
+        },
+        {
+          "path": "01 Greedy Algorithms/01 Greedy Algorithms.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 25586,
+          "sha256": "686a58a67c417cadfd7ff16b25dba98f3463ca55780539098a53ecf4569392b6"
+        },
+        {
+          "path": "01 Greedy Algorithms/dijkstra-walkthrough.html",
+          "kind": "code",
+          "mediaType": "html",
+          "bytes": 29876,
+          "sha256": "388250f9bed0e806d0dc8a3129dcfbb97d198324a69406ba48e5fe8627298e81"
+        },
+        {
+          "path": "01 Greedy Algorithms/examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5326,
+          "sha256": "4f363ef3d874ddfab81b81e6a2e332954906ed6028d0b9234c771feecce631e6"
+        },
+        {
+          "path": "01 Greedy Algorithms/mst-cycle-swap-proof.html",
+          "kind": "code",
+          "mediaType": "html",
+          "bytes": 21493,
+          "sha256": "dde5eb6f67268f43860b7ace28042f056cd594f298c75aaeb441abf1a1e9f6a4"
+        },
+        {
+          "path": "01 Greedy Algorithms/proof-drill.html",
+          "kind": "code",
+          "mediaType": "html",
+          "bytes": 37464,
+          "sha256": "e437f992c34a365c5346bf87c3a89845fb6e6c7de8dedfaca27f39691eaa8298"
+        },
+        {
+          "path": "01 Greedy Algorithms/q1-practice.html",
+          "kind": "code",
+          "mediaType": "html",
+          "bytes": 31007,
+          "sha256": "5b9f66b9d1d41dd0cb88743c3488527a25f4da301be9d34ed1b2613408ec04f4"
+        },
+        {
+          "path": "02 Master Theorem and Divide and Conquer/02 Master Theorem and Divide and Conquer.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7727,
+          "sha256": "a25efff26498bf25aa90cf3c0897c43a6c2dacb12c463094d1ca906ee6edaea6"
+        },
+        {
+          "path": "02 Master Theorem and Divide and Conquer/examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3664,
+          "sha256": "e61f235bdbf51dce18af5b4f3f0f467094d9e751c605cdf732f24ec8585ff1de"
+        },
+        {
+          "path": "03 Dynamic Programming/03 Dynamic Programming.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 15854,
+          "sha256": "f0ed0dc68a5034b8a2046bb3284e1d7559f8f8942d398a27e83c85840aeaa4e5"
+        },
+        {
+          "path": "03 Dynamic Programming/dp-walkthroughs.html",
+          "kind": "code",
+          "mediaType": "html",
+          "bytes": 86825,
+          "sha256": "55f87d171939e5f5da72a7987c50b960141efe82a23d1fd95f82afea76793dcd"
+        },
+        {
+          "path": "03 Dynamic Programming/examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5046,
+          "sha256": "fb813004e704fd10cd05ed459c44cf8c8f3a577b6be97c1c4bfcae184e05b7af"
+        },
+        {
+          "path": "03 Dynamic Programming/kadane-walkthrough.html",
+          "kind": "code",
+          "mediaType": "html",
+          "bytes": 46452,
+          "sha256": "6107d7d589d20f7cf168af3313693bdea7a9e6425126775c16427bc2908fcfa4"
+        },
+        {
+          "path": "04 Complexity and NP-Completeness/04 Complexity and NP-Completeness.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 14293,
+          "sha256": "5998a225721110844bb0ecdae6df1b2b28ff183f26f4dcc73609610807c8d0e1"
+        },
+        {
+          "path": "04 Complexity and NP-Completeness/examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7351,
+          "sha256": "9dc83cf0dc2fe8e4588cbe421e706c42c7ba9be8fc9a847365425be710ce6cc8"
+        },
+        {
+          "path": "05 Backtracking and Branch-and-Bound/05 Backtracking and Branch-and-Bound.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8735,
+          "sha256": "5f86cf16825b1672842ade12427f064a29b007a7932d5e0435a9c5eabc23a113"
+        },
+        {
+          "path": "05 Backtracking and Branch-and-Bound/examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6277,
+          "sha256": "8e3dda3b0e38222dc76dc0c9a5605c930b121830fabb565a6f80319981071f21"
+        },
+        {
+          "path": "06 Linear Programming and ILP/06 Linear Programming and ILP.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 13751,
+          "sha256": "4ef9a9497a78798a65ba47af2cd698afa96ae4687f3077a52b2cbcfe913d8edb"
+        },
+        {
+          "path": "06 Linear Programming and ILP/examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 12591,
+          "sha256": "661b2ee1a5077121e55bac85425c99dc33ac7e7873944e3d979b41423519e2ad"
+        },
+        {
+          "path": "08 Exam Skills/08 Exam Skills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3164,
+          "sha256": "10443fa9409d097ceef390ee7b48a5d8e7f274d89a9a7d86129d759c477adea6"
+        },
+        {
+          "path": "09 Cram Sheets/Master Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2677,
+          "sha256": "d97329725fbf6ce261b2192bc010afdbec2b3c6c51e9246131a678284be9ae02"
+        },
+        {
+          "path": "10 Self Tests/10 Self Tests.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10534,
+          "sha256": "7128d87787b687dec650ed9f89acc463dce5fe12b6975b8c958ab64301ff8843"
+        },
+        {
+          "path": "11 Worked Drills/2024 Final Walkthrough.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3348,
+          "sha256": "af7fe3479d15eeaf91f2cf352d474eb3365de8a7e03d5d3f16a6d6904bf19ff7"
+        },
+        {
+          "path": "90 Reference Sources/90 Reference Sources.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6677,
+          "sha256": "8f3b85fb823c68d96d58df7f32c90b391f3e4bb361b526575fb995e3d29423ab"
+        },
+        {
+          "path": "Materials/01 Syllabus and Exam Info/BSC1540-Assessment_2025-2026.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 320562,
+          "sha256": "dcd04a398745f95c5f9262d147e32e187975b5760eef6d976d783ca4cb20112d"
+        },
+        {
+          "path": "Materials/01 Syllabus and Exam Info/Canvas-syllabus.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 107545,
+          "sha256": "c2588ba66a8321fa1bf21e0515b711fa347586073c28b603e90b5c4444cb88d2"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/2026-backtrack.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 275732,
+          "sha256": "daa6631d8df799b4b69569ffc911d6658fa705d1e166937a3fff6790416a4c47"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/2026-lecture -complexity.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 359065,
+          "sha256": "976ab9fab1b6a21379ca248d9138637088c849da4172db7e4de1bce1a180b79f"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/2026-linearprogramming.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 568159,
+          "sha256": "fca0d177e5008399c9653b7f4cbdd36d2ab133b346e2edcfb60c2dda3c7fb3d0"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/2026-npcompleteness.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 389651,
+          "sha256": "b2136c6bd86ded7bd2c4826f282972d6650b8ebc4e9271420bbea6dc2f7d040a"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/complexity-notes.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 615163,
+          "sha256": "748691d9cad9c0ad9bd6c60bba20c54d8450fe85afd7481ab3c3980c1386a6b8"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/cs1540-week1-intro-greedy_flattened.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1836436,
+          "sha256": "f7211f7e4038c376fd6018e706b01e9849db9b26c0eb60d81989468aaf32bb36"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/cs1540-week2-part2_flattened.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1616342,
+          "sha256": "9d238af21c574d280aa6de72e7a89028fad782ef921c650eb3bf8703e1001f4e"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/cs1540-week3-dynamic-programming-flattened.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 2108624,
+          "sha256": "e81713a66d339187b58b65be35edcf102a60de50fae7dd53f02ee805b597eb7c"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/dijkstra-flat.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 120166,
+          "sha256": "04310d854407537a71c43345eeb3f65081d1adfbfcd67a79370d833f49feaa5f"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/DP - Floyd-Warshall.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 479768,
+          "sha256": "fe851a9abc24a5dda377d08898e45ebe0794ebe7dfae8e824675eee7a952f1f7"
+        },
+        {
+          "path": "Materials/02 Lecture Slides/lecture3-mastertheorem.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 732748,
+          "sha256": "c6b666b16be931ba43f72b32090eef89e548647e3e352a620bd4e7eed817139c"
+        },
+        {
+          "path": "Materials/02 Tutorials/Homework 1 — Programming and More.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 128961,
+          "sha256": "9daf6cf3e7ab5ad55293ffe036280586e6013435f20feb9a5aa1099ead58ad69"
+        },
+        {
+          "path": "Materials/02 Tutorials/Homework 2 — Dynamic Programming.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 142433,
+          "sha256": "efab300f35e916147bf0a1436b89282ae69206d000b42f75877ea54a1e85230c"
+        },
+        {
+          "path": "Materials/02 Tutorials/Week 1 Exercises Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 183094,
+          "sha256": "a49878939b60017231a6f2ddcd9761244c293c054288f9ed9d910f038c6b41d7"
+        },
+        {
+          "path": "Materials/02 Tutorials/Week 1 Exercises.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 58968,
+          "sha256": "519864f683568aecb8f88e2a0a5f4cc4552f27162af17e72fe542fb33a431bf6"
+        },
+        {
+          "path": "Materials/03 Past Exams and Solutions/AD-solsandnotes.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 256642,
+          "sha256": "ae333b10ed5457a7055c523f43d74ea0b4c42316f24f1c9bc96d6224e485254e"
+        },
+        {
+          "path": "Materials/03 Past Exams and Solutions/AD26-exam.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 149579,
+          "sha256": "caee7e1b90140309a6132444388384f845e5ad2a9a4dc4f8f02404346dcaba97"
+        },
+        {
+          "path": "Materials/03 Past Exams and Solutions/cs1540-FinalExam2024.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 137391,
+          "sha256": "2d24f40da2d35f3954e9091340466e7f144939919853d2227db7e8abaf57b6e4"
+        },
+        {
+          "path": "Materials/03 Past Exams and Solutions/exam-model-solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 185410,
+          "sha256": "54d7ce0520100106770721cfa01611b03fe76216276a6a7f935fde8843e3344b"
+        },
+        {
+          "path": "Materials/03 Past Exams and Solutions/Midterm — Question Paper.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 356623,
+          "sha256": "743d15a448b13953cc93fbc66b952f46d4b745d7b448ff5839d70d7760ac934c"
+        },
+        {
+          "path": "Materials/03 Past Exams and Solutions/Midterm_Grading_guideline.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 130109,
+          "sha256": "0637aadfdb90c1dbc02c4463b0810f64c9088316c5e34da85427227bc6379d54"
+        },
+        {
+          "path": "Materials/04 Tutorial Exercises/Week1-Exercises-Solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 183094,
+          "sha256": "a49878939b60017231a6f2ddcd9761244c293c054288f9ed9d910f038c6b41d7"
+        },
+        {
+          "path": "Materials/04 Tutorial Exercises/Week1-ExercisesSlide.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 58968,
+          "sha256": "519864f683568aecb8f88e2a0a5f4cc4552f27162af17e72fe542fb33a431bf6"
+        },
+        {
+          "path": "Materials/04 Tutorial Exercises/Week2-part2-exercises-Solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 461077,
+          "sha256": "aedae213ebaafafc43ebf6cfe4ba32e59c0770e6651d72578de74e2bd1ed91b6"
+        },
+        {
+          "path": "Materials/04 Tutorial Exercises/Week2-part2-ExercisesSlide.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 17294,
+          "sha256": "7447dc88a5f9ed8cf24d099700b02ab5e2dc312791f6c28b5a54255442751a93"
+        },
+        {
+          "path": "Materials/04 Tutorial Exercises/Week3-exercises-Solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 164322,
+          "sha256": "920e6e75ab08e5066a2c3bb041af7e3d52ec4aacbe4cec38fd399874d1aab9b7"
+        },
+        {
+          "path": "Materials/04 Tutorial Exercises/Week3-exercises.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 24948,
+          "sha256": "c8548acf3f207c447773cdf563bb3b10f026c35cd12ad049b7b429492c5a2de0"
+        },
+        {
+          "path": "Materials/05 Homework/AlgorithmDesign_assignments-3.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 136330,
+          "sha256": "9aa2979e92d1ffe59c09f586f8699669e2e8214ec1e1d96d94ec20f3cbf6fc6d"
+        },
+        {
+          "path": "Materials/05 Homework/Homework1-ProgrammingAndMore.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 128961,
+          "sha256": "9daf6cf3e7ab5ad55293ffe036280586e6013435f20feb9a5aa1099ead58ad69"
+        },
+        {
+          "path": "Materials/05 Homework/Homework2-DynamicProgramming.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 142433,
+          "sha256": "efab300f35e916147bf0a1436b89282ae69206d000b42f75877ea54a1e85230c"
+        },
+        {
+          "path": "Materials/05 Homework/Homework4.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 101283,
+          "sha256": "857a3809123ae4f51b7f43df9b0c24fbe5836fc12f392d2c5b7e8d4bd03e1dc8"
+        },
+        {
+          "path": "Materials/06 Recap and Review/cs1540-review-SC-flattened.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 471492,
+          "sha256": "3568c58deda4fc9c833d04fc104a36af7f3d07e4888b6c15b975d25de957aecc"
+        },
+        {
+          "path": "Materials/06 Recap and Review/cs1540-review-SC.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 530820,
+          "sha256": "5da277ccf0a95eaa9c3eb559e2205060b46f2626d92da80c0323ad251bda878f"
+        },
+        {
+          "path": "Materials/06 Recap and Review/Recap – DM half-2026.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 305441,
+          "sha256": "3ca43fa5703d752fd3aa7106e9bda988a7f2052e54701d28d977be638b90a081"
+        }
+      ]
+    },
+    {
+      "id": "stats",
+      "code": "BCS1520",
+      "name": "Statistics",
+      "knowledgeBase": "BCS1520 Statistics Knowledge Base",
+      "materials": [
+        {
+          "path": "00 Home.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10469,
+          "sha256": "20d2c328ccbc92d277eeaa48c9d3b4fa33d8e0e0bc7f3d3ff170f2b966f729a4"
+        },
+        {
+          "path": "01 Data Visualization and Measurement/01 Data Visualization and Measurement.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 17958,
+          "sha256": "523f1647a4b71827294517ca53fc24f47d73808212fc9ff4e96743142ac6bf95"
+        },
+        {
+          "path": "02 RCTs and Causality/02 RCTs and Causality.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7006,
+          "sha256": "84a3c676ff27f4cb4a48d792f22f962a8f01564df44176dbc4b680d27d50d003"
+        },
+        {
+          "path": "03 Odds Ratios and Relative Risk/03 Odds Ratios and Relative Risk.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7905,
+          "sha256": "f56e68c0eac101f913101ca1686dca722431d16330614bdac023f485caff4a35"
+        },
+        {
+          "path": "04 Probability Theory/04 Probability Theory.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7512,
+          "sha256": "55c32a76c2896638f35a15d0788a3945ab81d0d9b3dec9343b4fac42bcd6888d"
+        },
+        {
+          "path": "05 Conditional Probability and Bayes/05 Conditional Probability and Bayes.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10669,
+          "sha256": "96fbc25315666b98c9cb00824d16b42a81d11cf869f3a6eacd30fd4053d6a537"
+        },
+        {
+          "path": "05 Conditional Probability and Bayes/examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7057,
+          "sha256": "e2028e46a9aea85a97514d50cf77e50a4f268067bdd3a42bee3bd2b3c2bb16a0"
+        },
+        {
+          "path": "06 Distributions CLT and Sampling/06 Distributions CLT and Sampling.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11920,
+          "sha256": "369c1a6ccd5d9f507eb6b713a742e2320b027e19cc1e9bc8869175462a270af3"
+        },
+        {
+          "path": "07 Confidence Intervals/07 Confidence Intervals.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11196,
+          "sha256": "c13051fbc451f0ff2aa378a61d028bedff83d52f820d8bbb2a7abeb35a870ec4"
+        },
+        {
+          "path": "08 Hypothesis Testing/08 Hypothesis Testing.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11888,
+          "sha256": "41982c64834bd444fb2b9b6f94e8dc00b43b4275f541319fac8a5c98aba97b75"
+        },
+        {
+          "path": "09 Correlation/09 Correlation.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9774,
+          "sha256": "43d57a367db7ce8a89bada716098b5286a1205d3ad5b7aec9657d5b5dc010e0b"
+        },
+        {
+          "path": "10 Pseudo-Code and Data Workflows/10 Pseudo-Code and Data Workflows.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8430,
+          "sha256": "46d9b48fb65005881cf3c50b82402ecba59319fbe95e564ea06927a82141c4cc"
+        },
+        {
+          "path": "11 Exam Skills/11 Exam Skills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8512,
+          "sha256": "c4152e3c16904619949a5ca82596c929251211e9c05f5a93c13234403169806b"
+        },
+        {
+          "path": "12 Worked Drills/Mock Exam Full Walkthrough.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 17496,
+          "sha256": "879f74556492c5fa27d2862e05a26d651ab5cd50cb35733562196f695d0e0c1b"
+        },
+        {
+          "path": "13 Cram Sheets/Master Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5671,
+          "sha256": "67e17b64d56e4d0df96e0399e33879232b5daa3abda0b16d2c244bc5f809af1b"
+        },
+        {
+          "path": "90 Reference Sources/90 Reference Sources.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9711,
+          "sha256": "8635ed6cf7fd6b5105c11a86a7a5aeb6735fe477584e4295494032acbc6f4b42"
+        },
+        {
+          "path": "Materials/00 Exam Critical/BCS1520_course-syllabus-1.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 38144,
+          "sha256": "7c8a3d12aa9dd17728392843cc3c40b88b2b5fd075b2e90ac93005ddf08057b4"
+        },
+        {
+          "path": "Materials/00 Exam Critical/Formula Sheet 2026.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 187197,
+          "sha256": "f31986f4d2f089fc7b2ada96cd4c41a2f84dfe083261ad4d02e9a39b13ec8fe8"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 1 What is Data Science w Notes.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 5334360,
+          "sha256": "bd76f5a2539bac19d60acaba4ebf02b4da4115c7cd2b42313b533deb78e65a1d"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 2 Data Visualization and Data Summaries.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 18453944,
+          "sha256": "5f337f08a0bd26d1ef2b994c8c84dbc67e97d67615d9f86718c640397025552e"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 3 RCTs and Causality.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 5533535,
+          "sha256": "dea4e99f082ec629eb75834db997991de8e7eda7b6c6f4ab78055641537164e3"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 4 and 5 Probability Theory.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 24259121,
+          "sha256": "995ed3e026e96d88c2d7cf65f73494a0c12d1e90d84f8601728bfc9c69a7e3e3"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 6 Probability and Statistics_part1.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 27072573,
+          "sha256": "f83eef9c290aa72327e23fe043f58ec9834b5efe2d492bd17e6dfc6f9e4c0477"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 6part 2 Probability and Statistics.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 10444765,
+          "sha256": "895c4fa2b548f069d52750095b6e88d7fc335ca885eecd619d4d81d9fe5ea799"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 8 Hypothesis Testing 2026.pptx",
+          "kind": "office",
+          "mediaType": "pptx",
+          "bytes": 11082909,
+          "sha256": "45e0d40fee17c5bec528ca54e596f4ce5595e591fb04d48cdd19dc3770498949"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/03 Odds Ratios and Relative Risk/Odds and Relative Risk Solutions.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 85076,
+          "sha256": "1146b6c4307007d754bf4515581ac8b7b3d055382cb00864d43b488cc0ef1d11"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/03 Odds Ratios and Relative Risk/Odds and Relative Risk.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 19381,
+          "sha256": "c05c3ccf3f13e7059606a3c75b712c19ac03e650ce099dc10c92a6546f28b47f"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory I Tutorial.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 85754,
+          "sha256": "e29b0e69a1b4d6cc8af4d203091c7ac5eb5394bd5322dc732297cfbf29721596"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory I_with_solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 161459,
+          "sha256": "2b6ea6691cee3e4106cb12b596570b586bae06ff6a89578075b2d3a930096072"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory II Tutorial.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 123535,
+          "sha256": "0b043ef9e41f862052e2b5690340b0ce37f92ea1cf82d204abbe143bd1862c55"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/04 Probability Theory/Probability Theory II_with_solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 167009,
+          "sha256": "04c318c60d47ba8554e1a1105001d96f461acdf6d3296e78c1ab29a78c9462da"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/05 Conditional Probability and Bayes/Bayes Theorem and Law of Total Probability Original Uses.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 19742,
+          "sha256": "6d85ed5c77b1d0eaa03a3552d0f1baa4611c51f30437b03edd6efe88ef552f7d"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/05 Conditional Probability and Bayes/Conditiional Probability Exercise Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 153507,
+          "sha256": "ef943cdd9a8e94b7766f9b2e3b3c88ddb4c69840ef219d2cc312c901e5cfee9d"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/05 Conditional Probability and Bayes/Conditional Probability Exercises.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 68806,
+          "sha256": "2c36da4e76ad602b894682b778b02669ac6e3ecccaedab8e29e328f8b860acd9"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/07 Confidence Intervals/Confidence Limits.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 86859,
+          "sha256": "e842b4a9c39f83e11e2a6946eaafa6870213d9896cf474e85fbf31be29580bf0"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/07 Confidence Intervals/ConfidenceLimitsSolutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 130307,
+          "sha256": "602138bddbc9e0b7580ffd0991bfafe10cb4940b36e2662a7827048bc52751f8"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/08 Hypothesis Testing/HypothesisTesting_exercises.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 93489,
+          "sha256": "7cc05cc53ee166222569c5d7978abc554bfe007d55c1922e488f12884d6ba2ff"
+        },
+        {
+          "path": "Materials/02 Exercises by Topic/08 Hypothesis Testing/HypothesisTesting_solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 171732,
+          "sha256": "20d4b3f1e17594b133ce3adaa42121dc2ba309b2da53e6d64b2799f90fd0e605"
+        },
+        {
+          "path": "Materials/03 Python Tutorials/Bootstrap_DIst_CLT_with_solution.ipynb",
+          "kind": "code",
+          "mediaType": "ipynb",
+          "bytes": 997542,
+          "sha256": "36133f2aa078e34558e51eaf6f8983ab6b4118168b57226454c30d5d678bbce9"
+        },
+        {
+          "path": "Materials/03 Python Tutorials/Tutorial1_exercises.ipynb",
+          "kind": "code",
+          "mediaType": "ipynb",
+          "bytes": 42100,
+          "sha256": "b0692342a4585dcdfa572d0cf1f3f7b893085e18652b0038072c14ee019a332a"
+        },
+        {
+          "path": "Materials/03 Python Tutorials/Tutorial1_with_solutions.ipynb",
+          "kind": "code",
+          "mediaType": "ipynb",
+          "bytes": 696316,
+          "sha256": "ad58bfbf89eedc5051d991943aa24bf91cc15f257273048b02d7fd4688c02376"
+        },
+        {
+          "path": "Materials/03 Python Tutorials/Tutorial2_with_solutions.ipynb",
+          "kind": "code",
+          "mediaType": "ipynb",
+          "bytes": 52617,
+          "sha256": "91d23b370adb81e929745d0204cb4e30f016862ce95d22e72ec572f6817e2a4d"
+        },
+        {
+          "path": "Materials/03 Python Tutorials/Tutorial4_exercises_with_solutions.ipynb",
+          "kind": "code",
+          "mediaType": "ipynb",
+          "bytes": 65247,
+          "sha256": "a32cd857690e0cf9edbbb12af20ca62dcb0788666a28d1aef472170fcdc38220"
+        },
+        {
+          "path": "Materials/99 Reference/chart-chooser-2020.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 117355,
+          "sha256": "33ac694ad5ce07ecac7440425ba4c0e41d4f09ab28fd8f81e3a37a0e79d44ffd"
+        },
+        {
+          "path": "Materials/Mock Exams/mock-paper-b.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 125809,
+          "sha256": "d5ca71ca76161b330dc3b2ccea9a1d8ab4dfc853d1b9b81be2d03af616923809"
+        },
+        {
+          "path": "Materials/Mock Exams/mock-paper-solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 2322399,
+          "sha256": "3f9e63464ab6fce9cc1c1e9187d3dbb9df0bd63ccefe85232716a9f24c0f427e"
+        },
+        {
+          "path": "Materials/Mock Exams/mock-paper.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 211849,
+          "sha256": "9a074125cadee93bff3a49c97d9b2489b870b98843316ee15e9fcaeba65bdf68"
+        }
+      ]
+    },
+    {
+      "id": "emb",
+      "code": "BCS2410",
+      "name": "Embedded Programming",
+      "knowledgeBase": "BCS2410 Embedded Programming Knowledge Base",
+      "materials": [
+        {
+          "path": "00 Home.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 19824,
+          "sha256": "97303f88875964782d05c8814c8a451351afc84902dc8547d35bdf14ef550c15"
+        },
+        {
+          "path": "01 Foundations and Course/01 Foundations and Course.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 44392,
+          "sha256": "47438a7b58634418dfae01a4f3a2e7c33af5d1146a843a783f5a1c414be4abaa"
+        },
+        {
+          "path": "02 Computer Architecture/02 Computer Architecture.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 58498,
+          "sha256": "6a84d7e1877ba6d837af50c0588d9aa0d0628f8735c023090d0c1a1b1e2a20ff"
+        },
+        {
+          "path": "03 Data Representation and C Memory/03 Data Representation and C Memory.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 44868,
+          "sha256": "d56374d4784a94a0e5ccf0019dcfdbc7e2567b6d38247e3b290bd4e71535948d"
+        },
+        {
+          "path": "04 ARM ISA and Assembly/04 ARM ISA and Assembly.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 73900,
+          "sha256": "2b9ad52aa295c382e18f4d24c0b9e0b8ef86da80ac3b7b47ce21281b43d1eef1"
+        },
+        {
+          "path": "05 Embedded Workflow and Tooling/05 Embedded Workflow and Tooling.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 59446,
+          "sha256": "ea9c0207d0b5476ed1ac98de2b2bae576fcdbe1bf0035f76a59bb840440b9371"
+        },
+        {
+          "path": "06 FPGA and Edge AI/06 FPGA and Edge AI.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 34388,
+          "sha256": "dd29d3e2db1591354e598dcebbd96bc6ddebffd539545e91f49454c001143e8c"
+        },
+        {
+          "path": "07 Exam Skills/07 Exam Skills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 30802,
+          "sha256": "94738595acb15af05ec4bced5ae41d92414e7fa3058228f122cc035023c6a482"
+        },
+        {
+          "path": "09 Cram Sheets/01 Foundations and Course Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2851,
+          "sha256": "8db2f4198cdce11b7b86169f117eebe380958b9524fe834cedbbc7d9b166bdc8"
+        },
+        {
+          "path": "09 Cram Sheets/02 Computer Architecture Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3637,
+          "sha256": "1e49ff1e9e152332abc6d99c0b72c683135f81656a1cdbe31b4af8450ae6ae49"
+        },
+        {
+          "path": "09 Cram Sheets/03 Data Representation and C Memory Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3242,
+          "sha256": "5abc3ddfb7a6f2ebacfdc835ebd016f82812a6eef5306ba65aed012d17c098b1"
+        },
+        {
+          "path": "09 Cram Sheets/04 ARM ISA and Assembly Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4411,
+          "sha256": "09c322b7abe1a842985785a349ae7dcca653a34c3393d8bce0fd764b50a49843"
+        },
+        {
+          "path": "09 Cram Sheets/05 Embedded Workflow and Tooling Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4709,
+          "sha256": "a94f0ec2deddaccb2096a5be138cbffc1c2d5cab61c23a993a0bde403b37eaf2"
+        },
+        {
+          "path": "09 Cram Sheets/06 FPGA and Edge AI Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4709,
+          "sha256": "8ee20dbcbc7042b3a8a9c0b47d700f99a98f2e9bc6c283b022f09e1e6c3f74fe"
+        },
+        {
+          "path": "09 Cram Sheets/07 Exam Skills Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1061,
+          "sha256": "d6255216eb73c42f49f61d573b2aeae05474042c6ccc1330c256204a76f0ac19"
+        },
+        {
+          "path": "10 Self Tests/01 Foundations and Course Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1479,
+          "sha256": "1cde35de81f6a37c99d5e49e5860ae47df2acac44ab429233711de6392f0c086"
+        },
+        {
+          "path": "10 Self Tests/02 Computer Architecture Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1721,
+          "sha256": "3c34a5c5d352320422d4a819b1a62267b2ac17d8b1c946c35761e6f94c20c8e8"
+        },
+        {
+          "path": "10 Self Tests/03 Data Representation and C Memory Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1998,
+          "sha256": "cec2b2b3a690b79ab8cc4a5dccd4e882ac9668f8b29728a973e3742e2a03a699"
+        },
+        {
+          "path": "10 Self Tests/04 ARM ISA and Assembly Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3072,
+          "sha256": "dc4516220a9d54e910ece788998b8b69e356c966569b136046091cd11af53795"
+        },
+        {
+          "path": "10 Self Tests/05 Embedded Workflow and Tooling Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1982,
+          "sha256": "6eb88fa99b240adf8ff32f705ee1dc56c8eb68df5f01be1fe47519d4a557f0bd"
+        },
+        {
+          "path": "10 Self Tests/06 FPGA and Edge AI Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2152,
+          "sha256": "1fbe6fcdf2e6d5525438bbb75620b254546a7eeb20dd8bd0185166860a511fdf"
+        },
+        {
+          "path": "10 Self Tests/07 Exam Skills Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 700,
+          "sha256": "d12728092d52095527b43927ef59f4bf6029d7fee8270fb967c537b54134de8b"
+        },
+        {
+          "path": "10 Self Tests/Past Quizzes.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7712,
+          "sha256": "b3bfb63dc80f8ee80fd129dab7e4f4feec2f0a662ee9f0c1b56a10e84aba467e"
+        },
+        {
+          "path": "11 Worked Drills/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1225,
+          "sha256": "4c7137403f30005b4c84ad9e74ce8f0c561accc65fff757e0d48011c45425248"
+        },
+        {
+          "path": "11 Worked Drills/01 Quiz 1 Worked Answers.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3124,
+          "sha256": "6441d988531184cd743c5721d2e2babc86938000e96ea8ebff50e8e44628656e"
+        },
+        {
+          "path": "11 Worked Drills/02 Quiz 2 Worked Answers.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1918,
+          "sha256": "1578f1e017890aff381ce1a2e22df2ad2d7085ddc7ae561d2c5b2c7b4b418b7e"
+        },
+        {
+          "path": "11 Worked Drills/03 ARM Assembly Coding Patterns.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2924,
+          "sha256": "5bbc241492496dea7458b2a43e9b103ec2cf03bdd365c171eeacc4a9efe2d7d6"
+        },
+        {
+          "path": "11 Worked Drills/04 Pointer and Memory Worked Drills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1512,
+          "sha256": "d120e7ed4aa439f3dec030e00d293757e0ae15fbc8b0c385777012746cb4aab1"
+        },
+        {
+          "path": "11 Worked Drills/05 FPGA and Quantization Worked Drills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2239,
+          "sha256": "de065de52b6e7d1776e2ae4e60ea0dbd5a63cd7b71b2a9afcd4bf98e4e220a60"
+        },
+        {
+          "path": "11 Worked Drills/06 Quiz 3 Worked Answers.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2980,
+          "sha256": "c7f316d54ef32c6adf438ab0af4206adfc0f4354a09b1ddeb7d2f95c3cb00bf9"
+        },
+        {
+          "path": "12 Mock Exams/BCS2410_Mock_Exam_Pack.aux",
+          "kind": "attachment",
+          "mediaType": "aux",
+          "bytes": 652,
+          "sha256": "244717bc0ba5165774bd82788d1ca6349c5a779ba369dc60638f2838e4e2edef"
+        },
+        {
+          "path": "12 Mock Exams/BCS2410_Mock_Exam_Pack.out",
+          "kind": "attachment",
+          "mediaType": "out",
+          "bytes": 602,
+          "sha256": "ecb7463aa20343fb1ca430a126ba4f4f5510c0a58ebb37fde6f08625ca18e8c8"
+        },
+        {
+          "path": "12 Mock Exams/BCS2410_Mock_Exam_Pack.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 274101,
+          "sha256": "17348ffb3f0da0d0b8b7c37bb48f18a18c46876a2fbb3df06a4df4fa33350480"
+        },
+        {
+          "path": "12 Mock Exams/BCS2410_Mock_Exam_Pack.tex",
+          "kind": "attachment",
+          "mediaType": "tex",
+          "bytes": 25745,
+          "sha256": "5f5f2e9f1af36ff8a4cea3a66d835290c047dea6436ac4e03d32f1ee037e35d2"
+        },
+        {
+          "path": "12 Mock Exams/BCS2410_Mock_Exam_Pack.toc",
+          "kind": "attachment",
+          "mediaType": "toc",
+          "bytes": 284,
+          "sha256": "a118994d4500024d1abebdb7ea1a104f1f8336b7c3d44a8cb5ead305feecf407"
+        },
+        {
+          "path": "90 Reference Sources/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 469,
+          "sha256": "ded15595ad4c348e0ccb20c9317b7fd69e711c09e3416b672f92f832fca37cea"
+        },
+        {
+          "path": "90 Reference Sources/01 Source Inventory.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2441,
+          "sha256": "f9b86fc2bcf5fd16d6b914c7accf13e3cb656babf88375ea9a16d308c0ef0d93"
+        },
+        {
+          "path": "90 Reference Sources/02 Embedded Course Corpus.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 23532,
+          "sha256": "6005129679e26270c513187ff828fb2171586cfebeefbea3e6f02f323487bec6"
+        },
+        {
+          "path": "90 Reference Sources/03 Quiz Scope and Extra Materials.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5111,
+          "sha256": "af8ee55f8e5d1f1b01c4e11afe83b03b235f9d6024aab222bbc4121387a290dc"
+        },
+        {
+          "path": "BCS 2410 Syllabus - 2025 - 2026.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 458780,
+          "sha256": "470cb025dfd275994c7a1bfc0263d77c56ed9ba089f1fe86ca345d40e8f9853d"
+        },
+        {
+          "path": "Materials/BCS 2410 Syllabus - 2025 - 2026.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 458780,
+          "sha256": "470cb025dfd275994c7a1bfc0263d77c56ed9ba089f1fe86ca345d40e8f9853d"
+        },
+        {
+          "path": "Materials/Lecture 1 - Introduction.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 4590492,
+          "sha256": "6941bd87ea262ab715f28c5405d4f28d9ec5e8c2c1f4be4d65caa1a7b24f4dee"
+        },
+        {
+          "path": "Materials/Lecture 10 - Vitis AI and quantization.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 2713152,
+          "sha256": "28b2076955b9f2f2d13e48eec811db76600fc41dbf143de71dc8db5bbb99ffce"
+        },
+        {
+          "path": "Materials/Lecture 2 - Computer architecture.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1425498,
+          "sha256": "c4ed27d5f6b154307fd84b503814bd457ec2850c33df743ef7de3bc6bedc081a"
+        },
+        {
+          "path": "Materials/Lecture 3 - Computer architecture.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1044684,
+          "sha256": "ea37e0246caa3e4614664cf9171a33bb901fafbfd50897263d6b30b2ad61fff3"
+        },
+        {
+          "path": "Materials/Lecture 4 - Data representation and bitwise operations.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 821541,
+          "sha256": "7bd97ecbcdc9e053aef8d1a9d7345b9226049415a41e840e58e695bcb970a702"
+        },
+        {
+          "path": "Materials/Lecture 5 - Pointers.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 852842,
+          "sha256": "62838f9c07fa26d48f7716f1cd8064d69bc7ecbb64d4790961cc9253b092eefb"
+        },
+        {
+          "path": "Materials/Lecture 6 - ARM ISA - Operations.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1264640,
+          "sha256": "73369f0426387dd5d32de59f8c45fbb092e56d2e2cf30a1c084307842b7ae164"
+        },
+        {
+          "path": "Materials/Lecture 7 - ARM ISA - Execution flow.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1224989,
+          "sha256": "8df5e39f01ee147160bedc9e302f5e0eb32bf911ea01b4cadfd60aba332c084f"
+        },
+        {
+          "path": "Materials/Lecture 8 - ARM ISA - Execution flow 2 (1).pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 961652,
+          "sha256": "919345c91d78be8972364c3ada07bcc4bf5e9894bb931273e04bd97686767dec"
+        },
+        {
+          "path": "Materials/Lecture 9 - FPGAs.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 2489943,
+          "sha256": "9f15e9bcc52bec75aeef5d7b55d95022bc5565d80693d5d97ed5976009a3898e"
+        },
+        {
+          "path": "Materials/Lecture 9 - STM32U5 architecture and GPIOs.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 2047995,
+          "sha256": "1436fce2276ea74d53ba0906444f8c7652eb6cecc07cd1f252d40a8f76babbd5"
+        },
+        {
+          "path": "Materials/mnist_vitisai_tf2/quantization.ipynb",
+          "kind": "code",
+          "mediaType": "ipynb",
+          "bytes": 21641,
+          "sha256": "0b853a72ed133c666582dd7d448c9a5ad1c5a89165424da9c9e2c824de015a4f"
+        },
+        {
+          "path": "Materials/mnist_vitisai_tf2/README.txt",
+          "kind": "attachment",
+          "mediaType": "txt",
+          "bytes": 666,
+          "sha256": "c863d5123a16a8ee380a87f103bd8d79e26fb6e954d661e0c6f69638bf86da91"
+        },
+        {
+          "path": "Materials/mnist_vitisai_tf2/src/dataset.py",
+          "kind": "code",
+          "mediaType": "py",
+          "bytes": 3398,
+          "sha256": "8f7d8db4d7e31e4a7b2e54da3ea6af1960720ac86199d617b0573d6643f96fa5"
+        },
+        {
+          "path": "Materials/mnist_vitisai_tf2/src/evaluation.py",
+          "kind": "code",
+          "mediaType": "py",
+          "bytes": 3845,
+          "sha256": "42d761dac66734872cc2216dce6286ac0e05f8f54bb024fe76658827f4e48bf3"
+        },
+        {
+          "path": "Materials/mnist_vitisai_tf2/src/models.py",
+          "kind": "code",
+          "mediaType": "py",
+          "bytes": 1814,
+          "sha256": "e667d70cc367ef24f313b19c5df70943a40b6fdc30af6bcbf9639ee73ac065ac"
+        },
+        {
+          "path": "Materials/mnist_vitisai_tf2/training.ipynb",
+          "kind": "code",
+          "mediaType": "ipynb",
+          "bytes": 15291,
+          "sha256": "254fc5ae525b9e56957765591ef9613dd3f2a0bcee8073a0f36f22c9f84d886b"
+        },
+        {
+          "path": "Materials/Pointers and structs.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 213956,
+          "sha256": "fa71334dcda43d6d408c7fec65dc076809f86978692ee66f44ba30f1589d88a9"
+        },
+        {
+          "path": "Materials/Solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 64000,
+          "sha256": "c495f71ced2a65e02183bb3157b29acd62954301a8c137c95efe67e5407df848"
+        },
+        {
+          "path": "Materials/Template/Core/Inc/main.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 89,
+          "sha256": "82d5e0132523fcfa54e055e1c3f91a06b7c100e2f8ccb122288cb55b30c0922f"
+        },
+        {
+          "path": "Materials/Template/Core/Src/main.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 104,
+          "sha256": "4e8c3994a10faed4e9da469b144b990fc5ae48d9ab993635484a25f3ae6312ee"
+        },
+        {
+          "path": "Materials/Template/Core/Src/syscalls.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 2847,
+          "sha256": "f772e8cdb32eb5216a3be61596216fcfee47e93202e644bea879f745c4db77b1"
+        },
+        {
+          "path": "Materials/Template/Core/Src/sysmem.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 2726,
+          "sha256": "ca25d4ef17f7fb7b281008f3373bd280b662e60b5f0738e484ebe0192c3d1e8d"
+        },
+        {
+          "path": "Materials/Template/Core/Src/system_stm32u5xx.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 14078,
+          "sha256": "12ecf8df55a325c07635e6e5158a12f12e503cf60d3d0aa6b6c709e73aab7fe6"
+        },
+        {
+          "path": "Materials/Template/Core/Startup/startup_stm32u585aiixq.s",
+          "kind": "code",
+          "mediaType": "s",
+          "bytes": 18506,
+          "sha256": "b72c1e01489799b5512f2379305760745638c833c4f73fb78132ad3b5ac5a591"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/main.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 31,
+          "sha256": "ec52f5b792b75441aed93ba59d16d9060d9ea3e214a895646a6f6689ca4e84fc"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/main.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 753,
+          "sha256": "8d65d2e6736215d088f209bbf4c7db33ad32c6f5fdde7f5b19aab44d82f2073d"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/main.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1245312,
+          "sha256": "1bf008181c20eaa3717ea6837a55c424ab4ee1ed4ec6b8b0f668dce804fe8445"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/main.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 38,
+          "sha256": "675b1967a4989696c5b8a1d0930bc7a3be18a8d6c3346bdac8e060f439f1d894"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/subdir.mk",
+          "kind": "attachment",
+          "mediaType": "mk",
+          "bytes": 1782,
+          "sha256": "5b5880eea7d6311da8fff4d562768a4947bce88fde538882df001647be1b4191"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/syscalls.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 712,
+          "sha256": "01832a31b89660113af870f14d457a11601c282acfd852d58310f5eb0bb46db9"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/syscalls.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 45,
+          "sha256": "7e9f161bd6059035d19446ac2862995fdc98b69d85d17d36d34e18b2ec321c33"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/syscalls.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 83308,
+          "sha256": "1136ca2a3b7af3995cdef6ce633cad095111473a4c39007d8ac320ce4cb17de8"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/syscalls.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 853,
+          "sha256": "460c72fdd49e12d96718dcfd1e68d93dd0ea56ecba3689abb1499bf50ba717f9"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/sysmem.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 35,
+          "sha256": "022cf05accc88a64a116991e5655695bf325b83e02a9a830608e84002c5102a3"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/sysmem.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 41,
+          "sha256": "99b9963a461df259795599d7fd1e4a335fa2755e15ac62304480a485d97b4e83"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/sysmem.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 48092,
+          "sha256": "250cf6072f436dc5076f0f8ed39d917240b02f2dc2533299ead748c5e17d87ee"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/sysmem.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 43,
+          "sha256": "53d6e65a5ea45dfedb42dfaab19bfb0076a11fb10cb8743d41e580602c8cd8f5"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/system_stm32u5xx.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 114,
+          "sha256": "15e67da6d80ac630881aed773bdba27836154958c34385d6db4f50d46d09b7ed"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/system_stm32u5xx.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 857,
+          "sha256": "1fcad9c715a89cfad4ced2488a7c34bf2b1d3ef8cc40a96ea81e9b16b0b1f2d2"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/system_stm32u5xx.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1279976,
+          "sha256": "e361635404af50cbdc9b29fd253fb4a1fa7057c6fe124ce2ac7ac242d6c9032f"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Src/system_stm32u5xx.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 128,
+          "sha256": "0905e68ffb2f3fcc16378c642e8d600383a53bb6217356924d1e331a71e3199c"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Startup/startup_stm32u585aiixq.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 85,
+          "sha256": "0db7f16fd35f8d8faac219f65eff5a7d587b3517dcd41e6b1fbd879801e6a001"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Startup/startup_stm32u585aiixq.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 9380,
+          "sha256": "07e8d130fcd4a89ae8176f0c81954019722ee5229d43d09c1a17c696c59652c4"
+        },
+        {
+          "path": "Materials/Template/Debug/Core/Startup/subdir.mk",
+          "kind": "attachment",
+          "mediaType": "mk",
+          "bytes": 1008,
+          "sha256": "675c98f0b6857e9a266f9bffa16fbac046e28e7b3751cdbc31f333856ed9865f"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dma.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 2953,
+          "sha256": "c47d8045fd3e43362e975f47fd71b52a073d3de08c4e385cd16020a741436714"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dma.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 1141,
+          "sha256": "c4e0437273524508c765edad7394e71e4cbe5a2764f37fbd5d6766127ce9a7a0"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dma.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1310848,
+          "sha256": "d8eae0ec44089e580eb7c1d76f2d7490b604829e0ffc1dde49337224839d5ca9"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dma.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 3213,
+          "sha256": "22f913aa1b8b844692e3b797944027443c200d025c4cd0365f78e93c22d7b8b9"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_exti.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 992,
+          "sha256": "c9bc8ad1191c64ac08fe390ccd5d0ea8d0d6a27bada1972810fb297b0602ffac"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_exti.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 1029,
+          "sha256": "4b2ab73f7d770ed9363cb933112c52c0b35415d78b32757b4cc053dddd304a38"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_exti.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1258376,
+          "sha256": "5f3131caa05cb6ce91eb0ca47a41ccf813ff0e18cb11d9b0c2521515806c2fb1"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_exti.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 1078,
+          "sha256": "bbc43475ce5cdbf70322d6a95de29771bfe536d8c65c5efdc08e181802a1563a"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 949,
+          "sha256": "21f2e39ea07804f2109ebe65a2cf68e87c2cd759d63eb57ba7e7e47ae4bd7578"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 1145,
+          "sha256": "05dff9aefbd5299640344490b7502129b787c6f0f2565195b2877af19b756a3d"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1271400,
+          "sha256": "b9a999c217c6bd5db7a600ef93ecf27396f5fc99b030ae114c7d2082eb5d8393"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 1156,
+          "sha256": "9f8aefa8e9bb173eeba7b13018c8f5c92fe295c3b9521be6707620dca74403e9"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 526,
+          "sha256": "4268fd8b5e7e82d5e1b1965850164f8e726048c74cb6413a7b61d44c8b9ef21f"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 1153,
+          "sha256": "694c3cbd6f7a2667943e9d38fdceec4577d7fb648864587f813c61299f601e53"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1264664,
+          "sha256": "7c63b4057117275d3e84f4455d63bb12c4b4d122aed7228cefb3a76784e683e4"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 614,
+          "sha256": "e569f33c899085bfd9c099e29160058ee199c715771ccda61db7a15df236212a"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_ucpd.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 690,
+          "sha256": "20144c62a90d74e9d82017306d0f77ce8f12c0a830c07498686e962b1cff028c"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_ucpd.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 1261,
+          "sha256": "b86478cc7cb445604aad309225a18e214d9ff6ccc1df6cc8fb29f5dd46a73799"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_ucpd.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1302664,
+          "sha256": "d1c666f76b76cd87b2b8c09c4f9dbb1f183e1f2d8a40da42e8c3cb036e0e332e"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_ucpd.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 754,
+          "sha256": "53d58b0ce2519e3e727147aacbdb87126c910fbe736b401abb00de4140c35d77"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.cyclo",
+          "kind": "attachment",
+          "mediaType": "cyclo",
+          "bytes": 3556,
+          "sha256": "5072b9e46a688c6e59ec4ed44613ddf866e6a9cd4902eb73bd02f2c1b2feac86"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.d",
+          "kind": "attachment",
+          "mediaType": "d",
+          "bytes": 1387,
+          "sha256": "27396074075440a7e7d52ce8d73f5bca07c069ffc443356b209c2d2420d6be0d"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.o",
+          "kind": "attachment",
+          "mediaType": "o",
+          "bytes": 1354284,
+          "sha256": "a8a539dea09e72f5e45e5261b1d440f18c03b53e0e9b8fb4d39d3a866b8399de"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.su",
+          "kind": "attachment",
+          "mediaType": "su",
+          "bytes": 3853,
+          "sha256": "ee81beaa614c2dac30037ab37858f6d6ec2fea78ee2a0ba8a6547c4b700a76a7"
+        },
+        {
+          "path": "Materials/Template/Debug/Drivers/STM32U5xx_HAL_Driver/Src/subdir.mk",
+          "kind": "attachment",
+          "mediaType": "mk",
+          "bytes": 3701,
+          "sha256": "fe37c0e35f21ec1fba137e37c55646d8001add181b67fb99ecbff9d976f1d593"
+        },
+        {
+          "path": "Materials/Template/Debug/makefile",
+          "kind": "attachment",
+          "mediaType": "binary",
+          "bytes": 3018,
+          "sha256": "8658114efedb4e91c00c816767f380d0079bdd5f4dfa4ab62aeba6dba864d8c6"
+        },
+        {
+          "path": "Materials/Template/Debug/objects.list",
+          "kind": "attachment",
+          "mediaType": "list",
+          "bytes": 495,
+          "sha256": "faf2db74e73b0a0059651533f137c7711716af55d346d88ee69d0d2dbedd664b"
+        },
+        {
+          "path": "Materials/Template/Debug/objects.mk",
+          "kind": "attachment",
+          "mediaType": "mk",
+          "bytes": 285,
+          "sha256": "62b4ab34bd02d030f31eba9e10cb267c2e626830d3922f4eea59841815d167a0"
+        },
+        {
+          "path": "Materials/Template/Debug/sources.mk",
+          "kind": "attachment",
+          "mediaType": "mk",
+          "bytes": 631,
+          "sha256": "b2de9463557210ab12a76822258250cc07176ade3c887ea4e6f6382521035010"
+        },
+        {
+          "path": "Materials/Template/Debug/Template.elf",
+          "kind": "attachment",
+          "mediaType": "elf",
+          "bytes": 1104652,
+          "sha256": "d979e0de07dba60d31b71624fc01ef346e7b2ef3341b2fab49c47d6d293b4cb6"
+        },
+        {
+          "path": "Materials/Template/Debug/Template.list",
+          "kind": "attachment",
+          "mediaType": "list",
+          "bytes": 11645,
+          "sha256": "fe8bb90e156ce31323c4919852492bf52b136b32110e0b5a113307d53fd60d68"
+        },
+        {
+          "path": "Materials/Template/Debug/Template.map",
+          "kind": "attachment",
+          "mediaType": "map",
+          "bytes": 153943,
+          "sha256": "ff4f63f50793b97f68c3920cb0426b33d0088f3de40f5a0deea71d917a510abf"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Device/ST/STM32U5xx/Include/stm32u585xx.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 2079154,
+          "sha256": "7729b88d270dbcbf9a18be3a3c8db1f91a9792c5d894ec48bd541c2164fd910c"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Device/ST/STM32U5xx/Include/stm32u5xx.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 10941,
+          "sha256": "8a3a7647db874d589e6071ebedad866a0b9cbdce13dee0c8ef1ee59716fdbc1e"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Device/ST/STM32U5xx/Include/system_stm32u5xx.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 2822,
+          "sha256": "02fbe05f5bf2d6de0fd9a90a92d760ef8c89be6b737c918de03acd75765071d7"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Device/ST/STM32U5xx/LICENSE.txt",
+          "kind": "attachment",
+          "mediaType": "txt",
+          "bytes": 375,
+          "sha256": "98664bd17274e8835ba30b36d2e475cacbac0020beb99eeb90815f694cb463d0"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cachel1_armv7.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 12498,
+          "sha256": "6cdb5b324f2fd1bb5b2f47298ba6e6777e735d7cad3bb8d942cd36e2c6e65328"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cmsis_armcc.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 28887,
+          "sha256": "d074534d7106cec83474b3b0a897bd2553e1a8895ecbd54f4f4fb25928066eee"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cmsis_armclang_ltm.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 57949,
+          "sha256": "8621969ea669a1b230ff2125a760ef66d575c48cb45e9e457f768909abcbda46"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cmsis_armclang.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 49920,
+          "sha256": "11b39b96ddc1125124762b3423a77b90dd40ea5b4582a3513830245046b24311"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cmsis_compiler.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 9764,
+          "sha256": "869640702d811c4c63abb52206715c891a93fd03be954df5ad40d378355af3d6"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cmsis_gcc.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 65585,
+          "sha256": "3d4e265d0aa42f888385ccf073666e6ebb5ec9f834760b9da27c474e177f708d"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cmsis_iccarm.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 30071,
+          "sha256": "f28119adbc81fb0e3c957c9aebe8fb423ad93634e76ead3caa2b0818d2e123ae"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/cmsis_version.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 1719,
+          "sha256": "8cda7ac3ff6f0eb5e83c4fe613dd195151b24da54167f5c3c007e599a03f1edc"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_armv81mml.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 280868,
+          "sha256": "255663bc446feb00e341d682f7f78ec6f301a5c1802d856bcdd18d7552393dff"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_armv8mbl.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 117226,
+          "sha256": "b5a662723f65a9fe1fbde82b83681daec28aadb78c2dc95e531d6fb6bb396dde"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_armv8mml.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 186400,
+          "sha256": "17021c385f47945f2376fbb30f2f2e3fc28bd0f3d97eb857d212c192c54ab3fc"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm0.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 42595,
+          "sha256": "5cc53e723ee0e97455233f8dee892940209e2fff66071d66d74bab56c528b199"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm0plus.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 50964,
+          "sha256": "a19e24c136145b4c72630d0ab7c83a7aef010f3ba165e34c56a05057a2d9fed5"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm1.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 43605,
+          "sha256": "c243c4afb291068fe7078d2911b2f0001e78a4d5466c26728611b06147d65c2b"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm23.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 123853,
+          "sha256": "b6fb9bb5faedffe8eec563550e21dc9097c9f64956258b2af51e6d4d88ca4411"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm3.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 111472,
+          "sha256": "0fb7749ea828cad4fded65bbeefc3fd0cff1effbb7c784f7086526fd69e26719"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm33.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 192801,
+          "sha256": "d5c5fc559cbbbc1e495af4ac2ea81959bcadb35aa69ecb1c20d183c3ed9cfeae"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm35p.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 192816,
+          "sha256": "e52a069ffdacdbf000ffcc6f1766f0dcdfef1bb60f5e8ca0602bcbcfd2b69fa1"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm4.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 123104,
+          "sha256": "d59a9e3ed4cf43a3c74a2e48f344d41be2b6363ef9394ea2c551052fe553a6af"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm55.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 322267,
+          "sha256": "bf661f2b792ad123795207bafd405d6b250690c65a28232a92485d6fdbb76d98"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm7.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 141314,
+          "sha256": "a361f5ff7b053831cdbbc068eae9609cd6681414c9a95c26df582d686a2378b8"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_cm85.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 313000,
+          "sha256": "062019526b524285bee161459f65ce7c9bf827c2ceabc4101fd150f6d80b37f5"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_sc000.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 47592,
+          "sha256": "4ec2d6ff893658c6bb7b1c56e6256087f3a2ed1e662c226e4ba11cfaad28d05d"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_sc300.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 110441,
+          "sha256": "4ca0e6f1fec869e4942c70028ce2f3c9ae00a65a69c35f467840af3fc3d03ae5"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/core_starmc1.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 196647,
+          "sha256": "47978dc5bfb51c5edd09178d99c9b9163d500d48181985da4ead5a3c20d9a85b"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/mpu_armv7.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 12006,
+          "sha256": "de1b5eb9ed566527b66dc06f4ecb6a43ab6800f7dac47e87c9cb42984dca41bb"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/mpu_armv8.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 11722,
+          "sha256": "467a5ce9d65d9b37fc32e01001ed184500d56576f303713d27b76e68dd67911c"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/pac_armv81.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 6268,
+          "sha256": "f3497af055e95873809e4a79420e2b08915582466cef2eb4235d8e03faa7c3ab"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/pmu_armv8.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 23123,
+          "sha256": "ef9aa2f1c5b03bea488d4b74d33db14acdc6c87e500273d68d75a6d3902a4f62"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/Include/tz_context.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 2757,
+          "sha256": "7fcc21fc190f6fd970390e9caaa6a86d72fd10f9edf4efab36f12aecf1a8baa0"
+        },
+        {
+          "path": "Materials/Template/Drivers/CMSIS/LICENSE.txt",
+          "kind": "attachment",
+          "mediaType": "txt",
+          "bytes": 11558,
+          "sha256": "e03ba41d7fab20700769fe4118bab50d800cb74f990353a05d2f5fff1c228363"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 240970,
+          "sha256": "b87b0824e4f066786d566ed88089a54d7f184bc2bc8efc9de66d5b6d71e75865"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_bus.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 153064,
+          "sha256": "69656bb760fb4bd55eb50c8fdd1c5b781cf27f46085625501fcd5b759ca742f3"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_cortex.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 50290,
+          "sha256": "3b4550500a1275362f48b6a7c135dbcf8ab69cc3a6677ee0cabe27d63cd27acb"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_crs.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 25473,
+          "sha256": "e243edaa9858a12445c86a651d93b5a7b39cb5cd2406d1eb9a2e57dda747a6ab"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_dlyb.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 3638,
+          "sha256": "7e3caf3eafe3a9978eaf951e9f1bb323c22e9078c71b3fdc8af5f238331ae37f"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_dma.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 329269,
+          "sha256": "233afddbf0139e29ec0bd0c1413bac86d4a82282e7da333ebb3be6b3d0f74e71"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_exti.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 59809,
+          "sha256": "37c401bad7dd83a427d58a9ea9e48401f428af19e0a0ac9a1457daf29cd0a430"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_gpio.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 46859,
+          "sha256": "182a168072d856fbb65dde55aadfada44ff78016e9d4a6d74909f5f939631d23"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_i2c.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 100031,
+          "sha256": "20f2e7d9f175d36dae05589278a1214468738e00b7e7b0f5ab552bdbfd7f0519"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_icache.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 25669,
+          "sha256": "0ef54248b7604b3e0799269001aa755454d268d196c5d7ede35d06c4320d4a36"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_lpgpio.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 16121,
+          "sha256": "db733e32543ad072e1e6435845f8cca7b35d6f8ee96cbe788505d7ea48d16420"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_lpuart.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 102920,
+          "sha256": "a56092faaa873debe18381b35f92145fead984f5b6d0acec09d82cefafd671bc"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_pwr.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 139162,
+          "sha256": "898261fbd5476da5bb7fd1ff5691cb2aee22a57baa853beddacab057520565c4"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_rcc.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 249379,
+          "sha256": "df70ce6c07da53bf61a1c1728ce66e3b9a0d761acd2b5d1e4000744ee9055918"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_rtc.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 232130,
+          "sha256": "1dfee6f1abbd42ec48b58e2b874d237c11c36466dadc7d5ffce71f1db1cf9563"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_spi.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 99645,
+          "sha256": "db1a52dfa789a30cdc0d7312e3ae9e6eed5facd30befa593d6e45dd46485408d"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_system.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 71325,
+          "sha256": "8787618b40beb73304639c3258360ad4e4101be143987dad59c70fbd907d4ac9"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_ucpd.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 64372,
+          "sha256": "256bf94945c8b89e7c638fa2b8f620fd2842934de2eaae691e7e90ef7ee906e5"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usart.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 182351,
+          "sha256": "e6e662c528fff2bb0e13aa449b4cb5a704227c3603b0e320d59bb51575f4c822"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 48025,
+          "sha256": "fdfb7128d225329034bd1e696fa7a1582f06559647fb1a40adbf1ccb251cabf9"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_utils.h",
+          "kind": "code",
+          "mediaType": "h",
+          "bytes": 14575,
+          "sha256": "a328d1d6254c7ca2cdcddbd14f666cfdd4b138bb2dd260472d5e499b2b6e2a78"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/LICENSE.txt",
+          "kind": "attachment",
+          "mediaType": "txt",
+          "bytes": 383,
+          "sha256": "bdc7b0f98db4846279336431024c49a01d578a2ea1d19ec68797bbe33e718d2d"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dma.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 63626,
+          "sha256": "ffae7aa855f28690fc8f1d68bc21bb25c07265f414de418183fa5ccb8c71e41f"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_exti.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 7681,
+          "sha256": "16b06f72385e311456c245bf6df4b852dcba64f42d1f24d8cfc9b5e108e92f27"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_gpio.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 10618,
+          "sha256": "5257b01ce53e5ff97b85a08b5a3707d548fb017ff81cc9378a1357570c2294f0"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_lpgpio.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 4916,
+          "sha256": "0f83cbb92ffe153df19ad75aa0abef9390775876e9734e815bea9f156639c7fc"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_ucpd.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 4958,
+          "sha256": "40cad63eac41acb9b19296b1bc3f0c53d6ba50af573fcf52779c56bcc31f1f81"
+        },
+        {
+          "path": "Materials/Template/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_utils.c",
+          "kind": "code",
+          "mediaType": "c",
+          "bytes": 35314,
+          "sha256": "0466d382414087ad2acce39ad1e26921a2f1527204aa01514829124529b5d50a"
+        },
+        {
+          "path": "Materials/Template/STM32U585AIIXQ_FLASH.ld",
+          "kind": "attachment",
+          "mediaType": "ld",
+          "bytes": 4955,
+          "sha256": "9c58cbebc21806ed922254d0b776db28c8ba15f320a8423173278237e8299ce5"
+        },
+        {
+          "path": "Materials/Template/STM32U585AIIXQ_RAM.ld",
+          "kind": "attachment",
+          "mediaType": "ld",
+          "bytes": 4856,
+          "sha256": "f7da9d7cb4c5d160c82f4198ecbf8c68e62a2719d45215b282540a66f2c9edd7"
+        },
+        {
+          "path": "Materials/Template/Template.launch",
+          "kind": "attachment",
+          "mediaType": "launch",
+          "bytes": 9292,
+          "sha256": "c7fe50f75642e1d5f2c1a4ec6d5fa4dcbf99a4091e61ac48e173efc501d18750"
+        },
+        {
+          "path": "Materials/Tutorial 0 - STM32CubeMXIDE setup.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 446896,
+          "sha256": "07913408ebdf8c80e75f5b9e243f82cfed4c282da958ac1c7af600a12d39b5bb"
+        },
+        {
+          "path": "Materials/Tutorial 0 - Vitis AI Setup.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 4099756,
+          "sha256": "86979574d6185df1a0137bab5f3e872d202e78f7b39a6c060a103276a3a829c9"
+        },
+        {
+          "path": "Materials/Tutorial 1 - Introduction to embedded programming.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 448342,
+          "sha256": "59cdd5f435f309aac48cbce96844b7160b4bb466626c7c973eaec16ec1111d78"
+        },
+        {
+          "path": "Materials/Tutorial 1 solutions.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 17259,
+          "sha256": "cce251d88d020a0269bcbff963d73ce5e401e9f5d5b64d80214b93c958280b52"
+        },
+        {
+          "path": "Materials/Tutorial 2 - Arithmetic logic and loops.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 297738,
+          "sha256": "f0c4c854cc4acb6ec58255a9f9c6bb2b282924d35e8ecb04d18e971aaf3bcdc9"
+        },
+        {
+          "path": "Materials/Tutorial 2 solutions.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 18608,
+          "sha256": "bf9725e74f41c0aa840e45b578a3488097a2f147757db0cf61780f011b627170"
+        },
+        {
+          "path": "Materials/Tutorial 3 - Pointers and awesome assembly.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 181212,
+          "sha256": "4d592b6273418c65255d2d00f0f1275206c6a29e62374ea31d2162855d79866e"
+        },
+        {
+          "path": "Materials/Tutorial 3 solutions.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 23495,
+          "sha256": "bee976c857c9164cee1f7c55c35c5856956880c4d2fafa034cb62a8231c3692e"
+        },
+        {
+          "path": "Materials/Tutorial 4 - Awesome assembly pt2.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 141573,
+          "sha256": "ae8b34eafcc2bb6987ee465e4eb00e840ad685c0fd9e8cf6350ea0ffb1ca8a3e"
+        },
+        {
+          "path": "Materials/Tutorial 4 solutions.docx",
+          "kind": "office",
+          "mediaType": "docx",
+          "bytes": 21837,
+          "sha256": "dddeafa9e8e637e803acb0bb4dfa719febdee784866ae7fea182cda3e16caf79"
+        }
+      ]
+    },
+    {
+      "id": "sec",
+      "code": "BCS2420",
+      "name": "Computer Security",
+      "knowledgeBase": "BCS2420 Computer Security Knowledge Base",
+      "materials": [
+        {
+          "path": "00 Home.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 18943,
+          "sha256": "85d24b889c437ca3319e778b43a689ef4a7d96481b826011a9dcb7b4d38f41a1"
+        },
+        {
+          "path": "01 Foundations and Security Principles/01 Foundations and Security Principles.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 83361,
+          "sha256": "f4dfe5851af6dbc712c87162211305466dd736cf9a6a2aece865c3d055d2910d"
+        },
+        {
+          "path": "01 Foundations and Security Principles/security-goals-and-access-control-map.png",
+          "kind": "image",
+          "mediaType": "png",
+          "bytes": 1313170,
+          "sha256": "b056c10ebb3ef93bdb43be05805ca92b3f27fcd508dc7d3a2af956391e857e00"
+        },
+        {
+          "path": "02 Cryptography/02 Cryptography.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 109129,
+          "sha256": "c533047dce9e22a0f2af3f18b7d87cb980311d836789f9da4a3dc0e895cb1890"
+        },
+        {
+          "path": "03 Authentication and Secure Communication/03 Authentication and Secure Communication.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 58632,
+          "sha256": "e814f3f850afb17425425be337dd1c6aea99fbe38f74590b70e37bdefd2ba4fe"
+        },
+        {
+          "path": "04 Malware and System Security/04 Malware and System Security.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 66936,
+          "sha256": "fd520167dfa2e623a1296d8a378e6c36dc7fb5336d2dc524b290ad7994287e52"
+        },
+        {
+          "path": "05 Web and Network Defense/05 Web and Network Defense.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 115069,
+          "sha256": "2a4c628b9d3d6491f9abba49ac093d83847d926ff8368cbe897acc69d6a20c3d"
+        },
+        {
+          "path": "06 Labs and Tooling/06 Labs and Tooling.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 87202,
+          "sha256": "f2d1439e1bf8ee80ef77663c548c456628e471683acdfd4f912dafdf7c1fd00e"
+        },
+        {
+          "path": "07 Exam Skills/07 Exam Skills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 61534,
+          "sha256": "9a02e134aece3a10a7ecd3e3b1e3f9eabec022b7c9468305bb6c1438f3170478"
+        },
+        {
+          "path": "09 Cram Sheets/01 Foundations and Security Principles Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5317,
+          "sha256": "e35f02db631b22975e703e1d9f1c60baec7d50f1c59c90b230aee6547129c924"
+        },
+        {
+          "path": "09 Cram Sheets/02 Cryptography Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8172,
+          "sha256": "03cc3be76366c3e19aed3703d8bc8980f0bceff15b68c37a517e953603188604"
+        },
+        {
+          "path": "09 Cram Sheets/03 Authentication and Secure Communication Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9145,
+          "sha256": "5d77181fc2db8b53cb33d6cb3656598a6b7b22639ef4737ef0f804f79b6bb944"
+        },
+        {
+          "path": "09 Cram Sheets/04 Malware and System Security Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9253,
+          "sha256": "a1862e4a7357e14e7a0078c033d4137f252fb64d641629dba43fe4b583f50629"
+        },
+        {
+          "path": "09 Cram Sheets/05 Web and Network Defense Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 14546,
+          "sha256": "749db960657ce7f35a612a199ad3289747354a40c9cd4a8219fea439e26e6e12"
+        },
+        {
+          "path": "09 Cram Sheets/06 Labs and Tooling Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8268,
+          "sha256": "12c28f12a8da930e38f231bb430b41e43cbefae27615cb6608ca4c6f4b2d42ab"
+        },
+        {
+          "path": "09 Cram Sheets/07 Exam Skills Cram Sheet.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8839,
+          "sha256": "c09cfb4e60ce5c6125b12e4443d9caa4d2bba8c34a903990f34521d6ce53aae2"
+        },
+        {
+          "path": "10 Self Tests/01 Foundations and Security Principles Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8122,
+          "sha256": "b83370a6c95cbdf92e9aedef36f5b9854cc0c6114e4e11b5548eb34f33d6f37d"
+        },
+        {
+          "path": "10 Self Tests/02 Cryptography Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9053,
+          "sha256": "12324fa81393e9a59cfb13406d74e5be52bc6282f2cf1a1804ae461e2c487f8d"
+        },
+        {
+          "path": "10 Self Tests/03 Authentication and Secure Communication Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11063,
+          "sha256": "7b37381d990d77b2458f91ef1aa7d830b627b072431c36f37aaa9ad8115cc0ac"
+        },
+        {
+          "path": "10 Self Tests/04 Malware and System Security Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11115,
+          "sha256": "18f2ee897dd367a8b22913ea4784a7103a1b44257bde41a3105367107091dc85"
+        },
+        {
+          "path": "10 Self Tests/05 Web and Network Defense Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 14738,
+          "sha256": "eb6456de39c9ed059b5a32fd40059f35ee383ea1c23996df7806e8f0d2638ebf"
+        },
+        {
+          "path": "10 Self Tests/06 Labs and Tooling Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6949,
+          "sha256": "5fce33fd9d773458f683c660e11edb2e5f5cd5546739f1a609ae75d0e4b30aaf"
+        },
+        {
+          "path": "10 Self Tests/07 Exam Skills Self Test.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7909,
+          "sha256": "45a87a5e373a5e053f2aaadac231224f184c0e0d404f72fff880b66830d8a540"
+        },
+        {
+          "path": "11 Worked Drills/01 Security Foundations Worked Drills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7954,
+          "sha256": "512df323bc21c040e253aca9c5e24405e69ddf996555000cb3fd3f27d8f646d0"
+        },
+        {
+          "path": "11 Worked Drills/02 Cryptography and Authentication Worked Drills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6469,
+          "sha256": "2bcdf9638bc0bbc562ceb13a4fdcbf87e0a7164347610ce17f8cf8b1466b946f"
+        },
+        {
+          "path": "11 Worked Drills/03 Protocol and Network Defense Worked Drills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7797,
+          "sha256": "89a11ba79c23d2076b793845c2762dbdd9641096659a04a4d066314ff504c0f3"
+        },
+        {
+          "path": "11 Worked Drills/04 Web and Malware Worked Drills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7529,
+          "sha256": "7346584ad2e55314aad6171f9971f08a09ff912ded8ab992e19125813b9e6f41"
+        },
+        {
+          "path": "11 Worked Drills/05 Lab Mindset Worked Drills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7186,
+          "sha256": "4da106df98b6f0b23ddb287ba776c3889d974035cfd51296a52269b86bf0dd4f"
+        },
+        {
+          "path": "90 Reference Sources/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 333,
+          "sha256": "b1f5d50e80531a1fa69aa6723fa84d6f6e2331aae5c1e5cc23ab10303b208b1a"
+        },
+        {
+          "path": "90 Reference Sources/01 Syllabus and Course Policies.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3240,
+          "sha256": "ea9e750828d7e8e714058629ea45909d85d9c818224d3a69865ae6790cd6dd0b"
+        },
+        {
+          "path": "90 Reference Sources/02 Source Inventory.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2047,
+          "sha256": "0123240b2b95c8ffa049256f7df9931b2749be1e842a31a0fc38ea4259397710"
+        },
+        {
+          "path": "90 Reference Sources/03 Security Course Corpus.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 224508,
+          "sha256": "57c2db58e2d774387ed7e1c76961b3f17b3d0ceefd378cf9acef5a71ab3f906c"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/01 Foundations and Security Principles/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1053,
+          "sha256": "fa043b10c71656c30053d9cc76705de9467667152901ca4353160d3b9c0e3529"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/01 Foundations and Security Principles/Course Structure, Assessment, and Exam Rules.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4943,
+          "sha256": "482abf3eaab17674fef59c932c61219f000a7736f0dd73b2d43edd311cec8662"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/01 Foundations and Security Principles/Defense in Depth, Security Strategy, and Security Posture.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4927,
+          "sha256": "354de6bd665ad9acd3f895dbaba71b1ccf9ee99e88df91200593ff8ea96d4842"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/01 Foundations and Security Principles/Human Factors, Insider Threats, and Ethical Security Practice.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6730,
+          "sha256": "c9bb7873fd0bb7d0ad6d40b3c465067b1922fec173e3245af277db9049675406"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/01 Foundations and Security Principles/Security Goals Beyond CIA — Authorization, Authentication, Accountability.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8889,
+          "sha256": "554f3a7fca2eff560e855a5e8fe084fc37ffbb25a53ebd6781867266bc3eb931"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/01 Foundations and Security Principles/Security Goals, Policy, Adversaries, and Risk.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11167,
+          "sha256": "dcb8b62a66f9fddce3067d6938a2df6a5f89eac3b419ef06bf7a2614bd126eb9"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/01 Foundations and Security Principles/Threat Modeling, STRIDE, Attack Trees, and Model-Reality Gaps.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 12944,
+          "sha256": "d16ee103fd83b16eeb8ba23112e38e4eeb85ce7b29359d6fb0aac97c6bfb1a14"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1211,
+          "sha256": "b7e21f6d2f06d6e8a2ee3bb06128bef46f3348ca526a20a986f18a05d1c15afa"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Attack Models and Adversary Capabilities.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4591,
+          "sha256": "9e48aa846acbfc2a54623f7df018cfc72f2bed91751ff55f41ac8f4e67ee73c7"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Differential and Linear Cryptanalysis.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6225,
+          "sha256": "f57824193e1e253feff37126f79126f8f88fb19ad302f0dcc01ebafb22a66638"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Encryption, Decryption, Key Space, and Exhaustive Search.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5200,
+          "sha256": "6729f41293341254c949af112fafb3e115cb86e6c701ac0bf2084b0f52307e13"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Hash Functions, Collision Resistance, and Digital Signatures.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4595,
+          "sha256": "03b6adc12bb0b66453f36523b8a989f099967764aa817ef7d6744359be0235dd"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Message Authentication Codes (MACs).md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8519,
+          "sha256": "77e8d64cb70e864ebfcbc5123bb9154660304746eda93a170d4974272af71a26"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/RSA, Modular Exponentiation, and Why Asymmetric is Slow.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9431,
+          "sha256": "c1ffbe6b1a4c6e3526b8480227810a7cd7d5e50ff611dd8c964d6daebf225df2"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Stream Ciphers vs Block Ciphers — Formal Definitions.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9948,
+          "sha256": "fb670edb7b4eae893d6139fffdafc89fb2651a546045add75560325702823373"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Symmetric vs Asymmetric Encryption, Hybrid Encryption, and PKI.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7071,
+          "sha256": "275512e900e36007461ee4f69d18ab90915ef3dca6458c9b44d81fe79a8da9eb"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/Vernam Cipher, One-Time Pad Misuse, and Block Cipher Modes.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5838,
+          "sha256": "4562eb1e3d5ce4713016375bf9d2eed3874f62844a28c849038fe41c81d097e9"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/02 Cryptography/X.509 Certificates and Certification Authorities.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11015,
+          "sha256": "ad2093c7d3777cc438029388194515a843be1f6beb362a37a1dfe80cdb2fbbac"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1196,
+          "sha256": "5e5d9429c6d4a9bf2c978b27de389744de9ae7d5a2616d966f19aba657d67c55"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/Authentication, Identification, and Authorization.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5103,
+          "sha256": "042fe67b04124760ade5b061e38d802658421732ba0a940455c87853052af269"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/Graphical Passwords and Alternative Authentication Schemes.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5938,
+          "sha256": "d11405563933e8e0e93d1c7ac741adb9dcc7f61541165c8b213b793924870840"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/Implicit and Explicit Key Authentication and SSO.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8991,
+          "sha256": "2f05c7e49db9ddcaa299d1b018d9632015dff089bdec5007ca85aa274a0548f7"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/Key Transport, Key Agreement, Diffie-Hellman, EKE, and Forward Secrecy.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 13762,
+          "sha256": "77612d925e9e8172e8475c9b07e289179dc23fb4f1ac62f29004d4bd694c8aff"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/OTPs, Tokens, Biometrics, and Derived Passwords.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4243,
+          "sha256": "365a66994a2978821b20c7aa8dcf39f5d58300ee042f4cd811d0e4c08a5c8a60"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/Password Security Hashing, Salts, Peppers, Stretching, and Guessing Attacks.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6858,
+          "sha256": "33a677e4d5d5ffe76ade02af57480f3f7437d98f57e70fb8dec969b260945d2e"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/Protocol Notation and the EKE Message Flow.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8712,
+          "sha256": "d25e07ff65e2488dcaeeec9b5f336267338e804958cc563c2df174d30cc8d5fe"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/03 Authentication and Secure Communication/Protocols for Secure Communication Nonces, Replay, Reflection, and Relay.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7767,
+          "sha256": "6066cab85d04feaee9e05b128a36ba9d6bcd2dfdbdec2c50ae29d7860d7298a9"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/04 Malware and System Security/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 813,
+          "sha256": "7b373e71ec886863a130ecabce66f88ffa63bc0000c09b35a49ded96f6f5c29f"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/04 Malware and System Security/Botnets, C2 Architectures, and Bot Herders.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9006,
+          "sha256": "ef24b0d1c68cb3a31b26709da6ef3b2320f8d161bf43c3671e888eff7d8ec34b"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/04 Malware and System Security/Malware Taxonomy, Delivery Paths, and Botnets.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 14941,
+          "sha256": "2483f53575f6012b6f3de1b2bf6bd73cc14aeac1a18070781480564baa9bfa5d"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/04 Malware and System Security/Polymorphic and Metamorphic Malware Evasion.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8868,
+          "sha256": "bd683185b52160595ecdf2fb016ace5090e6c0a202ff760433c01e2e895379cd"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/04 Malware and System Security/Ransomware, Hybrid Crypto, and Recovery.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10084,
+          "sha256": "36323402e14607a17cf793e1941ffd2b18c962f2f8ecfd816ec3edf340a50a56"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/04 Malware and System Security/Rootkits, Hooking, DKOM, and Stealth Analysis.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 17712,
+          "sha256": "65bbcedb6b45ef45e32fb4f5dc6e0a322a4d029f2ffdb3186e789a935a552999"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/04 Malware and System Security/System Hardening, Vulnerability Reduction, and Secure Configuration.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8496,
+          "sha256": "8c5823db5dc8b8cb0accb82b3dd857d982f3343756fddce2e71085cd2465e09a"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1766,
+          "sha256": "5749d9e0e90e1b16cbfdb847b38d94c29378c2b7edefe63d94ec01be8f0d60bf"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/ARP Spoofing, DNS Cache Poisoning, and Traffic Redirection.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6772,
+          "sha256": "eb63963383b1b86f227da1179e149bd3ed11e1ecca4636968e8e056d4cc288fd"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Content Security Policy, Secure File Upload, and Advanced Web Defenses.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8711,
+          "sha256": "bcd8b8b898011920e6b62c3fec78ec5c12d41205c4f97ecdf29d6362b44cdf80"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/DDoS, Alarm Quality, and Detection Interpretation.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3508,
+          "sha256": "99c7d011ae7376f59b64ae8fb439bcdbb3f0a5f1d6c1dd74e2741188dfecaa57"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Firewall Policy Design, Bastion Hosts, and Port Knocking.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7230,
+          "sha256": "5baf02c659db5f07840c42aa68272e63cc416acf3358a24164d58e887de3956e"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Firewalls, DMZs, Proxy Firewalls, SSH Tunnels, and VPNs.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5164,
+          "sha256": "b518ee2147f1927ceeb8e67b19c6f857611390b03e70a36b145ae1b1a121f2c9"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/IDS Confusion Matrix and Base-Rate Worked Examples.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10312,
+          "sha256": "ce36c1e3e20cc67c4eb54ff19c1411fe8443ff95b6a0bfcdbdaff26fd5b99f83"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/IDS Evasion, Vulnerability Scanners, and Advanced Detection.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8016,
+          "sha256": "cc9b5ee7163182b7930755addda19de53022ab678bacefdf545855be96a38a31"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/IDS, IPS, HIDS, NIDS, and Detection Models.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5039,
+          "sha256": "c8f14a0eb2ec2b78f7d976292879339aeefdde41d861c5b0a567ebfeff7d1c13"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Man-in-the-Middle Scenarios — LAN, DNS, Wireless, Transport.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11243,
+          "sha256": "f81620c55be3b2f6f532e2dbbf515932c7c3860b8df2e13262a8248cb5db44bb"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Mixed Content, documentdomain, and Cookie Scope Across Subdomains.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4489,
+          "sha256": "ac6ccb61988613eaa71a381d556de27c9f717593e540cce3c59c56055994ab3e"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Packet Sniffing, Promiscuous Mode, Switched LANs, and NIDS Visibility.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 3720,
+          "sha256": "f3935e3988325dfbb218dd9ad003c5caacf96902f3fd246f5b581f66c6feaaef"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/SSH Protocol, Authentication, and Tunneling.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10301,
+          "sha256": "75f58422be230ed411b73e774ddd20037ed1ab74b2a7c4371a583fe0e3957d40"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/SYN Flooding, Smurf, Amplification, and DoS Techniques.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7556,
+          "sha256": "78098dd57e1b51d8da8a05fcc6075ce63e3ba5985c69d13decb2266c90846c74"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Web Architecture, HTTP, Cookies, and the Browser Security Model.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5008,
+          "sha256": "cd5fc4394db472ca52bfe487f0b9a6aaa75e0f1aef02c5653ed5de7cb3639787"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/Wireless and WLAN Security, 802.11, Rogue APs, and Session Hijacking.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 15309,
+          "sha256": "9bae6be04e594e0a32068d52e8276d08ddf0cc86c79e94561c62712e1fba659d"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/05 Web and Network Defense/XSS, CSRF, SQL Injection, and Session Defenses.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8400,
+          "sha256": "23d9be50a72e2dfe5d092ce2877b876cc1df2ba5d60a3003b745598d3d96d738"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 1043,
+          "sha256": "3dd9037b414a74a73e1f703dc87703a8072ab07e9eb92f5ef7299d67a232184b"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/Browser DevTools, Hidden Resources, and Client-Side Evidence.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4808,
+          "sha256": "a9d55b3d5f3fec641f81fb89ec375bde5f3e16110d912a685d7dc7ef0e6e5eff"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/Kali Linux, Nmap, Wireshark, and Responsible Tool Use.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4192,
+          "sha256": "fbc6066f319898374496fc17b22650fbf6fac69597b8b521fcd2ec79e090da33"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/Lab 1 and Lab 2 Cryptography, Authentication, and Web Weaknesses.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 10602,
+          "sha256": "f15130c0e96a42cae7b28ddf752ba8d08277afd6b97c06f2f0398cc221a6d08f"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/Lab 3 and Lab 4 Rootkit Recon, Browser Tools, and Web Exploitation.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11054,
+          "sha256": "6c0d127284cfe30bbbf2641d3b763b1f3b8f8a71cfb9a2a4281d567ccb96ecbd"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/Malware Persistence and Watchdog Processes.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7793,
+          "sha256": "a4c1b21c467380a3362154cbb7d4b105e548d37df70f5fe664ba93c7b27ec09d"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/proc Filesystem and Process Forensics on Linux.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6972,
+          "sha256": "2914f20ae34d0674876bdd855aea6da44627800d6d30bcc34308f4d2b1b6f50e"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/06 Labs and Tooling/Web Security Tools — John the Ripper, git-dumper, Burp, Ghidra.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 11914,
+          "sha256": "c00bcac2ba3107abaee81ac0e8e5dbabf339362fa03ccc4b495ec5417111a9fd"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/07 Exam Skills/00 Index.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 924,
+          "sha256": "c8e0673ff51639917881154cf8518875fb02771f6b9281ef3be2cbd80adabc2b"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/07 Exam Skills/Fast Facts, Formulas, and Core Terms.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6388,
+          "sha256": "c3f2c1ee0cb76eeff35ac45a56854f579e390bd5c9ff4cb66666be22774cc6dc"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/07 Exam Skills/Part B and C Essay Templates and Model Answers.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 12926,
+          "sha256": "78f0a56951aeda8544236cfbc3634b6a516aae30567a7c2a5f4f2179b07ad1ea"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/07 Exam Skills/Sample Paper 2025 — Question Bank with Model Answers.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 14925,
+          "sha256": "2b3f2134f4a92e0a92051abe4c892e1589b76346f2a14137d6464c2dd6197632"
+        },
+        {
+          "path": "90 Reference Sources/Archived Atomic Notes/07 Exam Skills/Tutorial and Exam Problem Patterns.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6846,
+          "sha256": "9aef0a5051542a42e49b0cdf93d89dc2272a33e3abcc15384d92471d00ac4159"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 01 — Introduction and Security Fundamentals.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 7371187,
+          "sha256": "1287ba06dac7c19e85dd028c88e92f86b6c33971555ff3f53f607149885b46a6"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 02 — Cryptography Basics.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 4793308,
+          "sha256": "02f7412a499a1d2771f2c1c824a7f51d90cd294060ce548d486a5e9b590e55e4"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 03 — User Authentication Methods.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 8360517,
+          "sha256": "cb6f07266831d5624bb80f1e1373ed28676ee037a4e732d75572327042b9cd7f"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 04 — Authentication and Key Establishment.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1592028,
+          "sha256": "efc77d48260d97d83d5d2554786512af74aa2b7e9f62fb613a05e5d84eeede8f"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 04 Legend — Protocol Notation.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 109585,
+          "sha256": "6478e1f1ca22e1ad8040e4c9f8e708c9e5a88e3e19ed8cc028135c99df6cf1de"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 05 — Malware Threats.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1362632,
+          "sha256": "5ec89a0b33635039d8448e8427e7488f0f997990a6ee9beaf71643071abd42db"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 06 — Securing Web Applications.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 1482546,
+          "sha256": "bf3738b6f491eb1de796372e6653ab69c61ab3bee3e9dac0e0d5cc140d55fc26"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 07 — Network Defense, Firewalls, Tunnels.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 3208751,
+          "sha256": "a015a7ca8036e2d1e60144e1f16a5cce19fb7b687a55c45b816c9d313bf3955b"
+        },
+        {
+          "path": "Materials/01 Lectures/Lecture 08 — Intrusion Detection and WLAN Security.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 2863840,
+          "sha256": "4f9c836ffb78c785ad5b853b544e6fa9bb14e0d2175050a63c23502da5ea7c0c"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 1 Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 54572,
+          "sha256": "b0bfbcc7555d474471f9e5184b6de8cfd7cfa15d06d0cf75276e5543f860fff1"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 1.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 38622,
+          "sha256": "ef8bcdb0c1cfbb8d97ed5bf57a03dec8c3e8480989c909b2791ae22342278424"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 2 Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 62506,
+          "sha256": "54fca31789f1767fda7c520038b473b0130f42367fc602f7e1796a03664a7f69"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 2.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 52269,
+          "sha256": "d7269bbca4a65851212abc9c8a8df6af503871558aae7a35dde21e79ced8525f"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 3 Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 54074,
+          "sha256": "4b64f3959a25bdb5076a2bbab6d1ef670a83600587be3d73be2c048e3d238772"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 3.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 49129,
+          "sha256": "8ac06e2bb2d77341a1b7aaf7204a8619abe2cdd9873a35cdd4c6cbb39b940851"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 4 Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 36011,
+          "sha256": "5244bec0d326e22d8d9b6f7f460217bced77d0a070d61149c1852c7b66edc6c5"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 4.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 49281,
+          "sha256": "d72facdadfcd7b3b80b3b0aa571ea441a73abab259ad5767a727c2a035c45406"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 5 Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 38985,
+          "sha256": "0fe1be7304fc5cd28d4d77546279c8b699a5268106fdf5290fea7b347ad403df"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial 5.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 45214,
+          "sha256": "399e0da3d8f72c973b8ab9812e95a686beb02f818b90ca9c1e772b1ecac55e44"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial L6 Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 52695,
+          "sha256": "7fdb33a280de0a454eebc58ec60bb07508d06da6e7a6a1d34269520d367a8ded"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial L6.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 50967,
+          "sha256": "da9250f9133bc96f3d809d3b5cac79d5788ffcce2e7c6a3e42a495db5a22f5a7"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial L7.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 41940,
+          "sha256": "c3838cb4a342d20e0b30a84d1cd4708a6e087cdd300e50cb185ed2ea34c320e4"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial L8 Solution.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 33155,
+          "sha256": "c197732e6ab5402c0dfc6a9f457c795d626131c9dd1cd1ce03c3d7843f19a6ef"
+        },
+        {
+          "path": "Materials/02 Tutorials/Tutorial L8.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 42835,
+          "sha256": "a70ecdcfdfedbd5ed51f98394013cec77989652ab068902d8e72b387bf4115c8"
+        },
+        {
+          "path": "Materials/03 Labs/Lab 1 — Confidentiality.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 38023,
+          "sha256": "c399f98e7283f83f6452f359dbfe4ac678a6d74ee20081410acb21ef0feab6e4"
+        },
+        {
+          "path": "Materials/03 Labs/Lab 2 — Confidentiality and Authentication.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 79140,
+          "sha256": "f36dc41581df43059be3fe67a668ae9b66c509d986265809df6812fbc754919c"
+        },
+        {
+          "path": "Materials/03 Labs/Lab 3 — Kernel Compromise and Rootkit Recon.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 152409,
+          "sha256": "82c654ea1cbe4c781aff0971d35b0133f6faaa95b870647173b3564c001f43fc"
+        },
+        {
+          "path": "Materials/03 Labs/Lab 4 — Web Exploitations.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 210383,
+          "sha256": "cf3cd5ce33aaf7157e018e2004afd87e692955529308ff3ad019b38effdd4a0e"
+        },
+        {
+          "path": "Materials/04 Past Exams/Sample Paper — 2025-03-21.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 32468,
+          "sha256": "5110af2e40ee8a68ecc2d7e616ab6fb4c29bd01122fcb528496ad22cfcd1419d"
+        },
+        {
+          "path": "Materials/04 Past Exams/Sample Paper Solution — 2025-03-21.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 32291,
+          "sha256": "5596d07b704e18763fefdb3f4982c3b20004f74fa283c95501b513cd85e309fa"
+        }
+      ]
+    },
+    {
+      "id": "nm",
+      "code": "BCS2540",
+      "name": "Numerical Methods",
+      "knowledgeBase": "BCS2540 Numerical Methods Knowledge Base",
+      "materials": [
+        {
+          "path": "00 Home.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9450,
+          "sha256": "424671c94d31710eca87b8693f4b9109be080c95eb776b7e71d5c8f8f22c1459"
+        },
+        {
+          "path": "01 Algebraic Equations/01 Algebraic Equations.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 5273,
+          "sha256": "345971fef1fc514d6b52515f19b1b367479f1255f237fa4bc90a1c378942c42e"
+        },
+        {
+          "path": "02 Differential Equations/02 Differential Equations.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 7094,
+          "sha256": "35f5255e5dda46e866a582bf11b356d1291c180ad638a997e7ada497ee7eff6d"
+        },
+        {
+          "path": "03 Polynomial Interpolation/03 Polynomial Interpolation.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6160,
+          "sha256": "b38590be654f6c0ef082c176a23a7873d1aaa961a9a56dd7aebed9e9a3b505cb"
+        },
+        {
+          "path": "04 Numerical Integration/04 Numerical Integration.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6536,
+          "sha256": "a770c455dae0322ce50acea1358abc21b73305492d4c6669f4a7ba3d7b61f563"
+        },
+        {
+          "path": "05 Least-Squares Approximation/05 Least-Squares Approximation.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6059,
+          "sha256": "6c7bdcdb985f647aa2db3cc54cee2306a17eadde00caa6d05ea449ed1504e901"
+        },
+        {
+          "path": "06 Eigenvalues and Linear Algebra/06 Eigenvalues and Linear Algebra.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 6971,
+          "sha256": "557df76092222364afe69b871c568d13827fa76e55d27befab5db57d78acc8cc"
+        },
+        {
+          "path": "07 Exam Skills/07 Exam Skills.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 4888,
+          "sha256": "8ddc3b2fa247dc9afe9bb8d68b8889b329831ce4e8b28d08e5e08388dcab4215"
+        },
+        {
+          "path": "10 Self Tests/Quiz Bank.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 18776,
+          "sha256": "fb57b18a5e4681365e905c0ea83b1e985edf8c1c5765aeee7a247a939a6f97b4"
+        },
+        {
+          "path": "11 Worked Drills/Mock Exam Full Walkthrough.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 8944,
+          "sha256": "33ea3a3defc1df260255aa011be5bc45a70785f81f536984c7a9558719aa1208"
+        },
+        {
+          "path": "90 Reference Sources/90 Reference Sources.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 2902,
+          "sha256": "cabb47e0cbf861c1b48710bae132635eb1cd3dbe84ded8ae876a89185a9d297b"
+        },
+        {
+          "path": "Materials/FormulaSheet.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 70353,
+          "sha256": "2e61013e86b6629ec1900fd4f0a1a12b56a928c48eec6de08b2e857638497a4b"
+        },
+        {
+          "path": "Materials/Mock Exams/2012-sample.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 99752,
+          "sha256": "8cd60b7616eb8389fecea47fda125bfb0aff6d248cb9363fd84303525abaa6cd"
+        },
+        {
+          "path": "Materials/Mock Exams/2022-final-solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 168285,
+          "sha256": "a6aa3819074789eaff3c81c7f414a105e599b31db26542ac7bb68d6a28369a5c"
+        },
+        {
+          "path": "Materials/Mock Exams/2022-final.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 162730,
+          "sha256": "2518d9a34a75ed56ca1d2c17fbaf1479921a34e070eff6b69ccbf8a2229338ef"
+        },
+        {
+          "path": "Materials/Mock Exams/2022-resit.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 172856,
+          "sha256": "466751990d094eb228ae44f5d2c4b0397d53fd202be409791a137512ccbc9501"
+        },
+        {
+          "path": "Materials/Mock Exams/2023-final-solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 282615,
+          "sha256": "552dac1cf6bf865c4aedce4eea891ce740bb0c72866a61ce673ee77703b68525"
+        },
+        {
+          "path": "Materials/Mock Exams/2023-final.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 202285,
+          "sha256": "1903a2335f44b5d7e3c6cf83df8a438b9cacf90de664caf8faa380190fd0230d"
+        },
+        {
+          "path": "Materials/Mock Exams/2023-resit.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 173677,
+          "sha256": "0fe091cb1f9b2307ec5e1e7dd0ac8e17ed9141402beb21451a139e935060c27f"
+        },
+        {
+          "path": "Materials/Mock Exams/2024-final-solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 293965,
+          "sha256": "de5f646584e1afbf47d039dcd8b33d16d96467973eed43df0c225e6447c036e5"
+        },
+        {
+          "path": "Materials/Mock Exams/2024-final.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 168067,
+          "sha256": "9a034a575f3183380f23689694e70e22bb95c6223cec9f6645609089e603ead3"
+        },
+        {
+          "path": "Materials/Mock Exams/mock-paper-solutions.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 133554,
+          "sha256": "dd546985578ec09da9792824db6d8473abd26e5938320bf07933856c314c4c34"
+        },
+        {
+          "path": "Materials/Mock Exams/mock-paper.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 95981,
+          "sha256": "133ed4a8c34052ef8e8ecab99e76a1799d0bd4197a2f8098b85c3e64ceb3795a"
+        },
+        {
+          "path": "Materials/numerical methods/00 Admin/Assessment_Plan-BCS2540-Numerical_Methods-2025_26.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 437530,
+          "sha256": "d86e7f9755eb8a55cbafe1a410f6b47006024d000ec4e53504a19216c83ab877"
+        },
+        {
+          "path": "Materials/numerical methods/00 Admin/Exercise Sheet 0.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 173203,
+          "sha256": "48a965b0d05948ebf2d0997fa4ae4e3e73b7cdc0eeb7797364159acb5980f8ef"
+        },
+        {
+          "path": "Materials/numerical methods/01 Algebraic Equations/bcs2540-lecture1-notes.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 4499241,
+          "sha256": "7080333d2a72d9af8df1158caff91e21b928d278e28b6767d728c298da2c4196"
+        },
+        {
+          "path": "Materials/numerical methods/01 Algebraic Equations/bisection_convergence.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 282323,
+          "sha256": "9cc48ce176b325d2797df83eb47cd005830733f197bd15b57857e3d1c37eec61"
+        },
+        {
+          "path": "Materials/numerical methods/01 Algebraic Equations/Exercise Sheet 1.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 146263,
+          "sha256": "e4e92ec8e9bc76c7e32296610afcfcbb028af1d652d77a0d18972b411db781f8"
+        },
+        {
+          "path": "Materials/numerical methods/02 Differential Equations/Exercise Sheet 2 - Partial Answers.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 183717,
+          "sha256": "6244ecb38cb14bb7a68e891903c2c5f8851da4f832354a9ac228263e3ada6b97"
+        },
+        {
+          "path": "Materials/numerical methods/02 Differential Equations/Exercise Sheet 2.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 158550,
+          "sha256": "4ece3c073866ac40860d10eb993952f096a7d209becf765c5db9522d30e732e3"
+        },
+        {
+          "path": "Materials/numerical methods/02 Differential Equations/Lecture2DifferentialEquations.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 6789749,
+          "sha256": "ad8a2645e6d98413a8719fd964bc377633c3d76d99d3e62b3ca9c071121b26ec"
+        },
+        {
+          "path": "Materials/numerical methods/03 Polynomial Interpolation/bcs2540-lecture3-notes.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 12503988,
+          "sha256": "bb051e778ecacc98f172859c6bd7eada57d9a66fdc814d212c0d5005e5381ee1"
+        },
+        {
+          "path": "Materials/numerical methods/03 Polynomial Interpolation/Exercise Sheet 3 - Partial Answers.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 182267,
+          "sha256": "cf8232801e5c619afeaed590839d1d3cc9520e01e2e220e407c4ee9adc5b0e6d"
+        },
+        {
+          "path": "Materials/numerical methods/03 Polynomial Interpolation/Exercise Sheet 3.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 142605,
+          "sha256": "bda60809e49c65f66b6fdc597c699de0d39736c4fabf7a82e25961595cd46e23"
+        },
+        {
+          "path": "Materials/numerical methods/04 Numerical Integration/Exercise Sheet 4 - Partial Answers.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 192577,
+          "sha256": "3817077b8af2030bb4b7f76966463baaf5da7f0efa66a3d5b5d1670414dd1eae"
+        },
+        {
+          "path": "Materials/numerical methods/04 Numerical Integration/Exercise Sheet 4.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 168632,
+          "sha256": "026b62e090801edddcd50c5fd8d74693be527680a2f857bc48bc58287f18b479"
+        },
+        {
+          "path": "Materials/numerical methods/04 Numerical Integration/Numerical_Differentiation (1).pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 12125194,
+          "sha256": "346412b824d90c2bb44e0a97695531e747ece449649c408e8f21c722e98b06d0"
+        },
+        {
+          "path": "Materials/numerical methods/05 Least-Squares Approximation/Exercise Sheet 5 - Partial Answers.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 163307,
+          "sha256": "505a17846e87818bdf8ea14d67f7245fe754a5cc1e0fd2a903e43f172052e340"
+        },
+        {
+          "path": "Materials/numerical methods/05 Least-Squares Approximation/Exercise Sheet 5.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 144954,
+          "sha256": "9b8a57dd6a16f6a083d7f29ee9dc89fa80f841dee17a4c97c08db43e23d45ce2"
+        },
+        {
+          "path": "Materials/numerical methods/05 Least-Squares Approximation/Notes_polynomial_approx_topic5.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 39814006,
+          "sha256": "5ffc69999aa22de451d89d962a84034adbef5cb9b66ec9e74d19baa4b6c360c3"
+        },
+        {
+          "path": "Materials/numerical methods/05 Least-Squares Approximation/Topic 5_ Polynomial Approximation.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 2277401,
+          "sha256": "2e834a0170e755f6ce9acf7f3595a935142a04c129d2b0ca685e098b1a5cf67a"
+        },
+        {
+          "path": "Materials/numerical methods/06 Eigenvalues and Linear Algebra/bcs2540-lecture6-notes (1).pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 10450394,
+          "sha256": "41ba10a84ae2840058a6625e1c7aa868dc7c8dabec74f3f387f4245ee103731d"
+        },
+        {
+          "path": "Materials/numerical methods/06 Eigenvalues and Linear Algebra/Exercise Sheet 6 (1).pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 172181,
+          "sha256": "af2c0b49f3c4be9e648be6b63bce55fea61208c583637df5335f08cf144f35da"
+        },
+        {
+          "path": "Materials/numerical methods/06 Eigenvalues and Linear Algebra/Exercise Sheet 6.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 172181,
+          "sha256": "af2c0b49f3c4be9e648be6b63bce55fea61208c583637df5335f08cf144f35da"
+        },
+        {
+          "path": "Materials/numerical methods/06 Eigenvalues and Linear Algebra/extra slides on qr factorization - only slides 70 to 76.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 10647930,
+          "sha256": "f859a5887654c778236f73ab65c94530d8dfc6c456333d2577707a888e7a6ae1"
+        },
+        {
+          "path": "Materials/numerical methods/Exams/FormulaSheet.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 70353,
+          "sha256": "2e61013e86b6629ec1900fd4f0a1a12b56a928c48eec6de08b2e857638497a4b"
+        },
+        {
+          "path": "Materials/numerical methods/Exams/mock_exam.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 95981,
+          "sha256": "133ed4a8c34052ef8e8ecab99e76a1799d0bd4197a2f8098b85c3e64ceb3795a"
+        },
+        {
+          "path": "Materials/numerical methods/Exams/mock2526 (2).pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 96192,
+          "sha256": "42ff447273ee7664bc3fc786837f53b023cab057750240994d92419fa79396c0"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture1_example1_arithmetic_in_matlab.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 376,
+          "sha256": "9deedb5678a7ffa74a345e5c4264b48374fd1e74b5cd5b08cb5c4dca4e94e9b6"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture1_example2_rounded_arithmetic.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 717,
+          "sha256": "010b25fb748aa5db6ed8cb4dd970a84a508c62923f3d832d1e9d15456a3f0d6b"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture1_example3_subtraction.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 559,
+          "sha256": "bb056aa4390e55bab9db0adfb015eb3cd947e4e49d74afa3ca932f4dfd56ad14"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture1_example4_nested_form.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 1006,
+          "sha256": "67c3a354ba5aff3d0c95054f7344f8a9b6ecca861e895873f34d74379e311ffc"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture1_example5_nr_convergence.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 117,
+          "sha256": "9c4986b8a763a380ed80e236c8f5c359692d2ea56cbf5d98c0c3559bac27f52b"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture3_example2_taylor_series.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 585,
+          "sha256": "ff800d4ea00af8f3ad41c7bbb6855a8273f8ff8b969da646fd16794d637c3885"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture3_example3_polyfit.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 617,
+          "sha256": "225292924266036c6199aaa31d8acedba9f040223c705b36c6e53b2458351eb0"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture3_example4_lagrange.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 538,
+          "sha256": "8d32248cd742945af3e1b24906b2ef3bf0bf76e5d04f404c0a4ceccdd828f64a"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture3_example5_runge.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 601,
+          "sha256": "a3b0a806f6ace4930c9d056c30b417470b9971693980f7db7457ceaab2e345ed"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture3_example6_chebyshev.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 642,
+          "sha256": "137c050e5c404257ac0b1096b0b92caf28c43badc128e19cee16eb20728f6e8f"
+        },
+        {
+          "path": "Materials/numerical methods/matlab/lecture3_example7_spline.m",
+          "kind": "code",
+          "mediaType": "m",
+          "bytes": 1039,
+          "sha256": "cfa6f6b9d7cb1acbe92ae728770c3a84e56a528fbfbf5a8490f616cc51ecbf73"
+        },
+        {
+          "path": "Materials/numerical methods/notes.pdf",
+          "kind": "pdf",
+          "mediaType": "pdf",
+          "bytes": 8265094,
+          "sha256": "d1105dd6e785f70d2a1d75088e4854a8a9ec5bbacd5063c8bf8fac82fd33cb9d"
+        },
+        {
+          "path": "Materials/numerical methods/Quizzes/Quiz 1.mhtml",
+          "kind": "attachment",
+          "mediaType": "mhtml",
+          "bytes": 3051283,
+          "sha256": "3984b6d6cbc226977012950b7e96eefd76b64d900529f1f87836dc4b4c62db16"
+        },
+        {
+          "path": "Materials/numerical methods/Quizzes/Quiz 2.mhtml",
+          "kind": "attachment",
+          "mediaType": "mhtml",
+          "bytes": 2972899,
+          "sha256": "62f8633f6da684b80134ab77c0f82441ea109dd814692cb913fcc1292c9f32cc"
+        },
+        {
+          "path": "Materials/numerical methods/Quizzes/Quiz 3.mhtml",
+          "kind": "attachment",
+          "mediaType": "mhtml",
+          "bytes": 2939741,
+          "sha256": "97c596f402b86ff85aea10d04665a256873b2b4d43d0f08b5a4c7c39effc1c7a"
+        },
+        {
+          "path": "Materials/numerical methods/Quizzes/Quiz 4.mhtml",
+          "kind": "attachment",
+          "mediaType": "mhtml",
+          "bytes": 3237824,
+          "sha256": "885f3d91671961399a41ec0b67326f07cd85b0318d42cb23273cc91fb4e55a1c"
+        },
+        {
+          "path": "Materials/numerical methods/Quizzes/Quiz 5.mhtml",
+          "kind": "attachment",
+          "mediaType": "mhtml",
+          "bytes": 3089045,
+          "sha256": "00b6d44b01cb5769864232bd1773728f5b28e75c0856961f758c6f7913174782"
+        },
+        {
+          "path": "Materials/numerical methods/Quizzes/Quiz 6.md",
+          "kind": "markdown",
+          "mediaType": "md",
+          "bytes": 9093,
+          "sha256": "5f3827b46f3eace5313bbc5003089c16a776fa121ad5e895492e4317ef2fb889"
+        }
+      ]
+    }
+  ]
+}

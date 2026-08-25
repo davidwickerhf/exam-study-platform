@@ -1,11 +1,16 @@
 import { createServer } from 'node:http'
 import { readFile, writeFile, readdir, stat, mkdir, unlink } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
+import { createReadStream } from 'node:fs'
 import { extname, join, resolve, relative, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { randomUUID } from 'node:crypto'
+import 'dotenv/config'
+import { authenticate, authConfig, isPublicApi } from './lib/auth.mjs'
+import { setRequestContext } from './lib/request-context.mjs'
+import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const publicDir = resolve(__dirname, 'public')
@@ -14,6 +19,10 @@ const templatePath = resolve(__dirname, 'data/study-state.template.json')
 const cacheDir = resolve(__dirname, 'data/cache')
 const bundledContentDir = resolve(__dirname, 'content')
 const port = Number(process.env.PORT || 4177)
+
+if (Boolean(process.env.DATABASE_URL) !== authConfig().enabled) {
+  throw new Error('Hosted mode requires DATABASE_URL, CLERK_PUBLISHABLE_KEY, and CLERK_SECRET_KEY together. Refusing a partially configured deployment.')
+}
 
 // ─── LLM provider config ─────────────────────────────────────────────────────
 // Three providers supported:
@@ -207,7 +216,16 @@ const mime = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml'
+  '.svg': 'image/svg+xml',
+  '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 }
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
@@ -223,20 +241,43 @@ async function readBody(req) {
 }
 
 async function readState() {
-  // First-run bootstrap: if the working state file doesn't exist but the
-  // shipped template does, copy the template across. Friends cloning the repo
-  // get a clean working state without manual setup.
-  if (!existsSync(dataPath) && existsSync(templatePath)) {
-    await ensureDir(dirname(dataPath))
-    await writeFile(dataPath, await readFile(templatePath, 'utf8'), 'utf8')
-    console.log(`[bootstrap] Initialized data/study-state.json from template`)
-  }
-  return JSON.parse(await readFile(dataPath, 'utf8'))
+  const template = JSON.parse(await readFile(templatePath, 'utf8'))
+  // Import the legacy single-user file once in local mode. It is never removed.
+  const fallback = storageMode() === 'local' && existsSync(dataPath)
+    ? JSON.parse(await readFile(dataPath, 'utf8'))
+    : template
+  const personal = await readDocument('progress', 'study-state', fallback)
+  return mergeEditorialState(template, personal)
+}
+
+// Course structure and learning material always come from the maintained
+// template. Only explicitly personal fields survive across editorial updates.
+function mergeEditorialState(editorial, personal) {
+  const personalCourses = new Map((personal?.courses || []).map((course) => [course.id, course]))
+  const courses = (editorial.courses || []).map((course) => {
+    const savedCourse = personalCourses.get(course.id) || {}
+    const savedItems = new Map((savedCourse.items || []).map((item) => [item.id, item]))
+    const items = (course.items || []).map((item) => {
+      const saved = savedItems.get(item.id) || {}
+      const personalFields = ['mastery', 'masteryUpdatedAt', 'reviewLog', 'notes', 'priority']
+      return personalFields.reduce((merged, field) => {
+        if (field in saved) merged[field] = saved[field]
+        return merged
+      }, { ...item })
+    })
+    return {
+      ...course,
+      items,
+      ...(typeof savedCourse.archived === 'boolean' ? { archived: savedCourse.archived } : {}),
+      ...(typeof savedCourse.order === 'number' ? { order: savedCourse.order } : {})
+    }
+  })
+  return { ...editorial, courses, meta: { ...editorial.meta, updatedAt: personal?.meta?.updatedAt || editorial.meta?.updatedAt } }
 }
 
 async function writeState(state) {
   state.meta.updatedAt = new Date().toISOString()
-  await writeFile(dataPath, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+  await writeDocument('progress', 'study-state', state)
 }
 
 function findItem(state, itemId) {
@@ -1973,19 +2014,20 @@ const flashcardsPath = resolve(__dirname, 'data/flashcards.json')
 const flashcardsTemplatePath = resolve(__dirname, 'data/flashcards.template.json')
 
 async function readFlashcards() {
-  // First-run bootstrap: if no working flashcards file but a shipped template
-  // exists, seed it. Same pattern as study-state.json.
-  if (!existsSync(flashcardsPath) && existsSync(flashcardsTemplatePath)) {
-    await ensureDir(dirname(flashcardsPath))
-    await writeFile(flashcardsPath, await readFile(flashcardsTemplatePath, 'utf8'), 'utf8')
-    console.log(`[bootstrap] Initialized data/flashcards.json from template`)
-  }
-  if (!existsSync(flashcardsPath)) return { cards: [] }
-  try { return JSON.parse(await readFile(flashcardsPath, 'utf8')) } catch { return { cards: [] } }
+  let editorial = { cards: [] }
+  let legacy = null
+  if (existsSync(flashcardsTemplatePath)) try { editorial = JSON.parse(await readFile(flashcardsTemplatePath, 'utf8')) } catch {}
+  if (storageMode() === 'local' && existsSync(flashcardsPath)) try { legacy = JSON.parse(await readFile(flashcardsPath, 'utf8')) } catch {}
+  const personal = await readDocument('learning', 'flashcards', legacy || editorial)
+  const savedById = new Map((personal.cards || []).map((card) => [card.id, card]))
+  const editorialIds = new Set((editorial.cards || []).map((card) => card.id))
+  const cards = (editorial.cards || []).map((card) => ({ ...card, ...(savedById.get(card.id) || {}) }))
+  cards.push(...(personal.cards || []).filter((card) => !editorialIds.has(card.id)))
+  return { ...personal, cards }
 }
 
 async function writeFlashcards(state) {
-  await writeFile(flashcardsPath, JSON.stringify(state, null, 2), 'utf8')
+  await writeDocument('learning', 'flashcards', state)
 }
 
 function initialSr() {
@@ -2126,15 +2168,9 @@ function parseScore(correction) {
 }
 
 async function readMistakes(filter = {}) {
-  if (!existsSync(mistakesDir)) return []
-  const files = await readdir(mistakesDir)
   const all = []
-  for (const f of files) {
-    if (!f.endsWith('.json')) continue
-    try {
-      const data = JSON.parse(await readFile(resolve(mistakesDir, f), 'utf8'))
-      for (const m of data) all.push(m)
-    } catch {}
+  for (const document of await listDocuments('mistakes')) {
+    if (Array.isArray(document.value)) all.push(...document.value)
   }
   return all.filter((m) => {
     if (filter.courseId && m.courseId !== filter.courseId) return false
@@ -2145,37 +2181,27 @@ async function readMistakes(filter = {}) {
 }
 
 async function writeMistakeBucket(courseId, chapterId, mistakes) {
-  await ensureDir(mistakesDir)
-  const path = resolve(mistakesDir, `${courseId}-${chapterId || 'misc'}.json`)
-  await writeFile(path, JSON.stringify(mistakes, null, 2), 'utf8')
+  await writeDocument('mistakes', `${courseId}-${chapterId || 'misc'}`, mistakes)
 }
 
 async function addMistake(record) {
-  const path = resolve(mistakesDir, `${record.courseId}-${record.chapterId || 'misc'}.json`)
-  await ensureDir(mistakesDir)
-  let bucket = []
-  if (existsSync(path)) {
-    try { bucket = JSON.parse(await readFile(path, 'utf8')) } catch {}
-  }
+  const key = `${record.courseId}-${record.chapterId || 'misc'}`
+  let bucket = await readDocument('mistakes', key, [])
   // dedupe: if same questionId already exists and is open, replace it
   bucket = bucket.filter((m) => !(m.questionId === record.questionId && !m.resolvedAt))
   bucket.push(record)
-  await writeFile(path, JSON.stringify(bucket, null, 2), 'utf8')
+  await writeDocument('mistakes', key, bucket)
   return record
 }
 
 async function updateMistake(id, patch) {
-  if (!existsSync(mistakesDir)) return null
-  const files = await readdir(mistakesDir)
-  for (const f of files) {
-    if (!f.endsWith('.json')) continue
-    const path = resolve(mistakesDir, f)
+  for (const document of await listDocuments('mistakes')) {
     try {
-      const bucket = JSON.parse(await readFile(path, 'utf8'))
+      const bucket = document.value
       const idx = bucket.findIndex((m) => m.id === id)
       if (idx < 0) continue
       Object.assign(bucket[idx], patch)
-      await writeFile(path, JSON.stringify(bucket, null, 2), 'utf8')
+      await writeDocument('mistakes', document.key, bucket)
       return bucket[idx]
     } catch {}
   }
@@ -2183,16 +2209,12 @@ async function updateMistake(id, patch) {
 }
 
 async function deleteMistake(id) {
-  if (!existsSync(mistakesDir)) return false
-  const files = await readdir(mistakesDir)
-  for (const f of files) {
-    if (!f.endsWith('.json')) continue
-    const path = resolve(mistakesDir, f)
+  for (const document of await listDocuments('mistakes')) {
     try {
-      const bucket = JSON.parse(await readFile(path, 'utf8'))
+      const bucket = document.value
       const next = bucket.filter((m) => m.id !== id)
       if (next.length !== bucket.length) {
-        await writeFile(path, JSON.stringify(next, null, 2), 'utf8')
+        await writeDocument('mistakes', document.key, next)
         return true
       }
     } catch {}
@@ -2203,12 +2225,13 @@ async function deleteMistake(id) {
 // ----- SR (SM-2) -----
 
 async function readSrState() {
-  if (!existsSync(srPath)) return { cards: {} }
-  try { return JSON.parse(await readFile(srPath, 'utf8')) } catch { return { cards: {} } }
+  let fallback = { cards: {} }
+  if (existsSync(srPath)) try { fallback = JSON.parse(await readFile(srPath, 'utf8')) } catch {}
+  return readDocument('learning', 'spaced-repetition', fallback)
 }
 
 async function writeSrState(state) {
-  await writeFile(srPath, JSON.stringify(state, null, 2), 'utf8')
+  await writeDocument('learning', 'spaced-repetition', state)
 }
 
 function sm2(card, quality) {
@@ -2275,13 +2298,10 @@ async function findQuestion(state, questionId) {
 // ----- Mocks -----
 
 async function listMockSessions() {
-  if (!existsSync(mocksDir)) return []
-  const files = await readdir(mocksDir)
   const out = []
-  for (const f of files) {
-    if (!f.endsWith('.json')) continue
+  for (const document of await listDocuments('mock-sessions')) {
     try {
-      const s = JSON.parse(await readFile(resolve(mocksDir, f), 'utf8'))
+      const s = document.value
       out.push({ id: s.id, courseId: s.courseId, chapterId: s.chapterId, submittedAt: s.submittedAt, totalScore: s.totalScore, totalMax: s.totalMax, count: s.questions?.length || 0, duration: s.duration })
     } catch {}
   }
@@ -2290,16 +2310,35 @@ async function listMockSessions() {
 }
 
 async function saveMockSession(session) {
-  await ensureDir(mocksDir)
-  await writeFile(resolve(mocksDir, `${session.id}.json`), JSON.stringify(session, null, 2), 'utf8')
+  await writeDocument('mock-sessions', session.id, session)
   return session
 }
 
 async function readMockSession(id) {
-  const p = resolve(mocksDir, `${id}.json`)
-  if (!existsSync(p)) return null
-  return JSON.parse(await readFile(p, 'utf8'))
+  return readDocument('mock-sessions', id, null)
 }
+
+async function migrateLegacyLocalData() {
+  if (storageMode() !== 'local') return
+  const marker = await readDocument('migration', 'legacy-v1', null)
+  if (marker) return
+
+  if (existsSync(mistakesDir)) {
+    for (const file of await readdir(mistakesDir)) {
+      if (!file.endsWith('.json')) continue
+      try { await writeDocument('mistakes', file.slice(0, -5), JSON.parse(await readFile(resolve(mistakesDir, file), 'utf8'))) } catch {}
+    }
+  }
+  if (existsSync(mocksDir)) {
+    for (const file of await readdir(mocksDir)) {
+      if (!file.endsWith('.json')) continue
+      try { await writeDocument('mock-sessions', file.slice(0, -5), JSON.parse(await readFile(resolve(mocksDir, file), 'utf8'))) } catch {}
+    }
+  }
+  await writeDocument('migration', 'legacy-v1', { importedAt: new Date().toISOString(), originalsPreserved: true })
+}
+
+await migrateLegacyLocalData()
 
 const MATH_FORMATTING_RULE = [
   `MATH FORMATTING — strict, non-negotiable:`,
@@ -2434,11 +2473,10 @@ function gcJobs() {
  * directly (sync) since planning runs ahead of the async work — keeps the
  * planner simple. Returns a Map<chapterId, cardCount> scoped to one course.
  */
-function countFlashcardsByChapter(courseId) {
+async function countFlashcardsByChapter(courseId) {
   const counts = new Map()
-  if (!existsSync(flashcardsPath)) return counts
   try {
-    const data = JSON.parse(readFileSync(flashcardsPath, 'utf8'))
+    const data = await readFlashcards()
     for (const c of data.cards || []) {
       if (c.courseId !== courseId) continue
       counts.set(c.chapterId, (counts.get(c.chapterId) || 0) + 1)
@@ -2455,9 +2493,9 @@ function isSupportChapter(chapter) {
   return /exam skills|cram sheets|self tests|worked drills|cipher workthroughs|cipher walkthroughs/i.test(chapter?.name || '')
 }
 
-function planGenerateAllSteps(state, course) {
+async function planGenerateAllSteps(state, course) {
   const steps = []
-  const flashcardCounts = countFlashcardsByChapter(course.id)
+  const flashcardCounts = await countFlashcardsByChapter(course.id)
   const coreChapters = (course.chapters || []).filter((ch) => !isSupportChapter(ch))
   // 1. Per-chapter self-tests (core chapters only)
   for (const ch of coreChapters) {
@@ -2632,7 +2670,7 @@ async function runGenerateAllCoursesJob(masterJobId) {
         parentId: masterJobId,
         createdAt: Date.now(),
         status: 'queued',
-        steps: planGenerateAllSteps(state, course)
+        steps: await planGenerateAllSteps(state, course)
       }
       generateJobs.set(subId, sub)
       generateJobsByCourse.set(courseId, subId)
@@ -2652,6 +2690,99 @@ async function runGenerateAllCoursesJob(masterJobId) {
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
+
+    if (url.pathname === '/api/auth/config' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(authConfig()))
+      return
+    }
+    if (url.pathname === '/api/health' && req.method === 'GET') {
+      try { send(res, 200, JSON.stringify(await healthcheck())) }
+      catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
+      return
+    }
+
+    if (url.pathname.startsWith('/api/') && !isPublicApi(url.pathname)) {
+      const auth = await authenticate(req)
+      if (!auth.authenticated) {
+        send(res, 401, JSON.stringify({ error: 'Sign in required', reason: auth.reason || 'unauthenticated' }))
+        return
+      }
+      setRequestContext(auth)
+    }
+
+    if (url.pathname === '/api/me' && req.method === 'GET') {
+      const auth = await authenticate(req)
+      send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, storage: storageMode() }))
+      return
+    }
+
+    if (url.pathname === '/api/browser-state' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(await readDocument('browser', 'local-storage', {})))
+      return
+    }
+    if (url.pathname === '/api/browser-state' && req.method === 'PUT') {
+      const body = await readBody(req)
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        send(res, 400, JSON.stringify({ error: 'Expected a JSON object' }))
+        return
+      }
+      await writeDocument('browser', 'local-storage', body)
+      send(res, 200, JSON.stringify({ ok: true }))
+      return
+    }
+
+    if (url.pathname === '/api/materials' && req.method === 'GET') {
+      const catalogPath = resolve(__dirname, 'data/content-catalog.json')
+      if (!existsSync(catalogPath)) {
+        send(res, 503, JSON.stringify({ error: 'Content catalog not built. Run npm run content:ingest.' }))
+        return
+      }
+      send(res, 200, await readFile(catalogPath, 'utf8'))
+      return
+    }
+
+    const materialMatch = url.pathname.match(/^\/api\/material\/([^/]+)\/(.+)$/)
+    if (materialMatch && req.method === 'GET') {
+      const state = await readState()
+      const course = state.courses.find((candidate) => candidate.id === decodeURIComponent(materialMatch[1]))
+      if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      const courseRoot = resolve(getVaultRoot(state), course.knowledgeBase)
+      const segments = materialMatch[2].split('/').map(decodeURIComponent)
+      const target = resolve(courseRoot, ...segments)
+      if (!pathInside(courseRoot, target) || !existsSync(target) || !(await stat(target)).isFile()) {
+        send(res, 404, JSON.stringify({ error: 'Material not found' }))
+        return
+      }
+      const info = await stat(target)
+      const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/)
+      if (range) {
+        const start = range[1] ? Number(range[1]) : 0
+        const end = range[2] ? Math.min(Number(range[2]), info.size - 1) : info.size - 1
+        if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start > end || start >= info.size) {
+          res.writeHead(416, { 'Content-Range': `bytes */${info.size}` })
+          res.end()
+          return
+        }
+        res.writeHead(206, {
+          'Content-Type': mime[extname(target).toLowerCase()] || 'application/octet-stream',
+          'Content-Length': end - start + 1,
+          'Content-Range': `bytes ${start}-${end}/${info.size}`,
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=3600'
+        })
+        createReadStream(target, { start, end }).pipe(res)
+        return
+      }
+      res.writeHead(200, {
+        'Content-Type': mime[extname(target).toLowerCase()] || 'application/octet-stream',
+        'Content-Length': info.size,
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(target.split('/').pop())}`
+      })
+      createReadStream(target).pipe(res)
+      return
+    }
 
     if (url.pathname === '/api/state' && req.method === 'GET') {
       send(res, 200, JSON.stringify(await readState()))
@@ -2755,7 +2886,7 @@ const server = createServer(async (req, res) => {
       const state = await readState()
       const course = state.courses.find((c) => c.id === courseId)
       if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
-      const steps = planGenerateAllSteps(state, course)
+      const steps = await planGenerateAllSteps(state, course)
       send(res, 200, JSON.stringify({
         courseId,
         total: steps.length,
@@ -2770,7 +2901,7 @@ const server = createServer(async (req, res) => {
       let totalPending = 0
       let totalSteps = 0
       for (const c of state.courses.filter((x) => !x.archived)) {
-        const steps = planGenerateAllSteps(state, c)
+        const steps = await planGenerateAllSteps(state, c)
         const pending = steps.filter((s) => s.status === 'pending').length
         courses[c.id] = { total: steps.length, pending }
         totalPending += pending
@@ -2857,7 +2988,7 @@ const server = createServer(async (req, res) => {
         courseId,
         createdAt: Date.now(),
         status: 'queued',
-        steps: planGenerateAllSteps(state, course)
+        steps: await planGenerateAllSteps(state, course)
       }
       generateJobs.set(id, job)
       generateJobsByCourse.set(courseId, id)
@@ -3370,17 +3501,11 @@ const server = createServer(async (req, res) => {
       const out = { scope, courseId, removed: { mistakes: 0, sr: 0, mocks: 0 } }
 
       const wipeMistakesForChapter = async (cid, chid) => {
-        const p = resolve(mistakesDir, `${cid}-${chid}.json`)
-        if (existsSync(p)) { await unlink(p).catch(() => {}); out.removed.mistakes++ }
+        if (await deleteDocument('mistakes', `${cid}-${chid}`)) out.removed.mistakes++
       }
       const wipeMistakesForCourse = async (cid) => {
-        if (!existsSync(mistakesDir)) return
-        const files = await readdir(mistakesDir)
-        for (const f of files) {
-          if (f.startsWith(`${cid}-`) && f.endsWith('.json')) {
-            await unlink(resolve(mistakesDir, f)).catch(() => {})
-            out.removed.mistakes++
-          }
+        for (const document of await listDocuments('mistakes')) {
+          if (document.key.startsWith(`${cid}-`) && await deleteDocument('mistakes', document.key)) out.removed.mistakes++
         }
       }
       const wipeSrForCards = async (filterFn) => {
@@ -3407,15 +3532,8 @@ const server = createServer(async (req, res) => {
         if (touched) await writeFlashcards(fc)
       }
       const wipeMockSessionsForCourse = async (cid) => {
-        if (!existsSync(mocksDir)) return
-        const files = await readdir(mocksDir)
-        for (const f of files) {
-          if (!f.endsWith('.json')) continue
-          const p = resolve(mocksDir, f)
-          try {
-            const data = JSON.parse(await readFile(p, 'utf8'))
-            if (data?.courseId === cid) { await unlink(p).catch(() => {}); out.removed.mocks++ }
-          } catch {}
+        for (const document of await listDocuments('mock-sessions')) {
+          if (document.value?.courseId === cid && await deleteDocument('mock-sessions', document.key)) out.removed.mocks++
         }
       }
 
@@ -3875,7 +3993,8 @@ server.on('error', (err) => {
 
 server.listen(port, () => {
   console.log(`Exam Study Platform running at http://localhost:${port}`)
-  console.log(`State file: ${dataPath}`)
+  console.log(`Personal storage: ${storageMode()}`)
+  console.log(`Authentication: ${authConfig().mode}`)
   console.log(`LLM provider: ${LLM_PROVIDER}`)
   if (LLM_PROVIDER === 'codex') console.log(`Codex bin: ${CODEX_BIN}${existsSync(CODEX_BIN) ? '' : ' (NOT FOUND)'}`)
   if (LLM_PROVIDER === 'claude') console.log(`Claude bin: ${CLAUDE_BIN}`)

@@ -1,0 +1,11 @@
+.git
+node_modules
+.env
+.env.local
+data/users
+data/study-state.json
+data/flashcards.json
+data/sr-state.json
+data/mistakes
+data/mocks
+*.log

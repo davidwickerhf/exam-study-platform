@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["meta", "courses"],
+  "properties": {
+    "meta": { "type": "object", "required": ["schemaVersion"] },
+    "courses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "code", "name", "knowledgeBase", "chapters"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "code": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "knowledgeBase": { "type": "string", "minLength": 1 },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "file"],
+              "properties": {
+                "id": { "type": ["string", "number"] },
+                "name": { "type": "string" },
+                "file": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

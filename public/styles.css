@@ -7199,3 +7199,18 @@ textarea {
     padding: 14px;
   }
 }
+/* Hosted authentication/bootstrap surface */
+.auth-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #f4f1e9;
+}
+
+.auth-gate[hidden] { display: none; }
+.auth-gate > section { width: min(100%, 28rem); }
+.auth-gate h1 { margin: .35rem 0 .65rem; font-size: clamp(2rem, 7vw, 3.5rem); letter-spacing: -.05em; }
+.auth-gate p { color: #526058; line-height: 1.55; }
+.auth-gate #clerk-sign-in { margin-top: 1.5rem; }
+.boot-error { max-width: 42rem; margin: 15vh auto; padding: 2rem; }

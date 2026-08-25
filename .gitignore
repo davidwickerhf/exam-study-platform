@@ -7,6 +7,7 @@ data/flashcards.json
 data/sr-state.json
 data/mistakes/
 data/mocks/
+data/users/
 
 # Per-user LLM config (provider choice, API key)
 data/llm-config.json
