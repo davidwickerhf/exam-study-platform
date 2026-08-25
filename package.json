@@ -12,6 +12,7 @@
     "db:migrate": "node scripts/db-migrate.mjs",
     "content:check": "node scripts/content-ingest.mjs",
     "content:ingest": "node scripts/content-ingest.mjs --write",
+    "content:publish": "node scripts/publish-content.mjs",
     "user:import": "node scripts/import-local-user.mjs",
     "test": "node --test"
   },

@@ -1,11 +1,13 @@
 .git
-node_modules
-.env
-.env.local
+.vercel
+.env*
+content
 data/users
 data/study-state.json
 data/flashcards.json
 data/sr-state.json
 data/mistakes
 data/mocks
+node_modules
+npm-debug.log
 *.log

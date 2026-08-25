@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { readFile, writeFile, readdir, stat, mkdir, unlink } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { createReadStream } from 'node:fs'
-import { extname, join, resolve, relative, dirname } from 'node:path'
+import { extname, join, resolve, relative, dirname, posix as posixPath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -11,6 +11,7 @@ import './lib/env.mjs'
 import { authenticate, authConfig, isPublicApi } from './lib/auth.mjs'
 import { setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
+import { editorialMode, getMaterial, getMaterialText, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const publicDir = resolve(__dirname, 'public')
@@ -241,7 +242,7 @@ async function readBody(req) {
 }
 
 async function readState() {
-  const template = JSON.parse(await readFile(templatePath, 'utf8'))
+  const template = await loadEditorialState(templatePath)
   // Import the legacy single-user file once in local mode. It is never removed.
   const fallback = storageMode() === 'local' && existsSync(dataPath)
     ? JSON.parse(await readFile(dataPath, 'utf8'))
@@ -341,6 +342,11 @@ async function resolveChapterContent(state, courseId, chapterId, relPath) {
   if (!course) throw new Error(`Unknown course: ${courseId}`)
   const chapter = course.chapters?.find((c) => c.id === chapterId)
   if (!chapter) throw new Error(`Unknown chapter: ${chapterId}`)
+  if (editorialMode() === 'neon') {
+    const resolved = await resolveChapterFromDatabase(course, chapter, relPath)
+    if (!resolved) throw new Error(`Not found: ${course.id}/${chapter.file}${relPath ? `/${relPath}` : ''}`)
+    return resolved
+  }
   const vaultRoot = getVaultRoot(state)
 
   const courseRoot = resolve(vaultRoot, course.knowledgeBase)
@@ -641,6 +647,7 @@ async function searchCourse(state, course, query, limit = 30) {
 }
 
 async function readKbFile(state, course, relPath) {
+  if (editorialMode() === 'neon') return getMaterialText(course.id, relPath.replaceAll('\\', '/'))
   const vaultRoot = getVaultRoot(state)
   const courseRoot = resolve(vaultRoot, course.knowledgeBase)
   const target = resolve(courseRoot, relPath)
@@ -939,8 +946,6 @@ async function generateQuestions(course, chapter, content, alreadyHave) {
 }
 
 async function loadCourseContext(state, course, currentChapter, limit = 180000) {
-  const vaultRoot = getVaultRoot(state)
-  const courseRoot = resolve(vaultRoot, course.knowledgeBase)
   const pieces = []
   let used = 0
   // current chapter first (full content)
@@ -951,10 +956,9 @@ async function loadCourseContext(state, course, currentChapter, limit = 180000) 
       pieces.push(block)
       used += block.length
       // optional examples.md
-      const chapterDir = dirname(resolve(courseRoot, currentChapter.file))
-      const examplesPath = resolve(chapterDir, 'examples.md')
-      if (existsSync(examplesPath)) {
-        const examples = await readFile(examplesPath, 'utf8').catch(() => null)
+      const examplesRel = posixPath.join(posixPath.dirname(currentChapter.file.replaceAll('\\', '/')), 'examples.md')
+      if (editorialMode() === 'neon' || existsSync(resolve(getVaultRoot(state), course.knowledgeBase, examplesRel))) {
+        const examples = await readKbFile(state, course, examplesRel).catch(() => null)
         if (examples) {
           const block2 = `### CURRENT CHAPTER EXAMPLES\n\n${examples}\n`
           pieces.push(block2)
@@ -1087,9 +1091,21 @@ async function extractPdfPageText(pdfPath) {
   }))
 }
 
+async function loadPdfPages(state, course, sourcePath) {
+  if (editorialMode() === 'neon') {
+    const material = await getMaterial(course.id, sourcePath.replaceAll('\\', '/'))
+    return Array.isArray(material?.extracted_pages) ? material.extracted_pages : []
+  }
+  const courseRoot = await courseRootFor(state, course)
+  const target = resolve(courseRoot, sourcePath)
+  if (!pathInside(courseRoot, target)) return []
+  return extractPdfPageText(target)
+}
+
 async function extractBoldOptionKeys(state, course, examId) {
   const exam = findCoursePaper(course, examId) || getMockExam(course, examId)
   if (!exam?.solutionsPdf) return {}
+  if (editorialMode() === 'neon') return {}
   const courseRoot = await courseRootFor(state, course)
   const pdfPath = resolve(courseRoot, exam.solutionsPdf)
   if (!pathInside(courseRoot, pdfPath) || !existsSync(pdfPath)) return {}
@@ -1212,6 +1228,12 @@ async function loadCourseGradingNotes(state, course) {
   const rel = course.gradingNotesPdf
   if (!rel) { gradingNotesCache.set(course.id, null); return null }
   try {
+    if (editorialMode() === 'neon') {
+      const pages = await loadPdfPages(state, course, rel)
+      const text = pages.length ? pages.map((p) => `=== GRADING-PAGE ${p.page} ===\n${(p.text || '').trim()}`).join('\n\n') : null
+      gradingNotesCache.set(course.id, text)
+      return text
+    }
     const courseRoot = await courseRootFor(state, course)
     const target = resolve(courseRoot, rel)
     if (!pathInside(courseRoot, target) || !existsSync(target)) {
@@ -2607,22 +2629,17 @@ async function runGenerateAllJob(jobId) {
         } else if (step.kind === 'exam') {
           const exam = findCoursePaper(course, step.examId)
           if (!exam?.pdf) throw new Error(`Paper ${step.examId} has no PDF`)
-          const vaultRoot = getVaultRoot(state)
-          const pdfPath = resolve(vaultRoot, course.knowledgeBase, exam.pdf)
-          const questionPages = await extractPdfPageText(pdfPath)
+          const questionPages = await loadPdfPages(state, course, exam.pdf)
           let solutionsPages = []
           if (exam.solutionsPdf) {
-            const sPath = resolve(vaultRoot, course.knowledgeBase, exam.solutionsPdf)
-            try { solutionsPages = await extractPdfPageText(sPath) } catch {}
+            try { solutionsPages = await loadPdfPages(state, course, exam.solutionsPdf) } catch {}
           }
           if (!questionPages.length) throw new Error('No text extracted from PDF')
           await parseExamPaper(job.courseId, step.examId, questionPages, solutionsPages)
         } else if (step.kind === 'mock-toc') {
           const exam = findCoursePaper(course, step.examId)
           if (!exam?.pdf) throw new Error(`Paper ${step.examId} has no PDF`)
-          const vaultRoot = getVaultRoot(state)
-          const pdfPath = resolve(vaultRoot, course.knowledgeBase, exam.pdf)
-          const pages = await extractPdfPageText(pdfPath)
+          const pages = await loadPdfPages(state, course, exam.pdf)
           if (!pages.length) throw new Error('No text extracted from PDF')
           await buildMockToc(job.courseId, step.examId, pages)
         }
@@ -2732,6 +2749,14 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/materials' && req.method === 'GET') {
+      if (editorialMode() === 'neon') {
+        const state = await readState()
+        const rows = await listMaterials()
+        const grouped = new Map(state.courses.map((course) => [course.id, { id: course.id, code: course.code, name: course.name, knowledgeBase: course.knowledgeBase, materials: [] }]))
+        for (const row of rows) grouped.get(row.course_id)?.materials.push({ path: row.path, kind: row.kind, mediaType: row.mediaType, bytes: Number(row.bytes), sha256: row.sha256, ...row.metadata })
+        send(res, 200, JSON.stringify({ schemaVersion: 2, source: 'neon', courses: [...grouped.values()] }))
+        return
+      }
       const catalogPath = resolve(__dirname, 'data/content-catalog.json')
       if (!existsSync(catalogPath)) {
         send(res, 503, JSON.stringify({ error: 'Content catalog not built. Run npm run content:ingest.' }))
@@ -2746,6 +2771,23 @@ const server = createServer(async (req, res) => {
       const state = await readState()
       const course = state.courses.find((candidate) => candidate.id === decodeURIComponent(materialMatch[1]))
       if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      const materialPath = materialMatch[2].split('/').map(decodeURIComponent).join('/')
+      if (editorialMode() === 'neon') {
+        const material = await getMaterial(course.id, posixPath.normalize(materialPath), { data: true })
+        if (!material) { send(res, 404, JSON.stringify({ error: 'Material not found' })); return }
+        const size = material.data.length
+        const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/)
+        if (range) {
+          const start = range[1] ? Number(range[1]) : 0
+          const end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1
+          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || start >= size) { res.writeHead(416, { 'Content-Range': `bytes */${size}` }); res.end(); return }
+          const body = material.data.subarray(start, end + 1)
+          res.writeHead(206, { 'Content-Type': material.media_type, 'Content-Length': body.length, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=3600' })
+          res.end(body); return
+        }
+        res.writeHead(200, { 'Content-Type': material.media_type, 'Content-Length': size, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=3600' })
+        res.end(material.data); return
+      }
       const courseRoot = resolve(getVaultRoot(state), course.knowledgeBase)
       const segments = materialMatch[2].split('/').map(decodeURIComponent)
       const target = resolve(courseRoot, ...segments)
@@ -3060,6 +3102,12 @@ const server = createServer(async (req, res) => {
         send(res, 404, JSON.stringify({ error: `No ${variant === 'solutions' ? 'solutions' : 'paper'} configured for this course/paper id` }))
         return
       }
+      if (editorialMode() === 'neon') {
+        const material = await getMaterial(course.id, filePath.replaceAll('\\', '/'), { data: true })
+        if (!material) { send(res, 404, JSON.stringify({ error: `PDF not found: ${filePath}` })); return }
+        res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Length': material.data.length, 'Content-Disposition': `inline; filename="${course.code}-${exam.id}-${variant === 'solutions' ? 'solutions' : 'paper'}.pdf"`, 'Cache-Control': 'private, max-age=3600' })
+        res.end(material.data); return
+      }
       const vaultRoot = getVaultRoot(state)
       const courseRoot = resolve(vaultRoot, course.knowledgeBase)
       const target = resolve(courseRoot, filePath)
@@ -3098,6 +3146,13 @@ const server = createServer(async (req, res) => {
         if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
         const chapter = course.chapters?.find((c) => c.id === chapterId)
         if (!chapter) { send(res, 404, JSON.stringify({ error: 'Unknown chapter' })); return }
+        if (editorialMode() === 'neon') {
+          const sourcePath = posixPath.normalize(posixPath.join(posixPath.dirname(chapter.file.replaceAll('\\', '/')), file.replaceAll('\\', '/')))
+          const material = await getMaterial(course.id, sourcePath, { data: true })
+          if (!material) { send(res, 404, JSON.stringify({ error: 'Not found' })); return }
+          res.writeHead(200, { 'Content-Type': material.media_type, 'Content-Length': material.data.length, 'Cache-Control': 'private, max-age=3600' })
+          res.end(material.data); return
+        }
         const vaultRoot = getVaultRoot(state)
         const courseRoot = resolve(vaultRoot, course.knowledgeBase)
         const chapterDir = dirname(resolve(courseRoot, chapter.file))

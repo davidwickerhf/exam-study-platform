@@ -1,7 +1,7 @@
 # Exam Study Platform
 
 A hosted or local study platform for the Maastricht BCS June 2026 resit window.
-Bundled with chapter notes, mock exams, AI-generated question banks, and
+With editorial chapter notes, mock exams, AI-generated question banks, and
 flashcards for five courses:
 
 - **BCS1520** — Statistics
@@ -10,8 +10,8 @@ flashcards for five courses:
 - **BCS2420** — Computer Security
 - **BCS2540** — Numerical Methods
 
-Built on Node (no framework), publishes versioned editorial material, stores
-private progress in Neon behind Clerk authentication, and generates
+Built on Node (no framework), publishes versioned editorial material to Neon,
+stores private progress there behind Clerk authentication, and generates
 questions / grades attempts via your choice of Codex CLI, Claude CLI, or the
 Anthropic API directly.
 

@@ -6,7 +6,8 @@ The application deliberately separates two kinds of data:
 
 | Data | Owner | Source of truth |
 | --- | --- | --- |
-| Course/chapter definitions, Markdown, PDFs, diagrams, shipped questions and parsed exams | Editorial | Git (`content/`, `data/cache/`, `data/study-state.template.json`) |
+| Course/chapter definitions, Markdown, PDFs and diagrams | Editorial | Reviewed local/Git sources, published as an active relational Neon release |
+| Shipped questions and parsed exams | Editorial | Git (`data/cache/`) pending the same release-table migration |
 | Mastery, notes, review log, course ordering/archive preferences | Individual user | `user_documents` in Neon |
 | Custom/generated flashcards and spaced-repetition scheduling | Individual user | `user_documents` in Neon |
 | Mistakes and mock sessions | Individual user | `user_documents` in Neon |
@@ -54,10 +55,11 @@ the target reported by `vercel domains inspect study.wicker.life --scope wickerl
 2. Create a Clerk application and copy both API keys.
 3. Configure the variables from `.env.example` in the hosting platform.
 4. Run `npm run db:migrate` once against Neon.
-5. Deploy to Vercel with `Dockerfile.vercel`, or build the standard Dockerfile
-   on another Node-capable container host. Vercel Fluid Compute's large-function
-   path accommodates the roughly 318 MB editorial corpus.
-6. Verify `/api/health` reports `{ "ok": true, "mode": "neon" }`.
+5. Publish the reviewed corpus with `npm run content:publish`.
+6. Deploy to Vercel with `Dockerfile.vercel`, or build the standard Dockerfile
+   on another Node-capable container host. `.dockerignore` excludes `content/`;
+   the hosted runtime reads it from Neon.
+7. Verify `/api/health` reports `{ "ok": true, "mode": "neon" }`.
 
 For local hosted-mode verification, put the same values in ignored
 `.env.local` (the Clerk CLI uses this filename) or `.env`.
