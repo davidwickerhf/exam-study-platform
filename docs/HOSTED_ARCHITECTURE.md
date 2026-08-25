@@ -46,6 +46,10 @@ coupling editorial content to personal progress.
 
 ## Deploy
 
+The production hostname is `https://study.wicker.life`. It is attached to the
+`wickerlife/exam-study-platform` Vercel project; its `study` CNAME must point to
+the target reported by `vercel domains inspect study.wicker.life --scope wickerlife`.
+
 1. Create a Neon project and copy its pooled `DATABASE_URL`.
 2. Create a Clerk application and copy both API keys.
 3. Configure the variables from `.env.example` in the hosting platform.
