@@ -56,3 +56,5 @@ data/cache/practice-exam/cyber__*.json
 data/cache/practice-exam/it__*.json
 data/cache/questions/cyber-*.json
 data/cache/questions/it-*.json
+.vercel
+.env*

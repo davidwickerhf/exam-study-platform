@@ -50,10 +50,9 @@ coupling editorial content to personal progress.
 2. Create a Clerk application and copy both API keys.
 3. Configure the variables from `.env.example` in the hosting platform.
 4. Run `npm run db:migrate` once against Neon.
-5. Build and deploy the included Dockerfile on a Node-capable host. The
-   repository contains about 318 MB of editorial assets, so do not use a host
-   with a small serverless bundle limit. A container service with persistent
-   releases or object-storage offload is appropriate.
+5. Deploy to Vercel with `Dockerfile.vercel`, or build the standard Dockerfile
+   on another Node-capable container host. Vercel Fluid Compute's large-function
+   path accommodates the roughly 318 MB editorial corpus.
 6. Verify `/api/health` reports `{ "ok": true, "mode": "neon" }`.
 
 For local hosted-mode verification, put the same values in ignored
