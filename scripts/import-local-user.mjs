@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import 'dotenv/config'
+import '../lib/env.mjs'
 import { readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'

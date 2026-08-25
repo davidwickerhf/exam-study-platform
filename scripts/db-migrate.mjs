@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import 'dotenv/config'
+import '../lib/env.mjs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { neon } from '@neondatabase/serverless'

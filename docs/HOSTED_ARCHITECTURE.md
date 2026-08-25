@@ -56,6 +56,9 @@ coupling editorial content to personal progress.
    releases or object-storage offload is appropriate.
 6. Verify `/api/health` reports `{ "ok": true, "mode": "neon" }`.
 
+For local hosted-mode verification, put the same values in ignored
+`.env.local` (the Clerk CLI uses this filename) or `.env`.
+
 Production must set Clerk and Neon together. If neither is set the application
 intentionally enters local development mode; this is visible in startup logs
 and `/api/me`.

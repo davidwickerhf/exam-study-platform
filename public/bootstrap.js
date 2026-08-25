@@ -59,6 +59,20 @@ async function main() {
   const clerk = new Clerk(config.publishableKey)
   await clerk.load()
   window.__clerk = clerk
+
+  // Clerk's prebuilt component returns social OAuth/SAML flows to this hash.
+  // Vanilla integrations must explicitly finish the callback before reading
+  // `clerk.user`; otherwise a valid sign-in looks like an empty signed-out UI.
+  if (window.location.hash.startsWith('#/sso-callback')) {
+    const home = `${window.location.origin}/`
+    await clerk.handleRedirectCallback({
+      signInForceRedirectUrl: home,
+      signUpForceRedirectUrl: home,
+      signInFallbackRedirectUrl: home,
+      signUpFallbackRedirectUrl: home
+    })
+    return
+  }
   window.__clerkSession = clerk.session
 
   if (!clerk.user) {
