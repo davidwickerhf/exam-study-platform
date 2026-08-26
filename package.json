@@ -13,6 +13,8 @@
     "content:check": "node scripts/content-ingest.mjs",
     "content:ingest": "node scripts/content-ingest.mjs --write",
     "content:publish": "node scripts/publish-content.mjs",
+    "content:extract": "node scripts/backfill-pdf-text.mjs",
+    "content:index": "node scripts/index-retrieval.mjs",
     "user:import": "node scripts/import-local-user.mjs",
     "test": "node --test"
   },

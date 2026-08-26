@@ -4653,34 +4653,15 @@ async function ensurePracticeExam(courseId, examId) {
     return
   }
 
-  // Need to extract via PDF.js and POST to parse
+  // Parsing uses the canonical per-page extraction stored in Neon. The browser
+  // never downloads and re-extracts the PDF.
   try {
-    if (!window.__pdfjs) throw new Error('PDF.js not loaded yet — try again in a moment.')
-    const questionPdfUrl = `/api/pdf/${encodeURIComponent(courseId)}/${examIdEnc}`
-    const solutionsPdfUrl = `/api/pdf/${encodeURIComponent(courseId)}/${examIdEnc}/solutions`
-    const qPdf = await window.__pdfjs.getDocument(questionPdfUrl).promise
-    const questionPages = []
-    for (let i = 1; i <= qPdf.numPages; i++) {
-      const page = await qPdf.getPage(i)
-      const tc = await page.getTextContent()
-      questionPages.push({ page: i, text: pdfTextWithBoldMarkers(tc) })
-    }
-    let solutionsPages = []
-    try {
-      const sPdf = await window.__pdfjs.getDocument(solutionsPdfUrl).promise
-      for (let i = 1; i <= sPdf.numPages; i++) {
-        const page = await sPdf.getPage(i)
-        const tc = await page.getTextContent()
-        solutionsPages.push({ page: i, text: pdfTextWithBoldMarkers(tc) })
-      }
-    } catch {}
-
     practiceExamCache.set(key, { status: 'parsing' })
     render()
     const payload = await fetchJson(`/api/practice-exam/${encodeURIComponent(courseId)}/${examIdEnc}/parse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ questionPages, solutionsPages })
+      body: JSON.stringify({})
     })
     practiceExamCache.set(key, { status: 'ready', questions: payload.questions })
     if (!practiceExamView.currentQid) practiceExamView.currentQid = payload.questions[0].id
@@ -5217,12 +5198,11 @@ function renderMockExamPage() {
   }
 
   return `
-    <div class="chapter-grid" style="--accent:${course.accent}">
+    <div class="chapter-grid practice-workspace" style="--accent:${course.accent}">
       <aside class="chapter-toc">
         <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Expand TOC' : 'Collapse TOC'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
         <div class="rail-collapsible">
           <button class="toc-back" type="button" data-back-to-course="${course.id}" title="Back to ${course.code} ${course.shortName || ''}">${ICONS.back}<span>${course.code} <em>${course.shortName || ''}</em></span></button>
-          ${renderCourseChaptersSection(course, null)}
           <h4>${tocTitle}</h4>
           ${tocHeader}
           ${tocBody}
@@ -5251,14 +5231,6 @@ function renderMockExamPage() {
       <aside class="chapter-rail">
         <button class="rail-collapse-btn rail-side" type="button" data-rail-toggle title="${layoutState.railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.railCollapsed ? '‹' : '›'}</button>
         <div class="rail-collapsible">
-          <section class="rail-card">
-            <h4>${isPaperSurface ? 'About this paper' : 'Practice & flashcards'}</h4>
-            <p class="rail-meta">${isPaperSurface
-              ? (practiceExamView.tab === 'tutorials'
-                  ? 'Pick a tutorial in the selector above, then jump between PDF, Solutions, and Practice. The tutor on the right has the full course context — ask for hints on a question rather than the answer.'
-                  : 'Pick an exam in the selector above, then jump between PDF, Solutions, and Practice. The tutor on the right has the full course context — ask for hints on a question rather than the answer.')
-              : 'Mock questions and flashcards are generated from the chapter notes — use the tabs above. The tutor on the right has full course context.'}</p>
-          </section>
           ${isPaperSurface && currentExam?.pdf && (state.meta.vaultRoot || '').startsWith('/') ? `
             <section class="rail-card">
               <h4>Open original</h4>
@@ -5352,7 +5324,7 @@ function renderPracticeExam(course) {
   const examId = getActivePaperId()
   const cache = practiceExamCache.get(practiceExamCacheKey(course.id, examId))
   if (!cache || cache.status === 'extracting') {
-    return `<div class="loader practice-loader">Extracting question paper text via PDF.js…</div>`
+    return `<div class="practice-preparing"><span class="practice-preparing-index">01</span><div><strong>Preparing the paper</strong><p>Loading the indexed text already extracted from the course corpus.</p></div></div>`
   }
   if (cache.status === 'parsing') {
     return `<div class="loader practice-loader">Parsing exam structure via Codex (60–120s). This builds the full Q&A bank with model answers.</div>`

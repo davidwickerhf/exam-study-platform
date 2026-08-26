@@ -25,6 +25,8 @@ To add content:
    ```bash
    npm run db:migrate
    npm run content:publish
+   npm run content:extract
+   npm run content:index
    ```
 
 `content:publish` hashes the complete definition plus every source file. It
@@ -32,6 +34,11 @@ upserts an idempotent staging release, extracts PDF text per page, uploads
 binary data in bounded resumable chunks, verifies stored byte totals on retry, and only then
 atomically marks the release active. Re-running it skips complete unchanged
 files. Older releases stay addressable until deliberately retired.
+
+`content:extract` is an idempotent completeness pass. It finds active PDFs
+whose extracted text is empty, retries Poppler extraction, and falls back to
+page rendering plus Tesseract OCR for image-only scans. `content:index` then
+rebuilds retrieval chunks from the active release only.
 
 ## PDFs and other attachments
 
@@ -49,7 +56,37 @@ are supported, so browser PDF viewers do not need to redownload whole files.
 Material identity is `(release, course, source path)` plus a SHA-256 integrity
 digest.
 
-## AI integration
+The PDF viewer route (`GET /api/pdf/:courseId/:paperId[/solutions]`) is a
+public, read-only editorial route. This is intentional: native browser PDF
+iframes can remain open beyond a Clerk token lifetime, and the route contains
+no personal data. Every personal and generative endpoint remains authenticated.
+
+## Retrieval and AI integration
+
+`editorial_retrieval_chunks` is the canonical RAG index. It contains bounded,
+overlapping chunks of Markdown/code materials and individual PDF pages, with a
+PostgreSQL full-text GIN index. Each result retains `course_id`, source path,
+and PDF page number. Retrieval is always course-scoped.
+
+Authenticated clients—including the tutor and an MCP adapter—query:
+
+```http
+POST /api/retrieve
+Content-Type: application/json
+
+{"courseId":"alg","query":"master theorem recurrence cases","limit":8}
+```
+
+The response returns ranked chunks with citation metadata. The tutor uses this
+route's underlying repository directly and is instructed to cite the supplied
+path/page and decline unsupported answers. This lexical retrieval layer works
+without an external embedding vendor; an embedding column and reranker can be
+added later without changing the API contract.
+
+The practice-paper parser also reads `extracted_pages` from Neon directly. It
+never asks the browser to run PDF.js text extraction.
+
+## External enrichment
 
 The existing tutor and question/flashcard generators consume editorial chapter
 content server-side. The pipeline also offers a provider-neutral enrichment
@@ -75,4 +112,6 @@ Human review remains the publication gate.
 - `git diff -- content/` contains additions/intentional edits only.
 - The generated catalog is committed.
 - `npm run content:publish` finishes and reports the new active release.
+- `npm run content:extract` reports no PDFs remaining without text.
+- `npm run content:index` completes and retrieval smoke tests return citations.
 - Hosted `/api/materials` reports `source: "neon"`.

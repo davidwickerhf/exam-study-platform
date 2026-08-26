@@ -7652,3 +7652,78 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
   .auth-panel-head { align-items: flex-start; gap: 20px; }
   .auth-panel-copy h2 { font-size: 40px; }
 }
+
+/* Practice workspace — compact, content-led, and independent of stale saved
+   rail widths. The paper is the primary surface; navigation and tutor are
+   supporting instruments rather than three competing card columns. */
+.practice-workspace,
+:root[data-toc-collapsed="false"][data-rail-collapsed="false"] .practice-workspace {
+  grid-template-columns: clamp(220px, 16vw, 270px) 1px minmax(520px, 1fr) 1px clamp(310px, 22vw, 370px);
+  gap: 0;
+  padding: 0;
+  background: var(--panel);
+}
+
+.practice-workspace > .resize-handle { background: var(--line); }
+.practice-workspace > .resize-handle::after { display: none; }
+.practice-workspace .chapter-toc,
+.practice-workspace .chapter-rail {
+  border: 0;
+  border-radius: 0;
+  background: #f0ede5;
+}
+.practice-workspace .chapter-toc { padding: 18px 16px; }
+.practice-workspace .chapter-rail { padding: 18px; }
+.practice-workspace .chapter-rail > .rail-collapsible { padding-left: 0; }
+.practice-workspace .chapter-main { padding: 0; background: var(--panel); }
+
+.practice-workspace .mock-hero {
+  min-height: 0;
+  margin: 0;
+  padding: 24px 30px 0;
+  border-top: 0;
+  box-shadow: none;
+  background: var(--panel);
+}
+.practice-workspace .mock-hero h1 { font-size: clamp(38px, 3.2vw, 54px); margin-bottom: 14px; }
+.practice-workspace .surface-tabs { margin-top: 4px; padding-top: 0; }
+.practice-workspace .surface-tab { padding: 11px 14px; font-size: 13px; }
+.practice-workspace .exam-selector {
+  margin: 0;
+  padding: 14px 30px;
+  border-bottom: 1px solid var(--line);
+  background: #ece8de;
+}
+.practice-workspace .exam-chip { border-radius: 3px; padding: 7px 12px; background: transparent; }
+.practice-workspace .exam-chip.active { background: var(--navy); border-color: var(--navy); }
+.practice-workspace .exam-subtabs { margin: 0; padding: 0 22px; background: var(--panel); }
+.practice-workspace .exam-subtab { padding: 12px 14px 10px; font-size: 13px; }
+.practice-workspace .pdf-viewer { height: calc(100dvh - 174px); border: 0; border-top: 1px solid var(--line); }
+
+.practice-workspace .chat-panel { gap: 10px; }
+.practice-workspace .chat-panel > h4,
+.practice-workspace .chat-panel .rail-meta { margin-inline: 2px; }
+.practice-workspace .chat-messages { max-height: none; background: var(--panel); border: 0; border-top: 2px solid var(--navy); padding: 16px 2px; }
+.practice-workspace .chat-empty { color: var(--muted); font-family: "Source Serif 4", serif; font-size: 15px; line-height: 1.6; }
+.practice-workspace .chat-form textarea { background: var(--panel); min-height: 82px; }
+
+.practice-preparing {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin: 28px 30px;
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.practice-preparing-index { font: 500 12px/1 "IBM Plex Mono", monospace; color: var(--accent); }
+.practice-preparing strong { display: block; font: 600 21px/1.15 "Source Serif 4", serif; color: var(--navy); }
+.practice-preparing p { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+
+@media (max-width: 1280px) and (min-width: 821px) {
+  .practice-workspace,
+  :root[data-toc-collapsed="false"][data-rail-collapsed="false"] .practice-workspace {
+    grid-template-columns: 210px 1px minmax(440px, 1fr) 1px 310px;
+  }
+}

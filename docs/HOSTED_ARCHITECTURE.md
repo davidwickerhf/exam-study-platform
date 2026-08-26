@@ -30,7 +30,7 @@ therefore appear without overwriting progress or notes.
 3. The backend verifies the token and binds the Clerk user ID to the async
    request context.
 4. Personal repository calls use that context to address Neon rows.
-5. Editorial reads stay on immutable deployed files.
+5. Editorial reads and retrieval queries use the active immutable Neon release.
 
 ## Database
 
@@ -40,7 +40,9 @@ Apply [db/001_user_documents.sql](../db/001_user_documents.sql) with:
 DATABASE_URL='postgresql://...' npm run db:migrate
 ```
 
-The JSONB document model is intentional for the first hosted migration: it
+Personal state uses a JSONB document model; editorial releases use normalized
+course, chapter, paper, material, binary-chunk, and retrieval-chunk tables. The
+document model is intentional for the first hosted migration: it
 preserves the existing API contracts and supports atomic per-document upserts.
 It can later be normalized for cross-user analytics without exposing or
 coupling editorial content to personal progress.

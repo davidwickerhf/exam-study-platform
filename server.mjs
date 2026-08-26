@@ -12,6 +12,7 @@ import { authenticate, authConfig, isPublicApi } from './lib/auth.mjs'
 import { setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { editorialMode, getMaterial, getMaterialText, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
+import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const publicDir = resolve(__dirname, 'public')
@@ -231,6 +232,21 @@ const mime = {
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
   res.writeHead(status, { 'Content-Type': type })
+  res.end(body)
+}
+
+function sendPdf(req, res, data, filename) {
+  const size = data.length
+  const common = { 'Content-Type': 'application/pdf', 'Accept-Ranges': 'bytes', 'Content-Disposition': `inline; filename="${filename}"`, 'Cache-Control': 'public, max-age=3600' }
+  const match = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/)
+  if (!match) { res.writeHead(200, { ...common, 'Content-Length': size }); res.end(data); return }
+  const start = match[1] ? Number(match[1]) : 0
+  const end = match[2] ? Math.min(Number(match[2]), size - 1) : size - 1
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || start >= size) {
+    res.writeHead(416, { ...common, 'Content-Range': `bytes */${size}` }); res.end(); return
+  }
+  const body = data.subarray(start, end + 1)
+  res.writeHead(206, { ...common, 'Content-Length': body.length, 'Content-Range': `bytes ${start}-${end}/${size}` })
   res.end(body)
 }
 
@@ -2012,13 +2028,18 @@ async function chat({ courseId, chapterId, messages, userMessage }) {
   if (!course) throw new Error('Unknown course')
   const chapter = course.chapters?.find((c) => c.id === chapterId)
 
-  const context = await loadCourseContext(state, course, chapter)
+  const retrieved = editorialMode() === 'neon'
+    ? await retrieveCourseContent({ query: userMessage, courseId: course.id, limit: 10 })
+    : []
+  const context = retrieved.length
+    ? formatRetrievalContext(retrieved)
+    : await loadCourseContext(state, course, chapter)
 
   const history = (messages || []).map((m) => `${m.role === 'user' ? 'STUDENT' : 'TUTOR'}: ${m.content}`).join('\n\n')
 
   const prompt = `You are a focused exam tutor for ${course.code} — ${course.name}. ` +
     (chapter ? `The student is currently on chapter ${chapter.id} "${chapter.name}". ` : '') +
-    `Use the course materials below as the source of truth. When a fact comes from a specific chapter, cite it inline like (Ch ${chapter ? chapter.id : 'NN'}). Be concise — exam-week tutor mode. Markdown OK.\n\n` +
+    `Use only the retrieved course materials below as the source of truth. Cite claims with the supplied source path and page when available. If the retrieval does not support an answer, say that plainly. Be concise — exam-week tutor mode. Markdown OK.\n\n` +
     MATH_FORMATTING_RULE + '\n\n' +
     `${context ? `=== COURSE MATERIALS ===\n${context}\n=== END MATERIALS ===\n\n` : ''}` +
     `${history ? `=== CONVERSATION SO FAR ===\n${history}\n\n` : ''}` +
@@ -2766,6 +2787,22 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // Course-scoped retrieval contract for the tutor and external MCP adapters.
+    // Results include stable source paths and PDF page numbers for citations.
+    if (url.pathname === '/api/retrieve' && req.method === 'POST') {
+      const body = await readBody(req)
+      if (!body?.courseId || !String(body?.query || '').trim()) {
+        send(res, 400, JSON.stringify({ error: 'courseId and query are required' }))
+        return
+      }
+      const state = await readState()
+      const course = state.courses.find((candidate) => candidate.id === body.courseId)
+      if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      const chunks = await retrieveCourseContent({ query: body.query, courseId: course.id, sourcePath: body.sourcePath || null, limit: body.limit })
+      send(res, 200, JSON.stringify({ query: body.query, course: { id: course.id, code: course.code, name: course.name }, retrieval: retrievalMode(), chunks }))
+      return
+    }
+
     const materialMatch = url.pathname.match(/^\/api\/material\/([^/]+)\/(.+)$/)
     if (materialMatch && req.method === 'GET') {
       const state = await readState()
@@ -3105,8 +3142,7 @@ const server = createServer(async (req, res) => {
       if (editorialMode() === 'neon') {
         const material = await getMaterial(course.id, filePath.replaceAll('\\', '/'), { data: true })
         if (!material) { send(res, 404, JSON.stringify({ error: `PDF not found: ${filePath}` })); return }
-        res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Length': material.data.length, 'Content-Disposition': `inline; filename="${course.code}-${exam.id}-${variant === 'solutions' ? 'solutions' : 'paper'}.pdf"`, 'Cache-Control': 'private, max-age=3600' })
-        res.end(material.data); return
+        sendPdf(req, res, material.data, `${course.code}-${exam.id}-${variant === 'solutions' ? 'solutions' : 'paper'}.pdf`); return
       }
       const vaultRoot = getVaultRoot(state)
       const courseRoot = resolve(vaultRoot, course.knowledgeBase)
@@ -3120,13 +3156,7 @@ const server = createServer(async (req, res) => {
         return
       }
       const buf = await readFile(target)
-      res.writeHead(200, {
-        'Content-Type': 'application/pdf',
-        'Content-Length': buf.length,
-        'Content-Disposition': `inline; filename="${course.code}-${exam.id}-${variant === 'solutions' ? 'solutions' : 'paper'}.pdf"`,
-        'Cache-Control': 'private, max-age=3600'
-      })
-      res.end(buf)
+      sendPdf(req, res, buf, `${course.code}-${exam.id}-${variant === 'solutions' ? 'solutions' : 'paper'}.pdf`)
       return
     }
 
@@ -3931,11 +3961,18 @@ const server = createServer(async (req, res) => {
       const examId = decodeURIComponent(practiceParseMatch[2])
       try {
         const body = await readBody(req)
-        if (!Array.isArray(body.questionPages) || !body.questionPages.length) {
-          send(res, 400, JSON.stringify({ error: 'questionPages[] is required' }))
-          return
-        }
-        const payload = await parseExamPaper(courseId, examId, body.questionPages, body.solutionsPages || [])
+        const state = await readState()
+        const course = state.courses.find((candidate) => candidate.id === courseId)
+        const paper = course ? findCoursePaper(course, examId) : null
+        if (!course || !paper?.pdf) { send(res, 404, JSON.stringify({ error: 'Unknown course or paper' })); return }
+        const questionPages = Array.isArray(body.questionPages) && body.questionPages.length
+          ? body.questionPages
+          : await loadPdfPages(state, course, paper.pdf)
+        const solutionsPages = Array.isArray(body.solutionsPages) && body.solutionsPages.length
+          ? body.solutionsPages
+          : paper.solutionsPdf ? await loadPdfPages(state, course, paper.solutionsPdf) : []
+        if (!questionPages.length) { send(res, 422, JSON.stringify({ error: 'The stored PDF has no extracted text' })); return }
+        const payload = await parseExamPaper(courseId, examId, questionPages, solutionsPages)
         send(res, 200, JSON.stringify(payload))
       } catch (err) {
         send(res, 500, JSON.stringify({ error: err.message }))
