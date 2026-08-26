@@ -8060,6 +8060,216 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
   .shell > .content { grid-row: 2; padding: 14px; }
 }
 
+/* Mobile cascade lock — must remain the final rules in this file. */
+@media (max-width: 820px) {
+  .content, .chapter-content { min-width: 0; padding: 14px; overflow-x: hidden; overflow-y: auto; }
+  .content > *, .content:not(.chapter-content) > * { width: 100%; max-width: 100%; }
+  .shell .hero, .shell .page-hero, .shell .course-overview-header {
+    min-height: 0; margin: 0 0 20px; padding: 28px 20px;
+    border: 0; border-top: 2px solid var(--navy); border-bottom: 1px solid var(--line);
+    background: var(--panel); box-shadow: none;
+  }
+  .shell .hero { display: block; background: var(--panel); }
+  .shell .hero h1, .shell .page-hero h1, .shell .course-overview-title h1, .shell .chapter-hero h1 {
+    max-width: 100%; font-size: clamp(38px, 12vw, 52px); line-height: .98; overflow-wrap: anywhere;
+  }
+  .shell .hero .hero-copy, .shell .page-hero .hero-copy, .shell .course-overview-subtitle { font-size: 14px; line-height: 1.55; }
+  .shell .hero .hero-meter { margin-top: 24px; padding: 20px 0 0; border: 0; border-top: 1px solid var(--line); }
+  .shell .hero .hero-meter span { font-size: 46px; }
+  .shell .practice-strip { grid-template-columns: 1fr; }
+  .shell .practice-card { min-height: 86px; padding: 16px 18px; border: 0; border-bottom: 1px solid var(--line); }
+  .shell .course-card { display: block; min-height: 0; padding: 18px 8px; }
+  .course-card > * + * { margin-top: 12px; }
+  .shell .course-overview-header { display: block; padding-bottom: 0; }
+  .shell .course-overview-title h1 { font-size: clamp(46px, 15vw, 64px); }
+  .course-overview-record { margin-top: 24px; padding: 20px 0; border: 0; border-top: 1px solid var(--line); }
+  .course-overview-nav { margin-top: 8px; overflow-x: auto; }
+  .course-overview .course-spine { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .course-overview .spine-tile { min-height: 112px; padding: 14px 12px; }
+  .course-overview .toolkit-tabs { grid-template-columns: 1fr; }
+  .course-progress-head { display: block; }
+  .course-inline-search { width: 100%; margin-top: 16px; }
+  .chapter-grid, .chapter-grid:not(.practice-workspace):not(.course-home-grid), .practice-workspace,
+  :root[data-toc-collapsed="false"][data-rail-collapsed="false"] .practice-workspace {
+    display: block; width: 100%; min-height: 0; padding: 0;
+  }
+  .chapter-grid > .resize-handle, .practice-workspace > .resize-handle { display: none; }
+  .chapter-toc, .chapter-grid:not(.practice-workspace) .chapter-toc, .practice-workspace .chapter-toc {
+    display: block; width: 100%; max-height: 190px; overflow: auto; margin: 0 0 10px;
+    border: 1px solid var(--line); background: var(--panel-2);
+  }
+  .chapter-main, .chapter-grid:not(.practice-workspace) .chapter-main { width: 100%; min-width: 0; }
+  .chapter-grid:not(.practice-workspace) .chapter-hero, .chapter-hero { padding: 24px 20px 0; }
+  .chapter-grid:not(.practice-workspace) .chapter-body, .chapter-body { padding: 26px 20px 64px; }
+  .chapter-rail, .chapter-grid:not(.practice-workspace) .chapter-rail, .practice-workspace .chapter-rail { display: none; }
+  .markdown-body { max-width: 100%; font-size: 15px; overflow-wrap: anywhere; }
+  .markdown-body pre, .markdown-body table { max-width: 100%; overflow-x: auto; display: block; }
+  .surface-tabs, .chapter-tabs, .paper-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .surface-tabs > *, .chapter-tabs > *, .paper-tabs > * { flex: 0 0 auto; white-space: nowrap; }
+  .practice-stage, .practice-paper, .pdf-stage, .pdf-viewer { width: 100%; min-width: 0; }
+  .pdf-viewer iframe, .pdf-stage iframe, .pdf-canvas { width: 100% !important; max-width: 100%; }
+  .paper-toolbar, .q-toolbar, .panel-head, .fc-head { align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+  .page-wrap { padding-bottom: 44px; }
+  .mistake-group { padding: 20px 4px 8px; }
+  .mistake-card { padding: 18px 4px; }
+  .sr-card-view { min-height: 320px; padding: 26px 20px; }
+  .sr-rate-buttons { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .mocks-table-wrap, .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mocks-table { min-width: 680px; }
+  .fc-panel { padding: 18px 12px 48px; }
+  .fc-grid { grid-template-columns: 1fr; }
+  .mock-panel, .search-popup { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); margin: 10px; }
+}
+
+@media (max-width: 560px) {
+  .auth-gate { min-height: 100dvh; padding: 0; place-items: stretch; background: var(--panel); }
+  .auth-frame { display: block; min-height: 100dvh; }
+  .auth-intro { min-height: 64px; padding: 12px 18px; display: flex; align-items: center; border: 0; border-bottom: 1px solid var(--line); background: var(--paper); }
+  .auth-intro::before, .auth-intro::after, .auth-intro-copy, .auth-register, .auth-provenance { display: none; }
+  .auth-brand { gap: 10px; }
+  .auth-brand-mark { width: 36px; height: 36px; font-size: 20px; }
+  .auth-brand strong { font-size: 17px; }
+  .auth-brand small { display: none; }
+  .auth-panel { min-height: calc(100dvh - 64px); padding: 22px 20px 28px; }
+  .auth-panel-head { padding-bottom: 14px; }
+  .auth-folio { display: none; }
+  .auth-panel-copy { margin-top: 26px; }
+  .auth-panel-copy h2 { margin: 4px 0 8px; font-size: 42px; }
+  .auth-panel-copy > p:last-child { font-size: 14px; line-height: 1.5; }
+  .auth-panel #clerk-sign-in { margin-top: 22px; }
+  .clerk-social-button, .clerk-input, .clerk-primary-button { min-height: 46px !important; }
+  .clerk-footer > :last-child { display: none !important; }
+  .auth-panel-foot { margin-top: 28px; padding-top: 18px; }
+}
+
+/* Mobile authority: every workflow becomes a one-column study instrument. */
+@media (max-width: 820px) {
+  html, body, #app, .shell { width: 100%; max-width: 100%; }
+  body { background: var(--paper); }
+  .content, .chapter-content { min-width: 0; overflow-x: hidden; overflow-y: auto; }
+  .content > *, .content:not(.chapter-content) > * { width: 100%; max-width: 100%; }
+
+  .hero, .page-hero, .course-overview-header {
+    min-height: 0;
+    margin: 0 0 20px;
+    padding: 28px 20px;
+    border-top: 2px solid var(--navy);
+    background: var(--panel);
+  }
+  .hero { display: block; }
+  .hero h1, .page-hero h1, .course-overview-title h1, .chapter-hero h1 {
+    max-width: 100%;
+    font-size: clamp(38px, 12vw, 52px);
+    line-height: .98;
+    overflow-wrap: anywhere;
+  }
+  .hero .hero-copy, .page-hero .hero-copy, .course-overview-subtitle { font-size: 14px; line-height: 1.55; }
+  .hero .hero-meter { margin-top: 24px; padding: 20px 0 0; border: 0; border-top: 1px solid var(--line); }
+  .hero .hero-meter span { font-size: 46px; }
+
+  .practice-strip { display: grid; grid-template-columns: 1fr; }
+  .practice-card { min-height: 86px; padding: 16px 18px; border-left: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .practice-card strong { font-size: 28px; }
+  .course-section-head { margin-top: 30px; align-items: flex-start; }
+  .course-grid { margin-top: 8px; }
+  .course-card { display: block; min-height: 0; padding: 18px 8px; }
+  .course-card > * + * { margin-top: 12px; }
+  .course-card h2 { font-size: 24px; }
+  .course-card-actions, .course-card-progress { width: 100%; }
+
+  .course-overview-header { display: block; padding: 28px 20px 0; }
+  .course-overview-title h1 { font-size: clamp(46px, 15vw, 64px); }
+  .course-overview-record { margin-top: 24px; padding: 20px 0; border: 0; border-top: 1px solid var(--line); }
+  .course-overview-number { font-size: 48px; }
+  .course-overview-nav { margin-top: 8px; overflow-x: auto; scrollbar-width: none; }
+  .course-overview-nav .surface-tabs { min-width: max-content; }
+  .course-overview .course-spine { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .course-overview .spine-tile { min-height: 112px; padding: 14px 12px; }
+  .course-overview .toolkit-tabs { grid-template-columns: 1fr; }
+  .course-progress-head { display: block; }
+  .course-inline-search { margin-top: 16px; }
+  .course-overview .ch-card-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 10px; }
+  .course-overview .ch-card-overall { grid-column: 2; }
+
+  .chapter-grid, .chapter-grid:not(.practice-workspace):not(.course-home-grid),
+  .practice-workspace, :root[data-toc-collapsed="false"][data-rail-collapsed="false"] .practice-workspace {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    padding: 0;
+  }
+  .chapter-grid > .resize-handle, .practice-workspace > .resize-handle { display: none; }
+  .chapter-toc, .chapter-grid:not(.practice-workspace) .chapter-toc,
+  .practice-workspace .chapter-toc {
+    width: 100%;
+    max-height: 190px;
+    overflow: auto;
+    margin: 0 0 10px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+  }
+  .chapter-main, .chapter-grid:not(.practice-workspace) .chapter-main { width: 100%; min-width: 0; }
+  .chapter-grid:not(.practice-workspace) .chapter-hero, .chapter-hero { padding: 24px 20px 0; }
+  .chapter-grid:not(.practice-workspace) .chapter-body, .chapter-body { padding: 26px 20px 64px; }
+  .markdown-body { max-width: 100%; font-size: 15px; overflow-wrap: anywhere; }
+  .markdown-body pre, .markdown-body table { max-width: 100%; overflow-x: auto; display: block; }
+  .chapter-rail, .chapter-grid:not(.practice-workspace) .chapter-rail, .practice-workspace .chapter-rail { display: none; }
+
+  .surface-tabs, .chapter-tabs, .paper-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .surface-tabs > *, .chapter-tabs > *, .paper-tabs > * { flex: 0 0 auto; white-space: nowrap; }
+  .practice-stage, .practice-paper, .pdf-stage, .pdf-viewer { width: 100%; min-width: 0; }
+  .pdf-viewer iframe, .pdf-stage iframe, .pdf-canvas { width: 100% !important; max-width: 100%; }
+  .paper-toolbar, .q-toolbar, .panel-head, .fc-head { align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+  .q-card, .practice-card-main { padding: 18px 14px; }
+  .q-nav, .q-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .page-wrap { padding-bottom: 44px; }
+  .page-hero { padding: 26px 20px; }
+  .mistake-group { padding: 20px 4px 8px; }
+  .mistake-card { padding: 18px 4px; }
+  .sr-card-view { min-height: 320px; padding: 26px 20px; }
+  .sr-question { font-size: 24px; }
+  .sr-rate-buttons { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .mocks-table-wrap, .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mocks-table { min-width: 680px; }
+  .fc-panel { padding: 18px 12px 48px; }
+  .fc-grid { grid-template-columns: 1fr; }
+  .fc-card { min-height: 150px; }
+  .mock-panel { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); margin: 10px; }
+  .search-popup { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); margin: 10px; }
+}
+
+/* Mobile authentication is a compact access screen, not a stacked landing page. */
+@media (max-width: 560px) {
+  .auth-gate { min-height: 100dvh; padding: 0; background: var(--panel); }
+  .auth-frame { display: block; min-height: 100dvh; }
+  .auth-intro {
+    min-height: 64px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .auth-intro::before, .auth-intro::after, .auth-intro-copy, .auth-register, .auth-provenance { display: none; }
+  .auth-brand { gap: 10px; }
+  .auth-brand-mark { width: 36px; height: 36px; font-size: 20px; }
+  .auth-brand strong { font-size: 17px; }
+  .auth-brand small { display: none; }
+  .auth-panel { min-height: calc(100dvh - 64px); padding: 22px 20px 28px; }
+  .auth-panel-head { padding-bottom: 14px; }
+  .auth-folio { display: none; }
+  .auth-panel-copy { margin-top: 26px; }
+  .auth-panel-copy .eyebrow { font-size: 10px; }
+  .auth-panel-copy h2 { margin: 4px 0 8px; font-size: 42px; }
+  .auth-panel-copy > p:last-child { font-size: 14px; line-height: 1.5; }
+  .auth-panel #clerk-sign-in { margin-top: 22px; }
+  .clerk-social-button, .clerk-input, .clerk-primary-button { min-height: 46px !important; }
+  .clerk-footer > :last-child { display: none !important; }
+  .auth-panel-foot { margin-top: 28px; padding-top: 18px; }
+}
+
 /* Cross-surface replacement system. */
 @media (min-width: 821px) {
   .shell { grid-template-columns: 260px 1px minmax(0, 1fr); }

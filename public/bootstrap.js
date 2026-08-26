@@ -83,12 +83,12 @@ async function main() {
       afterSignUpUrl: window.location.href,
       appearance: {
         variables: {
-          colorPrimary: '#8b2635',
-          colorText: '#17243a',
-          colorTextSecondary: '#667084',
-          colorBackground: '#fffdf8',
-          colorInputBackground: '#fffdf8',
-          colorInputText: '#17243a',
+          colorPrimary: '#912f40',
+          colorText: '#1d293d',
+          colorTextSecondary: '#687286',
+          colorBackground: '#fbfaf6',
+          colorInputBackground: '#fbfaf6',
+          colorInputText: '#1d293d',
           borderRadius: '4px',
           fontFamily: '"IBM Plex Sans", sans-serif',
           fontSize: '15px'
