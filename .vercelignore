@@ -1,0 +1,13 @@
+# Editorial corpus is ingested into Neon and must not be bundled into Vercel.
+content/
+
+# Local-only caches and development state.
+node_modules/
+.git/
+.t3/
+.impeccable/
+test/
+
+# Local fallback snapshots are not the production content source.
+data/
+*.log
