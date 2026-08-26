@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-26T06:33:09Z",
+  "title": "Design System: Wicker Study",
+  "extensions": {
+    "colorMeta": {
+      "oxblood": { "role": "primary", "displayName": "Oxblood Editorial Mark", "canonical": "#8b2635", "tonalRamp": ["oklch(15% 0.08 18)", "oklch(26% 0.10 18)", "oklch(37% 0.11 18)", "oklch(48% 0.11 18)", "oklch(60% 0.10 18)", "oklch(72% 0.08 18)", "oklch(84% 0.05 18)", "oklch(95% 0.02 18)"] },
+      "oxblood-deep": { "role": "secondary", "displayName": "Deep Oxblood", "canonical": "#651a27", "tonalRamp": ["oklch(15% 0.07 18)", "oklch(26% 0.09 18)", "oklch(37% 0.10 18)", "oklch(48% 0.09 18)", "oklch(60% 0.08 18)", "oklch(72% 0.06 18)", "oklch(84% 0.04 18)", "oklch(95% 0.02 18)"] },
+      "institutional-navy": { "role": "primary", "displayName": "Institutional Navy", "canonical": "#12233f", "tonalRamp": ["oklch(15% 0.05 260)", "oklch(26% 0.07 260)", "oklch(37% 0.08 260)", "oklch(48% 0.08 260)", "oklch(60% 0.07 260)", "oklch(72% 0.05 260)", "oklch(84% 0.03 260)", "oklch(95% 0.01 260)"] },
+      "navy-soft": { "role": "secondary", "displayName": "Soft Institutional Navy", "canonical": "#1d3150", "tonalRamp": ["oklch(15% 0.04 260)", "oklch(26% 0.06 260)", "oklch(37% 0.07 260)", "oklch(48% 0.07 260)", "oklch(60% 0.06 260)", "oklch(72% 0.04 260)", "oklch(84% 0.025 260)", "oklch(95% 0.01 260)"] },
+      "cool-ink": { "role": "neutral", "displayName": "Cool Ink", "canonical": "#17243a", "tonalRamp": ["oklch(15% 0.035 260)", "oklch(26% 0.045 260)", "oklch(37% 0.05 260)", "oklch(48% 0.045 260)", "oklch(60% 0.035 260)", "oklch(72% 0.025 260)", "oklch(84% 0.015 260)", "oklch(95% 0.006 260)"] },
+      "secondary-ink": { "role": "neutral", "displayName": "Secondary Ink", "canonical": "#667084", "tonalRamp": ["oklch(15% 0.02 260)", "oklch(26% 0.025 260)", "oklch(37% 0.03 260)", "oklch(48% 0.03 260)", "oklch(60% 0.025 260)", "oklch(72% 0.02 260)", "oklch(84% 0.012 260)", "oklch(95% 0.005 260)"] },
+      "warm-stock": { "role": "neutral", "displayName": "Warm Stock", "canonical": "#f3f0e8", "tonalRamp": ["oklch(15% 0.015 85)", "oklch(26% 0.018 85)", "oklch(37% 0.02 85)", "oklch(48% 0.02 85)", "oklch(60% 0.018 85)", "oklch(72% 0.015 85)", "oklch(84% 0.012 85)", "oklch(95% 0.008 85)"] },
+      "reading-leaf": { "role": "neutral", "displayName": "Reading Leaf", "canonical": "#fffdf8", "tonalRamp": ["oklch(15% 0.01 85)", "oklch(26% 0.012 85)", "oklch(37% 0.013 85)", "oklch(48% 0.013 85)", "oklch(60% 0.012 85)", "oklch(72% 0.01 85)", "oklch(84% 0.008 85)", "oklch(95% 0.004 85)"] },
+      "field-paper": { "role": "neutral", "displayName": "Field Paper", "canonical": "#e9e5dc", "tonalRamp": ["oklch(15% 0.012 85)", "oklch(26% 0.015 85)", "oklch(37% 0.017 85)", "oklch(48% 0.017 85)", "oklch(60% 0.015 85)", "oklch(72% 0.012 85)", "oklch(84% 0.009 85)", "oklch(95% 0.005 85)"] },
+      "rule": { "role": "neutral", "displayName": "Library Rule", "canonical": "#d7d4ca", "tonalRamp": ["oklch(15% 0.008 85)", "oklch(26% 0.01 85)", "oklch(37% 0.012 85)", "oklch(48% 0.012 85)", "oklch(60% 0.01 85)", "oklch(72% 0.008 85)", "oklch(84% 0.006 85)", "oklch(95% 0.003 85)"] },
+      "danger": { "role": "tertiary", "displayName": "Correction Red", "canonical": "#9d342c", "tonalRamp": ["oklch(15% 0.08 28)", "oklch(26% 0.10 28)", "oklch(37% 0.11 28)", "oklch(48% 0.11 28)", "oklch(60% 0.10 28)", "oklch(72% 0.08 28)", "oklch(84% 0.05 28)", "oklch(95% 0.02 28)"] },
+      "success": { "role": "tertiary", "displayName": "Reading Green", "canonical": "#397052", "tonalRamp": ["oklch(15% 0.05 150)", "oklch(26% 0.07 150)", "oklch(37% 0.08 150)", "oklch(48% 0.08 150)", "oklch(60% 0.07 150)", "oklch(72% 0.05 150)", "oklch(84% 0.03 150)", "oklch(95% 0.012 150)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Editorial Display", "purpose": "Page, course, and authentication identity." },
+      "headline": { "displayName": "Register Headline", "purpose": "Major content registers and folio sections." },
+      "title": { "displayName": "Academic Title", "purpose": "Course rows, chapters, and consequential component headings." },
+      "body": { "displayName": "Interface Body", "purpose": "Controls, explanation, and supporting prose." },
+      "reading": { "displayName": "Reading Text", "purpose": "Long-form maintained course content at a controlled measure." },
+      "label": { "displayName": "Folio Label", "purpose": "Uppercase eyebrows and compact categories." },
+      "data": { "displayName": "Exact Record", "purpose": "Identifiers, percentages, dates, pages, and code." }
+    },
+    "shadows": [
+      { "name": "folio", "value": "0 20px 55px rgba(18, 35, 63, 0.09)", "purpose": "Major page heroes and composed institutional folios." },
+      { "name": "folio-small", "value": "0 8px 24px rgba(18, 35, 63, 0.08)", "purpose": "Focused reading and review surfaces." },
+      { "name": "dialog", "value": "0 30px 80px rgba(4, 12, 25, 0.30)", "purpose": "Modal sheets over the darkened application." },
+      { "name": "focus-ring", "value": "0 0 0 3px rgba(139, 38, 53, 0.10)", "purpose": "Visible keyboard and field focus without changing geometry." }
+    ],
+    "motion": [
+      { "name": "state", "value": "180ms ease", "purpose": "Color, border, and background state changes." },
+      { "name": "lift", "value": "220ms ease", "purpose": "The rare 1–2px hover lift on interactive folios." },
+      { "name": "press", "value": "150ms ease", "purpose": "Button press and release feedback." },
+      { "name": "academic-enter", "value": "550ms cubic-bezier(0.22, 0.75, 0.25, 1)", "purpose": "Single content-leaf entrance; disabled with reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "compact-phone", "value": "560px" },
+      { "name": "folio-stack", "value": "720px" },
+      { "name": "compact-rail", "value": "820px" },
+      { "name": "auth-stack", "value": "880px" },
+      { "name": "ledger-stack", "value": "900px" },
+      { "name": "course-ledger", "value": "1080px" },
+      { "name": "practice-compress", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The compact default action for grading, saving, and proceeding.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Check my answer</button>",
+      "css": ".ds-btn-primary { min-height: 34px; padding: 8px 14px; border: 1px solid var(--navy, #12233f); border-radius: 3px; background: var(--navy, #12233f); color: var(--panel, #fffdf8); font: 500 14px/1.2 \"IBM Plex Sans\", \"Segoe UI\", sans-serif; cursor: pointer; transition: transform .15s ease, background .18s ease, border-color .18s ease; } .ds-btn-primary:hover { transform: translateY(-1px); background: var(--accent, #8b2635); border-color: var(--accent, #8b2635); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 3px solid rgba(139,38,53,.32); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "A quiet secondary action that keeps the surrounding content primary.",
+      "html": "<button class=\"ds-btn-ghost\" type=\"button\">Reveal answer</button>",
+      "css": ".ds-btn-ghost { min-height: 34px; padding: 8px 14px; border: 1px solid var(--line, #d7d4ca); border-radius: 3px; background: transparent; color: var(--ink, #17243a); font: 500 14px/1.2 \"IBM Plex Sans\", \"Segoe UI\", sans-serif; cursor: pointer; transition: transform .15s ease, background .18s ease, border-color .18s ease; } .ds-btn-ghost:hover { transform: translateY(-1px); border-color: var(--navy, #12233f); background: rgba(23,36,58,.04); } .ds-btn-ghost:active { transform: translateY(1px); } .ds-btn-ghost:focus-visible { outline: 3px solid rgba(139,38,53,.32); outline-offset: 2px; }"
+    },
+    {
+      "name": "Academic Search Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A keyboard-first search field for chapters, topics, and maintained sources.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m15.5 15.5 5 5\"/></svg><input type=\"search\" placeholder=\"Find a chapter or topic\"></label>",
+      "css": ".ds-search { min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--line, #d7d4ca); border-radius: 3px; background: var(--panel, #fffdf8); color: var(--muted, #667084); transition: border-color .18s ease, box-shadow .18s ease; } .ds-search svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; flex: 0 0 auto; } .ds-search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--ink, #17243a); font: 400 14px/1.4 \"IBM Plex Sans\", \"Segoe UI\", sans-serif; } .ds-search:focus-within { border-color: var(--accent, #8b2635); box-shadow: 0 0 0 3px rgba(139,38,53,.1); }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "The permanent rail location indicator with a restrained editorial leading rule.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"4\" y=\"4\" width=\"6\" height=\"6\"/><rect x=\"14\" y=\"4\" width=\"6\" height=\"6\"/><rect x=\"4\" y=\"14\" width=\"6\" height=\"6\"/><rect x=\"14\" y=\"14\" width=\"6\" height=\"6\"/></svg><span>Dashboard</span></a>",
+      "css": ".ds-nav-active { min-height: 42px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-left: 2px solid #d9a7ae; border-radius: 0 4px 4px 0; background: rgba(255,255,255,.10); color: #fff; font: 500 14px/1.2 \"IBM Plex Sans\", \"Segoe UI\", sans-serif; text-decoration: none; transition: background .18s ease, transform .18s ease; } .ds-nav-active svg { width: 20px; height: 20px; fill: none; stroke: #f3d8dc; stroke-width: 1.7; } .ds-nav-active:hover { transform: translateX(2px); background: rgba(255,255,255,.14); } .ds-nav-active:focus-visible { outline: 3px solid rgba(217,167,174,.48); outline-offset: 2px; }"
+    },
+    {
+      "name": "Surface Tabs",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "A ruled, single-line navigation strip for switching academic modes.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Course section\"><button type=\"button\" class=\"ds-tab ds-tab-active\">Overview</button><button type=\"button\" class=\"ds-tab\">Mock questions</button><button type=\"button\" class=\"ds-tab\">Flashcards</button></nav>",
+      "css": ".ds-tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 1px solid var(--line, #d7d4ca); } .ds-tab { flex: 0 0 auto; padding: 11px 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted, #667084); font: 500 13px/1.2 \"IBM Plex Sans\", \"Segoe UI\", sans-serif; cursor: pointer; transition: color .18s ease, border-color .18s ease, background .18s ease; } .ds-tab:hover { background: rgba(23,36,58,.04); color: var(--ink, #17243a); } .ds-tab-active { border-bottom-color: var(--accent, #8b2635); color: var(--ink, #17243a); } .ds-tab:focus-visible { outline: 3px solid rgba(139,38,53,.32); outline-offset: -3px; }"
+    },
+    {
+      "name": "Exam Paper Chip",
+      "kind": "chip",
+      "refersTo": "tab-active",
+      "description": "A compact paper selector whose active state inverts decisively.",
+      "html": "<div class=\"ds-chip-row\"><button type=\"button\" class=\"ds-chip ds-chip-active\">Final 2026</button><button type=\"button\" class=\"ds-chip\">Midterm</button></div>",
+      "css": ".ds-chip-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; background: var(--panel-2, #e9e5dc); } .ds-chip { padding: 7px 12px; border: 1px solid var(--line, #d7d4ca); border-radius: 3px; background: transparent; color: var(--ink, #17243a); font: 500 13px/1.2 \"IBM Plex Sans\", \"Segoe UI\", sans-serif; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease; } .ds-chip:hover { border-color: var(--accent, #8b2635); } .ds-chip-active { background: var(--navy, #12233f); border-color: var(--navy, #12233f); color: var(--panel, #fffdf8); } .ds-chip:focus-visible { outline: 3px solid rgba(139,38,53,.32); outline-offset: 2px; }"
+    },
+    {
+      "name": "Course Register Row",
+      "kind": "custom",
+      "refersTo": "reading-card",
+      "description": "The ruled, three-column course index used instead of a dashboard card.",
+      "html": "<a class=\"ds-course-row\" href=\"#\"><span class=\"ds-course-id\">BCS1540 · AD</span><span class=\"ds-course-title\">Algorithmic Design</span><span class=\"ds-course-progress\"><strong>42%</strong><small>6 of 10 chapters read</small></span></a>",
+      "css": ".ds-course-row { display: grid; grid-template-columns: minmax(150px,.55fr) minmax(220px,1.4fr) minmax(170px,.8fr); align-items: center; min-height: 112px; padding: 18px 22px; border-top: 1px solid var(--line, #d7d4ca); border-bottom: 1px solid var(--line, #d7d4ca); background: transparent; color: var(--ink, #17243a); text-decoration: none; transition: background .18s ease, box-shadow .18s ease; } .ds-course-row:hover { background: var(--panel, #fffdf8); box-shadow: inset 3px 0 0 var(--accent, #8b2635); } .ds-course-id { color: var(--accent, #8b2635); font: 600 11px/1.2 \"IBM Plex Sans\", sans-serif; letter-spacing: .12em; text-transform: uppercase; } .ds-course-title { font: 600 27px/1.15 \"Source Serif 4\", Georgia, serif; color: var(--navy, #12233f); } .ds-course-progress { justify-self: end; text-align: right; } .ds-course-progress strong { display: block; font: 500 24px/1 \"IBM Plex Mono\", monospace; } .ds-course-progress small { display: block; margin-top: 7px; color: var(--muted, #667084); font: 400 11px/1.3 \"IBM Plex Sans\", sans-serif; } .ds-course-row:focus-visible { outline: 3px solid rgba(139,38,53,.32); outline-offset: -3px; }"
+    },
+    {
+      "name": "Practice Metric Ledger",
+      "kind": "custom",
+      "refersTo": "reading-card",
+      "description": "A compact dashboard register for due reviews and other actionable counts.",
+      "html": "<a class=\"ds-metric\" href=\"#\"><span class=\"ds-metric-label\">Spaced repetition</span><strong>12</strong><small>due cards · 84 total</small></a>",
+      "css": ".ds-metric { min-height: 118px; display: grid; align-content: center; gap: 7px; padding: 22px 24px; border-left: 1px solid var(--line, #d7d4ca); border-right: 1px solid var(--line, #d7d4ca); border-bottom: 2px solid transparent; background: transparent; color: var(--ink, #17243a); text-decoration: none; transition: transform .2s ease, border-color .2s ease, background .2s ease; } .ds-metric-label { color: var(--muted, #667084); font: 600 10px/1.2 \"IBM Plex Sans\", sans-serif; letter-spacing: .16em; text-transform: uppercase; } .ds-metric strong { color: var(--navy, #12233f); font: 500 36px/1 \"IBM Plex Mono\", monospace; } .ds-metric small { color: var(--muted, #667084); font: 400 12px/1.35 \"IBM Plex Sans\", sans-serif; } .ds-metric:hover { transform: translateY(-2px); border-bottom-color: var(--accent, #8b2635); background: var(--panel, #fffdf8); } .ds-metric:focus-visible { outline: 3px solid rgba(139,38,53,.32); outline-offset: -3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "University-Press Digital Reading Room",
+    "overview": "Wicker Study is a durable academic instrument rather than a conventional dashboard. Its interface borrows the composure of a university press catalogue and the utility of a supervised reading room: source material is visually primary, navigation behaves like a folio index, and personal progress appears as a precise marginal record.\n\nThe system is editorial, compact, and restrained. Warm paper fields, decisive typographic contrast, fine rules, and rare institutional color organize dense material without turning every datum into a card. Refero informs the discipline of selecting proven interaction patterns for each workflow; its gallery interface is not a visual template.",
+    "keyCharacteristics": [
+      "Editorial hierarchy carried by type, rules, and whitespace rather than decorative containers.",
+      "One institutional navigation rail plus a contextual folio rail only when an outline is necessary.",
+      "Dense registers and ledgers for progress, mistakes, mock history, and course navigation.",
+      "Controlled reading measures with quiet marginal study tools.",
+      "Oxblood used sparingly for action, location, and focus; navy carries institutional structure."
+    ],
+    "rules": [
+      { "name": "The Rare Mark Rule", "body": "Oxblood identifies action, location, or authorship; it never washes large decorative areas.", "section": "colors" },
+      { "name": "The Paper Hierarchy Rule", "body": "Reading Leaf holds authored material, Warm Stock holds the workspace, and Field Paper groups controls or metadata.", "section": "colors" },
+      { "name": "The Three Voices Rule", "body": "Serif explains and names, sans-serif operates, and mono records; do not swap their jobs for novelty.", "section": "typography" },
+      { "name": "The Reading Measure Rule", "body": "Authored prose stops at 70ch even when the application uses the full viewport.", "section": "typography" },
+      { "name": "The One Permanent Rail Rule", "body": "Never place a second global menu beside the institutional rail; only task-local outlines qualify for a contextual rail.", "section": "layout" },
+      { "name": "The Full Workspace Rule", "body": "Cap reading measure, not application width. Wide screens should improve comparison and tool access rather than add blank margins.", "section": "layout" },
+      { "name": "The Flat Ledger Rule", "body": "Repeated information is divided by rules, never lifted into a grid of floating cards.", "section": "elevation" },
+      { "name": "The Folio Edge Rule", "body": "Ordinary containers do not become soft rounded cards; curvature belongs to controls and the authored Wicker mark.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do make authored material the largest, quietest, and most readable surface.",
+      "Do use ruled rows and aligned columns for repeated academic records.",
+      "Do preserve exact source, chapter, page, percentage, and timestamp data in the mono voice.",
+      "Do use the full desktop width while protecting the 70ch reading measure.",
+      "Do provide visible keyboard focus, reduced-motion behavior, and a purposeful compact mobile rail."
+    ],
+    "donts": [
+      "Don't rebuild dense workflows as equal rounded cards or nested bordered panels.",
+      "Don't add a second permanent course navigator beside the global rail.",
+      "Don't use Oxblood as decorative background acreage or navy as an indiscriminate content fill.",
+      "Don't mix serif, sans-serif, and mono roles arbitrarily.",
+      "Don't copy Refero's own gallery appearance; use it to study proven product flow patterns."
+    ]
+  }
+}

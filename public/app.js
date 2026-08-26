@@ -103,6 +103,24 @@ loadAttemptState()
 // button can render as "✓ In SR" (disabled) for cards already added.
 let srMembership = new Set()
 
+function uiIcon(name) {
+  const paths = {
+    close: '<path d="M6 6l12 12M18 6 6 18"/>',
+    chevronRight: '<path d="m9 5 7 7-7 7"/>',
+    chevronDown: '<path d="m5 9 7 7 7-7"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    play: '<path d="m9 6 9 6-9 6z"/>',
+    shuffle: '<path d="M4 7h3c4 0 6 10 10 10h3M17 4l3 3-3 3M4 17h3c1.5 0 2.7-1.3 3.8-3M17 14l3 3-3 3"/>',
+    timer: '<circle cx="12" cy="13" r="7"/><path d="M9 2h6M12 6v7l4 2"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
+    sparkle: '<path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3zM18 14l.7 2.3L21 17l-2.3.7L18 20l-.7-2.3L15 17l2.3-.7L18 14z"/>'
+    ,search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>'
+    ,refresh: '<path d="M20 7v5h-5M4 17v-5h5M6.1 8A7 7 0 0 1 18 6l2 6M17.9 16A7 7 0 0 1 6 18l-2-6"/>'
+    ,edit: '<path d="M4 20h4l11-11-4-4L4 16v4zM13.5 6.5l4 4"/>'
+  }
+  return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`
+}
+
 function setSrMembership(ids) {
   srMembership = new Set(Array.isArray(ids) ? ids : [])
 }
@@ -115,7 +133,7 @@ function srButtonHtml(questionId) {
   if (isInSr(questionId)) {
     return `<button type="button" class="btn btn-ghost btn-success" disabled title="Already in your flashcard deck">✓ In flashcards</button>`
   }
-  return `<button type="button" class="btn btn-ghost" data-sr-add="${questionId}">＋ Add to flashcards</button>`
+  return `<button type="button" class="btn btn-ghost" data-sr-add="${questionId}">${uiIcon('plus')} Add to flashcards</button>`
 }
 
 // ----- Course search + cross-chapter navigation -----
@@ -214,7 +232,7 @@ function openSearchPopup() {
 function renderSearchTrigger() {
   return `
     <button type="button" class="sidebar-search-trigger" data-search-open title="Search course (⌘⇧F)">
-      <span class="nav-icon search-icon" aria-hidden="true">🔎</span>
+      <span class="nav-icon search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></span>
       <span class="nav-label sidebar-search-label">Search<small>⌘⇧F</small></span>
     </button>
   `
@@ -229,7 +247,7 @@ function renderSearchPopup() {
     <div class="search-overlay" data-search-overlay>
       <div class="search-popup" role="dialog" aria-label="Course search">
         <div class="search-popup-bar">
-          <span class="search-popup-icon" aria-hidden="true">🔎</span>
+          <span class="search-popup-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></span>
           <input
             type="search"
             class="search-popup-input"
@@ -239,8 +257,8 @@ function renderSearchPopup() {
             autocomplete="off"
             spellcheck="false"
           />
-          ${searchState.query ? '<button type="button" class="search-popup-clear" data-search-clear title="Clear">×</button>' : ''}
-          <button type="button" class="search-popup-close" data-search-close title="Close (Esc)">×</button>
+          ${searchState.query ? `<button type="button" class="search-popup-clear" data-search-clear title="Clear">${uiIcon('close')}</button>` : ''}
+          <button type="button" class="search-popup-close" data-search-close title="Close (Esc)">${uiIcon('close')}</button>
         </div>
         ${state?.courses?.length > 1 ? `
           <div class="search-popup-courses" role="tablist">
@@ -283,7 +301,7 @@ function renderCourseChaptersSection(course, currentChapterId) {
   return `
     <div class="course-chapters-section ${collapsed ? 'is-collapsed' : ''}">
       <button type="button" class="course-chapters-toggle" data-course-chapters-toggle>
-        <span class="course-chapters-caret">${collapsed ? '▸' : '▾'}</span>
+        <span class="course-chapters-caret">${uiIcon(collapsed ? 'chevronRight' : 'chevronDown')}</span>
         <span>Course chapters</span>
         <small>${course.chapters.length}</small>
       </button>
@@ -330,7 +348,7 @@ function renderMultiSelect(filterKey, allLabel, options) {
     <div class="multi-dd ${isOpen ? 'is-open' : ''}" data-multi-dd="${filterKey}">
       <button type="button" class="multi-dd-toggle ${selected.length > 0 ? 'has-selection' : ''}" data-multi-dd-toggle="${filterKey}" aria-expanded="${isOpen}">
         <span class="multi-dd-label">${escapeHtml(summary)}</span>
-        <span class="multi-dd-arrow">▾</span>
+        <span class="multi-dd-arrow">${uiIcon('chevronDown')}</span>
       </button>
       ${isOpen ? `
         <div class="multi-dd-panel" role="menu">
@@ -386,7 +404,7 @@ function renderImageThumbs(images, removeAttr) {
       ${images.map((src, i) => `
         <div class="attempt-thumb" title="${shortImageLabel(src, i)}">
           <img src="${src}" alt="attempt ${i + 1}"/>
-          <button type="button" class="attempt-thumb-remove" data-${removeAttr}="${i}" title="Remove">×</button>
+          <button type="button" class="attempt-thumb-remove" data-${removeAttr}="${i}" title="Remove">${uiIcon('close')}</button>
         </div>
       `).join('')}
     </div>
@@ -1003,8 +1021,8 @@ function slugify(s) {
 }
 
 function computeTitle() {
-  const suffix = ' · Exam Study Platform'
-  if (!state) return 'Exam Study Platform'
+  const suffix = ' · Wicker Study'
+  if (!state) return 'Wicker Study'
   if (route.page === 'dashboard') return 'Dashboard' + suffix
   if (route.page === 'mistakes') return 'Mistake bank' + suffix
   if (route.page === 'sr') return 'Flashcards' + suffix
@@ -1023,7 +1041,7 @@ function computeTitle() {
     if (c && ch) return `Ch ${ch.id} · ${ch.name} — ${c.code}${suffix}`
     return 'Chapter' + suffix
   }
-  return 'Exam Study Platform'
+  return 'Wicker Study'
 }
 
 let _suppressNextScrollRestore = false
@@ -1230,7 +1248,7 @@ function renderSidebar() {
   const archivedBlock = archived.length ? `
     <button type="button" class="nav-archived-toggle" data-sidebar-archived-toggle>
       <span class="nav-icon"></span>
-      <span class="nav-label">${sidebarArchivedOpen ? '▾' : '▸'} Archived (${archived.length})</span>
+      <span class="nav-label">${uiIcon(sidebarArchivedOpen ? 'chevronDown' : 'chevronRight')} Archived (${archived.length})</span>
     </button>
     ${sidebarArchivedOpen ? `<div class="nav-archived-list">${archived.map(navCourse).join('')}</div>` : ''}
   ` : ''
@@ -1426,8 +1444,8 @@ function renderDashboard() {
     <section class="hero">
       <div>
         <p class="eyebrow">Dashboard</p>
-        <h1>Daily work, course readiness, exact checkoffs.</h1>
-        <p class="hero-copy">Click any task to open it on its course page. Open a chapter from the knowledge map to study with TOC, action checklist, and graded practice questions.</p>
+        <h1>Study plan and course readiness.</h1>
+        <p class="hero-copy">Resume the material that matters, clear due reviews, and see where exam preparation is still thin.</p>
       </div>
       <div class="hero-meter">
         <span>${progress.masteryPct}%</span>
@@ -1455,7 +1473,7 @@ function renderDashboard() {
 
     <div class="course-section-head">
       <h2>Courses</h2>
-      <button type="button" class="tb-btn ${dashboardManageMode ? 'tb-btn-primary' : ''}" data-toggle-manage>${dashboardManageMode ? '✓ Done' : '⚙ Manage courses'}</button>
+      <button type="button" class="tb-btn ${dashboardManageMode ? 'tb-btn-primary' : ''}" data-toggle-manage>${dashboardManageMode ? 'Done' : `${uiIcon('settings')} Manage courses`}</button>
     </div>
     <section class="course-grid">
       ${activeCourses().map((c, i, arr) => renderCourseCard(c, i, arr.length)).join('') || '<p class="empty">No active courses.</p>'}
@@ -2092,26 +2110,27 @@ function renderCourse(courseId) {
 
   return `
     ${chapters.length ? `
-      <div class="chapter-grid course-home-grid" style="--accent:${course.accent}">
-        ${renderCourseNavigator(course, matches, supportMatches, q)}
-        <div class="resize-handle vertical-handle" data-resize="toc" title="Drag to resize · double-click to reset"></div>
-        <article class="chapter-main course-home-main">
-          <section class="course-hero surface-hero surface-hero-slim" style="--accent:${course.accent}">
-            <div class="surface-hero-text">
-              <p class="eyebrow">${course.code} ${course.shortName ? `· ${course.shortName}` : ''} · Overview</p>
+      <article class="course-overview" style="--accent:${course.accent}">
+          <header class="course-overview-header">
+            <div class="course-overview-title">
+              <p class="eyebrow">${course.code} ${course.shortName ? `· ${course.shortName}` : ''}</p>
               <h1>${course.name}</h1>
-              <p>${course.exam} · ${course.role}</p>
-              ${renderCoursePopulatedChip(course)}
-              <div class="hero-actions-row">
-                <button type="button" class="clear-link" data-clear-scope="course" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset every trace of your progress on this course">Reset course progress</button>
-              </div>
+              <p class="course-overview-meta">${course.exam} <span aria-hidden="true">/</span> ${course.role}</p>
             </div>
-            ${renderSurfaceTabs(course, { active: 'overview', surface: 'overview' })}
-          </section>
+            <div class="course-overview-record" aria-label="Course progress">
+              <span class="course-overview-number">${progress.masteryPct}<sup>%</sup></span>
+              <p>${progress.done} of ${progress.total} chapters read</p>
+              ${renderCoursePopulatedChip(course)}
+            </div>
+            <div class="course-overview-nav">
+              ${renderSurfaceTabs(course, { active: 'overview', surface: 'overview' })}
+              <button type="button" class="clear-link" data-clear-scope="course" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset every trace of your progress on this course">Reset progress</button>
+            </div>
+          </header>
 
           ${renderGenerateAllCard(course)}
 
-          <section class="course-spine-section">
+          <section class="course-spine-section course-overview-section">
             <div class="panel-head spine-head">
               <div><p class="eyebrow">At a glance</p><h2>Chapter heatmap</h2></div>
               <div class="spine-summary" title="Course-wide progress">
@@ -2132,13 +2151,15 @@ function renderCourse(courseId) {
           ${supportChapters.length ? renderCourseToolkit(course, supportChapters) : ''}
 
         <section class="chapter-progress-grid course-main-col" id="course-core-chapters">
-          <div class="panel-head"><div><p class="eyebrow">Core chapters</p><h2>Progress detail</h2></div><small>Read, practice, mock and flashcards — click ▸ to see topics.</small></div>
+          <div class="panel-head course-progress-head">
+            <div><p class="eyebrow">Core chapters</p><h2>Progress detail</h2></div>
+            <label class="course-inline-search"><span aria-hidden="true">${uiIcon('search')}</span><input type="search" placeholder="Find a chapter or topic" value="${escapeHtml(q)}" data-course-filter="${course.id}" autocomplete="off" spellcheck="false" /></label>
+          </div>
           ${visibleChapters.length
             ? visibleChapters.map((m) => renderChapterProgressRow(course, m.ch, m.topics)).join('')
             : '<p class="empty">No chapters or topics match this filter.</p>'}
         </section>
-        </article>
-      </div>
+      </article>
     ` : '<p class="empty">No chapters configured.</p>'}
   `
 }
@@ -2163,7 +2184,7 @@ function renderCourseNavigator(course, matches, supportMatches, q) {
             autocomplete="off"
             spellcheck="false"
           />
-          ${q ? `<button type="button" class="course-nav-clear" data-course-filter-clear="${course.id}" title="Clear">×</button>` : ''}
+          ${q ? `<button type="button" class="course-nav-clear" data-course-filter-clear="${course.id}" title="Clear">${uiIcon('close')}</button>` : ''}
         </div>
 
         <div class="course-nav-scroll">
@@ -2269,7 +2290,7 @@ function renderCourseSpine(course, chapters = course.chapters || []) {
         const title = `Ch ${escapeHtml(ch.id)} — ${escapeHtml(ch.name)}\nOverall: ${p.masteryPct}%\nRead: ${readPct}%\nPractice: ${p.practice.done}/${p.practice.total || 0}${p.practice.total ? ` (avg ${p.practice.avg.toFixed(1)}/10)` : ''}\nMock: ${p.mock.done}/${p.mock.total || 0}${p.mock.total ? ` (avg ${p.mock.avg.toFixed(1)}/10)` : ''}\nFlashcards: ${p.flashcards.mature}/${p.flashcards.total || 0} mature`
         return `
           <a class="spine-tile spine-${bucket}" href="#/course/${course.id}/chapter/${ch.id}" title="${escapeHtml(title)}">
-            <button type="button" class="spine-tile-clear" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${ch.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset progress for Ch ${escapeHtml(ch.id)}">×</button>
+            <button type="button" class="spine-tile-clear" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${ch.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset progress for Ch ${escapeHtml(ch.id)}">${uiIcon('close')}</button>
             <div class="spine-tile-head">
               <span class="spine-num">${escapeHtml(ch.id)}</span>
               <span class="spine-pct">${p.masteryPct}%</span>
@@ -2416,7 +2437,7 @@ function renderChapterProgressRow(course, chapter, visibleTopics) {
         <div class="ch-card-overall">
           <strong>${p.masteryPct}%</strong>
         </div>
-        <button type="button" class="ch-card-expand" data-chapter-row-toggle="${key}" aria-expanded="${expanded}" title="${expanded ? 'Hide topics' : 'Show topics'}">${expanded ? '▾' : '▸'}</button>
+        <button type="button" class="ch-card-expand" data-chapter-row-toggle="${key}" aria-expanded="${expanded}" title="${expanded ? 'Hide topics' : 'Show topics'}">${uiIcon(expanded ? 'chevronDown' : 'chevronRight')}</button>
       </div>
 
       ${expanded ? `
@@ -2980,7 +3001,7 @@ function renderQuestionsPanel(course, chapter) {
       <div class="q-pager">
         <button type="button" class="q-nav-btn" data-q-nav="prev" ${nav.index === 0 ? 'disabled' : ''}>← Previous</button>
         <span class="q-pager-pos">Question <strong>Q${currentOrigIndex + 1}</strong> of ${questions.length}</span>
-        <button type="button" class="q-nav-btn" data-q-nav="random">🎲 Random</button>
+        <button type="button" class="q-nav-btn" data-q-nav="random">${uiIcon('shuffle')} Random</button>
         <button type="button" class="q-nav-btn primary" data-q-nav="next" ${nav.index >= filtered.length - 1 ? 'disabled' : ''}>Next →</button>
       </div>
       <div class="single-question">
@@ -3108,7 +3129,7 @@ function renderQuestionCard(q, index, course, chapter) {
           <span class="q-diff diff-${q.difficulty}">${q.difficulty}</span>
           <span class="q-source">${escapeHtml(q.source || 'Practice')}</span>
         </div>
-        <button type="button" class="q-delete" data-q-delete="${course.id}/${chapter.id}/${q.id}" title="Delete this question from the bank (cannot be undone)" aria-label="Delete question">×</button>
+        <button type="button" class="q-delete" data-q-delete="${course.id}/${chapter.id}/${q.id}" title="Delete this question from the bank (cannot be undone)" aria-label="Delete question">${uiIcon('close')}</button>
       </div>
       <div class="q-body">${renderInlineMarkdown(q.question)}</div>
       ${input}
@@ -3629,7 +3650,7 @@ function renderRegenModal() {
           </fieldset>
 
           <div class="extend-actions">
-            <button type="button" class="load-q-btn regen-submit-btn" data-regen-submit>↻ Regenerate ${regenModal.count}</button>
+            <button type="button" class="load-q-btn regen-submit-btn" data-regen-submit>${uiIcon('refresh')} Regenerate ${regenModal.count}</button>
             <button type="button" class="chat-clear" data-regen-close>Cancel</button>
           </div>
         `}
@@ -3649,14 +3670,14 @@ function renderToolbarMore(course, chapter) {
       ${isOpen ? `
         <div class="tb-more-menu" role="menu">
           <button type="button" class="tb-more-item" data-bulk-sr="${key}" data-tb-more-action>
-            <span class="tb-more-icon">＋</span>
+          <span class="tb-more-icon">${uiIcon('plus')}</span>
             <span>
               <strong>Add all to flashcards</strong>
               <small>Bulk-load every question in the bank into your SR deck</small>
             </span>
           </button>
           <button type="button" class="tb-more-item" data-start-mock="${key}" data-tb-more-action>
-            <span class="tb-more-icon">▶</span>
+          <span class="tb-more-icon">${uiIcon('play')}</span>
             <span>
               <strong>Start mini-mock</strong>
               <small>Timed practice on this chapter's question set</small>
@@ -3664,7 +3685,7 @@ function renderToolbarMore(course, chapter) {
           </button>
           <div class="tb-more-divider" aria-hidden="true"></div>
           <button type="button" class="tb-more-item tb-more-danger" data-regen-open="${key}" data-tb-more-action>
-            <span class="tb-more-icon">↻</span>
+            <span class="tb-more-icon">${uiIcon('refresh')}</span>
             <span>
               <strong>Regenerate entire bank</strong>
               <small>Replace all questions with a fresh set</small>
@@ -3782,7 +3803,7 @@ function renderMiniMockOverlay() {
         <header class="mock-head">
           <strong>Mini-mock</strong>
           <span>Question ${m.currentIndex + 1} of ${m.questions.length} · ${answeredCount} answered</span>
-          <span class="mock-timer">⏱ <span class="mock-timer-readout">${mockTimeRemainingLabel()}</span></span>
+          <span class="mock-timer">${uiIcon('timer')} <span class="mock-timer-readout">${mockTimeRemainingLabel()}</span></span>
           <button type="button" class="chat-clear" data-mock-cancel>Abandon</button>
         </header>
         <article class="mock-question">
@@ -3911,7 +3932,7 @@ function renderBgJobsInner() {
           <strong>${escapeHtml(title)}</strong>
           <small>${escapeHtml(detail)}</small>
         </div>
-        <button type="button" class="bg-job-dismiss" data-bg-dismiss="${j.id}" title="Dismiss">×</button>
+        <button type="button" class="bg-job-dismiss" data-bg-dismiss="${j.id}" title="Dismiss">${uiIcon('close')}</button>
       </div>
     `
   }).join('')
@@ -4052,8 +4073,8 @@ function renderFlashcardsView(course) {
         <p class="rail-meta fc-mix">Organized by chapter. Click any card to flip. Cards use SM-2 spaced repetition — practice from any chapter, or run all of them together.</p>
       </div>
       <div class="q-toolbar fc-global-actions">
-        ${totalCards ? `<button type="button" class="tb-btn tb-btn-primary" data-fc-practice-all="${course.id}">▶ Practice all (${totalDue || totalCards})</button>` : ''}
-        <button type="button" class="tb-btn" data-fc-gen-all="${course.id}">✨ Generate all chapters</button>
+        ${totalCards ? `<button type="button" class="tb-btn tb-btn-primary" data-fc-practice-all="${course.id}">${uiIcon('play')} Practice all (${totalDue || totalCards})</button>` : ''}
+        <button type="button" class="tb-btn" data-fc-gen-all="${course.id}">${uiIcon('sparkle')} Generate all chapters</button>
       </div>
     </div>
     ${chapters.map((g) => renderFlashcardsChapterSection(course, g.ch, g.cards)).join('')}
@@ -4068,7 +4089,7 @@ function renderFlashcardsChapterSection(course, chapter, cards) {
     <section class="fc-chapter">
       <header class="fc-chapter-head">
         <button type="button" class="fc-chapter-toggle" data-fc-toggle-chapter="${chapter.id}">
-          <span class="fc-caret">${isExpanded ? '▾' : '▸'}</span>
+          <span class="fc-caret">${uiIcon(isExpanded ? 'chevronDown' : 'chevronRight')}</span>
           <strong>Ch ${escapeHtml(chapter.id)} — ${escapeHtml(chapter.name)}</strong>
           <small>${cards.length} card${cards.length === 1 ? '' : 's'}${cards.length ? ` · ${dueCount} due` : ''}</small>
         </button>
@@ -4121,11 +4142,11 @@ function renderFlashcardCard(course, chapter, card) {
   return `
     <div class="fc-card ${flipped ? 'is-flipped' : ''} ${card.source === 'ai' ? 'is-ai' : 'is-custom'} ${isDue ? 'is-due' : ''}" data-fc-card="${card.id}" data-chapter="${chapter.id}">
       <div class="fc-card-meta">
-        <span class="fc-card-source">${card.source === 'ai' ? '✨ AI' : 'Custom'}</span>
+        <span class="fc-card-source">${card.source === 'ai' ? `${uiIcon('sparkle')} AI` : 'Custom'}</span>
         ${isDue ? '<span class="fc-card-due">Due</span>' : `<span class="fc-card-next">Next: ${new Date(card.sr?.dueAt || Date.now()).toLocaleDateString()}</span>`}
         <div class="fc-card-actions">
-          <button type="button" class="fc-icon-btn" data-fc-edit="${card.id}" data-chapter="${chapter.id}" title="Edit">✎</button>
-          <button type="button" class="fc-icon-btn fc-icon-danger" data-fc-delete="${card.id}" data-chapter="${chapter.id}" title="Delete">×</button>
+          <button type="button" class="fc-icon-btn" data-fc-edit="${card.id}" data-chapter="${chapter.id}" title="Edit">${uiIcon('edit')}</button>
+          <button type="button" class="fc-icon-btn fc-icon-danger" data-fc-delete="${card.id}" data-chapter="${chapter.id}" title="Delete">${uiIcon('close')}</button>
         </div>
       </div>
       <button type="button" class="fc-card-body" data-fc-flip="${card.id}">
@@ -4284,7 +4305,7 @@ function renderMqMultiSelect(filterKey, allLabel, options) {
     <div class="multi-dd ${isOpen ? 'is-open' : ''}" data-mq-multi-dd="${filterKey}">
       <button type="button" class="multi-dd-toggle ${selected.length > 0 ? 'has-selection' : ''}" data-mq-multi-toggle="${filterKey}" aria-expanded="${isOpen}">
         <span class="multi-dd-label">${escapeHtml(summary)}</span>
-        <span class="multi-dd-arrow">▾</span>
+        <span class="multi-dd-arrow">${uiIcon('chevronDown')}</span>
       </button>
       ${isOpen ? `
         <div class="multi-dd-panel" role="menu">
@@ -4775,7 +4796,7 @@ function renderMockQuestionsView(course) {
       <div class="q-toolbar">
         ${renderMqMultiSelect('topics', 'All topics', topicOpts)}
         ${renderMqMultiSelect('types', 'All types', typeOpts)}
-        <button type="button" class="tb-btn" data-mq-regenerate="${course.id}" title="Regenerate the whole bank">↻ Regenerate</button>
+        <button type="button" class="tb-btn" data-mq-regenerate="${course.id}" title="Regenerate the whole bank">${uiIcon('refresh')} Regenerate</button>
         ${mockQuestionsView.chapterId !== 'all'
           ? `<button type="button" class="tb-btn clear-link" data-clear-scope="esq" data-clear-course="${course.id}" data-clear-chapter="${mockQuestionsView.chapterId}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear your answers + grades for the current chapter filter">Clear chapter answers</button>`
           : `<button type="button" class="tb-btn clear-link" data-clear-scope="mock-questions" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear all your answers + grades across the entire mock-question bank">Clear all answers</button>`}
@@ -4787,7 +4808,7 @@ function renderMockQuestionsView(course) {
       <div class="q-pager">
         <button type="button" class="q-nav-btn" data-mq-nav="prev" ${mockQuestionsView.currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
         <span class="q-pager-pos">Question <strong>Q${currentOrigIndex + 1}</strong> of ${questions.length}</span>
-        <button type="button" class="q-nav-btn" data-mq-nav="random">🎲 Random</button>
+        <button type="button" class="q-nav-btn" data-mq-nav="random">${uiIcon('shuffle')} Random</button>
         <button type="button" class="q-nav-btn primary" data-mq-nav="next" ${mockQuestionsView.currentIndex >= filtered.length - 1 ? 'disabled' : ''}>Next →</button>
       </div>
       <div class="single-question">
@@ -5184,7 +5205,7 @@ function renderMockExamPage() {
       tocHeader = `
         <div class="toc-actions">
           <small class="toc-source">${isNative ? 'PDF bookmarks' : isCodex ? 'Generated content TOC' : 'Per-page fallback'}</small>
-          <button type="button" class="toc-build-btn" data-build-toc="${course.id}" data-build-exam="${examId || ''}">${isCodex ? '↻ Rebuild' : isPagesFallback ? '✨ Build content TOC' : '↻ Rebuild content TOC'}</button>
+          <button type="button" class="toc-build-btn" data-build-toc="${course.id}" data-build-exam="${examId || ''}">${isCodex ? `${uiIcon('refresh')} Rebuild` : isPagesFallback ? `${uiIcon('sparkle')} Build content TOC` : `${uiIcon('refresh')} Rebuild content TOC`}</button>
         </div>
       `
       tocBody = (outline.items || []).length
@@ -5354,7 +5375,7 @@ function renderPracticeExam(course) {
       <div class="practice-toolbar">
         <small class="rail-meta">${questions.length} questions · shared problem statements stay visible, one sub-question at a time</small>
         <button type="button" class="tb-btn clear-link" data-clear-scope="exam" data-clear-course="${course.id}" data-clear-exam="${getActivePaperId() || ''}" data-clear-exam-label="${escapeHtml(getCurrentPaper(course)?.label || 'this practice exam')}" title="Clear all your answers, grades, guidance hints, and uploaded images for this practice exam">Clear my work</button>
-        <button type="button" class="regen-btn" data-practice-reparse="${course.id}">↻ Regenerate exam</button>
+        <button type="button" class="regen-btn" data-practice-reparse="${course.id}">${uiIcon('refresh')} Regenerate exam</button>
       </div>
 
       ${renderPracticeProgress(groups, groupIdx)}
@@ -6679,7 +6700,7 @@ function bindEvents() {
     radio.addEventListener('change', (event) => {
       regenModal.count = Number(event.currentTarget.dataset.regenCount)
       const btn = document.querySelector('[data-regen-submit]')
-      if (btn) btn.textContent = `↻ Regenerate ${regenModal.count}`
+      if (btn) btn.innerHTML = `${uiIcon('refresh')} Regenerate ${regenModal.count}`
     })
   })
   document.querySelectorAll('[data-regen-prompt]').forEach((ta) => {
