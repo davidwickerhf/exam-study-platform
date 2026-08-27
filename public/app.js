@@ -249,9 +249,9 @@ function openSearchPopup() {
 
 function renderSearchTrigger() {
   return `
-    <button type="button" class="sidebar-search-trigger" data-search-open title="Search course (⌘⇧F)">
+    <button type="button" class="app-search-trigger" data-search-open title="Search course (⌘⇧F)">
       <span class="nav-icon search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></span>
-      <span class="nav-label sidebar-search-label">Search<small>⌘⇧F</small></span>
+      <span class="nav-label app-search-label">Search<small>⌘⇧F</small></span>
     </button>
   `
 }
@@ -470,16 +470,14 @@ function setChapterTab(courseId, chapterId, tab) {
   try { localStorage.setItem(`chapter-tab:${key}`, tab) } catch {}
 }
 
-// ----- Layout state (resizable columns, sidebar collapse) -----
-const DEFAULT_WIDTHS = { sidebar: 290, toc: 300, rail: 380 }
-const MIN_WIDTHS = { sidebar: 220, toc: 220, rail: 280 }
-const MAX_WIDTHS = { sidebar: 480, toc: 560, rail: 620 }
-const COLLAPSED_SIDEBAR = 64
+// ----- Study workspace layout state (resizable outline and tool columns) -----
+const DEFAULT_WIDTHS = { toc: 300, rail: 380 }
+const MIN_WIDTHS = { toc: 220, rail: 280 }
+const MAX_WIDTHS = { toc: 560, rail: 620 }
 const COLLAPSED_TOC = 36
 const COLLAPSED_RAIL = 36
 
 let layoutState = {
-  sidebarCollapsed: false,
   tocCollapsed: false,
   railCollapsed: false,
   widths: { ...DEFAULT_WIDTHS }
@@ -497,7 +495,6 @@ function renderMobileStudyBar(label = 'Study tools') {
 }
 try {
   const saved = JSON.parse(localStorage.getItem('layout-state') || '{}')
-  if (saved.sidebarCollapsed) layoutState.sidebarCollapsed = true
   if (saved.tocCollapsed) layoutState.tocCollapsed = true
   if (saved.railCollapsed) layoutState.railCollapsed = true
   if (saved.widths) layoutState.widths = { ...DEFAULT_WIDTHS, ...saved.widths }
@@ -505,23 +502,15 @@ try {
 
 function applyLayoutWidths() {
   const root = document.documentElement
-  root.style.setProperty('--sidebar-width', layoutState.sidebarCollapsed ? `${COLLAPSED_SIDEBAR}px` : `${layoutState.widths.sidebar}px`)
   root.style.setProperty('--toc-width', layoutState.tocCollapsed ? `${COLLAPSED_TOC}px` : `${layoutState.widths.toc}px`)
   root.style.setProperty('--rail-width', layoutState.railCollapsed ? `${COLLAPSED_RAIL}px` : `${layoutState.widths.rail}px`)
-  root.dataset.sidebarCollapsed = layoutState.sidebarCollapsed ? 'true' : 'false'
+  delete root.dataset.sidebarCollapsed
   root.dataset.tocCollapsed = layoutState.tocCollapsed ? 'true' : 'false'
   root.dataset.railCollapsed = layoutState.railCollapsed ? 'true' : 'false'
 }
 
 function saveLayout() {
   try { localStorage.setItem('layout-state', JSON.stringify(layoutState)) } catch {}
-}
-
-function toggleSidebar() {
-  layoutState.sidebarCollapsed = !layoutState.sidebarCollapsed
-  applyLayoutWidths()
-  saveLayout()
-  render()
 }
 
 function toggleToc() {
@@ -546,10 +535,6 @@ function attachResizeHandlers() {
       const target = handle.dataset.resize
       const startX = e.clientX
       const startWidth = layoutState.widths[target] || DEFAULT_WIDTHS[target]
-      // If sidebar is collapsed, dragging should also expand it
-      if (target === 'sidebar' && layoutState.sidebarCollapsed) {
-        layoutState.sidebarCollapsed = false
-      }
       document.body.style.cursor = 'col-resize'
       document.body.style.userSelect = 'none'
       const onMove = (ev) => {
@@ -572,7 +557,6 @@ function attachResizeHandlers() {
     handle.addEventListener('dblclick', (e) => {
       const target = e.currentTarget.dataset.resize
       layoutState.widths[target] = DEFAULT_WIDTHS[target]
-      if (target === 'sidebar') layoutState.sidebarCollapsed = false
       applyLayoutWidths()
       saveLayout()
     })
@@ -1178,8 +1162,7 @@ function render() {
   const isCourse = route.page === 'course'
   app.innerHTML = `
     <div class="shell ${isChapter || isMock || isCourse ? 'chapter-shell' : ''}">
-      ${renderSidebar()}
-      <div class="resize-handle vertical-handle" data-resize="sidebar" title="Drag to resize · double-click to reset"></div>
+      ${renderAppHeader()}
       <main id="main-content" class="content ${isChapter || isMock || isCourse ? 'chapter-content' : ''}">
         ${routeView()}
       </main>
@@ -1422,44 +1405,27 @@ async function moveCourse(courseId, dir) {
   }
 }
 
-function renderSidebar() {
-  const navCourse = (course) => {
-    const progress = courseProgress(course)
-    const active = (route.page === 'course' && route.id === course.id) || (route.page === 'chapter' && route.courseId === course.id)
-    return `
-      <a class="nav-course ${active ? 'active' : ''}" href="#/course/${course.id}" title="${course.code} ${course.shortName || ''}">
-        <span class="nav-icon course-icon" style="color:${course.accent}">${ICONS[courseIconKey(course)]}</span>
-        <span class="nav-text nav-label">
-          <strong>${course.code} <em>${course.shortName || ''}</em></strong>
-          <small>${progress.done}/${progress.total} done · ${progress.masteryPct}% mastery</small>
-        </span>
-      </a>
-    `
-  }
+function renderAppHeader() {
   return `
-    <aside class="sidebar">
-      <div class="sidebar-head">
+    <header class="app-header" data-route="${route.page}">
+      <div class="app-header-brand">
         <a class="brand" href="#/">
           <span class="brand-mark">W</span>
           <span class="brand-text"><strong>Wicker Study</strong><small>Academic workspace</small></span>
         </a>
-        <button class="sidebar-toggle" type="button" data-sidebar-toggle title="${layoutState.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.sidebarCollapsed ? '›' : '‹'}</button>
       </div>
-      <nav>
+      <nav class="app-nav" aria-label="Primary navigation">
         ${renderSearchTrigger()}
-        <a class="nav-dashboard ${['dashboard', 'course', 'chapter', 'mock-exam'].includes(route.page) ? 'active' : ''}" href="#/" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
-        <a class="nav-tool mobile-review-nav ${route.page === 'practice' ? 'active' : ''}" href="#/practice" title="Practice"><span class="nav-icon tool-icon">${ICONS.practice}</span><span class="nav-label">Practice</span></a>
-        <a class="nav-tool ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistake bank"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistakes</span></a>
-        <a class="nav-tool nav-mocks ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mock sessions</span></a>
-        <a class="nav-tool nav-settings ${route.page === 'settings' ? 'active' : ''}" href="#/settings" title="Settings"><span class="nav-icon tool-icon">${uiIcon('settings')}</span><span class="nav-label">Settings</span></a>
+        <a class="app-nav-link nav-courses ${['dashboard', 'course', 'chapter', 'mock-exam'].includes(route.page) ? 'active' : ''}" href="#/" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
+        <a class="app-nav-link nav-practice ${['practice', 'sr'].includes(route.page) ? 'active' : ''}" href="#/practice" title="Practice"><span class="nav-icon tool-icon">${ICONS.practice}</span><span class="nav-label">Practice</span></a>
+        <a class="app-nav-link nav-mistakes ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistakes"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistakes</span></a>
+        <a class="app-nav-link nav-mocks ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mocks</span></a>
+        <a class="app-nav-link nav-settings ${route.page === 'settings' ? 'active' : ''}" href="#/settings" title="Settings"><span class="nav-icon tool-icon">${uiIcon('settings')}</span><span class="nav-label">Settings</span></a>
       </nav>
-      <section class="state-card">
-        <small>Personal record</small>
-        <strong>Synced privately</strong>
-        <small class="legend">Mastery scale: untouched · seen · understood · fluent · exam-ready</small>
+      <div class="app-account">
         ${window.__clerk ? '<button type="button" class="sidebar-signout" data-sign-out>Sign out</button>' : ''}
-      </section>
-    </aside>
+      </div>
+    </header>
   `
 }
 
@@ -3336,7 +3302,7 @@ function renderMistakesPage() {
         <h1>Mistake bank</h1>
         <p class="hero-copy">Every graded attempt that scored below 7/10. Review them; retry; mark resolved once you've internalised the correction. ${items.length} open.</p>
       </header>
-      ${items.length === 0 ? '<p class="empty">No open mistakes. Keep grinding — they\'ll show up here as you grade attempts.</p>' : ''}
+      ${items.length === 0 ? '<p class="empty">No open mistakes. Incorrect attempts will appear here after you grade them.</p>' : ''}
       ${Object.entries(grouped).map(([key, list]) => {
         const [courseId, chapterId] = key.split('/')
         const course = state.courses.find((c) => c.id === courseId)
@@ -6960,10 +6926,6 @@ function bindEvents() {
       try { localStorage.setItem('course-chapters-collapsed', String(courseChaptersCollapsed)) } catch {}
       render()
     })
-  })
-
-  document.querySelectorAll('[data-sidebar-toggle]').forEach((btn) => {
-    btn.addEventListener('click', toggleSidebar)
   })
 
   // ----- Course management (archive / reorder / sidebar archived section) -----
