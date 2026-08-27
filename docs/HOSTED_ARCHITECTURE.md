@@ -12,6 +12,8 @@ The application deliberately separates two kinds of data:
 | Custom/generated flashcards and spaced-repetition scheduling | Individual user | `user_documents` in Neon |
 | Mistakes and mock sessions | Individual user | `user_documents` in Neon |
 | Browser attempts, chapter-read flags and UI preferences | Individual user | Browser `localStorage`, synchronized to `user_documents` |
+| Personal extra exercises | Individual user | `user_documents` in Neon |
+| AI request/token ledger | Individual user | `ai_usage_events` in Neon |
 
 Every personal document is keyed by Clerk `user_id`. The server derives that ID
 from a verified session token; it never accepts a user ID from request data.
@@ -46,6 +48,23 @@ document model is intentional for the first hosted migration: it
 preserves the existing API contracts and supports atomic per-document upserts.
 It can later be normalized for cross-user analytics without exposing or
 coupling editorial content to personal progress.
+
+## AI boundary and quotas
+
+Students do not generate course banks, flashcards, paper parses, tutor hints,
+or grading responses. Those surfaces use reviewed editorial content and local
+reference-answer checks. Model access is limited at the server boundary to:
+
+- retrieval-grounded tutor chat;
+- personal extra exercises explicitly requested from a chapter.
+
+Before either call starts, the server reserves a per-user request and token
+allowance. It persists the completed input/output counts in `ai_usage_events`,
+uses provider counts when available, and records a conservative estimate for
+CLI providers. Failed calls release the token reservation but still count
+toward short-term request throttling. `/api/ai/usage` returns the authenticated
+user's current allowance and reset times; HTTP 429 responses include
+`Retry-After` and a structured `AI_RATE_LIMITED` payload.
 
 ## Deploy
 

@@ -117,6 +117,7 @@ function uiIcon(name) {
     ,search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>'
     ,refresh: '<path d="M20 7v5h-5M4 17v-5h5M6.1 8A7 7 0 0 1 18 6l2 6M17.9 16A7 7 0 0 1 6 18l-2-6"/>'
     ,edit: '<path d="M4 20h4l11-11-4-4L4 16v4zM13.5 6.5l4 4"/>'
+    ,list: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/>'
   }
   return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`
 }
@@ -411,6 +412,23 @@ function renderImageThumbs(images, removeAttr) {
   `
 }
 const chatState = new Map() // key: courseId/chapterId -> { messages: [{role, content}], sending: bool, draft: string }
+let aiUsage = null
+
+async function loadAiUsage() {
+  try {
+    aiUsage = await fetchJson('/api/ai/usage')
+  } catch {
+    aiUsage = null
+  }
+  return aiUsage
+}
+
+function aiAllowance(feature) {
+  if (!aiUsage) return 'Usage allowance loads after sign-in.'
+  const remaining = feature === 'chat' ? aiUsage.remaining?.chatToday : aiUsage.remaining?.exercisesToday
+  const daily = aiUsage.limits?.[feature]?.requestsPerDay
+  return `${remaining ?? '—'} of ${daily ?? '—'} ${feature === 'chat' ? 'tutor messages' : 'requests'} remaining today`
+}
 const questionNav = new Map() // key: courseId/chapterId -> { index: number }
 const chapterTab = new Map() // key: courseId/chapterId -> 'content' | 'selftest'
 
@@ -445,6 +463,17 @@ let layoutState = {
   tocCollapsed: false,
   railCollapsed: false,
   widths: { ...DEFAULT_WIDTHS }
+}
+let mobileStudyPanel = null
+
+function renderMobileStudyBar(label = 'Study tools') {
+  return `
+    <div class="mobile-study-bar" aria-label="Mobile study controls">
+      <button type="button" data-mobile-study-panel="outline" aria-pressed="${mobileStudyPanel === 'outline'}">${uiIcon('list')}<span>Outline</span></button>
+      <strong>${escapeHtml(label)}</strong>
+      <button type="button" data-mobile-study-panel="tools" aria-pressed="${mobileStudyPanel === 'tools'}">${uiIcon('settings')}<span>Tools</span></button>
+    </div>
+  `
 }
 try {
   const saved = JSON.parse(localStorage.getItem('layout-state') || '{}')
@@ -537,6 +566,7 @@ const filterState = { category: 'all', mastery: 'all', sort: 'priority', search:
 const questionFilter = { types: [], sources: [], openDd: null }
 
 window.addEventListener('hashchange', () => {
+  mobileStudyPanel = null
   route = parseRoute()
   render()
 })
@@ -545,6 +575,7 @@ init()
 
 async function init() {
   state = await fetchJson('/api/state')
+  loadAiUsage().then(() => render()).catch(() => {})
   applyLayoutWidths()
   render()
   // Pre-load SR membership so the "+ Add to flashcards" buttons correctly
@@ -601,9 +632,15 @@ async function init() {
 async function fetchJson(url, options) {
   const response = await fetch(url, options)
   if (!response.ok) {
-    let msg = await response.text()
-    try { msg = JSON.parse(msg).error || msg } catch {}
-    throw new Error(msg)
+    const raw = await response.text()
+    let payload = null
+    try { payload = JSON.parse(raw) } catch {}
+    const error = new Error(payload?.error || raw || `Request failed (${response.status})`)
+    error.status = response.status
+    error.code = payload?.code
+    error.retryAfter = payload?.retryAfter
+    error.usage = payload?.usage
+    throw error
   }
   return response.json()
 }
@@ -692,12 +729,12 @@ function setChapterRead(courseId, chapterId, read = true) {
 // the matching client-side localStorage entries AND fires the server endpoint
 // for SR / mistakes / mock sessions.
 const CLEAR_DESCRIPTIONS = {
-  course:           (o) => `Reset every trace of progress on ${o.courseName || 'this course'}.\n\n• Chapter read flags (every chapter)\n• Self-test attempts, grades, and revealed answers (every chapter)\n• Mock-question attempts and grades (entire course-wide bank)\n• Practice-exam attempts, grades, guidance, and uploaded images (every mock exam)\n• Flashcards' spaced-repetition state (every card resets to fresh)\n• Per-chapter mistake bank entries\n• Mini-mock session history\n\nThis is IRREVERSIBLE.`,
+  course:           (o) => `Reset every trace of progress on ${o.courseName || 'this course'}.\n\n• Chapter read flags (every chapter)\n• Self-test attempts, checks, and revealed answers (every chapter)\n• Mock-question attempts and checks (entire course-wide bank)\n• Practice-exam attempts and checks (every mock exam)\n• Flashcards' spaced-repetition state (every card resets to fresh)\n• Per-chapter mistake bank entries\n• Mini-mock session history\n\nThis is IRREVERSIBLE.`,
   chapter:          (o) => `Reset every trace of progress on Ch ${o.chapterId} of ${o.courseName || 'this course'}.\n\n• Chapter read flag\n• Self-test attempts + grades for this chapter\n• Mock-question attempts + grades for this chapter\n• Flashcards' spaced-repetition state for cards in this chapter\n• This chapter's mistake bank entries\n\nThis is IRREVERSIBLE.`,
   'self-test':      (o) => `Clear all self-test attempts, grades, and revealed answers for Ch ${o.chapterId}.\n\nReading status, mock questions, and flashcards are kept.\n\nThis is IRREVERSIBLE.`,
   'esq':            (o) => `Clear all exam-style-question attempts and grades for Ch ${o.chapterId}.\n\nThe questions themselves stay; only your answers, grades, and revealed-answer toggles are cleared.\n\nThis is IRREVERSIBLE.`,
   'mock-questions': (o) => `Clear all course-wide mock-question attempts and grades for ${o.courseName || 'this course'}.\n\nThe question bank itself stays; only your answers, grades, and revealed answers are cleared.\n\nThis is IRREVERSIBLE.`,
-  exam:             (o) => `Clear all attempts, grades, guidance hints, and uploaded images for ${o.examLabel || 'this practice exam'}.\n\nThe parsed paper itself stays.\n\nThis is IRREVERSIBLE.`,
+  exam:             (o) => `Clear all attempts and answer checks for ${o.examLabel || 'this practice exam'}.\n\nThe prepared paper itself stays.\n\nThis is IRREVERSIBLE.`,
   question:         (o) => `Clear your answer and grade for this question.\n\nThis is IRREVERSIBLE.`,
   flashcards:       (o) => `Reset spaced-repetition state for every flashcard in Ch ${o.chapterId || 'this scope'}. The cards themselves stay; only your due-dates, ease, and review history are wiped.\n\nThis is IRREVERSIBLE.`
 }
@@ -1099,14 +1136,25 @@ function render() {
     </div>
     ${renderMiniMockOverlay()}
     ${renderExtendModal()}
-    ${renderRegenModal()}
     ${renderConfirmModal()}
     ${renderSearchPopup()}
-    ${renderFlashcardGenerateModal()}
     ${renderFlashcardStudyModal()}
     ${renderBgJobsBanner()}
   `
   bindEvents()
+  const openDialog = document.querySelector('[role="dialog"], [role="alertdialog"]')
+  if (openDialog) {
+    openDialog.tabIndex = -1
+    openDialog.focus({ preventScroll: true })
+    openDialog.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return
+      const focusable = [...openDialog.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      if (!focusable.length) { event.preventDefault(); return }
+      const first = focusable[0], last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    })
+  }
   autosizeAnswerTextareas()
   restoreScrollState(scrollSnap)
   // Restore focus to the search input across re-renders so arrow keys / Enter keep working.
@@ -1254,9 +1302,10 @@ function renderSidebar() {
       </div>
       <nav>
         ${renderSearchTrigger()}
-        <a class="nav-dashboard ${route.page === 'dashboard' ? 'active' : ''}" href="#/" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
-        <a class="nav-tool ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistake bank"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistake bank</span></a>
-        <a class="nav-tool ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mock sessions</span></a>
+        <a class="nav-dashboard ${['dashboard', 'course', 'chapter', 'mock-exam'].includes(route.page) ? 'active' : ''}" href="#/" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
+        <a class="nav-tool mobile-review-nav ${route.page === 'sr' ? 'active' : ''}" href="#/sr" title="Review"><span class="nav-icon tool-icon flashcards-icon">${ICONS.flashcards}</span><span class="nav-label">Review</span></a>
+        <a class="nav-tool ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistake bank"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistakes</span></a>
+        <a class="nav-tool nav-mocks ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mock sessions</span></a>
       </nav>
       <section class="state-card">
         <small>Personal record</small>
@@ -1416,8 +1465,24 @@ function renderDashboard() {
   const mistakeCount = mistakeCache?.items?.length ?? null
   const srDue = srDueCache?.dueCount ?? null
   const srTotal = srDueCache?.totalCards ?? null
+  const nextCourse = activeCourses()[0]
 
   return `
+    <section class="mobile-home" aria-label="Mobile study home">
+      <header>
+        <p>Today</p>
+        <h1>What do you want to study?</h1>
+      </header>
+      ${nextCourse ? `<a class="mobile-resume" href="#/course/${nextCourse.id}">
+        <span><small>Continue studying</small><strong>${escapeHtml(nextCourse.code)} · ${escapeHtml(nextCourse.name)}</strong></span>
+        ${uiIcon('chevronRight')}
+      </a>` : ''}
+      <nav class="mobile-quick-actions" aria-label="Study actions">
+        <a href="#/sr"><span>${ICONS.flashcards}</span><strong>Review flashcards</strong><small>${srDue == null ? 'Loading…' : `${srDue} due now`}</small></a>
+        <a href="#/mistakes"><span>${ICONS.mistakes}</span><strong>Fix mistakes</strong><small>${mistakeCount == null ? 'Loading…' : `${mistakeCount} open`}</small></a>
+        <a href="#/mocks"><span>${ICONS.mocks}</span><strong>Practise under time</strong><small>Mock sessions</small></a>
+      </nav>
+    </section>
     <section class="hero">
       <div>
         <p class="eyebrow">Dashboard</p>
@@ -1739,15 +1804,17 @@ function renderSurfaceTabs(course, opts = {}) {
     return `data-course-jump="${target}" data-jump-course="${course.id}"`
   }
   const cls = (k) => `surface-tab${active === k ? ' active' : ''}`
+  const current = (k) => active === k ? ' aria-current="page"' : ''
+  const pressed = (k) => ` aria-pressed="${active === k}"`
 
   return `
-    <nav class="surface-tabs" role="tablist">
-      <a class="${cls('overview')}" href="#/course/${course.id}">Overview</a>
+    <nav class="surface-tabs" aria-label="Course sections">
+      <a class="${cls('overview')}" href="#/course/${course.id}"${current('overview')}>Overview</a>
       <span class="surface-tabs-divider" aria-hidden="true"></span>
-      <button type="button" class="${cls('mock-questions')}" ${jumpAttr('mock-questions')}>Mock questions</button>
-      <button type="button" class="${cls('flashcards')}" ${jumpAttr('flashcards')}>Flashcards</button>
-      ${hasExams ? `<button type="button" class="${cls('exams')}" ${jumpAttr('exams')}>Mock Exams</button>` : ''}
-      ${hasTutorials ? `<button type="button" class="${cls('tutorials')}" ${jumpAttr('tutorials')}>Tutorials</button>` : ''}
+      <button type="button" class="${cls('mock-questions')}"${pressed('mock-questions')} ${jumpAttr('mock-questions')}>Mock questions</button>
+      <button type="button" class="${cls('flashcards')}"${pressed('flashcards')} ${jumpAttr('flashcards')}>Flashcards</button>
+      ${hasExams ? `<button type="button" class="${cls('exams')}"${pressed('exams')} ${jumpAttr('exams')}>Mock Exams</button>` : ''}
+      ${hasTutorials ? `<button type="button" class="${cls('tutorials')}"${pressed('tutorials')} ${jumpAttr('tutorials')}>Tutorials</button>` : ''}
     </nav>
   `
 }
@@ -1800,9 +1867,9 @@ function renderChapterPrevNext(course, prev, next, variant) {
 function renderChapterSubTabs(course, chapter, activeTab) {
   return `
     <nav class="chapter-subtabs" role="tablist" aria-label="Chapter view">
-      <button type="button" role="tab" class="chapter-subtab${activeTab === 'content' ? ' active' : ''}" data-chapter-tab="content" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Content</button>
-      <button type="button" role="tab" class="chapter-subtab${activeTab === 'selftest' ? ' active' : ''}" data-chapter-tab="selftest" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Self-Test</button>
-      <button type="button" role="tab" class="chapter-subtab${activeTab === 'esq' ? ' active' : ''}" data-chapter-tab="esq" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Exam Style Questions</button>
+      <button type="button" role="tab" aria-selected="${activeTab === 'content'}" tabindex="${activeTab === 'content' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'content' ? ' active' : ''}" data-chapter-tab="content" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Content</button>
+      <button type="button" role="tab" aria-selected="${activeTab === 'selftest'}" tabindex="${activeTab === 'selftest' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'selftest' ? ' active' : ''}" data-chapter-tab="selftest" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Self-Test</button>
+      <button type="button" role="tab" aria-selected="${activeTab === 'esq'}" tabindex="${activeTab === 'esq' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'esq' ? ' active' : ''}" data-chapter-tab="esq" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Exam Style Questions</button>
     </nav>
   `
 }
@@ -2241,8 +2308,9 @@ function renderCourseSpine(course, chapters = course.chapters || []) {
         const fcPct       = p.flashcards.total ? Math.round((p.flashcards.mature / p.flashcards.total) * 100) : 0
         const title = `Ch ${escapeHtml(ch.id)} — ${escapeHtml(ch.name)}\nOverall: ${p.masteryPct}%\nRead: ${readPct}%\nPractice: ${p.practice.done}/${p.practice.total || 0}${p.practice.total ? ` (avg ${p.practice.avg.toFixed(1)}/10)` : ''}\nMock: ${p.mock.done}/${p.mock.total || 0}${p.mock.total ? ` (avg ${p.mock.avg.toFixed(1)}/10)` : ''}\nFlashcards: ${p.flashcards.mature}/${p.flashcards.total || 0} mature`
         return `
-          <a class="spine-tile spine-${bucket}" href="#/course/${course.id}/chapter/${ch.id}" title="${escapeHtml(title)}">
+          <div class="spine-tile spine-${bucket}" title="${escapeHtml(title)}">
             <button type="button" class="spine-tile-clear" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${ch.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset progress for Ch ${escapeHtml(ch.id)}">${uiIcon('close')}</button>
+            <a class="spine-tile-link" href="#/course/${course.id}/chapter/${ch.id}">
             <div class="spine-tile-head">
               <span class="spine-num">${escapeHtml(ch.id)}</span>
               <span class="spine-pct">${p.masteryPct}%</span>
@@ -2254,7 +2322,8 @@ function renderCourseSpine(course, chapters = course.chapters || []) {
               <span class="spine-bar spine-bar-mock" style="--fill:${mockPct}%"></span>
               <span class="spine-bar spine-bar-fc" style="--fill:${fcPct}%"></span>
             </div>
-          </a>
+            </a>
+          </div>
         `
       }).join('')}
     </div>
@@ -2613,8 +2682,10 @@ function renderChapterPage() {
   const toc = tab === 'content' ? extractToc(contentHtml) : []
 
   return `
-    <div class="chapter-grid" style="--accent:${course.accent}">
+    <div class="chapter-grid mobile-panel-${mobileStudyPanel || 'none'}" style="--accent:${course.accent}">
+      ${renderMobileStudyBar(`Ch ${chapter.id}`)}
       <aside class="chapter-toc">
+        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="outline" aria-label="Close outline">${uiIcon('close')}</button>
         <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
         <div class="rail-collapsible">
           <button class="toc-back" type="button" data-back-to-course="${course.id}" title="Back to ${course.code} ${course.shortName || ''}">${ICONS.back}<span>${course.code} <em>${course.shortName || ''}</em></span></button>
@@ -2682,6 +2753,7 @@ function renderChapterPage() {
 
       <div class="resize-handle vertical-handle" data-resize="rail" title="Drag to resize · double-click to reset"></div>
       <aside class="chapter-rail">
+        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="tools" aria-label="Close study tools">${uiIcon('close')}</button>
         <button class="rail-collapse-btn rail-side" type="button" data-rail-toggle title="${layoutState.railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.railCollapsed ? '‹' : '›'}</button>
         <div class="rail-collapsible">
           ${renderChapterProgressCard(course, chapter)}
@@ -2755,7 +2827,7 @@ function renderChapterProgressCard(course, chapter) {
       </div>
       <div class="cp-rows">
         ${row('Practice', practiceLine, p.practice.total ? '' : 'Load on the Self-Test tab')}
-        ${row('Mock questions', mockLine, p.mock.total ? '' : 'Generate on the Mock-exam page')}
+        ${row('Mock questions', mockLine, p.mock.total ? '' : 'Not published yet')}
         ${row('Flashcards', fcLine, p.flashcards.total ? '' : 'Add on the Flashcards tab')}
       </div>
       <button type="button" class="cp-read-toggle ${p.read ? 'is-read' : ''}" data-chapter-read-toggle="${course.id}/${chapter.id}">
@@ -2779,9 +2851,10 @@ function renderChatPanel(course, chapter) {
   return `
     <section class="rail-card chat-panel" data-chat-key="${course.id}/${chapter.id}">
       <h4>Tutor chat</h4>
-      <small class="rail-meta">Course context: all of ${course.code}. Focused on Ch ${chapter.id}.</small>
+      <small class="rail-meta">Grounded in ${course.code} course material · focused on Ch ${chapter.id}</small>
+      <small class="ai-allowance">${aiAllowance('chat')}</small>
       <div class="chat-messages">${messagesHtml}</div>
-      ${chat.sending ? '<div class="chat-thinking">Tutor thinking (codex)...</div>' : ''}
+      ${chat.sending ? '<div class="chat-thinking">Checking the course material…</div>' : ''}
       <form class="chat-form" data-chat-form="${course.id}/${chapter.id}">
         <textarea class="chat-input" data-chat-input="${course.id}/${chapter.id}" placeholder="Ask: 'Why does Dijkstra fail with negative edges?'" rows="2" ${chat.sending ? 'disabled' : ''}>${escapeHtml(chat.draft || '')}</textarea>
         <div class="chat-actions">
@@ -2814,7 +2887,9 @@ async function sendChat(courseId, chapterId) {
       body: JSON.stringify({ courseId, chapterId, messages: prevMessages, userMessage: text })
     })
     chat.messages.push({ role: 'assistant', content: data.reply })
+    aiUsage = data.usage || aiUsage
   } catch (err) {
+    if (err.usage) aiUsage = err.usage
     chat.messages.push({ role: 'assistant', content: `_Chat failed: ${err.message}_` })
   }
   chat.sending = false
@@ -2876,37 +2951,40 @@ function renderQuestionsPanel(course, chapter) {
   const cstate = questionsCache.get(key)
   if (cstate === undefined) {
     return `
-      <div class="panel-head"><div><p class="eyebrow">Self-check</p><h2>Practice questions</h2></div></div>
-      <p>Pulls from Self Tests / Worked Drills in the KB, plus 8–16 additional exam-style questions generated via Codex (all five types: written, calc, true/false, best-option, pseudocode).</p>
-      <div class="loader">Loading or generating practice questions. If this chapter has no cache yet, Codex is generating them now and this can take 60-120s...</div>
+      <div class="panel-head"><div><h2>Practice questions</h2></div></div>
+      <p>Published self-tests and worked drills for this chapter, with optional personal extra exercises.</p>
+      <div class="loader">Loading the published question bank…</div>
     `
   }
   if (cstate.loading) {
     return `
-      <div class="panel-head"><div><p class="eyebrow">Self-check</p><h2>Practice questions</h2></div></div>
-      <div class="loader">${cstate.auto ? 'Loading or generating practice questions. First generation can take 60-120s...' : 'Generating questions via Codex (first time may take 60-120s)...'}</div>
+      <div class="panel-head"><div><h2>Practice questions</h2></div></div>
+      <div class="loader">Loading the published question bank…</div>
     `
   }
   if (cstate.error) {
     return `
-      <div class="panel-head"><div><p class="eyebrow">Self-check</p><h2>Practice questions</h2></div></div>
-      <div class="loader error">Failed: ${escapeHtml(cstate.error)}</div>
-      <button type="button" class="load-q-btn" data-load-questions="${course.id}/${chapter.id}">Retry</button>
+      <div class="panel-head"><div><h2>Practice questions</h2></div></div>
+      <div class="loader error">${escapeHtml(cstate.error)}</div>
+      <div class="empty-actions">
+        <button type="button" class="load-q-btn" data-extend-open="${course.id}/${chapter.id}">Request extra exercises</button>
+        <button type="button" class="tb-btn" data-load-questions="${course.id}/${chapter.id}">Retry published bank</button>
+      </div>
     `
   }
 
   const questions = cstate.questions || []
   if (!questions.length) {
     return `
-      <div class="panel-head"><div><p class="eyebrow">Self-check</p><h2>Practice questions</h2></div></div>
-      <div class="loader error">No questions cached. ${cstate.generationError ? `Last error: ${escapeHtml(cstate.generationError)}` : ''}</div>
-      <button type="button" class="load-q-btn" data-load-questions="${course.id}/${chapter.id}">Generate questions</button>
+      <div class="panel-head"><div><h2>Practice questions</h2></div></div>
+      <div class="empty-state compact"><strong>No published exercises yet</strong><p>You can still request a small personal set based on this chapter.</p></div>
+      <button type="button" class="load-q-btn" data-extend-open="${course.id}/${chapter.id}">Request extra exercises</button>
     `
   }
   const filtered = questions.filter((q) => {
     if (questionFilter.types.length && !questionFilter.types.includes(q.type)) return false
     if (questionFilter.sources.length) {
-      const sourceTag = q.id.startsWith('gen-') ? 'gen' : 'kb'
+      const sourceTag = q.id.startsWith('extra-') ? 'extra' : 'kb'
       if (!questionFilter.sources.includes(sourceTag)) return false
     }
     return true
@@ -2930,19 +3008,18 @@ function renderQuestionsPanel(course, chapter) {
 
   // Custom multi-select dropdowns for Type + Source filters
   const typeOptionsList = Object.keys(QUESTION_TYPE_LABELS).map((t) => ({ value: t, label: QUESTION_TYPE_LABELS[t] }))
-  const sourceOptionsList = [{ value: 'kb', label: 'From KB' }, { value: 'gen', label: 'Generated' }]
+  const sourceOptionsList = [{ value: 'kb', label: 'Published' }, { value: 'extra', label: 'My extras' }]
 
   return `
     <div class="panel-head q-panel-head">
       <div>
-        <p class="eyebrow">Self-check</p>
         <h2>Practice questions <small>(${filtered.length} of ${questions.length})</small></h2>
         <div class="type-strip">${typeStrip}</div>
       </div>
       <div class="q-toolbar">
         ${renderMultiSelect('types', 'All types', typeOptionsList)}
         ${renderMultiSelect('sources', 'All sources', sourceOptionsList)}
-        <button type="button" class="tb-btn tb-btn-primary" data-extend-open="${course.id}/${chapter.id}" title="Generate more questions to add to the bank">＋ Generate more</button>
+        <button type="button" class="tb-btn tb-btn-primary" data-extend-open="${course.id}/${chapter.id}" title="Request personal exercises based on this chapter">${uiIcon('plus')} Extra exercises</button>
         <button type="button" class="tb-btn clear-link" data-clear-scope="self-test" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear all your self-test answers, grades, and revealed answers for this chapter">Clear answers</button>
         ${renderToolbarMore(course, chapter)}
       </div>
@@ -3057,17 +3134,13 @@ function renderQuestionCard(q, index, course, chapter) {
             </select>
           </label>
         </div>
-        <textarea class="q-input code cm-target" placeholder="Write your answer (or drop a screenshot of your work)..." data-attempt="${attemptKey}" data-code-lang="${lang}">${escapeHtml(att.value || '')}</textarea>
-        ${renderImageThumbs(att.images, `remove-image="${attemptKey}"`)}
-        <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-attempt-file="${attemptKey}"> upload image</label>
+        <textarea class="q-input code cm-target" placeholder="Write your answer…" data-attempt="${attemptKey}" data-code-lang="${lang}">${escapeHtml(att.value || '')}</textarea>
       </div>
     `
   } else {
     input = `
       <div class="attempt-drop" data-attempt-drop="${attemptKey}">
-        <textarea class="q-input" placeholder="Your answer (or drop a screenshot/photo)..." data-attempt="${attemptKey}">${escapeHtml(att.value || '')}</textarea>
-        ${renderImageThumbs(att.images, `remove-image="${attemptKey}"`)}
-        <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-attempt-file="${attemptKey}"> upload image</label>
+        <textarea class="q-input" placeholder="Write your answer…" data-attempt="${attemptKey}">${escapeHtml(att.value || '')}</textarea>
       </div>
     `
   }
@@ -3081,12 +3154,12 @@ function renderQuestionCard(q, index, course, chapter) {
           <span class="q-diff diff-${q.difficulty}">${q.difficulty}</span>
           <span class="q-source">${escapeHtml(q.source || 'Practice')}</span>
         </div>
-        <button type="button" class="q-delete" data-q-delete="${course.id}/${chapter.id}/${q.id}" title="Delete this question from the bank (cannot be undone)" aria-label="Delete question">${uiIcon('close')}</button>
+        ${q.id.startsWith('extra-') ? `<button type="button" class="q-delete" data-q-delete="${course.id}/${chapter.id}/${q.id}" title="Remove this personal extra exercise" aria-label="Remove exercise">${uiIcon('close')}</button>` : ''}
       </div>
       <div class="q-body">${renderInlineMarkdown(q.question)}</div>
       ${input}
       <div class="q-actions">
-        <button type="button" class="btn btn-primary" data-grade="${attemptKey}" ${grading ? 'disabled' : ''}>${grading ? 'Grading…' : 'Check my answer'}</button>
+        <button type="button" class="btn btn-primary" data-grade="${attemptKey}" ${grading ? 'disabled' : ''}>${grading ? 'Checking…' : 'Check answer'}</button>
         <button type="button" class="btn btn-ghost" data-reveal="${attemptKey}">${showAnswer ? 'Hide answer' : 'Reveal answer'}</button>
         ${srButtonHtml(q.id)}
         <button type="button" class="btn btn-ghost clear-link" data-clear-scope="question" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-question="${q.id}" title="Clear your answer and grade for this question">Clear answer</button>
@@ -3460,12 +3533,13 @@ function renderExtendModal() {
 
   return `
     <div class="mock-overlay" data-extend-overlay>
-      <div class="mock-panel" style="max-width:560px">
-        <h2>Generate more questions</h2>
+      <div class="mock-panel" role="dialog" aria-modal="true" aria-labelledby="extend-dialog-title" style="max-width:560px">
+        <h2 id="extend-dialog-title">Request extra exercises</h2>
         <p class="rail-meta">${course?.code || cid} ${course?.shortName ? '· ' + course.shortName : ''}${chapter ? ' / Ch ' + chapter.id + ' · ' + chapter.name : ''}</p>
+        <p class="ai-allowance">${aiAllowance('exercises')}</p>
 
         ${extendModal.generating ? `
-          <div class="loader">Generating ${extendModal.count} new questions via Codex (60–120s)…</div>
+          <div class="loader">Preparing ${extendModal.count} personal exercises from this chapter…</div>
         ` : `
           ${extendModal.error ? `<div class="loader error">${escapeHtml(extendModal.error)}</div>` : ''}
 
@@ -3502,11 +3576,11 @@ function renderExtendModal() {
               rows="4"
               placeholder="e.g. 'Focus on the contingency planning section, especially BIA. Skip easy MC. Include at least one question on RTO/RPO.' — added on top of the default prompt."
             >${escapeHtml(extendModal.customPrompt || '')}</textarea>
-            <small class="rail-meta">Steer the generator toward specific topics, difficulty, style, or coverage. Leave blank for default behaviour.</small>
+            <small class="rail-meta">Choose a topic, difficulty, or style. Leave blank for a balanced set.</small>
           </fieldset>
 
           <div class="extend-actions">
-            <button type="button" class="load-q-btn" data-extend-submit>Generate ${extendModal.count}</button>
+            <button type="button" class="load-q-btn" data-extend-submit>Request ${extendModal.count}</button>
             <button type="button" class="chat-clear" data-extend-close>Cancel</button>
           </div>
         `}
@@ -3533,12 +3607,14 @@ async function submitExtend() {
     })
     // refresh local cache
     questionsCache.set(`${cid}/${chid}`, { questions: data.payload.questions })
+    aiUsage = data.usage || aiUsage
     extendModal.open = null
     extendModal.generating = false
     extendModal.error = null
     extendModal.customPrompt = ''
     render()
   } catch (err) {
+    if (err.usage) aiUsage = err.usage
     extendModal.generating = false
     extendModal.error = err.message
     render()
@@ -3555,10 +3631,10 @@ function renderRegenModal() {
 
   return `
     <div class="mock-overlay" data-regen-overlay>
-      <div class="mock-panel" style="max-width:560px">
-        <h2>Regenerate questions</h2>
+      <div class="mock-panel" role="dialog" aria-modal="true" aria-labelledby="regen-dialog-title" style="max-width:560px">
+        <h2 id="regen-dialog-title">Regenerate questions</h2>
         <p class="rail-meta">${course?.code || cid} ${course?.shortName ? '· ' + course.shortName : ''}${chapter ? ' / Ch ' + chapter.id + ' · ' + chapter.name : ''}</p>
-        <div class="regen-warning">⚠ This <strong>replaces</strong> the cached question set for this chapter. Your existing questions for this chapter will be deleted.</div>
+        <div class="regen-warning"><strong>Warning:</strong> this replaces the cached question set for this chapter. Your existing questions for this chapter will be deleted.</div>
 
         ${regenModal.generating ? `
           <div class="loader">Regenerating ${regenModal.count} questions via Codex (60–180s)…</div>
@@ -3633,14 +3709,6 @@ function renderToolbarMore(course, chapter) {
             <span>
               <strong>Start mini-mock</strong>
               <small>Timed practice on this chapter's question set</small>
-            </span>
-          </button>
-          <div class="tb-more-divider" aria-hidden="true"></div>
-          <button type="button" class="tb-more-item tb-more-danger" data-regen-open="${key}" data-tb-more-action>
-            <span class="tb-more-icon">${uiIcon('refresh')}</span>
-            <span>
-              <strong>Regenerate entire bank</strong>
-              <small>Replace all questions with a fresh set</small>
             </span>
           </button>
         </div>
@@ -3729,7 +3797,7 @@ function renderMiniMockOverlay() {
   if (!mockSession.active) return ''
   const m = mockSession.active
   if (m.phase === 'grading') {
-    return `<div class="mock-overlay"><div class="mock-panel"><h2>Grading your mock…</h2><p>Codex is reviewing ${m.questions.length} answers. This usually takes 60-180s.</p><div class="loader">…</div></div></div>`
+    return `<div class="mock-overlay"><div class="mock-panel"><h2>Checking your mock…</h2><p>Comparing ${m.questions.length} answers with the published references.</p><div class="loader">Checking…</div></div></div>`
   }
   if (m.phase === 'done') {
     const s = m.results
@@ -4026,7 +4094,6 @@ function renderFlashcardsView(course) {
       </div>
       <div class="q-toolbar fc-global-actions">
         ${totalCards ? `<button type="button" class="tb-btn tb-btn-primary" data-fc-practice-all="${course.id}">${uiIcon('play')} Practice all (${totalDue || totalCards})</button>` : ''}
-        <button type="button" class="tb-btn" data-fc-gen-all="${course.id}">${uiIcon('sparkle')} Generate all chapters</button>
       </div>
     </div>
     ${chapters.map((g) => renderFlashcardsChapterSection(course, g.ch, g.cards)).join('')}
@@ -4048,7 +4115,6 @@ function renderFlashcardsChapterSection(course, chapter, cards) {
         <div class="fc-chapter-actions">
           ${cards.length ? `<button type="button" class="tb-btn tb-btn-primary" data-fc-practice="${chapter.id}">Practice (${dueCount || cards.length})</button>` : ''}
           <button type="button" class="tb-btn" data-fc-add="${chapter.id}">Add card</button>
-          <button type="button" class="tb-btn" data-fc-gen="${chapter.id}">Generate with AI</button>
           <a class="tb-btn" href="#/course/${course.id}/chapter/${chapter.id}" title="Open chapter for revision">Open chapter</a>
         </div>
       </header>
@@ -4058,7 +4124,7 @@ function renderFlashcardsChapterSection(course, chapter, cards) {
           <div class="fc-grid">
             ${cards.map((c) => renderFlashcardCard(course, chapter, c)).join('')}
           </div>
-        ` : `<p class="empty fc-empty">No flashcards in this chapter yet. Add one manually or generate with AI.</p>`}
+        ` : `<p class="empty fc-empty">No flashcards in this chapter yet. Add a card from your own notes or from a practice question.</p>`}
       ` : ''}
     </section>
   `
@@ -4626,23 +4692,11 @@ async function ensurePracticeExam(courseId, examId) {
     return
   }
 
-  // Parsing uses the canonical per-page extraction stored in Neon. The browser
-  // never downloads and re-extracts the PDF.
-  try {
-    practiceExamCache.set(key, { status: 'parsing' })
-    render()
-    const payload = await fetchJson(`/api/practice-exam/${encodeURIComponent(courseId)}/${examIdEnc}/parse`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    })
-    practiceExamCache.set(key, { status: 'ready', questions: payload.questions })
-    if (!practiceExamView.currentQid) practiceExamView.currentQid = payload.questions[0].id
-    render()
-  } catch (err) {
-    practiceExamCache.set(key, { status: 'error', error: err.message })
-    render()
-  }
+  practiceExamCache.set(key, {
+    status: 'error',
+    error: 'This paper has not been prepared for interactive practice yet. You can still open the original PDF.'
+  })
+  render()
 }
 
 function pdfTextWithBoldMarkers(textContent) {
@@ -4703,15 +4757,15 @@ function renderMockQuestionsView(course) {
     return `<div class="practice-loader">Loading mock questions…</div>`
   }
   if (cache.status === 'generating') {
-    return `<div class="practice-loader">Generating course-wide questions via Codex (2–5 min — analyses every chapter + exam paper)…</div>`
+    return `<div class="practice-loader">Loading the published course-wide question bank…</div>`
   }
   if (cache.status === 'idle' || (cache.status === 'error' && !cache.questions)) {
     return `
       <div class="mq-intro">
         <h2>Mock questions</h2>
-        <p>Course-wide self-test. Codex reads every chapter plus the mock exam paper${cache?.examPaperUsed === false ? '' : ' and solutions'} to generate a bank of questions, indexed by chapter and topic, with multiple questions per topic. Question types are chosen to match the exam style.</p>
-        ${cache?.status === 'error' ? `<p class="error">Last error: ${escapeHtml(cache.error)}</p>` : ''}
-        <button type="button" class="load-q-btn" data-mq-generate="${course.id}">Generate questions</button>
+        <p>The course team has not published a course-wide mock bank yet. Chapter exercises and past papers remain available.</p>
+        ${cache?.status === 'error' ? `<p class="error">${escapeHtml(cache.error)}</p>` : ''}
+        <a class="load-q-btn" href="#/course/${course.id}">Return to course</a>
       </div>
     `
   }
@@ -4740,7 +4794,6 @@ function renderMockQuestionsView(course) {
   return `
     <div class="panel-head q-panel-head mq-head">
       <div>
-        <p class="eyebrow">Course-wide self-test</p>
         <h2>Mock questions <small>(${filtered.length} of ${questions.length})</small></h2>
         ${typeStrip ? `<div class="type-strip">${typeStrip}</div>` : ''}
         ${cache.examTypeMix ? `<p class="rail-meta mq-mix">${escapeHtml(cache.examTypeMix)}</p>` : ''}
@@ -4748,7 +4801,6 @@ function renderMockQuestionsView(course) {
       <div class="q-toolbar">
         ${renderMqMultiSelect('topics', 'All topics', topicOpts)}
         ${renderMqMultiSelect('types', 'All types', typeOpts)}
-        <button type="button" class="tb-btn" data-mq-regenerate="${course.id}" title="Regenerate the whole bank">${uiIcon('refresh')} Regenerate</button>
         ${mockQuestionsView.chapterId !== 'all'
           ? `<button type="button" class="tb-btn clear-link" data-clear-scope="esq" data-clear-course="${course.id}" data-clear-chapter="${mockQuestionsView.chapterId}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear your answers + grades for the current chapter filter">Clear chapter answers</button>`
           : `<button type="button" class="tb-btn clear-link" data-clear-scope="mock-questions" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Clear all your answers + grades across the entire mock-question bank">Clear all answers</button>`}
@@ -4882,7 +4934,7 @@ function renderMockQuestionCard(q, index, course) {
       <div class="q-body">${renderInlineMarkdown(q.question)}</div>
       ${input}
       <div class="q-actions">
-        <button type="button" class="btn btn-primary" data-grade="${attemptKey}" ${grading ? 'disabled' : ''}>${grading ? 'Grading…' : 'Check my answer'}</button>
+        <button type="button" class="btn btn-primary" data-grade="${attemptKey}" ${grading ? 'disabled' : ''}>${grading ? 'Checking…' : 'Check answer'}</button>
         <button type="button" class="btn btn-ghost" data-reveal="${attemptKey}">${showAnswer ? 'Hide answer' : 'Reveal answer'}</button>
         ${srButtonHtml(q.id)}
         <button type="button" class="btn btn-ghost clear-link" data-clear-scope="question" data-clear-course="${course.id}" data-clear-chapter="${q.chapterId}" data-clear-question="${q.id}" title="Clear your answer and grade for this question">Clear answer</button>
@@ -5134,7 +5186,7 @@ function renderMockExamPage() {
     } else if (mqCache?.status === 'generating') {
       tocBody = '<p class="empty">Generating questions via codex…</p>'
     } else {
-      tocBody = '<p class="empty">No questions yet. Generate them in the main panel.</p>'
+      tocBody = '<p class="empty">No published mock questions yet.</p>'
     }
   } else if (practiceExamView.tab === 'flashcards') {
     // Flashcards panel groups itself by chapter
@@ -5168,8 +5220,10 @@ function renderMockExamPage() {
   }
 
   return `
-    <div class="chapter-grid practice-workspace" style="--accent:${course.accent}">
+    <div class="chapter-grid practice-workspace mobile-panel-${mobileStudyPanel || 'none'}" style="--accent:${course.accent}">
+      ${renderMobileStudyBar('Practice')}
       <aside class="chapter-toc">
+        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="outline" aria-label="Close outline">${uiIcon('close')}</button>
         <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
         <div class="rail-collapsible">
           <button class="toc-back" type="button" data-back-to-course="${course.id}" title="Back to ${course.code} ${course.shortName || ''}">${ICONS.back}<span>${course.code} <em>${course.shortName || ''}</em></span></button>
@@ -5199,6 +5253,7 @@ function renderMockExamPage() {
 
       <div class="resize-handle vertical-handle" data-resize="rail" title="Drag to resize · double-click to reset"></div>
       <aside class="chapter-rail">
+        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="tools" aria-label="Close study tools">${uiIcon('close')}</button>
         <button class="rail-collapse-btn rail-side" type="button" data-rail-toggle title="${layoutState.railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.railCollapsed ? '‹' : '›'}</button>
         <div class="rail-collapsible">
           ${isPaperSurface && currentExam?.pdf && (state.meta.vaultRoot || '').startsWith('/') ? `
@@ -5297,7 +5352,7 @@ function renderPracticeExam(course) {
     return `<div class="practice-preparing"><span class="practice-preparing-index">01</span><div><strong>Preparing the paper</strong><p>Loading the indexed text already extracted from the course corpus.</p></div></div>`
   }
   if (cache.status === 'parsing') {
-    return `<div class="loader practice-loader">Parsing exam structure via Codex (60–120s). This builds the full Q&A bank with model answers.</div>`
+    return `<div class="loader practice-loader">Loading the prepared exam structure…</div>`
   }
   if (cache.status === 'error') {
     return `
@@ -5323,8 +5378,7 @@ function renderPracticeExam(course) {
     <div class="practice-exam">
       <div class="practice-toolbar">
         <small class="rail-meta">${questions.length} questions · shared problem statements stay visible, one sub-question at a time</small>
-        <button type="button" class="tb-btn clear-link" data-clear-scope="exam" data-clear-course="${course.id}" data-clear-exam="${getActivePaperId() || ''}" data-clear-exam-label="${escapeHtml(getCurrentPaper(course)?.label || 'this practice exam')}" title="Clear all your answers, grades, guidance hints, and uploaded images for this practice exam">Clear my work</button>
-        <button type="button" class="regen-btn" data-practice-reparse="${course.id}">${uiIcon('refresh')} Regenerate exam</button>
+        <button type="button" class="tb-btn clear-link" data-clear-scope="exam" data-clear-course="${course.id}" data-clear-exam="${getActivePaperId() || ''}" data-clear-exam-label="${escapeHtml(getCurrentPaper(course)?.label || 'this practice exam')}" title="Clear your answers and checks for this practice exam">Clear my work</button>
       </div>
 
       ${renderPracticeProgress(groups, groupIdx)}
@@ -5546,17 +5600,13 @@ function renderPracticePart(q, course) {
             </select>
           </label>
         </div>
-        <textarea class="q-input code cm-target" data-practice-attempt="${qid}" data-code-lang="${lang}" placeholder="Your answer for ${escapeHtml(q.label)} (or drop a screenshot/photo)…">${escapeHtml(attempt)}</textarea>
-        ${renderImageThumbs(practiceExamView.attemptImages[qid], `practice-remove-image="${qid}"`)}
-        <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-practice-file="${qid}"> upload image</label>
+        <textarea class="q-input code cm-target" data-practice-attempt="${qid}" data-code-lang="${lang}" placeholder="Your answer for ${escapeHtml(q.label)}…">${escapeHtml(attempt)}</textarea>
       </div>
     `
   } else {
     input = `
       <div class="attempt-drop" data-practice-drop="${qid}">
-        <textarea class="q-input" data-practice-attempt="${qid}" placeholder="Your answer for ${escapeHtml(q.label)} (or drop a screenshot/photo)…">${escapeHtml(attempt)}</textarea>
-        ${renderImageThumbs(practiceExamView.attemptImages[qid], `practice-remove-image="${qid}"`)}
-        <label class="attempt-drop-hint">📎 Drop or <input type="file" accept="image/*" multiple class="attempt-file-input" data-practice-file="${qid}"> upload image</label>
+        <textarea class="q-input" data-practice-attempt="${qid}" placeholder="Your answer for ${escapeHtml(q.label)}…">${escapeHtml(attempt)}</textarea>
       </div>
     `
   }
@@ -5575,18 +5625,10 @@ function renderPracticePart(q, course) {
       ${renderPracticeFigures(q, course)}
       ${input}
       <div class="q-actions">
-        <button type="button" class="btn btn-primary" data-practice-grade="${qid}" ${grading ? 'disabled' : ''}>${grading ? 'Grading…' : 'Check my answer'}</button>
+        <button type="button" class="btn btn-primary" data-practice-grade="${qid}" ${grading ? 'disabled' : ''}>${grading ? 'Checking…' : 'Check answer'}</button>
         <button type="button" class="btn btn-ghost" data-toggle-answer="${qid}">${showAnswer ? 'Hide ideal answer' : 'Reveal ideal answer'}</button>
-        <button type="button" class="btn btn-ghost" data-toggle-guidance="${qid}">${showGuidance ? 'Hide guidance' : 'Show guidance'}</button>
-        <button type="button" class="btn btn-ghost clear-link" data-clear-scope="question" data-clear-course="${course.id}" data-clear-question="${qid}" title="Clear your answer, grade, and guidance for this question">Clear answer</button>
+        <button type="button" class="btn btn-ghost clear-link" data-clear-scope="question" data-clear-course="${course.id}" data-clear-question="${qid}" title="Clear your answer and check for this question">Clear answer</button>
       </div>
-
-      ${showGuidance ? `
-        <div class="q-grade">
-          <strong>Guidance</strong>
-          ${!guidance ? `<div class="loader">Generating tutor guidance…</div>` : guidance.loading ? `<div class="loader">Generating…</div>` : guidance.error ? `<div class="loader error">${escapeHtml(guidance.error)}</div>` : `<div class="markdown-body">${renderMarkdown(guidance.text)}</div>`}
-        </div>
-      ` : ''}
 
       ${showAnswer ? `
         <div class="q-expected">
@@ -5643,9 +5685,10 @@ function renderChatPanelCourse(course) {
   return `
     <section class="rail-card chat-panel" data-chat-key="${course.id}/mock">
       <h4>Tutor chat</h4>
-      <small class="rail-meta">Course context: all of ${course.code}. Focused on mock exam.</small>
+      <small class="rail-meta">Grounded in ${course.code} course material · exam focus</small>
+      <small class="ai-allowance">${aiAllowance('chat')}</small>
       <div class="chat-messages">${messagesHtml}</div>
-      ${chat.sending ? '<div class="chat-thinking">Tutor thinking (codex)...</div>' : ''}
+      ${chat.sending ? '<div class="chat-thinking">Checking the course material…</div>' : ''}
       <form class="chat-form" data-chat-form="${course.id}/mock">
         <textarea class="chat-input" data-chat-input="${course.id}/mock" placeholder="Ask: 'Q3 part b — what's the trick here?'" rows="2" ${chat.sending ? 'disabled' : ''}>${escapeHtml(chat.draft || '')}</textarea>
         <div class="chat-actions">
@@ -6373,6 +6416,30 @@ function bindEvents() {
   window.__platformState = state
   window.__autoWrap = autoWrapBareLatex
   window.__renderMarkdown = renderMarkdown
+
+  document.querySelectorAll('[data-mobile-study-panel]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.mobileStudyPanel
+      mobileStudyPanel = mobileStudyPanel === target ? null : target
+      render()
+    })
+  })
+
+  document.querySelectorAll('.chapter-subtabs').forEach((tablist) => {
+    tablist.addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+      const tabs = [...tablist.querySelectorAll('[role="tab"]')]
+      const current = tabs.indexOf(document.activeElement)
+      if (current < 0) return
+      event.preventDefault()
+      const next = event.key === 'Home' ? 0
+        : event.key === 'End' ? tabs.length - 1
+          : event.key === 'ArrowRight' ? (current + 1) % tabs.length
+            : (current - 1 + tabs.length) % tabs.length
+      tabs[next].focus()
+      tabs[next].click()
+    })
+  })
 
   document.querySelectorAll('[data-sign-out]').forEach((button) => {
     button.addEventListener('click', async () => {
@@ -7807,7 +7874,7 @@ function bindEvents() {
     radio.addEventListener('change', (event) => {
       extendModal.count = Number(event.currentTarget.dataset.extendCount)
       const btn = document.querySelector('[data-extend-submit]')
-      if (btn) btn.textContent = `Generate ${extendModal.count}`
+      if (btn) btn.textContent = `Request ${extendModal.count}`
     })
   })
   document.querySelectorAll('[data-extend-prompt]').forEach((ta) => {

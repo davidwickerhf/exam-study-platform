@@ -1,7 +1,7 @@
 # Exam Study Platform
 
 A hosted or local study platform for the Maastricht BCS June 2026 resit window.
-With editorial chapter notes, mock exams, AI-generated question banks, and
+With editorial chapter notes, prepared mock exams, question banks, and
 flashcards for five courses:
 
 - **BCS1520** — Statistics
@@ -11,9 +11,9 @@ flashcards for five courses:
 - **BCS2540** — Numerical Methods
 
 Built on Node (no framework), publishes versioned editorial material to Neon,
-stores private progress there behind Clerk authentication, and generates
-questions / grades attempts via your choice of Codex CLI, Claude CLI, or the
-Anthropic API directly.
+stores private progress there behind Clerk authentication, and limits student
+AI access to retrieval-grounded tutor chat plus explicitly requested personal
+extra exercises. Answer checks run locally against published references.
 
 For production setup and the content authoring workflow, see
 [Hosted architecture](docs/HOSTED_ARCHITECTURE.md) and
@@ -53,9 +53,9 @@ npm start
     [console.anthropic.com](https://console.anthropic.com/settings/keys);
     setup will prompt for it.
 
-You can also use the platform with **no provider** — chapter reading and the
-pre-generated question banks still work. Only question generation and
-attempt-grading need an LLM.
+You can also use the platform with **no provider** — chapter reading, published
+question banks, flashcards, and local answer checks still work. Only grounded
+tutor chat and personal extra exercises need an LLM.
 
 ## What you get out of the box
 
@@ -72,8 +72,8 @@ generation required:
 | Flashcards | 743 cards across all 5 courses |
 | PDF outlines | All shipped PDFs come with their content TOC pre-built |
 
-You can regenerate or add to any of these via the platform's UI once an LLM
-provider is configured.
+Course-team content is read-only in the student UI. Students can add their own
+flashcards and request quota-limited personal extra exercises.
 
 ## File layout
 

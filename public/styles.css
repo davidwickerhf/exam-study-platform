@@ -2502,7 +2502,7 @@ svg.diag-svg .d-title {
 }
 
 svg.diag-svg .d-h {
-  font-family: Georgia, "Iowan Old Style", serif;
+  font-family: "Manrope", system-ui, sans-serif;
   font-size: 15px;
   font-weight: 700;
   fill: var(--ink);

@@ -11,6 +11,7 @@ import './lib/env.mjs'
 import { authenticate, authConfig, isPublicApi } from './lib/auth.mjs'
 import { setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
+import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
 import { editorialMode, getMaterial, getMaterialText, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 
@@ -230,9 +231,32 @@ const mime = {
   '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 }
 
-function send(res, status, body, type = 'application/json; charset=utf-8') {
-  res.writeHead(status, { 'Content-Type': type })
+function send(res, status, body, type = 'application/json; charset=utf-8', headers = {}) {
+  res.writeHead(status, { 'Content-Type': type, ...headers })
   res.end(body)
+}
+
+function sendAiError(res, error) {
+  if (!(error instanceof AiLimitError)) return false
+  send(res, 429, JSON.stringify({
+    error: error.message,
+    code: error.code,
+    feature: error.feature,
+    reason: error.reason,
+    retryAfter: error.retryAfter,
+    usage: error.summary
+  }), 'application/json; charset=utf-8', {
+    'Retry-After': String(error.retryAfter),
+    'X-RateLimit-Reason': error.reason
+  })
+  return true
+}
+
+function sendManagedContentOnly(res) {
+  send(res, 403, JSON.stringify({
+    error: 'This content is prepared by the course team and cannot be generated from the student app.',
+    code: 'MANAGED_CONTENT_ONLY'
+  }))
 }
 
 function sendPdf(req, res, data, filename) {
@@ -713,12 +737,38 @@ async function writeAttemptImages(imagesBase64) {
  *                implemented yet, will throw if provider=api and images present).
  */
 async function runCodex(prompt, opts = {}) {
-  switch (LLM_PROVIDER) {
-    case 'codex':  return runCodexCli(prompt, opts)
-    case 'claude': return runClaudeCli(prompt, opts)
-    case 'api':    return runAnthropicApi(prompt, opts)
-    default:
-      throw new Error(`Unknown LLM_PROVIDER: ${LLM_PROVIDER} (expected codex|claude|api)`)
+  const feature = opts.usageFeature || null
+  const maxOutputTokens = Math.min(
+    opts.maxOutputTokens || (feature ? AI_LIMITS[feature].maxOutputTokens : 16000),
+    feature ? AI_LIMITS[feature].maxOutputTokens : 16000
+  )
+  let reservation = null
+  if (feature) {
+    reservation = await reserveAiUsage(feature, {
+      inputTokens: estimateTokens(prompt),
+      maxOutputTokens,
+      metadata: opts.usageMetadata || {}
+    })
+  }
+  try {
+    let result
+    switch (LLM_PROVIDER) {
+      case 'codex':  result = await runCodexCli(prompt, opts); break
+      case 'claude': result = await runClaudeCli(prompt, opts); break
+      case 'api':    result = await runAnthropicApi(prompt, { ...opts, maxOutputTokens }); break
+      default: throw new Error(`Unknown LLM_PROVIDER: ${LLM_PROVIDER} (expected codex|claude|api)`)
+    }
+    const text = typeof result === 'string' ? result : result.text
+    if (reservation) {
+      const usage = typeof result === 'string'
+        ? { inputTokens: estimateTokens(prompt), outputTokens: estimateTokens(text), estimated: true }
+        : result.usage
+      await completeAiUsage(reservation, usage)
+    }
+    return text
+  } catch (error) {
+    if (reservation) await failAiUsage(reservation).catch(() => {})
+    throw error
   }
 }
 
@@ -791,7 +841,7 @@ async function runClaudeCli(prompt, { schemaPath, images = [] } = {}) {
   })
 }
 
-async function runAnthropicApi(prompt, { schemaPath, images = [] } = {}) {
+async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000 } = {}) {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('ANTHROPIC_API_KEY is not set. Either set the env var, add anthropicApiKey to data/llm-config.json, or switch provider to codex/claude.')
   }
@@ -810,7 +860,7 @@ async function runAnthropicApi(prompt, { schemaPath, images = [] } = {}) {
   }
   const body = {
     model: ANTHROPIC_MODEL,
-    max_tokens: 16000,
+    max_tokens: maxOutputTokens,
     messages: [{ role: 'user', content: userContent }]
   }
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -829,49 +879,44 @@ async function runAnthropicApi(prompt, { schemaPath, images = [] } = {}) {
   const data = await resp.json()
   const text = (data.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('').trim()
   if (!text) throw new Error(`Anthropic API returned no text content (stop_reason=${data.stop_reason})`)
-  return text
+  return {
+    text,
+    usage: {
+      inputTokens: Number(data.usage?.input_tokens || estimateTokens(userContent)),
+      outputTokens: Number(data.usage?.output_tokens || estimateTokens(text)),
+      estimated: !data.usage
+    }
+  }
 }
 
 async function loadOrGenerateQuestions(state, course, chapter) {
   const cachePath = resolve(cacheDir, 'questions', `${course.id}-${chapter.id}.json`)
+  let published = []
   if (existsSync(cachePath)) {
     try {
       const cached = JSON.parse(await readFile(cachePath, 'utf8'))
-      if (cached.questions && cached.questions.length) return cached
-      // empty cache from a previous failed run — fall through and regenerate
+      if (cached.questions && cached.questions.length) published = cached.questions
+      // Empty cache from a previous failed publish — fall through to bundled
+      // self-test material, never to student-triggered AI generation.
     } catch {}
   }
-
-  const fromSelfTest = await findSelfTestQuestions(state, course, chapter)
-
-  const chapterContent = await readKbFile(state, course, chapter.file).catch(() => null)
-  let generated = []
-  let genError = null
-  if (chapterContent) {
-    try {
-      generated = await generateQuestions(course, chapter, chapterContent, fromSelfTest.length)
-    } catch (e) {
-      genError = e.message
-      console.error('Generation failed:', e.message)
-    }
-  } else {
-    genError = `Chapter content not readable (${chapter.file})`
-  }
-
-  const questions = [...fromSelfTest, ...generated]
+  if (!published.length) published = await findSelfTestQuestions(state, course, chapter)
+  const personal = await readDocument('exercises', `${course.id}-${chapter.id}`, { questions: [] })
+  const questions = [...published, ...(personal.questions || [])]
   if (!questions.length) {
-    const detail = genError ? `Codex generation failed: ${genError}` : 'No self-test questions matched this chapter and codex returned nothing.'
-    throw new Error(detail)
+    const error = new Error('No published exercises are available for this chapter yet.')
+    error.code = 'CONTENT_NOT_PUBLISHED'
+    throw error
   }
 
   const payload = {
-    generatedAt: new Date().toISOString(),
+    publishedAt: new Date().toISOString(),
     chapterId: chapter.id,
     questions,
-    generationError: genError // surfaced if some questions still made it via self-test
+    publishedCount: published.length,
+    extraCount: personal.questions?.length || 0,
+    source: 'published-and-personal'
   }
-  await ensureDir(dirname(cachePath))
-  await writeFile(cachePath, JSON.stringify(payload, null, 2), 'utf8')
   return payload
 }
 
@@ -1579,65 +1624,13 @@ function gradeOptionPracticeAttempt(q, attempt) {
 }
 
 async function gradePracticeAttempt(courseId, examId, questionId, attempt, attemptImages) {
-  const state = await readState()
-  const course = state.courses.find((c) => c.id === courseId)
   const q = await practiceQuestion(courseId, examId, questionId)
   if (!q) throw new Error('Unknown question')
   const optionCorrection = gradeOptionPracticeAttempt(q, attempt)
   if (optionCorrection) return optionCorrection
-
-  const imagePaths = await writeAttemptImages(attemptImages)
-  const imageBlurb = imagePaths.length ? `\n[${imagePaths.length} image attachment${imagePaths.length === 1 ? '' : 's'} attached — examine carefully. The student's answer is in the image; treat the typed text as supplementary unless the image is unreadable.]` : ''
-  const gradingNotesText = await loadCourseGradingNotes(state, course)
-  const gradingNotesBlock = gradingNotesText
-    ? [
-        ``,
-        `=== COURSE-WIDE GRADING NOTES (authoritative — defer to these over the generic policy where they apply) ===`,
-        gradingNotesText,
-        `=== END GRADING NOTES ===`,
-        ``
-      ].join('\n')
-    : ''
-
-  const prompt = [
-    `You are an exam grader for ${course.code} — ${course.name}.`,
-    ``,
-    MATH_FORMATTING_RULE,
-    gradingNotesBlock,
-    `GRADING POLICY — focus on SUBSTANTIVE CORRECTNESS only:`,
-    `- Award marks for: correct concepts, accurate application, named relationships, valid frameworks, correct logical structure.`,
-    `- Deduct for: missing required elements, wrong concept/acronym names, factual errors, missing connections asked for in the question.`,
-    `- IGNORE COMPLETELY: spelling mistakes, typos, minor wording differences from the model answer, grammar errors, capitalisation, stylistic phrasing, informal language. The student is fast-typing on a study tool — do not nitpick prose.`,
-    `- DO flag only: misspelled critical acronyms when the misspelling changes meaning (e.g. "CRM" written as "CMR", "BIA" as "BIP", "TPS" as "TSP"). Otherwise spelling is irrelevant.`,
-    `- Tips must address SUBSTANCE (missing concepts, weak connections, structural issues). NEVER write a Tip about wording, spelling, grammar, or style. If there is no substantive improvement to suggest, omit Tips or write "Tips: (none — answer is substantively solid)".`,
-    ``,
-    `QUESTION (${q.label}, ${q.marks} marks):`,
-    q.text,
-    ``,
-    `MODEL ANSWER (ideal full-marks response):`,
-    q.modelAnswer,
-    ``,
-    `STUDENT ATTEMPT:`,
-    (attempt || '(no typed answer)') + imageBlurb,
-    ``,
-    `Grade the attempt against the model answer. Return clean, study-useful markdown with exactly these sections:`,
-    `**Score:** X/${q.marks}`,
-    ``,
-    `**What you got right**`,
-    `- 1–3 concrete substantive strengths.`,
-    ``,
-    `**Missing / wrong**`,
-    `- Bullet each missing concept, incorrect step, or weak connection. Write "Nothing major." if the answer is substantively complete.`,
-    ``,
-    `**How to improve**`,
-    `- 1–3 exam-actionable bullets: what to add, what structure to use, or what calculation step to show.`,
-    ``,
-    `**Model answer**`,
-    `A compact full-marks answer the student could have written. Use 3–6 sentences or bullets, and include the critical terms/formulas.`,
-    ``,
-    `Be specific and direct. Do not lecture. Avoid dense paragraphs. Aim for 120–220 words unless the answer is trivially correct.`
-  ].join('\n')
-  return runCodex(prompt, { images: imagePaths })
+  return localAnswerCheck(q.modelAnswer, attempt, Number(q.marks) || 1, {
+    hasImages: Array.isArray(attemptImages) && attemptImages.length > 0
+  }).correction
 }
 
 async function generateAdditionalQuestions(course, chapter, content, existingQuestions, requestedTypes, count, customPrompt = '') {
@@ -1725,7 +1718,12 @@ async function generateAdditionalQuestions(course, chapter, content, existingQue
     truncated
   ].filter(Boolean).join('\n')
 
-  const out = await runCodex(prompt, { schemaPath })
+  const out = await runCodex(prompt, {
+    schemaPath,
+    usageFeature: 'exercises',
+    maxOutputTokens: AI_LIMITS.exercises.maxOutputTokens,
+    usageMetadata: { courseId: course.id, chapterId: chapter.id, requestedCount: count }
+  })
   const start = out.indexOf('{')
   const end = out.lastIndexOf('}')
   if (start < 0 || end < 0) throw new Error('No JSON object in codex output')
@@ -2023,19 +2021,23 @@ async function buildMockToc(courseId, examId, pages) {
 }
 
 async function chat({ courseId, chapterId, messages, userMessage }) {
+  const cleanMessage = String(userMessage || '').trim().slice(0, 4000)
+  if (!cleanMessage) throw new Error('Enter a question for the tutor.')
   const state = await readState()
   const course = state.courses.find((c) => c.id === courseId)
   if (!course) throw new Error('Unknown course')
   const chapter = course.chapters?.find((c) => c.id === chapterId)
 
   const retrieved = editorialMode() === 'neon'
-    ? await retrieveCourseContent({ query: userMessage, courseId: course.id, limit: 10 })
+    ? await retrieveCourseContent({ query: cleanMessage, courseId: course.id, limit: 10 })
     : []
   const context = retrieved.length
     ? formatRetrievalContext(retrieved)
     : await loadCourseContext(state, course, chapter)
 
-  const history = (messages || []).map((m) => `${m.role === 'user' ? 'STUDENT' : 'TUTOR'}: ${m.content}`).join('\n\n')
+  const history = (Array.isArray(messages) ? messages : []).slice(-10)
+    .map((m) => `${m.role === 'user' ? 'STUDENT' : 'TUTOR'}: ${String(m.content || '').slice(0, 4000)}`)
+    .join('\n\n')
 
   const prompt = `You are a focused exam tutor for ${course.code} — ${course.name}. ` +
     (chapter ? `The student is currently on chapter ${chapter.id} "${chapter.name}". ` : '') +
@@ -2043,9 +2045,13 @@ async function chat({ courseId, chapterId, messages, userMessage }) {
     MATH_FORMATTING_RULE + '\n\n' +
     `${context ? `=== COURSE MATERIALS ===\n${context}\n=== END MATERIALS ===\n\n` : ''}` +
     `${history ? `=== CONVERSATION SO FAR ===\n${history}\n\n` : ''}` +
-    `STUDENT: ${userMessage}\n\nRespond as TUTOR. No preamble, just the answer.`
+    `STUDENT: ${cleanMessage}\n\nRespond as TUTOR. No preamble, just the answer.`
 
-  return runCodex(prompt)
+  return runCodex(prompt, {
+    usageFeature: 'chat',
+    maxOutputTokens: AI_LIMITS.chat.maxOutputTokens,
+    usageMetadata: { courseId: course.id, chapterId: chapter?.id || null, retrieval: retrievalMode() }
+  })
 }
 
 // ----- Mistake Bank -----
@@ -2145,59 +2151,61 @@ async function generateFlashcards(state, course, chapter, count, customPrompt) {
   }))
 }
 
-async function gradeFlashcardRecall({ courseCode, chapterName, card, attempt }) {
-  const schema = {
-    type: 'object',
-    additionalProperties: false,
-    properties: {
-      score: { type: 'number', minimum: 0, maximum: 10 },
-      correction: { type: 'string' }
-    },
-    required: ['score', 'correction']
-  }
-  await ensureDir(cacheDir)
-  const schemaPath = resolve(cacheDir, 'schemas', 'flashcard-grade.schema.json')
-  await ensureDir(dirname(schemaPath))
-  await writeFile(schemaPath, JSON.stringify(schema, null, 2), 'utf8')
+const CHECK_STOP_WORDS = new Set('a an and are as at be been but by can do for from has have how if in into is it its may of on or our should than that the their then there these this to was were what when where which who why will with you your'.split(' '))
 
-  const prompt = [
-    `You are grading an active-recall flashcard attempt for ${courseCode}, chapter "${chapterName}".`,
+function answerTerms(value) {
+  return [...new Set(String(value || '')
+    .toLowerCase()
+    .replace(/[`*_#$\\()[\]{}.,:;!?<>/=+|-]/g, ' ')
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length > 2 && !CHECK_STOP_WORDS.has(word)))]
+}
+
+function localAnswerCheck(reference, attempt, maxScore = 10, { hasImages = false } = {}) {
+  const expected = String(reference || '').trim()
+  const submitted = String(attempt || '').trim()
+  const expectedTerms = answerTerms(expected)
+  const submittedTerms = new Set(answerTerms(submitted))
+  const matched = expectedTerms.filter((term) => submittedTerms.has(term))
+  const missing = expectedTerms.filter((term) => !submittedTerms.has(term))
+  const ratio = expectedTerms.length ? matched.length / expectedTerms.length : 0
+  const score = submitted ? Math.round(Math.min(1, ratio * 1.2) * maxScore * 100) / 100 : 0
+  const shownMatched = matched.slice(0, 6)
+  const shownMissing = missing.slice(0, 8)
+  const imageNote = hasImages && !submitted
+    ? '- Image-only answers are not machine-graded. Add a typed outline, then check again, or compare directly with the reference below.'
+    : null
+  const correction = [
+    `**Score:** ${score}/${maxScore}`,
     ``,
-    MATH_FORMATTING_RULE,
+    `**Reference check**`,
+    submitted
+      ? `- Your answer includes ${matched.length} of ${expectedTerms.length || 0} key reference terms${shownMatched.length ? `: ${shownMatched.join(', ')}` : ''}.`
+      : `- No typed answer was available to compare.`,
+    imageNote,
     ``,
-    `FRONT / PROMPT:`,
-    card.front,
+    `**Review next**`,
+    shownMissing.length ? `- Revisit: ${shownMissing.join(', ')}.` : `- Your wording covers the reference terms; verify the reasoning and any calculations yourself.`,
+    `- This is a local text comparison, not an AI judgment of correctness.`,
     ``,
-    `REFERENCE BACK / EXPECTED ANSWER:`,
-    card.back,
-    ``,
-    `STUDENT RECALL ATTEMPT:`,
-    attempt || '(blank)',
-    ``,
-    `Grade semantic recall against the reference answer.`,
-    `- Award credit for meaning, not exact wording.`,
-    `- Ignore spelling/grammar unless it changes a technical term.`,
-    `- Penalize missing key distinctions, false claims, and vague answers.`,
-    ``,
-    `Return strict JSON only. The correction field must be concise markdown with:`,
+    `**Reference answer**`,
+    expected || '_No reference answer has been published._'
+  ].filter(Boolean).join('\n')
+  const compactCorrection = [
     `**What matched**`,
-    `- 1-2 bullets`,
+    shownMatched.length ? `- ${shownMatched.join(', ')}.` : `- No key reference terms matched yet.`,
     ``,
     `**Missing / fix**`,
-    `- 1-3 bullets`,
-    ``,
-    `Do not include the score inside correction. Keep correction under 90 words.`
+    shownMissing.length ? `- Revisit: ${shownMissing.join(', ')}.` : `- Compare the meaning with the reference answer before rating your recall.`,
+    `- Local text check only; use the revealed answer for your own judgment.`
   ].join('\n')
+  return { score, correction, compactCorrection }
+}
 
-  const out = await runCodex(prompt, { schemaPath })
-  const start = out.indexOf('{')
-  const end = out.lastIndexOf('}')
-  if (start < 0 || end < 0) throw new Error('No JSON in flashcard grader output')
-  const parsed = JSON.parse(out.slice(start, end + 1))
-  if (typeof parsed.score !== 'number' || typeof parsed.correction !== 'string') {
-    throw new Error('Flashcard grader returned invalid shape')
-  }
-  return parsed
+async function gradeFlashcardRecall({ card, attempt }) {
+  const checked = localAnswerCheck(card.back, attempt, 10)
+  return { score: checked.score, correction: checked.compactCorrection }
 }
 
 function parseScore(correction) {
@@ -2433,57 +2441,28 @@ function postWrapMath(text) {
   }).join('')
 }
 
-async function gradeAttempt({ courseCode, chapterName, question, attempt, attemptImages, _meta }) {
-  const imagePaths = await writeAttemptImages(attemptImages)
-  const imageBlurb = imagePaths.length ? `\n[${imagePaths.length} image attachment${imagePaths.length === 1 ? '' : 's'} attached — examine carefully. The student's answer is in the image; treat the typed text as supplementary unless the image is unreadable.]` : ''
-  const schema = {
-    type: 'object',
-    additionalProperties: false,
-    properties: {
-      correction: { type: 'string' },
-      score: { type: 'number', minimum: 0, maximum: 10 }
-    },
-    required: ['correction', 'score']
+async function gradeAttempt({ question, attempt, attemptImages }) {
+  const expected = question?.expected || ''
+  const optionType = ['mc', 'tf'].includes(question?.type)
+  if (optionType && expected) {
+    const correct = normalizeOptionText(attempt) === normalizeOptionText(expected)
+    return {
+      score: correct ? 10 : 0,
+      correction: [
+        `**Score:** ${correct ? 10 : 0}/10`,
+        ``,
+        `**Answer check**`,
+        correct ? `- Your selection matches the published answer.` : `- Your selection does not match the published answer.`,
+        ``,
+        `**Reference answer**`,
+        expected
+      ].join('\n')
+    }
   }
-  await ensureDir(cacheDir)
-  const schemaPath = resolve(cacheDir, 'schemas', 'grade.schema.json')
-  await ensureDir(dirname(schemaPath))
-  await writeFile(schemaPath, JSON.stringify(schema, null, 2), 'utf8')
-
-  const prompt = `You are an exam grader for course ${courseCode}, chapter "${chapterName}".\n\n` +
-    MATH_FORMATTING_RULE + '\n\n' +
-    `GRADING POLICY — focus on SUBSTANTIVE CORRECTNESS only:\n` +
-    `- Award marks for: correct concepts, accurate application, named relationships, valid frameworks.\n` +
-    `- Deduct for: missing required elements, wrong concept/acronym names, factual errors.\n` +
-    `- IGNORE COMPLETELY: spelling mistakes, typos, minor wording differences, grammar errors, capitalisation, stylistic phrasing. The student is fast-typing — do not nitpick prose.\n` +
-    `- DO flag only: misspelled critical acronyms that change meaning (e.g. "CRM" as "CMR", "BIA" as "BIP"). Otherwise spelling is irrelevant.\n` +
-    `- Tips must address SUBSTANCE (missing concepts, weak structure). NEVER write a Tip about wording, spelling, grammar, or style. If no substantive improvement exists, omit Tip or write "Tip: (none — solid)".\n\n` +
-    `QUESTION (type: ${question.type}):\n${question.question}\n` +
-    (question.options ? `\nOPTIONS:\n${question.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}\n` : '') +
-    `\nEXPECTED ANSWER / KEY POINTS:\n${question.expected || '(no reference provided — judge on correctness against the chapter)'}\n\n` +
-    `STUDENT ATTEMPT:\n${attempt || '(no typed answer)'}${imageBlurb}\n\n` +
-    `Return strict JSON conforming to the provided schema. The "correction" field must be clean, study-useful markdown with exactly these sections:\n` +
-    `**Score:** X/10\n\n` +
-    `**What you got right**\n` +
-    `- 1–3 concrete substantive strengths. Write "Nothing yet." if the answer is mostly wrong.\n\n` +
-    `**Missing / wrong**\n` +
-    `- Bullet each missing concept, incorrect detail, or weak connection. Write "Nothing major." if substantively complete.\n\n` +
-    `**How to improve**\n` +
-    `- 1–3 exam-actionable bullets: what to add, what structure to use, or what distinction to make.\n\n` +
-    `**Model answer**\n` +
-    `A compact full-credit answer the student could have written. Use 3–6 sentences or bullets, and include the critical terms/acronyms.\n\n` +
-    `Avoid dense paragraphs. Be clear enough that the correction can be revised from directly. Aim for 120–220 words unless the answer is trivially correct.\n\n` +
-    `The "score" field is a number from 0 to 10 representing the grade. JSON only — no preamble.`
-
-  const out = await runCodex(prompt, { images: imagePaths, schemaPath })
-  const start = out.indexOf('{')
-  const end = out.lastIndexOf('}')
-  if (start < 0 || end < 0) throw new Error('Grader returned no JSON')
-  const parsed = JSON.parse(out.slice(start, end + 1))
-  if (typeof parsed.score !== 'number' || !parsed.correction) {
-    throw new Error('Grader response missing score or correction')
-  }
-  return parsed
+  const checked = localAnswerCheck(expected, attempt, 10, {
+    hasImages: Array.isArray(attemptImages) && attemptImages.length > 0
+  })
+  return { correction: checked.correction, score: checked.score }
 }
 
 // ----- Generate-all Jobs -----
@@ -2746,6 +2725,36 @@ const server = createServer(async (req, res) => {
         return
       }
       setRequestContext(auth)
+    }
+
+    if (url.pathname === '/api/ai/usage' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(await getAiUsageSummary()))
+      return
+    }
+
+    // Course banks, flashcards, paper parsing, and tutor hints are editorial
+    // assets. Students may use AI only for grounded chat and explicitly asking
+    // for extra exercises. Keep this boundary at the server, not merely in UI.
+    const managedContentMutation = req.method === 'POST' && (
+      url.pathname === '/api/generate-all-courses' ||
+      /^\/api\/courses\/[^/]+\/generate-all$/.test(url.pathname) ||
+      /^\/api\/questions\/[^/]+\/[^/]+\/regenerate$/.test(url.pathname) ||
+      /^\/api\/flashcards\/[^/]+\/generate-all$/.test(url.pathname) ||
+      /^\/api\/flashcards\/[^/]+\/[^/]+\/generate$/.test(url.pathname) ||
+      /^\/api\/mock-questions\/[^/]+$/.test(url.pathname) ||
+      /^\/api\/mock-toc\/[^/]+(?:\/[^/]+)?$/.test(url.pathname) ||
+      /^\/api\/practice-exam\/[^/]+\/[^/]+\/parse$/.test(url.pathname) ||
+      /^\/api\/practice-exam\/[^/]+\/[^/]+\/guidance\/[^/]+$/.test(url.pathname)
+    )
+    const managedContentDeletion = req.method === 'DELETE' && (
+      /^\/api\/questions\/[^/]+\/[^/]+$/.test(url.pathname) ||
+      /^\/api\/mock-questions\/[^/]+$/.test(url.pathname) ||
+      /^\/api\/mock-toc\/[^/]+(?:\/[^/]+)?$/.test(url.pathname) ||
+      /^\/api\/practice-exam\/[^/]+\/[^/]+$/.test(url.pathname)
+    )
+    if (managedContentMutation || managedContentDeletion) {
+      sendManagedContentOnly(res)
+      return
     }
 
     if (url.pathname === '/api/me' && req.method === 'GET') {
@@ -3203,7 +3212,7 @@ const server = createServer(async (req, res) => {
         })
         res.end(buf)
       } catch (err) {
-        send(res, 500, JSON.stringify({ error: err.message }))
+        if (!sendAiError(res, err)) send(res, 500, JSON.stringify({ error: err.message }))
       }
       return
     }
@@ -3302,25 +3311,19 @@ const server = createServer(async (req, res) => {
     const deleteQMatch = url.pathname.match(/^\/api\/questions\/([^/]+)\/([^/]+)\/([^/]+)$/)
     if (deleteQMatch && req.method === 'DELETE') {
       const [, courseId, chapterId, questionId] = deleteQMatch
-      const cachePath = resolve(cacheDir, 'questions', `${courseId}-${chapterId}.json`)
-      if (!existsSync(cachePath)) {
-        send(res, 404, JSON.stringify({ error: 'Chapter has no cached questions' }))
+      if (!questionId.startsWith('extra-')) {
+        sendManagedContentOnly(res)
         return
       }
-      try {
-        const cached = JSON.parse(await readFile(cachePath, 'utf8'))
-        const before = cached.questions?.length || 0
-        cached.questions = (cached.questions || []).filter((q) => q.id !== questionId)
-        const after = cached.questions.length
-        if (before === after) {
-          send(res, 404, JSON.stringify({ error: 'Question not found' }))
-          return
-        }
-        await writeFile(cachePath, JSON.stringify(cached, null, 2), 'utf8')
-        send(res, 200, JSON.stringify({ ok: true, removed: questionId, remaining: after }))
-      } catch (err) {
-        send(res, 500, JSON.stringify({ error: err.message }))
+      const personal = await readDocument('exercises', `${courseId}-${chapterId}`, { questions: [] })
+      const before = personal.questions?.length || 0
+      personal.questions = (personal.questions || []).filter((question) => question.id !== questionId)
+      if (personal.questions.length === before) {
+        send(res, 404, JSON.stringify({ error: 'Personal exercise not found' }))
+        return
       }
+      await writeDocument('exercises', `${courseId}-${chapterId}`, personal)
+      send(res, 200, JSON.stringify({ ok: true, removed: questionId, remaining: personal.questions.length }))
       return
     }
 
@@ -3377,23 +3380,20 @@ const server = createServer(async (req, res) => {
         const requestedTypes = Array.isArray(body.types) && body.types.length ? body.types : ['written', 'calc', 'tf', 'mc', 'pseudocode']
         const count = Math.max(1, Math.min(30, Number(body.count) || 8))
         const customPrompt = typeof body.customPrompt === 'string' ? body.customPrompt.trim().slice(0, 2000) : ''
-        const cachePath = resolve(cacheDir, 'questions', `${courseId}-${chapterId}.json`)
-        const existing = existsSync(cachePath) ? JSON.parse(await readFile(cachePath, 'utf8')) : { questions: [] }
+        const existingPayload = await loadOrGenerateQuestions(state, course, chapter).catch(() => ({ questions: [] }))
+        const personal = await readDocument('exercises', `${courseId}-${chapterId}`, { questions: [] })
         const chapterContent = await readKbFile(state, course, chapter.file).catch(() => null)
         if (!chapterContent) throw new Error(`Chapter content not readable (${chapter.file})`)
-        const newOnes = await generateAdditionalQuestions(course, chapter, chapterContent, existing.questions || [], requestedTypes, count, customPrompt)
-        const idBase = (existing.questions || []).filter((q) => q.id.startsWith('gen-')).length
-        const stamped = newOnes.map((q, i) => ({ ...q, id: `gen-${chapter.id}-${idBase + i}` }))
-        const payload = {
-          generatedAt: new Date().toISOString(),
-          chapterId: chapter.id,
-          questions: [...(existing.questions || []), ...stamped]
-        }
-        await ensureDir(dirname(cachePath))
-        await writeFile(cachePath, JSON.stringify(payload, null, 2), 'utf8')
-        send(res, 200, JSON.stringify({ added: stamped.length, total: payload.questions.length, payload }))
+        const newOnes = await generateAdditionalQuestions(course, chapter, chapterContent, existingPayload.questions || [], requestedTypes, count, customPrompt)
+        const stamped = newOnes.map((q) => ({ ...q, id: `extra-${chapter.id}-${randomUUID()}`, source: 'Personal extra' }))
+        await writeDocument('exercises', `${courseId}-${chapterId}`, {
+          questions: [...(personal.questions || []), ...stamped],
+          updatedAt: new Date().toISOString()
+        })
+        const payload = await loadOrGenerateQuestions(state, course, chapter)
+        send(res, 200, JSON.stringify({ added: stamped.length, total: payload.questions.length, payload, usage: await getAiUsageSummary() }))
       } catch (err) {
-        send(res, 500, JSON.stringify({ error: err.message }))
+        if (!sendAiError(res, err)) send(res, 500, JSON.stringify({ error: err.message }))
       }
       return
     }
@@ -4041,9 +4041,9 @@ const server = createServer(async (req, res) => {
       const body = await readBody(req)
       try {
         const reply = await chat(body)
-        send(res, 200, JSON.stringify({ reply }))
+        send(res, 200, JSON.stringify({ reply, usage: await getAiUsageSummary() }))
       } catch (err) {
-        send(res, 500, JSON.stringify({ error: err.message }))
+        if (!sendAiError(res, err)) send(res, 500, JSON.stringify({ error: err.message }))
       }
       return
     }
