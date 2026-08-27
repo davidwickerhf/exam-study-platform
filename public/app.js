@@ -36,11 +36,6 @@ const QUESTION_TYPE_LABELS = {
   pseudocode: 'Pseudocode'
 }
 
-let state = null
-let route = parseRoute()
-let academicsData = null
-let academicsLoading = false
-let academicsError = null
 const PLANNING_TABS = [
   ['overview', 'Overview'],
   ['courses', 'Courses'],
@@ -51,6 +46,13 @@ const PLANNING_TABS = [
   ['planner', 'Planner'],
   ['settings', 'Planning settings']
 ]
+let state = null
+let route = parseRoute()
+let academicsData = null
+let academicsLoading = false
+let academicsError = null
+let planningProfileEditing = false
+let planningCourseComposerOpen = false
 let chapterCache = new Map()
 let questionsCache = new Map()
 let practiceCache = null
@@ -276,50 +278,53 @@ function renderSearchPopup() {
   const course = state?.courses?.find((c) => c.id === cid)
   return `
     <div class="search-overlay" data-search-overlay>
-      <div class="search-popup" role="dialog" aria-label="Course search">
-        <div class="search-popup-bar">
-          <span class="search-popup-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></span>
-          <input
-            type="search"
-            class="search-popup-input"
-            placeholder="${course ? `Search ${escapeHtml(course.code)} — ${escapeHtml(course.name)}…` : 'Search course…'}"
-            value="${escapeHtml(searchState.query)}"
-            data-search-input="${cid || ''}"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          ${searchState.query ? `<button type="button" class="search-popup-clear" data-search-clear title="Clear">${uiIcon('close')}</button>` : ''}
-          <button type="button" class="search-popup-close" data-search-close title="Close (Esc)">${uiIcon('close')}</button>
-        </div>
+      <div class="search-popup" role="dialog" aria-modal="true" aria-labelledby="search-popup-title">
+        <header class="search-popup-head">
+          <div>
+            <h2 id="search-popup-title">Search course material</h2>
+            <p>${course ? `Searching ${escapeHtml(course.code)} · ${escapeHtml(course.name)}` : 'Find a chapter, topic, definition, or worked example.'}</p>
+          </div>
+          <button type="button" class="search-popup-close" data-search-close aria-label="Close search">${uiIcon('close')}</button>
+        </header>
+        <label class="search-popup-bar">
+          <span class="search-popup-icon" aria-hidden="true">${uiIcon('search')}</span>
+          <span class="sr-only">Search the selected course</span>
+          <input type="search" class="search-popup-input" placeholder="Search chapters and topics" value="${escapeHtml(searchState.query)}" data-search-input="${cid || ''}" autocomplete="off" spellcheck="false" />
+          ${searchState.query ? `<button type="button" class="search-popup-clear" data-search-clear aria-label="Clear search">${uiIcon('close')}</button>` : '<kbd class="search-popup-shortcut">⌘⇧F</kbd>'}
+        </label>
         ${state?.courses?.length > 1 ? `
-          <div class="search-popup-courses" role="tablist">
-            ${state.courses.map((c) => `
-              <button type="button" class="search-popup-course-pill ${c.id === cid ? 'is-active' : ''}" data-search-course="${c.id}" style="--accent:${c.accent}">
-                <span class="dot" style="background:${c.accent}"></span>
-                ${escapeHtml(c.code)}${c.shortName ? ` <em>${escapeHtml(c.shortName)}</em>` : ''}
-              </button>
-            `).join('')}
+          <div class="search-popup-scope">
+            <span>Search in</span>
+            <div class="search-popup-courses" role="tablist" aria-label="Course to search">
+              ${state.courses.map((c) => `
+                <button type="button" role="tab" aria-selected="${c.id === cid}" class="search-popup-course-pill ${c.id === cid ? 'is-active' : ''}" data-search-course="${c.id}">
+                  <span class="dot" style="background:${c.accent}"></span>
+                  <strong>${escapeHtml(c.code)}</strong>${c.shortName ? `<em>${escapeHtml(c.shortName)}</em>` : ''}
+                </button>
+              `).join('')}
+            </div>
           </div>
         ` : ''}
         <div class="search-popup-results" role="listbox">
-          ${searchState.loading ? '<div class="search-popup-status">Searching…</div>' : ''}
-          ${searchState.error ? `<div class="search-popup-status error">${escapeHtml(searchState.error)}</div>` : ''}
-          ${!searchState.loading && !searchState.error && searchState.query.trim().length < 2 ? `<div class="search-popup-status empty">Type at least 2 characters.</div>` : ''}
-          ${!searchState.loading && !searchState.error && searchState.query.trim().length >= 2 && searchState.results.length === 0 ? `<div class="search-popup-status empty">No matches for “${escapeHtml(searchState.query)}”.</div>` : ''}
+          ${searchState.loading ? '<div class="search-popup-status"><span class="search-status-mark is-loading"></span><div><strong>Searching course material</strong><span>Checking chapter content and headings…</span></div></div>' : ''}
+          ${searchState.error ? `<div class="search-popup-status error"><span class="search-status-mark">!</span><div><strong>Search unavailable</strong><span>${escapeHtml(searchState.error)}</span></div></div>` : ''}
+          ${!searchState.loading && !searchState.error && searchState.query.trim().length < 2 ? `<div class="search-popup-status empty"><span class="search-status-mark">${uiIcon('search')}</span><div><strong>Find anything in this course</strong><span>Enter at least two characters to search chapters, topics, and examples.</span></div></div>` : ''}
+          ${!searchState.loading && !searchState.error && searchState.query.trim().length >= 2 && searchState.results.length === 0 ? '<div class="search-popup-status empty"><span class="search-status-mark">0</span><div><strong>No matches</strong><span>Try a broader term or select another course.</span></div></div>' : ''}
           ${searchState.results.map((r, i) => `
-            <button type="button" class="search-popup-result ${i === searchState.selectedIdx ? 'is-selected' : ''}" data-search-result="${i}" role="option">
+            <button type="button" class="search-popup-result ${i === searchState.selectedIdx ? 'is-selected' : ''}" data-search-result="${i}" role="option" aria-selected="${i === searchState.selectedIdx}">
               <span class="search-popup-result-head">
-                <strong>Ch ${escapeHtml(r.chapterId)}</strong> — ${escapeHtml(r.chapterName)}
-                ${r.headingText && r.headingText !== r.chapterName ? `<span class="search-popup-result-heading"> › ${escapeHtml(r.headingText)}</span>` : ''}
+                <small>Ch ${escapeHtml(r.chapterId)}</small><strong>${escapeHtml(r.chapterName)}</strong>
+                ${r.headingText && r.headingText !== r.chapterName ? `<span class="search-popup-result-heading">${escapeHtml(r.headingText)}</span>` : ''}
               </span>
               <span class="search-popup-result-snippet">${escapeHtml(r.snippet)}</span>
+              <span class="search-popup-result-open" aria-hidden="true">${uiIcon('chevronRight')}</span>
             </button>
           `).join('')}
         </div>
-        <div class="search-popup-foot">
-          <span><kbd>↑</kbd> <kbd>↓</kbd> navigate</span>
-          <span><kbd>⏎</kbd> open</span>
-          <span><kbd>Esc</kbd> close</span>
+        <div class="search-popup-foot" aria-hidden="true">
+          <span><kbd>↑↓</kbd> Select</span>
+          <span><kbd>Enter</kbd> Open</span>
+          <span><kbd>Esc</kbd> Close</span>
         </div>
       </div>
     </div>
@@ -1234,7 +1239,7 @@ async function loadAcademics({ force = false } = {}) {
 }
 
 async function saveAcademics(workspace) {
-  if (!academicsData || academicsLoading) return
+  if (!academicsData || academicsLoading) return false
   const previousData = academicsData
   const expectedRevision = academicsData.workspace.revision
   academicsData = { ...academicsData, workspace, summary: academicsData.summary }
@@ -1245,9 +1250,11 @@ async function saveAcademics(workspace) {
     academicsData = await fetchJson('/api/academics', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace, expectedRevision })
     })
+    return true
   } catch (error) {
     academicsData = previousData
     academicsError = error.message
+    return false
   }
   finally { academicsLoading = false; render() }
 }
@@ -1315,21 +1322,26 @@ function renderPlanningOverview() {
   const summary = academicsData.summary
   const profile = workspace.profile
   const upcoming = summary.upcoming || []
+  const hasProfile = Boolean(String(profile.programme || '').trim())
+  const showProfileEditor = planningProfileEditing || !hasProfile
   return `<div class="planning-page">
-    <header class="planning-header">
-      <div><h1>${escapeHtml(profile.programme || 'Academic planning')}</h1><p>${profile.university ? `${escapeHtml(profile.university)} · ` : ''}${escapeHtml(profile.academicYear || 'Set your current academic year')}</p></div>
-      <span class="planning-private">Private to your account</span>
+    <header class="planning-header planning-overview-header">
+      <div><h1>Academic plan</h1><p>${hasProfile ? `${profile.programme ? `${escapeHtml(profile.programme)} · ` : ''}${profile.university ? `${escapeHtml(profile.university)} · ` : ''}${escapeHtml(profile.academicYear || 'Current record')}` : 'Build a private curriculum and connect it to maintained course material.'}</p></div>
+      <div class="planning-header-actions">
+        <span class="planning-private"><span aria-hidden="true"></span>Private record</span>
+        ${hasProfile ? `<button type="button" class="btn btn-secondary" data-planning-profile-toggle>${showProfileEditor ? 'Close details' : `${uiIcon('edit')} Edit details`}</button>` : ''}
+      </div>
     </header>
 
-    <section class="planning-profile" aria-labelledby="planning-profile-title">
-      <div><h2 id="planning-profile-title">Programme context</h2><p>Curricula and exam schedules can change. These details apply only to your own record.</p></div>
+    ${showProfileEditor ? `<section class="planning-profile" aria-labelledby="planning-profile-title">
+      <div><h2 id="planning-profile-title">Programme details</h2><p>This context is personal to your record and does not alter the shared course catalogue.</p></div>
       <form data-academic-profile>
-        <label><span>University</span><input name="university" value="${escapeHtml(profile.university)}" maxlength="200"></label>
-        <label><span>Programme</span><input name="programme" value="${escapeHtml(profile.programme)}" maxlength="200" required></label>
-        <label><span>Academic year or cohort</span><input name="academicYear" value="${escapeHtml(profile.academicYear)}" maxlength="30" placeholder="2026–2027"></label>
-        <button class="btn btn-secondary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save context</button>
+        <label><span>University</span><input name="university" value="${escapeHtml(profile.university)}" maxlength="200" placeholder="University name"></label>
+        <label><span>Programme</span><input name="programme" value="${escapeHtml(profile.programme)}" maxlength="200" placeholder="Programme name" required></label>
+        <label><span>Academic year</span><input name="academicYear" value="${escapeHtml(profile.academicYear)}" maxlength="30" placeholder="2026–2027"></label>
+        <button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save details</button>
       </form>
-    </section>
+    </section>` : ''}
 
     <dl class="planning-summary">
       <div><dt>Earned credits</dt><dd>${summary.earnedEcts}</dd></div>
@@ -1340,30 +1352,30 @@ function renderPlanningOverview() {
 
     <div class="planning-columns">
       <section class="planning-register">
-        <div class="planning-section-head"><div><h2>Your curriculum</h2><p>Courses are personal to this programme and cohort. Matching study material is linked only by course code.</p></div></div>
-        ${workspace.courses.length ? `<div class="planning-course-list">${workspace.courses.map((course) => {
-          const passed = course.attempts.some((attempt) => attempt.status === 'passed')
-          const next = course.attempts.find((attempt) => attempt.status === 'upcoming')
-          return `<article class="planning-course-row"><div class="planning-course-code">${escapeHtml(course.code || 'No code')}</div><div class="planning-course-copy"><h3>${escapeHtml(course.name)}</h3><p>${escapeHtml([course.yearLevel, course.period].filter(Boolean).join(' · ') || 'No curriculum position set')}</p>${academicStudyLink(course)}</div><div class="planning-course-data"><strong>${course.ects} ECTS</strong><span class="planning-status ${passed ? 'is-passed' : ''}">${passed ? 'Passed' : next ? `${escapeHtml(next.type)} · ${academicDate(next.examDate)}` : 'No active attempt'}</span></div><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}" aria-label="Remove ${escapeHtml(course.name)}">Remove</button></article>`
-        }).join('')}</div>` : '<div class="planning-empty"><h3>Build your current curriculum</h3><p>Add only the courses that apply to your programme and cohort. Wicker Study will not assume that its editorial course list matches yours.</p></div>'}
-        <form class="planning-add-course" data-academic-course>
-          <div class="planning-form-title"><h3>Add course and next attempt</h3><p>The exam date is optional and belongs to this attempt only.</p></div>
+        <div class="planning-section-head"><div><h2>Current curriculum</h2><p>Courses in your personal record. Study material connects when the course code matches.</p></div><button type="button" class="btn ${planningCourseComposerOpen ? 'btn-secondary' : 'btn-primary'}" data-planning-course-toggle>${planningCourseComposerOpen ? 'Close' : `${uiIcon('plus')} Add course`}</button></div>
+        ${planningCourseComposerOpen ? `<form class="planning-add-course" data-academic-course>
+          <div class="planning-form-title"><h3>Add a course</h3><p>Record the course once. Add an upcoming attempt now if you already know it.</p></div>
           <label><span>Course code</span><input name="code" maxlength="40" placeholder="CS101"></label>
-          <label class="wide"><span>Course name</span><input name="name" maxlength="200" required></label>
+          <label class="wide"><span>Course name</span><input name="name" maxlength="200" placeholder="Course name" required></label>
           <label><span>Credits</span><input name="ects" type="number" min="0" step="0.5" value="5"></label>
           <label><span>Year or level</span><input name="yearLevel" maxlength="40" placeholder="Year 2"></label>
           <label><span>Period</span><input name="period" maxlength="40" placeholder="Semester 1"></label>
           <label><span>Attempt</span><select name="attemptType"><option value="first">First sit</option><option value="resit">Resit</option><option value="carry-over">Carry-over</option><option value="other">Other</option></select></label>
-          <label><span>Attempt status</span><select name="attemptStatus"><option value="upcoming">Upcoming</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="no-show">No-show</option></select></label>
-          <label><span>Personal exam date</span><input name="examDate" type="date"></label>
+          <label><span>Status</span><select name="attemptStatus"><option value="upcoming">Upcoming</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="no-show">No-show</option></select></label>
+          <label><span>Exam date</span><input name="examDate" type="date"></label>
           <label><span>Grade (optional)</span><input name="grade" type="number" step="0.01"></label>
-          <button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add course</button>
-        </form>
+          <div class="planning-form-actions"><button class="btn btn-secondary" type="button" data-planning-course-toggle>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add to curriculum</button></div>
+        </form>` : ''}
+        ${workspace.courses.length ? `<div class="planning-course-list">${workspace.courses.map((course) => {
+          const passed = course.attempts.some((attempt) => attempt.status === 'passed')
+          const next = course.attempts.find((attempt) => attempt.status === 'upcoming')
+          return `<article class="planning-course-row"><div class="planning-course-code">${escapeHtml(course.code || 'No code')}</div><div class="planning-course-copy"><h3>${escapeHtml(course.name)}</h3><p>${escapeHtml([course.yearLevel, course.period].filter(Boolean).join(' · ') || 'No curriculum position set')}</p>${academicStudyLink(course)}</div><div class="planning-course-data"><strong>${course.ects} ECTS</strong><span class="planning-status ${passed ? 'is-passed' : ''}">${passed ? 'Passed' : next ? `${escapeHtml(next.type)} · ${academicDate(next.examDate)}` : 'No active attempt'}</span></div><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}" aria-label="Remove ${escapeHtml(course.name)}">Remove</button></article>`
+        }).join('')}</div>` : `<div class="planning-empty"><div><h3>No courses in this plan yet</h3><p>Add the courses that apply to your programme. Matching study material will be connected by course code.</p></div>${!planningCourseComposerOpen ? '<button type="button" class="btn btn-primary" data-planning-course-toggle>Add your first course</button>' : ''}</div>`}
       </section>
 
       <aside class="planning-calendar">
-        <div class="planning-section-head"><div><h2>Upcoming exams</h2><p>Dates come from your attempts, not the shared course catalogue.</p></div></div>
-        ${upcoming.length ? `<ol>${upcoming.map((attempt) => `<li><time datetime="${attempt.examDate}">${academicDate(attempt.examDate)}</time><div><strong>${escapeHtml(attempt.code || attempt.name)}</strong><span>${escapeHtml(attempt.name)} · ${escapeHtml(attempt.type)}</span></div></li>`).join('')}</ol>` : '<div class="planning-calendar-empty"><p>No dated upcoming attempts yet.</p></div>'}
+        <div class="planning-section-head"><div><h2>Next dates</h2><p>From your personal attempts.</p></div><a href="#/planning/calendar">Open calendar</a></div>
+        ${upcoming.length ? `<ol>${upcoming.map((attempt) => `<li><time datetime="${attempt.examDate}">${academicDate(attempt.examDate)}</time><div><strong>${escapeHtml(attempt.code || attempt.name)}</strong><span>${escapeHtml(attempt.name)} · ${escapeHtml(attempt.type)}</span></div></li>`).join('')}</ol>` : '<div class="planning-calendar-empty"><p>No upcoming exam dates recorded.</p></div>'}
       </aside>
     </div>
     ${academicsError ? `<p class="planning-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
@@ -6927,13 +6939,22 @@ function bindEvents() {
   window.__renderMarkdown = renderMarkdown
 
   document.querySelectorAll('[data-academics-retry]').forEach((button) => button.addEventListener('click', () => loadAcademics({ force: true })))
-  document.querySelectorAll('[data-academic-profile]').forEach((form) => form.addEventListener('submit', (event) => {
+  document.querySelectorAll('[data-planning-profile-toggle]').forEach((button) => button.addEventListener('click', () => {
+    planningProfileEditing = !planningProfileEditing
+    render()
+  }))
+  document.querySelectorAll('[data-planning-course-toggle]').forEach((button) => button.addEventListener('click', () => {
+    planningCourseComposerOpen = !planningCourseComposerOpen
+    render()
+  }))
+  document.querySelectorAll('[data-academic-profile]').forEach((form) => form.addEventListener('submit', async (event) => {
     event.preventDefault()
     if (!academicsData) return
     const data = new FormData(event.currentTarget)
-    saveAcademics({ ...academicsData.workspace, profile: { ...academicsData.workspace.profile, university: data.get('university'), programme: data.get('programme'), academicYear: data.get('academicYear'), currentYearKey: data.get('academicYear') } })
+    const saved = await saveAcademics({ ...academicsData.workspace, profile: { ...academicsData.workspace.profile, university: data.get('university'), programme: data.get('programme'), academicYear: data.get('academicYear'), currentYearKey: data.get('academicYear') } })
+    if (saved) { planningProfileEditing = false; render() }
   }))
-  document.querySelectorAll('[data-academic-course]').forEach((form) => form.addEventListener('submit', (event) => {
+  document.querySelectorAll('[data-academic-course]').forEach((form) => form.addEventListener('submit', async (event) => {
     event.preventDefault()
     if (!academicsData) return
     const data = new FormData(event.currentTarget)
@@ -6944,7 +6965,8 @@ function bindEvents() {
     const code = data.get('code')
     const editorialCourse = state.courses.find((candidate) => normalizedCourseCode(candidate.code) === normalizedCourseCode(code))
     const course = { id, code, name: data.get('name'), ects: Number(data.get('ects')), yearLevel: data.get('yearLevel'), period: data.get('period'), passMark: 5.5, notes: '', editorialCourseId: editorialCourse?.id || null, attempts }
-    saveAcademics({ ...academicsData.workspace, courses: [...academicsData.workspace.courses, course] })
+    const saved = await saveAcademics({ ...academicsData.workspace, courses: [...academicsData.workspace.courses, course] })
+    if (saved) { planningCourseComposerOpen = false; render() }
   }))
   document.querySelectorAll('[data-academic-remove]').forEach((button) => button.addEventListener('click', () => {
     if (!academicsData) return
