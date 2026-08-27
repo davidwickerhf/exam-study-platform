@@ -40,6 +40,8 @@ let state = null
 let route = parseRoute()
 let chapterCache = new Map()
 let questionsCache = new Map()
+let practiceCache = null
+const practiceView = { courseId: 'all', index: 0 }
 let questionsSummaryCache = new Map()
 let courseTocCache = new Map()
 const attemptState = new Map()
@@ -654,8 +656,24 @@ async function init() {
   })
 }
 
-async function fetchJson(url, options) {
-  const response = await fetch(url, options)
+async function fetchJson(url, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase()
+  const timeoutMs = Number(options.timeoutMs ?? (method === 'GET' ? 18000 : 0))
+  const controller = !options.signal && timeoutMs > 0 ? new AbortController() : null
+  const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null
+  const { timeoutMs: _ignored, ...fetchOptions } = options
+  if (controller) fetchOptions.signal = controller.signal
+  let response
+  try {
+    response = await fetch(url, fetchOptions)
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('This request took too long. Check your connection and try again.')
+    }
+    throw error
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
   if (!response.ok) {
     const raw = await response.text()
     let payload = null
@@ -686,6 +704,7 @@ function parseRoute() {
     return { page: 'mock-exam', courseId: decodeURIComponent(parts[1]) }
   }
   if (parts[0] === 'mistakes') return { page: 'mistakes' }
+  if (parts[0] === 'practice') return { page: 'practice' }
   if (parts[0] === 'sr') return { page: 'sr' }
   if (parts[0] === 'mocks') return { page: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
   if (parts[0] === 'settings') return { page: 'settings' }
@@ -1063,6 +1082,7 @@ const ICONS = {
   embedded: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10" y="10" width="4" height="4" rx="0.8"/><path d="M4 9 H7 M4 12 H7 M4 15 H7 M17 9 H20 M17 12 H20 M17 15 H20 M9 4 V7 M12 4 V7 M15 4 V7 M9 17 V20 M12 17 V20 M15 17 V20"/></svg>',
   compsec: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="1.5"/><path d="M8 10 V7.5 C8 5.2 9.7 3.5 12 3.5 C14.3 3.5 16 5.2 16 7.5 V10"/><path d="M9 15 L11 17 L15 13"/></svg>',
   flashcards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="14" height="13" rx="1.5"/><rect x="6.5" y="4" width="14" height="13" rx="1.5"/><path d="M10 9 L17 9 M10 13 L15 13"/></svg>',
+  practice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h11M4 10h8M4 14.5h6"/><path d="m13.5 17 2.2 2.2L21 13.5"/></svg>',
   mistakes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 L2 20 Z"/><path d="M12 10 L12 14"/><circle cx="12" cy="17" r="0.8" fill="currentColor"/></svg>',
   mocks: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 8 V13 L15 15"/><path d="M9 3 L15 3"/><path d="M12 3 V5"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6 L9 12 L15 18"/></svg>'
@@ -1088,6 +1108,7 @@ function computeTitle() {
   if (!state) return 'Wicker Study'
   if (route.page === 'dashboard') return 'Dashboard' + suffix
   if (route.page === 'mistakes') return 'Mistake bank' + suffix
+  if (route.page === 'practice') return 'Practice' + suffix
   if (route.page === 'sr') return 'Flashcards' + suffix
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
   if (route.page === 'settings') return 'Settings' + suffix
@@ -1260,6 +1281,7 @@ function routeView() {
   if (route.page === 'chapter') return renderChapterPage()
   if (route.page === 'mock-exam') return renderMockExamPage()
   if (route.page === 'mistakes') return renderMistakesPage()
+  if (route.page === 'practice') return renderPracticePage()
   if (route.page === 'sr') return renderSrPage()
   if (route.page === 'mocks') return renderMocksPage()
   if (route.page === 'settings') return renderSettingsPage()
@@ -1426,7 +1448,7 @@ function renderSidebar() {
       <nav>
         ${renderSearchTrigger()}
         <a class="nav-dashboard ${['dashboard', 'course', 'chapter', 'mock-exam'].includes(route.page) ? 'active' : ''}" href="#/" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
-        <a class="nav-tool mobile-review-nav ${route.page === 'sr' ? 'active' : ''}" href="#/sr" title="Review"><span class="nav-icon tool-icon flashcards-icon">${ICONS.flashcards}</span><span class="nav-label">Review</span></a>
+        <a class="nav-tool mobile-review-nav ${route.page === 'practice' ? 'active' : ''}" href="#/practice" title="Practice"><span class="nav-icon tool-icon">${ICONS.practice}</span><span class="nav-label">Practice</span></a>
         <a class="nav-tool ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistake bank"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistakes</span></a>
         <a class="nav-tool nav-mocks ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mock sessions</span></a>
         <a class="nav-tool nav-settings ${route.page === 'settings' ? 'active' : ''}" href="#/settings" title="Settings"><span class="nav-icon tool-icon">${uiIcon('settings')}</span><span class="nav-label">Settings</span></a>
@@ -1602,7 +1624,7 @@ function renderDashboard() {
         ${uiIcon('chevronRight')}
       </a>` : ''}
       <nav class="mobile-quick-actions" aria-label="Study actions">
-        <a href="#/sr"><span>${ICONS.flashcards}</span><strong>Review flashcards</strong><small>${srDue == null ? 'Loading…' : `${srDue} due now`}</small></a>
+        <a href="#/practice"><span>${ICONS.practice}</span><strong>Mixed practice</strong><small>Questions across courses</small></a>
         <a href="#/mistakes"><span>${ICONS.mistakes}</span><strong>Fix mistakes</strong><small>${mistakeCount == null ? 'Loading…' : `${mistakeCount} open`}</small></a>
         <a href="#/mocks"><span>${ICONS.mocks}</span><strong>Practise under time</strong><small>Mock sessions</small></a>
       </nav>
@@ -1620,10 +1642,10 @@ function renderDashboard() {
     </section>
 
     <section class="practice-strip">
-      <a class="practice-card sr-card" href="#/sr">
-        <p class="eyebrow">Spaced repetition</p>
-        <strong>${srDue == null ? '—' : srDue}</strong>
-        <small>${srDue == null ? 'Loading…' : `due ${srDue === 1 ? 'card' : 'cards'} · ${srTotal} total`}</small>
+      <a class="practice-card sr-card" href="#/practice">
+        <p class="eyebrow">Across active courses</p>
+        <strong>↗</strong>
+        <small>Continue with a mixed set of published exercises</small>
       </a>
       <a class="practice-card mistakes-card" href="#/mistakes">
         <p class="eyebrow">Mistake bank</p>
@@ -1935,8 +1957,7 @@ function renderSurfaceTabs(course, opts = {}) {
     <nav class="surface-tabs" aria-label="Course sections">
       <a class="${cls('overview')}" href="#/course/${course.id}"${current('overview')}>Overview</a>
       <span class="surface-tabs-divider" aria-hidden="true"></span>
-      <button type="button" class="${cls('mock-questions')}"${pressed('mock-questions')} ${jumpAttr('mock-questions')}>Mock questions</button>
-      <button type="button" class="${cls('flashcards')}"${pressed('flashcards')} ${jumpAttr('flashcards')}>Flashcards</button>
+      <button type="button" class="${cls('mock-questions')}"${pressed('mock-questions')} ${jumpAttr('mock-questions')}>Practice</button>
       ${hasExams ? `<button type="button" class="${cls('exams')}"${pressed('exams')} ${jumpAttr('exams')}>Mock Exams</button>` : ''}
       ${hasTutorials ? `<button type="button" class="${cls('tutorials')}"${pressed('tutorials')} ${jumpAttr('tutorials')}>Tutorials</button>` : ''}
     </nav>
@@ -1991,9 +2012,9 @@ function renderChapterPrevNext(course, prev, next, variant) {
 function renderChapterSubTabs(course, chapter, activeTab) {
   return `
     <nav class="chapter-subtabs" role="tablist" aria-label="Chapter view">
-      <button type="button" role="tab" aria-selected="${activeTab === 'content'}" tabindex="${activeTab === 'content' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'content' ? ' active' : ''}" data-chapter-tab="content" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Content</button>
-      <button type="button" role="tab" aria-selected="${activeTab === 'selftest'}" tabindex="${activeTab === 'selftest' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'selftest' ? ' active' : ''}" data-chapter-tab="selftest" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Self-Test</button>
-      <button type="button" role="tab" aria-selected="${activeTab === 'esq'}" tabindex="${activeTab === 'esq' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'esq' ? ' active' : ''}" data-chapter-tab="esq" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Exam Style Questions</button>
+      <button type="button" role="tab" aria-selected="${activeTab === 'content'}" tabindex="${activeTab === 'content' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'content' ? ' active' : ''}" data-chapter-tab="content" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Read</button>
+      <button type="button" role="tab" aria-selected="${activeTab === 'selftest'}" tabindex="${activeTab === 'selftest' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'selftest' ? ' active' : ''}" data-chapter-tab="selftest" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Practice</button>
+      <button type="button" role="tab" aria-selected="${activeTab === 'esq'}" tabindex="${activeTab === 'esq' ? '0' : '-1'}" class="chapter-subtab${activeTab === 'esq' ? ' active' : ''}" data-chapter-tab="esq" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Exam questions</button>
     </nav>
   `
 }
@@ -2267,6 +2288,7 @@ function renderCourse(courseId) {
               <span class="course-overview-number">${progress.masteryPct}<sup>%</sup></span>
               <p>${progress.done} of ${progress.total} chapters read</p>
             </div>
+            ${coreChapters[0] ? `<a class="course-mobile-continue" href="#/course/${course.id}/chapter/${coreChapters.find((candidate) => !isChapterRead(course.id, candidate.id))?.id || coreChapters[0].id}"><span><small>${progress.done ? 'Continue studying' : 'Start this course'}</small><strong>${escapeHtml((coreChapters.find((candidate) => !isChapterRead(course.id, candidate.id)) || coreChapters[0]).name)}</strong></span>${uiIcon('chevronRight')}</a>` : ''}
             <div class="course-overview-nav">
               ${renderSurfaceTabs(course, { active: 'overview', surface: 'overview' })}
               <button type="button" class="clear-link" data-clear-scope="course" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset every trace of your progress on this course">Reset progress</button>
@@ -2754,11 +2776,14 @@ function renderChapterPage() {
   const cached = chapterCache.get(cacheKey)
 
   if (!cached) {
-    loadChapter(course.id, chapter.id, route.relPath || '').then(() => render())
-    return `<div class="chapter-loading">Loading chapter from knowledge base...</div>`
+    loadChapter(course.id, chapter.id, route.relPath || '')
+    return `<div class="chapter-loading chapter-loading-state"><span></span><strong>Opening chapter</strong><small>Loading the published material…</small></div>`
+  }
+  if (cached.loading) {
+    return `<div class="chapter-loading chapter-loading-state"><span></span><strong>Opening chapter</strong><small>Loading the published material…</small></div>`
   }
   if (cached.error) {
-    return `<div class="chapter-loading error">Could not load: ${escapeHtml(cached.error)}</div>`
+    return `<div class="chapter-loading error chapter-load-error"><strong>Chapter did not load</strong><p>${escapeHtml(cached.error)}</p><div class="empty-actions"><button type="button" class="btn btn-primary" data-chapter-retry="${escapeHtml(cacheKey)}">Try again</button><a class="btn btn-ghost" href="#/course/${course.id}">Back to course</a></div></div>`
   }
 
   const data = cached.data
@@ -2807,7 +2832,7 @@ function renderChapterPage() {
 
   return `
     <div class="chapter-grid mobile-panel-${mobileStudyPanel || 'none'}" style="--accent:${course.accent}">
-      ${renderMobileStudyBar(`Ch ${chapter.id}`)}
+      ${renderMobileStudyBar(`Ch ${chapter.id} · ${chapter.name}`)}
       <aside class="chapter-toc">
         <button class="mobile-sheet-close" type="button" data-mobile-study-panel="outline" aria-label="Close outline">${uiIcon('close')}</button>
         <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
@@ -3366,6 +3391,121 @@ async function refreshSr() {
   srSession.current = srSession.queue.shift() || null
   srSession.reveal = false
   render()
+}
+
+function interleavePracticeQuestions(questions) {
+  const groups = new Map()
+  for (const question of questions) {
+    if (!groups.has(question.courseId)) groups.set(question.courseId, [])
+    groups.get(question.courseId).push(question)
+  }
+  const queues = [...groups.values()]
+  const mixed = []
+  let remaining = true
+  while (remaining) {
+    remaining = false
+    for (const queue of queues) {
+      if (!queue.length) continue
+      mixed.push(queue.shift())
+      remaining = true
+    }
+  }
+  return mixed
+}
+
+async function loadPractice({ force = false } = {}) {
+  if (practiceCache?.loading && !force) return
+  practiceCache = { loading: true }
+  render()
+  try {
+    const data = await fetchJson('/api/practice', { timeoutMs: 12000 })
+    const questions = interleavePracticeQuestions(data.questions || [])
+    practiceCache = { ...data, questions }
+
+    // Reuse the existing attempt and grading pipeline. Practice is only a new
+    // way to traverse the same published banks, not a duplicate answer store.
+    const grouped = new Map()
+    for (const question of questions) {
+      const key = `${question.courseId}/${question.chapterId}`
+      if (!grouped.has(key)) grouped.set(key, [])
+      grouped.get(key).push(question)
+    }
+    for (const [key, bank] of grouped) {
+      if (!questionsCache.has(key)) questionsCache.set(key, { questions: bank })
+    }
+  } catch (error) {
+    practiceCache = { error: error.message, questions: [], courses: [] }
+  }
+  render()
+}
+
+function renderPracticePage() {
+  if (!practiceCache) {
+    setTimeout(() => loadPractice(), 0)
+    return '<section class="page-wrap practice-hub"><div class="practice-page-loading"><span></span><strong>Building your practice mix</strong><small>Using published questions from active courses—no generation required.</small></div></section>'
+  }
+  if (practiceCache.loading) {
+    return '<section class="page-wrap practice-hub"><div class="practice-page-loading"><span></span><strong>Building your practice mix</strong><small>Using published questions from active courses—no generation required.</small></div></section>'
+  }
+  if (practiceCache.error) {
+    return `<section class="page-wrap practice-hub"><div class="practice-page-error"><strong>Practice could not be loaded</strong><p>${escapeHtml(practiceCache.error)}</p><button type="button" class="btn btn-primary" data-practice-retry>Try again</button></div></section>`
+  }
+
+  const allQuestions = practiceCache.questions || []
+  const visible = practiceView.courseId === 'all'
+    ? allQuestions
+    : allQuestions.filter((question) => question.courseId === practiceView.courseId)
+  if (practiceView.index >= visible.length) practiceView.index = 0
+  const current = visible[practiceView.index]
+  const answered = visible.filter((question) => {
+    const attempt = attemptState.get(`${question.courseId}/${question.chapterId}/${question.id}`)
+    return typeof attempt?.score === 'number'
+  }).length
+  const currentCourse = current ? state.courses.find((course) => course.id === current.courseId) : null
+  const currentChapter = currentCourse?.chapters?.find((chapter) => chapter.id === current.chapterId)
+
+  return `
+    <section class="page-wrap practice-hub">
+      <header class="practice-hub-header">
+        <div>
+          <p class="eyebrow">Practice</p>
+          <h1>One queue. Every active course.</h1>
+          <p>Work through existing published exercises in a balanced mix. Nothing is generated when you open or continue this queue.</p>
+        </div>
+        <div class="practice-hub-stat" aria-label="Practice progress"><strong>${answered}</strong><span>answered in this view</span><small>${visible.length} available</small></div>
+      </header>
+
+      <nav class="practice-mode-nav" aria-label="Practice modes">
+        <a class="active" href="#/practice" aria-current="page">Questions</a>
+        <a href="#/mistakes">Mistakes</a>
+        <a href="#/mocks">Timed mocks</a>
+        <a href="#/sr">Flashcards <small>${srDueCache?.dueCount ? `${srDueCache.dueCount} due` : ''}</small></a>
+      </nav>
+
+      <div class="practice-course-filter" role="group" aria-label="Choose courses">
+        <button type="button" class="${practiceView.courseId === 'all' ? 'active' : ''}" data-practice-course="all">All courses <span>${allQuestions.length}</span></button>
+        ${(practiceCache.courses || []).map((course) => `<button type="button" class="${practiceView.courseId === course.id ? 'active' : ''}" data-practice-course="${course.id}" style="--course-accent:${course.accent || 'var(--color-brand)'}">${escapeHtml(course.code)} <span>${course.questionCount}</span></button>`).join('')}
+      </div>
+
+      ${current && currentCourse && currentChapter ? `
+        <section class="practice-queue" style="--accent:${currentCourse.accent || 'var(--color-brand)'}">
+          <div class="practice-queue-context">
+            <div><span>${escapeHtml(currentCourse.code)} · Ch ${escapeHtml(currentChapter.id)}</span><strong>${escapeHtml(currentChapter.name)}</strong></div>
+            <a href="#/course/${currentCourse.id}/chapter/${currentChapter.id}">Open chapter</a>
+          </div>
+          <div class="practice-queue-pager">
+            <button type="button" data-practice-queue-nav="prev" ${practiceView.index === 0 ? 'disabled' : ''}>${ICONS.back}<span>Previous</span></button>
+            <p><strong>${practiceView.index + 1}</strong> / ${visible.length}</p>
+            <button type="button" data-practice-queue-nav="random">${uiIcon('shuffle')}<span>Shuffle</span></button>
+            <button type="button" class="primary" data-practice-queue-nav="next" ${practiceView.index >= visible.length - 1 ? 'disabled' : ''}><span>Next</span>${uiIcon('chevronRight')}</button>
+          </div>
+          <div class="practice-queue-question">${renderQuestionCard(current, current.chapterQuestionIndex ?? practiceView.index, currentCourse, currentChapter)}</div>
+        </section>
+      ` : `
+        <div class="empty-state practice-empty"><strong>No published questions in this selection</strong><p>Choose another active course, or open a chapter to request personal extra exercises.</p></div>
+      `}
+    </section>
+  `
 }
 
 function renderSrPage() {
@@ -5826,13 +5966,16 @@ function renderChatPanelCourse(course) {
 
 async function loadChapter(courseId, chapterId, relPath) {
   const key = `${courseId}/${chapterId}/${relPath || ''}`
+  if (chapterCache.get(key)?.loading) return
+  chapterCache.set(key, { loading: true, startedAt: Date.now() })
   try {
     const url = `/api/chapter/${encodeURIComponent(courseId)}/${encodeURIComponent(chapterId)}${relPath ? '/' + relPath.split('/').map(encodeURIComponent).join('/') : ''}`
-    const data = await fetchJson(url)
+    const data = await fetchJson(url, { timeoutMs: 15000 })
     chapterCache.set(key, { data })
   } catch (err) {
     chapterCache.set(key, { error: err.message })
   }
+  render()
 }
 
 async function deleteQuestion(courseId, chapterId, questionId) {
@@ -6540,6 +6683,43 @@ function bindEvents() {
   window.__platformState = state
   window.__autoWrap = autoWrapBareLatex
   window.__renderMarkdown = renderMarkdown
+
+  document.querySelectorAll('[data-chapter-retry]').forEach((button) => {
+    button.addEventListener('click', () => {
+      chapterCache.delete(button.dataset.chapterRetry)
+      render()
+    })
+  })
+
+  document.querySelectorAll('[data-practice-retry]').forEach((button) => {
+    button.addEventListener('click', () => loadPractice({ force: true }))
+  })
+
+  document.querySelectorAll('[data-practice-course]').forEach((button) => {
+    button.addEventListener('click', () => {
+      practiceView.courseId = button.dataset.practiceCourse
+      practiceView.index = 0
+      render()
+    })
+  })
+
+  document.querySelectorAll('[data-practice-queue-nav]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const questions = practiceView.courseId === 'all'
+        ? (practiceCache?.questions || [])
+        : (practiceCache?.questions || []).filter((question) => question.courseId === practiceView.courseId)
+      const action = button.dataset.practiceQueueNav
+      if (action === 'prev') practiceView.index = Math.max(0, practiceView.index - 1)
+      if (action === 'next') practiceView.index = Math.min(questions.length - 1, practiceView.index + 1)
+      if (action === 'random' && questions.length > 1) {
+        let next = practiceView.index
+        while (next === practiceView.index) next = Math.floor(Math.random() * questions.length)
+        practiceView.index = next
+      }
+      render()
+      document.querySelector('.practice-queue-context')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    })
+  })
 
   document.querySelectorAll('[data-mobile-study-panel]').forEach((button) => {
     button.addEventListener('click', () => {

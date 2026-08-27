@@ -3285,6 +3285,49 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // Fast, read-only practice queue assembled from published question banks.
+    // This endpoint never generates content: it only reads maintainer-published
+    // caches, so opening Practice is predictable and does not consume AI quota.
+    if (url.pathname === '/api/practice' && req.method === 'GET') {
+      const state = await readState()
+      const active = (state.courses || []).filter((course) => !course.archived)
+      const chapterEntries = active.flatMap((course) => (course.chapters || [])
+        .filter((chapter) => !isSupportChapter(chapter))
+        .map((chapter) => ({ course, chapter })))
+
+      const banks = await Promise.all(chapterEntries.map(async ({ course, chapter }) => {
+        const cachePath = resolve(cacheDir, 'questions', `${course.id}-${chapter.id}.json`)
+        if (!existsSync(cachePath)) return []
+        try {
+          const cached = JSON.parse(await readFile(cachePath, 'utf8'))
+          const questions = Array.isArray(cached.questions) ? cached.questions : []
+          return questions.map((question, chapterQuestionIndex) => ({
+            ...question,
+            courseId: course.id,
+            courseCode: course.code,
+            courseName: course.name,
+            courseAccent: course.accent,
+            chapterId: chapter.id,
+            chapterName: chapter.name,
+            chapterQuestionIndex
+          }))
+        } catch {
+          return []
+        }
+      }))
+
+      const questions = banks.flat()
+      const courses = active.map((course) => ({
+        id: course.id,
+        code: course.code,
+        name: course.name,
+        accent: course.accent,
+        questionCount: questions.filter((question) => question.courseId === course.id).length
+      })).filter((course) => course.questionCount > 0)
+      send(res, 200, JSON.stringify({ questions, courses, source: 'published', generated: false }))
+      return
+    }
+
     const questionsSummaryMatch = url.pathname.match(/^\/api\/questions-summary\/([^/]+)$/)
     if (questionsSummaryMatch && req.method === 'GET') {
       const courseId = decodeURIComponent(questionsSummaryMatch[1])
