@@ -204,15 +204,16 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 .legal-table span { color: var(--color-ink-secondary); font-size: 14px; }.legal-table em { grid-column: 2; color: var(--color-ink-tertiary); font-size: 12px; font-style: normal; }
 
 /* Authentication is a dedicated access page, not the public home page. */
-.auth-gate { min-height: 100dvh; padding: 0; background: var(--color-canvas); }
-.auth-page { min-height: 100dvh; display: grid; grid-template-columns: minmax(420px, .84fr) minmax(560px, 1.16fr); }
+.auth-gate { width: 100%; min-height: 100dvh; padding: 0; display: block; overflow-y: auto; background: var(--color-canvas); }
+.auth-page { width: 100%; min-height: 100dvh; display: grid; grid-template-columns: minmax(480px, 42%) minmax(0, 58%); }
 .auth-back { position: fixed; z-index: 2; top: var(--space-5); left: var(--space-6); color: var(--color-ink-secondary) !important; font-size: 12px; text-decoration: none; }
-.auth-form-column { padding: clamp(88px, 10vh, 120px) clamp(var(--space-7), 7vw, 96px) var(--space-7); display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--color-border); background: var(--color-surface); }
+.auth-form-column { min-width: 0; padding: clamp(80px, 9vh, 104px) clamp(var(--space-6), 6vw, 88px) var(--space-7); display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--color-border); background: var(--color-surface); }
+.auth-form-column > * { width: min(100%, 440px); margin-inline: auto; }
 .auth-form-column .site-brand { margin-bottom: var(--space-8); }
 .auth-form-copy h1 { max-width: 10ch; margin: 0; font-size: clamp(40px, 4.6vw, 64px); line-height: 1.02; letter-spacing: -.04em; }
 .auth-form-copy p { max-width: 48ch; margin: var(--space-4) 0 0; color: var(--color-ink-secondary); line-height: 1.65; }
-.auth-form-column #clerk-sign-in { width: 100%; max-width: 420px; margin-top: var(--space-6); }
-.auth-legal { max-width: 420px; margin: var(--space-5) 0 0; color: var(--color-ink-tertiary); font-size: 11px; line-height: 1.6; }
+.auth-form-column #clerk-sign-in { width: min(100%, 440px); max-width: 440px; margin-top: var(--space-6); }
+.auth-legal { max-width: 440px; margin-top: var(--space-5); margin-bottom: 0; color: var(--color-ink-tertiary); font-size: 11px; line-height: 1.6; }
 .auth-legal a { color: var(--color-brand) !important; }
 .auth-product-column { padding: clamp(var(--space-7), 7vw, 104px); display: flex; flex-direction: column; justify-content: center; background: var(--color-ink); color: white; }
 .auth-product-copy h2 { max-width: 12ch; margin: 0; color: white; font-size: clamp(40px, 5vw, 68px); line-height: 1.03; letter-spacing: -.04em; }
@@ -223,6 +224,8 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 .auth-course-sheet header strong { grid-column: 3; color: white; }.auth-course-sheet > div b { color: var(--color-on-dark-tertiary); font: 500 10px/1.4 var(--font-data); text-transform: uppercase; }.auth-course-sheet > div span { font-size: 14px; font-weight: 600; }.auth-course-sheet > div em { color: var(--color-on-dark-secondary); font: 500 10px/1.4 var(--font-data); font-style: normal; }
 .auth-privacy-note { margin: var(--space-7) 0 0; display: flex; align-items: center; gap: var(--space-2); color: var(--color-on-dark-secondary); font-size: 11px; }.auth-privacy-note svg { color: var(--color-on-dark-accent); }
 .auth-form-column .cl-rootBox, .auth-form-column .cl-cardBox, .auth-form-column .cl-card { width: 100% !important; }
+.auth-form-column .cl-cardBox { overflow: visible !important; }
+.auth-form-column .cl-card { margin: 0 !important; }
 .auth-form-column .cl-card { padding: 0 !important; background: transparent !important; box-shadow: none !important; }
 .auth-form-column .cl-header, .auth-form-column .cl-footer { display: none !important; }
 
