@@ -18,6 +18,27 @@ test('academic records preserve user-owned dates and generalized curriculum fiel
   assert.equal(workspace.courses[0].attempts[0].examDate, '2031-02-14')
 })
 
+test('academic records preserve editorial programme provenance and unresolved choices', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: { university: 'Maastricht University', programme: 'Computer Science' },
+    programmeTemplate: {
+      programmeId: 'maastricht-university-bsc-computer-science',
+      versionId: '2025-2026',
+      currentStudyYear: 'Year 2',
+      pathwayId: null,
+      selectedChoices: { 'year-2-semester-1-module': ['bcs2720'], 'year-2-semester-2-module': [] }
+    },
+    courses: [{
+      id: 'bcs1540-plan', code: 'BCS1540', name: 'Algorithmic Design', ects: 4,
+      templateCourseId: 'bcs1540', programmeRequirement: 'required', attempts: []
+    }]
+  })
+  assert.equal(workspace.programmeTemplate.programmeId, 'maastricht-university-bsc-computer-science')
+  assert.deepEqual(workspace.programmeTemplate.selectedChoices['year-2-semester-2-module'], [])
+  assert.equal(workspace.courses[0].templateCourseId, 'bcs1540')
+  assert.equal(workspace.courses[0].programmeRequirement, 'required')
+})
+
 test('academic summary derives credits, weighted GPA, and upcoming exams', () => {
   const workspace = normalizeAcademicWorkspace({
     profile: {},

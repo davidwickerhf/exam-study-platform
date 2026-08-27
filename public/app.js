@@ -51,6 +51,9 @@ let route = parseRoute()
 let academicsData = null
 let academicsLoading = false
 let academicsError = null
+let editorialProgrammesData = null
+let editorialProgrammesLoading = false
+let editorialProgrammesError = null
 let planningProfileEditing = false
 let planningCourseComposerOpen = false
 const planningIntake = {
@@ -62,8 +65,15 @@ const planningIntake = {
   saving: false,
   error: null,
   draft: null,
-  manual: false
+  manual: false,
+  programmeId: null,
+  programmeVersionId: null,
+  programmeConfig: null
 }
+const compactPlanningMedia = window.matchMedia('(max-width: 700px)')
+compactPlanningMedia.addEventListener('change', () => {
+  if (planningIntake.step === 'programme') render()
+})
 let chapterCache = new Map()
 let questionsCache = new Map()
 let practiceCache = null
@@ -560,7 +570,8 @@ function emptyIntakeCourse() {
 function resetPlanningIntake() {
   Object.assign(planningIntake, {
     step: 'source', files: [], description: '', processingFiles: false,
-    analysing: false, saving: false, error: null, draft: null, manual: false
+    analysing: false, saving: false, error: null, draft: null, manual: false,
+    programmeId: null, programmeVersionId: null, programmeConfig: null
   })
 }
 
@@ -1356,6 +1367,16 @@ async function loadAcademics({ force = false } = {}) {
   finally { academicsLoading = false; render() }
 }
 
+async function loadEditorialProgrammes({ force = false } = {}) {
+  if ((editorialProgrammesData && !force) || editorialProgrammesLoading) return
+  editorialProgrammesLoading = true
+  editorialProgrammesError = null
+  render()
+  try { editorialProgrammesData = await fetchJson('/api/editorial-programmes') }
+  catch (error) { editorialProgrammesError = error.message || 'Known programmes could not be loaded.' }
+  finally { editorialProgrammesLoading = false; render() }
+}
+
 async function saveAcademics(workspace) {
   if (!academicsData || academicsLoading) return false
   const previousData = academicsData
@@ -1437,10 +1458,106 @@ function planningDraftConnection(course) {
   return code ? state?.courses?.find((candidate) => normalizedCourseCode(candidate.code) === code) || null : null
 }
 
+function editorialProgrammeReference(programmeId, versionId) {
+  const programme = editorialProgrammesData?.programmes?.find((item) => item.id === programmeId)
+  if (!programme) return null
+  const version = programme.versions?.find((item) => item.id === versionId) || programme.versions?.[0]
+  return version ? { programme, version } : null
+}
+
+function activeEditorialProgrammeReference(workspace = academicsData?.workspace) {
+  const template = workspace?.programmeTemplate
+  return template ? editorialProgrammeReference(template.programmeId, template.versionId) : null
+}
+
+function programmeSelections(version, config) {
+  const selected = new Set(version.courses.filter((course) => course.requirement === 'required').map((course) => course.id))
+  for (const group of version.choiceGroups || []) {
+    if (group.pathwayId && group.pathwayId !== config.pathwayId) continue
+    for (const courseId of config.selectedChoices?.[group.id] || []) {
+      if (group.courseIds.includes(courseId)) selected.add(courseId)
+    }
+  }
+  const pathway = version.pathways?.find((item) => item.id === config.pathwayId)
+  for (const courseId of pathway?.includedCourseIds || []) selected.add(courseId)
+  return selected
+}
+
+function applyEditorialProgramme(workspace, programme, version, config) {
+  const selectedIds = programmeSelections(version, config)
+  const existingByTemplateId = new Map(workspace.courses.filter((course) => course.templateCourseId).map((course) => [course.templateCourseId, course]))
+  const retained = workspace.courses.flatMap((course) => {
+    if (!course.templateCourseId || selectedIds.has(course.templateCourseId)) return []
+    if (!course.attempts?.length) return []
+    return [{ ...course, programmeRequirement: 'historical', choiceGroupId: null, pathwayId: null }]
+  })
+  const courses = version.courses.filter((course) => selectedIds.has(course.id)).map((templateCourse) => {
+    const existing = existingByTemplateId.get(templateCourse.id)
+    const match = planningDraftConnection(templateCourse)
+    return {
+      id: existing?.id || `programme-${templateCourse.id}`,
+      code: templateCourse.code,
+      name: templateCourse.name,
+      ects: templateCourse.ects,
+      yearLevel: templateCourse.yearLevel,
+      period: templateCourse.period,
+      passMark: existing?.passMark ?? version.grading?.passMark ?? 5.5,
+      notes: existing?.notes || '',
+      hiddenFromStats: existing?.hiddenFromStats === true,
+      editorialCourseId: match?.id || existing?.editorialCourseId || null,
+      templateCourseId: templateCourse.id,
+      programmeRequirement: templateCourse.requirement,
+      choiceGroupId: templateCourse.choiceGroupId || null,
+      pathwayId: templateCourse.pathwayId || null,
+      attempts: existing?.attempts || []
+    }
+  })
+  const customCourses = workspace.courses.filter((course) => !course.templateCourseId)
+  const academicYear = String(config.academicYear || workspace.profile.academicYear || '').trim()
+  return {
+    ...workspace,
+    profile: {
+      ...workspace.profile,
+      university: programme.institution.name,
+      programme: `${programme.degree} ${programme.name}`,
+      academicYear,
+      currentYearKey: academicYear
+    },
+    programmeTemplate: {
+      programmeId: programme.id,
+      versionId: version.id,
+      currentStudyYear: config.currentStudyYear || '',
+      pathwayId: config.pathwayId || null,
+      selectedChoices: Object.fromEntries(Object.entries(config.selectedChoices || {}).map(([groupId, ids]) => [groupId, [...ids]]))
+    },
+    courses: [...courses, ...retained, ...customCourses]
+  }
+}
+
 function planningIntakeSteps(active = planningIntake.step) {
-  const steps = [['source', 'Add sources'], ['review', 'Review plan'], ['connected', 'Connect courses']]
+  const steps = active === 'programme' || planningIntake.programmeId
+    ? [['source', 'Choose source'], ['programme', 'Confirm structure'], ['connected', 'Connect courses']]
+    : [['source', 'Choose source'], ['review', 'Review plan'], ['connected', 'Connect courses']]
   const activeIndex = Math.max(0, steps.findIndex(([id]) => id === active))
   return `<ol class="planning-intake-steps" aria-label="Plan setup progress">${steps.map(([id, label], index) => `<li class="${index < activeIndex ? 'is-complete' : index === activeIndex ? 'is-active' : ''}"${index === activeIndex ? ' aria-current="step"' : ''}><span>${index < activeIndex ? uiIcon('check') : index + 1}</span><strong>${label}</strong></li>`).join('')}</ol>`
+}
+
+function renderKnownProgrammePicker() {
+  if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
+  if (editorialProgrammesLoading && !editorialProgrammesData) return `<section class="planning-known-programmes" aria-labelledby="known-programmes-title"><div class="planning-intake-section-head"><span class="planning-intake-number">1</span><div><h2 id="known-programmes-title">Start from a known programme</h2><p>Loading maintained programme structures…</p></div></div><div class="planning-known-loading"><span></span><span></span></div></section>`
+  const programmes = editorialProgrammesData?.programmes || []
+  return `<section class="planning-known-programmes" aria-labelledby="known-programmes-title">
+    <div class="planning-intake-section-head"><span class="planning-intake-number">1</span><div><h2 id="known-programmes-title">Start from a known programme</h2><p>The fastest route when your programme is in our maintained catalogue.</p></div></div>
+    ${programmes.length ? `<div class="planning-known-list">${programmes.map((programme) => {
+      const version = programme.versions?.[0]
+      const connected = version?.courses?.filter(planningDraftConnection).length || 0
+      return `<article class="planning-known-row">
+        <div class="planning-known-mark" aria-hidden="true">${escapeHtml(programme.institution.name.slice(0, 2).toUpperCase())}</div>
+        <div class="planning-known-copy"><h3>${escapeHtml(programme.degree)} ${escapeHtml(programme.name)}</h3><p>${escapeHtml(programme.institution.name)} · ${programme.durationYears} years · ${programme.totalEcts} ECTS</p><span>${escapeHtml(version.label)} · ${connected} maintained course${connected === 1 ? '' : 's'} available</span></div>
+        <div class="planning-known-actions"><a href="${escapeHtml(version.sources?.[0]?.url || '#')}" target="_blank" rel="noreferrer">Official curriculum</a><button type="button" class="btn btn-primary" data-planning-programme-use="${escapeHtml(programme.id)}" data-planning-programme-version="${escapeHtml(version.id)}">Use programme ${uiIcon('chevronRight')}</button></div>
+      </article>`
+    }).join('')}</div>` : `<div class="planning-known-empty"><p>${editorialProgrammesError ? `Known programmes are temporarily unavailable: ${escapeHtml(editorialProgrammesError)}` : 'No maintained programmes are available yet.'}</p>${editorialProgrammesError ? '<button type="button" class="btn btn-secondary" data-editorial-programmes-retry>Try again</button>' : ''}</div>`}
+  </section>`
 }
 
 function renderPlanningIntakeSource(workspace) {
@@ -1452,10 +1569,12 @@ function renderPlanningIntakeSource(workspace) {
       <span class="planning-private"><span aria-hidden="true"></span>Private draft</span>
     </header>
     ${planningIntakeSteps('source')}
+    ${renderKnownProgrammePicker()}
+    <div class="planning-intake-divider"><span>Or build a plan from your own information</span></div>
     <div class="planning-intake-source-layout">
       <main class="planning-intake-source-main">
         <section aria-labelledby="planning-source-title">
-          <div class="planning-intake-section-head"><span class="planning-intake-number">1</span><div><h2 id="planning-source-title">Add your academic information</h2><p>Use a curriculum or programme PDF, transcript, screenshots, or any combination.</p></div></div>
+          <div class="planning-intake-section-head"><span class="planning-intake-number">2</span><div><h2 id="planning-source-title">Add your academic information</h2><p>Use a curriculum or programme PDF, transcript, screenshots, or any combination.</p></div></div>
           <label class="planning-dropzone${planningIntake.processingFiles ? ' is-processing' : ''}" data-planning-dropzone>
             <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,application/pdf,image/*,text/plain,text/csv" multiple data-planning-files ${planningIntake.processingFiles || planningIntake.analysing ? 'disabled' : ''}>
             <span class="planning-dropzone-icon">${uiIcon('upload')}</span>
@@ -1465,7 +1584,7 @@ function renderPlanningIntakeSource(workspace) {
           ${files.length ? `<ul class="planning-source-list" aria-label="Added sources">${files.map((file, index) => `<li><span class="planning-source-file-icon">${uiIcon('file')}</span><span><strong>${escapeHtml(file.name)}</strong><small>${file.type === 'application/pdf' ? `${file.pageCount || '—'} pages · ` : ''}${formatFileSize(file.size)}${file.images?.length ? ` · ${file.images.length} image${file.images.length === 1 ? '' : 's'} ready` : ''}</small></span><button type="button" data-planning-source-remove="${index}" aria-label="Remove ${escapeHtml(file.name)}">${uiIcon('close')}</button></li>`).join('')}</ul>` : ''}
         </section>
         <section class="planning-intake-description" aria-labelledby="planning-description-title">
-          <div class="planning-intake-section-head"><span class="planning-intake-number">2</span><div><h2 id="planning-description-title">Add anything the files miss</h2><p>Paste a curriculum description, list your current courses, or explain your grading and exam situation in your own words.</p></div></div>
+          <div class="planning-intake-section-head"><span class="planning-intake-number">3</span><div><h2 id="planning-description-title">Add anything the files miss</h2><p>Paste a curriculum description, list your current courses, or explain your grading and exam situation in your own words.</p></div></div>
           <label><span class="sr-only">Academic plan description</span><textarea data-planning-description maxlength="20000" placeholder="For example: I study BSc Computer Science at… I am in year 2. My current courses are… I have already passed…">${escapeHtml(planningIntake.description)}</textarea></label>
         </section>
       </main>
@@ -1477,6 +1596,60 @@ function renderPlanningIntakeSource(workspace) {
     </div>
     ${planningIntake.error ? `<div class="planning-intake-error" role="alert">${escapeHtml(planningIntake.error)}</div>` : ''}
     <footer class="planning-intake-actions"><button type="button" class="btn btn-ghost" data-planning-manual>Enter everything manually</button><button type="button" class="btn btn-primary" data-planning-analyse ${canAnalyse ? '' : 'disabled'}>${planningIntake.analysing ? '<span class="button-spinner"></span> Building your draft…' : `Review my plan ${uiIcon('chevronRight')}`}</button></footer>
+  </div>`
+}
+
+function renderPlanningProgramme() {
+  const reference = editorialProgrammeReference(planningIntake.programmeId, planningIntake.programmeVersionId)
+  if (!reference) return `<div class="planning-page planning-intake-page"><div class="planning-error" role="alert"><h1>Programme reference unavailable</h1><p>Return to the previous step and reload the programme catalogue.</p><button type="button" class="btn btn-secondary" data-planning-intake-back>Back to sources</button></div></div>`
+  const { programme, version } = reference
+  const config = planningIntake.programmeConfig || { academicYear: '', currentStudyYear: 'Year 1', pathwayId: '', selectedChoices: {} }
+  const coreCourses = version.courses.filter((course) => course.requirement === 'required')
+  const coreEcts = coreCourses.reduce((sum, course) => sum + course.ects, 0)
+  const connected = coreCourses.filter(planningDraftConnection).length
+  const moduleGroups = version.choiceGroups.filter((group) => !group.pathwayId)
+  const selectedIds = programmeSelections(version, config)
+  const compactChoices = compactPlanningMedia.matches
+  return `<div class="planning-page planning-intake-page planning-programme-page">
+    <header class="planning-intake-header planning-programme-header">
+      <div><button type="button" class="planning-inline-back" data-planning-intake-back>${uiIcon('arrowLeft')} All setup options</button><h1>${escapeHtml(programme.name)}</h1><p>${escapeHtml(programme.degree)} · ${escapeHtml(programme.institution.name)} · ${programme.totalEcts} ECTS</p></div>
+      <span class="planning-private"><span aria-hidden="true"></span>Private plan</span>
+    </header>
+    ${planningIntakeSteps('programme')}
+    <section class="planning-programme-source" aria-labelledby="programme-reference-title">
+      <div><h2 id="programme-reference-title">Confirm the programme structure</h2><p>This starter uses the official ${escapeHtml(version.label.toLowerCase())}. Check the version against your own cohort before relying on progression rules.</p></div>
+      <div><span>Verified ${escapeHtml(academicDate(version.lastVerified))}</span><a href="${escapeHtml(version.sources?.[0]?.url || '#')}" target="_blank" rel="noreferrer">View official curriculum ${uiIcon('chevronRight')}</a></div>
+    </section>
+    <div class="planning-programme-layout">
+      <main class="planning-programme-main">
+        <section class="planning-programme-context" aria-labelledby="programme-context-title">
+          <div class="planning-review-section-head"><div><h2 id="programme-context-title">Your starting point</h2><p>This does not change the official structure; it helps Planning focus the first view.</p></div></div>
+          <div class="planning-programme-context-fields">
+            <label><span>Academic year or cohort</span><input data-programme-config="academicYear" value="${escapeHtml(config.academicYear || '')}" maxlength="30" placeholder="2026–2027"></label>
+            <label><span>Current study year</span><select data-programme-config="currentStudyYear">${['Year 1','Year 2','Year 3'].map((year) => `<option value="${year}" ${config.currentStudyYear === year ? 'selected' : ''}>${year}</option>`).join('')}</select></label>
+          </div>
+        </section>
+        <section class="planning-programme-structure" aria-labelledby="programme-structure-title">
+          <div class="planning-review-section-head"><div><h2 id="programme-structure-title">Three-year structure</h2><p>${coreEcts} ECTS are fixed. Modules, electives, and the Year 3 pathway complete the 180 ECTS programme.</p></div></div>
+          <div class="planning-programme-years">
+            <div><strong>Year 1</strong><span>Shared foundation</span><b>60 ECTS fixed</b></div>
+            <div><strong>Year 2</strong><span>Core + two module choices</span><b>40 + 20 ECTS</b></div>
+            <div><strong>Year 3</strong><span>Final core + one pathway</span><b>30 + 30 ECTS</b></div>
+          </div>
+        </section>
+        <section class="planning-programme-decisions" aria-labelledby="programme-decisions-title">
+          <div class="planning-review-section-head"><div><h2 id="programme-decisions-title">Choices you already know</h2><p>Leave any choice open. You can complete or change it from Curriculum later.</p></div></div>
+          ${compactChoices ? `<div class="planning-programme-mobile-choices">${moduleGroups.map((group) => `<label><span>${escapeHtml(group.label)}</span><select data-programme-choice-select="${escapeHtml(group.id)}"><option value="">Decide later</option>${group.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<option value="${escapeHtml(courseId)}" ${(config.selectedChoices?.[group.id] || []).includes(courseId) ? 'selected' : ''}>${escapeHtml(course.name.replace(/^M2-\d:\s*/, ''))}</option>` }).join('')}</select><small>${escapeHtml(group.description)}</small></label>`).join('')}<label><span>Year 3 · Semester 1 pathway</span><select data-programme-pathway-select><option value="">Decide later</option>${version.pathways.map((pathway) => `<option value="${escapeHtml(pathway.id)}" ${config.pathwayId === pathway.id ? 'selected' : ''}>${escapeHtml(pathway.label)}</option>`).join('')}</select><small>Choose a course-based semester, minor, exchange, or approved honours route.</small></label></div>` : `${moduleGroups.map((group) => `<fieldset><legend><strong>${escapeHtml(group.label)}</strong><span>${escapeHtml(group.description)}</span></legend><div class="planning-programme-options"><label><input type="radio" name="programme-choice-${escapeHtml(group.id)}" data-programme-choice="${escapeHtml(group.id)}" value="" ${!(config.selectedChoices?.[group.id] || []).length ? 'checked' : ''}><span><strong>Decide later</strong><small>Keep this requirement open</small></span></label>${group.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<label><input type="radio" name="programme-choice-${escapeHtml(group.id)}" data-programme-choice="${escapeHtml(group.id)}" value="${escapeHtml(courseId)}" ${(config.selectedChoices?.[group.id] || []).includes(courseId) ? 'checked' : ''}><span><strong>${escapeHtml(course.name.replace(/^M2-\d:\s*/, ''))}</strong><small>${course.ects} ECTS</small></span></label>` }).join('')}</div></fieldset>`).join('')}<fieldset><legend><strong>Year 3 · Semester 1 pathway</strong><span>Choose a course-based semester, minor, exchange, or approved honours route.</span></legend><div class="planning-programme-pathways"><label><input type="radio" name="programme-pathway" data-programme-pathway value="" ${!config.pathwayId ? 'checked' : ''}><span><strong>Decide later</strong><small>Keep the 30 ECTS pathway open</small></span></label>${version.pathways.map((pathway) => `<label><input type="radio" name="programme-pathway" data-programme-pathway value="${escapeHtml(pathway.id)}" ${config.pathwayId === pathway.id ? 'checked' : ''}><span><strong>${escapeHtml(pathway.label)}</strong><small>${escapeHtml(pathway.description)}</small></span></label>`).join('')}</div></fieldset>`}
+        </section>
+      </main>
+      <aside class="planning-programme-summary" aria-label="Programme import summary">
+        <h2>What will be created</h2>
+        <dl><div><dt>Courses now</dt><dd>${selectedIds.size}</dd></div><div><dt>Fixed curriculum</dt><dd>${coreEcts} ECTS</dd></div><div><dt>Study connections</dt><dd>${connected}</dd></div></dl>
+        <p>${connected} fixed course${connected === 1 ? '' : 's'} already connect to maintained notes, questions, and practice. Open choices stay visible instead of being guessed.</p>
+      </aside>
+    </div>
+    ${planningIntake.error ? `<div class="planning-intake-error" role="alert">${escapeHtml(planningIntake.error)}</div>` : ''}
+    <footer class="planning-intake-actions"><button type="button" class="btn btn-secondary" data-planning-intake-back>${uiIcon('arrowLeft')} Back</button><p>Official structure · personal choices</p><button type="button" class="btn btn-primary" data-planning-programme-save ${planningIntake.saving ? 'disabled' : ''}>${planningIntake.saving ? '<span class="button-spinner"></span> Creating plan…' : `Create this plan ${uiIcon('chevronRight')}`}</button></footer>
   </div>`
 }
 
@@ -1547,6 +1720,7 @@ function renderPlanningIntakeConnected(workspace) {
 
 function renderPlanningIntake(workspace) {
   if (planningIntake.step === 'connected') return renderPlanningIntakeConnected(workspace)
+  if (planningIntake.step === 'programme') return renderPlanningProgramme()
   return planningIntake.step === 'review' ? renderPlanningIntakeReview(workspace) : renderPlanningIntakeSource(workspace)
 }
 
@@ -1651,12 +1825,34 @@ function renderPlanningCourses() {
 }
 
 function renderPlanningCurriculum() {
+  if (academicsData.workspace.programmeTemplate && !editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
+  const reference = activeEditorialProgrammeReference()
+  const template = academicsData.workspace.programmeTemplate
   const groups = new Map()
   for (const course of academicsData.workspace.courses) {
     const level = course.yearLevel || 'Unassigned level'
     groups.set(level, [...(groups.get(level) || []), course])
   }
-  return `<div class="planning-page">${planningPageHeader('Curriculum', 'A cohort-specific view of the courses in this programme')}${[...groups.entries()].map(([level, courses]) => `<section class="planning-curriculum-group"><div><h2>${escapeHtml(level)}</h2><span>${courses.reduce((sum, course) => sum + course.ects, 0)} ECTS</span></div><div class="planning-table-wrap"><table><thead><tr><th>Code</th><th>Course</th><th>Period</th><th>ECTS</th><th>Status</th><th>Study</th></tr></thead><tbody>${courses.map((course) => `<tr><td>${escapeHtml(course.code || '—')}</td><td>${escapeHtml(course.name)}</td><td>${escapeHtml(course.period || '—')}</td><td>${course.ects}</td><td>${course.attempts.some((a) => a.status === 'passed') ? 'Passed' : 'Open'}</td><td>${academicStudyLink(course, 'Open materials')}</td></tr>`).join('')}</tbody></table></div></section>`).join('') || '<div class="planning-empty"><h2>No curriculum recorded</h2><p>Add courses from Overview.</p></div>'}</div>`
+  const programmeReference = reference ? (() => {
+    const { programme, version } = reference
+    const moduleGroups = version.choiceGroups.filter((group) => !group.pathwayId)
+    const electiveGroup = version.choiceGroups.find((group) => group.id === 'year-3-electives')
+    const selectedElectives = template.selectedChoices?.[electiveGroup?.id] || []
+    const courseBased = template.pathwayId === 'course-based'
+    return `<section class="planning-editorial-reference" aria-labelledby="editorial-programme-title">
+      <header><div><h2 id="editorial-programme-title">Known programme structure</h2><p>${escapeHtml(programme.degree)} ${escapeHtml(programme.name)} · ${escapeHtml(programme.institution.name)}</p></div><div><span>${escapeHtml(version.label)}</span><a href="${escapeHtml(version.sources?.[0]?.url || '#')}" target="_blank" rel="noreferrer">Official source ${uiIcon('chevronRight')}</a></div></header>
+      <div class="planning-editorial-notice"><strong>Reference, not a substitute for your cohort rules.</strong><span>Last checked ${escapeHtml(academicDate(version.lastVerified))}. Choices below update your private curriculum while preserving recorded attempts.</span></div>
+      <form data-academic-programme-structure>
+        <div class="planning-editorial-choices">
+          ${moduleGroups.map((group) => `<label><span>${escapeHtml(group.label)}</span><select name="choice-${escapeHtml(group.id)}"><option value="">Decide later</option>${group.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<option value="${escapeHtml(courseId)}" ${(template.selectedChoices?.[group.id] || []).includes(courseId) ? 'selected' : ''}>${escapeHtml(course.name.replace(/^M2-\d:\s*/, ''))}</option>` }).join('')}</select><small>${escapeHtml(group.description)}</small></label>`).join('')}
+          <label><span>Year 3 · Semester 1 pathway</span><select name="pathwayId" data-programme-structure-pathway><option value="">Decide later</option>${version.pathways.map((pathway) => `<option value="${escapeHtml(pathway.id)}" ${template.pathwayId === pathway.id ? 'selected' : ''}>${escapeHtml(pathway.label)}</option>`).join('')}</select><small>The selected route determines the remaining 30 ECTS.</small></label>
+        </div>
+        ${electiveGroup ? `<details class="planning-editorial-electives" data-programme-electives ${courseBased ? '' : 'hidden'} ${courseBased && !compactPlanningMedia.matches ? 'open' : ''}><summary><strong>${escapeHtml(electiveGroup.label)}</strong><span><b data-programme-elective-count>${selectedElectives.length}</b> of ${electiveGroup.maxSelections} selected</span></summary><div>${electiveGroup.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<label><input type="checkbox" name="choice-${escapeHtml(electiveGroup.id)}" value="${escapeHtml(courseId)}" ${selectedElectives.includes(courseId) ? 'checked' : ''} ${courseBased ? '' : 'disabled'}><span><strong>${escapeHtml(course.name)}</strong><small>${escapeHtml(course.period)} · ${course.ects} ECTS</small></span></label>` }).join('')}</div></details>` : ''}
+        <footer><p>Unselected requirements remain open; Wicker Study does not guess your track.</p><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save programme choices</button></footer>
+      </form>
+    </section>`
+  })() : template ? `<section class="planning-editorial-reference"><div class="planning-known-empty"><p>${editorialProgrammesLoading ? 'Loading the programme reference…' : `The saved programme reference is temporarily unavailable${editorialProgrammesError ? `: ${escapeHtml(editorialProgrammesError)}` : '.'}`}</p>${editorialProgrammesError ? '<button type="button" class="btn btn-secondary" data-editorial-programmes-retry>Try again</button>' : ''}</div></section>` : ''
+  return `<div class="planning-page">${planningPageHeader('Curriculum', 'A cohort-specific view of the courses in this programme')}${programmeReference}${[...groups.entries()].map(([level, courses]) => `<section class="planning-curriculum-group"><div><h2>${escapeHtml(level)}</h2><span>${courses.reduce((sum, course) => sum + course.ects, 0)} ECTS currently selected</span></div><div class="planning-table-wrap"><table><thead><tr><th>Code</th><th>Course</th><th>Period</th><th>ECTS</th><th>Requirement</th><th>Study</th></tr></thead><tbody>${courses.map((course) => `<tr><td>${escapeHtml(course.code || '—')}</td><td>${escapeHtml(course.name)}</td><td>${escapeHtml(course.period || '—')}</td><td>${course.ects}</td><td>${course.programmeRequirement === 'historical' ? 'Recorded history' : course.programmeRequirement ? escapeHtml(course.programmeRequirement) : course.attempts.some((a) => a.status === 'passed') ? 'Passed' : 'Personal'}</td><td>${academicStudyLink(course, 'Open materials')}</td></tr>`).join('')}</tbody></table></div></section>`).join('') || '<div class="planning-empty"><h2>No curriculum recorded</h2><p>Add courses from Overview.</p></div>'}</div>`
 }
 
 function renderPlanningCalendar() {
@@ -7180,6 +7376,76 @@ function bindEvents() {
   window.__autoWrap = autoWrapBareLatex
   window.__renderMarkdown = renderMarkdown
 
+  document.querySelectorAll('[data-editorial-programmes-retry]').forEach((button) => button.addEventListener('click', () => loadEditorialProgrammes({ force: true })))
+  document.querySelectorAll('[data-planning-programme-use]').forEach((button) => button.addEventListener('click', () => {
+    const reference = editorialProgrammeReference(button.dataset.planningProgrammeUse, button.dataset.planningProgrammeVersion)
+    if (!reference) return
+    planningIntake.programmeId = reference.programme.id
+    planningIntake.programmeVersionId = reference.version.id
+    planningIntake.programmeConfig = {
+      academicYear: academicsData?.workspace?.profile?.academicYear || '',
+      currentStudyYear: 'Year 1',
+      pathwayId: '',
+      selectedChoices: Object.fromEntries(reference.version.choiceGroups.map((group) => [group.id, []]))
+    }
+    planningIntake.error = null
+    planningIntake.step = 'programme'
+    render()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }))
+  document.querySelectorAll('[data-programme-config]').forEach((input) => input.addEventListener('change', () => {
+    if (planningIntake.programmeConfig) planningIntake.programmeConfig[input.dataset.programmeConfig] = input.value
+  }))
+  document.querySelectorAll('[data-programme-choice]').forEach((input) => input.addEventListener('change', () => {
+    if (!input.checked || !planningIntake.programmeConfig) return
+    planningIntake.programmeConfig.selectedChoices[input.dataset.programmeChoice] = input.value ? [input.value] : []
+    render()
+  }))
+  document.querySelectorAll('[data-programme-choice-select]').forEach((select) => select.addEventListener('change', () => {
+    if (!planningIntake.programmeConfig) return
+    planningIntake.programmeConfig.selectedChoices[select.dataset.programmeChoiceSelect] = select.value ? [select.value] : []
+    render()
+  }))
+  document.querySelectorAll('[data-programme-pathway]').forEach((input) => input.addEventListener('change', () => {
+    if (!input.checked || !planningIntake.programmeConfig) return
+    planningIntake.programmeConfig.pathwayId = input.value
+    if (input.value !== 'course-based') planningIntake.programmeConfig.selectedChoices['year-3-electives'] = []
+    render()
+  }))
+  document.querySelectorAll('[data-programme-pathway-select]').forEach((select) => select.addEventListener('change', () => {
+    if (!planningIntake.programmeConfig) return
+    planningIntake.programmeConfig.pathwayId = select.value
+    if (select.value !== 'course-based') planningIntake.programmeConfig.selectedChoices['year-3-electives'] = []
+    render()
+  }))
+  document.querySelectorAll('[data-planning-programme-save]').forEach((button) => button.addEventListener('click', async () => {
+    if (!academicsData?.workspace || planningIntake.saving || !planningIntake.programmeConfig) return
+    const reference = editorialProgrammeReference(planningIntake.programmeId, planningIntake.programmeVersionId)
+    if (!reference) {
+      planningIntake.error = 'The programme reference is unavailable. Return to setup and try again.'
+      render()
+      return
+    }
+    const workspace = applyEditorialProgramme(academicsData.workspace, reference.programme, reference.version, planningIntake.programmeConfig)
+    planningIntake.saving = true
+    planningIntake.error = null
+    render()
+    try {
+      academicsData = await fetchJson('/api/academics', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace, expectedRevision: academicsData.workspace.revision })
+      })
+      academicsError = null
+      planningIntake.saving = false
+      planningIntake.step = 'connected'
+      route = { page: 'planning', tab: 'overview' }
+      if (window.location.hash !== '#/planning/overview') window.location.hash = '#/planning/overview'
+    } catch (error) {
+      planningIntake.error = error.message || 'The programme plan could not be created.'
+      planningIntake.saving = false
+    }
+    render()
+  }))
+
   document.querySelectorAll('[data-planning-files]').forEach((input) => input.addEventListener('change', () => addPlanningSources(input.files)))
   document.querySelectorAll('[data-planning-dropzone]').forEach((dropzone) => {
     ;['dragenter', 'dragover'].forEach((type) => dropzone.addEventListener(type, (event) => {
@@ -7384,6 +7650,45 @@ function bindEvents() {
   }))
 
   document.querySelectorAll('[data-academics-retry]').forEach((button) => button.addEventListener('click', () => loadAcademics({ force: true })))
+  document.querySelectorAll('[data-programme-structure-pathway]').forEach((select) => select.addEventListener('change', () => {
+    const electives = select.closest('[data-academic-programme-structure]')?.querySelector('[data-programme-electives]')
+    if (!electives) return
+    const enabled = select.value === 'course-based'
+    electives.hidden = !enabled
+    if (enabled && !compactPlanningMedia.matches) electives.open = true
+    electives.querySelectorAll('input').forEach((input) => { input.disabled = !enabled })
+  }))
+  document.querySelectorAll('[data-programme-electives]').forEach((fieldset) => {
+    const inputs = [...fieldset.querySelectorAll('input[type="checkbox"]')]
+    const update = (changed) => {
+      let selected = inputs.filter((input) => input.checked)
+      if (selected.length > 6 && changed) {
+        changed.checked = false
+        selected = inputs.filter((input) => input.checked)
+      }
+      const count = fieldset.querySelector('[data-programme-elective-count]')
+      if (count) count.textContent = selected.length
+      inputs.forEach((input) => { input.disabled = fieldset.hidden || (selected.length >= 6 && !input.checked) })
+    }
+    inputs.forEach((input) => input.addEventListener('change', () => update(input)))
+    update()
+  })
+  document.querySelectorAll('[data-academic-programme-structure]').forEach((form) => form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const reference = activeEditorialProgrammeReference()
+    if (!reference || !academicsData?.workspace) return
+    const data = new FormData(form)
+    const selectedChoices = Object.fromEntries(reference.version.choiceGroups.map((group) => [group.id, group.maxSelections === 1
+      ? [String(data.get(`choice-${group.id}`) || '')].filter(Boolean)
+      : data.getAll(`choice-${group.id}`).map(String)]))
+    const config = {
+      academicYear: academicsData.workspace.profile.academicYear,
+      currentStudyYear: academicsData.workspace.programmeTemplate?.currentStudyYear || '',
+      pathwayId: String(data.get('pathwayId') || ''),
+      selectedChoices
+    }
+    await saveAcademics(applyEditorialProgramme(academicsData.workspace, reference.programme, reference.version, config))
+  }))
   document.querySelectorAll('[data-planning-profile-toggle]').forEach((button) => button.addEventListener('click', () => {
     planningProfileEditing = !planningProfileEditing
     render()

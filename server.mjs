@@ -15,6 +15,7 @@ import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, 
 import { deletePersonalData, exportPersonalData } from './lib/account-data.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
+import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { editorialMode, getMaterial, getMaterialText, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 
@@ -2910,6 +2911,11 @@ const server = createServer(async (req, res) => {
       } catch (error) {
         if (!sendAiError(res, error)) send(res, /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
       }
+      return
+    }
+
+    if (url.pathname === '/api/editorial-programmes' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(loadEditorialProgrammeCatalogue()), 'application/json; charset=utf-8', { 'Cache-Control': 'private, max-age=300' })
       return
     }
 
