@@ -1243,16 +1243,6 @@ function renderSidebar() {
       </a>
     `
   }
-  const courseLinks = activeCourses().map(navCourse).join('')
-  const archived = archivedCourses()
-  const archivedBlock = archived.length ? `
-    <button type="button" class="nav-archived-toggle" data-sidebar-archived-toggle>
-      <span class="nav-icon"></span>
-      <span class="nav-label">${uiIcon(sidebarArchivedOpen ? 'chevronDown' : 'chevronRight')} Archived (${archived.length})</span>
-    </button>
-    ${sidebarArchivedOpen ? `<div class="nav-archived-list">${archived.map(navCourse).join('')}</div>` : ''}
-  ` : ''
-
   return `
     <aside class="sidebar">
       <div class="sidebar-head">
@@ -1264,10 +1254,7 @@ function renderSidebar() {
       </div>
       <nav>
         ${renderSearchTrigger()}
-        <a class="nav-dashboard ${route.page === 'dashboard' ? 'active' : ''}" href="#/" title="Dashboard"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Dashboard</span></a>
-        ${courseLinks}
-        ${archivedBlock}
-        <div class="nav-divider"><span class="nav-icon"></span><span class="nav-label">Practice</span></div>
+        <a class="nav-dashboard ${route.page === 'dashboard' ? 'active' : ''}" href="#/" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
         <a class="nav-tool ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistake bank"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistake bank</span></a>
         <a class="nav-tool ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mock sessions</span></a>
       </nav>
@@ -1289,8 +1276,8 @@ function renderChapterTopbar() {
       <a class="back-link" href="#/course/${route.courseId}">← ${course?.code || ''} ${course?.shortName || ''}</a>
       <span class="chapter-topbar-title">Ch ${chapter?.id || ''} · ${chapter?.name || 'Chapter'}</span>
       <nav class="chapter-topbar-nav">
-        <a href="#/">Dashboard</a>
-        ${state.courses.map((c) => `<a class="${c.id === route.courseId ? 'active' : ''}" href="#/course/${c.id}">${c.shortName || c.code}</a>`).join('')}
+        <a href="#/">All courses</a>
+        <a href="#/mistakes">Mistake bank</a>
       </nav>
     </header>
   `
@@ -1426,21 +1413,11 @@ function renderDashboard() {
   if (!mistakeCache) loadMistakes().then(() => render())
   if (!srDueCache) loadSrDue().then(() => render())
   ensureCoverage()
-  // Hydrate master generate-all-courses job once on dashboard mount
-  if (generateAllCoursesJob === null && !generateAllCoursesPolling) {
-    fetch('/api/generate-all-courses').then((r) => r.ok ? r.json() : null).then((job) => {
-      if (!job) { generateAllCoursesJob = undefined; return }
-      generateAllCoursesJob = job
-      if (job.status === 'running' || job.status === 'queued') refreshGenerateAllCourses()
-      else render()
-    }).catch(() => {})
-  }
   const mistakeCount = mistakeCache?.items?.length ?? null
   const srDue = srDueCache?.dueCount ?? null
   const srTotal = srDueCache?.totalCards ?? null
 
   return `
-    ${renderUpdateBanner()}
     <section class="hero">
       <div>
         <p class="eyebrow">Dashboard</p>
@@ -1487,7 +1464,6 @@ function renderDashboard() {
       </section>
     ` : ''}
 
-    ${renderGenerateAllCoursesCard()}
   `
 }
 
@@ -2078,27 +2054,6 @@ function renderCourse(courseId) {
   if (typeof questionsSummaryCache !== 'undefined' && !questionsSummaryCache.has(course.id)) ensureQuestionsSummary(course.id)
   ensureCourseToc(course.id)
   ensureCoverage()
-  // Hydrate any running generate-all job for this course on FIRST render only.
-  // Once hydrated, the polling flag (or absence of one for a finished job) keeps
-  // future renders from re-firing the fetch — otherwise a finished job triggers
-  // render() → renders re-fire the fetch → response calls render() → infinite
-  // loop that wedges the browser.
-  {
-    const entry = generateAllJobs.get(course.id)
-    if (!entry?.hydrated && !entry?.polling) {
-      const e = entry || {}
-      e.hydrated = true
-      generateAllJobs.set(course.id, e)
-      fetch(`/api/courses/${encodeURIComponent(course.id)}/generate-all`).then((r) => r.ok ? r.json() : null).then((job) => {
-        if (!job) return
-        const e2 = generateAllJobs.get(course.id) || {}
-        e2.job = job
-        generateAllJobs.set(course.id, e2)
-        if (job.status === 'running' || job.status === 'queued') refreshGenerateJob(course.id)
-        else render()
-      }).catch(() => {})
-    }
-  }
   const progress = courseProgress(course)
   const chapters = course.chapters || []
   const coreChapters = chapters.filter((ch) => !isSupportChapter(ch))
@@ -2120,15 +2075,12 @@ function renderCourse(courseId) {
             <div class="course-overview-record" aria-label="Course progress">
               <span class="course-overview-number">${progress.masteryPct}<sup>%</sup></span>
               <p>${progress.done} of ${progress.total} chapters read</p>
-              ${renderCoursePopulatedChip(course)}
             </div>
             <div class="course-overview-nav">
               ${renderSurfaceTabs(course, { active: 'overview', surface: 'overview' })}
               <button type="button" class="clear-link" data-clear-scope="course" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset every trace of your progress on this course">Reset progress</button>
             </div>
           </header>
-
-          ${renderGenerateAllCard(course)}
 
           <section class="course-spine-section course-overview-section">
             <div class="panel-head spine-head">
@@ -2170,7 +2122,7 @@ function renderCourseNavigator(course, matches, supportMatches, q) {
   const total = matches.length
   return `
     <aside class="chapter-toc course-toc">
-      <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Expand TOC' : 'Collapse TOC'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
+      <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
       <div class="rail-collapsible">
         <h4>Filter</h4>
         <div class="course-nav-search">
@@ -2663,7 +2615,7 @@ function renderChapterPage() {
   return `
     <div class="chapter-grid" style="--accent:${course.accent}">
       <aside class="chapter-toc">
-        <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Expand TOC' : 'Collapse TOC'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
+        <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
         <div class="rail-collapsible">
           <button class="toc-back" type="button" data-back-to-course="${course.id}" title="Back to ${course.code} ${course.shortName || ''}">${ICONS.back}<span>${course.code} <em>${course.shortName || ''}</em></span></button>
           ${renderCourseChaptersSection(course, chapter.id)}
@@ -5197,15 +5149,12 @@ function renderMockExamPage() {
     } else if (outline.status === 'error') {
       tocBody = `<p class="empty error">${escapeHtml(outline.error || 'Failed to load PDF.')}</p>`
     } else if (outline.status === 'building') {
-      tocBody = '<p class="empty">Building content TOC via codex (30-90s)…</p>'
+      tocBody = '<p class="empty">Preparing document outline…</p>'
     } else {
-      const isCodex = outline.status === 'codex'
       const isNative = outline.status === 'native'
-      const isPagesFallback = outline.status === 'pages'
       tocHeader = `
         <div class="toc-actions">
-          <small class="toc-source">${isNative ? 'PDF bookmarks' : isCodex ? 'Generated content TOC' : 'Per-page fallback'}</small>
-          <button type="button" class="toc-build-btn" data-build-toc="${course.id}" data-build-exam="${examId || ''}">${isCodex ? `${uiIcon('refresh')} Rebuild` : isPagesFallback ? `${uiIcon('sparkle')} Build content TOC` : `${uiIcon('refresh')} Rebuild content TOC`}</button>
+          <small class="toc-source">${isNative ? 'Document outline' : 'Page outline'}</small>
         </div>
       `
       tocBody = (outline.items || []).length
@@ -5221,7 +5170,7 @@ function renderMockExamPage() {
   return `
     <div class="chapter-grid practice-workspace" style="--accent:${course.accent}">
       <aside class="chapter-toc">
-        <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Expand TOC' : 'Collapse TOC'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
+        <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
         <div class="rail-collapsible">
           <button class="toc-back" type="button" data-back-to-course="${course.id}" title="Back to ${course.code} ${course.shortName || ''}">${ICONS.back}<span>${course.code} <em>${course.shortName || ''}</em></span></button>
           <h4>${tocTitle}</h4>
@@ -7731,17 +7680,6 @@ function bindEvents() {
       const page = Number(event.currentTarget.dataset.pdfPage)
       const courseId = event.currentTarget.dataset.pdfCourse
       jumpToPdfPage(courseId, page)
-    })
-  })
-
-  document.querySelectorAll('[data-build-toc]').forEach((btn) => {
-    btn.addEventListener('click', (event) => {
-      const courseId = event.currentTarget.dataset.buildToc
-      const examId = event.currentTarget.dataset.buildExam || getActivePaperId()
-      const cacheKey = examId ? `${courseId}__${examId}` : courseId
-      const cached = pdfOutlineCache.get(cacheKey)
-      const force = cached?.status === 'codex'
-      buildContentToc(courseId, { force, examId })
     })
   })
 
