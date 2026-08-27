@@ -12,7 +12,19 @@
   --color-on-dark-tertiary: #aeb6c8;
   --color-on-dark-accent: #9ba8ff;
 }
-body.public-mode { min-height: 100dvh; background: var(--color-canvas); }
+html.public-mode {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+body.public-mode {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+  background: var(--color-canvas);
+}
 body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 #public-site { min-height: 100dvh; color: var(--color-ink); background: var(--color-canvas); }
 #public-site *, #auth-gate * { box-sizing: border-box; }

@@ -179,6 +179,7 @@ export function mountPublicSite(pathname = '/') {
   document.getElementById('auth-gate').hidden = true
   document.getElementById('app').innerHTML = ''
   target.hidden = false
+  document.documentElement.classList.add('public-mode')
   document.body.classList.add('public-mode')
   document.querySelector('.skip-link')?.setAttribute('href', '#main-content')
   const renderers = { '/': landingPage, '/about': aboutPage, '/courses': coursesPage, '/privacy': privacyPage, '/terms': termsPage }
@@ -205,6 +206,7 @@ export function mountAuthSite() {
   const gate = document.getElementById('auth-gate')
   publicSite.hidden = true
   document.getElementById('app').innerHTML = ''
+  document.documentElement.classList.remove('public-mode')
   document.body.classList.remove('public-mode')
   document.querySelector('.skip-link')?.setAttribute('href', '#auth-gate')
   gate.hidden = false

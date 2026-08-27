@@ -61,6 +61,7 @@ function snapshotLocalStorage() {
 async function startApplication() {
   document.getElementById('public-site').hidden = true
   document.getElementById('auth-gate').hidden = true
+  document.documentElement.classList.remove('public-mode')
   document.body.classList.remove('public-mode')
   document.body.classList.add('app-mode')
   document.getElementById('app').innerHTML = '<main class="boot-loading"><p>Opening your study record…</p></main>'
@@ -104,7 +105,7 @@ async function authHeaders() {
 async function main() {
   const pathname = normalizedPath()
   if (['/', '/about', '/courses', '/privacy', '/terms'].includes(pathname)) {
-    const { mountPublicSite } = await import('/public-site.js?v=20260827')
+    const { mountPublicSite } = await import('/public-site.js?v=20260827-scroll')
     mountPublicSite(pathname)
     return
   }
@@ -140,7 +141,7 @@ async function main() {
 
   if (!clerk.user) {
     if (pathname !== '/sign-in') window.history.replaceState(null, '', '/sign-in')
-    const { mountAuthSite } = await import('/public-site.js?v=20260827')
+    const { mountAuthSite } = await import('/public-site.js?v=20260827-scroll')
     mountAuthSite()
     clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
       fallbackRedirectUrl: `${window.location.origin}/app`,
