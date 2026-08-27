@@ -1,4 +1,69 @@
 const nativeFetch = window.fetch.bind(window)
+const AUTH_TOKEN_TIMEOUT_MS = 5000
+const AUTH_TOKEN_EXPIRY_SKEW_MS = 15000
+let cachedAuthToken = null
+let cachedAuthTokenExpiresAt = 0
+let authTokenRequest = null
+
+function deadline(promise, { timeoutMs, signal, message }) {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const finish = (callback, value) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      callback(value)
+    }
+    const onAbort = () => finish(reject, new DOMException('The request was cancelled.', 'AbortError'))
+    const timer = setTimeout(() => finish(reject, new Error(message)), timeoutMs)
+    if (signal?.aborted) return onAbort()
+    signal?.addEventListener('abort', onAbort, { once: true })
+    Promise.resolve(promise).then(
+      (value) => finish(resolve, value),
+      (error) => finish(reject, error)
+    )
+  })
+}
+
+function tokenExpiresAt(token) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return Number(JSON.parse(atob(payload)).exp || 0) * 1000
+  } catch {
+    return Date.now() + 30000
+  }
+}
+
+function clearAuthToken() {
+  cachedAuthToken = null
+  cachedAuthTokenExpiresAt = 0
+}
+
+async function sessionToken({ force = false, signal } = {}) {
+  if (!window.__clerkSession) return null
+  if (!force && cachedAuthToken && cachedAuthTokenExpiresAt > Date.now() + AUTH_TOKEN_EXPIRY_SKEW_MS) {
+    return cachedAuthToken
+  }
+  if (force) clearAuthToken()
+  if (!authTokenRequest) {
+    authTokenRequest = deadline(
+      window.__clerkSession.getToken(force ? { skipCache: true } : undefined),
+      { timeoutMs: AUTH_TOKEN_TIMEOUT_MS, message: 'Your secure session took too long to refresh.' }
+    ).then((token) => {
+      if (token) {
+        cachedAuthToken = token
+        cachedAuthTokenExpiresAt = tokenExpiresAt(token)
+      }
+      return token
+    }).finally(() => { authTokenRequest = null })
+  }
+  return deadline(authTokenRequest, {
+    timeoutMs: AUTH_TOKEN_TIMEOUT_MS,
+    signal,
+    message: 'Your secure session took too long to refresh.'
+  })
+}
 
 function normalizedPath() {
   const value = window.location.pathname.replace(/\/+$/, '')
@@ -66,7 +131,7 @@ async function startApplication() {
   document.body.classList.add('app-mode')
   document.getElementById('app').innerHTML = '<main class="boot-loading"><p>Opening your study record…</p></main>'
   await loadStudyDependencies()
-  await import(`/app.js?v=20260827-settings`)
+  await import(`/app.js?v=20260827-study-canvas-4`)
 }
 
 async function configureCloudSync() {
@@ -98,7 +163,7 @@ async function configureCloudSync() {
 }
 
 async function authHeaders() {
-  const token = await window.__clerkSession?.getToken()
+  const token = await sessionToken()
   return token ? { authorization: `Bearer ${token}` } : {}
 }
 
@@ -176,10 +241,26 @@ async function main() {
   if (pathname === '/sign-in') window.history.replaceState(null, '', '/app')
 
   window.fetch = async (input, init = {}) => {
-    const headers = new Headers(init.headers || {})
-    const token = await clerk.session?.getToken()
-    if (token) headers.set('authorization', `Bearer ${token}`)
-    return nativeFetch(input, { ...init, headers })
+    const requestUrl = new URL(typeof input === 'string' ? input : input.url, window.location.href)
+    const isProtectedApi = requestUrl.origin === window.location.origin && requestUrl.pathname.startsWith('/api/')
+    if (!isProtectedApi) return nativeFetch(input, init)
+
+    const headers = new Headers(init.headers || (input instanceof Request ? input.headers : {}))
+    const token = await sessionToken({ signal: init.signal })
+    if (!token) throw new Error('Your session is unavailable. Reload the page to sign in again.')
+    headers.set('authorization', `Bearer ${token}`)
+    let response = await nativeFetch(input, { ...init, headers })
+
+    // A token can expire between entering the workspace and opening a chapter.
+    // Refresh once, then return the real 401 so the surface can show recovery UI.
+    if (response.status === 401) {
+      const refreshed = await sessionToken({ force: true, signal: init.signal })
+      if (refreshed && refreshed !== token) {
+        headers.set('authorization', `Bearer ${refreshed}`)
+        response = await nativeFetch(input, { ...init, headers })
+      }
+    }
+    return response
   }
   await configureCloudSync()
   await startApplication()

@@ -8,6 +8,13 @@ node_modules/
 .impeccable/
 test/
 
-# Local fallback snapshots are not the production content source.
-data/
+# Local fallback snapshots and per-user state are not production content
+# sources. Published question banks under data/cache are deliberately bundled:
+# Practice reads these immutable banks and never generates content on page load.
+data/study-state.json
+data/flashcards.json
+data/sr-state.json
+data/mistakes/
+data/mocks/
+data/users/
 *.log

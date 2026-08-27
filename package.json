@@ -15,6 +15,7 @@
     "content:publish": "node scripts/publish-content.mjs",
     "content:extract": "node scripts/backfill-pdf-text.mjs",
     "content:index": "node scripts/index-retrieval.mjs",
+    "content:verify-precomputed": "node scripts/verify-precomputed.mjs",
     "user:import": "node scripts/import-local-user.mjs",
     "test": "node --test"
   },

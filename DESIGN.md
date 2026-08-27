@@ -94,7 +94,7 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - The dashboard is an operational overview, not a marketing page. Its summary is compact and the course ledger begins within the first viewport.
 - Courses appear as ruled rows with aligned columns. Repeated academic records never become a floating card grid.
 - Course pages use a compact identity header, local horizontal tabs, an at-a-glance heatmap, and a ruled chapter register.
-- Reading and practice pages use a three-region desktop workspace: 190–240px outline, flexible primary content, and 250–320px study tools.
+- Reading and chapter practice use one centered primary canvas. Outline, progress, and the grounded tutor are contextual drawers that never reserve permanent columns. A chapter has one local mode switch; course-level tabs do not repeat inside it.
 - Mobile is a distinct quick-study mode, not a stacked desktop view. It uses bottom primary navigation, an action-led home, single-task reading/practice screens, and contextual outline/tools sheets.
 - Auth, mistakes, flashcards, mock sessions, search, forms, dialogs, empty states, loading states, and errors inherit the same spacing, surface, and control system.
 - Public pages use a product-led editorial layout: direct value proposition,
@@ -129,7 +129,7 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 
 ## Do not
 
-- Do not reintroduce serif fonts, oversized dashboard heroes, permanent sidebars, duplicate course navigation, gradients, glass, or decorative paper textures.
+- Do not reintroduce serif fonts, oversized dashboard heroes, permanent or resizable study rails, raw source paths, duplicate course navigation, gradients, glass, or decorative paper textures.
 - Do not use per-course accent colors for global UI. Course color may identify a course icon or local datum only.
 - Do not invent one-off spacing, radii, shadows, or colors outside the documented tokens.
 - Do not hide dense information inside nested containers when a ruled list or table is clearer.

@@ -470,98 +470,7 @@ function setChapterTab(courseId, chapterId, tab) {
   try { localStorage.setItem(`chapter-tab:${key}`, tab) } catch {}
 }
 
-// ----- Study workspace layout state (resizable outline and tool columns) -----
-const DEFAULT_WIDTHS = { toc: 300, rail: 380 }
-const MIN_WIDTHS = { toc: 220, rail: 280 }
-const MAX_WIDTHS = { toc: 560, rail: 620 }
-const COLLAPSED_TOC = 36
-const COLLAPSED_RAIL = 36
-
-let layoutState = {
-  tocCollapsed: false,
-  railCollapsed: false,
-  widths: { ...DEFAULT_WIDTHS }
-}
 let mobileStudyPanel = null
-
-function renderMobileStudyBar(label = 'Study tools') {
-  return `
-    <div class="mobile-study-bar" aria-label="Mobile study controls">
-      <button type="button" data-mobile-study-panel="outline" aria-pressed="${mobileStudyPanel === 'outline'}">${uiIcon('list')}<span>Outline</span></button>
-      <strong>${escapeHtml(label)}</strong>
-      <button type="button" data-mobile-study-panel="tools" aria-pressed="${mobileStudyPanel === 'tools'}">${uiIcon('settings')}<span>Tools</span></button>
-    </div>
-  `
-}
-try {
-  const saved = JSON.parse(localStorage.getItem('layout-state') || '{}')
-  if (saved.tocCollapsed) layoutState.tocCollapsed = true
-  if (saved.railCollapsed) layoutState.railCollapsed = true
-  if (saved.widths) layoutState.widths = { ...DEFAULT_WIDTHS, ...saved.widths }
-} catch {}
-
-function applyLayoutWidths() {
-  const root = document.documentElement
-  root.style.setProperty('--toc-width', layoutState.tocCollapsed ? `${COLLAPSED_TOC}px` : `${layoutState.widths.toc}px`)
-  root.style.setProperty('--rail-width', layoutState.railCollapsed ? `${COLLAPSED_RAIL}px` : `${layoutState.widths.rail}px`)
-  delete root.dataset.sidebarCollapsed
-  root.dataset.tocCollapsed = layoutState.tocCollapsed ? 'true' : 'false'
-  root.dataset.railCollapsed = layoutState.railCollapsed ? 'true' : 'false'
-}
-
-function saveLayout() {
-  try { localStorage.setItem('layout-state', JSON.stringify(layoutState)) } catch {}
-}
-
-function toggleToc() {
-  layoutState.tocCollapsed = !layoutState.tocCollapsed
-  applyLayoutWidths()
-  saveLayout()
-  render()
-}
-
-function toggleRail() {
-  layoutState.railCollapsed = !layoutState.railCollapsed
-  applyLayoutWidths()
-  saveLayout()
-  render()
-}
-
-function attachResizeHandlers() {
-  document.querySelectorAll('[data-resize]').forEach((handle) => {
-    handle.addEventListener('pointerdown', (e) => {
-      e.preventDefault()
-      handle.setPointerCapture?.(e.pointerId)
-      const target = handle.dataset.resize
-      const startX = e.clientX
-      const startWidth = layoutState.widths[target] || DEFAULT_WIDTHS[target]
-      document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
-      const onMove = (ev) => {
-        const delta = ev.clientX - startX
-        let next = target === 'rail' ? startWidth - delta : startWidth + delta
-        next = Math.max(MIN_WIDTHS[target], Math.min(MAX_WIDTHS[target], next))
-        layoutState.widths[target] = Math.round(next)
-        applyLayoutWidths()
-      }
-      const onUp = () => {
-        document.removeEventListener('pointermove', onMove)
-        document.removeEventListener('pointerup', onUp)
-        document.body.style.cursor = ''
-        document.body.style.userSelect = ''
-        saveLayout()
-      }
-      document.addEventListener('pointermove', onMove)
-      document.addEventListener('pointerup', onUp)
-    })
-    handle.addEventListener('dblclick', (e) => {
-      const target = e.currentTarget.dataset.resize
-      layoutState.widths[target] = DEFAULT_WIDTHS[target]
-      applyLayoutWidths()
-      saveLayout()
-    })
-  })
-}
 const filterState = { category: 'all', mastery: 'all', sort: 'priority', search: '' }
 // questionFilter: checkbox-style multi-select.
 // types: array of question type ids selected ('written','calc','tf','mc','pseudocode'). Empty = show ALL.
@@ -580,7 +489,6 @@ init()
 async function init() {
   state = await fetchJson('/api/state')
   loadAiUsage().then(() => render()).catch(() => {})
-  applyLayoutWidths()
   render()
   // Pre-load SR membership so the "+ Add to flashcards" buttons correctly
   // show "✓ In SR" for cards already in the deck — works regardless of
@@ -650,6 +558,18 @@ async function fetchJson(url, options = {}) {
   let response
   try {
     response = await fetch(url, fetchOptions)
+    if (!response.ok) {
+      const raw = await response.text()
+      let payload = null
+      try { payload = JSON.parse(raw) } catch {}
+      const error = new Error(payload?.error || raw || `Request failed (${response.status})`)
+      error.status = response.status
+      error.code = payload?.code
+      error.retryAfter = payload?.retryAfter
+      error.usage = payload?.usage
+      throw error
+    }
+    return await response.json()
   } catch (error) {
     if (error?.name === 'AbortError') {
       throw new Error('This request took too long. Check your connection and try again.')
@@ -658,18 +578,6 @@ async function fetchJson(url, options = {}) {
   } finally {
     if (timeout) clearTimeout(timeout)
   }
-  if (!response.ok) {
-    const raw = await response.text()
-    let payload = null
-    try { payload = JSON.parse(raw) } catch {}
-    const error = new Error(payload?.error || raw || `Request failed (${response.status})`)
-    error.status = response.status
-    error.code = payload?.code
-    error.retryAfter = payload?.retryAfter
-    error.usage = payload?.usage
-    throw error
-  }
-  return response.json()
 }
 
 function parseRoute() {
@@ -1117,11 +1025,19 @@ let _suppressNextScrollRestore = false
 
 function captureScrollState() {
   const snap = {}
-  document.querySelectorAll('.chapter-main, .chapter-toc .rail-collapsible, .chapter-rail .rail-collapsible, .chat-messages').forEach((el) => {
-    let sel = el.className.split(' ').filter(Boolean).map((c) => '.' + c).join('')
-    if (el.closest('.chapter-toc')) sel = '.chapter-toc .rail-collapsible'
-    else if (el.closest('.chapter-rail')) sel = '.chapter-rail .rail-collapsible'
-    snap[sel] = el.scrollTop
+  const studyScroller = getStudyScroller()
+  const studyScrollerSelector = studyScroller?.matches('.chapter-page > .chapter-main')
+    ? '.chapter-page > .chapter-main'
+    : studyScroller?.matches('.study-surface-page > .study-surface-main')
+      ? '.study-surface-page > .study-surface-main'
+      : '.content'
+  const targets = [
+    [studyScrollerSelector, studyScroller],
+    ['.study-drawer.is-open .study-drawer-scroll', document.querySelector('.study-drawer.is-open .study-drawer-scroll')],
+    ['.study-drawer.is-open .chat-messages', document.querySelector('.study-drawer.is-open .chat-messages')],
+  ]
+  targets.forEach(([selector, element]) => {
+    if (element) snap[selector] = element.scrollTop
   })
   return snap
 }
@@ -1141,6 +1057,12 @@ function scrollWithin(container, target, { behavior = 'smooth', offset = 14 } = 
   const top = container.scrollTop + (tRect.top - cRect.top) - offset
   container.scrollTo({ top: Math.max(0, top), behavior })
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+}
+
+function getStudyScroller() {
+  return document.querySelector('.chapter-page > .chapter-main')
+    || document.querySelector('.study-surface-page > .study-surface-main')
+    || document.querySelector('.content')
 }
 
 function render() {
@@ -1163,7 +1085,7 @@ function render() {
   app.innerHTML = `
     <div class="shell ${isChapter || isMock || isCourse ? 'chapter-shell' : ''}">
       ${renderAppHeader()}
-      <main id="main-content" class="content ${isChapter || isMock || isCourse ? 'chapter-content' : ''}">
+      <main id="main-content" class="content route-${route.page} ${isChapter || isMock || isCourse ? 'chapter-content' : ''}">
         ${routeView()}
       </main>
     </div>
@@ -1219,7 +1141,7 @@ function render() {
   if (route.page === 'course' && route.itemId) {
     setTimeout(() => {
       const target = document.getElementById(`item-${route.itemId}`)
-      if (target) scrollWithin(document.querySelector('.chapter-main') || document.querySelector('.content'), target)
+      if (target) scrollWithin(getStudyScroller(), target)
     }, 50)
   }
   // Scroll to a heading after navigating from a search result
@@ -1232,13 +1154,14 @@ function render() {
       setTimeout(() => {
         const target = document.getElementById(slug)
         if (target) {
-          scrollWithin(document.querySelector('.chapter-main'), target)
+          scrollWithin(getStudyScroller(), target)
           target.classList.add('search-flash')
           setTimeout(() => target.classList.remove('search-flash'), 1800)
         }
       }, 220) // give markdown a moment to mount + assignHeadingIds to run
     }
   }
+  scheduleRichContentEnhancements()
 }
 
 function autosizeTextarea(el) {
@@ -1985,6 +1908,77 @@ function renderChapterSubTabs(course, chapter, activeTab) {
   `
 }
 
+function renderStudyDrawerScrim() {
+  if (!mobileStudyPanel) return ''
+  return `<button type="button" class="study-drawer-scrim" data-mobile-study-panel="${mobileStudyPanel}" aria-label="Close study panel"></button>`
+}
+
+function renderChapterOutlineDrawer(course, chapter, tab, toc, hasExamples) {
+  const coreChapters = (course.chapters || []).filter((candidate) => !isSupportChapter(candidate))
+  const pageOutline = tab === 'content'
+    ? `
+      <section class="study-drawer-section">
+        <h3>On this page</h3>
+        ${toc.length
+          ? `<ol class="study-outline-list">${toc.map((item) => `<li class="lvl-${item.level}"><a href="javascript:void(0)" data-toc-target="${item.id}">${escapeHtml(item.text)}</a></li>`).join('')}</ol>`
+          : '<p class="study-drawer-empty">This chapter has no section headings.</p>'}
+        ${hasExamples ? '<a class="study-drawer-jump" href="javascript:void(0)" data-toc-target="chapter-examples">Worked examples</a>' : ''}
+      </section>
+    `
+    : `
+      <section class="study-drawer-section">
+        <h3>${tab === 'esq' ? 'Exam questions' : 'Practice'}</h3>
+        <p class="study-drawer-empty">This session is scoped to Ch ${escapeHtml(chapter.id)}. Switch back to Read for the chapter outline.</p>
+        <button type="button" class="study-drawer-jump" data-chapter-tab="content" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Open chapter notes</button>
+      </section>
+    `
+
+  return `
+    <aside class="study-drawer study-drawer-left ${mobileStudyPanel === 'outline' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'outline'}" aria-label="Chapter outline">
+      <header class="study-drawer-header">
+        <div><small>${escapeHtml(course.code)}</small><h2>Outline</h2></div>
+        <button type="button" class="icon-btn" data-mobile-study-panel="outline" aria-label="Close outline">${uiIcon('close')}</button>
+      </header>
+      <div class="study-drawer-scroll">
+        ${pageOutline}
+        <section class="study-drawer-section">
+          <h3>Course chapters</h3>
+          <ol class="study-chapter-list">
+            ${coreChapters.map((candidate, index) => `
+              <li class="${candidate.id === chapter.id ? 'is-current' : ''}">
+                <a href="#/course/${course.id}/chapter/${candidate.id}">
+                  <span>${String(index + 1).padStart(2, '0')}</span>
+                  <strong>${escapeHtml(candidate.name)}</strong>
+                </a>
+              </li>
+            `).join('')}
+          </ol>
+        </section>
+      </div>
+    </aside>
+  `
+}
+
+function renderChapterToolsDrawer(course, chapter) {
+  return `
+    <aside class="study-drawer study-drawer-right ${mobileStudyPanel === 'tools' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'tools'}" aria-label="Chapter study tools">
+      <header class="study-drawer-header">
+        <div><small>Ch ${escapeHtml(chapter.id)}</small><h2>Study tools</h2></div>
+        <button type="button" class="icon-btn" data-mobile-study-panel="tools" aria-label="Close study tools">${uiIcon('close')}</button>
+      </header>
+      <div class="study-drawer-scroll">
+        ${renderChapterProgressCard(course, chapter, { showReadAction: false })}
+        ${renderChatPanel(course, chapter)}
+        <section class="study-drawer-section study-drawer-reset">
+          <h3>Chapter data</h3>
+          <p>Clear reading status, answers, review history, and mistakes for this chapter.</p>
+          <button type="button" class="clear-link" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-course-name="${escapeHtml(course.name)}">Reset chapter progress</button>
+        </section>
+      </div>
+    </aside>
+  `
+}
+
 // ----- Coverage cache (drives whether to show Generate-all CTAs) -----
 // Maintainers ship pre-generated content via the cache files. When everything
 // is cached, end users don't need (or want) to see "Generate all" buttons.
@@ -2292,95 +2286,6 @@ function renderCourse(courseId) {
         </section>
       </article>
     ` : '<p class="empty">No chapters configured.</p>'}
-  `
-}
-
-function renderCourseNavigator(course, matches, supportMatches, q) {
-  const visible = matches.filter((m) => !q || m.chapter)
-  const visibleSupport = supportMatches.filter((m) => !q || m.chapter)
-  const total = matches.length
-  return `
-    <aside class="chapter-toc course-toc">
-      <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
-      <div class="rail-collapsible">
-        <h4>Filter</h4>
-        <div class="course-nav-search">
-          <span class="course-nav-icon" aria-hidden="true">🔎</span>
-          <input
-            type="search"
-            class="course-nav-input"
-            placeholder="Chapters & topics…"
-            value="${escapeHtml(q)}"
-            data-course-filter="${course.id}"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          ${q ? `<button type="button" class="course-nav-clear" data-course-filter-clear="${course.id}" title="Clear">${uiIcon('close')}</button>` : ''}
-        </div>
-
-        <div class="course-nav-scroll">
-        <div class="course-chapters-section">
-          <div class="course-chapters-toggle as-heading">
-            <span>Core chapters</span>
-            <small>${q ? `${visible.length}/${total}` : total}</small>
-          </div>
-          <ol class="course-chapters-list course-nav-chapters">
-            ${visible.map((m) => {
-              const p = chapterProgress(course, m.ch)
-              const topics = m.topics
-              const expanded = !!q || chapterRowExpanded.get(`${course.id}/${m.ch.id}`)
-              return `
-                <li class="${p.read ? 'is-read' : ''}">
-                  <div class="course-nav-chapter-row">
-                    <button type="button" class="course-nav-chapter-btn" data-course-nav-topic-toggle="${course.id}/${m.ch.id}" aria-expanded="${expanded}">
-                      <span class="course-chapter-num">${escapeHtml(m.ch.id)}</span>
-                      <span class="course-chapter-name">${escapeHtml(m.ch.name)}</span>
-                    </button>
-                  </div>
-                  ${topics.length && expanded ? `
-                    <ul class="course-nav-topics">
-                      ${topics.map((t) => `
-                        <li class="course-nav-topic lvl-${t.level || 2}">
-                          <a
-                            class="course-nav-topic-link"
-                            href="#/course/${course.id}/chapter/${m.ch.id}"
-                            data-course-nav-heading="${course.id}/${m.ch.id}/${t.id}"
-                            title="${escapeHtml(t.text)}"
-                          >
-                            <span>${escapeHtml(t.text)}</span>
-                          </a>
-                        </li>
-                      `).join('')}
-                    </ul>
-                  ` : ''}
-                </li>
-              `
-            }).join('')}
-          </ol>
-        </div>
-        ${visibleSupport.length ? `
-          <div class="course-chapters-section course-toolkit-nav">
-            <div class="course-chapters-toggle as-heading">
-              <span>Exam toolkit</span>
-              <small>${visibleSupport.length}</small>
-            </div>
-            <ol class="course-chapters-list course-nav-chapters">
-              ${visibleSupport.map((m) => `
-                <li>
-                  <div class="course-nav-chapter-row">
-                    <a href="#/course/${course.id}/chapter/${m.ch.id}">
-                      <span class="course-chapter-num">${escapeHtml(m.ch.id)}</span>
-                      <span class="course-chapter-name">${escapeHtml(m.ch.name)}</span>
-                    </a>
-                  </div>
-                </li>
-              `).join('')}
-            </ol>
-          </div>
-        ` : ''}
-        </div>
-      </div>
-    </aside>
   `
 }
 
@@ -2743,10 +2648,22 @@ function renderChapterPage() {
 
   if (!cached) {
     loadChapter(course.id, chapter.id, route.relPath || '')
-    return `<div class="chapter-loading chapter-loading-state"><span></span><strong>Opening chapter</strong><small>Loading the published material…</small></div>`
+    return renderLoadingSurface({
+      className: 'chapter-loading chapter-loading-state',
+      title: 'Opening chapter',
+      detail: 'Loading the maintained chapter material and study tools.',
+      phase: 'Connecting to your workspace…',
+      step: 1
+    })
   }
   if (cached.loading) {
-    return `<div class="chapter-loading chapter-loading-state"><span></span><strong>Opening chapter</strong><small>Loading the published material…</small></div>`
+    return renderLoadingSurface({
+      className: 'chapter-loading chapter-loading-state',
+      title: 'Opening chapter',
+      detail: 'Loading the maintained chapter material and study tools.',
+      phase: cached.phase,
+      step: cached.step
+    })
   }
   if (cached.error) {
     return `<div class="chapter-loading error chapter-load-error"><strong>Chapter did not load</strong><p>${escapeHtml(cached.error)}</p><div class="empty-actions"><button type="button" class="btn btn-primary" data-chapter-retry="${escapeHtml(cacheKey)}">Try again</button><a class="btn btn-ghost" href="#/course/${course.id}">Back to course</a></div></div>`
@@ -2756,18 +2673,23 @@ function renderChapterPage() {
 
   if (data.kind === 'directory') {
     return `
-      <div class="chapter-listing-wrap">
-        <header class="chapter-hero" style="--accent:${course.accent}">
-          <h1>Ch ${chapter.id} · ${chapter.name}</h1>
-          <p class="chapter-path"><code>${data.path}</code></p>
-        </header>
-        <div class="chapter-listing">
-          <p>This chapter is a folder. Pick a file:</p>
-          <ul class="chapter-files">
-            ${data.files.map((f) => `<li><a href="#/course/${course.id}/chapter/${chapter.id}/${encodeURIComponent(f)}">${f}</a></li>`).join('')}
-          </ul>
-          ${data.subdirs.length ? `<h3>Subfolders</h3><ul class="chapter-files">${data.subdirs.map((d) => `<li><a href="#/course/${course.id}/chapter/${chapter.id}/${encodeURIComponent(d)}">${d}/</a></li>`).join('')}</ul>` : ''}
-        </div>
+      <div class="chapter-page chapter-directory-page" style="--accent:${course.accent}">
+        <article class="chapter-main">
+          <header class="chapter-page-header">
+            <div class="chapter-page-context"><a class="chapter-course-back" href="#/course/${course.id}">${ICONS.back}<span>${escapeHtml(course.code)} ${escapeHtml(course.shortName || '')}</span></a><span>Chapter files</span></div>
+            <div class="chapter-page-title-row"><div class="chapter-page-title"><span class="chapter-number">${escapeHtml(chapter.id)}</span><div><h1>${escapeHtml(chapter.name)}</h1><p>${escapeHtml(course.name)}</p></div></div></div>
+          </header>
+          <div class="chapter-stage">
+            <section class="chapter-listing">
+              <h2>Choose a chapter file</h2>
+              <p>This chapter contains more than one maintained note.</p>
+              <ul class="chapter-files">
+                ${data.files.map((file) => `<li><a href="#/course/${course.id}/chapter/${chapter.id}/${encodeURIComponent(file)}">${escapeHtml(file.replace(/\.md$/i, ''))}</a></li>`).join('')}
+              </ul>
+              ${data.subdirs.length ? `<h3>Folders</h3><ul class="chapter-files">${data.subdirs.map((directory) => `<li><a href="#/course/${course.id}/chapter/${chapter.id}/${encodeURIComponent(directory)}">${escapeHtml(directory)}</a></li>`).join('')}</ul>` : ''}
+            </section>
+          </div>
+        </article>
       </div>
     `
   }
@@ -2795,94 +2717,66 @@ function renderChapterPage() {
   const contentHtml = tab === 'content' ? renderMarkdown(data.content, course.id, chapter.id) : ''
   const examplesHtml = tab === 'content' && data.examples ? renderMarkdown(data.examples, course.id, chapter.id) : ''
   const toc = tab === 'content' ? extractToc(contentHtml) : []
+  const coreChapters = (course.chapters || []).filter((candidate) => !isSupportChapter(candidate))
+  const chapterIndex = Math.max(0, coreChapters.findIndex((candidate) => candidate.id === chapter.id))
+  const chapterStatus = chapterProgress(course, chapter)
+  const { prev, next } = findAdjacentChapters(course, chapter.id)
 
   return `
-    <div class="chapter-grid mobile-panel-${mobileStudyPanel || 'none'}" style="--accent:${course.accent}">
-      ${renderMobileStudyBar(`Ch ${chapter.id} · ${chapter.name}`)}
-      <aside class="chapter-toc">
-        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="outline" aria-label="Close outline">${uiIcon('close')}</button>
-        <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
-        <div class="rail-collapsible">
-          <button class="toc-back" type="button" data-back-to-course="${course.id}" title="Back to ${course.code} ${course.shortName || ''}">${ICONS.back}<span>${course.code} <em>${course.shortName || ''}</em></span></button>
-          ${renderCourseChaptersSection(course, chapter.id)}
-          ${tab === 'content' ? `
-            <h4>On this page</h4>
-            ${toc.length ? `<ol>${toc.map((t) => `<li class="lvl-${t.level}"><a href="javascript:void(0)" data-toc-target="${t.id}">${escapeHtml(t.text)}</a></li>`).join('')}</ol>` : '<p class="empty">No sections.</p>'}
-            ${data.examples ? '<a class="toc-jump" href="javascript:void(0)" data-toc-target="chapter-examples">More worked examples</a>' : ''}
-            <a class="toc-jump" href="javascript:void(0)" data-chapter-tab="selftest" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Practice questions</a>
-            <a class="toc-jump" href="javascript:void(0)" data-chapter-tab="esq" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Exam style questions</a>
-          ` : tab === 'esq' ? `
-            <h4>Exam Style Questions</h4>
-            <p class="rail-meta">Scoped to this chapter. Use the filter dropdowns above the question card to narrow further.</p>
-            <a class="toc-jump" href="javascript:void(0)" data-chapter-tab="content" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Back to content</a>
-          ` : `
-            <h4>Self-Test</h4>
-            <a class="toc-jump" href="javascript:void(0)" data-chapter-tab="content" data-tab-course="${course.id}" data-tab-chapter="${chapter.id}">Back to content</a>
-          `}
-        </div>
-      </aside>
-      <div class="resize-handle vertical-handle" data-resize="toc" title="Drag to resize · double-click to reset"></div>
-
+    <div class="chapter-page" style="--accent:${course.accent}">
       <article class="chapter-main">
-        <header class="chapter-hero surface-hero" style="--accent:${course.accent}">
-          <div class="surface-hero-text">
-            <p class="eyebrow">${course.code} ${course.shortName || ''} · Chapter</p>
-            <h1>Ch ${chapter.id} · ${chapter.name}</h1>
-            <p class="chapter-path"><code>${data.path}</code></p>
-            <div class="hero-actions-row">
-              <button type="button" class="clear-link" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset reading status, self-test, ESQ, flashcards SR, and mistakes for this chapter">Reset chapter progress</button>
+        <header class="chapter-page-header">
+          <div class="chapter-page-context">
+            <a class="chapter-course-back" href="#/course/${course.id}">${ICONS.back}<span>${escapeHtml(course.code)} ${escapeHtml(course.shortName || '')}</span></a>
+            <span>Chapter ${chapterIndex + 1} of ${coreChapters.length}</span>
+          </div>
+          <div class="chapter-page-title-row">
+            <div class="chapter-page-title">
+              <span class="chapter-number">${String(chapterIndex + 1).padStart(2, '0')}</span>
+              <div><h1>${escapeHtml(chapter.name)}</h1><p>${escapeHtml(course.name)}</p></div>
+            </div>
+            <div class="chapter-page-actions">
+              <button type="button" class="chapter-action" data-mobile-study-panel="outline" aria-pressed="${mobileStudyPanel === 'outline'}">${uiIcon('list')}<span>Outline</span></button>
+              <button type="button" class="chapter-action chapter-progress-action" data-mobile-study-panel="tools" aria-pressed="${mobileStudyPanel === 'tools'}"><strong>${chapterStatus.masteryPct}%</strong><span>Progress & tutor</span></button>
+              <button type="button" class="chapter-read-action ${chapterStatus.read ? 'is-read' : ''}" data-chapter-read-toggle="${course.id}/${chapter.id}">${chapterStatus.read ? 'Read' : 'Mark as read'}</button>
             </div>
           </div>
-          <div class="chapter-hero-bar">
-            ${renderSurfaceTabs(course, { active: null, surface: 'chapter', chapter })}
-            ${(() => { const { prev, next } = findAdjacentChapters(course, chapter.id); return renderChapterPrevNext(course, prev, next, 'header') })()}
+          <div class="chapter-page-navigation">
+            ${renderChapterSubTabs(course, chapter, tab)}
+            ${renderChapterPrevNext(course, prev, next, 'header')}
           </div>
         </header>
-        ${renderChapterSubTabs(course, chapter, tab)}
 
-        ${tab === 'content' ? `
-          <div class="markdown-body topical">${wrapTopicSections(contentHtml)}</div>
-
-          ${data.examples ? `
-            <section id="chapter-examples" class="examples-panel">
-              <div class="panel-head"><div><p class="eyebrow">Sidecar</p><h2>More worked examples</h2></div><small><code>examples.md</code></small></div>
-              <div class="markdown-body">${examplesHtml}</div>
+        <div class="chapter-stage chapter-stage-${tab}">
+          ${tab === 'content' ? `
+            <div class="chapter-reading">
+              <div class="markdown-body topical">${wrapTopicSections(contentHtml)}</div>
+              ${data.examples ? `
+                <section id="chapter-examples" class="examples-panel">
+                  <div class="panel-head"><div><h2>More worked examples</h2></div></div>
+                  <div class="markdown-body">${examplesHtml}</div>
+                </section>
+              ` : ''}
+              <div class="chapter-read-footer">
+                ${chapterStatus.read
+                  ? `<button type="button" class="cp-read-toggle is-read" data-chapter-read-toggle="${course.id}/${chapter.id}">Read · click to undo</button>`
+                  : `<button type="button" class="cp-read-toggle" data-chapter-read-toggle="${course.id}/${chapter.id}">Mark chapter as read</button>`}
+                <small class="rail-meta">Reading progress is saved automatically.</small>
+              </div>
+            </div>
+          ` : tab === 'esq' ? `
+            <div class="chapter-practice-surface mq-panel">${renderMockQuestionsView(course)}</div>
+          ` : `
+            <section id="chapter-questions" class="chapter-practice-surface questions-panel">
+              ${renderQuestionsPanel(course, chapter)}
             </section>
-          ` : ''}
-
-          <div class="chapter-read-footer">
-            ${isChapterRead(course.id, chapter.id)
-              ? `<button type="button" class="cp-read-toggle is-read" data-chapter-read-toggle="${course.id}/${chapter.id}">✓ You've read this chapter · click to undo</button>`
-              : `<button type="button" class="cp-read-toggle" data-chapter-read-toggle="${course.id}/${chapter.id}">Mark chapter as read</button>`}
-            <small class="rail-meta">Auto-marks when you scroll near the end.</small>
-          </div>
-        ` : tab === 'esq' ? `
-          <div class="mq-panel">${renderMockQuestionsView(course)}</div>
-        ` : `
-          <section id="chapter-questions" class="questions-panel">
-            ${renderQuestionsPanel(course, chapter)}
-          </section>
-        `}
-        ${(() => { const { prev, next } = findAdjacentChapters(course, chapter.id); return renderChapterPrevNext(course, prev, next, 'footer') })()}
-      </article>
-
-      <div class="resize-handle vertical-handle" data-resize="rail" title="Drag to resize · double-click to reset"></div>
-      <aside class="chapter-rail">
-        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="tools" aria-label="Close study tools">${uiIcon('close')}</button>
-        <button class="rail-collapse-btn rail-side" type="button" data-rail-toggle title="${layoutState.railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.railCollapsed ? '‹' : '›'}</button>
-        <div class="rail-collapsible">
-          ${renderChapterProgressCard(course, chapter)}
-
-          ${(state.meta.vaultRoot || '').startsWith('/') ? `
-          <section class="rail-card">
-            <h4>Open in vault</h4>
-            <a class="rail-kb-link" href="file:///${state.meta.vaultRoot}/${data.path}">${data.path.split('/').slice(-2).join('/')}</a>
-          </section>
-          ` : ''}
-
-          ${renderChatPanel(course, chapter)}
+          `}
+          <div class="chapter-stage-footer">${renderChapterPrevNext(course, prev, next, 'footer')}</div>
         </div>
-      </aside>
+      </article>
+      ${renderStudyDrawerScrim()}
+      ${renderChapterOutlineDrawer(course, chapter, tab, toc, Boolean(data.examples))}
+      ${renderChapterToolsDrawer(course, chapter)}
     </div>
   `
 }
@@ -2911,7 +2805,7 @@ function persistChat(courseId, chapterId) {
   try { localStorage.setItem(`chat:${key}`, JSON.stringify({ messages: c.messages })) } catch {}
 }
 
-function renderChapterProgressCard(course, chapter) {
+function renderChapterProgressCard(course, chapter, { showReadAction = true } = {}) {
   // Ensure caches are loaded so the rollup shows real data.
   if (typeof mockQuestionsCache !== 'undefined' && !mockQuestionsCache.has(course.id)) ensureMockQuestions(course.id)
   if (typeof flashcardsCache !== 'undefined' && !flashcardsCache.has(course.id)) ensureFlashcards(course.id)
@@ -2945,9 +2839,9 @@ function renderChapterProgressCard(course, chapter) {
         ${row('Mock questions', mockLine, p.mock.total ? '' : 'Not published yet')}
         ${row('Flashcards', fcLine, p.flashcards.total ? '' : 'Add on the Flashcards tab')}
       </div>
-      <button type="button" class="cp-read-toggle ${p.read ? 'is-read' : ''}" data-chapter-read-toggle="${course.id}/${chapter.id}">
+      ${showReadAction ? `<button type="button" class="cp-read-toggle ${p.read ? 'is-read' : ''}" data-chapter-read-toggle="${course.id}/${chapter.id}">
         ${p.read ? '✓ Marked as read · click to undo' : 'Mark chapter as read'}
-      </button>
+      </button>` : ''}
     </section>
   `
 }
@@ -3379,10 +3273,49 @@ function interleavePracticeQuestions(questions) {
   return mixed
 }
 
+let loadingRequestId = 0
+const LOAD_STEP_COUNT = 3
+
+function renderLoadingSurface({ className, title, detail, phase, step = 1 }) {
+  const safeStep = Math.max(1, Math.min(LOAD_STEP_COUNT, Number(step) || 1))
+  const progress = Math.round((safeStep / LOAD_STEP_COUNT) * 100)
+  return `<div class="${className}" role="status" aria-live="polite">
+    <span class="load-spinner" aria-hidden="true"></span>
+    <strong>${escapeHtml(title)}</strong>
+    <small>${escapeHtml(phase || detail)}</small>
+    <div class="load-progress" role="progressbar" aria-label="${escapeHtml(title)}" aria-valuemin="1" aria-valuemax="${LOAD_STEP_COUNT}" aria-valuenow="${safeStep}"><i style="width:${progress}%"></i></div>
+    <p>${escapeHtml(detail)}</p>
+  </div>`
+}
+
+function practiceLoadingMarkup() {
+  const loading = practiceCache?.loading ? practiceCache : { phase: 'Connecting to your workspace…', step: 1 }
+  return `<section class="page-wrap practice-hub">${renderLoadingSurface({
+    className: 'practice-page-loading',
+    title: 'Opening Practice',
+    detail: 'Published questions only—nothing is generated when this page opens.',
+    phase: loading.phase,
+    step: loading.step
+  })}</section>`
+}
+
 async function loadPractice({ force = false } = {}) {
   if (practiceCache?.loading && !force) return
-  practiceCache = { loading: true }
+  const requestId = ++loadingRequestId
+  practiceCache = { loading: true, requestId, phase: 'Connecting to your workspace…', step: 1 }
   render()
+  const phaseTimers = [
+    setTimeout(() => {
+      if (!practiceCache?.loading || practiceCache.requestId !== requestId) return
+      practiceCache = { ...practiceCache, phase: 'Downloading published question banks…', step: 2 }
+      render()
+    }, 900),
+    setTimeout(() => {
+      if (!practiceCache?.loading || practiceCache.requestId !== requestId) return
+      practiceCache = { ...practiceCache, phase: 'Preparing the first exercise…', step: 3 }
+      render()
+    }, 3500)
+  ]
   try {
     const data = await fetchJson('/api/practice', { timeoutMs: 12000 })
     const questions = interleavePracticeQuestions(data.questions || [])
@@ -3401,6 +3334,8 @@ async function loadPractice({ force = false } = {}) {
     }
   } catch (error) {
     practiceCache = { error: error.message, questions: [], courses: [] }
+  } finally {
+    phaseTimers.forEach(clearTimeout)
   }
   render()
 }
@@ -3408,10 +3343,10 @@ async function loadPractice({ force = false } = {}) {
 function renderPracticePage() {
   if (!practiceCache) {
     setTimeout(() => loadPractice(), 0)
-    return '<section class="page-wrap practice-hub"><div class="practice-page-loading"><span></span><strong>Building your practice mix</strong><small>Using published questions from active courses—no generation required.</small></div></section>'
+    return practiceLoadingMarkup()
   }
   if (practiceCache.loading) {
-    return '<section class="page-wrap practice-hub"><div class="practice-page-loading"><span></span><strong>Building your practice mix</strong><small>Using published questions from active courses—no generation required.</small></div></section>'
+    return practiceLoadingMarkup()
   }
   if (practiceCache.error) {
     return `<section class="page-wrap practice-hub"><div class="practice-page-error"><strong>Practice could not be loaded</strong><p>${escapeHtml(practiceCache.error)}</p><button type="button" class="btn btn-primary" data-practice-retry>Try again</button></div></section>`
@@ -5450,50 +5385,51 @@ function renderMockExamPage() {
   }
 
   return `
-    <div class="chapter-grid practice-workspace mobile-panel-${mobileStudyPanel || 'none'}" style="--accent:${course.accent}">
-      ${renderMobileStudyBar('Practice')}
-      <aside class="chapter-toc">
-        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="outline" aria-label="Close outline">${uiIcon('close')}</button>
-        <button class="rail-collapse-btn" type="button" data-toc-toggle title="${layoutState.tocCollapsed ? 'Show outline' : 'Hide outline'}">${layoutState.tocCollapsed ? '›' : '‹'}</button>
-        <div class="rail-collapsible">
-          <button class="toc-back" type="button" data-back-to-course="${course.id}" title="Back to ${course.code} ${course.shortName || ''}">${ICONS.back}<span>${course.code} <em>${course.shortName || ''}</em></span></button>
-          <h4>${tocTitle}</h4>
-          ${tocHeader}
-          ${tocBody}
-          ${(isPaperSurface) && outline?.totalPages ? `<small class="rail-meta" style="margin-top:10px;display:block">${outline.totalPages} pages</small>` : ''}
-        </div>
-      </aside>
-      <div class="resize-handle vertical-handle" data-resize="toc" title="Drag to resize · double-click to reset"></div>
-
-      <article class="chapter-main mock-main">
-        <header class="chapter-hero mock-hero surface-hero" style="--accent:${course.accent}">
-          <div class="surface-hero-text">
-            <p class="eyebrow">${course.code} ${course.shortName || ''} · Practice</p>
-            <h1>Practice</h1>
+    <div class="study-surface-page" style="--accent:${course.accent}">
+      <article class="study-surface-main chapter-main">
+        <header class="study-surface-header">
+          <div class="chapter-page-context">
+            <a class="chapter-course-back" href="#/course/${course.id}">${ICONS.back}<span>${escapeHtml(course.code)} ${escapeHtml(course.shortName || '')}</span></a>
+            <span>Course practice</span>
+          </div>
+          <div class="study-surface-title-row">
+            <div><h1>Practice</h1><p>${escapeHtml(course.name)}</p></div>
+            <div class="chapter-page-actions">
+              <button type="button" class="chapter-action" data-mobile-study-panel="outline" aria-pressed="${mobileStudyPanel === 'outline'}">${uiIcon('list')}<span>${isPaperSurface ? 'Paper outline' : 'Chapters'}</span></button>
+              <button type="button" class="chapter-action" data-mobile-study-panel="tools" aria-pressed="${mobileStudyPanel === 'tools'}">${uiIcon('sparkle')}<span>Course tutor</span></button>
+            </div>
           </div>
           ${renderSurfaceTabs(course, { active: practiceExamView.tab, surface: 'mock-exam' })}
         </header>
-        ${isPaperSurface ? renderMockExamsSurface(course, currentExam, getActivePapers(course), { pdfUrl, solutionsUrl, hasPaperPdf, hasSolutionsPdf })
-          : practiceExamView.tab === 'flashcards' ? `
-          <div class="fc-panel">${renderFlashcardsView(course)}</div>
-        ` : `
-          <div class="mq-panel">${renderMockQuestionsView(course)}</div>
-        `}
-      </article>
-
-      <div class="resize-handle vertical-handle" data-resize="rail" title="Drag to resize · double-click to reset"></div>
-      <aside class="chapter-rail">
-        <button class="mobile-sheet-close" type="button" data-mobile-study-panel="tools" aria-label="Close study tools">${uiIcon('close')}</button>
-        <button class="rail-collapse-btn rail-side" type="button" data-rail-toggle title="${layoutState.railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}">${layoutState.railCollapsed ? '‹' : '›'}</button>
-        <div class="rail-collapsible">
-          ${isPaperSurface && currentExam?.pdf && (state.meta.vaultRoot || '').startsWith('/') ? `
-            <section class="rail-card">
-              <h4>Open original</h4>
-              <a class="rail-kb-link" href="file:///${state.meta.vaultRoot}/${course.knowledgeBase}/${currentExam.pdf}">${currentExam.pdf.split('/').slice(-2).join('/')}</a>
-            </section>
-          ` : ''}
-          ${renderChatPanelCourse(course)}
+        <div class="study-surface-stage">
+          ${isPaperSurface ? renderMockExamsSurface(course, currentExam, getActivePapers(course), { pdfUrl, solutionsUrl, hasPaperPdf, hasSolutionsPdf })
+            : practiceExamView.tab === 'flashcards' ? `
+            <div class="fc-panel">${renderFlashcardsView(course)}</div>
+          ` : `
+            <div class="mq-panel">${renderMockQuestionsView(course)}</div>
+          `}
         </div>
+      </article>
+      ${renderStudyDrawerScrim()}
+      <aside class="study-drawer study-drawer-left ${mobileStudyPanel === 'outline' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'outline'}" aria-label="Practice outline">
+        <header class="study-drawer-header">
+          <div><small>${escapeHtml(course.code)}</small><h2>${escapeHtml(tocTitle)}</h2></div>
+          <button type="button" class="icon-btn" data-mobile-study-panel="outline" aria-label="Close outline">${uiIcon('close')}</button>
+        </header>
+        <div class="study-drawer-scroll">
+          <section class="study-drawer-section practice-drawer-outline">
+            ${tocHeader}
+            ${tocBody}
+            ${(isPaperSurface) && outline?.totalPages ? `<small class="rail-meta">${outline.totalPages} pages</small>` : ''}
+          </section>
+        </div>
+      </aside>
+      <aside class="study-drawer study-drawer-right ${mobileStudyPanel === 'tools' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'tools'}" aria-label="Course tutor">
+        <header class="study-drawer-header">
+          <div><small>${escapeHtml(course.code)}</small><h2>Course tutor</h2></div>
+          <button type="button" class="icon-btn" data-mobile-study-panel="tools" aria-label="Close course tutor">${uiIcon('close')}</button>
+        </header>
+        <div class="study-drawer-scroll">${renderChatPanelCourse(course)}</div>
       </aside>
     </div>
   `
@@ -5933,13 +5869,26 @@ function renderChatPanelCourse(course) {
 async function loadChapter(courseId, chapterId, relPath) {
   const key = `${courseId}/${chapterId}/${relPath || ''}`
   if (chapterCache.get(key)?.loading) return
-  chapterCache.set(key, { loading: true, startedAt: Date.now() })
+  const requestId = ++loadingRequestId
+  chapterCache.set(key, { loading: true, requestId, startedAt: Date.now(), phase: 'Connecting to your workspace…', step: 1 })
+  const updatePhase = (phase, step) => {
+    const current = chapterCache.get(key)
+    if (!current?.loading || current.requestId !== requestId) return
+    chapterCache.set(key, { ...current, phase, step })
+    render()
+  }
+  const phaseTimers = [
+    setTimeout(() => updatePhase('Downloading maintained chapter material…', 2), 900),
+    setTimeout(() => updatePhase('Preparing diagrams and study tools…', 3), 3500)
+  ]
   try {
     const url = `/api/chapter/${encodeURIComponent(courseId)}/${encodeURIComponent(chapterId)}${relPath ? '/' + relPath.split('/').map(encodeURIComponent).join('/') : ''}`
     const data = await fetchJson(url, { timeoutMs: 15000 })
     chapterCache.set(key, { data })
   } catch (err) {
     chapterCache.set(key, { error: err.message })
+  } finally {
+    phaseTimers.forEach(clearTimeout)
   }
   render()
 }
@@ -6545,25 +6494,55 @@ function extractToc(html) {
   }))
 }
 
-function typesetMath() {
+const RICH_CONTENT_SELECTOR = '.markdown-body, .q-body, .q-options, .q-grade, .q-expected, .sr-question, .mistake-question, .practice-q-body, .chat-body, .fc-card-side, .fc-study-front, .fc-study-back'
+let richEnhancementGeneration = 0
+
+function typesetMathElement(el) {
   if (typeof renderMathInElement === 'undefined') return
-  // .q-options must be in this list — mc/multi/tf option labels are rendered
-  // via renderInlineMarkdown (which preserves $…$ for KaTeX to pick up later)
-  // but they sit OUTSIDE .q-body, so without an explicit selector they were
-  // never typeset and the dollar-delimited LaTeX leaked into the visible text.
-  document.querySelectorAll('.markdown-body, .q-body, .q-options, .q-grade, .q-expected, .sr-question, .mistake-question, .practice-q-body, .chat-body, .fc-card-side, .fc-study-front, .fc-study-back').forEach((el) => {
-    try {
-      renderMathInElement(el, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        // Currency / stray dollar signs are wrapped in <span class="nomath">$</span>
-        // by renderMarkdown / renderInlineMarkdown so they don't get paired as math.
-        ignoredClasses: ['nomath'],
-        throwOnError: false
-      })
-    } catch (e) { console.error('KaTeX error', e) }
+  try {
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      // Currency / stray dollar signs are wrapped in <span class="nomath">$</span>
+      // by renderMarkdown / renderInlineMarkdown so they don't get paired as math.
+      ignoredClasses: ['nomath'],
+      throwOnError: false
+    })
+  } catch (e) { console.error('KaTeX error', e) }
+}
+
+function shouldEnhanceRichContent() {
+  if (['chapter', 'practice', 'mistakes', 'sr', 'mocks'].includes(route.page)) return true
+  return route.page === 'mock-exam' && (
+    practiceExamView.tab === 'mock-questions' ||
+    practiceExamView.tab === 'flashcards' ||
+    ((practiceExamView.tab === 'exams' || practiceExamView.tab === 'tutorials') && practiceExamView.examSubtab === 'practice')
+  )
+}
+
+function scheduleRichContentEnhancements() {
+  const generation = ++richEnhancementGeneration
+  if (!shouldEnhanceRichContent()) return
+  requestAnimationFrame(() => {
+    setTimeout(async () => {
+      if (generation !== richEnhancementGeneration) return
+      // Let the loaded surface paint before optional KaTeX, Mermaid and editor
+      // upgrades. Large chapters can contain hundreds of formula nodes; doing
+      // this inside render() left the previous loading screen painted throughout.
+      const elements = [...document.querySelectorAll(RICH_CONTENT_SELECTOR)]
+      for (const element of elements) {
+        if (generation !== richEnhancementGeneration || !element.isConnected) return
+        typesetMathElement(element)
+        await new Promise((resolveYield) => setTimeout(resolveYield, 0))
+      }
+      if (generation !== richEnhancementGeneration) return
+      await renderMermaid()
+      if (generation !== richEnhancementGeneration) return
+      bindSteppers()
+      mountCodeEditors()
+    }, 0)
   })
 }
 
@@ -6946,14 +6925,6 @@ function bindEvents() {
   document.querySelectorAll('[data-sidebar-archived-toggle]').forEach((btn) => {
     btn.addEventListener('click', () => { sidebarArchivedOpen = !sidebarArchivedOpen; render() })
   })
-
-  document.querySelectorAll('[data-toc-toggle]').forEach((btn) => {
-    btn.addEventListener('click', toggleToc)
-  })
-  document.querySelectorAll('[data-rail-toggle]').forEach((btn) => {
-    btn.addEventListener('click', toggleRail)
-  })
-  attachResizeHandlers()
 
   document.querySelectorAll('[data-set-mastery]').forEach((btn) => {
     btn.addEventListener('click', (event) => {
@@ -7373,7 +7344,7 @@ function bindEvents() {
       event.preventDefault()
       const id = event.currentTarget.dataset.tocTarget
       const target = document.getElementById(id)
-      if (target) scrollWithin(document.querySelector('.chapter-main'), target)
+      if (target) scrollWithin(getStudyScroller(), target)
     })
   })
 
@@ -7385,7 +7356,7 @@ function bindEvents() {
       if (!tab || !cid || !chid) return
       if (getChapterTab(cid, chid) === tab) return
       setChapterTab(cid, chid, tab)
-      const scroller = document.querySelector('.chapter-main')
+      const scroller = getStudyScroller()
       if (scroller) scroller.scrollTop = 0
       _suppressNextScrollRestore = true
       render()
@@ -7467,7 +7438,7 @@ function bindEvents() {
       event.preventDefault()
       const [cid, chid] = event.currentTarget.dataset.courseNavJump.split('/')
       const target = document.getElementById(`chapter-card-${cid}-${chid}`)
-      if (target) scrollWithin(document.querySelector('.chapter-main'), target)
+      if (target) scrollWithin(getStudyScroller(), target)
     })
   })
   document.querySelectorAll('[data-course-nav-topic-toggle]').forEach((btn) => {
@@ -7502,7 +7473,7 @@ function bindEvents() {
 
   // Auto-mark a chapter as read when the user scrolls near the end of the content tab.
   if (route.page === 'chapter') {
-    const scroller = document.querySelector('.chapter-main')
+    const scroller = getStudyScroller()
     const cid = route.courseId, chid = route.chapterId
     if (scroller && cid && chid && !isChapterRead(cid, chid) && getChapterTab(cid, chid) === 'content') {
       const onScroll = () => {
@@ -7520,7 +7491,7 @@ function bindEvents() {
   document.querySelectorAll('[data-back-to-course]').forEach((btn) => {
     btn.addEventListener('click', (event) => {
       const courseId = event.currentTarget.dataset.backToCourse
-      const scroller = document.querySelector('.chapter-main') || document.querySelector('.content')
+      const scroller = getStudyScroller()
       if (scroller) scroller.scrollTop = 0
       window.location.hash = `#/course/${courseId}`
     })
@@ -8008,14 +7979,14 @@ function bindEvents() {
       else if (action === 'jump') {
         practiceExamView.currentQid = event.currentTarget.value
         persistPracticeAttempts(route.courseId, examId)
-        const scroller = document.querySelector('.chapter-main') || document.querySelector('.content')
+        const scroller = getStudyScroller()
         if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' })
         render()
         return
       } else return
       practiceExamView.currentQid = groups[nextGroupIdx].parts[0].id
       persistPracticeAttempts(route.courseId, examId)
-      const scroller = document.querySelector('.chapter-main') || document.querySelector('.content')
+      const scroller = getStudyScroller()
       if (scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' })
       render()
     }
@@ -8051,7 +8022,7 @@ function bindEvents() {
       // Scroll to the specific part within the group
       setTimeout(() => {
         const target = document.getElementById(`part-${qid}`)
-        if (target) scrollWithin(document.querySelector('.chapter-main') || document.querySelector('.content'), target)
+        if (target) scrollWithin(getStudyScroller(), target)
       }, 50)
     })
   })
@@ -8118,29 +8089,6 @@ function bindEvents() {
       render()
     })
   })
-
-  if (route.page === 'chapter') {
-    typesetMath()
-    renderMermaid()
-    bindSteppers()
-    mountCodeEditors()
-  }
-  if (route.page === 'mistakes' || route.page === 'sr' || route.page === 'mocks') {
-    typesetMath()
-    renderMermaid()
-    bindSteppers()
-    mountCodeEditors()
-  }
-  if (route.page === 'mock-exam' && (
-    practiceExamView.tab === 'mock-questions' ||
-    practiceExamView.tab === 'flashcards' ||
-    ((practiceExamView.tab === 'exams' || practiceExamView.tab === 'tutorials') && practiceExamView.examSubtab === 'practice')
-  )) {
-    typesetMath()
-    renderMermaid()
-    bindSteppers()
-    mountCodeEditors()
-  }
 
   document.querySelectorAll('[data-sr-add]').forEach((btn) => {
     btn.addEventListener('click', (event) => addToSr(event.currentTarget.dataset.srAdd))
