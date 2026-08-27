@@ -153,7 +153,10 @@ In local mode, personal state lives in ignored flat files under
 `data/users/local-dev/`; only configured AI requests leave the machine. In
 hosted mode, Clerk provides authentication, Neon stores per-user study state
 and AI usage, Vercel hosts the service, and the configured AI provider receives
-only requested tutor or further-exercise inputs.
+only requested tutor, further-exercise, or academic-plan extraction inputs.
+Curriculum and transcript files are processed as an import draft; the original
+files are not retained, and only the academic fields the user reviews and
+confirms are saved.
 
 Signed-in users can see their AI allowances in Settings, export their active
 personal record as JSON, and permanently delete both the stored personal record

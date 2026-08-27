@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "university": { "type": "string" },
+        "programme": { "type": "string" },
+        "academicYear": { "type": "string" }
+      },
+      "required": ["university", "programme", "academicYear"]
+    },
+    "courses": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "ects": { "type": "number" },
+          "yearLevel": { "type": "string" },
+          "period": { "type": "string" },
+          "passMark": { "type": "number" },
+          "notes": { "type": "string" },
+          "attempts": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "academicYear": { "type": "string" },
+                "type": { "type": "string", "enum": ["first", "resit", "carry-over", "other"] },
+                "examDate": { "type": ["string", "null"] },
+                "grade": { "type": ["number", "null"] },
+                "status": { "type": "string", "enum": ["upcoming", "passed", "failed", "no-show"] }
+              },
+              "required": ["academicYear", "type", "examDate", "grade", "status"]
+            }
+          }
+        },
+        "required": ["code", "name", "ects", "yearLevel", "period", "passMark", "notes", "attempts"]
+      }
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string" },
+          "date": { "type": ["string", "null"] },
+          "endDate": { "type": ["string", "null"] },
+          "type": { "type": "string", "enum": ["registration", "deadline", "ceremony", "other"] },
+          "notes": { "type": "string" }
+        },
+        "required": ["title", "date", "endDate", "type", "notes"]
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["profile", "courses", "events", "warnings"]
+}

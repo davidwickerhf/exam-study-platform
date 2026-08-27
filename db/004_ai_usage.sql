@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS ai_usage_events (
   id UUID PRIMARY KEY,
   user_id TEXT NOT NULL,
-  feature TEXT NOT NULL CHECK (feature IN ('chat', 'exercises')),
+  feature TEXT NOT NULL CHECK (feature IN ('chat', 'exercises', 'intake')),
   status TEXT NOT NULL CHECK (status IN ('pending', 'completed', 'failed')),
   input_tokens INTEGER NOT NULL DEFAULT 0 CHECK (input_tokens >= 0),
   output_tokens INTEGER NOT NULL DEFAULT 0 CHECK (output_tokens >= 0),

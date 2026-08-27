@@ -53,6 +53,17 @@ let academicsLoading = false
 let academicsError = null
 let planningProfileEditing = false
 let planningCourseComposerOpen = false
+const planningIntake = {
+  step: 'source',
+  files: [],
+  description: '',
+  processingFiles: false,
+  analysing: false,
+  saving: false,
+  error: null,
+  draft: null,
+  manual: false
+}
 let chapterCache = new Map()
 let questionsCache = new Map()
 let practiceCache = null
@@ -150,6 +161,10 @@ function uiIcon(name) {
     ,list: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/>'
     ,download: '<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>'
     ,trash: '<path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"/>'
+    ,upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>'
+    ,file: '<path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/>'
+    ,check: '<path d="m5 12 4 4L19 6"/>'
+    ,arrowLeft: '<path d="m15 5-7 7 7 7"/>'
   }
   return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`
 }
@@ -446,6 +461,109 @@ function renderImageThumbs(images, removeAttr) {
     </div>
   `
 }
+
+const MAX_PLANNING_SOURCES = 6
+const MAX_PLANNING_SOURCE_BYTES = 15 * 1024 * 1024
+const MAX_PLANNING_IMAGE_PAGES = 4
+
+function formatFileSize(bytes) {
+  const value = Math.max(0, Number(bytes) || 0)
+  return value >= 1024 * 1024 ? `${(value / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(value / 1024))} KB`
+}
+
+async function compressPlanningImage(file) {
+  const bitmap = await createImageBitmap(file)
+  const maxDimension = 1600
+  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+  const context = canvas.getContext('2d')
+  context.fillStyle = '#ffffff'
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+  bitmap.close?.()
+  return canvas.toDataURL('image/jpeg', 0.76)
+}
+
+async function extractPlanningPdf(file) {
+  if (!window.__pdfjs) throw new Error('The PDF reader is still loading. Try the file again in a moment.')
+  const pdf = await window.__pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  const textPages = []
+  const images = []
+  const pageLimit = Math.min(pdf.numPages, 30)
+  for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber)
+    const content = await page.getTextContent()
+    const pageText = content.items.map((item) => item.str).join(' ').replace(/\s+/g, ' ').trim()
+    if (pageText) textPages.push(`Page ${pageNumber}\n${pageText}`)
+    if (pageText.length < 80 && images.length < MAX_PLANNING_IMAGE_PAGES) {
+      const baseViewport = page.getViewport({ scale: 1 })
+      const scale = Math.min(1.6, 1500 / Math.max(1, baseViewport.width))
+      const viewport = page.getViewport({ scale })
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.ceil(viewport.width)
+      canvas.height = Math.ceil(viewport.height)
+      const context = canvas.getContext('2d')
+      context.fillStyle = '#ffffff'
+      context.fillRect(0, 0, canvas.width, canvas.height)
+      await page.render({ canvasContext: context, viewport }).promise
+      images.push(canvas.toDataURL('image/jpeg', 0.72))
+    }
+  }
+  return { text: textPages.join('\n\n').slice(0, 120_000), images, pageCount: pdf.numPages }
+}
+
+async function planningSourcePayload(file) {
+  if (file.size > MAX_PLANNING_SOURCE_BYTES) throw new Error(`${file.name} is larger than 15 MB.`)
+  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    const extracted = await extractPlanningPdf(file)
+    return { name: file.name, type: 'application/pdf', size: file.size, ...extracted }
+  }
+  if (file.type.startsWith('image/')) {
+    return { name: file.name, type: file.type, size: file.size, text: '', images: [await compressPlanningImage(file)], pageCount: 1 }
+  }
+  if (file.type.startsWith('text/') || /\.(txt|csv)$/i.test(file.name)) {
+    return { name: file.name, type: file.type || 'text/plain', size: file.size, text: (await file.text()).slice(0, 120_000), images: [], pageCount: 0 }
+  }
+  throw new Error(`${file.name} is not a supported PDF, image, or text file.`)
+}
+
+async function addPlanningSources(fileList) {
+  const remaining = MAX_PLANNING_SOURCES - planningIntake.files.length
+  const selected = [...(fileList || [])].slice(0, Math.max(0, remaining))
+  if (!selected.length) {
+    planningIntake.error = remaining <= 0 ? `You can add up to ${MAX_PLANNING_SOURCES} sources in one import.` : null
+    render()
+    return
+  }
+  planningIntake.processingFiles = true
+  planningIntake.error = null
+  render()
+  const failures = []
+  for (const file of selected) {
+    try { planningIntake.files.push(await planningSourcePayload(file)) }
+    catch (error) { failures.push(error.message) }
+  }
+  planningIntake.processingFiles = false
+  planningIntake.error = failures.length ? failures.join(' ') : null
+  render()
+}
+
+function emptyIntakeCourse() {
+  return {
+    code: '', name: '', ects: 5, yearLevel: '', period: '', passMark: 5.5, notes: '',
+    editorialCourseId: null, attempts: [], _include: true
+  }
+}
+
+function resetPlanningIntake() {
+  Object.assign(planningIntake, {
+    step: 'source', files: [], description: '', processingFiles: false,
+    analysing: false, saving: false, error: null, draft: null, manual: false
+  })
+}
+
 const chatState = new Map() // key: courseId/chapterId -> { messages: [{role, content}], sending: bool, draft: string }
 let aiUsage = null
 let aiUsageError = null
@@ -1313,12 +1431,132 @@ function renderCoursePlanningContext(course) {
   </aside>`
 }
 
+function planningDraftConnection(course) {
+  if (!course) return null
+  const code = normalizedCourseCode(course.code)
+  return code ? state?.courses?.find((candidate) => normalizedCourseCode(candidate.code) === code) || null : null
+}
+
+function planningIntakeSteps(active = planningIntake.step) {
+  const steps = [['source', 'Add sources'], ['review', 'Review plan'], ['connected', 'Connect courses']]
+  const activeIndex = Math.max(0, steps.findIndex(([id]) => id === active))
+  return `<ol class="planning-intake-steps" aria-label="Plan setup progress">${steps.map(([id, label], index) => `<li class="${index < activeIndex ? 'is-complete' : index === activeIndex ? 'is-active' : ''}"${index === activeIndex ? ' aria-current="step"' : ''}><span>${index < activeIndex ? uiIcon('check') : index + 1}</span><strong>${label}</strong></li>`).join('')}</ol>`
+}
+
+function renderPlanningIntakeSource(workspace) {
+  const files = planningIntake.files
+  const canAnalyse = !planningIntake.processingFiles && !planningIntake.analysing && (files.length > 0 || planningIntake.description.trim().length > 0)
+  return `<div class="planning-page planning-intake-page">
+    <header class="planning-intake-header">
+      <div><h1>Set up your academic plan</h1><p>Bring what you already have. Wicker Study will turn it into a course list for you to review before anything is saved.</p></div>
+      <span class="planning-private"><span aria-hidden="true"></span>Private draft</span>
+    </header>
+    ${planningIntakeSteps('source')}
+    <div class="planning-intake-source-layout">
+      <main class="planning-intake-source-main">
+        <section aria-labelledby="planning-source-title">
+          <div class="planning-intake-section-head"><span class="planning-intake-number">1</span><div><h2 id="planning-source-title">Add your academic information</h2><p>Use a curriculum or programme PDF, transcript, screenshots, or any combination.</p></div></div>
+          <label class="planning-dropzone${planningIntake.processingFiles ? ' is-processing' : ''}" data-planning-dropzone>
+            <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,application/pdf,image/*,text/plain,text/csv" multiple data-planning-files ${planningIntake.processingFiles || planningIntake.analysing ? 'disabled' : ''}>
+            <span class="planning-dropzone-icon">${uiIcon('upload')}</span>
+            <span><strong>${planningIntake.processingFiles ? 'Reading your files…' : 'Drop files here or choose from your device'}</strong><small>PDF, screenshots, JPG, PNG, text, or CSV · up to 6 files</small></span>
+            <span class="btn btn-secondary">Choose files</span>
+          </label>
+          ${files.length ? `<ul class="planning-source-list" aria-label="Added sources">${files.map((file, index) => `<li><span class="planning-source-file-icon">${uiIcon('file')}</span><span><strong>${escapeHtml(file.name)}</strong><small>${file.type === 'application/pdf' ? `${file.pageCount || '—'} pages · ` : ''}${formatFileSize(file.size)}${file.images?.length ? ` · ${file.images.length} image${file.images.length === 1 ? '' : 's'} ready` : ''}</small></span><button type="button" data-planning-source-remove="${index}" aria-label="Remove ${escapeHtml(file.name)}">${uiIcon('close')}</button></li>`).join('')}</ul>` : ''}
+        </section>
+        <section class="planning-intake-description" aria-labelledby="planning-description-title">
+          <div class="planning-intake-section-head"><span class="planning-intake-number">2</span><div><h2 id="planning-description-title">Add anything the files miss</h2><p>Paste a curriculum description, list your current courses, or explain your grading and exam situation in your own words.</p></div></div>
+          <label><span class="sr-only">Academic plan description</span><textarea data-planning-description maxlength="20000" placeholder="For example: I study BSc Computer Science at… I am in year 2. My current courses are… I have already passed…">${escapeHtml(planningIntake.description)}</textarea></label>
+        </section>
+      </main>
+      <aside class="planning-intake-source-aside" aria-label="What happens next">
+        <h2>What happens next</h2>
+        <ol><li><span>1</span><div><strong>We organise the facts</strong><p>Courses, credits, dates, grades, and programme details are extracted into a draft.</p></div></li><li><span>2</span><div><strong>You review every field</strong><p>Nothing enters your record until you confirm it.</p></div></li><li><span>3</span><div><strong>Study material connects</strong><p>Matching course codes link directly to available chapters and practice.</p></div></li></ol>
+        <div class="planning-intake-privacy">${uiIcon('check')}<p><strong>Your originals are not stored.</strong> Files are read for this import. Only the academic details you approve are saved to your private record.</p></div>
+      </aside>
+    </div>
+    ${planningIntake.error ? `<div class="planning-intake-error" role="alert">${escapeHtml(planningIntake.error)}</div>` : ''}
+    <footer class="planning-intake-actions"><button type="button" class="btn btn-ghost" data-planning-manual>Enter everything manually</button><button type="button" class="btn btn-primary" data-planning-analyse ${canAnalyse ? '' : 'disabled'}>${planningIntake.analysing ? '<span class="button-spinner"></span> Building your draft…' : `Review my plan ${uiIcon('chevronRight')}`}</button></footer>
+  </div>`
+}
+
+function renderPlanningIntakeReview(workspace) {
+  const draft = planningIntake.draft || { profile: { ...workspace.profile }, courses: [emptyIntakeCourse()], events: [], warnings: [] }
+  const courses = draft.courses?.length ? draft.courses : [emptyIntakeCourse()]
+  const included = courses.filter((course) => course._include !== false)
+  const connected = included.filter(planningDraftConnection).length
+  return `<div class="planning-page planning-intake-page planning-intake-review-page">
+    <header class="planning-intake-header"><div><h1>Review your academic plan</h1><p>Correct anything that is unclear. Only checked courses will be added to your private record.</p></div><div class="planning-intake-connection-count"><strong>${connected}</strong><span>of ${included.length} course${included.length === 1 ? '' : 's'} connect to study material</span></div></header>
+    ${planningIntakeSteps('review')}
+    ${draft.warnings?.length ? `<div class="planning-intake-warnings" role="status"><strong>Needs your attention</strong><ul>${draft.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></div>` : ''}
+    <section class="planning-review-section" aria-labelledby="review-programme-title">
+      <div class="planning-review-section-head"><div><h2 id="review-programme-title">Programme</h2><p>Use the wording shown by your university. Blank fields are fine.</p></div></div>
+      <div class="planning-review-profile">
+        <label><span>University</span><input data-intake-profile-field="university" value="${escapeHtml(draft.profile?.university || '')}" maxlength="200" placeholder="University name"></label>
+        <label><span>Programme</span><input data-intake-profile-field="programme" value="${escapeHtml(draft.profile?.programme || '')}" maxlength="200" placeholder="Programme name"></label>
+        <label><span>Academic year</span><input data-intake-profile-field="academicYear" value="${escapeHtml(draft.profile?.academicYear || '')}" maxlength="30" placeholder="2026–2027"></label>
+      </div>
+    </section>
+    <section class="planning-review-section" aria-labelledby="review-courses-title">
+      <div class="planning-review-section-head"><div><h2 id="review-courses-title">Courses</h2><p>Course codes make the connection to maintained study material.</p></div><button type="button" class="btn btn-secondary" data-intake-course-add>${uiIcon('plus')} Add course</button></div>
+      <div class="planning-review-courses">${courses.map((course, index) => {
+        const match = planningDraftConnection(course)
+        const attempt = course.attempts?.[0] || {}
+        return `<article class="planning-review-course${course._include === false ? ' is-excluded' : ''}" data-intake-course-row="${index}">
+          <div class="planning-review-course-top"><label class="planning-review-include"><input type="checkbox" data-intake-course-include="${index}" ${course._include === false ? '' : 'checked'}><span>Include</span></label><span class="planning-review-match ${match ? 'is-connected' : ''}">${match ? `${uiIcon('check')} Connects to ${escapeHtml(match.name)}` : 'Planning only — no course-code match'}</span><button type="button" class="planning-review-remove" data-intake-course-remove="${index}">Remove</button></div>
+          <div class="planning-review-course-fields">
+            <label><span>Course code</span><input data-intake-course="${index}" data-intake-course-field="code" value="${escapeHtml(course.code || '')}" maxlength="40" placeholder="CS101"></label>
+            <label class="course-name"><span>Course name</span><input data-intake-course="${index}" data-intake-course-field="name" value="${escapeHtml(course.name || '')}" maxlength="200" placeholder="Course name"></label>
+            <label><span>Credits / ECTS</span><input data-intake-course="${index}" data-intake-course-field="ects" type="number" min="0" step="0.5" value="${Number(course.ects) || 0}"></label>
+            <label><span>Year / level</span><input data-intake-course="${index}" data-intake-course-field="yearLevel" value="${escapeHtml(course.yearLevel || '')}" maxlength="40" placeholder="Year 2"></label>
+            <label><span>Period</span><input data-intake-course="${index}" data-intake-course-field="period" value="${escapeHtml(course.period || '')}" maxlength="40" placeholder="Semester 1"></label>
+          </div>
+          <details class="planning-review-attempt" ${attempt.status || attempt.grade !== null && attempt.grade !== undefined || attempt.examDate ? 'open' : ''}><summary>Current result or next attempt <span>${attempt.status ? escapeHtml(attempt.status) : 'Optional'}</span></summary><div>
+            <label><span>Status</span><select data-intake-course="${index}" data-intake-attempt-field="status"><option value="">Not recorded</option>${['upcoming','passed','failed','no-show'].map((value) => `<option value="${value}" ${attempt.status === value ? 'selected' : ''}>${value.replace('-', ' ')}</option>`).join('')}</select></label>
+            <label><span>Attempt</span><select data-intake-course="${index}" data-intake-attempt-field="type">${['first','resit','carry-over','other'].map((value) => `<option value="${value}" ${(attempt.type || 'first') === value ? 'selected' : ''}>${value.replace('-', ' ')}</option>`).join('')}</select></label>
+            <label><span>Exam date</span><input data-intake-course="${index}" data-intake-attempt-field="examDate" type="date" value="${escapeHtml(attempt.examDate || '')}"></label>
+            <label><span>Grade</span><input data-intake-course="${index}" data-intake-attempt-field="grade" type="number" min="0" max="100" step="0.01" value="${attempt.grade ?? ''}" placeholder="Optional"></label>
+          </div></details>
+        </article>`
+      }).join('')}</div>
+    </section>
+    ${draft.events?.length ? `<section class="planning-review-section" aria-labelledby="review-dates-title"><div class="planning-review-section-head"><div><h2 id="review-dates-title">Other dates</h2><p>Registration windows and deadlines found in your sources.</p></div></div><div class="planning-review-events">${draft.events.map((item, index) => `<div><input data-intake-event="${index}" data-intake-event-field="title" value="${escapeHtml(item.title || '')}" aria-label="Date title"><input data-intake-event="${index}" data-intake-event-field="date" type="date" value="${escapeHtml(item.date || '')}" aria-label="Date"><button type="button" data-intake-event-remove="${index}" aria-label="Remove date">${uiIcon('close')}</button></div>`).join('')}</div></section>` : ''}
+    ${planningIntake.error ? `<div class="planning-intake-error" role="alert">${escapeHtml(planningIntake.error)}</div>` : ''}
+    <footer class="planning-intake-actions"><button type="button" class="btn btn-secondary" data-planning-intake-back>${uiIcon('arrowLeft')} Back to sources</button><p>${included.length ? `${included.length} course${included.length === 1 ? '' : 's'} will be added · ${connected} connected` : 'Choose at least one course'}</p><button type="button" class="btn btn-primary" data-planning-intake-save ${planningIntake.saving ? 'disabled' : ''}>${planningIntake.saving ? '<span class="button-spinner"></span> Creating plan…' : `Create my plan ${uiIcon('chevronRight')}`}</button></footer>
+  </div>`
+}
+
+function renderPlanningIntakeConnected(workspace) {
+  const connected = workspace.courses.filter(editorialCourseForAcademic)
+  const planningOnly = workspace.courses.length - connected.length
+  const firstCourse = connected[0] ? editorialCourseForAcademic(connected[0]) : null
+  return `<div class="planning-page planning-intake-page planning-intake-connected-page">
+    ${planningIntakeSteps('connected')}
+    <main class="planning-connected">
+      <span class="planning-connected-mark">${uiIcon('check')}</span>
+      <div><h1>Your academic plan is connected</h1><p>${workspace.courses.length} course${workspace.courses.length === 1 ? '' : 's'} added to your private record. ${connected.length ? `${connected.length} ${connected.length === 1 ? 'is' : 'are'} ready with maintained study material.` : 'You can connect study material later by adding matching course codes.'}</p></div>
+      <dl><div><dt>Courses added</dt><dd>${workspace.courses.length}</dd></div><div><dt>Study connections</dt><dd>${connected.length}</dd></div><div><dt>Planning only</dt><dd>${planningOnly}</dd></div></dl>
+      <div class="planning-connected-courses">${workspace.courses.map((course) => {
+        const editorial = editorialCourseForAcademic(course)
+        return `<div><span><strong>${escapeHtml(course.code || 'No code')}</strong>${escapeHtml(course.name)}</span>${editorial ? `<a href="#/course/${encodeURIComponent(editorial.id)}" data-planning-intake-finish>Open material ${uiIcon('chevronRight')}</a>` : '<small>Planning record</small>'}</div>`
+      }).join('')}</div>
+      <div class="planning-connected-actions">${firstCourse ? `<a class="btn btn-secondary" href="#/course/${encodeURIComponent(firstCourse.id)}" data-planning-intake-finish>Start studying</a>` : ''}<a class="btn btn-primary" href="#/planning/overview" data-planning-intake-finish>Open my academic plan ${uiIcon('chevronRight')}</a></div>
+    </main>
+  </div>`
+}
+
+function renderPlanningIntake(workspace) {
+  if (planningIntake.step === 'connected') return renderPlanningIntakeConnected(workspace)
+  return planningIntake.step === 'review' ? renderPlanningIntakeReview(workspace) : renderPlanningIntakeSource(workspace)
+}
+
 function renderPlanningOverview() {
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (academicsLoading && !academicsData) return '<div class="planning-page"><div class="planning-loading"><span></span><p>Loading your academic record…</p></div></div>'
   if (academicsError && !academicsData) return `<div class="planning-page"><div class="planning-error" role="alert"><h1>Academic planning is unavailable</h1><p>${escapeHtml(academicsError)}</p><button class="btn btn-secondary" data-academics-retry>Try again</button></div></div>`
   const workspace = academicsData?.workspace
   if (!workspace) return '<div class="planning-page"></div>'
+  if (!workspace.courses.length || planningIntake.step === 'connected') return renderPlanningIntake(workspace)
   const summary = academicsData.summary
   const profile = workspace.profile
   const upcoming = summary.upcoming || []
@@ -1383,12 +1621,14 @@ function renderPlanningOverview() {
 }
 
 function planningShell(body) {
-  return `<div class="planning-shell${academicsLoading ? ' is-saving' : ''}"${academicsLoading ? ' aria-busy="true"' : ''}><nav class="planning-tabs" aria-label="Academic planning sections">${PLANNING_TABS.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>${body}</div>`
+  const isOnboarding = Boolean(academicsData?.workspace && (!academicsData.workspace.courses.length || planningIntake.step === 'connected'))
+  return `<div class="planning-shell${academicsLoading ? ' is-saving' : ''}${isOnboarding ? ' is-onboarding' : ''}"${academicsLoading ? ' aria-busy="true"' : ''}>${isOnboarding ? '' : `<nav class="planning-tabs" aria-label="Academic planning sections">${PLANNING_TABS.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`}${body}</div>`
 }
 
 function renderAcademicPlanningPage() {
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (!academicsData) return planningShell(renderPlanningOverview())
+  if (!academicsData.workspace.courses.length || planningIntake.step === 'connected') return planningShell(renderPlanningOverview())
   const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, curriculum: renderPlanningCurriculum, calendar: renderPlanningCalendar, credits: renderPlanningCredits, requirements: renderPlanningRequirements, planner: renderPlanningPlanner, settings: renderPlanningSettings }
   return planningShell((views[route.tab] || renderPlanningOverview)())
 }
@@ -1525,6 +1765,7 @@ function renderSettingsPage() {
     : null
   const chatUsed = aiUsage?.usage?.today?.requests?.chat || 0
   const exerciseUsed = aiUsage?.usage?.today?.requests?.exercises || 0
+  const intakeUsed = aiUsage?.usage?.today?.requests?.intake || 0
   const dailyTokens = aiUsage?.usage?.today?.tokens || 0
   const monthlyTokens = aiUsage?.usage?.month?.tokens || 0
   return `<div class="settings-page">
@@ -1537,10 +1778,11 @@ function renderSettingsPage() {
       <nav class="settings-nav" aria-label="Settings sections"><a href="#usage">AI usage</a><a href="#data">Your data</a><a href="#account">Account</a></nav>
       <div class="settings-content">
         <section class="settings-section" id="usage">
-          <div class="settings-section-head"><div><h2>AI usage</h2><p>AI is used only for the source-grounded tutor and extra exercises you explicitly request.</p></div><button type="button" class="btn btn-secondary" data-refresh-usage>Refresh</button></div>
+          <div class="settings-section-head"><div><h2>AI usage</h2><p>AI is used only for the source-grounded tutor, extra exercises you request, and academic documents you explicitly ask to organise.</p></div><button type="button" class="btn btn-secondary" data-refresh-usage>Refresh</button></div>
           ${aiUsage ? `<div class="usage-summary">
             ${usageBar('Tutor chat today', chatUsed, aiUsage.limits.chat.requestsPerDay, `${aiUsage.remaining.chatToday} messages remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
             ${usageBar('Extra exercise requests today', exerciseUsed, aiUsage.limits.exercises.requestsPerDay, `${aiUsage.remaining.exercisesToday} requests remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
+            ${usageBar('Academic plan imports today', intakeUsed, aiUsage.limits.intake.requestsPerDay, `${aiUsage.remaining.intakeToday} imports remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
             ${usageBar('Tokens today', dailyTokens, aiUsage.limits.tokensPerDay, `${formatUsageNumber(aiUsage.remaining.tokensToday)} tokens remaining`)}
             ${usageBar('Tokens this month', monthlyTokens, aiUsage.limits.tokensPerMonth, `${formatUsageNumber(aiUsage.remaining.tokensMonth)} tokens remaining · resets ${formatResetDate(aiUsage.resetsAt.month, 'date')}`)}
           </div><div class="usage-note"><strong>How counting works</strong><p>Direct API calls use provider-reported token totals. Local CLI providers use a conservative estimate. Pending requests reserve their maximum output allowance so concurrent requests cannot exceed your limit.</p></div>` : aiUsageError
@@ -6937,6 +7179,209 @@ function bindEvents() {
   window.__platformState = state
   window.__autoWrap = autoWrapBareLatex
   window.__renderMarkdown = renderMarkdown
+
+  document.querySelectorAll('[data-planning-files]').forEach((input) => input.addEventListener('change', () => addPlanningSources(input.files)))
+  document.querySelectorAll('[data-planning-dropzone]').forEach((dropzone) => {
+    ;['dragenter', 'dragover'].forEach((type) => dropzone.addEventListener(type, (event) => {
+      event.preventDefault()
+      if (!planningIntake.processingFiles && !planningIntake.analysing) dropzone.classList.add('is-dragging')
+    }))
+    ;['dragleave', 'drop'].forEach((type) => dropzone.addEventListener(type, (event) => {
+      event.preventDefault()
+      dropzone.classList.remove('is-dragging')
+    }))
+    dropzone.addEventListener('drop', (event) => {
+      if (!planningIntake.processingFiles && !planningIntake.analysing) addPlanningSources(event.dataTransfer?.files)
+    })
+  })
+  document.querySelectorAll('[data-planning-source-remove]').forEach((button) => button.addEventListener('click', () => {
+    planningIntake.files.splice(Number(button.dataset.planningSourceRemove), 1)
+    planningIntake.error = null
+    render()
+  }))
+  document.querySelectorAll('[data-planning-description]').forEach((textarea) => textarea.addEventListener('input', () => {
+    planningIntake.description = textarea.value
+    const analyse = document.querySelector('[data-planning-analyse]')
+    if (analyse) analyse.disabled = !planningIntake.files.length && !planningIntake.description.trim()
+  }))
+  document.querySelectorAll('[data-planning-manual]').forEach((button) => button.addEventListener('click', () => {
+    if (!academicsData?.workspace) return
+    planningIntake.manual = true
+    planningIntake.error = null
+    planningIntake.draft = {
+      profile: { ...academicsData.workspace.profile },
+      courses: [emptyIntakeCourse()],
+      events: [...(academicsData.workspace.events || [])],
+      warnings: []
+    }
+    planningIntake.step = 'review'
+    render()
+  }))
+  document.querySelectorAll('[data-planning-analyse]').forEach((button) => button.addEventListener('click', async () => {
+    if (planningIntake.analysing || (!planningIntake.files.length && !planningIntake.description.trim())) return
+    planningIntake.analysing = true
+    planningIntake.error = null
+    render()
+    try {
+      let remainingImages = MAX_PLANNING_IMAGE_PAGES
+      const documents = planningIntake.files.map(({ name, type, pageCount, text, images }) => {
+        const selectedImages = (images || []).slice(0, remainingImages)
+        remainingImages -= selectedImages.length
+        return { name, type, pageCount, text, images: selectedImages }
+      })
+      const response = await fetchJson('/api/academics/intake/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: planningIntake.description,
+          documents
+        })
+      })
+      const courses = (response.draft?.courses || []).map((course) => ({ ...course, _include: true }))
+      const savedProfile = academicsData?.workspace?.profile || {}
+      const extractedProfile = response.draft?.profile || {}
+      planningIntake.draft = {
+        ...response.draft,
+        profile: {
+          ...savedProfile,
+          ...extractedProfile,
+          university: extractedProfile.university || savedProfile.university || '',
+          programme: extractedProfile.programme || savedProfile.programme || '',
+          academicYear: extractedProfile.academicYear || savedProfile.academicYear || ''
+        },
+        events: [...(academicsData?.workspace?.events || []), ...(response.draft?.events || [])],
+        courses: courses.length ? courses : [emptyIntakeCourse()]
+      }
+      planningIntake.manual = !response.usedAi
+      planningIntake.step = 'review'
+      aiUsage = response.usage || aiUsage
+    } catch (error) {
+      planningIntake.error = error.message || 'The plan could not be extracted. You can still enter it manually.'
+    } finally {
+      planningIntake.analysing = false
+      render()
+    }
+  }))
+  document.querySelectorAll('[data-planning-intake-back]').forEach((button) => button.addEventListener('click', () => {
+    planningIntake.step = 'source'
+    planningIntake.error = null
+    render()
+  }))
+  document.querySelectorAll('[data-intake-profile-field]').forEach((input) => input.addEventListener('input', () => {
+    if (planningIntake.draft?.profile) planningIntake.draft.profile[input.dataset.intakeProfileField] = input.value
+  }))
+  document.querySelectorAll('[data-intake-course-field]').forEach((input) => {
+    input.addEventListener('input', () => {
+      const course = planningIntake.draft?.courses?.[Number(input.dataset.intakeCourse)]
+      if (!course) return
+      const field = input.dataset.intakeCourseField
+      course[field] = field === 'ects' ? Number(input.value) : input.value
+    })
+    if (input.dataset.intakeCourseField === 'code') input.addEventListener('change', () => render())
+  })
+  document.querySelectorAll('[data-intake-attempt-field]').forEach((input) => input.addEventListener('change', () => {
+    const course = planningIntake.draft?.courses?.[Number(input.dataset.intakeCourse)]
+    if (!course) return
+    const attempt = course.attempts?.[0] || {
+      academicYear: planningIntake.draft?.profile?.academicYear || '', type: 'first', examDate: null, grade: null, status: ''
+    }
+    const field = input.dataset.intakeAttemptField
+    attempt[field] = field === 'grade' ? (input.value === '' ? null : Number(input.value)) : field === 'examDate' ? (input.value || null) : input.value
+    course.attempts = [attempt]
+  }))
+  document.querySelectorAll('[data-intake-course-include]').forEach((input) => input.addEventListener('change', () => {
+    const course = planningIntake.draft?.courses?.[Number(input.dataset.intakeCourseInclude)]
+    if (course) course._include = input.checked
+    render()
+  }))
+  document.querySelectorAll('[data-intake-course-remove]').forEach((button) => button.addEventListener('click', () => {
+    planningIntake.draft?.courses?.splice(Number(button.dataset.intakeCourseRemove), 1)
+    if (planningIntake.draft && !planningIntake.draft.courses.length) planningIntake.draft.courses.push(emptyIntakeCourse())
+    render()
+  }))
+  document.querySelectorAll('[data-intake-course-add]').forEach((button) => button.addEventListener('click', () => {
+    planningIntake.draft?.courses?.push(emptyIntakeCourse())
+    render()
+    document.querySelector('.planning-review-course:last-child input[data-intake-course-field="code"]')?.focus()
+  }))
+  document.querySelectorAll('[data-intake-event-field]').forEach((input) => input.addEventListener('input', () => {
+    const item = planningIntake.draft?.events?.[Number(input.dataset.intakeEvent)]
+    if (item) item[input.dataset.intakeEventField] = input.value
+  }))
+  document.querySelectorAll('[data-intake-event-remove]').forEach((button) => button.addEventListener('click', () => {
+    planningIntake.draft?.events?.splice(Number(button.dataset.intakeEventRemove), 1)
+    render()
+  }))
+  document.querySelectorAll('[data-planning-intake-save]').forEach((button) => button.addEventListener('click', async () => {
+    if (!academicsData?.workspace || planningIntake.saving || !planningIntake.draft) return
+    const draft = planningIntake.draft
+    const selected = (draft.courses || []).filter((course) => course._include !== false && String(course.name || '').trim())
+    if (!selected.length) {
+      planningIntake.error = 'Add and include at least one named course before creating the plan.'
+      render()
+      return
+    }
+    const stamp = Date.now()
+    const courses = selected.map((course, index) => {
+      const id = `course-${stamp}-${index + 1}`
+      const match = planningDraftConnection(course)
+      const attempts = (course.attempts || []).filter((attempt) => attempt.status || attempt.examDate || attempt.grade !== null && attempt.grade !== undefined).map((attempt, attemptIndex) => ({
+        id: `${id}-attempt-${attemptIndex + 1}`,
+        academicYear: attempt.academicYear || draft.profile?.academicYear || '',
+        type: attempt.type || 'first',
+        examDate: attempt.examDate || null,
+        grade: attempt.grade === '' || attempt.grade === undefined ? null : attempt.grade,
+        status: attempt.status || 'upcoming'
+      }))
+      return {
+        id,
+        code: course.code || '',
+        name: String(course.name).trim(),
+        ects: Number(course.ects) || 0,
+        yearLevel: course.yearLevel || '',
+        period: course.period || '',
+        passMark: Number(course.passMark) || 5.5,
+        notes: course.notes || '',
+        editorialCourseId: match?.id || null,
+        attempts
+      }
+    })
+    const events = (draft.events || []).filter((item) => item.title && item.date).map((item, index) => ({ ...item, id: `event-${stamp}-${index + 1}` }))
+    const academicYear = draft.profile?.academicYear || ''
+    const workspace = {
+      ...academicsData.workspace,
+      profile: { ...academicsData.workspace.profile, ...draft.profile, academicYear, currentYearKey: academicYear },
+      courses,
+      events
+    }
+    planningIntake.saving = true
+    planningIntake.error = null
+    render()
+    try {
+      academicsData = await fetchJson('/api/academics', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace, expectedRevision: academicsData.workspace.revision })
+      })
+      academicsError = null
+      planningIntake.step = 'connected'
+      planningIntake.files = []
+      planningIntake.description = ''
+      planningIntake.processingFiles = false
+      planningIntake.analysing = false
+      planningIntake.saving = false
+      planningIntake.error = null
+      planningIntake.draft = null
+      route = { page: 'planning', tab: 'overview' }
+      if (window.location.hash !== '#/planning/overview') window.location.hash = '#/planning/overview'
+    } catch (error) {
+      planningIntake.error = error.message || 'The plan could not be saved. Your reviewed draft is still here.'
+      planningIntake.saving = false
+    }
+    render()
+  }))
+  document.querySelectorAll('[data-planning-intake-finish]').forEach((link) => link.addEventListener('click', () => {
+    resetPlanningIntake()
+    queueMicrotask(render)
+  }))
 
   document.querySelectorAll('[data-academics-retry]').forEach((button) => button.addEventListener('click', () => loadAcademics({ force: true })))
   document.querySelectorAll('[data-planning-profile-toggle]').forEach((button) => button.addEventListener('click', () => {

@@ -131,7 +131,7 @@ async function startApplication() {
   document.body.classList.add('app-mode')
   document.getElementById('app').innerHTML = '<main class="boot-loading"><p>Opening your study record…</p></main>'
   await loadStudyDependencies()
-  await import(`/app.js?v=20260827-search-planning-2`)
+  await import(`/app.js?v=20260827-planning-intake-4`)
 }
 
 async function configureCloudSync() {
@@ -170,7 +170,7 @@ async function authHeaders() {
 async function main() {
   const pathname = normalizedPath()
   if (['/', '/about', '/courses', '/privacy', '/terms'].includes(pathname)) {
-    const { mountPublicSite } = await import('/public-site.js?v=20260827-scroll')
+    const { mountPublicSite } = await import('/public-site.js?v=20260827-planning-intake')
     mountPublicSite(pathname)
     return
   }
@@ -206,7 +206,7 @@ async function main() {
 
   if (!clerk.user) {
     if (pathname !== '/sign-in') window.history.replaceState(null, '', '/sign-in')
-    const { mountAuthSite } = await import('/public-site.js?v=20260827-scroll')
+    const { mountAuthSite } = await import('/public-site.js?v=20260827-planning-intake')
     mountAuthSite()
     clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
       fallbackRedirectUrl: `${window.location.origin}/app`,

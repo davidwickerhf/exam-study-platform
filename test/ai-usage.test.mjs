@@ -25,8 +25,10 @@ test('AI usage is accounted per user and enforces the minute request limit', asy
 
       const summary = await getAiUsageSummary()
       assert.equal(summary.usage.minute.requests.chat, AI_LIMITS.chat.requestsPerMinute)
+      assert.equal(summary.usage.minute.requests.intake, 0)
       assert.equal(summary.usage.today.tokens, AI_LIMITS.chat.requestsPerMinute * 20)
       assert.equal(summary.remaining.chatToday, AI_LIMITS.chat.requestsPerDay - AI_LIMITS.chat.requestsPerMinute)
+      assert.equal(summary.remaining.intakeToday, AI_LIMITS.intake.requestsPerDay)
 
       await assert.rejects(
         () => reserveAiUsage('chat', { inputTokens: 10, maxOutputTokens: 20 }),
