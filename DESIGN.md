@@ -107,6 +107,24 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - Settings uses a compact ruled register for account facts and allowances.
   Export is a normal account action; deletion is isolated in a bordered danger
   zone and requires a typed confirmation in a focused modal or mobile sheet.
+- Academic Planning is one destination with a sticky, horizontally scrollable
+  local tab row for Overview, Courses, Curriculum, Calendar, Credits,
+  Requirements, Planner, and Planning settings. These views remain peers inside
+  the destination; do not reproduce them as global navigation or separate
+  dashboard cards.
+- Planning uses the academic-ledger grammar at editing density: programme facts,
+  course attempts, requirements, dated events, scenarios, and derived results
+  are aligned in ruled rows or compact tables. Secondary creation forms may sit
+  on the subtle grouped surface, but the records themselves remain flat and
+  directly editable.
+- Planning data is explicitly private and programme/cohort-specific. Keep the
+  account-privacy marker visible in each planning view, describe derived values
+  as consequences of the student's own record, and never imply that the shared
+  editorial course catalogue defines a student's curriculum or official dates.
+- Planning progressively collapses from multi-column registers and side forms to
+  a single-column flow. Tabs scroll horizontally; wide tables may overflow; form
+  grids stack; record actions remain reachable with touch-sized targets. Preserve
+  record order and editing context rather than turning mobile rows into cards.
 - Authored prose is capped at 74ch, but the application canvas is not artificially narrowed.
 
 ## System rules
@@ -120,6 +138,16 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - Phone layouts prioritize resume, due flashcards, open mistakes, timed practice, course access, and focused reading. Dense heatmaps, course management, and simultaneous tool panels progressively disclose rather than leading the flow.
 - Primary actions use brand indigo, white text, 4px radius, and 40px default height. Secondary actions use a white/transparent surface and strong hairline border.
 - Tables use subtle headers, 12px labels, 14px body, tabular numerals, and horizontal overflow on mobile.
+- Planning summaries use a ruled four-cell strip with IBM Plex Mono values;
+  status and risk color communicate meaning only. Planning editors use the
+  established 40px fields, 4px control corners, visible indigo focus, 10–14px
+  grid gaps, and hairline row divisions instead of nested panels.
+- **The Personal Ledger Rule.** Curriculum, attempts, events, requirements, and
+  scenarios reflect the active programme record. Link study material by course
+  code only; never silently merge editorial and personal academic truth.
+- **The One Planning Destination Rule.** All planning workflows share one local
+  horizontal tab system and one compact page frame. Preserve a clear active tab
+  and the user's place when moving between planning views.
 - Miniature product compositions may use 9–11px simulated-interface type;
   these sizes are reserved for non-interactive visual proof and never for
   actual controls or reading content. Public display type may scale fluidly
@@ -133,3 +161,6 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - Do not use per-course accent colors for global UI. Course color may identify a course icon or local datum only.
 - Do not invent one-off spacing, radii, shadows, or colors outside the documented tokens.
 - Do not hide dense information inside nested containers when a ruled list or table is clearer.
+- Do not present planning records as a spacious card gallery, split the local
+  tabs into competing navigation systems, or remove cohort/privacy context from
+  derived credits, GPA, requirements, dates, or scenario outcomes.

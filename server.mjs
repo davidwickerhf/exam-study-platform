@@ -13,6 +13,7 @@ import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
 import { deletePersonalData, exportPersonalData } from './lib/account-data.mjs'
+import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { editorialMode, getMaterial, getMaterialText, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 
@@ -281,9 +282,14 @@ function sendPdf(req, res, data, filename) {
   res.end(body)
 }
 
-async function readBody(req) {
+async function readBody(req, maxBytes = 5 * 1024 * 1024) {
   const chunks = []
-  for await (const chunk of req) chunks.push(chunk)
+  let bytes = 0
+  for await (const chunk of req) {
+    bytes += chunk.length
+    if (bytes > maxBytes) throw new Error('Request body is too large.')
+    chunks.push(chunk)
+  }
   const raw = Buffer.concat(chunks).toString('utf8')
   return raw ? JSON.parse(raw) : {}
 }
@@ -2751,7 +2757,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/account' && req.method === 'DELETE') {
-      const body = await readBody(req)
+      const body = await readBody(req, 1024 * 1024)
       if (body?.confirmation !== 'DELETE') {
         send(res, 400, JSON.stringify({ error: 'Type DELETE to confirm permanent account deletion.' }))
         return
@@ -2793,6 +2799,46 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/me' && req.method === 'GET') {
       const auth = await authenticate(req)
       send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, storage: storageMode() }))
+      return
+    }
+
+    if (url.pathname === '/api/academics' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(await readAcademicState()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/academics' && req.method === 'PUT') {
+      const body = await readBody(req, 1024 * 1024)
+      try {
+        send(res, 200, JSON.stringify(await saveActiveAcademicWorkspace(body.workspace, body.expectedRevision)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    if (url.pathname === '/api/academics/programmes' && req.method === 'POST') {
+      const body = await readBody(req, 64 * 1024)
+      try { send(res, 201, JSON.stringify(await createAcademicProgramme(body?.profile))) }
+      catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
+      return
+    }
+    if (url.pathname === '/api/academics/import' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 1024 * 1024)
+        const editorial = (await readState()).courses || []
+        send(res, 201, JSON.stringify(await importAcademicProgramme(body, editorial)))
+      } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
+      return
+    }
+    if (url.pathname === '/api/academics/active' && req.method === 'PUT') {
+      const body = await readBody(req)
+      try { send(res, 200, JSON.stringify(await selectAcademicProgramme(String(body?.id || '')))) }
+      catch (error) { send(res, 404, JSON.stringify({ error: error.message })) }
+      return
+    }
+    const academicProgrammeMatch = url.pathname.match(/^\/api\/academics\/programmes\/([^/]+)$/)
+    if (academicProgrammeMatch && req.method === 'DELETE') {
+      try { send(res, 200, JSON.stringify(await deleteAcademicProgramme(decodeURIComponent(academicProgrammeMatch[1])))) }
+      catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
       return
     }
 

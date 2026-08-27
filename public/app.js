@@ -38,6 +38,9 @@ const QUESTION_TYPE_LABELS = {
 
 let state = null
 let route = parseRoute()
+let academicsData = null
+let academicsLoading = false
+let academicsError = null
 let chapterCache = new Map()
 let questionsCache = new Map()
 let practiceCache = null
@@ -482,6 +485,7 @@ window.addEventListener('hashchange', () => {
   mobileStudyPanel = null
   route = parseRoute()
   render()
+  if (route.page === 'planning') loadAcademics()
 })
 
 init()
@@ -600,6 +604,7 @@ function parseRoute() {
   if (parts[0] === 'sr') return { page: 'sr' }
   if (parts[0] === 'mocks') return { page: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
   if (parts[0] === 'settings') return { page: 'settings' }
+  if (parts[0] === 'planning') return { page: 'planning', tab: parts[1] || 'overview' }
   if (parts[0] === 'course') {
     return {
       page: 'course',
@@ -1004,6 +1009,7 @@ function computeTitle() {
   if (route.page === 'sr') return 'Flashcards' + suffix
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
   if (route.page === 'settings') return 'Settings' + suffix
+  if (route.page === 'planning') return 'Academic planning' + suffix
   if (route.page === 'course') {
     const c = state.courses.find((c) => c.id === route.id)
     return c ? `${c.code}${c.shortName ? ' ' + c.shortName : ''}${suffix}` : 'Course' + suffix
@@ -1191,11 +1197,218 @@ function routeView() {
   if (route.page === 'sr') return renderSrPage()
   if (route.page === 'mocks') return renderMocksPage()
   if (route.page === 'settings') return renderSettingsPage()
+  if (route.page === 'planning') return renderAcademicPlanningPage()
   if (route.page === 'course') return renderCourse(route.id)
   return renderDashboard()
 }
 
 const accountDeleteState = { open: false, confirmation: '', deleting: false, error: null }
+
+async function loadAcademics({ force = false } = {}) {
+  if ((academicsData && !force) || academicsLoading) return
+  academicsLoading = true
+  academicsError = null
+  render()
+  try { academicsData = await fetchJson('/api/academics') }
+  catch (error) { academicsError = error.message }
+  finally { academicsLoading = false; render() }
+}
+
+async function saveAcademics(workspace) {
+  const expectedRevision = academicsData.workspace.revision
+  academicsData = { ...academicsData, workspace, summary: academicsData.summary }
+  academicsLoading = true
+  academicsError = null
+  render()
+  try {
+    academicsData = await fetchJson('/api/academics', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace, expectedRevision })
+    })
+  } catch (error) { academicsError = error.message }
+  finally { academicsLoading = false; render() }
+}
+
+function academicDate(value) {
+  if (!value) return 'Date not set'
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+}
+
+function renderPlanningOverview() {
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
+  if (academicsLoading && !academicsData) return '<div class="planning-page"><div class="planning-loading"><span></span><p>Loading your academic record…</p></div></div>'
+  if (academicsError && !academicsData) return `<div class="planning-page"><div class="planning-error" role="alert"><h1>Academic planning is unavailable</h1><p>${escapeHtml(academicsError)}</p><button class="btn btn-secondary" data-academics-retry>Try again</button></div></div>`
+  const workspace = academicsData?.workspace
+  if (!workspace) return '<div class="planning-page"></div>'
+  const summary = academicsData.summary
+  const profile = workspace.profile
+  const upcoming = summary.upcoming || []
+  return `<div class="planning-page">
+    <header class="planning-header">
+      <div><h1>${escapeHtml(profile.programme || 'Academic planning')}</h1><p>${profile.university ? `${escapeHtml(profile.university)} · ` : ''}${escapeHtml(profile.academicYear || 'Set your current academic year')}</p></div>
+      <span class="planning-private">Private to your account</span>
+    </header>
+
+    <section class="planning-profile" aria-labelledby="planning-profile-title">
+      <div><h2 id="planning-profile-title">Programme context</h2><p>Curricula and exam schedules can change. These details apply only to your own record.</p></div>
+      <form data-academic-profile>
+        <label><span>University</span><input name="university" value="${escapeHtml(profile.university)}" maxlength="200"></label>
+        <label><span>Programme</span><input name="programme" value="${escapeHtml(profile.programme)}" maxlength="200" required></label>
+        <label><span>Academic year or cohort</span><input name="academicYear" value="${escapeHtml(profile.academicYear)}" maxlength="30" placeholder="2026–2027"></label>
+        <button class="btn btn-secondary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save context</button>
+      </form>
+    </section>
+
+    <dl class="planning-summary">
+      <div><dt>Earned credits</dt><dd>${summary.earnedEcts}</dd></div>
+      <div><dt>Weighted GPA</dt><dd>${summary.gpa ?? '—'}</dd></div>
+      <div><dt>Courses passed</dt><dd>${summary.passedCourses} / ${summary.totalCourses}</dd></div>
+      <div><dt>Upcoming exams</dt><dd>${upcoming.length}</dd></div>
+    </dl>
+
+    <div class="planning-columns">
+      <section class="planning-register">
+        <div class="planning-section-head"><div><h2>Your curriculum</h2><p>Courses are personal to this programme and cohort. Matching study material is linked only by course code.</p></div></div>
+        ${workspace.courses.length ? `<div class="planning-course-list">${workspace.courses.map((course) => {
+          const passed = course.attempts.some((attempt) => attempt.status === 'passed')
+          const next = course.attempts.find((attempt) => attempt.status === 'upcoming')
+          return `<article class="planning-course-row"><div class="planning-course-code">${escapeHtml(course.code || 'No code')}</div><div><h3>${escapeHtml(course.name)}</h3><p>${escapeHtml([course.yearLevel, course.period].filter(Boolean).join(' · ') || 'No curriculum position set')}</p></div><div class="planning-course-data"><strong>${course.ects} ECTS</strong><span class="planning-status ${passed ? 'is-passed' : ''}">${passed ? 'Passed' : next ? `${escapeHtml(next.type)} · ${academicDate(next.examDate)}` : 'No active attempt'}</span></div><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}" aria-label="Remove ${escapeHtml(course.name)}">Remove</button></article>`
+        }).join('')}</div>` : '<div class="planning-empty"><h3>Build your current curriculum</h3><p>Add only the courses that apply to your programme and cohort. Wicker Study will not assume that its editorial course list matches yours.</p></div>'}
+        <form class="planning-add-course" data-academic-course>
+          <div class="planning-form-title"><h3>Add course and next attempt</h3><p>The exam date is optional and belongs to this attempt only.</p></div>
+          <label><span>Course code</span><input name="code" maxlength="40" placeholder="CS101"></label>
+          <label class="wide"><span>Course name</span><input name="name" maxlength="200" required></label>
+          <label><span>Credits</span><input name="ects" type="number" min="0" step="0.5" value="5"></label>
+          <label><span>Year or level</span><input name="yearLevel" maxlength="40" placeholder="Year 2"></label>
+          <label><span>Period</span><input name="period" maxlength="40" placeholder="Semester 1"></label>
+          <label><span>Attempt</span><select name="attemptType"><option value="first">First sit</option><option value="resit">Resit</option><option value="carry-over">Carry-over</option><option value="other">Other</option></select></label>
+          <label><span>Attempt status</span><select name="attemptStatus"><option value="upcoming">Upcoming</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="no-show">No-show</option></select></label>
+          <label><span>Personal exam date</span><input name="examDate" type="date"></label>
+          <label><span>Grade (optional)</span><input name="grade" type="number" step="0.01"></label>
+          <button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add course</button>
+        </form>
+      </section>
+
+      <aside class="planning-calendar">
+        <div class="planning-section-head"><div><h2>Upcoming exams</h2><p>Dates come from your attempts, not the shared course catalogue.</p></div></div>
+        ${upcoming.length ? `<ol>${upcoming.map((attempt) => `<li><time datetime="${attempt.examDate}">${academicDate(attempt.examDate)}</time><div><strong>${escapeHtml(attempt.code || attempt.name)}</strong><span>${escapeHtml(attempt.name)} · ${escapeHtml(attempt.type)}</span></div></li>`).join('')}</ol>` : '<div class="planning-calendar-empty"><p>No dated upcoming attempts yet.</p></div>'}
+      </aside>
+    </div>
+    ${academicsError ? `<p class="planning-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
+  </div>`
+}
+
+function planningShell(body) {
+  const tabs = [['overview', 'Overview'], ['courses', 'Courses'], ['curriculum', 'Curriculum'], ['calendar', 'Calendar'], ['credits', 'Credits'], ['requirements', 'Requirements'], ['planner', 'Planner'], ['settings', 'Planning settings']]
+  return `<div class="planning-shell"><nav class="planning-tabs" aria-label="Academic planning sections">${tabs.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>${body}</div>`
+}
+
+function renderAcademicPlanningPage() {
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
+  if (!academicsData) return planningShell(renderPlanningOverview())
+  const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, curriculum: renderPlanningCurriculum, calendar: renderPlanningCalendar, credits: renderPlanningCredits, requirements: renderPlanningRequirements, planner: renderPlanningPlanner, settings: renderPlanningSettings }
+  return planningShell((views[route.tab] || renderPlanningOverview)())
+}
+
+function planningPageHeader(title, description) {
+  const profile = academicsData.workspace.profile
+  return `<header class="planning-header"><div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}${profile.programme ? ` · ${escapeHtml(profile.programme)}` : ''}</p></div><span class="planning-private">Private to your account</span></header>`
+}
+
+function renderPlanningCourses() {
+  const workspace = academicsData.workspace
+  return `<div class="planning-page">${planningPageHeader('Courses and attempts', 'Maintain the history that applies to your cohort and enrolment')}
+    <div class="planning-course-editor">${workspace.courses.length ? workspace.courses.map((course) => `<section class="planning-edit-course">
+      <form class="planning-edit-course-head" data-academic-course-edit="${escapeHtml(course.id)}"><label><span>Code</span><input name="code" value="${escapeHtml(course.code)}"></label><label class="wide"><span>Course</span><input name="name" value="${escapeHtml(course.name)}" required></label><label><span>ECTS</span><input name="ects" type="number" step="0.5" min="0" value="${course.ects}"></label><label><span>Level</span><input name="yearLevel" value="${escapeHtml(course.yearLevel)}"></label><label><span>Period</span><input name="period" value="${escapeHtml(course.period)}"></label><label><span>Pass mark</span><input name="passMark" type="number" step="0.01" min="0" max="100" value="${course.passMark}"></label><label class="wide"><span>Notes</span><input name="notes" value="${escapeHtml(course.notes)}"></label><label class="planning-check"><input name="hiddenFromStats" type="checkbox" ${course.hiddenFromStats ? 'checked' : ''}><span>Exclude from statistics</span></label><button class="btn btn-secondary" type="submit">Save course</button><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}">Remove course</button></form>
+      <div class="planning-attempts">${course.attempts.length ? course.attempts.map((attempt) => `<form data-academic-attempt-edit="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(attempt.academicYear)}"></label><label><span>Attempt</span><select name="type">${['first','resit','carry-over','other'].map((value) => `<option ${attempt.type === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label><span>Exam date</span><input name="examDate" type="date" value="${escapeHtml(attempt.examDate || '')}"></label><label><span>Status</span><select name="status">${['upcoming','passed','failed','no-show'].map((value) => `<option ${attempt.status === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label><span>Grade</span><input name="grade" type="number" step="0.01" value="${attempt.grade ?? ''}"></label><button class="btn btn-secondary" type="submit">Save attempt</button><button class="planning-remove" type="button" data-academic-attempt-remove="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}">Remove</button></form>`).join('') : '<p class="planning-muted">No attempts recorded.</p>'}</div>
+      <form class="planning-add-attempt" data-academic-attempt-add="${escapeHtml(course.id)}"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(workspace.profile.academicYear)}"></label><label><span>Attempt type</span><select name="type"><option>first</option><option>resit</option><option>carry-over</option><option>other</option></select></label><label><span>Personal exam date</span><input name="examDate" type="date"></label><button class="btn btn-secondary" type="submit">Add attempt</button></form>
+    </section>`).join('') : '<div class="planning-empty"><h2>No courses yet</h2><p>Add the first course from Overview. It will appear here with its full attempt history.</p></div>'}</div>
+  </div>`
+}
+
+function renderPlanningCurriculum() {
+  const groups = new Map()
+  for (const course of academicsData.workspace.courses) {
+    const level = course.yearLevel || 'Unassigned level'
+    groups.set(level, [...(groups.get(level) || []), course])
+  }
+  return `<div class="planning-page">${planningPageHeader('Curriculum', 'A cohort-specific view of the courses in this programme')}${[...groups.entries()].map(([level, courses]) => `<section class="planning-curriculum-group"><div><h2>${escapeHtml(level)}</h2><span>${courses.reduce((sum, course) => sum + course.ects, 0)} ECTS</span></div><table><thead><tr><th>Code</th><th>Course</th><th>Period</th><th>ECTS</th><th>Status</th></tr></thead><tbody>${courses.map((course) => `<tr><td>${escapeHtml(course.code || '—')}</td><td>${escapeHtml(course.name)}</td><td>${escapeHtml(course.period || '—')}</td><td>${course.ects}</td><td>${course.attempts.some((a) => a.status === 'passed') ? 'Passed' : 'Open'}</td></tr>`).join('')}</tbody></table></section>`).join('') || '<div class="planning-empty"><h2>No curriculum recorded</h2><p>Add courses from Overview.</p></div>'}</div>`
+}
+
+function renderPlanningCalendar() {
+  const workspace = academicsData.workspace
+  const entries = [...(academicsData.summary.upcoming || []).map((item) => ({ ...item, title: item.name, kind: 'Exam' })), ...workspace.events.map((event) => ({ ...event, examDate: event.date, kind: event.type }))].filter((item) => item.examDate).sort((a, b) => a.examDate.localeCompare(b.examDate))
+  return `<div class="planning-page">${planningPageHeader('Calendar', 'Exam attempts, registration windows, deadlines, and personal events')}
+    <div class="planning-calendar-layout"><ol class="planning-timeline">${entries.map((item) => `<li><time>${academicDate(item.examDate)}</time><div><strong>${escapeHtml(item.title || item.name)}</strong><span>${escapeHtml(item.kind)}</span></div>${item.courseId ? '' : `<button class="planning-remove" data-academic-event-remove="${escapeHtml(item.id)}">Remove</button>`}</li>`).join('') || '<li><p>No dated exams or events.</p></li>'}</ol>
+    <div><form class="planning-event-form" data-academic-event><h2>Add academic event</h2><label><span>Title</span><input name="title" required></label><label><span>Date</span><input name="date" type="date" required></label><label><span>End date</span><input name="endDate" type="date"></label><label><span>Type</span><select name="type"><option>registration</option><option>deadline</option><option>ceremony</option><option>other</option></select></label><label><span>Notes</span><input name="notes"></label><button class="btn btn-primary">Add event</button></form>${workspace.events.map((item) => `<form class="planning-event-edit" data-academic-event-edit="${escapeHtml(item.id)}"><label><span>Event</span><input name="title" value="${escapeHtml(item.title)}" required></label><label><span>Date</span><input name="date" type="date" value="${escapeHtml(item.date || '')}"></label><label><span>End</span><input name="endDate" type="date" value="${escapeHtml(item.endDate || '')}"></label><label><span>Notes</span><input name="notes" value="${escapeHtml(item.notes)}"></label><button class="btn btn-secondary">Save</button></form>`).join('')}</div></div></div>`
+}
+
+function renderPlanningCredits() {
+  const rows = academicsData.workspace.courses.map((course) => { const attempt = [...course.attempts].reverse().find((a) => a.status === 'passed'); return { course, attempt } })
+  return `<div class="planning-page">${planningPageHeader('Credits and GPA', 'Derived only from the attempts recorded in this programme')}<dl class="planning-summary"><div><dt>Earned credits</dt><dd>${academicsData.summary.earnedEcts}</dd></div><div><dt>Weighted GPA</dt><dd>${academicsData.summary.gpa ?? '—'}</dd></div><div><dt>Passed</dt><dd>${academicsData.summary.passedCourses}</dd></div><div><dt>Remaining courses</dt><dd>${academicsData.summary.totalCourses - academicsData.summary.passedCourses}</dd></div></dl><div class="planning-table-wrap"><table><thead><tr><th>Course</th><th>Level</th><th>ECTS</th><th>Latest passing grade</th><th>Earned</th></tr></thead><tbody>${rows.map(({course, attempt}) => `<tr><td>${escapeHtml(course.code)} ${escapeHtml(course.name)}</td><td>${escapeHtml(course.yearLevel || '—')}</td><td>${course.ects}</td><td>${attempt?.grade ?? '—'}</td><td>${attempt ? course.ects : 0}</td></tr>`).join('')}</tbody></table></div></div>`
+}
+
+function gateResolved(gate, workspace, projected = false) {
+  const passed = (course) => {
+    if (course.attempts.some((a) => a.status === 'passed')) return true
+    const objective = workspace.planning.objectives?.[course.id]
+    return projected && objective?.mode !== 'none' && objective?.outcome === 'pass'
+  }
+  if (gate.type === 'course') return passed(workspace.courses.find((c) => c.id === gate.courseId) || { attempts: [] })
+  if (gate.type === 'all-level') return workspace.courses.filter((c) => c.yearLevel === gate.level && !c.hiddenFromStats).every(passed)
+  const earned = workspace.courses.filter((c) => !c.hiddenFromStats && passed(c) && (gate.type !== 'credit-level' || c.yearLevel === gate.level)).reduce((sum, c) => sum + c.ects, 0)
+  return earned >= gate.target
+}
+
+function planningInsights(workspace) {
+  const open = workspace.courses.filter((course) => {
+    const objective = workspace.planning.objectives?.[course.id]
+    return !course.hiddenFromStats && !course.attempts.some((a) => a.status === 'passed') && objective?.mode !== 'none' && objective?.outcome !== 'fail'
+  })
+  const courseGateIds = new Set(workspace.gates.filter((gate) => gate.type === 'course' && !gateResolved(gate, workspace)).map((gate) => gate.courseId))
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const priority = open.map((course) => {
+    const active = course.attempts.find((attempt) => attempt.status === 'upcoming')
+    const days = active?.examDate ? Math.ceil((new Date(`${active.examDate}T00:00:00`) - today) / 86400000) : null
+    let score = courseGateIds.has(course.id) ? 100 : 0
+    if (days !== null) score += days <= 7 ? 30 : days <= 14 ? 20 : days <= 30 ? 10 : 0
+    score += Math.min(20, course.ects * 2)
+    return { course, active, days, score, risk: score >= 100 ? 'critical' : score >= 30 ? 'high' : score >= 15 ? 'medium' : 'low' }
+  }).sort((a, b) => b.score - a.score)
+  const periodMap = new Map()
+  for (const item of priority) {
+    const period = item.course.period || 'Unscheduled'
+    const current = periodMap.get(period) || { period, ects: 0, count: 0 }
+    periodMap.set(period, { period, ects: current.ects + item.course.ects, count: current.count + 1 })
+  }
+  const creditGates = workspace.gates.filter((gate) => ['total-credits', 'credit-level'].includes(gate.type) && !gateResolved(gate, workspace))
+  const minimumPaths = creditGates.map((gate) => {
+    const eligible = priority.map((item) => item.course).filter((course) => gate.type !== 'credit-level' || course.yearLevel === gate.level).sort((a, b) => b.ects - a.ects)
+    const current = workspace.courses.filter((course) => course.attempts.some((a) => a.status === 'passed') && (gate.type !== 'credit-level' || course.yearLevel === gate.level)).reduce((sum, course) => sum + course.ects, 0)
+    let covered = current
+    const courses = []
+    for (const course of eligible) { if (covered >= gate.target) break; courses.push(course); covered += course.ects }
+    return { gate, gap: Math.max(0, gate.target - current), courses }
+  })
+  return { priority, periods: [...periodMap.values()], minimumPaths }
+}
+
+function renderPlanningRequirements() {
+  const workspace = academicsData.workspace
+  return `<div class="planning-page">${planningPageHeader('Requirements', 'Configure the rules for this programme and cohort—never assume them globally')}<div class="planning-gates">${workspace.gates.map((gate) => `<form data-academic-gate-edit="${escapeHtml(gate.id)}"><span class="planning-gate-state ${gateResolved(gate, workspace) ? 'met' : ''}">${gateResolved(gate, workspace) ? 'Met' : 'Open'}</span><label><span>Requirement</span><input name="label" value="${escapeHtml(gate.label)}" required></label><label><span>Level</span><input name="level" value="${escapeHtml(gate.level || '')}"></label><label><span>Target</span><input name="target" type="number" min="0" value="${gate.target}"></label><button class="btn btn-secondary">Save</button><button type="button" class="planning-remove" data-academic-gate-remove="${escapeHtml(gate.id)}">Remove</button></form>`).join('') || '<div class="planning-empty"><h2>No requirements configured</h2><p>Add the official rules that apply to your cohort.</p></div>'}</div><form class="planning-gate-form" data-academic-gate><h2>Add requirement</h2><label><span>Label</span><input name="label" required></label><label><span>Section</span><select name="section"><option>progression</option><option>completion</option><option>thesis</option><option>other</option></select></label><label><span>Rule type</span><select name="type"><option value="total-credits">Total credits</option><option value="credit-level">Credits in level</option><option value="all-level">All courses in level</option><option value="course">Specific course</option></select></label><label><span>Level</span><input name="level" placeholder="Year 2"></label><label><span>Target credits</span><input name="target" type="number" min="0"></label><label><span>Course</span><select name="courseId"><option value="">None</option>${workspace.courses.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.code || c.name)}</option>`).join('')}</select></label><button class="btn btn-primary">Add requirement</button></form></div>`
+}
+
+function renderPlanningPlanner() {
+  const workspace = academicsData.workspace
+  const insights = planningInsights(workspace)
+  const projectedCredits = workspace.courses.filter((course) => { const objective = workspace.planning.objectives?.[course.id]; return course.attempts.some((a) => a.status === 'passed') || (objective?.mode !== 'none' && objective?.outcome === 'pass') }).reduce((sum, c) => sum + c.ects, 0)
+  return `<div class="planning-page">${planningPageHeader('Scenario planner', 'Explore outcomes without changing recorded grades or attempts')}<div class="planning-scenario-summary"><strong>${projectedCredits} projected ECTS</strong><span>${workspace.gates.filter((g) => gateResolved(g, workspace, true)).length} of ${workspace.gates.length} configured requirements met</span></div><div class="planning-scenario-list">${workspace.courses.filter((c) => !c.attempts.some((a) => a.status === 'passed')).map((course) => { const objective = workspace.planning.objectives?.[course.id] || { mode: 'current', outcome: 'actual' }; return `<label><span><strong>${escapeHtml(course.code || course.name)}</strong><small>${course.ects} ECTS · ${escapeHtml(course.name)}</small></span><select data-academic-objective-mode="${escapeHtml(course.id)}"><option value="current" ${objective.mode === 'current' ? 'selected' : ''}>Current sit</option><option value="resit" ${objective.mode === 'resit' ? 'selected' : ''}>Planned resit</option><option value="none" ${objective.mode === 'none' ? 'selected' : ''}>Do not sit</option></select><select data-academic-objective-outcome="${escapeHtml(course.id)}"><option value="actual" ${objective.outcome === 'actual' ? 'selected' : ''}>Use recorded outcome</option><option value="pass" ${objective.outcome === 'pass' ? 'selected' : ''}>Plan pass</option><option value="fail" ${objective.outcome === 'fail' ? 'selected' : ''}>Plan fail</option></select></label>` }).join('') || '<div class="planning-empty"><p>No unresolved courses to simulate.</p></div>'}</div><div class="planning-insights"><section><h2>Focus priority</h2>${insights.priority.map((item) => `<div><span class="planning-risk ${item.risk}">${item.risk}</span><strong>${escapeHtml(item.course.code || item.course.name)}</strong><small>${item.days === null ? 'No exam date' : `${item.days} days`} · ${item.course.ects} ECTS</small></div>`).join('') || '<p>No open courses.</p>'}</section><section><h2>Period pressure</h2>${insights.periods.map((item) => `<div><strong>${escapeHtml(item.period)}</strong><span>${item.count} courses · ${item.ects} ECTS</span></div>`).join('') || '<p>No open periods.</p>'}</section><section><h2>Minimum paths</h2>${insights.minimumPaths.map((item) => `<div><strong>${escapeHtml(item.gate.label)}</strong><span>${item.gap} ECTS gap · ${item.courses.map((c) => escapeHtml(c.code || c.name)).join(', ') || 'No eligible courses'}</span></div>`).join('') || '<p>No unmet credit targets.</p>'}</section></div></div>`
+}
+
+function renderPlanningSettings() {
+  const index = academicsData.index
+  return `<div class="planning-page">${planningPageHeader('Planning settings', 'Manage programmes and portable academic records')}<section class="planning-settings-section"><h2>Programmes</h2><div class="planning-programmes">${index.programmes.map((item) => `<button data-academic-switch="${escapeHtml(item.id)}" class="${item.id === index.activeProgrammeId ? 'active' : ''}"><strong>${escapeHtml(item.programme || 'Untitled programme')}</strong><span>${escapeHtml(item.academicYear || 'No academic year')}</span></button>`).join('')}</div><form data-academic-programme-create><label><span>New programme</span><input name="programme" required></label><label><span>Academic year or cohort</span><input name="academicYear"></label><button class="btn btn-primary">Create and switch</button></form></section><section class="planning-settings-section"><h2>Statistics</h2><label class="planning-check"><input type="checkbox" data-academic-failed-gpa ${academicsData.workspace.profile.gpaIncludesFailedCourses ? 'checked' : ''}><span>Include failed attempts in weighted GPA</span></label></section><section class="planning-settings-section"><h2>Portable data</h2><p>Export this programme or import an academics JSON file into a new programme. You will review course-code matches before import.</p><div class="planning-setting-actions"><button class="btn btn-secondary" data-academic-export>Download programme JSON</button><label class="btn btn-secondary planning-import">Import JSON<input type="file" accept="application/json" data-academic-import></label></div></section>${index.programmes.length > 1 ? `<section class="planning-settings-section danger-zone"><div><h2>Delete active programme</h2><p>Removes its curriculum, attempts, events, and scenarios. Other programmes remain.</p></div><button class="btn btn-danger" data-academic-programme-delete>Delete programme</button></section>` : ''}</div>`
+}
 
 function formatUsageNumber(value) {
   return new Intl.NumberFormat('en-GB').format(Math.max(0, Number(value) || 0))
@@ -1343,6 +1556,7 @@ function renderAppHeader() {
         <a class="app-nav-link nav-practice ${['practice', 'sr'].includes(route.page) ? 'active' : ''}" href="#/practice" title="Practice"><span class="nav-icon tool-icon">${ICONS.practice}</span><span class="nav-label">Practice</span></a>
         <a class="app-nav-link nav-mistakes ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistakes"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistakes</span></a>
         <a class="app-nav-link nav-mocks ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mocks</span></a>
+        <a class="app-nav-link nav-planning ${route.page === 'planning' ? 'active' : ''}" href="#/planning" title="Academic planning"><span class="nav-icon tool-icon">${ICONS.stats}</span><span class="nav-label">Planning</span></a>
         <a class="app-nav-link nav-settings ${route.page === 'settings' ? 'active' : ''}" href="#/settings" title="Settings"><span class="nav-icon tool-icon">${uiIcon('settings')}</span><span class="nav-label">Settings</span></a>
       </nav>
       <div class="app-account">
@@ -6628,6 +6842,122 @@ function bindEvents() {
   window.__platformState = state
   window.__autoWrap = autoWrapBareLatex
   window.__renderMarkdown = renderMarkdown
+
+  document.querySelectorAll('[data-academics-retry]').forEach((button) => button.addEventListener('click', () => loadAcademics({ force: true })))
+  document.querySelectorAll('[data-academic-profile]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    if (!academicsData) return
+    const data = new FormData(event.currentTarget)
+    saveAcademics({ ...academicsData.workspace, profile: { ...academicsData.workspace.profile, university: data.get('university'), programme: data.get('programme'), academicYear: data.get('academicYear'), currentYearKey: data.get('academicYear') } })
+  }))
+  document.querySelectorAll('[data-academic-course]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    if (!academicsData) return
+    const data = new FormData(event.currentTarget)
+    const examDate = data.get('examDate') || null
+    const grade = data.get('grade') === '' ? null : Number(data.get('grade'))
+    const id = `course-${Date.now()}`
+    const attempts = [{ id: `${id}-attempt-1`, academicYear: academicsData.workspace.profile.academicYear, type: data.get('attemptType'), examDate, grade, status: data.get('attemptStatus') }]
+    const course = { id, code: data.get('code'), name: data.get('name'), ects: Number(data.get('ects')), yearLevel: data.get('yearLevel'), period: data.get('period'), passMark: 5.5, notes: '', attempts }
+    saveAcademics({ ...academicsData.workspace, courses: [...academicsData.workspace.courses, course] })
+  }))
+  document.querySelectorAll('[data-academic-remove]').forEach((button) => button.addEventListener('click', () => {
+    if (!academicsData) return
+    const course = academicsData.workspace.courses.find((item) => item.id === button.dataset.academicRemove)
+    if (!course || !confirm(`Remove ${course.name} and its attempt history from this programme?`)) return
+    saveAcademics({ ...academicsData.workspace, courses: academicsData.workspace.courses.filter((item) => item.id !== course.id) })
+  }))
+  document.querySelectorAll('[data-academic-course-edit]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault(); const data = new FormData(form); const id = form.dataset.academicCourseEdit
+    const courses = academicsData.workspace.courses.map((course) => course.id === id ? { ...course, code: data.get('code'), name: data.get('name'), ects: Number(data.get('ects')), yearLevel: data.get('yearLevel'), period: data.get('period'), passMark: Number(data.get('passMark')), notes: data.get('notes'), hiddenFromStats: data.get('hiddenFromStats') === 'on' } : course)
+    saveAcademics({ ...academicsData.workspace, courses })
+  }))
+  document.querySelectorAll('[data-academic-attempt-edit]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    const [courseId, attemptId] = form.dataset.academicAttemptEdit.split('/')
+    const data = new FormData(form)
+    const courses = academicsData.workspace.courses.map((course) => course.id !== courseId ? course : { ...course, attempts: course.attempts.map((attempt) => attempt.id !== attemptId ? attempt : { ...attempt, academicYear: data.get('academicYear'), type: data.get('type'), examDate: data.get('examDate') || null, status: data.get('status'), grade: data.get('grade') === '' ? null : Number(data.get('grade')) }) })
+    saveAcademics({ ...academicsData.workspace, courses })
+  }))
+  document.querySelectorAll('[data-academic-attempt-add]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    const courseId = form.dataset.academicAttemptAdd
+    const data = new FormData(form)
+    const attempt = { id: `attempt-${Date.now()}`, academicYear: data.get('academicYear'), type: data.get('type'), examDate: data.get('examDate') || null, grade: null, status: 'upcoming' }
+    saveAcademics({ ...academicsData.workspace, courses: academicsData.workspace.courses.map((course) => course.id === courseId ? { ...course, attempts: [...course.attempts, attempt] } : course) })
+  }))
+  document.querySelectorAll('[data-academic-attempt-remove]').forEach((button) => button.addEventListener('click', () => {
+    const [courseId, attemptId] = button.dataset.academicAttemptRemove.split('/')
+    saveAcademics({ ...academicsData.workspace, courses: academicsData.workspace.courses.map((course) => course.id === courseId ? { ...course, attempts: course.attempts.filter((attempt) => attempt.id !== attemptId) } : course) })
+  }))
+  document.querySelectorAll('[data-academic-event]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault(); const data = new FormData(form)
+    const item = { id: `event-${Date.now()}`, title: data.get('title'), date: data.get('date'), endDate: data.get('endDate') || null, type: data.get('type'), notes: data.get('notes') }
+    saveAcademics({ ...academicsData.workspace, events: [...academicsData.workspace.events, item] })
+  }))
+  document.querySelectorAll('[data-academic-event-remove]').forEach((button) => button.addEventListener('click', () => saveAcademics({ ...academicsData.workspace, events: academicsData.workspace.events.filter((item) => item.id !== button.dataset.academicEventRemove) })))
+  document.querySelectorAll('[data-academic-event-edit]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault(); const data = new FormData(form); const id = form.dataset.academicEventEdit
+    const events = academicsData.workspace.events.map((item) => item.id === id ? { ...item, title: data.get('title'), date: data.get('date') || null, endDate: data.get('endDate') || null, notes: data.get('notes') } : item)
+    saveAcademics({ ...academicsData.workspace, events })
+  }))
+  document.querySelectorAll('[data-academic-gate]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault(); const data = new FormData(form)
+    const gate = { id: `gate-${Date.now()}`, label: data.get('label'), section: data.get('section'), type: data.get('type'), level: data.get('level') || null, target: Number(data.get('target') || 0), courseId: data.get('courseId') || null }
+    saveAcademics({ ...academicsData.workspace, gates: [...academicsData.workspace.gates, gate] })
+  }))
+  document.querySelectorAll('[data-academic-gate-remove]').forEach((button) => button.addEventListener('click', () => saveAcademics({ ...academicsData.workspace, gates: academicsData.workspace.gates.filter((item) => item.id !== button.dataset.academicGateRemove) })))
+  document.querySelectorAll('[data-academic-gate-edit]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault(); const data = new FormData(form); const id = form.dataset.academicGateEdit
+    const gates = academicsData.workspace.gates.map((item) => item.id === id ? { ...item, label: data.get('label'), level: data.get('level') || null, target: Number(data.get('target') || 0) } : item)
+    saveAcademics({ ...academicsData.workspace, gates })
+  }))
+  document.querySelectorAll('[data-academic-objective-mode], [data-academic-objective-outcome]').forEach((select) => select.addEventListener('change', () => {
+    const id = select.dataset.academicObjectiveMode || select.dataset.academicObjectiveOutcome
+    const current = academicsData.workspace.planning?.objectives?.[id] || { mode: 'current', outcome: 'actual' }
+    const next = select.dataset.academicObjectiveMode ? { ...current, mode: select.value } : { ...current, outcome: select.value }
+    const objectives = { ...(academicsData.workspace.planning?.objectives || {}), [id]: next }
+    saveAcademics({ ...academicsData.workspace, planning: { objectives } })
+  }))
+  document.querySelectorAll('[data-academic-switch]').forEach((button) => button.addEventListener('click', async () => {
+    academicsLoading = true; render()
+    try { academicsData = await fetchJson('/api/academics/active', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: button.dataset.academicSwitch }) }); academicsError = null }
+    catch (error) { academicsError = error.message }
+    finally { academicsLoading = false; render() }
+  }))
+  document.querySelectorAll('[data-academic-programme-create]').forEach((form) => form.addEventListener('submit', async (event) => {
+    event.preventDefault(); const data = new FormData(form); academicsLoading = true; render()
+    try { academicsData = await fetchJson('/api/academics/programmes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: { programme: data.get('programme'), academicYear: data.get('academicYear'), currentYearKey: data.get('academicYear') } }) }); academicsError = null }
+    catch (error) { academicsError = error.message }
+    finally { academicsLoading = false; render() }
+  }))
+  document.querySelectorAll('[data-academic-programme-delete]').forEach((button) => button.addEventListener('click', async () => {
+    if (!confirm('Delete this programme and all of its academic records?')) return
+    try { academicsData = await fetchJson(`/api/academics/programmes/${encodeURIComponent(academicsData.workspace.id)}`, { method: 'DELETE' }); academicsError = null }
+    catch (error) { academicsError = error.message }
+    render()
+  }))
+  document.querySelectorAll('[data-academic-failed-gpa]').forEach((input) => input.addEventListener('change', () => saveAcademics({ ...academicsData.workspace, profile: { ...academicsData.workspace.profile, gpaIncludesFailedCourses: input.checked } })))
+  document.querySelectorAll('[data-academic-export]').forEach((button) => button.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({ version: 1, data: academicsData.workspace }, null, 2)], { type: 'application/json' })
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `wicker-academics-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(link.href)
+  }))
+  document.querySelectorAll('[data-academic-import]').forEach((input) => input.addEventListener('change', async () => {
+    const file = input.files?.[0]; if (!file) return
+    try {
+      const parsed = JSON.parse(await file.text()); const candidate = parsed.data || parsed
+      if (!candidate?.profile || !Array.isArray(candidate?.courses)) throw new Error('This file does not contain an academics programme export.')
+      const editorialCodes = new Set((state.courses || []).map((course) => String(course.code || '').toUpperCase()))
+      const matched = candidate.courses.filter((course) => editorialCodes.has(String(course.code || '').toUpperCase())).length
+      const unmatched = candidate.courses.length - matched
+      if (!confirm(`Import ${candidate.courses.length} courses into a new programme? ${matched} match study courses by code; ${unmatched} will remain planning-only.`)) return
+      academicsData = await fetchJson('/api/academics/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) })
+      const report = academicsData.importReport
+      if (report) alert(`Import complete: ${report.matched.length} matched, ${report.unmatched.length} planning-only, ${report.rejected.length} rejected.`)
+      academicsError = null; route = { page: 'planning', tab: 'overview' }; window.location.hash = '#/planning/overview'; render()
+    }
+    catch (error) { academicsError = `Import failed: ${error.message}`; render() }
+  }))
 
   document.querySelectorAll('[data-chapter-retry]').forEach((button) => {
     button.addEventListener('click', () => {
