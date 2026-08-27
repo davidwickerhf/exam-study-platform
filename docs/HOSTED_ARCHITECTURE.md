@@ -34,6 +34,11 @@ therefore appear without overwriting progress or notes.
 4. Personal repository calls use that context to address Neon rows.
 5. Editorial reads and retrieval queries use the active immutable Neon release.
 
+Public product and legal pages (`/`, `/about`, `/courses`, `/privacy`, and
+`/terms`) do not initialize Clerk or load the study-workspace dependencies.
+`/sign-in` is the dedicated Clerk surface and `/app` is the authenticated
+workspace entrypoint.
+
 ## Database
 
 Apply [db/001_user_documents.sql](../db/001_user_documents.sql) with:
@@ -65,6 +70,27 @@ CLI providers. Failed calls release the token reservation but still count
 toward short-term request throttling. `/api/ai/usage` returns the authenticated
 user's current allowance and reset times; HTTP 429 responses include
 `Retry-After` and a structured `AI_RATE_LIMITED` payload.
+
+## User privacy controls
+
+Settings exposes the same authenticated usage summary returned by
+`GET /api/ai/usage`, including request and daily/monthly token allowances.
+`GET /api/account/export` produces a no-store JSON download containing the
+current Clerk account fields, personal `user_documents`, and the user's own AI
+usage ledger.
+
+Permanent deletion is an explicit two-stage action: the interface requires the
+user to type `DELETE`, and `DELETE /api/account` independently validates that
+confirmation. The backend deletes only rows keyed by the authenticated Clerk
+user ID, then deletes the corresponding Clerk identity. Shared editorial
+course releases are not personal data and are not changed. Hosting, database,
+and identity-provider backup or security-log retention remains governed by the
+configured provider agreements and operational retention settings.
+
+The product pages provide transparency and self-service controls, but legal
+compliance also depends on real operator details, monitored contact addresses,
+provider data-processing agreements, transfer safeguards, retention policy,
+and an appropriate legal review before broad production use.
 
 ## Deploy
 

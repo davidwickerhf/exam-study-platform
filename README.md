@@ -15,6 +15,11 @@ stores private progress there behind Clerk authentication, and limits student
 AI access to retrieval-grounded tutor chat plus explicitly requested personal
 extra exercises. Answer checks run locally against published references.
 
+The public site is available at `/`, with product information at `/about`, the
+maintained catalogue at `/courses`, and the current privacy notice and terms at
+`/privacy` and `/terms`. Authentication is a separate `/sign-in` surface; the
+signed-in product lives at `/app`.
+
 For production setup and the content authoring workflow, see
 [Hosted architecture](docs/HOSTED_ARCHITECTURE.md) and
 [Content pipeline](docs/CONTENT_PIPELINE.md).
@@ -46,8 +51,7 @@ npm start
   with [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) are
   set; otherwise grab a build from [nodejs.org](https://nodejs.org).
 - **One LLM provider** — pick at setup time:
-  - **Codex CLI** — Anthropic's desktop Codex app. Available from
-    [anthropic.com/codex](https://www.anthropic.com/codex).
+- **Codex CLI** — an installed Codex command-line client.
   - **Claude CLI** — `npm install -g @anthropic-ai/claude-code` then `claude login`.
   - **Anthropic API key** — Most universal option. Get one at
     [console.anthropic.com](https://console.anthropic.com/settings/keys);
@@ -143,14 +147,19 @@ git pull
 The current template-merge story is intentionally manual — automating it
 without trampling on personal progress is a future improvement.
 
-## Privacy
+## Privacy and account controls
 
-Nothing leaves your machine except direct calls to the LLM provider you
-configure. There is no telemetry, no analytics, no auth server. State lives
-in flat JSON files under `data/`.
+In local mode, personal state lives in ignored flat files under
+`data/users/local-dev/`; only configured AI requests leave the machine. In
+hosted mode, Clerk provides authentication, Neon stores per-user study state
+and AI usage, Vercel hosts the service, and the configured AI provider receives
+only requested tutor or further-exercise inputs.
 
-The shipped templates contain only course content — no personal attempts,
-mistake history, or mastery scores.
+Signed-in users can see their AI allowances in Settings, export their active
+personal record as JSON, and permanently delete both the stored personal record
+and Clerk authentication identity. The shipped templates and published course
+sources are shared editorial content and contain no personal attempts, mistake
+history, or mastery scores.
 
 ## Maintainer notes
 

@@ -1,5 +1,54 @@
 const nativeFetch = window.fetch.bind(window)
 
+function normalizedPath() {
+  const value = window.location.pathname.replace(/\/+$/, '')
+  return value || '/'
+}
+
+function loadStyle(href) {
+  if ([...document.styleSheets].some((sheet) => sheet.href === new URL(href, location.href).href)) return
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = href
+  document.head.append(link)
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = src
+    script.onload = resolve
+    script.onerror = () => reject(new Error(`Could not load ${src}`))
+    document.head.append(script)
+  })
+}
+
+async function loadStudyDependencies() {
+  loadStyle('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css')
+  loadStyle('https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css')
+  loadStyle('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css')
+  loadStyle('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/eclipse.min.css')
+  await Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js').then(() => loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js')),
+    loadScript('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js').then(() => loadScript('https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/x86asm.min.js')),
+    loadScript('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js').then(() => Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/clike/clike.min.js'),
+      loadScript('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/gas/gas.min.js'),
+      loadScript('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/edit/matchbrackets.min.js'),
+      loadScript('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/edit/closebrackets.min.js')
+    ])),
+    import('https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs').then(({ default: mermaid }) => {
+      mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose', flowchart: { useMaxWidth: true } })
+      window.__mermaid = mermaid
+    }),
+    import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs').then((pdfjsLib) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs'
+      window.__pdfjs = pdfjsLib
+    })
+  ])
+}
+
 function snapshotLocalStorage() {
   const snapshot = {}
   for (let index = 0; index < localStorage.length; index++) {
@@ -10,7 +59,13 @@ function snapshotLocalStorage() {
 }
 
 async function startApplication() {
-  await import(`/app.js?v=20260825-cloud`)
+  document.getElementById('public-site').hidden = true
+  document.getElementById('auth-gate').hidden = true
+  document.body.classList.remove('public-mode')
+  document.body.classList.add('app-mode')
+  document.getElementById('app').innerHTML = '<main class="boot-loading"><p>Opening your study record…</p></main>'
+  await loadStudyDependencies()
+  await import(`/app.js?v=20260827-settings`)
 }
 
 async function configureCloudSync() {
@@ -47,8 +102,16 @@ async function authHeaders() {
 }
 
 async function main() {
+  const pathname = normalizedPath()
+  if (['/', '/about', '/courses', '/privacy', '/terms'].includes(pathname)) {
+    const { mountPublicSite } = await import('/public-site.js?v=20260827')
+    mountPublicSite(pathname)
+    return
+  }
+
   const config = await nativeFetch('/api/auth/config').then((response) => response.json())
   if (!config.enabled) {
+    if (pathname === '/sign-in') window.history.replaceState(null, '', '/app')
     window.__authMode = 'local'
     await configureCloudSync()
     await startApplication()
@@ -64,7 +127,7 @@ async function main() {
   // Vanilla integrations must explicitly finish the callback before reading
   // `clerk.user`; otherwise a valid sign-in looks like an empty signed-out UI.
   if (window.location.hash.startsWith('#/sso-callback')) {
-    const home = `${window.location.origin}/`
+    const home = `${window.location.origin}/app`
     await clerk.handleRedirectCallback({
       signInForceRedirectUrl: home,
       signUpForceRedirectUrl: home,
@@ -76,22 +139,23 @@ async function main() {
   window.__clerkSession = clerk.session
 
   if (!clerk.user) {
-    const gate = document.getElementById('auth-gate')
-    gate.hidden = false
+    if (pathname !== '/sign-in') window.history.replaceState(null, '', '/sign-in')
+    const { mountAuthSite } = await import('/public-site.js?v=20260827')
+    mountAuthSite()
     clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
-      afterSignInUrl: window.location.href,
-      afterSignUpUrl: window.location.href,
+      fallbackRedirectUrl: `${window.location.origin}/app`,
+      signUpFallbackRedirectUrl: `${window.location.origin}/app`,
       appearance: {
         variables: {
-          colorPrimary: '#912f40',
-          colorText: '#1d293d',
-          colorTextSecondary: '#687286',
-          colorBackground: '#fbfaf6',
-          colorInputBackground: '#fbfaf6',
-          colorInputText: '#1d293d',
+          colorPrimary: '#3f51d9',
+          colorText: '#20263a',
+          colorTextSecondary: '#59627b',
+          colorBackground: '#ffffff',
+          colorInputBackground: '#ffffff',
+          colorInputText: '#20263a',
           borderRadius: '4px',
-          fontFamily: '"IBM Plex Sans", sans-serif',
-          fontSize: '15px'
+          fontFamily: '"Manrope", sans-serif',
+          fontSize: '14px'
         },
         elements: {
           rootBox: 'clerk-root',
@@ -107,6 +171,8 @@ async function main() {
     })
     return
   }
+
+  if (pathname === '/sign-in') window.history.replaceState(null, '', '/app')
 
   window.fetch = async (input, init = {}) => {
     const headers = new Headers(init.headers || {})

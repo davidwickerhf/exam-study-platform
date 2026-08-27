@@ -8,10 +8,11 @@ import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { randomUUID } from 'node:crypto'
 import './lib/env.mjs'
-import { authenticate, authConfig, isPublicApi } from './lib/auth.mjs'
-import { setRequestContext } from './lib/request-context.mjs'
+import { authenticate, authConfig, deleteAuthUser, getAuthUser, isPublicApi } from './lib/auth.mjs'
+import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
+import { deletePersonalData, exportPersonalData } from './lib/account-data.mjs'
 import { editorialMode, getMaterial, getMaterialText, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 
@@ -232,7 +233,13 @@ const mime = {
 }
 
 function send(res, status, body, type = 'application/json; charset=utf-8', headers = {}) {
-  res.writeHead(status, { 'Content-Type': type, ...headers })
+  res.writeHead(status, {
+    'Content-Type': type,
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    ...headers
+  })
   res.end(body)
 }
 
@@ -2732,6 +2739,32 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    if (url.pathname === '/api/account/export' && req.method === 'GET') {
+      const identity = await getAuthUser(currentAuth().userId)
+      const payload = await exportPersonalData(identity)
+      const date = new Date().toISOString().slice(0, 10)
+      send(res, 200, JSON.stringify(payload, null, 2), 'application/json; charset=utf-8', {
+        'Cache-Control': 'no-store',
+        'Content-Disposition': `attachment; filename="wicker-study-data-${date}.json"`
+      })
+      return
+    }
+
+    if (url.pathname === '/api/account' && req.method === 'DELETE') {
+      const body = await readBody(req)
+      if (body?.confirmation !== 'DELETE') {
+        send(res, 400, JSON.stringify({ error: 'Type DELETE to confirm permanent account deletion.' }))
+        return
+      }
+      const userId = currentAuth().userId
+      const removed = await deletePersonalData()
+      const identity = await deleteAuthUser(userId)
+      send(res, 200, JSON.stringify({ ok: true, removed, identity }), 'application/json; charset=utf-8', {
+        'Cache-Control': 'no-store'
+      })
+      return
+    }
+
     // Course banks, flashcards, paper parsing, and tutor hints are editorial
     // assets. Students may use AI only for grounded chat and explicitly asking
     // for extra exercises. Keep this boundary at the server, not merely in UI.
@@ -4048,7 +4081,9 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    const requested = url.pathname === '/' ? '/index.html' : url.pathname
+    const normalizedPagePath = url.pathname.replace(/\/+$/, '') || '/'
+    const publicPage = ['/', '/about', '/courses', '/privacy', '/terms', '/sign-in', '/app'].includes(normalizedPagePath)
+    const requested = publicPage ? '/index.html' : url.pathname
     const filePath = resolve(join(publicDir, requested))
     if (!filePath.startsWith(publicDir) || !existsSync(filePath)) {
       send(res, 404, 'Not found', 'text/plain; charset=utf-8')
@@ -4057,7 +4092,10 @@ const server = createServer(async (req, res) => {
 
     res.writeHead(200, {
       'Content-Type': mime[extname(filePath)] || 'application/octet-stream',
-      'Cache-Control': 'no-store'
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
     })
     res.end(await readFile(filePath))
   } catch (error) {

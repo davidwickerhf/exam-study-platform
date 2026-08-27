@@ -19,6 +19,10 @@ colors:
   success: "#147a55"
   warning: "#a56316"
   danger: "#b4233d"
+  preview-rail: "#8991aa"
+  on-dark-secondary: "#cbd1df"
+  on-dark-tertiary: "#aeb6c8"
+  on-dark-accent: "#9ba8ff"
 typography:
   display:
     fontFamily: "Manrope, system-ui, sans-serif"
@@ -62,6 +66,8 @@ rounded:
   card: "8px"
   major: "12px"
   pill: "999px"
+  device: "32px"
+  device-screen: "23px"
 spacing:
   1: "4px"
   2: "8px"
@@ -91,6 +97,16 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - Reading and practice pages use a three-region desktop workspace: 190–240px outline, flexible primary content, and 250–320px study tools.
 - Mobile is a distinct quick-study mode, not a stacked desktop view. It uses bottom primary navigation, an action-led home, single-task reading/practice screens, and contextual outline/tools sheets.
 - Auth, mistakes, flashcards, mock sessions, search, forms, dialogs, empty states, loading states, and errors inherit the same spacing, surface, and control system.
+- Public pages use a product-led editorial layout: direct value proposition,
+  a real workspace composition, ruled course register, explicit AI boundary,
+  privacy proof, and a restrained action close. Decorative student photography
+  and generic education marketing patterns are excluded.
+- `/sign-in` is a dedicated access surface with the account action on a white
+  working plane and a dark product-proof plane. The public home never doubles
+  as the authentication gate.
+- Settings uses a compact ruled register for account facts and allowances.
+  Export is a normal account action; deletion is isolated in a bordered danger
+  zone and requires a typed confirmation in a focused modal or mobile sheet.
 - Authored prose is capped at 74ch, but the application canvas is not artificially narrowed.
 
 ## System rules
@@ -104,6 +120,12 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - Phone layouts prioritize resume, due flashcards, open mistakes, timed practice, course access, and focused reading. Dense heatmaps, course management, and simultaneous tool panels progressively disclose rather than leading the flow.
 - Primary actions use brand indigo, white text, 4px radius, and 40px default height. Secondary actions use a white/transparent surface and strong hairline border.
 - Tables use subtle headers, 12px labels, 14px body, tabular numerals, and horizontal overflow on mobile.
+- Miniature product compositions may use 9–11px simulated-interface type;
+  these sizes are reserved for non-interactive visual proof and never for
+  actual controls or reading content. Public display type may scale fluidly
+  from 36–84px while retaining the same Manrope weight and tracking system.
+- The 23px/32px radii are reserved for the simulated phone device and screen.
+  Product panels and controls continue to use the 4px/8px/12px radius scale.
 
 ## Do not
 

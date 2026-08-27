@@ -43,6 +43,19 @@ let questionsCache = new Map()
 let questionsSummaryCache = new Map()
 let courseTocCache = new Map()
 const attemptState = new Map()
+let dialogReturnFocusSelector = null
+
+function stableFocusSelector(element) {
+  if (!element || element === document.body) return null
+  if (element.id) return `#${CSS.escape(element.id)}`
+  const dataAttribute = element.getAttributeNames?.().find((name) => name.startsWith('data-'))
+  if (dataAttribute) {
+    const value = element.getAttribute(dataAttribute)
+    return value ? `[${dataAttribute}="${CSS.escape(value)}"]` : `[${dataAttribute}]`
+  }
+  const ariaLabel = element.getAttribute?.('aria-label')
+  return ariaLabel ? `[aria-label="${CSS.escape(ariaLabel)}"]` : null
+}
 
 // ----- attemptState persistence (localStorage) -----
 // Persists answers + corrections + scores across page refreshes so the user
@@ -118,6 +131,8 @@ function uiIcon(name) {
     ,refresh: '<path d="M20 7v5h-5M4 17v-5h5M6.1 8A7 7 0 0 1 18 6l2 6M17.9 16A7 7 0 0 1 6 18l-2-6"/>'
     ,edit: '<path d="M4 20h4l11-11-4-4L4 16v4zM13.5 6.5l4 4"/>'
     ,list: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/>'
+    ,download: '<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>'
+    ,trash: '<path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"/>'
   }
   return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`
 }
@@ -413,12 +428,15 @@ function renderImageThumbs(images, removeAttr) {
 }
 const chatState = new Map() // key: courseId/chapterId -> { messages: [{role, content}], sending: bool, draft: string }
 let aiUsage = null
+let aiUsageError = null
 
 async function loadAiUsage() {
+  aiUsageError = null
   try {
     aiUsage = await fetchJson('/api/ai/usage')
-  } catch {
+  } catch (error) {
     aiUsage = null
+    aiUsageError = error?.message || 'Usage information is temporarily unavailable.'
   }
   return aiUsage
 }
@@ -615,6 +633,13 @@ async function init() {
       return
     }
     if (event.key === 'Escape') {
+      if (accountDeleteState.open && !accountDeleteState.deleting) {
+        accountDeleteState.open = false
+        accountDeleteState.confirmation = ''
+        accountDeleteState.error = null
+        render()
+        return
+      }
       if (confirmModal) {
         resolveConfirm(false)
         return
@@ -663,6 +688,7 @@ function parseRoute() {
   if (parts[0] === 'mistakes') return { page: 'mistakes' }
   if (parts[0] === 'sr') return { page: 'sr' }
   if (parts[0] === 'mocks') return { page: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
+  if (parts[0] === 'settings') return { page: 'settings' }
   if (parts[0] === 'course') {
     return {
       page: 'course',
@@ -1064,6 +1090,7 @@ function computeTitle() {
   if (route.page === 'mistakes') return 'Mistake bank' + suffix
   if (route.page === 'sr') return 'Flashcards' + suffix
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
+  if (route.page === 'settings') return 'Settings' + suffix
   if (route.page === 'course') {
     const c = state.courses.find((c) => c.id === route.id)
     return c ? `${c.code}${c.shortName ? ' ' + c.shortName : ''}${suffix}` : 'Course' + suffix
@@ -1114,6 +1141,8 @@ function scrollWithin(container, target, { behavior = 'smooth', offset = 14 } = 
 function render() {
   if (!state) return
   document.title = computeTitle()
+  const previousDialogOpen = Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'))
+  const activeFocusSelector = stableFocusSelector(document.activeElement)
   const scrollSnap = captureScrollState()
   // Capture search-input focus + caret so the popup survives re-renders without losing focus.
   const activeSearchInput = document.activeElement?.matches?.('[data-search-input]') ? document.activeElement : null
@@ -1130,13 +1159,14 @@ function render() {
     <div class="shell ${isChapter || isMock || isCourse ? 'chapter-shell' : ''}">
       ${renderSidebar()}
       <div class="resize-handle vertical-handle" data-resize="sidebar" title="Drag to resize · double-click to reset"></div>
-      <main class="content ${isChapter || isMock || isCourse ? 'chapter-content' : ''}">
+      <main id="main-content" class="content ${isChapter || isMock || isCourse ? 'chapter-content' : ''}">
         ${routeView()}
       </main>
     </div>
     ${renderMiniMockOverlay()}
     ${renderExtendModal()}
     ${renderConfirmModal()}
+    ${renderAccountDeleteModal()}
     ${renderSearchPopup()}
     ${renderFlashcardStudyModal()}
     ${renderBgJobsBanner()}
@@ -1144,8 +1174,10 @@ function render() {
   bindEvents()
   const openDialog = document.querySelector('[role="dialog"], [role="alertdialog"]')
   if (openDialog) {
+    if (!previousDialogOpen) dialogReturnFocusSelector = activeFocusSelector
     openDialog.tabIndex = -1
-    openDialog.focus({ preventScroll: true })
+    const initialFocus = openDialog.querySelector('[data-account-delete-input], [data-confirm-cancel], input:not([disabled]), textarea:not([disabled]), select:not([disabled])') || openDialog
+    initialFocus.focus({ preventScroll: true })
     openDialog.addEventListener('keydown', (event) => {
       if (event.key !== 'Tab') return
       const focusable = [...openDialog.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
@@ -1154,6 +1186,10 @@ function render() {
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
     })
+  } else if (previousDialogOpen && dialogReturnFocusSelector) {
+    const returnTarget = document.querySelector(dialogReturnFocusSelector)
+    if (returnTarget) returnTarget.focus({ preventScroll: true })
+    dialogReturnFocusSelector = null
   }
   autosizeAnswerTextareas()
   restoreScrollState(scrollSnap)
@@ -1226,8 +1262,95 @@ function routeView() {
   if (route.page === 'mistakes') return renderMistakesPage()
   if (route.page === 'sr') return renderSrPage()
   if (route.page === 'mocks') return renderMocksPage()
+  if (route.page === 'settings') return renderSettingsPage()
   if (route.page === 'course') return renderCourse(route.id)
   return renderDashboard()
+}
+
+const accountDeleteState = { open: false, confirmation: '', deleting: false, error: null }
+
+function formatUsageNumber(value) {
+  return new Intl.NumberFormat('en-GB').format(Math.max(0, Number(value) || 0))
+}
+
+function formatResetDate(value, mode = 'time') {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat('en-GB', mode === 'date'
+    ? { day: 'numeric', month: 'short', year: 'numeric' }
+    : { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }).format(date)
+}
+
+function usageBar(label, used, limit, detail) {
+  const safeLimit = Math.max(1, Number(limit) || 1)
+  const safeUsed = Math.max(0, Number(used) || 0)
+  const pct = Math.min(100, Math.round((safeUsed / safeLimit) * 100))
+  return `<div class="usage-row">
+    <div class="usage-row-copy"><strong>${escapeHtml(label)}</strong><span>${formatUsageNumber(safeUsed)} of ${formatUsageNumber(limit)}</span></div>
+    <div class="usage-track" role="progressbar" aria-label="${escapeHtml(label)}" aria-valuemin="0" aria-valuemax="${safeLimit}" aria-valuenow="${safeUsed}"><span style="width:${pct}%"></span></div>
+    <small>${escapeHtml(detail)}</small>
+  </div>`
+}
+
+function renderSettingsPage() {
+  const email = window.__clerk?.user?.primaryEmailAddress?.emailAddress || (window.__authMode === 'local' ? 'Local development account' : 'Signed-in account')
+  const created = window.__clerk?.user?.createdAt
+    ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(window.__clerk.user.createdAt))
+    : null
+  const chatUsed = aiUsage?.usage?.today?.requests?.chat || 0
+  const exerciseUsed = aiUsage?.usage?.today?.requests?.exercises || 0
+  const dailyTokens = aiUsage?.usage?.today?.tokens || 0
+  const monthlyTokens = aiUsage?.usage?.month?.tokens || 0
+  return `<div class="settings-page">
+    <header class="settings-header">
+      <div><h1>Settings</h1><p>Understand your AI allowance, manage your personal data, and control your account.</p></div>
+      <a class="btn btn-secondary" href="/privacy">Privacy notice</a>
+    </header>
+
+    <div class="settings-layout">
+      <nav class="settings-nav" aria-label="Settings sections"><a href="#usage">AI usage</a><a href="#data">Your data</a><a href="#account">Account</a></nav>
+      <div class="settings-content">
+        <section class="settings-section" id="usage">
+          <div class="settings-section-head"><div><h2>AI usage</h2><p>AI is used only for the source-grounded tutor and extra exercises you explicitly request.</p></div><button type="button" class="btn btn-secondary" data-refresh-usage>Refresh</button></div>
+          ${aiUsage ? `<div class="usage-summary">
+            ${usageBar('Tutor chat today', chatUsed, aiUsage.limits.chat.requestsPerDay, `${aiUsage.remaining.chatToday} messages remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
+            ${usageBar('Extra exercise requests today', exerciseUsed, aiUsage.limits.exercises.requestsPerDay, `${aiUsage.remaining.exercisesToday} requests remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
+            ${usageBar('Tokens today', dailyTokens, aiUsage.limits.tokensPerDay, `${formatUsageNumber(aiUsage.remaining.tokensToday)} tokens remaining`)}
+            ${usageBar('Tokens this month', monthlyTokens, aiUsage.limits.tokensPerMonth, `${formatUsageNumber(aiUsage.remaining.tokensMonth)} tokens remaining · resets ${formatResetDate(aiUsage.resetsAt.month, 'date')}`)}
+          </div><div class="usage-note"><strong>How counting works</strong><p>Direct API calls use provider-reported token totals. Local CLI providers use a conservative estimate. Pending requests reserve their maximum output allowance so concurrent requests cannot exceed your limit.</p></div>` : aiUsageError
+            ? `<div class="settings-error" role="alert"><strong>Usage is temporarily unavailable.</strong><p>${escapeHtml(aiUsageError)} Refresh to try again.</p></div>`
+            : '<div class="settings-loading"><span></span><p>Loading your current allowance…</p></div>'}
+        </section>
+
+        <section class="settings-section" id="data">
+          <div class="settings-section-head"><div><h2>Your data</h2><p>Download a machine-readable copy of the personal information stored by Wicker Study.</p></div></div>
+          <div class="settings-action-row"><div><strong>Export personal data</strong><p>Includes synced study records, notes, attempts, review history, account details, and AI usage events. Shared course material is not duplicated in the export.</p></div><button type="button" class="btn btn-secondary" data-export-data>${uiIcon('download')} Download JSON</button></div>
+          <p class="settings-legal-note">For access, correction, restriction, or objection requests that are not available here, contact <a href="mailto:privacy@wicker.life">privacy@wicker.life</a>.</p>
+        </section>
+
+        <section class="settings-section" id="account">
+          <div class="settings-section-head"><div><h2>Account</h2><p>Your authentication identity and private study record.</p></div></div>
+          <dl class="account-register"><div><dt>Email</dt><dd>${escapeHtml(email)}</dd></div>${created ? `<div><dt>Member since</dt><dd>${escapeHtml(created)}</dd></div>` : ''}<div><dt>Storage</dt><dd>Personal records separated by account</dd></div></dl>
+          <div class="danger-zone"><div><strong>Delete account and data</strong><p>Permanently removes your authentication identity, synced progress, notes, attempts, flashcards, mistakes, tutor history, personal exercises, and AI usage ledger. This cannot be undone.</p></div><button type="button" class="btn btn-danger" data-account-delete-open>${uiIcon('trash')} Delete account</button></div>
+        </section>
+      </div>
+    </div>
+  </div>`
+}
+
+function renderAccountDeleteModal() {
+  if (!accountDeleteState.open) return ''
+  const enabled = accountDeleteState.confirmation === 'DELETE' && !accountDeleteState.deleting
+  return `<div class="confirm-overlay account-delete-overlay" data-account-delete-overlay>
+    <div class="account-delete-panel" role="alertdialog" aria-modal="true" aria-labelledby="account-delete-title" aria-describedby="account-delete-description">
+      <div class="account-delete-head"><div><h2 id="account-delete-title">Permanently delete your account?</h2><p id="account-delete-description">The account and all personal study data will be removed. Shared course material is unaffected.</p></div><button type="button" class="icon-btn" data-account-delete-close aria-label="Close deletion dialog" ${accountDeleteState.deleting ? 'disabled' : ''}>${uiIcon('close')}</button></div>
+      <div class="account-delete-warning"><strong>This action cannot be undone.</strong><ul><li>Your Clerk authentication identity will be deleted.</li><li>Your progress, notes, answers, review history, chats, and usage records will be erased.</li><li>You will be signed out when deletion finishes.</li></ul></div>
+      <label class="account-delete-confirm"><span>Type <b>DELETE</b> to confirm</span><input type="text" aria-label="Type DELETE to confirm account deletion" data-account-delete-input value="${escapeHtml(accountDeleteState.confirmation)}" autocomplete="off" autocapitalize="characters" spellcheck="false" ${accountDeleteState.deleting ? 'disabled' : ''}></label>
+      ${accountDeleteState.error ? `<p class="account-delete-error" role="alert">${escapeHtml(accountDeleteState.error)}</p>` : ''}
+      <div class="confirm-actions"><button type="button" class="btn btn-secondary" data-account-delete-close ${accountDeleteState.deleting ? 'disabled' : ''}>Keep account</button><button type="button" class="btn btn-danger" data-account-delete-confirm ${enabled ? '' : 'disabled'}>${accountDeleteState.deleting ? 'Deleting account…' : 'Delete account and data'}</button></div>
+    </div>
+  </div>`
 }
 
 // ----- Course ordering / archive helpers -----
@@ -1306,6 +1429,7 @@ function renderSidebar() {
         <a class="nav-tool mobile-review-nav ${route.page === 'sr' ? 'active' : ''}" href="#/sr" title="Review"><span class="nav-icon tool-icon flashcards-icon">${ICONS.flashcards}</span><span class="nav-label">Review</span></a>
         <a class="nav-tool ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistake bank"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistakes</span></a>
         <a class="nav-tool nav-mocks ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mock sessions</span></a>
+        <a class="nav-tool nav-settings ${route.page === 'settings' ? 'active' : ''}" href="#/settings" title="Settings"><span class="nav-icon tool-icon">${uiIcon('settings')}</span><span class="nav-label">Settings</span></a>
       </nav>
       <section class="state-card">
         <small>Personal record</small>
@@ -6445,6 +6569,99 @@ function bindEvents() {
     button.addEventListener('click', async () => {
       button.disabled = true
       await window.__clerk?.signOut({ redirectUrl: window.location.origin })
+    })
+  })
+
+  document.querySelectorAll('[data-refresh-usage]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true
+      button.textContent = 'Refreshing…'
+      await loadAiUsage()
+      render()
+    })
+  })
+
+  document.querySelectorAll('[data-export-data]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const original = button.innerHTML
+      button.disabled = true
+      button.textContent = 'Preparing export…'
+      try {
+        const response = await fetch('/api/account/export')
+        if (!response.ok) throw new Error(await response.text() || 'Could not export your data')
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `wicker-study-data-${new Date().toISOString().slice(0, 10)}.json`
+        document.body.append(link)
+        link.click()
+        link.remove()
+        URL.revokeObjectURL(url)
+        button.textContent = 'Downloaded'
+        setTimeout(() => { if (button.isConnected) { button.disabled = false; button.innerHTML = original } }, 1800)
+      } catch (error) {
+        button.disabled = false
+        button.innerHTML = original
+        alert(`Could not export your data: ${error.message}`)
+      }
+    })
+  })
+
+  document.querySelectorAll('[data-account-delete-open]').forEach((button) => {
+    button.addEventListener('click', () => {
+      accountDeleteState.open = true
+      accountDeleteState.confirmation = ''
+      accountDeleteState.error = null
+      render()
+    })
+  })
+  document.querySelectorAll('[data-account-delete-close]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (accountDeleteState.deleting) return
+      accountDeleteState.open = false
+      accountDeleteState.confirmation = ''
+      accountDeleteState.error = null
+      render()
+    })
+  })
+  document.querySelectorAll('[data-account-delete-overlay]').forEach((overlay) => {
+    overlay.addEventListener('mousedown', (event) => {
+      if (event.target === overlay && !accountDeleteState.deleting) {
+        accountDeleteState.open = false
+        accountDeleteState.confirmation = ''
+        accountDeleteState.error = null
+        render()
+      }
+    })
+  })
+  document.querySelectorAll('[data-account-delete-input]').forEach((input) => {
+    input.addEventListener('input', (event) => {
+      accountDeleteState.confirmation = event.currentTarget.value
+      const confirmButton = document.querySelector('[data-account-delete-confirm]')
+      if (confirmButton) confirmButton.disabled = accountDeleteState.confirmation !== 'DELETE'
+    })
+  })
+  document.querySelectorAll('[data-account-delete-confirm]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (accountDeleteState.confirmation !== 'DELETE' || accountDeleteState.deleting) return
+      accountDeleteState.deleting = true
+      accountDeleteState.error = null
+      render()
+      try {
+        await fetchJson('/api/account', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmation: 'DELETE' })
+        })
+        localStorage.clear()
+        try { await window.__clerk?.signOut() } catch {}
+        window.location.assign('/?account-deleted=1')
+      } catch (error) {
+        accountDeleteState.deleting = false
+        accountDeleteState.error = `Deletion could not be completed. Your account remains accessible. ${error.message}`
+        render()
+      }
     })
   })
 

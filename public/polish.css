@@ -2,7 +2,7 @@
  * Wicker Study interface authority
  * A deliberate final layer over the legacy stylesheet while the older cascade
  * is retired surface by surface. Product UI is restrained and sans-serif;
- * editorial course material retains a serif reading face.
+ * course material and product controls use the shared sans-serif system.
  */
 :root {
   --ink: #18212f;
@@ -730,11 +730,13 @@ input::placeholder, textarea::placeholder { color: var(--color-ink-tertiary); }
    discarded typography or competing action colors. */
 #app :where(h1, h2, h3, h4, h5, h6, p, li, dd, dt, a, button, label, input, textarea, select, summary, blockquote, th, td, strong, small, span),
 #auth-gate :where(h1, h2, h3, h4, p, dd, dt, a, button, label, input, strong, small, span),
+#public-site :where(h1, h2, h3, h4, h5, h6, p, li, dd, dt, a, button, label, input, textarea, select, summary, blockquote, th, td, strong, small, span),
 .markdown-body, .markdown-body :where(h1, h2, h3, h4, p, li, a, blockquote, th, td),
 .sr-question, .fc-chapter-toggle strong, .fc-card-body, .chat-body {
   font-family: var(--font-ui) !important;
 }
 #app :where(code, pre, kbd, samp), #auth-gate :where(.auth-folio, .auth-register dt),
+#public-site :where(.course-register-index, .course-register-count, .product-proof-bar strong, .product-proof-bar em, .preview-heading small, .preview-heading > strong, .preview-tools > small, .preview-tools > div b, .public-course-register article > strong, .course-capability-table b, .legal-hero dt),
 .course-overview-number, .hero-meter span, .spine-summary-pct, .mistake-score, .sr-stats { font-family: var(--font-data) !important; }
 .sr-bulk-btn, .mock-start-btn, .regen-submit-btn, .kb-link-mock,
 .cp-read-toggle, .fc-primary, .practice-submit, .clerk-primary-button {
@@ -838,7 +840,7 @@ input::placeholder, textarea::placeholder { color: var(--color-ink-tertiary); }
   .sidebar > nav {
     height: 64px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0;
   }
   .sidebar > nav .mobile-review-nav { display: flex !important; order: 3; }
@@ -846,6 +848,7 @@ input::placeholder, textarea::placeholder { color: var(--color-ink-tertiary); }
   .sidebar > nav .nav-dashboard { order: 1; }
   .sidebar > nav .sidebar-search-trigger { order: 2; }
   .sidebar > nav > a[href="#/mistakes"] { order: 4; }
+  .sidebar > nav .nav-settings { order: 5; }
   .sidebar > nav > a, .sidebar > nav > button,
   .sidebar .nav-dashboard, .sidebar .nav-tool, .sidebar .sidebar-search-trigger {
     width: 100%;
@@ -967,6 +970,65 @@ input::placeholder, textarea::placeholder { color: var(--color-ink-tertiary); }
   .q-card, .fc-card, .sr-card-view { border-radius: var(--radius-md); }
   .page-wrap { padding-bottom: var(--space-5); }
   .page-hero { border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; }
+}
+
+/* Settings: usage is legible at a glance; destructive controls stay isolated. */
+.settings-page { max-width: 1180px; }
+.settings-header { padding: var(--space-5) 0 var(--space-7); display: flex; align-items: end; justify-content: space-between; gap: var(--space-6); border-bottom: 1px solid var(--color-border-strong); }
+.settings-header h1 { margin: 0; font-size: clamp(34px, 4vw, 48px); line-height: 1.08; letter-spacing: -.035em; }
+.settings-header p { max-width: 64ch; margin: var(--space-2) 0 0; color: var(--color-ink-secondary); font-size: 14px; line-height: 1.55; }
+.settings-layout { padding-top: var(--space-6); display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: clamp(var(--space-6), 6vw, 80px); align-items: start; }
+.settings-nav { position: sticky; top: 96px; display: grid; border-top: 1px solid var(--color-border); }
+.settings-nav a { min-height: var(--control-md); padding: 0 var(--space-2); display: flex; align-items: center; border-bottom: 1px solid var(--color-border); color: var(--color-ink-secondary); font-size: 12px; text-decoration: none; }
+.settings-nav a:hover { color: var(--color-brand); background: var(--color-surface); }
+.settings-content { display: grid; gap: var(--space-7); }
+.settings-section { padding-bottom: var(--space-7); border-bottom: 1px solid var(--color-border-strong); scroll-margin-top: 96px; }
+.settings-section-head { margin-bottom: var(--space-5); display: flex; align-items: start; justify-content: space-between; gap: var(--space-5); }
+.settings-section-head h2 { margin: 0; font-size: 24px; letter-spacing: -.025em; }
+.settings-section-head p { max-width: 68ch; margin: var(--space-2) 0 0; color: var(--color-ink-secondary); font-size: 13px; line-height: 1.6; }
+.usage-summary { border-top: 1px solid var(--color-border-strong); }
+.usage-row { padding: var(--space-5) 0; display: grid; grid-template-columns: minmax(200px, .8fr) minmax(240px, 1.2fr); gap: var(--space-2) var(--space-6); border-bottom: 1px solid var(--color-border); }
+.usage-row-copy { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.usage-row-copy strong { font-size: 13px; }.usage-row-copy span { color: var(--color-ink); font: 500 12px/1.4 var(--font-data); }
+.usage-track { height: 8px; align-self: center; overflow: hidden; border-radius: var(--radius-sm); background: var(--color-surface-subtle); }
+.usage-track > span { display: block; height: 100%; border-radius: inherit; background: var(--color-brand); }
+.usage-row small { grid-column: 2; color: var(--color-ink-tertiary); font-size: 11px; }
+.usage-note { margin-top: var(--space-5); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-subtle); }
+.usage-note strong { font-size: 12px; }.usage-note p { margin: var(--space-1) 0 0; color: var(--color-ink-secondary); font-size: 12px; line-height: 1.55; }
+.settings-loading { min-height: 160px; display: grid; place-items: center; align-content: center; gap: var(--space-3); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); color: var(--color-ink-secondary); font-size: 13px; }
+.settings-loading span { width: 24px; height: 24px; border: 2px solid var(--color-border); border-top-color: var(--color-brand); border-radius: 50%; animation: spin .8s linear infinite; }
+.settings-error { padding: var(--space-4); border: 1px solid var(--color-danger); border-radius: var(--radius-md); color: var(--color-danger); background: var(--color-danger-soft); }
+.settings-error p { margin: var(--space-1) 0 0; color: inherit; }
+.settings-action-row, .danger-zone { padding: var(--space-5) 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); border-top: 1px solid var(--color-border-strong); border-bottom: 1px solid var(--color-border); }
+.settings-action-row > div, .danger-zone > div { max-width: 68ch; }.settings-action-row strong, .danger-zone strong { font-size: 14px; }.settings-action-row p, .danger-zone p { margin: var(--space-1) 0 0; color: var(--color-ink-secondary); font-size: 12px; line-height: 1.6; }
+.settings-action-row .btn, .danger-zone .btn { flex: 0 0 auto; }
+.settings-legal-note { margin: var(--space-4) 0 0; color: var(--color-ink-tertiary); font-size: 11px; }.settings-legal-note a { color: var(--color-brand); }
+.account-register { margin: 0; border-top: 1px solid var(--color-border-strong); }
+.account-register > div { min-height: 52px; padding: var(--space-3) 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--space-5); align-items: center; border-bottom: 1px solid var(--color-border); }
+.account-register dt { color: var(--color-ink-tertiary); font-size: 11px; }.account-register dd { margin: 0; font-size: 13px; }
+.danger-zone { margin-top: var(--space-7); padding: var(--space-5); border: 1px solid var(--color-danger); border-radius: var(--radius-md); background: var(--color-danger-soft); }
+.danger-zone strong { color: var(--color-danger); }
+.account-delete-overlay { z-index: 200; }
+.account-delete-panel { width: min(540px, calc(100% - 32px)); max-height: min(86dvh, 720px); padding: var(--space-6); overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: 0 24px 72px rgba(25,31,50,.22); }
+.account-delete-head { display: flex; align-items: start; justify-content: space-between; gap: var(--space-4); }
+.account-delete-head h2 { margin: 0; font-size: 24px; letter-spacing: -.025em; }.account-delete-head p { margin: var(--space-2) 0 0; color: var(--color-ink-secondary); font-size: 13px; line-height: 1.55; }
+.account-delete-warning { margin-top: var(--space-5); padding: var(--space-4); border: 1px solid var(--color-danger); border-radius: var(--radius-sm); background: var(--color-danger-soft); }
+.account-delete-warning strong { color: var(--color-danger); font-size: 13px; }.account-delete-warning ul { margin: var(--space-2) 0 0; padding-left: 20px; color: var(--color-ink-secondary); font-size: 12px; line-height: 1.65; }
+.account-delete-confirm { margin-top: var(--space-5); display: grid; gap: var(--space-2); }.account-delete-confirm span { font-size: 12px; }.account-delete-confirm b { font-family: var(--font-data); }
+.account-delete-confirm input { width: 100%; height: var(--control-lg); padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); color: var(--color-ink); background: var(--color-surface); font-family: var(--font-data); text-transform: uppercase; }
+.account-delete-error { margin: var(--space-4) 0 0; color: var(--color-danger); font-size: 12px; }
+.account-delete-panel .confirm-actions { margin-top: var(--space-5); }
+
+@media (max-width: 820px) {
+  .settings-header { padding-top: var(--space-3); align-items: stretch; flex-direction: column; }
+  .settings-layout { grid-template-columns: 1fr; gap: var(--space-5); }
+  .settings-nav { position: static; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+  .settings-nav a { justify-content: center; border: 0; border-right: 1px solid var(--color-border); }.settings-nav a:last-child { border-right: 0; }
+  .usage-row { grid-template-columns: 1fr; gap: var(--space-3); }.usage-row small { grid-column: 1; }
+  .settings-action-row, .danger-zone { align-items: stretch; flex-direction: column; }.settings-action-row .btn, .danger-zone .btn { width: 100%; }
+  .account-register > div { grid-template-columns: 100px 1fr; }
+  .account-delete-overlay { align-items: end; }
+  .account-delete-panel { width: 100%; max-width: none; padding: var(--space-5) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom)); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
