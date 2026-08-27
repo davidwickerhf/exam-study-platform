@@ -41,6 +41,16 @@ let route = parseRoute()
 let academicsData = null
 let academicsLoading = false
 let academicsError = null
+const PLANNING_TABS = [
+  ['overview', 'Overview'],
+  ['courses', 'Courses'],
+  ['curriculum', 'Curriculum'],
+  ['calendar', 'Calendar'],
+  ['credits', 'Credits'],
+  ['requirements', 'Requirements'],
+  ['planner', 'Planner'],
+  ['settings', 'Planning settings']
+]
 let chapterCache = new Map()
 let questionsCache = new Map()
 let practiceCache = null
@@ -474,6 +484,7 @@ function setChapterTab(courseId, chapterId, tab) {
 }
 
 let mobileStudyPanel = null
+let studyToolsTab = 'progress'
 const filterState = { category: 'all', mastery: 'all', sort: 'priority', search: '' }
 // questionFilter: checkbox-style multi-select.
 // types: array of question type ids selected ('written','calc','tf','mc','pseudocode'). Empty = show ALL.
@@ -604,7 +615,11 @@ function parseRoute() {
   if (parts[0] === 'sr') return { page: 'sr' }
   if (parts[0] === 'mocks') return { page: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
   if (parts[0] === 'settings') return { page: 'settings' }
-  if (parts[0] === 'planning') return { page: 'planning', tab: parts[1] || 'overview' }
+  if (parts[0] === 'planning') {
+    const requestedTab = parts[1] || 'overview'
+    const tab = PLANNING_TABS.some(([id]) => id === requestedTab) ? requestedTab : 'overview'
+    return { page: 'planning', tab }
+  }
   if (parts[0] === 'course') {
     return {
       page: 'course',
@@ -1009,7 +1024,10 @@ function computeTitle() {
   if (route.page === 'sr') return 'Flashcards' + suffix
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
   if (route.page === 'settings') return 'Settings' + suffix
-  if (route.page === 'planning') return 'Academic planning' + suffix
+  if (route.page === 'planning') {
+    const label = PLANNING_TABS.find(([id]) => id === route.tab)?.[1] || 'Academic planning'
+    return `${label} — Academic planning${suffix}`
+  }
   if (route.page === 'course') {
     const c = state.courses.find((c) => c.id === route.id)
     return c ? `${c.code}${c.shortName ? ' ' + c.shortName : ''}${suffix}` : 'Course' + suffix
@@ -1040,6 +1058,7 @@ function captureScrollState() {
   const targets = [
     [studyScrollerSelector, studyScroller],
     ['.study-drawer.is-open .study-drawer-scroll', document.querySelector('.study-drawer.is-open .study-drawer-scroll')],
+    ['.study-drawer.is-open .study-tools-panel', document.querySelector('.study-drawer.is-open .study-tools-panel')],
     ['.study-drawer.is-open .chat-messages', document.querySelector('.study-drawer.is-open .chat-messages')],
   ]
   targets.forEach(([selector, element]) => {
@@ -1215,6 +1234,8 @@ async function loadAcademics({ force = false } = {}) {
 }
 
 async function saveAcademics(workspace) {
+  if (!academicsData || academicsLoading) return
+  const previousData = academicsData
   const expectedRevision = academicsData.workspace.revision
   academicsData = { ...academicsData, workspace, summary: academicsData.summary }
   academicsLoading = true
@@ -1224,7 +1245,10 @@ async function saveAcademics(workspace) {
     academicsData = await fetchJson('/api/academics', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace, expectedRevision })
     })
-  } catch (error) { academicsError = error.message }
+  } catch (error) {
+    academicsData = previousData
+    academicsError = error.message
+  }
   finally { academicsLoading = false; render() }
 }
 
@@ -1232,6 +1256,54 @@ function academicDate(value) {
   if (!value) return 'Date not set'
   const date = new Date(`${value}T00:00:00`)
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+}
+
+function normalizedCourseCode(value) {
+  return String(value || '').trim().toUpperCase()
+}
+
+function editorialCourseForAcademic(course) {
+  if (!course || !state?.courses) return null
+  if (course.editorialCourseId) {
+    const explicit = state.courses.find((candidate) => candidate.id === course.editorialCourseId)
+    if (explicit) return explicit
+  }
+  const code = normalizedCourseCode(course.code)
+  return code ? state.courses.find((candidate) => normalizedCourseCode(candidate.code) === code) || null : null
+}
+
+function academicCourseForEditorial(course) {
+  const courses = academicsData?.workspace?.courses || []
+  return courses.find((candidate) => candidate.editorialCourseId === course.id)
+    || courses.find((candidate) => normalizedCourseCode(candidate.code) === normalizedCourseCode(course.code))
+    || null
+}
+
+function academicStudyLink(course, label = 'Open course materials') {
+  const editorial = editorialCourseForAcademic(course)
+  return editorial
+    ? `<a class="planning-study-link" href="#/course/${encodeURIComponent(editorial.id)}">${uiIcon('chevronRight')}<span>${escapeHtml(label)}</span></a>`
+    : '<span class="planning-study-unlinked">No matching study material</span>'
+}
+
+function renderCoursePlanningContext(course) {
+  if (!academicsData?.workspace) return ''
+  const academicCourse = academicCourseForEditorial(course)
+  if (!academicCourse) {
+    return `<aside class="course-planning-context is-unlinked" aria-label="Academic planning status">
+      <div><p class="eyebrow">Personal plan</p><strong>This course is not in your active programme</strong><span>Add the matching course code in Planning to connect dates, credits, and study material.</span></div>
+      <a class="btn btn-secondary" href="#/planning/overview">Open Planning</a>
+    </aside>`
+  }
+  const passed = academicCourse.attempts.some((attempt) => attempt.status === 'passed')
+  const next = academicCourse.attempts
+    .filter((attempt) => attempt.status === 'upcoming')
+    .sort((a, b) => String(a.examDate || '9999').localeCompare(String(b.examDate || '9999')))[0]
+  const status = passed ? 'Passed' : next ? `${next.type} · ${academicDate(next.examDate)}` : 'No active attempt'
+  return `<aside class="course-planning-context" aria-label="Academic planning status">
+    <div><p class="eyebrow">Personal plan</p><strong>${escapeHtml(status)}</strong><span>${academicCourse.ects} ECTS${academicCourse.period ? ` · ${escapeHtml(academicCourse.period)}` : ''}</span></div>
+    <a class="btn btn-secondary" href="#/planning/courses">View plan</a>
+  </aside>`
 }
 
 function renderPlanningOverview() {
@@ -1272,7 +1344,7 @@ function renderPlanningOverview() {
         ${workspace.courses.length ? `<div class="planning-course-list">${workspace.courses.map((course) => {
           const passed = course.attempts.some((attempt) => attempt.status === 'passed')
           const next = course.attempts.find((attempt) => attempt.status === 'upcoming')
-          return `<article class="planning-course-row"><div class="planning-course-code">${escapeHtml(course.code || 'No code')}</div><div><h3>${escapeHtml(course.name)}</h3><p>${escapeHtml([course.yearLevel, course.period].filter(Boolean).join(' · ') || 'No curriculum position set')}</p></div><div class="planning-course-data"><strong>${course.ects} ECTS</strong><span class="planning-status ${passed ? 'is-passed' : ''}">${passed ? 'Passed' : next ? `${escapeHtml(next.type)} · ${academicDate(next.examDate)}` : 'No active attempt'}</span></div><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}" aria-label="Remove ${escapeHtml(course.name)}">Remove</button></article>`
+          return `<article class="planning-course-row"><div class="planning-course-code">${escapeHtml(course.code || 'No code')}</div><div class="planning-course-copy"><h3>${escapeHtml(course.name)}</h3><p>${escapeHtml([course.yearLevel, course.period].filter(Boolean).join(' · ') || 'No curriculum position set')}</p>${academicStudyLink(course)}</div><div class="planning-course-data"><strong>${course.ects} ECTS</strong><span class="planning-status ${passed ? 'is-passed' : ''}">${passed ? 'Passed' : next ? `${escapeHtml(next.type)} · ${academicDate(next.examDate)}` : 'No active attempt'}</span></div><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}" aria-label="Remove ${escapeHtml(course.name)}">Remove</button></article>`
         }).join('')}</div>` : '<div class="planning-empty"><h3>Build your current curriculum</h3><p>Add only the courses that apply to your programme and cohort. Wicker Study will not assume that its editorial course list matches yours.</p></div>'}
         <form class="planning-add-course" data-academic-course>
           <div class="planning-form-title"><h3>Add course and next attempt</h3><p>The exam date is optional and belongs to this attempt only.</p></div>
@@ -1299,8 +1371,7 @@ function renderPlanningOverview() {
 }
 
 function planningShell(body) {
-  const tabs = [['overview', 'Overview'], ['courses', 'Courses'], ['curriculum', 'Curriculum'], ['calendar', 'Calendar'], ['credits', 'Credits'], ['requirements', 'Requirements'], ['planner', 'Planner'], ['settings', 'Planning settings']]
-  return `<div class="planning-shell"><nav class="planning-tabs" aria-label="Academic planning sections">${tabs.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>${body}</div>`
+  return `<div class="planning-shell${academicsLoading ? ' is-saving' : ''}"${academicsLoading ? ' aria-busy="true"' : ''}><nav class="planning-tabs" aria-label="Academic planning sections">${PLANNING_TABS.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>${body}</div>`
 }
 
 function renderAcademicPlanningPage() {
@@ -1319,6 +1390,7 @@ function renderPlanningCourses() {
   const workspace = academicsData.workspace
   return `<div class="planning-page">${planningPageHeader('Courses and attempts', 'Maintain the history that applies to your cohort and enrolment')}
     <div class="planning-course-editor">${workspace.courses.length ? workspace.courses.map((course) => `<section class="planning-edit-course">
+      <div class="planning-edit-course-context"><div><span>${escapeHtml(course.code || 'No course code')}</span><strong>${editorialCourseForAcademic(course) ? 'Connected to maintained study material' : 'Planning record only'}</strong></div>${academicStudyLink(course)}</div>
       <form class="planning-edit-course-head" data-academic-course-edit="${escapeHtml(course.id)}"><label><span>Code</span><input name="code" value="${escapeHtml(course.code)}"></label><label class="wide"><span>Course</span><input name="name" value="${escapeHtml(course.name)}" required></label><label><span>ECTS</span><input name="ects" type="number" step="0.5" min="0" value="${course.ects}"></label><label><span>Level</span><input name="yearLevel" value="${escapeHtml(course.yearLevel)}"></label><label><span>Period</span><input name="period" value="${escapeHtml(course.period)}"></label><label><span>Pass mark</span><input name="passMark" type="number" step="0.01" min="0" max="100" value="${course.passMark}"></label><label class="wide"><span>Notes</span><input name="notes" value="${escapeHtml(course.notes)}"></label><label class="planning-check"><input name="hiddenFromStats" type="checkbox" ${course.hiddenFromStats ? 'checked' : ''}><span>Exclude from statistics</span></label><button class="btn btn-secondary" type="submit">Save course</button><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}">Remove course</button></form>
       <div class="planning-attempts">${course.attempts.length ? course.attempts.map((attempt) => `<form data-academic-attempt-edit="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(attempt.academicYear)}"></label><label><span>Attempt</span><select name="type">${['first','resit','carry-over','other'].map((value) => `<option ${attempt.type === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label><span>Exam date</span><input name="examDate" type="date" value="${escapeHtml(attempt.examDate || '')}"></label><label><span>Status</span><select name="status">${['upcoming','passed','failed','no-show'].map((value) => `<option ${attempt.status === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label><span>Grade</span><input name="grade" type="number" step="0.01" value="${attempt.grade ?? ''}"></label><button class="btn btn-secondary" type="submit">Save attempt</button><button class="planning-remove" type="button" data-academic-attempt-remove="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}">Remove</button></form>`).join('') : '<p class="planning-muted">No attempts recorded.</p>'}</div>
       <form class="planning-add-attempt" data-academic-attempt-add="${escapeHtml(course.id)}"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(workspace.profile.academicYear)}"></label><label><span>Attempt type</span><select name="type"><option>first</option><option>resit</option><option>carry-over</option><option>other</option></select></label><label><span>Personal exam date</span><input name="examDate" type="date"></label><button class="btn btn-secondary" type="submit">Add attempt</button></form>
@@ -1332,7 +1404,7 @@ function renderPlanningCurriculum() {
     const level = course.yearLevel || 'Unassigned level'
     groups.set(level, [...(groups.get(level) || []), course])
   }
-  return `<div class="planning-page">${planningPageHeader('Curriculum', 'A cohort-specific view of the courses in this programme')}${[...groups.entries()].map(([level, courses]) => `<section class="planning-curriculum-group"><div><h2>${escapeHtml(level)}</h2><span>${courses.reduce((sum, course) => sum + course.ects, 0)} ECTS</span></div><table><thead><tr><th>Code</th><th>Course</th><th>Period</th><th>ECTS</th><th>Status</th></tr></thead><tbody>${courses.map((course) => `<tr><td>${escapeHtml(course.code || '—')}</td><td>${escapeHtml(course.name)}</td><td>${escapeHtml(course.period || '—')}</td><td>${course.ects}</td><td>${course.attempts.some((a) => a.status === 'passed') ? 'Passed' : 'Open'}</td></tr>`).join('')}</tbody></table></section>`).join('') || '<div class="planning-empty"><h2>No curriculum recorded</h2><p>Add courses from Overview.</p></div>'}</div>`
+  return `<div class="planning-page">${planningPageHeader('Curriculum', 'A cohort-specific view of the courses in this programme')}${[...groups.entries()].map(([level, courses]) => `<section class="planning-curriculum-group"><div><h2>${escapeHtml(level)}</h2><span>${courses.reduce((sum, course) => sum + course.ects, 0)} ECTS</span></div><div class="planning-table-wrap"><table><thead><tr><th>Code</th><th>Course</th><th>Period</th><th>ECTS</th><th>Status</th><th>Study</th></tr></thead><tbody>${courses.map((course) => `<tr><td>${escapeHtml(course.code || '—')}</td><td>${escapeHtml(course.name)}</td><td>${escapeHtml(course.period || '—')}</td><td>${course.ects}</td><td>${course.attempts.some((a) => a.status === 'passed') ? 'Passed' : 'Open'}</td><td>${academicStudyLink(course, 'Open materials')}</td></tr>`).join('')}</tbody></table></div></section>`).join('') || '<div class="planning-empty"><h2>No curriculum recorded</h2><p>Add courses from Overview.</p></div>'}</div>`
 }
 
 function renderPlanningCalendar() {
@@ -2174,20 +2246,26 @@ function renderChapterOutlineDrawer(course, chapter, tab, toc, hasExamples) {
 }
 
 function renderChapterToolsDrawer(course, chapter) {
+  const isTutor = studyToolsTab === 'tutor'
   return `
-    <aside class="study-drawer study-drawer-right ${mobileStudyPanel === 'tools' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'tools'}" aria-label="Chapter study tools">
+    <aside class="study-drawer study-drawer-right study-tools-drawer ${mobileStudyPanel === 'tools' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'tools'}" aria-label="Chapter study tools">
       <header class="study-drawer-header">
         <div><small>Ch ${escapeHtml(chapter.id)}</small><h2>Study tools</h2></div>
         <button type="button" class="icon-btn" data-mobile-study-panel="tools" aria-label="Close study tools">${uiIcon('close')}</button>
       </header>
-      <div class="study-drawer-scroll">
-        ${renderChapterProgressCard(course, chapter, { showReadAction: false })}
-        ${renderChatPanel(course, chapter)}
-        <section class="study-drawer-section study-drawer-reset">
-          <h3>Chapter data</h3>
-          <p>Clear reading status, answers, review history, and mistakes for this chapter.</p>
-          <button type="button" class="clear-link" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-course-name="${escapeHtml(course.name)}">Reset chapter progress</button>
-        </section>
+      <nav class="study-tools-tabs" role="tablist" aria-label="Study tools">
+        <button type="button" role="tab" aria-selected="${!isTutor}" tabindex="${!isTutor ? '0' : '-1'}" class="${!isTutor ? 'is-active' : ''}" data-study-tools-tab="progress">Progress</button>
+        <button type="button" role="tab" aria-selected="${isTutor}" tabindex="${isTutor ? '0' : '-1'}" class="${isTutor ? 'is-active' : ''}" data-study-tools-tab="tutor">Tutor</button>
+      </nav>
+      <div class="study-tools-panel ${isTutor ? 'is-tutor' : 'is-progress'}" role="tabpanel">
+        ${isTutor ? renderChatPanel(course, chapter, { workspace: true }) : `
+          ${renderChapterProgressCard(course, chapter, { showReadAction: false })}
+          <section class="study-drawer-section study-drawer-reset">
+            <h3>Chapter data</h3>
+            <p>Clear reading status, answers, review history, and mistakes for this chapter.</p>
+            <button type="button" class="clear-link" data-clear-scope="chapter" data-clear-course="${course.id}" data-clear-chapter="${chapter.id}" data-clear-course-name="${escapeHtml(course.name)}">Reset chapter progress</button>
+          </section>
+        `}
       </div>
     </aside>
   `
@@ -2440,6 +2518,7 @@ function renderCourse(courseId) {
   if (typeof questionsSummaryCache !== 'undefined' && !questionsSummaryCache.has(course.id)) ensureQuestionsSummary(course.id)
   ensureCourseToc(course.id)
   ensureCoverage()
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   const progress = courseProgress(course)
   const chapters = course.chapters || []
   const coreChapters = chapters.filter((ch) => !isSupportChapter(ch))
@@ -2468,6 +2547,8 @@ function renderCourse(courseId) {
               <button type="button" class="clear-link" data-clear-scope="course" data-clear-course="${course.id}" data-clear-course-name="${escapeHtml(course.name)}" title="Reset every trace of your progress on this course">Reset progress</button>
             </div>
           </header>
+
+          ${renderCoursePlanningContext(course)}
 
           <section class="course-spine-section course-overview-section">
             <div class="panel-head spine-head">
@@ -2951,7 +3032,7 @@ function renderChapterPage() {
             </div>
             <div class="chapter-page-actions">
               <button type="button" class="chapter-action" data-mobile-study-panel="outline" aria-pressed="${mobileStudyPanel === 'outline'}">${uiIcon('list')}<span>Outline</span></button>
-              <button type="button" class="chapter-action chapter-progress-action" data-mobile-study-panel="tools" aria-pressed="${mobileStudyPanel === 'tools'}"><strong>${chapterStatus.masteryPct}%</strong><span>Progress & tutor</span></button>
+              <button type="button" class="chapter-action chapter-progress-action" data-mobile-study-panel="tools" aria-pressed="${mobileStudyPanel === 'tools'}"><strong>${chapterStatus.masteryPct}%</strong><span>Study tools</span></button>
               <button type="button" class="chapter-read-action ${chapterStatus.read ? 'is-read' : ''}" data-chapter-read-toggle="${course.id}/${chapter.id}">${chapterStatus.read ? 'Read' : 'Mark as read'}</button>
             </div>
           </div>
@@ -3060,7 +3141,7 @@ function renderChapterProgressCard(course, chapter, { showReadAction = true } = 
   `
 }
 
-function renderChatPanel(course, chapter) {
+function renderChatPanel(course, chapter, { workspace = false } = {}) {
   const chat = getChat(course.id, chapter.id)
   const messagesHtml = chat.messages.length
     ? chat.messages.map((m) => `
@@ -3072,10 +3153,11 @@ function renderChatPanel(course, chapter) {
     : `<p class="chat-empty">Ask a question about <strong>${escapeHtml(chapter.name)}</strong>. The tutor has the full course materials and this chapter's content in scope.</p>`
 
   return `
-    <section class="rail-card chat-panel" data-chat-key="${course.id}/${chapter.id}">
-      <h4>Tutor chat</h4>
-      <small class="rail-meta">Grounded in ${course.code} course material · focused on Ch ${chapter.id}</small>
-      <small class="ai-allowance">${aiAllowance('chat')}</small>
+    <section class="rail-card chat-panel${workspace ? ' chat-panel-workspace' : ''}" data-chat-key="${course.id}/${chapter.id}">
+      <header class="chat-panel-context">
+        <div><h4>Tutor</h4><small class="rail-meta">Grounded in ${course.code} course material · focused on Ch ${chapter.id}</small></div>
+        <small class="ai-allowance">${aiAllowance('chat')}</small>
+      </header>
       <div class="chat-messages">${messagesHtml}</div>
       ${chat.sending ? '<div class="chat-thinking">Checking the course material…</div>' : ''}
       <form class="chat-form" data-chat-form="${course.id}/${chapter.id}">
@@ -5638,12 +5720,12 @@ function renderMockExamPage() {
           </section>
         </div>
       </aside>
-      <aside class="study-drawer study-drawer-right ${mobileStudyPanel === 'tools' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'tools'}" aria-label="Course tutor">
+      <aside class="study-drawer study-drawer-right study-tools-drawer study-tutor-drawer ${mobileStudyPanel === 'tools' ? 'is-open' : ''}" aria-hidden="${mobileStudyPanel !== 'tools'}" aria-label="Course tutor">
         <header class="study-drawer-header">
           <div><small>${escapeHtml(course.code)}</small><h2>Course tutor</h2></div>
           <button type="button" class="icon-btn" data-mobile-study-panel="tools" aria-label="Close course tutor">${uiIcon('close')}</button>
         </header>
-        <div class="study-drawer-scroll">${renderChatPanelCourse(course)}</div>
+        <div class="study-tools-panel is-tutor" role="region" aria-label="Course tutor">${renderChatPanelCourse(course)}</div>
       </aside>
     </div>
   `
@@ -6063,10 +6145,11 @@ function renderChatPanelCourse(course) {
     : `<p class="chat-empty">Ask a question about the <strong>${course.code}</strong> mock exam. The tutor has the full course materials in scope.</p>`
 
   return `
-    <section class="rail-card chat-panel" data-chat-key="${course.id}/mock">
-      <h4>Tutor chat</h4>
-      <small class="rail-meta">Grounded in ${course.code} course material · exam focus</small>
-      <small class="ai-allowance">${aiAllowance('chat')}</small>
+    <section class="rail-card chat-panel chat-panel-workspace" data-chat-key="${course.id}/mock">
+      <header class="chat-panel-context">
+        <div><h4>Tutor</h4><small class="rail-meta">Grounded in ${course.code} course material · exam focus</small></div>
+        <small class="ai-allowance">${aiAllowance('chat')}</small>
+      </header>
       <div class="chat-messages">${messagesHtml}</div>
       ${chat.sending ? '<div class="chat-thinking">Checking the course material…</div>' : ''}
       <form class="chat-form" data-chat-form="${course.id}/mock">
@@ -6858,7 +6941,9 @@ function bindEvents() {
     const grade = data.get('grade') === '' ? null : Number(data.get('grade'))
     const id = `course-${Date.now()}`
     const attempts = [{ id: `${id}-attempt-1`, academicYear: academicsData.workspace.profile.academicYear, type: data.get('attemptType'), examDate, grade, status: data.get('attemptStatus') }]
-    const course = { id, code: data.get('code'), name: data.get('name'), ects: Number(data.get('ects')), yearLevel: data.get('yearLevel'), period: data.get('period'), passMark: 5.5, notes: '', attempts }
+    const code = data.get('code')
+    const editorialCourse = state.courses.find((candidate) => normalizedCourseCode(candidate.code) === normalizedCourseCode(code))
+    const course = { id, code, name: data.get('name'), ects: Number(data.get('ects')), yearLevel: data.get('yearLevel'), period: data.get('period'), passMark: 5.5, notes: '', editorialCourseId: editorialCourse?.id || null, attempts }
     saveAcademics({ ...academicsData.workspace, courses: [...academicsData.workspace.courses, course] })
   }))
   document.querySelectorAll('[data-academic-remove]').forEach((button) => button.addEventListener('click', () => {
@@ -6869,7 +6954,9 @@ function bindEvents() {
   }))
   document.querySelectorAll('[data-academic-course-edit]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(form); const id = form.dataset.academicCourseEdit
-    const courses = academicsData.workspace.courses.map((course) => course.id === id ? { ...course, code: data.get('code'), name: data.get('name'), ects: Number(data.get('ects')), yearLevel: data.get('yearLevel'), period: data.get('period'), passMark: Number(data.get('passMark')), notes: data.get('notes'), hiddenFromStats: data.get('hiddenFromStats') === 'on' } : course)
+    const code = data.get('code')
+    const editorialCourse = state.courses.find((candidate) => normalizedCourseCode(candidate.code) === normalizedCourseCode(code))
+    const courses = academicsData.workspace.courses.map((course) => course.id === id ? { ...course, code, name: data.get('name'), ects: Number(data.get('ects')), yearLevel: data.get('yearLevel'), period: data.get('period'), passMark: Number(data.get('passMark')), notes: data.get('notes'), hiddenFromStats: data.get('hiddenFromStats') === 'on', editorialCourseId: editorialCourse?.id || null } : course)
     saveAcademics({ ...academicsData.workspace, courses })
   }))
   document.querySelectorAll('[data-academic-attempt-edit]').forEach((form) => form.addEventListener('submit', (event) => {
@@ -7001,6 +7088,29 @@ function bindEvents() {
       const target = button.dataset.mobileStudyPanel
       mobileStudyPanel = mobileStudyPanel === target ? null : target
       render()
+    })
+  })
+
+  document.querySelectorAll('[data-study-tools-tab]').forEach((button) => {
+    button.addEventListener('click', () => {
+      studyToolsTab = button.dataset.studyToolsTab === 'tutor' ? 'tutor' : 'progress'
+      render()
+      document.querySelector(`[data-study-tools-tab="${studyToolsTab}"]`)?.focus()
+    })
+  })
+
+  document.querySelectorAll('.study-tools-tabs').forEach((tablist) => {
+    tablist.addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+      const tabs = [...tablist.querySelectorAll('[role="tab"]')]
+      const current = tabs.indexOf(document.activeElement)
+      if (current < 0) return
+      event.preventDefault()
+      const next = event.key === 'Home' ? 0
+        : event.key === 'End' ? tabs.length - 1
+          : event.key === 'ArrowRight' ? (current + 1) % tabs.length
+            : (current - 1 + tabs.length) % tabs.length
+      tabs[next].click()
     })
   })
 
