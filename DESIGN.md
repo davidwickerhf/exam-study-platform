@@ -89,7 +89,10 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 
 ## Layout
 
-- A 64px global utility bar is the only global navigation layer on desktop; it becomes 56px on compact screens.
+- A 64px global utility bar is the only global navigation layer on desktop; it becomes 56px on compact screens. It carries exactly five destinations — Home, Courses, Practice, Planning, Settings — plus search. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.
+- Home is action-led: the next exam countdown from the personal plan, a "continue where you left off" block, the four study queues (mixed practice, flashcards due, open mistakes, timed mocks), the course ledger ordered by exam proximity, and an aside with upcoming exams and programme facts. Courses is the ledger with archive and reorder controls.
+- Practice is one destination with the same sticky local tab row as Planning: Questions, Flashcards, Mistakes, Mocks. Tab labels carry a count pill when there is due or open work.
+- Exam dates recorded in Planning flow outward: they order the course ledger, appear as countdowns on Home and in each course header, and never have to be re-entered.
 - Standard pages use a fluid canvas capped at 1440px, with 24–40px responsive page gutters.
 - The dashboard is an operational overview, not a marketing page. Its summary is compact and the course ledger begins within the first viewport.
 - Courses appear as ruled rows with aligned columns. Repeated academic records never become a floating card grid.

@@ -682,6 +682,11 @@ async function init() {
       return
     }
     if (event.key === 'Escape') {
+      if (mobileStudyPanel) {
+        mobileStudyPanel = null
+        render()
+        return
+      }
       if (accountDeleteState.open && !accountDeleteState.deleting) {
         accountDeleteState.open = false
         accountDeleteState.confirmation = ''
@@ -750,10 +755,14 @@ function parseRoute() {
   if (parts[0] === 'course' && parts[2] === 'mock-exam') {
     return { page: 'mock-exam', courseId: decodeURIComponent(parts[1]) }
   }
-  if (parts[0] === 'mistakes') return { page: 'mistakes' }
-  if (parts[0] === 'practice') return { page: 'practice' }
-  if (parts[0] === 'sr') return { page: 'sr' }
-  if (parts[0] === 'mocks') return { page: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
+  if (parts[0] === 'courses') return { page: 'courses' }
+  if (parts[0] === 'mistakes') return { page: 'practice', tab: 'mistakes' }
+  if (parts[0] === 'sr') return { page: 'practice', tab: 'flashcards' }
+  if (parts[0] === 'mocks') return { page: 'practice', tab: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
+  if (parts[0] === 'practice') {
+    const tab = PRACTICE_TABS.some(([id]) => id === parts[1]) ? parts[1] : 'questions'
+    return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
+  }
   if (parts[0] === 'settings') return { page: 'settings' }
   if (parts[0] === 'planning') {
     const requestedTab = PLANNING_TAB_ALIASES[parts[1]] || parts[1] || 'overview'
@@ -1159,10 +1168,9 @@ function slugify(s) {
 function computeTitle() {
   const suffix = ' · Wicker Study'
   if (!state) return 'Wicker Study'
-  if (route.page === 'dashboard') return 'Dashboard' + suffix
-  if (route.page === 'mistakes') return 'Mistake bank' + suffix
-  if (route.page === 'practice') return 'Practice' + suffix
-  if (route.page === 'sr') return 'Flashcards' + suffix
+  if (route.page === 'dashboard') return 'Home' + suffix
+  if (route.page === 'courses') return 'Courses' + suffix
+  if (route.page === 'practice') return (PRACTICE_TABS.find(([id]) => id === route.tab)?.[1] || 'Practice') + ' · Practice' + suffix
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
   if (route.page === 'settings') return 'Settings' + suffix
   if (route.page === 'planning') {
@@ -1352,10 +1360,8 @@ function autosizeAnswerTextareas(root = document) {
 function routeView() {
   if (route.page === 'chapter') return renderChapterPage()
   if (route.page === 'mock-exam') return renderMockExamPage()
-  if (route.page === 'mistakes') return renderMistakesPage()
-  if (route.page === 'practice') return renderPracticePage()
-  if (route.page === 'sr') return renderSrPage()
-  if (route.page === 'mocks') return renderMocksPage()
+  if (route.page === 'courses') return renderCoursesPage()
+  if (route.page === 'practice') return renderPracticeShell()
   if (route.page === 'settings') return renderSettingsPage()
   if (route.page === 'planning') return renderAcademicPlanningPage()
   if (route.page === 'course') return renderCourse(route.id)
@@ -1452,7 +1458,8 @@ function renderCoursePlanningContext(course) {
   const next = academicCourse.attempts
     .filter((attempt) => attempt.status === 'upcoming')
     .sort((a, b) => String(a.examDate || '9999').localeCompare(String(b.examDate || '9999')))[0]
-  const status = passed ? 'Passed' : next ? `${next.type} · ${academicDate(next.examDate)}` : 'No active attempt'
+  const days = next ? daysUntil(next.examDate) : null
+  const status = passed ? 'Passed' : next ? (next.examDate ? `${countdownLabel(days)} · ${academicDate(next.examDate)}${next.type === 'resit' ? ' · resit' : ''}` : 'Exam date not set') : 'No active attempt'
   return `<aside class="course-planning-context" aria-label="Academic planning status">
     <div><p class="eyebrow">Personal plan</p><strong>${escapeHtml(status)}</strong><span>${academicCourse.ects} ECTS${academicCourse.period ? ` · ${escapeHtml(academicCourse.period)}` : ''}</span></div>
     <a class="btn btn-secondary" href="#/planning/courses">View plan</a>
@@ -2450,10 +2457,9 @@ function renderAppHeader() {
       </div>
       <nav class="app-nav" aria-label="Primary navigation">
         ${renderSearchTrigger()}
-        <a class="app-nav-link nav-courses ${['dashboard', 'course', 'chapter', 'mock-exam'].includes(route.page) ? 'active' : ''}" href="#/" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
-        <a class="app-nav-link nav-practice ${['practice', 'sr'].includes(route.page) ? 'active' : ''}" href="#/practice" title="Practice"><span class="nav-icon tool-icon">${ICONS.practice}</span><span class="nav-label">Practice</span></a>
-        <a class="app-nav-link nav-mistakes ${route.page === 'mistakes' ? 'active' : ''}" href="#/mistakes" title="Mistakes"><span class="nav-icon tool-icon mistakes-icon">${ICONS.mistakes}</span><span class="nav-label">Mistakes</span></a>
-        <a class="app-nav-link nav-mocks ${route.page === 'mocks' ? 'active' : ''}" href="#/mocks" title="Mock sessions"><span class="nav-icon tool-icon mocks-icon">${ICONS.mocks}</span><span class="nav-label">Mocks</span></a>
+        <a class="app-nav-link nav-home ${route.page === 'dashboard' ? 'active' : ''}" href="#/" title="Home"><span class="nav-icon tool-icon">${uiIcon('play')}</span><span class="nav-label">Home</span></a>
+        <a class="app-nav-link nav-courses ${['courses', 'course', 'chapter', 'mock-exam'].includes(route.page) ? 'active' : ''}" href="#/courses" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
+        <a class="app-nav-link nav-practice ${route.page === 'practice' ? 'active' : ''}" href="#/practice" title="Practice"><span class="nav-icon tool-icon">${ICONS.practice}</span><span class="nav-label">Practice</span></a>
         <a class="app-nav-link nav-planning ${route.page === 'planning' ? 'active' : ''}" href="#/planning" title="Academic planning"><span class="nav-icon tool-icon">${ICONS.stats}</span><span class="nav-label">Planning</span></a>
         <a class="app-nav-link nav-settings ${route.page === 'settings' ? 'active' : ''}" href="#/settings" title="Settings"><span class="nav-icon tool-icon">${uiIcon('settings')}</span><span class="nav-label">Settings</span></a>
       </nav>
@@ -2602,86 +2608,184 @@ function renderUpdateBanner() {
   `
 }
 
-function renderDashboard() {
-  const items = allItems()
-  const progress = progressOf(items)
-  // kick async refresh (cache holds results across renders)
+// ----- Home, courses ledger, and the practice shell ---------------------------
+const RECENT_CHAPTER_KEY = 'recent-chapter'
+
+function rememberRecentChapter(courseId, chapterId) {
+  try { localStorage.setItem(RECENT_CHAPTER_KEY, JSON.stringify({ courseId, chapterId, at: Date.now() })) } catch {}
+}
+
+function recentChapter() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_CHAPTER_KEY) || 'null')
+    if (!raw) return null
+    const course = state.courses.find((c) => c.id === raw.courseId)
+    const chapter = course?.chapters?.find((ch) => ch.id === raw.chapterId)
+    return course && chapter ? { course, chapter, at: raw.at } : null
+  } catch { return null }
+}
+
+function daysUntil(isoDate) {
+  if (!isoDate) return null
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  return Math.round((new Date(`${isoDate}T00:00:00`) - today) / 86400000)
+}
+
+function countdownLabel(days) {
+  if (days === null) return 'Date not set'
+  if (days < 0) return `${Math.abs(days)} day${days === -1 ? '' : 's'} ago`
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  return `In ${days} days`
+}
+
+// Upcoming exam attempts from the personal academic record, soonest first.
+function upcomingExams() {
+  const workspace = academicsData?.workspace
+  if (!workspace) return []
+  return workspace.courses.flatMap((course) => course.attempts
+    .filter((attempt) => attempt.status === 'upcoming' && attempt.examDate)
+    .map((attempt) => ({ course, attempt, days: daysUntil(attempt.examDate), editorial: editorialCourseForAcademic(course) })))
+    .filter((item) => item.days === null || item.days >= -1)
+    .sort((a, b) => a.attempt.examDate.localeCompare(b.attempt.examDate))
+}
+
+function nextExamFor(course) {
+  return upcomingExams().find((item) => item.editorial?.id === course.id) || null
+}
+
+function ensureHomeData() {
   if (!mistakeCache) loadMistakes().then(() => render())
   if (!srDueCache) loadSrDue().then(() => render())
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   ensureCoverage()
+}
+
+function renderCourseLedger(courses, { manage = false } = {}) {
+  if (!courses.length) return '<p class="empty">No active courses.</p>'
+  const sorted = [...courses].sort((a, b) => {
+    const da = nextExamFor(a)?.days, db = nextExamFor(b)?.days
+    if (da == null && db == null) return 0
+    if (da == null) return 1
+    if (db == null) return -1
+    return da - db
+  })
+  return `<div class="ledger" role="list">${sorted.map((course, index) => {
+    const progress = courseProgress(course)
+    const exam = nextExamFor(course)
+    const examCell = exam
+      ? `<span class="ledger-exam"><strong>${countdownLabel(exam.days)}</strong><small>${academicDate(exam.attempt.examDate)} · ${escapeHtml(exam.attempt.type)}</small></span>`
+      : course.exam ? `<span class="ledger-exam is-editorial"><strong>${escapeHtml(course.exam)}</strong><small>Catalogue date · not in your plan</small></span>` : '<span class="ledger-exam is-none"><strong>No exam date</strong><small>Not in your plan</small></span>'
+    const body = `
+      <span class="ledger-code">${escapeHtml(course.code)}<em>${escapeHtml(course.shortName || '')}</em></span>
+      <span class="ledger-name"><strong>${escapeHtml(course.name)}</strong><small>${progress.done} of ${progress.total} chapters read</small></span>
+      ${examCell}
+      <span class="ledger-progress"><i><b style="width:${progress.masteryPct}%"></b></i><span>${progress.masteryPct}%</span></span>`
+    if (!manage) return `<a class="ledger-row${course.archived ? ' is-archived' : ''}" role="listitem" href="#/course/${course.id}">${body}</a>`
+    return `<article class="ledger-row is-managing${course.archived ? ' is-archived' : ''}" role="listitem">${body}
+      <span class="ledger-manage">
+        ${course.archived ? `<button type="button" class="btn btn-sm" data-course-archive="${course.id}" data-archived="false">Unarchive</button>` : `
+          <button type="button" class="btn btn-sm" data-course-move="${course.id}" data-dir="up" ${index <= 0 ? 'disabled' : ''} title="Move up">↑</button>
+          <button type="button" class="btn btn-sm" data-course-move="${course.id}" data-dir="down" ${index >= sorted.length - 1 ? 'disabled' : ''} title="Move down">↓</button>
+          <button type="button" class="btn btn-sm" data-course-archive="${course.id}" data-archived="true">Archive</button>`}
+        <a class="btn btn-sm" href="#/course/${course.id}">Open</a>
+      </span></article>`
+  }).join('')}</div>`
+}
+
+function renderHome() {
+  ensureHomeData()
   const mistakeCount = mistakeCache?.items?.length ?? null
   const srDue = srDueCache?.dueCount ?? null
   const srTotal = srDueCache?.totalCards ?? null
-  const nextCourse = activeCourses()[0]
+  const exams = upcomingExams().slice(0, 4)
+  const recent = recentChapter()
+  const courses = activeCourses()
+  const fallback = courses[0]
+  const resumeCourse = recent?.course || fallback
+  const resumeChapter = recent?.chapter || fallback?.chapters?.find((ch) => ch.file?.endsWith('.md'))
+  const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+  const hasPlan = Boolean(academicsData?.workspace?.courses?.length)
+  const soonest = exams[0]
+  const nextLine = soonest
+    ? `${countdownLabel(soonest.days)} · ${escapeHtml(soonest.course.code || soonest.course.name)} ${escapeHtml(soonest.course.name)}`
+    : hasPlan ? 'No exam dates recorded yet' : academicsData ? 'No academic plan yet' : 'Loading your plan…'
+
+  const queue = (href, label, value, detail, icon) => `<a class="queue-card" href="${href}"><span class="queue-icon">${icon}</span><span class="queue-copy"><strong>${label}</strong><small>${detail}</small></span>${value == null ? '' : `<span class="queue-value">${value}</span>`}${uiIcon('chevronRight')}</a>`
 
   return `
-    <section class="mobile-home" aria-label="Mobile study home">
-      <header>
-        <p>Today</p>
-        <h1>What do you want to study?</h1>
-      </header>
-      ${nextCourse ? `<a class="mobile-resume" href="#/course/${nextCourse.id}">
-        <span><small>Continue studying</small><strong>${escapeHtml(nextCourse.code)} · ${escapeHtml(nextCourse.name)}</strong></span>
-        ${uiIcon('chevronRight')}
-      </a>` : ''}
-      <nav class="mobile-quick-actions" aria-label="Study actions">
-        <a href="#/practice"><span>${ICONS.practice}</span><strong>Mixed practice</strong><small>Questions across courses</small></a>
-        <a href="#/mistakes"><span>${ICONS.mistakes}</span><strong>Fix mistakes</strong><small>${mistakeCount == null ? 'Loading…' : `${mistakeCount} open`}</small></a>
-        <a href="#/mocks"><span>${ICONS.mocks}</span><strong>Practise under time</strong><small>Mock sessions</small></a>
-      </nav>
-    </section>
-    <section class="hero">
-      <div>
-        <h1>Courses</h1>
-        <p class="hero-copy">${activeCourses().length} active course${activeCourses().length === 1 ? '' : 's'} · resume reading, clear due reviews, and see where preparation is still thin.</p>
-      </div>
-      <div class="hero-meter">
-        <span>${progress.masteryPct}%</span>
-        <small>${progress.done} of ${progress.total} chapters at mastery ≥ ${doneThreshold()} · average ${progress.avg.toFixed(2)} / 4</small>
-      </div>
-    </section>
+    <header class="home-head">
+      <div><p class="home-date">${escapeHtml(today)}</p><h1>${soonest ? `Next exam ${countdownLabel(soonest.days).toLowerCase()}` : 'What do you want to study?'}</h1><p class="home-sub">${nextLine}</p></div>
+      <div class="home-head-actions">${renderSearchTrigger()}<a class="btn btn-secondary btn-sm home-settings" href="#/settings" title="Settings">${uiIcon('settings')}<span>Settings</span></a></div>
+    </header>
 
-    <section class="practice-strip" aria-label="Study queues">
-      <a class="practice-card sr-card" href="#/practice">
-        <p class="eyebrow">Mixed practice</p>
-        <strong></strong>
-        <small>Published exercises across every active course</small>
-      </a>
-      <a class="practice-card mistakes-card" href="#/mistakes">
-        <p class="eyebrow">Mistake bank</p>
-        <strong>${mistakeCount == null ? '—' : mistakeCount}</strong>
-        <small>${mistakeCount == null ? 'Loading…' : `open ${mistakeCount === 1 ? 'mistake' : 'mistakes'} to review`}</small>
-      </a>
-      <a class="practice-card sr-due-card" href="#/sr">
-        <p class="eyebrow">Flashcards due</p>
-        <strong>${srDue == null ? '—' : srDue}</strong>
-        <small>${srTotal == null ? 'Loading…' : `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck`}</small>
-      </a>
-      <a class="practice-card mocks-card" href="#/mocks">
-        <p class="eyebrow">Timed mocks</p>
-        <strong></strong>
-        <small>Start a timed session from any chapter or review past ones</small>
-      </a>
-    </section>
+    <div class="home-grid">
+      <section class="home-main">
+        ${resumeCourse && resumeChapter ? `<a class="resume-card" href="#/course/${resumeCourse.id}/chapter/${resumeChapter.id}">
+          <span class="resume-label">${recent ? 'Continue where you left off' : 'Start reading'}</span>
+          <span class="resume-title"><em>${escapeHtml(resumeCourse.code)} · Ch ${escapeHtml(resumeChapter.id)}</em><strong>${escapeHtml(resumeChapter.name)}</strong></span>
+          <span class="resume-cta">${uiIcon('play')} Open chapter</span>
+        </a>` : ''}
 
-    <div class="course-section-head">
-      <h2>Courses</h2>
-      <button type="button" class="tb-btn ${dashboardManageMode ? 'tb-btn-primary' : ''}" data-toggle-manage>${dashboardManageMode ? 'Done' : `${uiIcon('settings')} Manage courses`}</button>
-    </div>
-    <section class="course-grid">
-      ${activeCourses().map((c, i, arr) => renderCourseCard(c, i, arr.length)).join('') || '<p class="empty">No active courses.</p>'}
-    </section>
-    ${archivedCourses().length ? `
-      <div class="course-section-head archived-head">
-        <h3>Archived <small>${archivedCourses().length}</small></h3>
-      </div>
-      <section class="course-grid course-grid-archived">
-        ${archivedCourses().map((c) => renderCourseCard(c, -1, 0)).join('')}
+        <nav class="queue-list" aria-label="Study queues">
+          ${queue('#/practice', 'Mixed practice', null, 'Published questions across every active course', ICONS.practice)}
+          ${queue('#/practice/flashcards', 'Flashcards due', srDue == null ? '—' : srDue, srTotal == null ? 'Loading…' : srTotal ? `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck` : 'Add cards from any question', ICONS.practice)}
+          ${queue('#/practice/mistakes', 'Open mistakes', mistakeCount == null ? '—' : mistakeCount, mistakeCount == null ? 'Loading…' : mistakeCount ? 'Graded below 7/10 and not yet resolved' : 'Nothing to fix right now', ICONS.mistakes)}
+          ${queue('#/practice/mocks', 'Timed mocks', null, 'Sit a chapter under exam conditions', ICONS.mocks)}
+        </nav>
+
+        <div class="home-section-head"><h2>Courses</h2><a class="pl-link" href="#/courses">Manage</a></div>
+        ${renderCourseLedger(courses)}
       </section>
-    ` : ''}
 
+      <aside class="home-aside">
+        <section class="home-aside-block">
+          <div class="home-aside-head"><h2>Upcoming exams</h2><a class="pl-link" href="#/planning/calendar">Calendar</a></div>
+          ${exams.length ? `<ol class="exam-list">${exams.map((item) => `<li>
+            <span class="exam-days${item.days !== null && item.days <= 7 ? ' is-soon' : ''}"><strong>${item.days === null ? '—' : item.days < 0 ? '0' : item.days}</strong><small>${item.days === 1 ? 'day' : 'days'}</small></span>
+            <span class="exam-copy"><strong>${escapeHtml(item.course.code || item.course.name)}</strong><small>${escapeHtml(item.course.name)} · ${academicDate(item.attempt.examDate)}</small></span>
+            ${item.editorial ? `<a class="pl-link" href="#/course/${item.editorial.id}">Study</a>` : '<span class="exam-noteditorial">No material</span>'}
+          </li>`).join('')}</ol>` : `<div class="home-empty">${hasPlan ? '<p>No upcoming exam dates. Add one to a course attempt and it will appear here and on the course page.</p><a class="btn btn-secondary btn-sm" href="#/planning/courses">Add exam dates</a>' : academicsData ? '<p>Set up your academic plan to see exam countdowns, credits, and requirements alongside your study material.</p><a class="btn btn-primary btn-sm" href="#/planning">Set up plan</a>' : '<p>Loading your plan…</p>'}</div>`}
+        </section>
+        ${academicsData?.summary && hasPlan ? `<section class="home-aside-block">
+          <div class="home-aside-head"><h2>Programme</h2><a class="pl-link" href="#/planning">Plan</a></div>
+          <dl class="pl-facts"><div><dt>Earned credits</dt><dd>${academicsData.summary.earnedEcts}</dd></div><div><dt>Courses passed</dt><dd>${academicsData.summary.passedCourses} / ${academicsData.summary.totalCourses}</dd></div>${academicsData.summary.gpa != null ? `<div><dt>Weighted GPA</dt><dd>${academicsData.summary.gpa}</dd></div>` : ''}</dl>
+        </section>` : ''}
+      </aside>
+    </div>
+    ${renderGenerateAllCoursesCard()}
   `
 }
+
+function renderCoursesPage() {
+  ensureHomeData()
+  return `
+    <section class="page-wrap">
+      <header class="page-hero page-hero-row">
+        <div><h1>Courses</h1><p class="hero-copy">${activeCourses().length} active · ordered by the next exam in your plan. Archive courses you are not sitting this period.</p></div>
+        <button type="button" class="btn ${dashboardManageMode ? 'btn-primary' : 'btn-secondary'} btn-sm" data-toggle-manage>${dashboardManageMode ? 'Done' : `${uiIcon('settings')} Manage`}</button>
+      </header>
+      ${renderCourseLedger(activeCourses(), { manage: dashboardManageMode })}
+      ${archivedCourses().length ? `<div class="home-section-head archived-head"><h2>Archived <small>${archivedCourses().length}</small></h2></div>${renderCourseLedger(archivedCourses(), { manage: dashboardManageMode })}` : ''}
+    </section>
+  `
+}
+
+const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
+
+function renderPracticeShell() {
+  if (!srDueCache) loadSrDue().then(() => render())
+  if (!mistakeCache) loadMistakes().then(() => render())
+  const counts = { flashcards: srDueCache?.dueCount, mistakes: mistakeCache?.items?.length }
+  const tab = route.tab || 'questions'
+  const body = tab === 'flashcards' ? renderSrPage() : tab === 'mistakes' ? renderMistakesPage() : tab === 'mocks' ? renderMocksPage() : renderPracticePage()
+  return `<div class="practice-shell">
+    <nav class="pl-tabs" aria-label="Practice sections"><div>${PRACTICE_TABS.map(([id, label]) => `<a href="#/practice/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}${counts[id] ? `<span class="pl-tab-count">${counts[id]}</span>` : ''}</a>`).join('')}</div></nav>
+    ${body}
+  </div>`
+}
+
+function renderDashboard() { return renderHome() }
 
 // ----- Master generate-all-courses widget (dashboard footer) ----------------
 let generateAllCoursesJob = null   // { id, isMaster, status, currentCourseId, subJobs: {cid: {steps,…}} }
@@ -4560,7 +4664,7 @@ function renderSrPage() {
         <div class="sr-empty">
           <h2>${srSession.totalCards === 0 ? 'Your deck is empty.' : 'Nothing due right now.'}</h2>
           <p>${srSession.totalCards === 0 ? 'Open any chapter, load practice questions, and click "+ Add to flashcards" on the ones you want to drill.' : 'Come back later, or add more cards from your practice questions.'}</p>
-          <a class="load-q-btn" href="#/">Back to dashboard</a>
+          <a class="btn btn-primary" href="#/courses">Browse courses</a>
         </div>
       ` : `
         <article class="sr-card-view">
@@ -4572,7 +4676,7 @@ function renderSrPage() {
             <button type="button" class="sr-remove-btn" data-sr-remove="${c.id}" title="Remove this card from your flashcard deck. The source question is not affected.">✕ Remove from deck</button>
           </div>
           <div class="sr-question">${renderInlineMarkdown(c.question.question)}</div>
-          ${c.question.options?.length ? `<ul class="sr-options">${c.question.options.map((o) => `<li>${escapeHtml(o)}</li>`).join('')}</ul>` : ''}
+          ${c.question.options?.filter((o) => String(o || '').trim()).length ? `<ul class="sr-options">${c.question.options.filter((o) => String(o || '').trim()).map((o) => `<li>${escapeHtml(o)}</li>`).join('')}</ul>` : ''}
           ${srSession.reveal ? `
             <div class="sr-answer">
               <h4>Answer</h4>
@@ -4658,7 +4762,7 @@ function renderMocksPage() {
                 <td>${s.count}</td>
                 <td><strong>${s.totalScore?.toFixed(1) ?? '—'}/${s.totalMax}</strong></td>
                 <td>${Math.round((s.duration || 0) / 60)} min</td>
-                <td><a href="#/mocks/${s.id}">Review →</a></td>
+                <td><a href="#/practice/mocks/${s.id}">Review →</a></td>
               </tr>
             `
           }).join('')}</tbody>
@@ -5096,7 +5200,7 @@ function renderMiniMockOverlay() {
       <div class="mock-overlay">
         <div class="mock-panel results">
           <h2>Mock complete · ${s.totalScore.toFixed(1)}/${s.totalMax}</h2>
-          <p>Saved as session. <a href="#/mocks/${s.id}">Open full review →</a></p>
+          <p>Saved as session. <a href="#/practice/mocks/${s.id}">Open full review →</a></p>
           <ol class="mock-results-list">
             ${s.questions.map((q, i) => `<li><strong>Q${i+1}</strong> · ${QUESTION_TYPE_LABELS[q.type] || q.type} · <strong>${q.score?.toFixed(1) ?? '—'}/10</strong></li>`).join('')}
           </ol>
@@ -6994,6 +7098,7 @@ function renderChatPanelCourse(course) {
 }
 
 async function loadChapter(courseId, chapterId, relPath) {
+  rememberRecentChapter(courseId, chapterId)
   const key = `${courseId}/${chapterId}/${relPath || ''}`
   if (chapterCache.get(key)?.loading) return
   const requestId = ++loadingRequestId
