@@ -39,13 +39,12 @@ const QUESTION_TYPE_LABELS = {
 const PLANNING_TABS = [
   ['overview', 'Overview'],
   ['courses', 'Courses'],
-  ['curriculum', 'Curriculum'],
   ['calendar', 'Calendar'],
-  ['credits', 'Credits'],
-  ['requirements', 'Requirements'],
+  ['progress', 'Progress'],
   ['planner', 'Planner'],
-  ['settings', 'Planning settings']
+  ['settings', 'Settings']
 ]
+const PLANNING_TAB_ALIASES = { curriculum: 'courses', credits: 'progress', requirements: 'progress' }
 let state = null
 let route = parseRoute()
 let academicsData = null
@@ -56,6 +55,13 @@ let editorialProgrammesLoading = false
 let editorialProgrammesError = null
 let planningProfileEditing = false
 let planningCourseComposerOpen = false
+let planningEventComposerOpen = false
+let planningGateComposerOpen = false
+let planningStructureOpen = false
+let planningExpandedCourse = null
+let planningFocusApplied = null
+let planningExpandedEvent = null
+let planningExpandedGate = null
 const planningIntake = {
   step: 'source',
   files: [],
@@ -750,9 +756,10 @@ function parseRoute() {
   if (parts[0] === 'mocks') return { page: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
   if (parts[0] === 'settings') return { page: 'settings' }
   if (parts[0] === 'planning') {
-    const requestedTab = parts[1] || 'overview'
+    const requestedTab = PLANNING_TAB_ALIASES[parts[1]] || parts[1] || 'overview'
     const tab = PLANNING_TABS.some(([id]) => id === requestedTab) ? requestedTab : 'overview'
-    return { page: 'planning', tab }
+    const focus = parts[2] ? decodeURIComponent(parts[2]) : null
+    return { page: 'planning', tab, focus }
   }
   if (parts[0] === 'course') {
     return {
@@ -1159,7 +1166,7 @@ function computeTitle() {
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
   if (route.page === 'settings') return 'Settings' + suffix
   if (route.page === 'planning') {
-    const label = PLANNING_TABS.find(([id]) => id === route.tab)?.[1] || 'Academic planning'
+    const label = route.tab === 'overview' ? 'Academic plan' : (PLANNING_TABS.find(([id]) => id === route.tab)?.[1] || 'Academic planning')
     return `${label} — Academic planning${suffix}`
   }
   if (route.page === 'course') {
@@ -1724,148 +1731,532 @@ function renderPlanningIntake(workspace) {
   return planningIntake.step === 'review' ? renderPlanningIntakeReview(workspace) : renderPlanningIntakeSource(workspace)
 }
 
+function planningCourseStatus(course) {
+  const attempts = course.attempts || []
+  const passed = [...attempts].reverse().find((attempt) => attempt.status === 'passed')
+  if (passed) return { key: 'passed', label: passed.grade === null || passed.grade === undefined ? 'Passed' : `Passed · ${passed.grade}`, attempt: passed }
+  const upcoming = attempts.filter((attempt) => attempt.status === 'upcoming').sort((a, b) => String(a.examDate || '9999').localeCompare(String(b.examDate || '9999')))[0]
+  if (upcoming) return { key: 'upcoming', label: upcoming.examDate ? `${upcoming.type === 'resit' ? 'Resit' : 'Exam'} · ${academicDate(upcoming.examDate)}` : `${upcoming.type === 'resit' ? 'Resit' : 'Exam'} · date not set`, attempt: upcoming }
+  const failed = [...attempts].reverse().find((attempt) => attempt.status === 'failed' || attempt.status === 'no-show')
+  if (failed) return { key: 'failed', label: failed.status === 'no-show' ? 'No-show' : failed.grade === null || failed.grade === undefined ? 'Failed' : `Failed · ${failed.grade}`, attempt: failed }
+  return { key: 'open', label: 'Not recorded', attempt: null }
+}
+
+function planningStatusPill(course) {
+  const status = planningCourseStatus(course)
+  return `<span class="pl-pill is-${status.key}">${escapeHtml(status.label)}</span>`
+}
+
+function planningYearGroups(courses) {
+  const groups = new Map()
+  for (const course of courses) {
+    const level = course.yearLevel || 'Unassigned level'
+    groups.set(level, [...(groups.get(level) || []), course])
+  }
+  return [...groups.entries()].map(([level, list]) => ({ level, courses: list, ects: list.reduce((sum, course) => sum + course.ects, 0) }))
+}
+
+function planningStudyCell(course) {
+  const editorial = editorialCourseForAcademic(course)
+  return editorial
+    ? `<a class="pl-study" href="#/course/${encodeURIComponent(editorial.id)}" title="Open ${escapeHtml(editorial.name)}">${uiIcon('chevronRight')}<span>Materials</span></a>`
+    : '<span class="pl-study is-none">—</span>'
+}
+
+function planningStats(cells) {
+  return `<dl class="pl-stats">${cells.map(([label, value, note]) => `<div><dt>${escapeHtml(label)}</dt><dd>${value}</dd>${note ? `<span>${escapeHtml(note)}</span>` : ''}</div>`).join('')}</dl>`
+}
+
+function planningPageHeader(title, description, actions = '') {
+  return `<header class="pl-head">
+    <div><h1>${escapeHtml(title)}</h1>${description ? `<p>${description}</p>` : ''}</div>
+    <div class="pl-head-actions"><span class="pl-private" title="Only visible to your account">Private record</span>${actions}</div>
+  </header>`
+}
+
+function planningSectionHead(title, description, actions = '') {
+  return `<div class="pl-section-head"><div><h2>${escapeHtml(title)}</h2>${description ? `<p>${description}</p>` : ''}</div>${actions ? `<div class="pl-section-actions">${actions}</div>` : ''}</div>`
+}
+
+function planningEmpty(title, copy, action = '') {
+  return `<div class="pl-empty"><div><strong>${escapeHtml(title)}</strong><p>${copy}</p></div>${action}</div>`
+}
+
+function planningProfileLine(profile) {
+  return [profile.programme, profile.university, profile.academicYear].filter((value) => String(value || '').trim()).map(escapeHtml).join(' · ')
+}
+
+function planningProgrammeOptions(course) {
+  return ['first', 'resit', 'carry-over', 'other'].map((value) => `<option value="${value}" ${course === value ? 'selected' : ''}>${value === 'first' ? 'First sit' : value === 'resit' ? 'Resit' : value === 'carry-over' ? 'Carry-over' : 'Other'}</option>`).join('')
+}
+
+function renderPlanningComposer() {
+  const profile = academicsData.workspace.profile
+  return `<form class="pl-composer" data-academic-course aria-label="Add a course">
+    <div class="pl-composer-head"><strong>Add a course</strong><span>Course codes connect maintained study material automatically.</span></div>
+    <div class="pl-fields pl-fields-course">
+      <label><span>Course code</span><input name="code" maxlength="40" placeholder="BCS1520" autocomplete="off"></label>
+      <label class="wide"><span>Course name</span><input name="name" maxlength="200" placeholder="Course name" required></label>
+      <label><span>ECTS</span><input name="ects" type="number" min="0" step="0.5" value="5"></label>
+      <label><span>Year or level</span><input name="yearLevel" maxlength="40" placeholder="Year 2"></label>
+      <label><span>Period</span><input name="period" maxlength="40" placeholder="Period 1"></label>
+    </div>
+    <div class="pl-fields pl-fields-attempt">
+      <label><span>Attempt</span><select name="attemptType">${planningProgrammeOptions('first')}</select></label>
+      <label><span>Status</span><select name="attemptStatus"><option value="upcoming">Upcoming</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="no-show">No-show</option></select></label>
+      <label><span>Exam date</span><input name="examDate" type="date"></label>
+      <label><span>Grade</span><input name="grade" type="number" step="0.01" placeholder="Optional"></label>
+    </div>
+    <div class="pl-form-actions"><span>${escapeHtml(profile.academicYear || 'Current academic year')}</span><button class="btn btn-secondary" type="button" data-planning-course-toggle>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add course</button></div>
+  </form>`
+}
+
 function renderPlanningOverview() {
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
-  if (academicsLoading && !academicsData) return '<div class="planning-page"><div class="planning-loading"><span></span><p>Loading your academic record…</p></div></div>'
-  if (academicsError && !academicsData) return `<div class="planning-page"><div class="planning-error" role="alert"><h1>Academic planning is unavailable</h1><p>${escapeHtml(academicsError)}</p><button class="btn btn-secondary" data-academics-retry>Try again</button></div></div>`
+  if (academicsLoading && !academicsData) return '<div class="pl-page"><div class="pl-loading"><span></span><p>Loading your academic record…</p></div></div>'
+  if (academicsError && !academicsData) return `<div class="pl-page"><div class="pl-error" role="alert"><h1>Academic planning is unavailable</h1><p>${escapeHtml(academicsError)}</p><button class="btn btn-secondary" data-academics-retry>Try again</button></div></div>`
   const workspace = academicsData?.workspace
-  if (!workspace) return '<div class="planning-page"></div>'
+  if (!workspace) return '<div class="pl-page"></div>'
   if (!workspace.courses.length || planningIntake.step === 'connected') return renderPlanningIntake(workspace)
   const summary = academicsData.summary
   const profile = workspace.profile
-  const upcoming = summary.upcoming || []
+  const upcoming = (summary.upcoming || []).slice(0, 6)
   const hasProfile = Boolean(String(profile.programme || '').trim())
   const showProfileEditor = planningProfileEditing || !hasProfile
-  return `<div class="planning-page">
-    <header class="planning-header planning-overview-header">
-      <div><h1>Academic plan</h1><p>${hasProfile ? `${profile.programme ? `${escapeHtml(profile.programme)} · ` : ''}${profile.university ? `${escapeHtml(profile.university)} · ` : ''}${escapeHtml(profile.academicYear || 'Current record')}` : 'Build a private curriculum and connect it to maintained course material.'}</p></div>
-      <div class="planning-header-actions">
-        <span class="planning-private"><span aria-hidden="true"></span>Private record</span>
-        ${hasProfile ? `<button type="button" class="btn btn-secondary" data-planning-profile-toggle>${showProfileEditor ? 'Close details' : `${uiIcon('edit')} Edit details`}</button>` : ''}
-      </div>
-    </header>
-
-    ${showProfileEditor ? `<section class="planning-profile" aria-labelledby="planning-profile-title">
-      <div><h2 id="planning-profile-title">Programme details</h2><p>This context is personal to your record and does not alter the shared course catalogue.</p></div>
-      <form data-academic-profile>
+  const groups = planningYearGroups(workspace.courses)
+  const totalEcts = workspace.courses.filter((course) => !course.hiddenFromStats).reduce((sum, course) => sum + course.ects, 0)
+  const gatesMet = workspace.gates.filter((gate) => gateResolved(gate, workspace)).length
+  const reference = activeEditorialProgrammeReference()
+  const template = workspace.programmeTemplate
+  const openChoices = reference ? reference.version.choiceGroups.filter((group) => !group.pathwayId && !(template.selectedChoices?.[group.id] || []).length).length + (template.pathwayId ? 0 : 1) : 0
+  const insights = planningInsights(workspace)
+  const focus = insights.priority.filter((item) => item.days !== null || item.risk === 'critical').slice(0, 4)
+  return `<div class="pl-page">
+    ${planningPageHeader('Academic plan', hasProfile ? planningProfileLine(profile) : 'Add your programme details to give this record its context.', hasProfile ? `<button type="button" class="btn btn-secondary btn-sm" data-planning-profile-toggle>${showProfileEditor ? 'Close' : `${uiIcon('edit')} Edit details`}</button>` : '')}
+    ${showProfileEditor ? `<form class="pl-composer pl-profile" data-academic-profile aria-label="Programme details">
+      <div class="pl-composer-head"><strong>Programme details</strong><span>Personal to your record. The shared course catalogue is not changed.</span></div>
+      <div class="pl-fields">
         <label><span>University</span><input name="university" value="${escapeHtml(profile.university)}" maxlength="200" placeholder="University name"></label>
         <label><span>Programme</span><input name="programme" value="${escapeHtml(profile.programme)}" maxlength="200" placeholder="Programme name" required></label>
         <label><span>Academic year</span><input name="academicYear" value="${escapeHtml(profile.academicYear)}" maxlength="30" placeholder="2026–2027"></label>
-        <button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save details</button>
-      </form>
-    </section>` : ''}
+      </div>
+      <div class="pl-form-actions">${hasProfile ? '<button class="btn btn-secondary" type="button" data-planning-profile-toggle>Cancel</button>' : ''}<button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save details</button></div>
+    </form>` : ''}
+    ${planningStats([
+      ['Earned credits', `${summary.earnedEcts}<small> / ${totalEcts}</small>`, 'ECTS from passed attempts'],
+      ['Weighted GPA', summary.gpa ?? '—', profile.gpaIncludesFailedCourses ? 'Includes failed attempts' : 'Passed attempts only'],
+      ['Courses passed', `${summary.passedCourses}<small> / ${summary.totalCourses}</small>`, 'In this programme record'],
+      ['Upcoming exams', (summary.upcoming || []).length, workspace.gates.length ? `${gatesMet} of ${workspace.gates.length} requirements met` : 'No requirements configured']
+    ])}
+    <div class="pl-columns">
+      <div class="pl-main">
+        ${planningSectionHead('Next up', 'Dated attempts and personal events, soonest first.', '<a class="pl-link" href="#/planning/calendar">Calendar</a>')}
+        ${upcoming.length ? `<ol class="pl-upcoming">${upcoming.map((attempt) => {
+          const course = workspace.courses.find((item) => item.id === attempt.courseId)
+          return `<li><time datetime="${escapeHtml(attempt.examDate)}">${academicDate(attempt.examDate)}</time><div><strong>${escapeHtml(attempt.code || attempt.name)}</strong><span>${escapeHtml(attempt.name)} · ${escapeHtml(attempt.type)}</span></div>${course ? planningStudyCell(course) : ''}</li>`
+        }).join('')}</ol>` : planningEmpty('No upcoming exam dates', 'Add an exam date to any course to see it here and on the course page.', '<a class="btn btn-secondary btn-sm" href="#/planning/courses">Open courses</a>')}
 
-    <dl class="planning-summary">
-      <div><dt>Earned credits</dt><dd>${summary.earnedEcts}</dd></div>
-      <div><dt>Weighted GPA</dt><dd>${summary.gpa ?? '—'}</dd></div>
-      <div><dt>Courses passed</dt><dd>${summary.passedCourses} / ${summary.totalCourses}</dd></div>
-      <div><dt>Upcoming exams</dt><dd>${upcoming.length}</dd></div>
-    </dl>
-
-    <div class="planning-columns">
-      <section class="planning-register">
-        <div class="planning-section-head"><div><h2>Current curriculum</h2><p>Courses in your personal record. Study material connects when the course code matches.</p></div><button type="button" class="btn ${planningCourseComposerOpen ? 'btn-secondary' : 'btn-primary'}" data-planning-course-toggle>${planningCourseComposerOpen ? 'Close' : `${uiIcon('plus')} Add course`}</button></div>
-        ${planningCourseComposerOpen ? `<form class="planning-add-course" data-academic-course>
-          <div class="planning-form-title"><h3>Add a course</h3><p>Record the course once. Add an upcoming attempt now if you already know it.</p></div>
-          <label><span>Course code</span><input name="code" maxlength="40" placeholder="CS101"></label>
-          <label class="wide"><span>Course name</span><input name="name" maxlength="200" placeholder="Course name" required></label>
-          <label><span>Credits</span><input name="ects" type="number" min="0" step="0.5" value="5"></label>
-          <label><span>Year or level</span><input name="yearLevel" maxlength="40" placeholder="Year 2"></label>
-          <label><span>Period</span><input name="period" maxlength="40" placeholder="Semester 1"></label>
-          <label><span>Attempt</span><select name="attemptType"><option value="first">First sit</option><option value="resit">Resit</option><option value="carry-over">Carry-over</option><option value="other">Other</option></select></label>
-          <label><span>Status</span><select name="attemptStatus"><option value="upcoming">Upcoming</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="no-show">No-show</option></select></label>
-          <label><span>Exam date</span><input name="examDate" type="date"></label>
-          <label><span>Grade (optional)</span><input name="grade" type="number" step="0.01"></label>
-          <div class="planning-form-actions"><button class="btn btn-secondary" type="button" data-planning-course-toggle>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add to curriculum</button></div>
-        </form>` : ''}
-        ${workspace.courses.length ? `<div class="planning-course-list">${workspace.courses.map((course) => {
-          const passed = course.attempts.some((attempt) => attempt.status === 'passed')
-          const next = course.attempts.find((attempt) => attempt.status === 'upcoming')
-          return `<article class="planning-course-row"><div class="planning-course-code">${escapeHtml(course.code || 'No code')}</div><div class="planning-course-copy"><h3>${escapeHtml(course.name)}</h3><p>${escapeHtml([course.yearLevel, course.period].filter(Boolean).join(' · ') || 'No curriculum position set')}</p>${academicStudyLink(course)}</div><div class="planning-course-data"><strong>${course.ects} ECTS</strong><span class="planning-status ${passed ? 'is-passed' : ''}">${passed ? 'Passed' : next ? `${escapeHtml(next.type)} · ${academicDate(next.examDate)}` : 'No active attempt'}</span></div><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}" aria-label="Remove ${escapeHtml(course.name)}">Remove</button></article>`
-        }).join('')}</div>` : `<div class="planning-empty"><div><h3>No courses in this plan yet</h3><p>Add the courses that apply to your programme. Matching study material will be connected by course code.</p></div>${!planningCourseComposerOpen ? '<button type="button" class="btn btn-primary" data-planning-course-toggle>Add your first course</button>' : ''}</div>`}
-      </section>
-
-      <aside class="planning-calendar">
-        <div class="planning-section-head"><div><h2>Next dates</h2><p>From your personal attempts.</p></div><a href="#/planning/calendar">Open calendar</a></div>
-        ${upcoming.length ? `<ol>${upcoming.map((attempt) => `<li><time datetime="${attempt.examDate}">${academicDate(attempt.examDate)}</time><div><strong>${escapeHtml(attempt.code || attempt.name)}</strong><span>${escapeHtml(attempt.name)} · ${escapeHtml(attempt.type)}</span></div></li>`).join('')}</ol>` : '<div class="planning-calendar-empty"><p>No upcoming exam dates recorded.</p></div>'}
+        ${planningSectionHead('Curriculum', `${workspace.courses.length} course${workspace.courses.length === 1 ? '' : 's'} · ${totalEcts} ECTS in your record.`, `<a class="pl-link" href="#/planning/courses">Manage</a><button type="button" class="btn ${planningCourseComposerOpen ? 'btn-secondary' : 'btn-primary'} btn-sm" data-planning-course-toggle>${planningCourseComposerOpen ? 'Close' : `${uiIcon('plus')} Add course`}</button>`)}
+        ${planningCourseComposerOpen ? renderPlanningComposer() : ''}
+        ${groups.map((group) => `<section class="pl-group">
+          <header><h3>${escapeHtml(group.level)}</h3><span>${group.courses.length} course${group.courses.length === 1 ? '' : 's'} · ${group.ects} ECTS</span></header>
+          <div class="pl-table-wrap"><table class="pl-table pl-table-overview">
+            <thead><tr><th class="col-code">Code</th><th>Course</th><th class="col-period">Period</th><th class="col-num">ECTS</th><th class="col-status">Status</th><th class="col-study"><span class="sr-only">Study material</span></th></tr></thead>
+            <tbody>${group.courses.map((course) => `<tr>
+              <td class="col-code"><a href="#/planning/courses/${encodeURIComponent(course.id)}">${escapeHtml(course.code || '—')}</a></td>
+              <td class="col-name"><a href="#/planning/courses/${encodeURIComponent(course.id)}">${escapeHtml(course.name)}</a></td>
+              <td class="col-period">${escapeHtml(course.period || '—')}</td>
+              <td class="col-num">${course.ects}</td>
+              <td class="col-status">${planningStatusPill(course)}</td>
+              <td class="col-study">${planningStudyCell(course)}</td>
+            </tr>`).join('')}</tbody>
+          </table></div>
+        </section>`).join('')}
+      </div>
+      <aside class="pl-aside">
+        ${reference ? `<section class="pl-aside-block">
+          <h2>Programme</h2>
+          <p>${escapeHtml(reference.programme.degree)} ${escapeHtml(reference.programme.name)}<br><span>${escapeHtml(reference.version.label)}</span></p>
+          <dl class="pl-facts"><div><dt>Current study year</dt><dd>${escapeHtml(template.currentStudyYear || '—')}</dd></div><div><dt>Open choices</dt><dd>${openChoices}</dd></div></dl>
+          <a class="pl-link" href="#/planning/courses">${openChoices ? 'Complete programme choices' : 'Review programme choices'}</a>
+        </section>` : ''}
+        <section class="pl-aside-block">
+          <h2>Where to focus</h2>
+          ${focus.length ? `<ul class="pl-focus">${focus.map((item) => `<li><span class="pl-risk is-${item.risk}">${item.risk}</span><div><strong>${escapeHtml(item.course.code || item.course.name)}</strong><span>${item.days === null ? 'No exam date' : item.days < 0 ? `${Math.abs(item.days)} days ago` : item.days === 0 ? 'Today' : `In ${item.days} day${item.days === 1 ? '' : 's'}`} · ${item.course.ects} ECTS</span></div></li>`).join('')}</ul>` : `<p>Record exam dates and requirements to see what needs attention first.</p>`}
+          <a class="pl-link" href="#/planning/planner">Open scenario planner</a>
+        </section>
+        <section class="pl-aside-block">
+          <h2>Requirements</h2>
+          ${workspace.gates.length ? `<ul class="pl-gate-list">${workspace.gates.slice(0, 5).map((gate) => `<li><span class="pl-gate-dot ${gateResolved(gate, workspace) ? 'is-met' : ''}"></span><span>${escapeHtml(gate.label)}</span></li>`).join('')}</ul>` : '<p>No progression or completion rules recorded for this cohort.</p>'}
+          <a class="pl-link" href="#/planning/progress">${workspace.gates.length ? 'Review progress' : 'Add requirements'}</a>
+        </section>
       </aside>
     </div>
-    ${academicsError ? `<p class="planning-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
+    ${academicsError ? `<p class="pl-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
   </div>`
 }
 
 function planningShell(body) {
   const isOnboarding = Boolean(academicsData?.workspace && (!academicsData.workspace.courses.length || planningIntake.step === 'connected'))
-  return `<div class="planning-shell${academicsLoading ? ' is-saving' : ''}${isOnboarding ? ' is-onboarding' : ''}"${academicsLoading ? ' aria-busy="true"' : ''}>${isOnboarding ? '' : `<nav class="planning-tabs" aria-label="Academic planning sections">${PLANNING_TABS.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`}${body}</div>`
+  const programmes = academicsData?.index?.programmes || []
+  if (isOnboarding && programmes.length > 1 && planningIntake.step !== 'connected') {
+    const active = programmes.find((item) => item.id === academicsData.index.activeProgrammeId)
+    return `<div class="planning-shell is-onboarding${academicsLoading ? ' is-saving' : ''}"><nav class="pl-tabs" aria-label="Academic planning sections"><div><a href="#/planning/overview" class="${route.tab !== 'settings' ? 'active' : ''}">Set up ${escapeHtml(active?.programme || 'programme')}</a><a href="#/planning/settings" class="${route.tab === 'settings' ? 'active' : ''}">Programmes</a></div></nav>${body}</div>`
+  }
+  return `<div class="planning-shell${academicsLoading ? ' is-saving' : ''}${isOnboarding ? ' is-onboarding' : ''}"${academicsLoading ? ' aria-busy="true"' : ''}>${isOnboarding ? '' : `<nav class="pl-tabs" aria-label="Academic planning sections"><div>${PLANNING_TABS.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div>${academicsLoading ? '<span class="pl-saving" role="status">Saving…</span>' : ''}</nav>`}${body}</div>`
 }
 
 function renderAcademicPlanningPage() {
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (!academicsData) return planningShell(renderPlanningOverview())
+  if (!academicsData.workspace.courses.length && route.tab === 'settings' && academicsData.index?.programmes?.length > 1) return planningShell(renderPlanningSettings())
   if (!academicsData.workspace.courses.length || planningIntake.step === 'connected') return planningShell(renderPlanningOverview())
-  const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, curriculum: renderPlanningCurriculum, calendar: renderPlanningCalendar, credits: renderPlanningCredits, requirements: renderPlanningRequirements, planner: renderPlanningPlanner, settings: renderPlanningSettings }
+  if (route.tab === 'courses' && route.focus && planningFocusApplied !== route.focus) { planningExpandedCourse = route.focus; planningFocusApplied = route.focus }
+  const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, calendar: renderPlanningCalendar, progress: renderPlanningProgress, planner: renderPlanningPlanner, settings: renderPlanningSettings }
   return planningShell((views[route.tab] || renderPlanningOverview)())
 }
 
-function planningPageHeader(title, description) {
-  const profile = academicsData.workspace.profile
-  return `<header class="planning-header"><div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}${profile.programme ? ` · ${escapeHtml(profile.programme)}` : ''}</p></div><span class="planning-private">Private to your account</span></header>`
+function renderPlanningStructure(workspace) {
+  if (workspace.programmeTemplate && !editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
+  const reference = activeEditorialProgrammeReference()
+  const template = workspace.programmeTemplate
+  if (!template) return ''
+  if (!reference) return `<section class="pl-structure"><div class="pl-empty"><div><strong>Programme reference unavailable</strong><p>${editorialProgrammesLoading ? 'Loading the programme reference…' : `The saved programme reference could not be loaded${editorialProgrammesError ? `: ${escapeHtml(editorialProgrammesError)}` : '.'}`}</p></div>${editorialProgrammesError ? '<button type="button" class="btn btn-secondary btn-sm" data-editorial-programmes-retry>Try again</button>' : ''}</div></section>`
+  const { programme, version } = reference
+  const moduleGroups = version.choiceGroups.filter((group) => !group.pathwayId)
+  const electiveGroup = version.choiceGroups.find((group) => group.id === 'year-3-electives')
+  const selectedElectives = template.selectedChoices?.[electiveGroup?.id] || []
+  const courseBased = template.pathwayId === 'course-based'
+  const open = planningStructureOpen
+  return `<section class="pl-structure${open ? ' is-open' : ''}" aria-labelledby="pl-structure-title">
+    <button type="button" class="pl-structure-toggle" data-planning-structure-toggle aria-expanded="${open}">
+      <div><h2 id="pl-structure-title">Programme structure</h2><p>${escapeHtml(programme.degree)} ${escapeHtml(programme.name)} · ${escapeHtml(version.label)} · verified ${escapeHtml(academicDate(version.lastVerified))}</p></div>
+      <span>${moduleGroups.filter((group) => (template.selectedChoices?.[group.id] || []).length).length + (template.pathwayId ? 1 : 0)} of ${moduleGroups.length + 1} choices made ${uiIcon('chevronDown')}</span>
+    </button>
+    ${open ? `<form data-academic-programme-structure>
+      <p class="pl-note">Reference only — check the official curriculum against your cohort rules. Changing a choice updates your curriculum and keeps recorded attempts. <a href="${escapeHtml(version.sources?.[0]?.url || '#')}" target="_blank" rel="noreferrer">Official source</a></p>
+      <div class="pl-fields pl-fields-structure">
+        ${moduleGroups.map((group) => `<label><span>${escapeHtml(group.label)}</span><select name="choice-${escapeHtml(group.id)}"><option value="">Decide later</option>${group.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<option value="${escapeHtml(courseId)}" ${(template.selectedChoices?.[group.id] || []).includes(courseId) ? 'selected' : ''}>${escapeHtml(course.name.replace(/^M2-\d:\s*/, ''))}</option>` }).join('')}</select><small>${escapeHtml(group.description)}</small></label>`).join('')}
+        <label><span>Year 3 · Semester 1 pathway</span><select name="pathwayId" data-programme-structure-pathway><option value="">Decide later</option>${version.pathways.map((pathway) => `<option value="${escapeHtml(pathway.id)}" ${template.pathwayId === pathway.id ? 'selected' : ''}>${escapeHtml(pathway.label)}</option>`).join('')}</select><small>The selected route determines the remaining 30 ECTS.</small></label>
+      </div>
+      ${electiveGroup ? `<details class="pl-electives" data-programme-electives ${courseBased ? '' : 'hidden'} ${courseBased && !compactPlanningMedia.matches ? 'open' : ''}><summary><strong>${escapeHtml(electiveGroup.label)}</strong><span><b data-programme-elective-count>${selectedElectives.length}</b> of ${electiveGroup.maxSelections} selected</span></summary><div>${electiveGroup.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<label><input type="checkbox" name="choice-${escapeHtml(electiveGroup.id)}" value="${escapeHtml(courseId)}" ${selectedElectives.includes(courseId) ? 'checked' : ''} ${courseBased ? '' : 'disabled'}><span><strong>${escapeHtml(course.name)}</strong><small>${escapeHtml(course.period)} · ${course.ects} ECTS</small></span></label>` }).join('')}</div></details>` : ''}
+      <div class="pl-form-actions"><span>Unselected requirements stay open; nothing is guessed.</span><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save choices</button></div>
+    </form>` : ''}
+  </section>`
+}
+
+function renderPlanningCourseEditor(course, workspace) {
+  const editorial = editorialCourseForAcademic(course)
+  return `<tr class="pl-editor-row"><td colspan="7"><div class="pl-editor" id="pl-editor-${escapeHtml(course.id)}">
+    <form class="pl-editor-course" data-academic-course-edit="${escapeHtml(course.id)}">
+      <div class="pl-editor-head"><strong>Course record</strong><span>${editorial ? `Connected to ${escapeHtml(editorial.name)}` : 'No maintained study material matches this code'}</span></div>
+      <div class="pl-fields pl-fields-course">
+        <label><span>Code</span><input name="code" value="${escapeHtml(course.code)}" maxlength="40"></label>
+        <label class="wide"><span>Course</span><input name="name" value="${escapeHtml(course.name)}" maxlength="200" required></label>
+        <label><span>ECTS</span><input name="ects" type="number" step="0.5" min="0" value="${course.ects}"></label>
+        <label><span>Year or level</span><input name="yearLevel" value="${escapeHtml(course.yearLevel)}" maxlength="40"></label>
+        <label><span>Period</span><input name="period" value="${escapeHtml(course.period)}" maxlength="40"></label>
+        <label><span>Pass mark</span><input name="passMark" type="number" step="0.01" min="0" max="100" value="${course.passMark}"></label>
+        <label class="wide"><span>Notes</span><input name="notes" value="${escapeHtml(course.notes)}" maxlength="2000"></label>
+        <label class="pl-check"><input name="hiddenFromStats" type="checkbox" ${course.hiddenFromStats ? 'checked' : ''}><span>Exclude from credits and GPA</span></label>
+      </div>
+      <div class="pl-form-actions"><button type="button" class="pl-danger-link" data-academic-remove="${escapeHtml(course.id)}">Remove course</button><span class="pl-spacer"></span><button class="btn btn-secondary btn-sm" type="button" data-planning-expand="${escapeHtml(course.id)}">Close</button><button class="btn btn-primary btn-sm" type="submit" ${academicsLoading ? 'disabled' : ''}>Save course</button></div>
+    </form>
+    <div class="pl-attempts">
+      <div class="pl-editor-head"><strong>Attempts</strong><span>${course.attempts.length ? `${course.attempts.length} recorded` : 'Nothing recorded yet'}</span></div>
+      ${course.attempts.map((attempt) => `<form class="pl-attempt" data-academic-attempt-edit="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}">
+        <label><span>Academic year</span><input name="academicYear" value="${escapeHtml(attempt.academicYear)}" maxlength="30"></label>
+        <label><span>Attempt</span><select name="type">${planningProgrammeOptions(attempt.type)}</select></label>
+        <label><span>Exam date</span><input name="examDate" type="date" value="${escapeHtml(attempt.examDate || '')}"></label>
+        <label><span>Status</span><select name="status">${['upcoming', 'passed', 'failed', 'no-show'].map((value) => `<option value="${value}" ${attempt.status === value ? 'selected' : ''}>${value === 'no-show' ? 'No-show' : value[0].toUpperCase() + value.slice(1)}</option>`).join('')}</select></label>
+        <label><span>Grade</span><input name="grade" type="number" step="0.01" value="${attempt.grade ?? ''}" placeholder="—"></label>
+        <div class="pl-attempt-actions"><button class="btn btn-secondary btn-sm" type="submit">Save</button><button class="pl-danger-link" type="button" data-academic-attempt-remove="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}" title="Remove attempt">${uiIcon('trash')}<span class="sr-only">Remove attempt</span></button></div>
+      </form>`).join('')}
+      <form class="pl-attempt is-new" data-academic-attempt-add="${escapeHtml(course.id)}">
+        <label><span>Academic year</span><input name="academicYear" value="${escapeHtml(workspace.profile.academicYear)}" maxlength="30"></label>
+        <label><span>Attempt</span><select name="type">${planningProgrammeOptions('first')}</select></label>
+        <label><span>Exam date</span><input name="examDate" type="date"></label>
+        <div class="pl-attempt-actions"><button class="btn btn-secondary btn-sm" type="submit">${uiIcon('plus')} Add attempt</button></div>
+      </form>
+    </div>
+  </div></td></tr>`
 }
 
 function renderPlanningCourses() {
   const workspace = academicsData.workspace
-  return `<div class="planning-page">${planningPageHeader('Courses and attempts', 'Maintain the history that applies to your cohort and enrolment')}
-    <div class="planning-course-editor">${workspace.courses.length ? workspace.courses.map((course) => `<section class="planning-edit-course">
-      <div class="planning-edit-course-context"><div><span>${escapeHtml(course.code || 'No course code')}</span><strong>${editorialCourseForAcademic(course) ? 'Connected to maintained study material' : 'Planning record only'}</strong></div>${academicStudyLink(course)}</div>
-      <form class="planning-edit-course-head" data-academic-course-edit="${escapeHtml(course.id)}"><label><span>Code</span><input name="code" value="${escapeHtml(course.code)}"></label><label class="wide"><span>Course</span><input name="name" value="${escapeHtml(course.name)}" required></label><label><span>ECTS</span><input name="ects" type="number" step="0.5" min="0" value="${course.ects}"></label><label><span>Level</span><input name="yearLevel" value="${escapeHtml(course.yearLevel)}"></label><label><span>Period</span><input name="period" value="${escapeHtml(course.period)}"></label><label><span>Pass mark</span><input name="passMark" type="number" step="0.01" min="0" max="100" value="${course.passMark}"></label><label class="wide"><span>Notes</span><input name="notes" value="${escapeHtml(course.notes)}"></label><label class="planning-check"><input name="hiddenFromStats" type="checkbox" ${course.hiddenFromStats ? 'checked' : ''}><span>Exclude from statistics</span></label><button class="btn btn-secondary" type="submit">Save course</button><button type="button" class="planning-remove" data-academic-remove="${escapeHtml(course.id)}">Remove course</button></form>
-      <div class="planning-attempts">${course.attempts.length ? course.attempts.map((attempt) => `<form data-academic-attempt-edit="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(attempt.academicYear)}"></label><label><span>Attempt</span><select name="type">${['first','resit','carry-over','other'].map((value) => `<option ${attempt.type === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label><span>Exam date</span><input name="examDate" type="date" value="${escapeHtml(attempt.examDate || '')}"></label><label><span>Status</span><select name="status">${['upcoming','passed','failed','no-show'].map((value) => `<option ${attempt.status === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label><span>Grade</span><input name="grade" type="number" step="0.01" value="${attempt.grade ?? ''}"></label><button class="btn btn-secondary" type="submit">Save attempt</button><button class="planning-remove" type="button" data-academic-attempt-remove="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}">Remove</button></form>`).join('') : '<p class="planning-muted">No attempts recorded.</p>'}</div>
-      <form class="planning-add-attempt" data-academic-attempt-add="${escapeHtml(course.id)}"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(workspace.profile.academicYear)}"></label><label><span>Attempt type</span><select name="type"><option>first</option><option>resit</option><option>carry-over</option><option>other</option></select></label><label><span>Personal exam date</span><input name="examDate" type="date"></label><button class="btn btn-secondary" type="submit">Add attempt</button></form>
-    </section>`).join('') : '<div class="planning-empty"><h2>No courses yet</h2><p>Add the first course from Overview. It will appear here with its full attempt history.</p></div>'}</div>
+  const groups = planningYearGroups(workspace.courses)
+  const totalEcts = workspace.courses.reduce((sum, course) => sum + course.ects, 0)
+  return `<div class="pl-page">
+    ${planningPageHeader('Courses', `${workspace.courses.length} course${workspace.courses.length === 1 ? '' : 's'} · ${totalEcts} ECTS · select a row to edit its record and attempts.`, `<button type="button" class="btn ${planningCourseComposerOpen ? 'btn-secondary' : 'btn-primary'} btn-sm" data-planning-course-toggle>${planningCourseComposerOpen ? 'Close' : `${uiIcon('plus')} Add course`}</button>`)}
+    ${planningCourseComposerOpen ? renderPlanningComposer() : ''}
+    ${renderPlanningStructure(workspace)}
+    ${groups.length ? groups.map((group) => `<section class="pl-group">
+      <header><h3>${escapeHtml(group.level)}</h3><span>${group.courses.length} course${group.courses.length === 1 ? '' : 's'} · ${group.ects} ECTS</span></header>
+      <div class="pl-table-wrap"><table class="pl-table pl-table-courses">
+        <thead><tr><th class="col-code">Code</th><th>Course</th><th class="col-period">Period</th><th class="col-num">ECTS</th><th class="col-req">Requirement</th><th class="col-status">Status</th><th class="col-study"><span class="sr-only">Study material</span></th></tr></thead>
+        <tbody>${group.courses.map((course) => {
+          const expanded = planningExpandedCourse === course.id
+          const requirement = course.programmeRequirement === 'historical' ? 'History' : course.programmeRequirement ? course.programmeRequirement[0].toUpperCase() + course.programmeRequirement.slice(1) : 'Personal'
+          return `<tr class="pl-row${expanded ? ' is-expanded' : ''}${course.hiddenFromStats ? ' is-hidden' : ''}" data-planning-expand="${escapeHtml(course.id)}" tabindex="0" aria-expanded="${expanded}">
+            <td class="col-code">${escapeHtml(course.code || '—')}</td>
+            <td class="col-name"><span>${escapeHtml(course.name)}</span>${course.hiddenFromStats ? '<small>Excluded from statistics</small>' : ''}</td>
+            <td class="col-period">${escapeHtml(course.period || '—')}</td>
+            <td class="col-num">${course.ects}</td>
+            <td class="col-req">${escapeHtml(requirement)}</td>
+            <td class="col-status">${planningStatusPill(course)}</td>
+            <td class="col-study">${planningStudyCell(course)}<span class="pl-chevron" aria-hidden="true">${uiIcon('chevronDown')}</span></td>
+          </tr>${expanded ? renderPlanningCourseEditor(course, workspace) : ''}`
+        }).join('')}</tbody>
+      </table></div>
+    </section>`).join('') : planningEmpty('No courses in this plan', 'Add the courses that apply to your programme. Matching study material connects by course code.', '<button type="button" class="btn btn-primary btn-sm" data-planning-course-toggle>Add your first course</button>')}
+    ${academicsError ? `<p class="pl-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
   </div>`
-}
-
-function renderPlanningCurriculum() {
-  if (academicsData.workspace.programmeTemplate && !editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
-  const reference = activeEditorialProgrammeReference()
-  const template = academicsData.workspace.programmeTemplate
-  const groups = new Map()
-  for (const course of academicsData.workspace.courses) {
-    const level = course.yearLevel || 'Unassigned level'
-    groups.set(level, [...(groups.get(level) || []), course])
-  }
-  const programmeReference = reference ? (() => {
-    const { programme, version } = reference
-    const moduleGroups = version.choiceGroups.filter((group) => !group.pathwayId)
-    const electiveGroup = version.choiceGroups.find((group) => group.id === 'year-3-electives')
-    const selectedElectives = template.selectedChoices?.[electiveGroup?.id] || []
-    const courseBased = template.pathwayId === 'course-based'
-    return `<section class="planning-editorial-reference" aria-labelledby="editorial-programme-title">
-      <header><div><h2 id="editorial-programme-title">Known programme structure</h2><p>${escapeHtml(programme.degree)} ${escapeHtml(programme.name)} · ${escapeHtml(programme.institution.name)}</p></div><div><span>${escapeHtml(version.label)}</span><a href="${escapeHtml(version.sources?.[0]?.url || '#')}" target="_blank" rel="noreferrer">Official source ${uiIcon('chevronRight')}</a></div></header>
-      <div class="planning-editorial-notice"><strong>Reference, not a substitute for your cohort rules.</strong><span>Last checked ${escapeHtml(academicDate(version.lastVerified))}. Choices below update your private curriculum while preserving recorded attempts.</span></div>
-      <form data-academic-programme-structure>
-        <div class="planning-editorial-choices">
-          ${moduleGroups.map((group) => `<label><span>${escapeHtml(group.label)}</span><select name="choice-${escapeHtml(group.id)}"><option value="">Decide later</option>${group.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<option value="${escapeHtml(courseId)}" ${(template.selectedChoices?.[group.id] || []).includes(courseId) ? 'selected' : ''}>${escapeHtml(course.name.replace(/^M2-\d:\s*/, ''))}</option>` }).join('')}</select><small>${escapeHtml(group.description)}</small></label>`).join('')}
-          <label><span>Year 3 · Semester 1 pathway</span><select name="pathwayId" data-programme-structure-pathway><option value="">Decide later</option>${version.pathways.map((pathway) => `<option value="${escapeHtml(pathway.id)}" ${template.pathwayId === pathway.id ? 'selected' : ''}>${escapeHtml(pathway.label)}</option>`).join('')}</select><small>The selected route determines the remaining 30 ECTS.</small></label>
-        </div>
-        ${electiveGroup ? `<details class="planning-editorial-electives" data-programme-electives ${courseBased ? '' : 'hidden'} ${courseBased && !compactPlanningMedia.matches ? 'open' : ''}><summary><strong>${escapeHtml(electiveGroup.label)}</strong><span><b data-programme-elective-count>${selectedElectives.length}</b> of ${electiveGroup.maxSelections} selected</span></summary><div>${electiveGroup.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<label><input type="checkbox" name="choice-${escapeHtml(electiveGroup.id)}" value="${escapeHtml(courseId)}" ${selectedElectives.includes(courseId) ? 'checked' : ''} ${courseBased ? '' : 'disabled'}><span><strong>${escapeHtml(course.name)}</strong><small>${escapeHtml(course.period)} · ${course.ects} ECTS</small></span></label>` }).join('')}</div></details>` : ''}
-        <footer><p>Unselected requirements remain open; Wicker Study does not guess your track.</p><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save programme choices</button></footer>
-      </form>
-    </section>`
-  })() : template ? `<section class="planning-editorial-reference"><div class="planning-known-empty"><p>${editorialProgrammesLoading ? 'Loading the programme reference…' : `The saved programme reference is temporarily unavailable${editorialProgrammesError ? `: ${escapeHtml(editorialProgrammesError)}` : '.'}`}</p>${editorialProgrammesError ? '<button type="button" class="btn btn-secondary" data-editorial-programmes-retry>Try again</button>' : ''}</div></section>` : ''
-  return `<div class="planning-page">${planningPageHeader('Curriculum', 'A cohort-specific view of the courses in this programme')}${programmeReference}${[...groups.entries()].map(([level, courses]) => `<section class="planning-curriculum-group"><div><h2>${escapeHtml(level)}</h2><span>${courses.reduce((sum, course) => sum + course.ects, 0)} ECTS currently selected</span></div><div class="planning-table-wrap"><table><thead><tr><th>Code</th><th>Course</th><th>Period</th><th>ECTS</th><th>Requirement</th><th>Study</th></tr></thead><tbody>${courses.map((course) => `<tr><td>${escapeHtml(course.code || '—')}</td><td>${escapeHtml(course.name)}</td><td>${escapeHtml(course.period || '—')}</td><td>${course.ects}</td><td>${course.programmeRequirement === 'historical' ? 'Recorded history' : course.programmeRequirement ? escapeHtml(course.programmeRequirement) : course.attempts.some((a) => a.status === 'passed') ? 'Passed' : 'Personal'}</td><td>${academicStudyLink(course, 'Open materials')}</td></tr>`).join('')}</tbody></table></div></section>`).join('') || '<div class="planning-empty"><h2>No curriculum recorded</h2><p>Add courses from Overview.</p></div>'}</div>`
 }
 
 function renderPlanningCalendar() {
   const workspace = academicsData.workspace
-  const entries = [...(academicsData.summary.upcoming || []).map((item) => ({ ...item, title: item.name, kind: 'Exam' })), ...workspace.events.map((event) => ({ ...event, examDate: event.date, kind: event.type }))].filter((item) => item.examDate).sort((a, b) => a.examDate.localeCompare(b.examDate))
-  return `<div class="planning-page">${planningPageHeader('Calendar', 'Exam attempts, registration windows, deadlines, and personal events')}
-    <div class="planning-calendar-layout"><ol class="planning-timeline">${entries.map((item) => `<li><time>${academicDate(item.examDate)}</time><div><strong>${escapeHtml(item.title || item.name)}</strong><span>${escapeHtml(item.kind)}</span></div>${item.courseId ? '' : `<button class="planning-remove" data-academic-event-remove="${escapeHtml(item.id)}">Remove</button>`}</li>`).join('') || '<li><p>No dated exams or events.</p></li>'}</ol>
-    <div><form class="planning-event-form" data-academic-event><h2>Add academic event</h2><label><span>Title</span><input name="title" required></label><label><span>Date</span><input name="date" type="date" required></label><label><span>End date</span><input name="endDate" type="date"></label><label><span>Type</span><select name="type"><option>registration</option><option>deadline</option><option>ceremony</option><option>other</option></select></label><label><span>Notes</span><input name="notes"></label><button class="btn btn-primary">Add event</button></form>${workspace.events.map((item) => `<form class="planning-event-edit" data-academic-event-edit="${escapeHtml(item.id)}"><label><span>Event</span><input name="title" value="${escapeHtml(item.title)}" required></label><label><span>Date</span><input name="date" type="date" value="${escapeHtml(item.date || '')}"></label><label><span>End</span><input name="endDate" type="date" value="${escapeHtml(item.endDate || '')}"></label><label><span>Notes</span><input name="notes" value="${escapeHtml(item.notes)}"></label><button class="btn btn-secondary">Save</button></form>`).join('')}</div></div></div>`
+  const attempts = workspace.courses.flatMap((course) => course.attempts.filter((attempt) => attempt.examDate).map((attempt) => ({ id: `${course.id}/${attempt.id}`, date: attempt.examDate, title: course.name, code: course.code, kind: attempt.status === 'upcoming' ? (attempt.type === 'resit' ? 'Resit' : 'Exam') : attempt.status === 'passed' ? 'Passed' : attempt.status === 'failed' ? 'Failed' : 'No-show', status: attempt.status, courseId: course.id, editable: false })))
+  const events = workspace.events.filter((event) => event.date).map((event) => ({ ...event, kind: event.type, editable: true }))
+  const entries = [...attempts, ...events].sort((a, b) => a.date.localeCompare(b.date))
+  const today = new Date().toISOString().slice(0, 10)
+  const months = new Map()
+  for (const entry of entries) {
+    const key = entry.date.slice(0, 7)
+    months.set(key, [...(months.get(key) || []), entry])
+  }
+  const monthLabel = (key) => new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date(`${key}-01T00:00:00`))
+  const firstUpcoming = entries.find((entry) => entry.date >= today)
+  return `<div class="pl-page">
+    ${planningPageHeader('Calendar', 'Exam attempts from your courses plus registration windows, deadlines, and personal dates.', `<button type="button" class="btn ${planningEventComposerOpen ? 'btn-secondary' : 'btn-primary'} btn-sm" data-planning-event-toggle>${planningEventComposerOpen ? 'Close' : `${uiIcon('plus')} Add event`}</button>`)}
+    ${planningEventComposerOpen ? `<form class="pl-composer" data-academic-event aria-label="Add academic event">
+      <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt; add them from Courses.</span></div>
+      <div class="pl-fields pl-fields-event">
+        <label class="wide"><span>Title</span><input name="title" maxlength="200" required placeholder="Resit registration closes"></label>
+        <label><span>Date</span><input name="date" type="date" required></label>
+        <label><span>End date</span><input name="endDate" type="date"></label>
+        <label><span>Type</span><select name="type"><option value="registration">Registration</option><option value="deadline">Deadline</option><option value="ceremony">Ceremony</option><option value="other">Other</option></select></label>
+        <label class="wide"><span>Notes</span><input name="notes" maxlength="2000"></label>
+      </div>
+      <div class="pl-form-actions"><button class="btn btn-secondary" type="button" data-planning-event-toggle>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add event</button></div>
+    </form>` : ''}
+    ${entries.length ? [...months.entries()].map(([key, list]) => `<section class="pl-group">
+      <header><h3>${escapeHtml(monthLabel(key))}</h3><span>${list.length} ${list.length === 1 ? 'date' : 'dates'}</span></header>
+      <ol class="pl-timeline">${list.map((entry) => {
+        const expanded = entry.editable && planningExpandedEvent === entry.id
+        const past = entry.date < today
+        return `<li class="pl-timeline-item${past ? ' is-past' : ''}${firstUpcoming && firstUpcoming.id === entry.id ? ' is-next' : ''}${expanded ? ' is-expanded' : ''}">
+          <div class="pl-timeline-row"${entry.editable ? ` data-planning-expand-event="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-expanded="${expanded}"` : ''}>
+            <time datetime="${escapeHtml(entry.date)}"><strong>${new Date(`${entry.date}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(`${entry.date}T00:00:00`))}</span></time>
+            <div class="pl-timeline-copy"><strong>${escapeHtml(entry.code ? `${entry.code} · ${entry.title}` : entry.title)}</strong><span>${escapeHtml(entry.kind)}${entry.endDate ? ` · until ${academicDate(entry.endDate)}` : ''}${entry.notes ? ` · ${escapeHtml(entry.notes)}` : ''}</span></div>
+            ${entry.courseId ? `<a class="pl-link" href="#/planning/courses/${encodeURIComponent(entry.courseId)}">Course</a>` : `<span class="pl-chevron" aria-hidden="true">${uiIcon('chevronDown')}</span>`}
+          </div>
+          ${expanded ? `<form class="pl-editor pl-editor-event" data-academic-event-edit="${escapeHtml(entry.id)}">
+            <div class="pl-fields pl-fields-event">
+              <label class="wide"><span>Title</span><input name="title" value="${escapeHtml(entry.title)}" maxlength="200" required></label>
+              <label><span>Date</span><input name="date" type="date" value="${escapeHtml(entry.date || '')}"></label>
+              <label><span>End date</span><input name="endDate" type="date" value="${escapeHtml(entry.endDate || '')}"></label>
+              <label class="wide"><span>Notes</span><input name="notes" value="${escapeHtml(entry.notes || '')}" maxlength="2000"></label>
+            </div>
+            <div class="pl-form-actions"><button type="button" class="pl-danger-link" data-academic-event-remove="${escapeHtml(entry.id)}">Remove event</button><span class="pl-spacer"></span><button type="button" class="btn btn-secondary btn-sm" data-planning-expand-event="${escapeHtml(entry.id)}">Close</button><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
+          </form>` : ''}
+        </li>`
+      }).join('')}</ol>
+    </section>`).join('') : planningEmpty('No dated exams or events', 'Exam dates you add to course attempts appear here automatically, alongside any personal deadlines.', '<a class="btn btn-secondary btn-sm" href="#/planning/courses">Open courses</a>')}
+    ${academicsError ? `<p class="pl-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
+  </div>`
 }
 
-function renderPlanningCredits() {
-  const rows = academicsData.workspace.courses.map((course) => { const attempt = [...course.attempts].reverse().find((a) => a.status === 'passed'); return { course, attempt } })
-  return `<div class="planning-page">${planningPageHeader('Credits and GPA', 'Derived only from the attempts recorded in this programme')}<dl class="planning-summary"><div><dt>Earned credits</dt><dd>${academicsData.summary.earnedEcts}</dd></div><div><dt>Weighted GPA</dt><dd>${academicsData.summary.gpa ?? '—'}</dd></div><div><dt>Passed</dt><dd>${academicsData.summary.passedCourses}</dd></div><div><dt>Remaining courses</dt><dd>${academicsData.summary.totalCourses - academicsData.summary.passedCourses}</dd></div></dl><div class="planning-table-wrap"><table><thead><tr><th>Course</th><th>Level</th><th>ECTS</th><th>Latest passing grade</th><th>Earned</th></tr></thead><tbody>${rows.map(({course, attempt}) => `<tr><td>${escapeHtml(course.code)} ${escapeHtml(course.name)}</td><td>${escapeHtml(course.yearLevel || '—')}</td><td>${course.ects}</td><td>${attempt?.grade ?? '—'}</td><td>${attempt ? course.ects : 0}</td></tr>`).join('')}</tbody></table></div></div>`
+function gateDescription(gate, workspace) {
+  if (gate.type === 'course') {
+    const course = workspace.courses.find((item) => item.id === gate.courseId)
+    return course ? `Pass ${course.code || course.name}` : 'Pass a specific course'
+  }
+  if (gate.type === 'all-level') return `Pass every course in ${gate.level || 'the level'}`
+  if (gate.type === 'credit-level') return `${gate.target} ECTS in ${gate.level || 'the level'}`
+  return `${gate.target} ECTS in total`
+}
+
+function gateProgress(gate, workspace) {
+  const passed = (course) => course.attempts.some((attempt) => attempt.status === 'passed')
+  if (gate.type === 'course') return null
+  if (gate.type === 'all-level') {
+    const list = workspace.courses.filter((course) => course.yearLevel === gate.level && !course.hiddenFromStats)
+    return { value: list.filter(passed).length, target: list.length, unit: 'courses' }
+  }
+  const earned = workspace.courses.filter((course) => !course.hiddenFromStats && passed(course) && (gate.type !== 'credit-level' || course.yearLevel === gate.level)).reduce((sum, course) => sum + course.ects, 0)
+  return { value: earned, target: gate.target, unit: 'ECTS' }
+}
+
+function renderPlanningProgress() {
+  const workspace = academicsData.workspace
+  const summary = academicsData.summary
+  const groups = planningYearGroups(workspace.courses)
+  const totalEcts = workspace.courses.filter((course) => !course.hiddenFromStats).reduce((sum, course) => sum + course.ects, 0)
+  const gatesMet = workspace.gates.filter((gate) => gateResolved(gate, workspace)).length
+  return `<div class="pl-page">
+    ${planningPageHeader('Progress', 'Credits, GPA, and requirements derived only from the attempts recorded in this programme.')}
+    ${planningStats([
+      ['Earned credits', `${summary.earnedEcts}<small> / ${totalEcts}</small>`, 'ECTS from passed attempts'],
+      ['Weighted GPA', summary.gpa ?? '—', workspace.profile.gpaIncludesFailedCourses ? 'Includes failed attempts' : 'Passed attempts only'],
+      ['Courses passed', `${summary.passedCourses}<small> / ${summary.totalCourses}</small>`, `${summary.totalCourses - summary.passedCourses} remaining`],
+      ['Requirements met', workspace.gates.length ? `${gatesMet}<small> / ${workspace.gates.length}</small>` : '—', workspace.gates.length ? 'Configured for this cohort' : 'None configured']
+    ])}
+
+    ${planningSectionHead('Requirements', 'Progression and completion rules for your cohort. Nothing is assumed from the shared catalogue.', `<button type="button" class="btn ${planningGateComposerOpen ? 'btn-secondary' : 'btn-primary'} btn-sm" data-planning-gate-toggle>${planningGateComposerOpen ? 'Close' : `${uiIcon('plus')} Add requirement`}</button>`)}
+    ${planningGateComposerOpen ? `<form class="pl-composer" data-academic-gate aria-label="Add requirement">
+      <div class="pl-fields pl-fields-gate">
+        <label class="wide"><span>Requirement</span><input name="label" maxlength="200" required placeholder="Binding study advice · 40 ECTS"></label>
+        <label><span>Section</span><select name="section"><option value="progression">Progression</option><option value="completion">Completion</option><option value="thesis">Thesis</option><option value="other">Other</option></select></label>
+        <label><span>Rule</span><select name="type" data-planning-gate-type><option value="total-credits">Total credits</option><option value="credit-level">Credits in a level</option><option value="all-level">All courses in a level</option><option value="course">Specific course</option></select></label>
+        <label><span>Level</span><input name="level" maxlength="40" placeholder="Year 1"></label>
+        <label><span>Target credits</span><input name="target" type="number" min="0" step="0.5"></label>
+        <label><span>Course</span><select name="courseId"><option value="">None</option>${workspace.courses.map((course) => `<option value="${escapeHtml(course.id)}">${escapeHtml(course.code || course.name)}</option>`).join('')}</select></label>
+      </div>
+      <div class="pl-form-actions"><button class="btn btn-secondary" type="button" data-planning-gate-toggle>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add requirement</button></div>
+    </form>` : ''}
+    ${workspace.gates.length ? `<ul class="pl-gates">${workspace.gates.map((gate) => {
+      const met = gateResolved(gate, workspace)
+      const progress = gateProgress(gate, workspace)
+      const expanded = planningExpandedGate === gate.id
+      return `<li class="pl-gate${met ? ' is-met' : ''}${expanded ? ' is-expanded' : ''}">
+        <div class="pl-gate-row" data-planning-expand-gate="${escapeHtml(gate.id)}" tabindex="0" role="button" aria-expanded="${expanded}">
+          <span class="pl-gate-state">${met ? uiIcon('check') : ''}</span>
+          <div class="pl-gate-copy"><strong>${escapeHtml(gate.label)}</strong><span>${escapeHtml(gate.section || 'other')} · ${escapeHtml(gateDescription(gate, workspace))}</span></div>
+          <div class="pl-gate-progress">${progress ? `<span>${progress.value}<small> / ${progress.target} ${progress.unit}</small></span><i style="--pct:${progress.target ? Math.min(100, Math.round((progress.value / progress.target) * 100)) : 0}%"></i>` : `<span>${met ? 'Met' : 'Open'}</span>`}</div>
+          <span class="pl-chevron" aria-hidden="true">${uiIcon('chevronDown')}</span>
+        </div>
+        ${expanded ? `<form class="pl-editor" data-academic-gate-edit="${escapeHtml(gate.id)}">
+          <div class="pl-fields pl-fields-gate">
+            <label class="wide"><span>Requirement</span><input name="label" value="${escapeHtml(gate.label)}" maxlength="200" required></label>
+            <label><span>Level</span><input name="level" value="${escapeHtml(gate.level || '')}" maxlength="40"></label>
+            <label><span>Target</span><input name="target" type="number" min="0" step="0.5" value="${gate.target}"></label>
+          </div>
+          <div class="pl-form-actions"><button type="button" class="pl-danger-link" data-academic-gate-remove="${escapeHtml(gate.id)}">Remove requirement</button><span class="pl-spacer"></span><button type="button" class="btn btn-secondary btn-sm" data-planning-expand-gate="${escapeHtml(gate.id)}">Close</button><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
+        </form>` : ''}
+      </li>`
+    }).join('')}</ul>` : planningEmpty('No requirements configured', 'Add the official progression and completion rules that apply to your cohort, such as a binding study advice threshold.')}
+
+    ${planningSectionHead('Credits', 'Best passing grade per course. Excluded courses are shown but do not count.')}
+    ${groups.map((group) => {
+      const earned = group.courses.filter((course) => !course.hiddenFromStats && course.attempts.some((attempt) => attempt.status === 'passed')).reduce((sum, course) => sum + course.ects, 0)
+      return `<section class="pl-group">
+        <header><h3>${escapeHtml(group.level)}</h3><span>${earned} of ${group.courses.filter((course) => !course.hiddenFromStats).reduce((sum, course) => sum + course.ects, 0)} ECTS earned</span></header>
+        <div class="pl-table-wrap"><table class="pl-table pl-table-credits">
+          <thead><tr><th class="col-code">Code</th><th>Course</th><th class="col-num">ECTS</th><th class="col-num">Best grade</th><th class="col-num">Earned</th><th class="col-status">Status</th></tr></thead>
+          <tbody>${group.courses.map((course) => {
+            const passing = course.attempts.filter((attempt) => attempt.status === 'passed' && attempt.grade !== null && attempt.grade !== undefined)
+            const best = passing.length ? Math.max(...passing.map((attempt) => attempt.grade)) : null
+            const passed = course.attempts.some((attempt) => attempt.status === 'passed')
+            return `<tr class="${course.hiddenFromStats ? 'is-hidden' : ''}">
+              <td class="col-code">${escapeHtml(course.code || '—')}</td>
+              <td class="col-name"><span>${escapeHtml(course.name)}</span>${course.hiddenFromStats ? '<small>Excluded from statistics</small>' : ''}</td>
+              <td class="col-num">${course.ects}</td>
+              <td class="col-num">${best ?? (passed ? 'Pass' : '—')}</td>
+              <td class="col-num">${passed && !course.hiddenFromStats ? course.ects : 0}</td>
+              <td class="col-status">${planningStatusPill(course)}</td>
+            </tr>`
+          }).join('')}</tbody>
+        </table></div>
+      </section>`
+    }).join('')}
+    ${academicsError ? `<p class="pl-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
+  </div>`
+}
+
+function renderPlanningPlanner() {
+  const workspace = academicsData.workspace
+  const insights = planningInsights(workspace)
+  const objectiveFor = (course) => workspace.planning.objectives?.[course.id] || { mode: 'current', outcome: 'actual' }
+  const isPassed = (course) => course.attempts.some((attempt) => attempt.status === 'passed')
+  const projectedCourses = workspace.courses.filter((course) => !course.hiddenFromStats && (isPassed(course) || (objectiveFor(course).mode !== 'none' && objectiveFor(course).outcome === 'pass')))
+  const projectedCredits = projectedCourses.reduce((sum, course) => sum + course.ects, 0)
+  const open = workspace.courses.filter((course) => !isPassed(course))
+  const planned = open.filter((course) => objectiveFor(course).mode !== 'current' || objectiveFor(course).outcome !== 'actual').length
+  const gatesProjected = workspace.gates.filter((gate) => gateResolved(gate, workspace, true)).length
+  const groups = planningYearGroups(open)
+  const totalEcts = workspace.courses.filter((course) => !course.hiddenFromStats).reduce((sum, course) => sum + course.ects, 0)
+  return `<div class="pl-page">
+    ${planningPageHeader('Scenario planner', 'Plan which courses you will sit and assume outcomes to see projected credits and requirements. Recorded grades are never changed.', planned ? `<button type="button" class="btn btn-secondary btn-sm" data-planning-scenario-reset>Reset scenario</button>` : '')}
+    ${planningStats([
+      ['Projected credits', `${projectedCredits}<small> / ${totalEcts}</small>`, `${academicsData.summary.earnedEcts} earned today`],
+      ['Requirements', workspace.gates.length ? `${gatesProjected}<small> / ${workspace.gates.length}</small>` : '—', workspace.gates.length ? 'Met in this scenario' : 'None configured'],
+      ['Open courses', open.length, `${planned} with planned outcomes`],
+      ['Highest risk', insights.priority[0] ? escapeHtml(insights.priority[0].course.code || insights.priority[0].course.name) : '—', insights.priority[0] ? (insights.priority[0].days === null ? 'No exam date' : `${insights.priority[0].days} days to exam`) : 'No open courses']
+    ])}
+    <div class="pl-columns">
+      <div class="pl-main">
+        ${planningSectionHead('Assumptions', 'Passed courses are fixed. Set how you plan to sit each open course and the outcome to assume.')}
+        ${groups.length ? groups.map((group) => `<section class="pl-group">
+          <header><h3>${escapeHtml(group.level)}</h3><span>${group.courses.length} open · ${group.ects} ECTS</span></header>
+          <div class="pl-table-wrap"><table class="pl-table pl-table-planner">
+            <thead><tr><th class="col-code">Code</th><th>Course</th><th class="col-num">ECTS</th><th class="col-status">Recorded</th><th class="col-select">Plan</th><th class="col-select">Assume</th></tr></thead>
+            <tbody>${group.courses.map((course) => {
+              const objective = objectiveFor(course)
+              const skipped = objective.mode === 'none'
+              return `<tr class="${skipped ? 'is-hidden' : ''}${objective.outcome === 'pass' ? ' is-planned-pass' : objective.outcome === 'fail' ? ' is-planned-fail' : ''}">
+                <td class="col-code">${escapeHtml(course.code || '—')}</td>
+                <td class="col-name"><span>${escapeHtml(course.name)}</span></td>
+                <td class="col-num">${course.ects}</td>
+                <td class="col-status">${planningStatusPill(course)}</td>
+                <td class="col-select"><select data-academic-objective-mode="${escapeHtml(course.id)}" aria-label="Plan for ${escapeHtml(course.name)}"><option value="current" ${objective.mode === 'current' ? 'selected' : ''}>Current sit</option><option value="resit" ${objective.mode === 'resit' ? 'selected' : ''}>Planned resit</option><option value="none" ${skipped ? 'selected' : ''}>Do not sit</option></select></td>
+                <td class="col-select"><select data-academic-objective-outcome="${escapeHtml(course.id)}" aria-label="Assumed outcome for ${escapeHtml(course.name)}" ${skipped ? 'disabled' : ''}><option value="actual" ${objective.outcome === 'actual' ? 'selected' : ''}>As recorded</option><option value="pass" ${objective.outcome === 'pass' ? 'selected' : ''}>Pass</option><option value="fail" ${objective.outcome === 'fail' ? 'selected' : ''}>Fail</option></select></td>
+              </tr>`
+            }).join('')}</tbody>
+          </table></div>
+        </section>`).join('') : planningEmpty('Nothing left to simulate', 'Every course in this record has a passed attempt.')}
+      </div>
+      <aside class="pl-aside">
+        <section class="pl-aside-block">
+          <h2>Focus order</h2>
+          ${insights.priority.length ? `<ul class="pl-focus">${insights.priority.slice(0, 8).map((item) => `<li><span class="pl-risk is-${item.risk}">${item.risk}</span><div><strong>${escapeHtml(item.course.code || item.course.name)}</strong><span>${item.days === null ? 'No exam date' : item.days < 0 ? `${Math.abs(item.days)} days ago` : item.days === 0 ? 'Today' : `In ${item.days} day${item.days === 1 ? '' : 's'}`} · ${item.course.ects} ECTS</span></div></li>`).join('')}</ul>` : '<p>No open courses in this scenario.</p>'}
+        </section>
+        <section class="pl-aside-block">
+          <h2>Load per period</h2>
+          ${insights.periods.length ? `<ul class="pl-periods">${insights.periods.map((item) => `<li><strong>${escapeHtml(item.period)}</strong><span>${item.count} course${item.count === 1 ? '' : 's'} · ${item.ects} ECTS</span></li>`).join('')}</ul>` : '<p>No open periods.</p>'}
+        </section>
+        <section class="pl-aside-block">
+          <h2>Shortest route to credit targets</h2>
+          ${insights.minimumPaths.length ? `<ul class="pl-paths">${insights.minimumPaths.map((item) => `<li><strong>${escapeHtml(item.gate.label)}</strong><span>${item.gap} ECTS short · ${item.courses.map((course) => escapeHtml(course.code || course.name)).join(', ') || 'no eligible courses'}</span></li>`).join('')}</ul>` : `<p>${workspace.gates.length ? 'Every credit target is already met.' : 'Add credit requirements in Progress to see the shortest path.'}</p>`}
+        </section>
+      </aside>
+    </div>
+    ${academicsError ? `<p class="pl-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
+  </div>`
+}
+
+function renderPlanningSettings() {
+  const index = academicsData.index
+  const workspace = academicsData.workspace
+  return `<div class="pl-page pl-page-narrow">
+    ${planningPageHeader('Planning settings', 'Programmes, statistics rules, and portable copies of this record.')}
+    <section class="pl-settings-section">
+      ${planningSectionHead('Programmes', 'Each programme is a separate private record with its own curriculum, attempts, and rules.')}
+      <ul class="pl-programmes">${index.programmes.map((item) => `<li class="${item.id === index.activeProgrammeId ? 'is-active' : ''}">
+        <div><strong>${escapeHtml(item.programme || 'Untitled programme')}</strong><span>${escapeHtml(item.academicYear || 'No academic year')}</span></div>
+        ${item.id === index.activeProgrammeId ? '<span class="pl-pill is-passed">Active</span>' : `<button type="button" class="btn btn-secondary btn-sm" data-academic-switch="${escapeHtml(item.id)}">Switch</button>`}
+      </li>`).join('')}</ul>
+      <form class="pl-composer" data-academic-programme-create aria-label="Create programme">
+        <div class="pl-fields pl-fields-programme">
+          <label class="wide"><span>New programme</span><input name="programme" maxlength="200" required placeholder="MSc Data Science"></label>
+          <label><span>Academic year or cohort</span><input name="academicYear" maxlength="30" placeholder="2027–2028"></label>
+        </div>
+        <div class="pl-form-actions"><button class="btn btn-secondary" type="submit" ${academicsLoading ? 'disabled' : ''}>Create and switch</button></div>
+      </form>
+    </section>
+    <section class="pl-settings-section">
+      ${planningSectionHead('Statistics')}
+      <label class="pl-setting-row"><div><strong>Include failed attempts in weighted GPA</strong><span>Some programmes average every recorded attempt; others count only passes.</span></div><input type="checkbox" role="switch" data-academic-failed-gpa ${workspace.profile.gpaIncludesFailedCourses ? 'checked' : ''}></label>
+    </section>
+    <section class="pl-settings-section">
+      ${planningSectionHead('Portable data', 'Download this programme or import a Wicker Study academics file into a new programme. Course-code matches are shown before anything is saved.')}
+      <div class="pl-setting-actions"><button class="btn btn-secondary" data-academic-export>${uiIcon('download')} Download JSON</button><label class="btn btn-secondary pl-import">${uiIcon('upload')} Import JSON<input type="file" accept="application/json" data-academic-import></label></div>
+    </section>
+    ${index.programmes.length > 1 ? `<section class="pl-settings-section pl-danger-zone">
+      <div><strong>Delete the active programme</strong><p>Removes its curriculum, attempts, events, and scenarios. Other programmes are not affected.</p></div>
+      <button class="btn btn-danger" data-academic-programme-delete>Delete programme</button>
+    </section>` : ''}
+    ${academicsError ? `<p class="pl-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
+  </div>`
 }
 
 function gateResolved(gate, workspace, projected = false) {
@@ -1879,6 +2270,7 @@ function gateResolved(gate, workspace, projected = false) {
   const earned = workspace.courses.filter((c) => !c.hiddenFromStats && passed(c) && (gate.type !== 'credit-level' || c.yearLevel === gate.level)).reduce((sum, c) => sum + c.ects, 0)
   return earned >= gate.target
 }
+
 
 function planningInsights(workspace) {
   const open = workspace.courses.filter((course) => {
@@ -1913,22 +2305,6 @@ function planningInsights(workspace) {
   return { priority, periods: [...periodMap.values()], minimumPaths }
 }
 
-function renderPlanningRequirements() {
-  const workspace = academicsData.workspace
-  return `<div class="planning-page">${planningPageHeader('Requirements', 'Configure the rules for this programme and cohort—never assume them globally')}<div class="planning-gates">${workspace.gates.map((gate) => `<form data-academic-gate-edit="${escapeHtml(gate.id)}"><span class="planning-gate-state ${gateResolved(gate, workspace) ? 'met' : ''}">${gateResolved(gate, workspace) ? 'Met' : 'Open'}</span><label><span>Requirement</span><input name="label" value="${escapeHtml(gate.label)}" required></label><label><span>Level</span><input name="level" value="${escapeHtml(gate.level || '')}"></label><label><span>Target</span><input name="target" type="number" min="0" value="${gate.target}"></label><button class="btn btn-secondary">Save</button><button type="button" class="planning-remove" data-academic-gate-remove="${escapeHtml(gate.id)}">Remove</button></form>`).join('') || '<div class="planning-empty"><h2>No requirements configured</h2><p>Add the official rules that apply to your cohort.</p></div>'}</div><form class="planning-gate-form" data-academic-gate><h2>Add requirement</h2><label><span>Label</span><input name="label" required></label><label><span>Section</span><select name="section"><option>progression</option><option>completion</option><option>thesis</option><option>other</option></select></label><label><span>Rule type</span><select name="type"><option value="total-credits">Total credits</option><option value="credit-level">Credits in level</option><option value="all-level">All courses in level</option><option value="course">Specific course</option></select></label><label><span>Level</span><input name="level" placeholder="Year 2"></label><label><span>Target credits</span><input name="target" type="number" min="0"></label><label><span>Course</span><select name="courseId"><option value="">None</option>${workspace.courses.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.code || c.name)}</option>`).join('')}</select></label><button class="btn btn-primary">Add requirement</button></form></div>`
-}
-
-function renderPlanningPlanner() {
-  const workspace = academicsData.workspace
-  const insights = planningInsights(workspace)
-  const projectedCredits = workspace.courses.filter((course) => { const objective = workspace.planning.objectives?.[course.id]; return course.attempts.some((a) => a.status === 'passed') || (objective?.mode !== 'none' && objective?.outcome === 'pass') }).reduce((sum, c) => sum + c.ects, 0)
-  return `<div class="planning-page">${planningPageHeader('Scenario planner', 'Explore outcomes without changing recorded grades or attempts')}<div class="planning-scenario-summary"><strong>${projectedCredits} projected ECTS</strong><span>${workspace.gates.filter((g) => gateResolved(g, workspace, true)).length} of ${workspace.gates.length} configured requirements met</span></div><div class="planning-scenario-list">${workspace.courses.filter((c) => !c.attempts.some((a) => a.status === 'passed')).map((course) => { const objective = workspace.planning.objectives?.[course.id] || { mode: 'current', outcome: 'actual' }; return `<label><span><strong>${escapeHtml(course.code || course.name)}</strong><small>${course.ects} ECTS · ${escapeHtml(course.name)}</small></span><select data-academic-objective-mode="${escapeHtml(course.id)}"><option value="current" ${objective.mode === 'current' ? 'selected' : ''}>Current sit</option><option value="resit" ${objective.mode === 'resit' ? 'selected' : ''}>Planned resit</option><option value="none" ${objective.mode === 'none' ? 'selected' : ''}>Do not sit</option></select><select data-academic-objective-outcome="${escapeHtml(course.id)}"><option value="actual" ${objective.outcome === 'actual' ? 'selected' : ''}>Use recorded outcome</option><option value="pass" ${objective.outcome === 'pass' ? 'selected' : ''}>Plan pass</option><option value="fail" ${objective.outcome === 'fail' ? 'selected' : ''}>Plan fail</option></select></label>` }).join('') || '<div class="planning-empty"><p>No unresolved courses to simulate.</p></div>'}</div><div class="planning-insights"><section><h2>Focus priority</h2>${insights.priority.map((item) => `<div><span class="planning-risk ${item.risk}">${item.risk}</span><strong>${escapeHtml(item.course.code || item.course.name)}</strong><small>${item.days === null ? 'No exam date' : `${item.days} days`} · ${item.course.ects} ECTS</small></div>`).join('') || '<p>No open courses.</p>'}</section><section><h2>Period pressure</h2>${insights.periods.map((item) => `<div><strong>${escapeHtml(item.period)}</strong><span>${item.count} courses · ${item.ects} ECTS</span></div>`).join('') || '<p>No open periods.</p>'}</section><section><h2>Minimum paths</h2>${insights.minimumPaths.map((item) => `<div><strong>${escapeHtml(item.gate.label)}</strong><span>${item.gap} ECTS gap · ${item.courses.map((c) => escapeHtml(c.code || c.name)).join(', ') || 'No eligible courses'}</span></div>`).join('') || '<p>No unmet credit targets.</p>'}</section></div></div>`
-}
-
-function renderPlanningSettings() {
-  const index = academicsData.index
-  return `<div class="planning-page">${planningPageHeader('Planning settings', 'Manage programmes and portable academic records')}<section class="planning-settings-section"><h2>Programmes</h2><div class="planning-programmes">${index.programmes.map((item) => `<button data-academic-switch="${escapeHtml(item.id)}" class="${item.id === index.activeProgrammeId ? 'active' : ''}"><strong>${escapeHtml(item.programme || 'Untitled programme')}</strong><span>${escapeHtml(item.academicYear || 'No academic year')}</span></button>`).join('')}</div><form data-academic-programme-create><label><span>New programme</span><input name="programme" required></label><label><span>Academic year or cohort</span><input name="academicYear"></label><button class="btn btn-primary">Create and switch</button></form></section><section class="planning-settings-section"><h2>Statistics</h2><label class="planning-check"><input type="checkbox" data-academic-failed-gpa ${academicsData.workspace.profile.gpaIncludesFailedCourses ? 'checked' : ''}><span>Include failed attempts in weighted GPA</span></label></section><section class="planning-settings-section"><h2>Portable data</h2><p>Export this programme or import an academics JSON file into a new programme. You will review course-code matches before import.</p><div class="planning-setting-actions"><button class="btn btn-secondary" data-academic-export>Download programme JSON</button><label class="btn btn-secondary planning-import">Import JSON<input type="file" accept="application/json" data-academic-import></label></div></section>${index.programmes.length > 1 ? `<section class="planning-settings-section danger-zone"><div><h2>Delete active programme</h2><p>Removes its curriculum, attempts, events, and scenarios. Other programmes remain.</p></div><button class="btn btn-danger" data-academic-programme-delete>Delete programme</button></section>` : ''}</div>`
-}
 
 function formatUsageNumber(value) {
   return new Intl.NumberFormat('en-GB').format(Math.max(0, Number(value) || 0))
@@ -2256,31 +2632,35 @@ function renderDashboard() {
     </section>
     <section class="hero">
       <div>
-        <p class="eyebrow">Dashboard</p>
-        <h1>Study plan and course readiness.</h1>
-        <p class="hero-copy">Resume the material that matters, clear due reviews, and see where exam preparation is still thin.</p>
+        <h1>Courses</h1>
+        <p class="hero-copy">${activeCourses().length} active course${activeCourses().length === 1 ? '' : 's'} · resume reading, clear due reviews, and see where preparation is still thin.</p>
       </div>
       <div class="hero-meter">
         <span>${progress.masteryPct}%</span>
-        <small>${progress.done}/${progress.total} items at mastery ≥ ${doneThreshold()} · avg ${progress.avg.toFixed(2)}/4</small>
+        <small>${progress.done} of ${progress.total} chapters at mastery ≥ ${doneThreshold()} · average ${progress.avg.toFixed(2)} / 4</small>
       </div>
     </section>
 
-    <section class="practice-strip">
+    <section class="practice-strip" aria-label="Study queues">
       <a class="practice-card sr-card" href="#/practice">
-        <p class="eyebrow">Across active courses</p>
-        <strong>↗</strong>
-        <small>Continue with a mixed set of published exercises</small>
+        <p class="eyebrow">Mixed practice</p>
+        <strong></strong>
+        <small>Published exercises across every active course</small>
       </a>
       <a class="practice-card mistakes-card" href="#/mistakes">
         <p class="eyebrow">Mistake bank</p>
         <strong>${mistakeCount == null ? '—' : mistakeCount}</strong>
         <small>${mistakeCount == null ? 'Loading…' : `open ${mistakeCount === 1 ? 'mistake' : 'mistakes'} to review`}</small>
       </a>
+      <a class="practice-card sr-due-card" href="#/sr">
+        <p class="eyebrow">Flashcards due</p>
+        <strong>${srDue == null ? '—' : srDue}</strong>
+        <small>${srTotal == null ? 'Loading…' : `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck`}</small>
+      </a>
       <a class="practice-card mocks-card" href="#/mocks">
-        <p class="eyebrow">Mini-mocks</p>
-        <strong>↗</strong>
-        <small>Start a timed exam in any chapter, or revisit past sessions</small>
+        <p class="eyebrow">Timed mocks</p>
+        <strong></strong>
+        <small>Start a timed session from any chapter or review past ones</small>
       </a>
     </section>
 
@@ -2450,14 +2830,14 @@ function renderCourseCard(course, index = 0, total = 0) {
   `
   if (!dashboardManageMode) {
     return `
-      <a class="course-card ${isArchived ? 'is-archived' : ''}" href="#/course/${course.id}" style="--accent:${course.accent}">
+      <a class="course-card ${isArchived ? 'is-archived' : ''}" href="#/course/${course.id}" style="--accent:${course.accent}" data-mastery="${progress.masteryPct}%">
         ${inner}
       </a>
     `
   }
   // Manage mode — card is not a link; show archive + reorder controls.
   return `
-    <article class="course-card is-managing ${isArchived ? 'is-archived' : ''}" style="--accent:${course.accent}">
+    <article class="course-card is-managing ${isArchived ? 'is-archived' : ''}" style="--accent:${course.accent}" data-mastery="${progress.masteryPct}%">
       ${inner}
       <div class="course-card-manage">
         ${isArchived ? `
@@ -3097,7 +3477,7 @@ function renderCourseToolkit(course, supportChapters) {
     <section class="course-toolkit-panel">
       <div class="panel-head">
         <div><p class="eyebrow">Exam toolkit</p><h2>Support pages</h2></div>
-        <small>Grouped here so the course spine stays honest.</small>
+        <small>Exam skills, cram sheets, self-tests, and drills.</small>
       </div>
       <div class="toolkit-tabs">
         ${supportChapters.map((ch) => {
@@ -7696,7 +8076,39 @@ function bindEvents() {
   document.querySelectorAll('[data-planning-course-toggle]').forEach((button) => button.addEventListener('click', () => {
     planningCourseComposerOpen = !planningCourseComposerOpen
     render()
+    if (planningCourseComposerOpen) document.querySelector('.pl-composer input[name="code"]')?.focus()
   }))
+  document.querySelectorAll('[data-planning-event-toggle]').forEach((button) => button.addEventListener('click', () => { planningEventComposerOpen = !planningEventComposerOpen; render() }))
+  document.querySelectorAll('[data-planning-gate-toggle]').forEach((button) => button.addEventListener('click', () => { planningGateComposerOpen = !planningGateComposerOpen; render() }))
+  document.querySelectorAll('[data-planning-structure-toggle]').forEach((button) => button.addEventListener('click', () => { planningStructureOpen = !planningStructureOpen; render() }))
+  const planningExpandHandler = (attr, apply) => (element) => {
+    const activate = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return
+      if (event.target !== element && event.target.closest('a, button, input, select, textarea, label, form')) return
+      event.preventDefault()
+      apply(element.dataset[attr])
+      render()
+      if (attr === 'planningExpand' && planningExpandedCourse) document.getElementById(`pl-editor-${planningExpandedCourse}`)?.scrollIntoView({ block: 'nearest' })
+    }
+    element.addEventListener('click', activate)
+    if (element.tagName !== 'BUTTON') element.addEventListener('keydown', activate)
+  }
+  document.querySelectorAll('[data-planning-expand]').forEach(planningExpandHandler('planningExpand', (id) => { planningExpandedCourse = planningExpandedCourse === id ? null : id }))
+  document.querySelectorAll('[data-planning-expand-event]').forEach(planningExpandHandler('planningExpandEvent', (id) => { planningExpandedEvent = planningExpandedEvent === id ? null : id }))
+  document.querySelectorAll('[data-planning-expand-gate]').forEach(planningExpandHandler('planningExpandGate', (id) => { planningExpandedGate = planningExpandedGate === id ? null : id }))
+  document.querySelectorAll('[data-planning-scenario-reset]').forEach((button) => button.addEventListener('click', () => saveAcademics({ ...academicsData.workspace, planning: { objectives: {} } })))
+  document.querySelectorAll('[data-planning-gate-type]').forEach((select) => {
+    const sync = () => {
+      const form = select.closest('form')
+      const level = form.querySelector('[name="level"]').closest('label')
+      const target = form.querySelector('[name="target"]').closest('label')
+      const course = form.querySelector('[name="courseId"]').closest('label')
+      level.hidden = !['credit-level', 'all-level'].includes(select.value)
+      target.hidden = !['total-credits', 'credit-level'].includes(select.value)
+      course.hidden = select.value !== 'course'
+    }
+    select.addEventListener('change', sync); sync()
+  })
   document.querySelectorAll('[data-academic-profile]').forEach((form) => form.addEventListener('submit', async (event) => {
     event.preventDefault()
     if (!academicsData) return
@@ -7722,6 +8134,7 @@ function bindEvents() {
     if (!academicsData) return
     const course = academicsData.workspace.courses.find((item) => item.id === button.dataset.academicRemove)
     if (!course || !confirm(`Remove ${course.name} and its attempt history from this programme?`)) return
+    planningExpandedCourse = null
     saveAcademics({ ...academicsData.workspace, courses: academicsData.workspace.courses.filter((item) => item.id !== course.id) })
   }))
   document.querySelectorAll('[data-academic-course-edit]').forEach((form) => form.addEventListener('submit', (event) => {
@@ -7752,9 +8165,10 @@ function bindEvents() {
   document.querySelectorAll('[data-academic-event]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(form)
     const item = { id: `event-${Date.now()}`, title: data.get('title'), date: data.get('date'), endDate: data.get('endDate') || null, type: data.get('type'), notes: data.get('notes') }
+    planningEventComposerOpen = false
     saveAcademics({ ...academicsData.workspace, events: [...academicsData.workspace.events, item] })
   }))
-  document.querySelectorAll('[data-academic-event-remove]').forEach((button) => button.addEventListener('click', () => saveAcademics({ ...academicsData.workspace, events: academicsData.workspace.events.filter((item) => item.id !== button.dataset.academicEventRemove) })))
+  document.querySelectorAll('[data-academic-event-remove]').forEach((button) => button.addEventListener('click', () => { planningExpandedEvent = null; return saveAcademics({ ...academicsData.workspace, events: academicsData.workspace.events.filter((item) => item.id !== button.dataset.academicEventRemove) }) }))
   document.querySelectorAll('[data-academic-event-edit]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(form); const id = form.dataset.academicEventEdit
     const events = academicsData.workspace.events.map((item) => item.id === id ? { ...item, title: data.get('title'), date: data.get('date') || null, endDate: data.get('endDate') || null, notes: data.get('notes') } : item)
@@ -7763,9 +8177,10 @@ function bindEvents() {
   document.querySelectorAll('[data-academic-gate]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(form)
     const gate = { id: `gate-${Date.now()}`, label: data.get('label'), section: data.get('section'), type: data.get('type'), level: data.get('level') || null, target: Number(data.get('target') || 0), courseId: data.get('courseId') || null }
+    planningGateComposerOpen = false
     saveAcademics({ ...academicsData.workspace, gates: [...academicsData.workspace.gates, gate] })
   }))
-  document.querySelectorAll('[data-academic-gate-remove]').forEach((button) => button.addEventListener('click', () => saveAcademics({ ...academicsData.workspace, gates: academicsData.workspace.gates.filter((item) => item.id !== button.dataset.academicGateRemove) })))
+  document.querySelectorAll('[data-academic-gate-remove]').forEach((button) => button.addEventListener('click', () => { planningExpandedGate = null; return saveAcademics({ ...academicsData.workspace, gates: academicsData.workspace.gates.filter((item) => item.id !== button.dataset.academicGateRemove) }) }))
   document.querySelectorAll('[data-academic-gate-edit]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(form); const id = form.dataset.academicGateEdit
     const gates = academicsData.workspace.gates.map((item) => item.id === id ? { ...item, label: data.get('label'), level: data.get('level') || null, target: Number(data.get('target') || 0) } : item)

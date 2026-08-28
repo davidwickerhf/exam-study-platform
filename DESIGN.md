@@ -108,15 +108,23 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
   Export is a normal account action; deletion is isolated in a bordered danger
   zone and requires a typed confirmation in a focused modal or mobile sheet.
 - Academic Planning is one destination with a sticky, horizontally scrollable
-  local tab row for Overview, Courses, Curriculum, Calendar, Credits,
-  Requirements, Planner, and Planning settings. These views remain peers inside
-  the destination; do not reproduce them as global navigation or separate
+  local tab row for Overview, Courses, Calendar, Progress, Planner, and
+  Settings. Courses holds the curriculum ledger, programme-structure choices,
+  and per-course editing (expanded in place beneath the row); Progress holds
+  credits, GPA, and requirements. These views remain peers inside the
+  destination; do not reproduce them as global navigation or separate
   dashboard cards.
 - Planning uses the academic-ledger grammar at editing density: programme facts,
   course attempts, requirements, dated events, scenarios, and derived results
-  are aligned in ruled rows or compact tables. Secondary creation forms may sit
-  on the subtle grouped surface, but the records themselves remain flat and
-  directly editable.
+  are aligned in ruled rows or compact tables grouped by study year. Records
+  are read-first: a row expands to reveal its editor, only one editor is open
+  at a time, and destructive actions live inside that editor as quiet text
+  links. Creation forms are collapsed composers opened from the page header,
+  sitting on the subtle grouped surface.
+- Every signed-in utility page (dashboard, practice, mistakes, flashcards,
+  mocks, settings, planning) opens with the same flat page header: a 28px
+  title, one line of secondary copy, an optional monospace meter at right, and
+  a strong hairline beneath. Page titles never sit inside a bordered card.
 - Planning data is explicitly private and programme/cohort-specific. Keep the
   account-privacy marker visible in each planning view, describe derived values
   as consequences of the student's own record, and never imply that the shared

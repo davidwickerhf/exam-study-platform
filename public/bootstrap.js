@@ -131,7 +131,7 @@ async function startApplication() {
   document.body.classList.add('app-mode')
   document.getElementById('app').innerHTML = '<main class="boot-loading"><p>Opening your study record…</p></main>'
   await loadStudyDependencies()
-  await import(`/app.js?v=20260827-known-programmes-1`)
+  await import(`/app.js?v=20260828-surface-pass`)
 }
 
 async function configureCloudSync() {
