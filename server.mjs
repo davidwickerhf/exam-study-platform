@@ -29,7 +29,9 @@ import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
-import { editorialMode, getMaterial, getMaterialText, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
+import { editorialMode, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
+import * as admin from './lib/editorial-admin.mjs'
+import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -1056,17 +1058,26 @@ async function analyseAcademicIntake(body) {
   }
 }
 
-async function loadOrGenerateQuestions(state, course, chapter) {
-  const cachePath = resolve(cacheDir, 'questions', `${course.id}-${chapter.id}.json`)
-  let published = []
-  if (existsSync(cachePath)) {
-    try {
-      const cached = JSON.parse(await readFile(cachePath, 'utf8'))
-      if (cached.questions && cached.questions.length) published = cached.questions
-      // Empty cache from a previous failed publish — fall through to bundled
-      // self-test material, never to student-triggered AI generation.
-    } catch {}
+// Published question banks live in editorial_questions on the hosted
+// database (editable through the admin API) and in data/cache/questions
+// files locally.
+async function publishedQuestions(course, chapter) {
+  if (editorialMode() === 'neon') {
+    const rows = await getPublishedQuestions(course.id, chapter.id).catch(() => null)
+    if (rows) return rows
   }
+  const cachePath = resolve(cacheDir, 'questions', `${course.id}-${chapter.id}.json`)
+  if (!existsSync(cachePath)) return []
+  try {
+    const cached = JSON.parse(await readFile(cachePath, 'utf8'))
+    return Array.isArray(cached.questions) ? cached.questions : []
+  } catch { return [] }
+}
+
+async function loadOrGenerateQuestions(state, course, chapter) {
+  let published = await publishedQuestions(course, chapter)
+  // An empty bank falls through to bundled self-test material, never to
+  // student-triggered AI generation.
   if (!published.length) published = await findSelfTestQuestions(state, course, chapter)
   const personal = { questions: await listPersonalExercises(course.id, chapter.id) }
   const questions = [...published, ...(personal.questions || [])]
@@ -2553,6 +2564,18 @@ async function migrateLocalDocumentsToTables() {
 
 await migrateLocalDocumentsToTables()
 
+// Hosted mode: published question banks and the programme catalogue are
+// served from the database; seed both from the repository on first start.
+if (editorialMode() === 'neon') {
+  try {
+    const seeded = await admin.seedQuestionsFromCache(cacheDir)
+    if (seeded.seeded) console.log(`Seeded ${seeded.seeded} published questions into editorial_questions`)
+    await admin.primeProgrammeCatalogue()
+  } catch (error) {
+    console.warn('Editorial seed/prime skipped:', error.message)
+  }
+}
+
 const MATH_FORMATTING_RULE = [
   `MATH FORMATTING — strict, non-negotiable:`,
   ``,
@@ -3009,6 +3032,85 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/me' && req.method === 'GET') {
       const auth = currentAuth()
       send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, storage: storageMode(), admin: Boolean(auth.admin), scopes: auth.scopes || null }))
+      return
+    }
+
+    if (url.pathname === '/api/agent/manifest' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ ...AGENT_MANIFEST, baseUrl: `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers['x-forwarded-host'] || req.headers.host}`, mode: editorialMode() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    // Light course listing for agents and the sidebar.
+    if (url.pathname === '/api/courses' && req.method === 'GET') {
+      const state = await readState()
+      const courses = (state.courses || []).map((course) => {
+        const items = course.items || []
+        return {
+          id: course.id, code: course.code, name: course.name, shortName: course.shortName, exam: course.exam, accent: course.accent,
+          archived: Boolean(course.archived), order: course.order ?? null,
+          chapters: (course.chapters || []).map((chapter) => ({ id: chapter.id, name: chapter.name, file: chapter.file })),
+          items: items.length,
+          mastered: items.filter((item) => (item.mastery ?? 0) >= (state.meta?.doneThreshold ?? 3)).length,
+          mockExams: (course.mockExams || []).length,
+          tutorials: (course.tutorials || []).length
+        }
+      })
+      send(res, 200, JSON.stringify({ courses, doneThreshold: state.meta?.doneThreshold ?? 3 }))
+      return
+    }
+    const courseGetMatch = url.pathname.match(/^\/api\/courses\/([^/]+)$/)
+    if (courseGetMatch && req.method === 'GET') {
+      const state = await readState()
+      const course = state.courses.find((c) => c.id === decodeURIComponent(courseGetMatch[1]))
+      if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      send(res, 200, JSON.stringify({ ...course, doneThreshold: state.meta?.doneThreshold ?? 3 }))
+      return
+    }
+
+    if (url.pathname.startsWith('/api/admin/')) {
+      try {
+        const body = req.method === 'PUT' || req.method === 'POST' ? await readBody(req, 60 * 1024 * 1024) : null
+        const ok = (payload, status = 200) => send(res, status, JSON.stringify(payload), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const seg = url.pathname.split('/').filter(Boolean).slice(2).map(decodeURIComponent) // after /api/admin
+        if (seg[0] === 'status' && req.method === 'GET') return ok(await admin.adminStatus())
+        if (seg[0] === 'programmes') {
+          if (seg.length === 1 && req.method === 'GET') return ok(await admin.listProgrammes())
+          if (seg.length === 2 && req.method === 'PUT') return ok(await admin.upsertProgramme(seg[1], body))
+          if (seg.length === 2 && req.method === 'DELETE') return ok(await admin.deleteProgramme(seg[1]))
+        }
+        if (seg[0] === 'courses' && seg[1]) {
+          const courseId = seg[1]
+          if (seg.length === 2 && req.method === 'PUT') return ok(await admin.upsertCourse(courseId, body))
+          if (seg.length === 2 && req.method === 'DELETE') return ok(await admin.deleteCourse(courseId))
+          if (seg[2] === 'chapters' && seg[3]) {
+            if (seg.length === 4 && req.method === 'PUT') return ok(await admin.upsertChapter(courseId, seg[3], body))
+            if (seg.length === 4 && req.method === 'DELETE') return ok(await admin.deleteChapter(courseId, seg[3]))
+            if (seg[4] === 'questions') {
+              if (seg.length === 5 && req.method === 'GET') return ok({ courseId, chapterId: seg[3], questions: await admin.listQuestions(courseId, seg[3]) })
+              if (seg.length === 5 && req.method === 'PUT') return ok(await admin.replaceQuestions(courseId, seg[3], Array.isArray(body) ? body : body?.questions))
+              if (seg.length === 6 && req.method === 'PUT') return ok(await admin.upsertQuestion(courseId, seg[3], { ...body, id: body?.id || seg[5] }))
+              if (seg.length === 6 && req.method === 'DELETE') return ok(await admin.deleteQuestion(courseId, seg[3], seg[5]))
+            }
+          }
+          if (seg[2] === 'materials') {
+            const path = url.searchParams.get('path')
+            if (seg.length === 3 && req.method === 'GET') return ok({ courseId, materials: (await listMaterials(courseId)) || [] })
+            if (seg.length === 3 && req.method === 'PUT') return ok(await admin.putMaterial(courseId, path, body))
+            if (seg.length === 3 && req.method === 'DELETE') return ok(await admin.deleteMaterial(courseId, path))
+          }
+          if (seg[2] === 'items' && seg[3]) {
+            if (seg.length === 4 && req.method === 'PUT') return ok(await admin.upsertItem(courseId, seg[3], body))
+            if (seg.length === 4 && req.method === 'DELETE') return ok(await admin.deleteItem(courseId, seg[3]))
+          }
+          if (seg[2] === 'papers' && seg[3] && seg[4]) {
+            if (seg.length === 5 && req.method === 'PUT') return ok(await admin.upsertPaper(courseId, seg[3], seg[4], body))
+            if (seg.length === 5 && req.method === 'DELETE') return ok(await admin.deletePaper(courseId, seg[3], seg[4]))
+          }
+        }
+        send(res, 404, JSON.stringify({ error: 'Unknown admin endpoint. See /api/agent/manifest.' }))
+      } catch (error) {
+        send(res, error.status || 400, JSON.stringify({ error: error.message }))
+      }
       return
     }
 
@@ -3562,11 +3664,8 @@ const server = createServer(async (req, res) => {
         .map((chapter) => ({ course, chapter })))
 
       const banks = await Promise.all(chapterEntries.map(async ({ course, chapter }) => {
-        const cachePath = resolve(cacheDir, 'questions', `${course.id}-${chapter.id}.json`)
-        if (!existsSync(cachePath)) return []
         try {
-          const cached = JSON.parse(await readFile(cachePath, 'utf8'))
-          const questions = Array.isArray(cached.questions) ? cached.questions : []
+          const questions = await publishedQuestions(course, chapter)
           return questions.map((question, chapterQuestionIndex) => ({
             ...question,
             courseId: course.id,

@@ -110,7 +110,7 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - `/sign-in` is a dedicated access surface with the account action on a white
   working plane and a dark product-proof plane. The public home never doubles
   as the authentication gate.
-- Account replaces Settings at `#/account` with three tabs. Profile: identity register, study-record facts, and the activity ledger. AI usage: allowance meters in two columns plus a table of recent requests. Data & privacy: a storage table (each record family, count, size, whether a reset clears it), export, reset study data (keeps account, plan, and usage ledger), erase everything (keeps sign-in), and the isolated account-deletion danger panel. Resets and deletion require a typed confirmation in a focused modal.
+- Account replaces Settings at `#/account` with four tabs. API access: personal keys (name, scopes, one-time secret, revoke) and agent/MCP setup snippets. Profile: identity register, study-record facts, and the activity ledger. AI usage: allowance meters in two columns plus a table of recent requests. Data & privacy: a storage table (each record family, count, size, whether a reset clears it), export, reset study data (keeps account, plan, and usage ledger), erase everything (keeps sign-in), and the isolated account-deletion danger panel. Resets and deletion require a typed confirmation in a focused modal.
   Export is a normal account action; deletion is isolated in a bordered danger
   zone and requires a typed confirmation in a focused modal or mobile sheet.
 - Academic Planning is one destination with a sticky, horizontally scrollable
