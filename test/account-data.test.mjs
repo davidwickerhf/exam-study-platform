@@ -17,7 +17,7 @@ test('account export and deletion stay scoped to the authenticated user', async 
       id: deletedUser,
       email: 'student@example.test'
     }))
-    assert.equal(exported.schemaVersion, 1)
+    assert.equal(exported.schemaVersion, 2)
     assert.equal(exported.account.id, deletedUser)
     assert.equal(exported.account.email, 'student@example.test')
     assert.deepEqual(exported.personalDocuments, [

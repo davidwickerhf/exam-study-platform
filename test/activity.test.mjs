@@ -45,12 +45,12 @@ test('activity is recorded per user and study reset keeps plan and AI ledger', a
       assert.equal(events[0].courseId, 'sec')
 
       const summary = await summarisePersonalData()
-      assert.equal(summary.totals.documents, 3)
+      assert.equal(summary.totals.documents, 4)
       assert.ok(summary.namespaces.find((entry) => entry.namespace === 'activity')?.study)
       assert.equal(summary.namespaces.find((entry) => entry.namespace === 'academics')?.study, false)
 
       const removed = await deleteStudyData()
-      assert.equal(removed.documents, 1)
+      assert.equal(removed.activityEvents, 2)
       assert.deepEqual(await readActivity(), [])
       assert.deepEqual(await readDocument('academics', 'workspace', {}), { keep: true })
       assert.deepEqual(await readDocument('ai', 'usage', {}), { events: [] })
