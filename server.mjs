@@ -6,9 +6,11 @@ import { extname, join, resolve, relative, dirname, posix as posixPath } from 'n
 import { fileURLToPath } from 'node:url'
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
+import { gzipSync } from 'node:zlib'
 import { randomUUID } from 'node:crypto'
 import './lib/env.mjs'
-import { authenticate, authConfig, deleteAuthUser, getAuthUser, isPublicApi } from './lib/auth.mjs'
+import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi } from './lib/auth.mjs'
+import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { storeImportedProgramme } from './lib/academics.mjs'
@@ -247,15 +249,26 @@ const mime = {
   '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 }
 
+// Responses are gzipped when the client accepts it and the body is worth it.
+const gzipCapable = new WeakSet()
+const COMPRESSIBLE = /^(application\/json|text\/|application\/javascript|image\/svg\+xml)/
+
 function send(res, status, body, type = 'application/json; charset=utf-8', headers = {}) {
-  res.writeHead(status, {
+  let payload = body
+  const responseHeaders = {
     'Content-Type': type,
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     ...headers
-  })
-  res.end(body)
+  }
+  if (gzipCapable.has(res) && payload && COMPRESSIBLE.test(type) && Buffer.byteLength(payload) > 1024 && !responseHeaders['Content-Encoding']) {
+    payload = gzipSync(Buffer.isBuffer(payload) ? payload : Buffer.from(payload))
+    responseHeaders['Content-Encoding'] = 'gzip'
+    responseHeaders.Vary = 'Accept-Encoding'
+  }
+  res.writeHead(status, responseHeaders)
+  res.end(payload)
 }
 
 function sendAiError(res, error) {
@@ -2856,6 +2869,7 @@ async function runGenerateAllCoursesJob(masterJobId) {
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
+    if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) gzipCapable.add(res)
 
     if (url.pathname === '/api/auth/config' && req.method === 'GET') {
       send(res, 200, JSON.stringify(authConfig()))
@@ -2870,10 +2884,35 @@ const server = createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/') && !isPublicApi(url.pathname)) {
       const auth = await authenticate(req)
       if (!auth.authenticated) {
-        send(res, 401, JSON.stringify({ error: 'Sign in required', reason: auth.reason || 'unauthenticated' }))
+        send(res, 401, JSON.stringify({ error: auth.mode === 'api-key' ? 'Invalid or revoked API key' : 'Sign in required', reason: auth.reason || 'unauthenticated' }))
+        return
+      }
+      const denied = authorise(auth, { method: req.method, pathname: url.pathname })
+      if (denied) {
+        send(res, 403, JSON.stringify({ error: denied }))
         return
       }
       setRequestContext(auth)
+    }
+
+    if (url.pathname === '/api/account/api-keys' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ keys: await listApiKeys(), scopes: API_SCOPES, admin: Boolean(currentAuth().admin) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/account/api-keys' && req.method === 'POST') {
+      const body = await readBody(req, 64 * 1024)
+      try {
+        send(res, 201, JSON.stringify(await createApiKey({ name: body?.name, scopes: body?.scopes })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    const apiKeyMatch = url.pathname.match(/^\/api\/account\/api-keys\/([^/]+)$/)
+    if (apiKeyMatch && req.method === 'DELETE') {
+      const ok = await revokeApiKey(decodeURIComponent(apiKeyMatch[1]))
+      send(res, ok ? 200 : 404, JSON.stringify(ok ? { ok: true } : { error: 'Key not found or already revoked' }))
+      return
     }
 
     if (url.pathname === '/api/ai/usage' && req.method === 'GET') {
@@ -2968,8 +3007,8 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/me' && req.method === 'GET') {
-      const auth = await authenticate(req)
-      send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, storage: storageMode() }))
+      const auth = currentAuth()
+      send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, storage: storageMode(), admin: Boolean(auth.admin), scopes: auth.scopes || null }))
       return
     }
 
@@ -4352,14 +4391,11 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    res.writeHead(200, {
-      'Content-Type': mime[extname(filePath)] || 'application/octet-stream',
-      'Cache-Control': 'no-store',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+    // Versioned assets (?v=…) are immutable; everything else revalidates.
+    const versioned = url.searchParams.has('v') && !publicPage
+    send(res, 200, await readFile(filePath), mime[extname(filePath)] || 'application/octet-stream', {
+      'Cache-Control': versioned ? 'public, max-age=31536000, immutable' : publicPage ? 'no-store' : 'public, max-age=300, must-revalidate'
     })
-    res.end(await readFile(filePath))
   } catch (error) {
     send(res, 500, JSON.stringify({ error: error.message }))
   }

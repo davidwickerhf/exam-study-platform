@@ -526,3 +526,44 @@
   .practice-shell .practice-hub-stat { padding: 0; border-left: 0; display: flex; align-items: baseline; gap: var(--space-2); }
   .practice-shell .practice-hub-stat strong { font-size: 18px; }
 }
+
+/* ── Boot skeleton: the shell appears before any data arrives ───────────── */
+.boot-shell .sk { display: block; border-radius: 6px; background: linear-gradient(90deg, var(--color-surface-subtle) 0%, #eceef3 50%, var(--color-surface-subtle) 100%); background-size: 200% 100%; animation: dash-shimmer 1.4s linear infinite; }
+.boot-side { display: grid; gap: 10px; padding: var(--space-2); }
+.boot-foot { padding-top: var(--space-3); }
+.boot-page { width: min(100%, var(--app-content-max)); margin: 0 auto; display: grid; gap: 12px; }
+.boot-kpis { margin: var(--space-3) 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+.boot-status { margin: 0 0 var(--space-3); display: flex; align-items: center; gap: var(--space-2); color: var(--color-ink-secondary); font: 500 13px/1 var(--font-ui); }
+.boot-spinner { width: 14px; height: 14px; border: 2px solid var(--color-border-strong); border-top-color: var(--color-brand); border-radius: 50%; animation: pl-spin .8s linear infinite; }
+.boot-shell .dash-brand { pointer-events: none; }
+.deps-pending { display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-6) var(--space-5); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-ink-secondary); font-size: 13px; }
+.deps-pending .boot-spinner { display: inline-block; vertical-align: middle; margin-right: var(--space-2); }
+@media (max-width: 820px) {
+  .boot-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boot-shell .dash-side { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .boot-shell .sk, .boot-spinner { animation: none; } }
+
+/* ── API access ────────────────────────────────────────────────────────── */
+.panel-success { border-color: #bfe3d0; background: #f3fbf6; }
+.secret-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); }
+.secret-row code { padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); font: 500 13px/1.4 var(--font-data); overflow-wrap: anywhere; user-select: all; }
+.key-form { display: grid; gap: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.key-form-name { display: grid; gap: var(--space-1); max-width: 360px; }
+.key-form-name span, .key-form-scopes legend { color: var(--color-ink-secondary); font: 600 12px/1.3 var(--font-ui); }
+.key-form-name input { min-height: var(--control-md); padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); font: 500 14px/1 var(--font-ui); }
+.key-form-scopes { margin: 0; padding: 0; border: 0; display: grid; gap: var(--space-2); }
+.key-form-scopes legend { margin-bottom: var(--space-2); }
+.key-form-scopes label { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: var(--space-3); align-items: start; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; }
+.key-form-scopes label:has(input:checked) { border-color: var(--color-brand); background: var(--color-brand-soft); }
+.key-form-scopes input { margin: 2px 0 0; }
+.key-form-scopes strong { display: block; font-size: 13px; }
+.key-form-scopes small { color: var(--color-ink-secondary); font-size: 12px; line-height: 1.45; }
+.key-form-actions { display: flex; align-items: center; gap: var(--space-4); }
+.keys-table { min-width: 640px; }
+.keys-table tr.is-revoked td { color: var(--color-ink-tertiary); }
+.keys-table code { font: 500 12px/1 var(--font-data); }
+.keys-table .muted { color: var(--color-ink-tertiary); font-size: 12px; }
+.code-block { margin: 0; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-subtle); font: 400 12px/1.55 var(--font-data); overflow-x: auto; }
+.panel-note code, .panel-top p code { padding: 1px 5px; border-radius: 3px; background: var(--color-surface-subtle); font: 500 12px/1.4 var(--font-data); }
+@media (max-width: 820px) { .secret-row { grid-template-columns: minmax(0, 1fr); } }

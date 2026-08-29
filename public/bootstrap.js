@@ -88,7 +88,18 @@ function loadScript(src) {
   })
 }
 
-async function loadStudyDependencies() {
+// Heavy reader/editor libraries are fetched after the shell is on screen and
+// awaited only by the surfaces that render markdown, code, diagrams, or PDFs.
+let studyDependencies = null
+function loadStudyDependencies() {
+  if (studyDependencies) return studyDependencies
+  studyDependencies = loadStudyDependencyBundle().catch((error) => { studyDependencies = null; throw error })
+  window.__studyDepsReady = studyDependencies
+  return studyDependencies
+}
+window.__ensureStudyDeps = loadStudyDependencies
+
+async function loadStudyDependencyBundle() {
   loadStyle('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css')
   loadStyle('https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css')
   loadStyle('https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css')
@@ -123,15 +134,33 @@ function snapshotLocalStorage() {
   return snapshot
 }
 
+function bootSkeleton(step) {
+  const block = (w, h = 14) => `<span class="sk" style="width:${w};height:${h}px"></span>`
+  return `<div class="dash boot-shell" aria-busy="true" aria-live="polite">
+    <aside class="dash-side"><div class="dash-brand"><span class="brand-mark">W</span><span class="dash-brand-text"><strong>Wicker Study</strong><small>Academic workspace</small></span></div>
+      <div class="boot-side">${block('100%', 32)}${block('40%', 10)}${block('70%')}${block('60%')}${block('65%')}${block('40%', 10)}${block('60%')}${block('55%')}</div>
+      <div class="dash-side-foot boot-foot">${block('100%', 36)}</div></aside>
+    <main class="content boot-main"><div class="boot-page">
+      <p class="boot-status"><span class="boot-spinner"></span>${step}</p>
+      ${block('120px', 11)}${block('42%', 26)}${block('60%', 14)}
+      <div class="boot-kpis">${block('100%', 96)}${block('100%', 96)}${block('100%', 96)}${block('100%', 96)}</div>
+      ${block('100%', 88)}${block('100%', 240)}
+    </div></main></div>`
+}
+window.__bootStatus = (step) => { const el = document.querySelector('.boot-status'); if (el) el.innerHTML = `<span class="boot-spinner"></span>${step}` }
+
 async function startApplication() {
   document.getElementById('public-site').hidden = true
   document.getElementById('auth-gate').hidden = true
   document.documentElement.classList.remove('public-mode')
   document.body.classList.remove('public-mode')
   document.body.classList.add('app-mode')
-  document.getElementById('app').innerHTML = '<main class="boot-loading"><p>Opening your study record…</p></main>'
-  await loadStudyDependencies()
-  await import(`/app.js?v=20260829-dashboard`)
+  document.getElementById('app').innerHTML = bootSkeleton('Loading your courses…')
+  // The application and its first data request start immediately; reader
+  // libraries stream in behind them.
+  const app = import(`/app.js?v=20260829-dashboard`)
+  setTimeout(() => loadStudyDependencies().catch(() => {}), 0)
+  await app
 }
 
 async function configureCloudSync() {
@@ -175,6 +204,7 @@ async function main() {
     return
   }
 
+  document.getElementById('app').innerHTML = bootSkeleton('Checking your session…')
   const config = await nativeFetch('/api/auth/config').then((response) => response.json())
   if (!config.enabled) {
     if (pathname === '/sign-in') window.history.replaceState(null, '', '/app')

@@ -48,7 +48,7 @@ const PLANNING_TAB_ALIASES = { curriculum: 'courses', credits: 'progress', requi
 let state = null
 // Route tables are declared before parseRoute runs on cold load.
 const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
-const ACCOUNT_TABS = [['profile', 'Profile'], ['usage', 'AI usage'], ['data', 'Data & privacy']]
+const ACCOUNT_TABS = [['profile', 'Profile'], ['usage', 'AI usage'], ['api', 'API access'], ['data', 'Data & privacy']]
 
 let route = parseRoute()
 let academicsData = null
@@ -659,7 +659,24 @@ window.addEventListener('hashchange', () => {
 
 init()
 
+// Reader libraries (markdown, math, code, diagrams, PDF) stream in after the
+// shell. Surfaces that need them render a placeholder until they arrive.
+let studyDepsReady = typeof marked !== 'undefined'
+let studyDepsError = null
+function ensureStudyDeps() {
+  if (studyDepsReady) return Promise.resolve()
+  const pending = window.__ensureStudyDeps ? window.__ensureStudyDeps() : Promise.resolve()
+  return pending.then(() => { studyDepsReady = true; render() }).catch((error) => { studyDepsError = error; render() })
+}
+function depsPlaceholder(label = 'Loading the reader…') {
+  ensureStudyDeps()
+  return studyDepsError
+    ? `<div class="deps-pending"><p>The reader libraries could not be loaded. Check your connection and <button type="button" class="pl-link pl-link-button" onclick="location.reload()">reload</button>.</p></div>`
+    : `<div class="deps-pending"><p><span class="boot-spinner"></span>${label}</p></div>`
+}
+
 async function init() {
+  window.__bootStatus?.('Loading your courses…')
   state = await fetchJson('/api/state')
   loadAiUsage().then(() => render()).catch(() => {})
   render()
@@ -787,7 +804,7 @@ function parseRoute() {
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
   if (parts[0] === 'settings' || parts[0] === 'account') {
-    const requested = parts[1] === 'usage' ? 'usage' : parts[1] === 'data' ? 'data' : parts[1] === 'account' ? 'data' : 'profile'
+    const requested = parts[1] === 'usage' ? 'usage' : parts[1] === 'data' ? 'data' : parts[1] === 'api' ? 'api' : parts[1] === 'account' ? 'data' : 'profile'
     return { page: 'account', tab: requested }
   }
   if (parts[0] === 'planning') {
@@ -2405,7 +2422,7 @@ function renderAccountPage() {
   const user = currentUser()
   const tab = ACCOUNT_TABS.some(([id]) => id === route.tab) ? route.tab : 'profile'
   const memberSince = longDate(user.createdAt || accountSummary?.account?.createdAt)
-  const body = tab === 'usage' ? renderAccountUsage() : tab === 'data' ? renderAccountData() : renderAccountProfile(user)
+  const body = tab === 'usage' ? renderAccountUsage() : tab === 'data' ? renderAccountData() : tab === 'api' ? renderAccountApi() : renderAccountProfile(user)
   return `<section class="page-wrap account-page">
     <header class="page-head">
       <div class="page-head-identity">${renderAvatar(user, 'lg')}<div><p class="page-eyebrow">Account</p><h1>${escapeHtml(user.name)}</h1><p class="page-sub">${escapeHtml(user.email || 'Signed in')}${memberSince ? ` · Member since ${escapeHtml(memberSince)}` : ''}${window.__clerk ? '' : ' · No sign-in configured'}</p></div></div>
@@ -2454,6 +2471,63 @@ function renderAccountProfile(user) {
         ${activity ? renderActivityFeed(activity, 10) : ''}
       </section>
     </div>
+  </div>`
+}
+
+// ----- API access: personal keys for agents and administrators -------------
+let apiKeysCache = null
+let apiKeysError = null
+let apiKeysLoading = false
+const apiKeyForm = { name: '', scopes: ['read'], creating: false, error: null, created: null }
+async function loadApiKeys(force = false) {
+  if ((apiKeysCache && !force) || apiKeysLoading) return apiKeysCache
+  apiKeysLoading = true
+  apiKeysError = null
+  try { apiKeysCache = await fetchJson('/api/account/api-keys') }
+  catch (error) { apiKeysCache = null; apiKeysError = error.message }
+  finally { apiKeysLoading = false }
+  return apiKeysCache
+}
+
+function renderAccountApi() {
+  if (!apiKeysCache && !apiKeysLoading && !apiKeysError) loadApiKeys().then(() => render())
+  const keys = apiKeysCache?.keys || []
+  const admin = Boolean(apiKeysCache?.admin)
+  const origin = window.location.origin
+  const scopeCopy = { read: 'Read courses, chapters, questions, progress, plan, and activity', write: 'Record answers, reviews, flashcards, mistakes, mocks, and plan changes', admin: 'Manage editorial content and the programme catalogue' }
+  return `<div class="account-stack">
+    ${apiKeyForm.created ? `<section class="panel panel-success" role="status">
+      <div class="panel-top"><div><h2>Key created</h2><p>Copy it now — it is shown once and stored only as a hash.</p></div><button type="button" class="btn btn-secondary btn-sm" data-api-key-dismiss>Done</button></div>
+      <div class="secret-row"><code data-api-key-secret>${escapeHtml(apiKeyForm.created.secret)}</code><button type="button" class="btn btn-primary btn-sm" data-api-key-copy>${uiIcon('check')} Copy</button></div>
+    </section>` : ''}
+    <section class="panel">
+      <div class="panel-top"><div><h2>Personal API keys</h2><p>Keys act as you, limited to their scopes. Send them as <code>Authorization: Bearer wsk_…</code>. Keys cannot manage other keys, reset data, or delete the account.</p></div></div>
+      ${apiKeysError ? `<div class="settings-error" role="alert"><strong>Keys could not be loaded.</strong><p>${escapeHtml(apiKeysError)}</p></div>` : !apiKeysCache ? '<div class="settings-loading"><span></span><p>Loading keys…</p></div>' : keys.length ? `<div class="pl-table-wrap"><table class="pl-table keys-table"><thead><tr><th>Name</th><th>Key</th><th>Scopes</th><th>Created</th><th>Last used</th><th></th></tr></thead><tbody>${keys.map((key) => `<tr class="${key.revokedAt ? 'is-revoked' : ''}"><td><strong>${escapeHtml(key.name)}</strong></td><td><code>${escapeHtml(key.prefix)}…</code></td><td>${key.scopes.map((scope) => `<span class="pl-pill ${scope === 'admin' ? 'is-bad' : scope === 'write' ? 'is-pending' : 'is-ok'}">${scope}</span>`).join(' ')}</td><td><time>${relativeTime(key.createdAt)}</time></td><td>${key.lastUsedAt ? `<time>${relativeTime(key.lastUsedAt)}</time>` : '<span class="muted">never</span>'}</td><td class="num">${key.revokedAt ? '<span class="pl-pill">revoked</span>' : `<button type="button" class="btn btn-sm btn-danger-outline" data-api-key-revoke="${escapeHtml(key.id)}">Revoke</button>`}</td></tr>`).join('')}</tbody></table></div>` : '<p class="panel-note">No keys yet. Create one to let an agent or the MCP server work with your record.</p>'}
+      <form class="key-form" data-api-key-form>
+        <label class="key-form-name"><span>Key name</span><input name="name" maxlength="80" placeholder="e.g. Claude Desktop" value="${escapeHtml(apiKeyForm.name)}" required ${apiKeyForm.creating ? 'disabled' : ''}></label>
+        <fieldset class="key-form-scopes"><legend>Scopes</legend>
+          ${['read', 'write', ...(admin ? ['admin'] : [])].map((scope) => `<label><input type="checkbox" name="scope" value="${scope}" ${apiKeyForm.scopes.includes(scope) ? 'checked' : ''} ${scope === 'read' ? 'disabled checked' : ''}><span><strong>${scope}</strong><small>${scopeCopy[scope]}</small></span></label>`).join('')}
+        </fieldset>
+        ${apiKeyForm.error ? `<p class="account-delete-error" role="alert">${escapeHtml(apiKeyForm.error)}</p>` : ''}
+        <div class="key-form-actions"><button type="submit" class="btn btn-primary" ${apiKeyForm.creating ? 'disabled' : ''}>${apiKeyForm.creating ? 'Creating…' : `${uiIcon('plus')} Create key`}</button>${admin ? '<span class="pl-private">Administrator</span>' : ''}</div>
+      </form>
+    </section>
+    <section class="panel">
+      <div class="panel-top"><div><h2>Use it from an agent</h2><p>The full endpoint list with scopes is at <a href="/api/agent/manifest" target="_blank" rel="noopener">/api/agent/manifest</a>. The MCP server in the repository wraps the same API.</p></div></div>
+      <pre class="code-block"><code>curl -H "Authorization: Bearer wsk_…" ${escapeHtml(origin)}/api/courses
+
+# MCP (Claude Desktop / Claude Code)
+{
+  "mcpServers": {
+    "wicker-study": {
+      "command": "npx",
+      "args": ["-y", "wicker-study-mcp"],
+      "env": { "WICKER_STUDY_URL": "${escapeHtml(origin)}", "WICKER_STUDY_API_KEY": "wsk_…" }
+    }
+  }
+}</code></pre>
+      <p class="panel-note">From a checkout: <code>WICKER_STUDY_URL=${escapeHtml(origin)} WICKER_STUDY_API_KEY=wsk_… npm run mcp</code>.</p>
+    </section>
   </div>`
 }
 
@@ -7529,6 +7603,7 @@ function renderInlineMarkdown(s) {
     blocks.push({ display: false, body: m })
     return `${lead}${placeholder(blocks.length - 1)}`
   })
+  if (typeof marked === 'undefined') { ensureStudyDeps(); return escapeHtml(s) }
   try {
     let html = marked.parseInline(str, { gfm: true })
     // Protect currency/stray '$' from KaTeX auto-render — see renderMarkdown.
@@ -7710,6 +7785,7 @@ function renderMarkdown(md, courseId, chapterId) {
     return `<span class="wikilink" title="${escapeHtml(target)}">${escapeHtml(label || target)}</span>`
   })
 
+  if (typeof marked === 'undefined') { ensureStudyDeps(); return `<p>${escapeHtml(s)}</p>` }
   let html = marked.parse(s, { gfm: true, breaks: false })
 
   // Protect currency / stray dollar signs. At this point every real math span
@@ -8766,6 +8842,50 @@ function bindEvents() {
         accountDeleteState.error = `Deletion could not be completed. Your account remains accessible. ${error.message}`
         render()
       }
+    })
+  })
+
+  document.querySelectorAll('[data-api-key-form]').forEach((form) => {
+    form.addEventListener('input', () => {
+      apiKeyForm.name = form.elements.name.value
+      apiKeyForm.scopes = [...form.querySelectorAll('input[name="scope"]:checked')].map((input) => input.value)
+    })
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      if (apiKeyForm.creating) return
+      apiKeyForm.name = form.elements.name.value
+      apiKeyForm.scopes = [...form.querySelectorAll('input[name="scope"]:checked')].map((input) => input.value)
+      apiKeyForm.creating = true
+      apiKeyForm.error = null
+      render()
+      try {
+        apiKeyForm.created = await fetchJson('/api/account/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: apiKeyForm.name, scopes: apiKeyForm.scopes }) })
+        apiKeyForm.name = ''
+        apiKeyForm.scopes = ['read']
+        await loadApiKeys(true)
+      } catch (error) {
+        apiKeyForm.error = error.message
+      } finally {
+        apiKeyForm.creating = false
+        render()
+      }
+    })
+  })
+  document.querySelectorAll('[data-api-key-copy]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const secret = document.querySelector('[data-api-key-secret]')?.textContent || ''
+      try { await navigator.clipboard.writeText(secret); button.textContent = 'Copied' } catch { button.textContent = 'Select and copy' }
+    })
+  })
+  document.querySelectorAll('[data-api-key-dismiss]').forEach((button) => button.addEventListener('click', () => { apiKeyForm.created = null; render() }))
+  document.querySelectorAll('[data-api-key-revoke]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const id = button.dataset.apiKeyRevoke
+      const key = apiKeysCache?.keys?.find((item) => item.id === id)
+      if (!(await showConfirm({ title: `Revoke “${key?.name || 'this key'}”?`, message: 'Any agent using it will stop working immediately.', okLabel: 'Revoke key', danger: true }))) return
+      try { await fetchJson(`/api/account/api-keys/${encodeURIComponent(id)}`, { method: 'DELETE' }); await loadApiKeys(true) }
+      catch (error) { alert(`Could not revoke the key: ${error.message}`) }
+      render()
     })
   })
 
