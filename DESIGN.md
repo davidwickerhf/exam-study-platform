@@ -89,9 +89,12 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 
 ## Layout
 
-- A 64px global utility bar is the only global navigation layer on desktop; it becomes 56px on compact screens. It carries exactly five destinations — Home, Courses, Practice, Planning, Settings — plus search. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.
-- Home is action-led: the next exam countdown from the personal plan, a "continue where you left off" block, the four study queues (mixed practice, flashcards due, open mistakes, timed mocks), the course ledger ordered by exam proximity, and an aside with upcoming exams and programme facts. Courses is the ledger with archive and reorder controls.
-- Practice is one destination with the same sticky local tab row as Planning: Questions, Flashcards, Mistakes, Mocks. Tab labels carry a count pill when there is due or open work.
+- The application is a dashboard shell: a 236px white sidebar on desktop (brand, search field, grouped navigation — Study: Home, Courses, Practice; Plan: Planning, Calendar — and an account block with avatar initials at the foot) beside a scrolling canvas column capped at 1180px. On compact screens the sidebar becomes a five-item bottom bar (Home, Courses, Practice, Planning, Account) and search moves into page headers. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.
+- Every destination opens with the same page header: a mono uppercase eyebrow, a 26px title, one line of secondary copy, and right-aligned actions above a single hairline. Local tabs (Practice, Planning, Account) sit directly under that header as a flat row with one rule. Section titles inside a destination are 18px and carry no rule of their own, so two dividers never stack.
+- Content blocks are white bordered panels (`.panel`) with a small heading row; asides use the same panel with a mono uppercase heading. Panels never open with a top rule.
+- Home is action-led and numeric: a greeting header with the next-exam line, four KPI tiles that double as queue links (next exam, flashcards due, open mistakes, study streak), a "continue where you left off" block, the activity ledger (28-day bar chart, weekly totals, recent events), the course ledger ordered by exam proximity, and an aside with upcoming exams, quick-start actions, and programme facts. Courses is the ledger with archive and reorder controls.
+- Practice is one destination with local tabs under its page header: Questions, Flashcards, Mistakes, Mocks. Tab labels carry a count pill when there is due or open work; the header line summarises what is waiting.
+- Study activity is recorded server-side (answers, flashcard reviews, mocks, resolved mistakes, chapters read) and powers the streak, weekly totals, and the feed on Home and in Account. Nothing in the ledger derives from editorial material.
 - Exam dates recorded in Planning flow outward: they order the course ledger, appear as countdowns on Home and in each course header, and never have to be re-entered.
 - Standard pages use a fluid canvas capped at 1440px, with 24–40px responsive page gutters.
 - The dashboard is an operational overview, not a marketing page. Its summary is compact and the course ledger begins within the first viewport.
@@ -107,7 +110,7 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - `/sign-in` is a dedicated access surface with the account action on a white
   working plane and a dark product-proof plane. The public home never doubles
   as the authentication gate.
-- Settings uses a compact ruled register for account facts and allowances.
+- Account replaces Settings at `#/account` with three tabs. Profile: identity register, study-record facts, and the activity ledger. AI usage: allowance meters in two columns plus a table of recent requests. Data & privacy: a storage table (each record family, count, size, whether a reset clears it), export, reset study data (keeps account, plan, and usage ledger), erase everything (keeps sign-in), and the isolated account-deletion danger panel. Resets and deletion require a typed confirmation in a focused modal.
   Export is a normal account action; deletion is isolated in a bordered danger
   zone and requires a typed confirmation in a focused modal or mobile sheet.
 - Academic Planning is one destination with a sticky, horizontally scrollable

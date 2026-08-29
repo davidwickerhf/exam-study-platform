@@ -46,6 +46,10 @@ const PLANNING_TABS = [
 ]
 const PLANNING_TAB_ALIASES = { curriculum: 'courses', credits: 'progress', requirements: 'progress' }
 let state = null
+// Route tables are declared before parseRoute runs on cold load.
+const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
+const ACCOUNT_TABS = [['profile', 'Profile'], ['usage', 'AI usage'], ['data', 'Data & privacy']]
+
 let route = parseRoute()
 let academicsData = null
 let academicsLoading = false
@@ -181,6 +185,20 @@ function uiIcon(name) {
     ,file: '<path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/>'
     ,check: '<path d="m5 12 4 4L19 6"/>'
     ,arrowLeft: '<path d="m15 5-7 7 7 7"/>'
+    ,user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>'
+    ,home: '<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/>'
+    ,book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5V5.5M8 7h8"/>'
+    ,layers: '<path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5M3 17l9 5 9-5"/>'
+    ,calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
+    ,chart: '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>'
+    ,flame: '<path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.5.5-2.5 1.5-3.5.2 1.2.8 2 1.5 2.5C11 8 11.5 5.5 12 3z"/>'
+    ,database: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>'
+    ,shield: '<path d="M12 3 5 6v6c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/>'
+    ,logout: '<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>'
+    ,target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>'
+    ,clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'
+    ,alert: '<path d="M12 4 2.5 20h19zM12 10v4M12 17.5v.5"/>'
+    ,zap: '<path d="M13 3 4 14h6l-1 7 9-11h-6z"/>'
   }
   return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`
 }
@@ -694,6 +712,11 @@ async function init() {
         render()
         return
       }
+      if (accountResetState.open && !accountResetState.working) {
+        Object.assign(accountResetState, { open: false, confirmation: '', error: null })
+        render()
+        return
+      }
       if (confirmModal) {
         resolveConfirm(false)
         return
@@ -763,7 +786,10 @@ function parseRoute() {
     const tab = PRACTICE_TABS.some(([id]) => id === parts[1]) ? parts[1] : 'questions'
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
-  if (parts[0] === 'settings') return { page: 'settings' }
+  if (parts[0] === 'settings' || parts[0] === 'account') {
+    const requested = parts[1] === 'usage' ? 'usage' : parts[1] === 'data' ? 'data' : parts[1] === 'account' ? 'data' : 'profile'
+    return { page: 'account', tab: requested }
+  }
   if (parts[0] === 'planning') {
     const requestedTab = PLANNING_TAB_ALIASES[parts[1]] || parts[1] || 'overview'
     const tab = PLANNING_TABS.some(([id]) => id === requestedTab) ? requestedTab : 'overview'
@@ -1172,7 +1198,7 @@ function computeTitle() {
   if (route.page === 'courses') return 'Courses' + suffix
   if (route.page === 'practice') return (PRACTICE_TABS.find(([id]) => id === route.tab)?.[1] || 'Practice') + ' · Practice' + suffix
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
-  if (route.page === 'settings') return 'Settings' + suffix
+  if (route.page === 'account') return (ACCOUNT_TABS.find(([id]) => id === route.tab)?.[1] || 'Account') + ' · Account' + suffix
   if (route.page === 'planning') {
     const label = route.tab === 'overview' ? 'Academic plan' : (PLANNING_TABS.find(([id]) => id === route.tab)?.[1] || 'Academic planning')
     return `${label} — Academic planning${suffix}`
@@ -1257,8 +1283,8 @@ function render() {
   const isMock = route.page === 'mock-exam'
   const isCourse = route.page === 'course'
   app.innerHTML = `
-    <div class="shell ${isChapter || isMock || isCourse ? 'chapter-shell' : ''}">
-      ${renderAppHeader()}
+    <div class="dash ${isChapter || isMock || isCourse ? 'is-study' : ''}" data-route="${route.page}">
+      ${renderSidebar()}
       <main id="main-content" class="content route-${route.page} ${isChapter || isMock || isCourse ? 'chapter-content' : ''}">
         ${routeView()}
       </main>
@@ -1267,6 +1293,7 @@ function render() {
     ${renderExtendModal()}
     ${renderConfirmModal()}
     ${renderAccountDeleteModal()}
+    ${renderAccountResetModal()}
     ${renderSearchPopup()}
     ${renderFlashcardStudyModal()}
     ${renderBgJobsBanner()}
@@ -1362,7 +1389,7 @@ function routeView() {
   if (route.page === 'mock-exam') return renderMockExamPage()
   if (route.page === 'courses') return renderCoursesPage()
   if (route.page === 'practice') return renderPracticeShell()
-  if (route.page === 'settings') return renderSettingsPage()
+  if (route.page === 'account') return renderAccountPage()
   if (route.page === 'planning') return renderAcademicPlanningPage()
   if (route.page === 'course') return renderCourse(route.id)
   return renderDashboard()
@@ -1775,10 +1802,17 @@ function planningStats(cells) {
 }
 
 function planningPageHeader(title, description, actions = '') {
-  return `<header class="pl-head">
-    <div><h1>${escapeHtml(title)}</h1>${description ? `<p>${description}</p>` : ''}</div>
-    <div class="pl-head-actions"><span class="pl-private" title="Only visible to your account">Private record</span>${actions}</div>
+  return `<header class="pl-view-head">
+    <div><h2>${escapeHtml(title)}</h2>${description ? `<p>${description}</p>` : ''}</div>
+    ${actions ? `<div class="pl-head-actions">${actions}</div>` : ''}
   </header>`
+}
+
+function planningShellHead() {
+  const profile = academicsData?.workspace?.profile || {}
+  const title = String(profile.programme || '').trim() || 'Academic plan'
+  const sub = [profile.degree, profile.university, profile.academicYear].filter((value) => String(value || '').trim()).map(escapeHtml).join(' · ')
+  return `<header class="page-head"><div><p class="page-eyebrow">Planning</p><h1>${escapeHtml(title)}</h1><p class="page-sub">${sub || 'Your programme, courses, exam dates, and progress — private to your account.'}</p></div><div class="page-head-actions"><span class="pl-private" title="Only visible to your account">Private record</span>${academicsLoading ? '<span class="pl-saving" role="status">Saving…</span>' : ''}</div></header>`
 }
 
 function planningSectionHead(title, description, actions = '') {
@@ -1839,7 +1873,7 @@ function renderPlanningOverview() {
   const insights = planningInsights(workspace)
   const focus = insights.priority.filter((item) => item.days !== null || item.risk === 'critical').slice(0, 4)
   return `<div class="pl-page">
-    ${planningPageHeader('Academic plan', hasProfile ? planningProfileLine(profile) : 'Add your programme details to give this record its context.', hasProfile ? `<button type="button" class="btn btn-secondary btn-sm" data-planning-profile-toggle>${showProfileEditor ? 'Close' : `${uiIcon('edit')} Edit details`}</button>` : '')}
+    ${planningPageHeader('Overview', hasProfile ? 'Credits, what is next, and the curriculum at a glance.' : 'Add your programme details to give this record its context.', hasProfile ? `<button type="button" class="btn btn-secondary btn-sm" data-planning-profile-toggle>${showProfileEditor ? 'Close' : `${uiIcon('edit')} Edit details`}</button>` : '')}
     ${showProfileEditor ? `<form class="pl-composer pl-profile" data-academic-profile aria-label="Programme details">
       <div class="pl-composer-head"><strong>Programme details</strong><span>Personal to your record. The shared course catalogue is not changed.</span></div>
       <div class="pl-fields">
@@ -1908,9 +1942,9 @@ function planningShell(body) {
   const programmes = academicsData?.index?.programmes || []
   if (isOnboarding && programmes.length > 1 && planningIntake.step !== 'connected') {
     const active = programmes.find((item) => item.id === academicsData.index.activeProgrammeId)
-    return `<div class="planning-shell is-onboarding${academicsLoading ? ' is-saving' : ''}"><nav class="pl-tabs" aria-label="Academic planning sections"><div><a href="#/planning/overview" class="${route.tab !== 'settings' ? 'active' : ''}">Set up ${escapeHtml(active?.programme || 'programme')}</a><a href="#/planning/settings" class="${route.tab === 'settings' ? 'active' : ''}">Programmes</a></div></nav>${body}</div>`
+    return `<div class="planning-shell is-onboarding${academicsLoading ? ' is-saving' : ''}">${planningShellHead()}<nav class="page-tabs" aria-label="Academic planning sections"><div><a href="#/planning/overview" class="${route.tab !== 'settings' ? 'active' : ''}">Set up ${escapeHtml(active?.programme || 'programme')}</a><a href="#/planning/settings" class="${route.tab === 'settings' ? 'active' : ''}">Programmes</a></div></nav>${body}</div>`
   }
-  return `<div class="planning-shell${academicsLoading ? ' is-saving' : ''}${isOnboarding ? ' is-onboarding' : ''}"${academicsLoading ? ' aria-busy="true"' : ''}>${isOnboarding ? '' : `<nav class="pl-tabs" aria-label="Academic planning sections"><div>${PLANNING_TABS.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div>${academicsLoading ? '<span class="pl-saving" role="status">Saving…</span>' : ''}</nav>`}${body}</div>`
+  return `<div class="planning-shell${academicsLoading ? ' is-saving' : ''}${isOnboarding ? ' is-onboarding' : ''}"${academicsLoading ? ' aria-busy="true"' : ''}>${isOnboarding ? '' : `${planningShellHead()}<nav class="page-tabs" aria-label="Academic planning sections"><div>${PLANNING_TABS.map(([id, label]) => `<a href="#/planning/${id}" class="${route.tab === id ? 'active' : ''}"${route.tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>`}${body}</div>`
 }
 
 function renderAcademicPlanningPage() {
@@ -2337,50 +2371,155 @@ function usageBar(label, used, limit, detail) {
   </div>`
 }
 
-function renderSettingsPage() {
-  const email = window.__clerk?.user?.primaryEmailAddress?.emailAddress || (window.__authMode === 'local' ? 'Local development account' : 'Signed-in account')
-  const created = window.__clerk?.user?.createdAt
-    ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(window.__clerk.user.createdAt))
-    : null
+// ----- Account: profile, AI usage, data & privacy ---------------------------
+let accountSummary = null
+let accountSummaryError = null
+let accountSummaryLoading = false
+async function loadAccountSummary(force = false) {
+  if ((accountSummary && !force) || accountSummaryLoading) return accountSummary
+  accountSummaryLoading = true
+  accountSummaryError = null
+  try { accountSummary = await fetchJson('/api/account/summary') }
+  catch (error) { accountSummary = null; accountSummaryError = error.message || 'Account details are temporarily unavailable.' }
+  finally { accountSummaryLoading = false }
+  return accountSummary
+}
+
+function formatBytes(bytes) {
+  const value = Number(bytes) || 0
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(value < 10 * 1024 ? 1 : 0)} KB`
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function longDate(value) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(value))
+}
+
+function renderAccountPage() {
+  ensureHomeData()
+  if (!aiUsage && !aiUsageError) loadAiUsage().then(() => render())
+  if (!accountSummary && !accountSummaryLoading && !accountSummaryError) loadAccountSummary().then(() => render())
+  if (!activityLoading && (!activityCache || Date.now() - activityLoadedAt > 60_000)) loadActivity().then(() => render())
+  const user = currentUser()
+  const tab = ACCOUNT_TABS.some(([id]) => id === route.tab) ? route.tab : 'profile'
+  const memberSince = longDate(user.createdAt || accountSummary?.account?.createdAt)
+  const body = tab === 'usage' ? renderAccountUsage() : tab === 'data' ? renderAccountData() : renderAccountProfile(user)
+  return `<section class="page-wrap account-page">
+    <header class="page-head">
+      <div class="page-head-identity">${renderAvatar(user, 'lg')}<div><p class="page-eyebrow">Account</p><h1>${escapeHtml(user.name)}</h1><p class="page-sub">${escapeHtml(user.email || 'Signed in')}${memberSince ? ` · Member since ${escapeHtml(memberSince)}` : ''}${window.__clerk ? '' : ' · No sign-in configured'}</p></div></div>
+      <div class="page-head-actions">
+        ${window.__clerk ? `<button type="button" class="btn btn-secondary" data-open-profile>${uiIcon('edit')} Edit profile</button><button type="button" class="btn btn-ghost" data-sign-out>${uiIcon('logout')} Sign out</button>` : ''}
+      </div>
+    </header>
+    <nav class="page-tabs" aria-label="Account sections"><div>${ACCOUNT_TABS.map(([id, label]) => `<a href="#/account/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>
+    ${body}
+  </section>`
+}
+
+function renderAccountProfile(user) {
+  const activity = activityCache
+  const summary = accountSummary
+  const active = activeCourses().length
+  const archived = archivedCourses().length
+  const fact = (label, value, detail) => `<div class="fact"><dt>${label}</dt><dd>${value}</dd>${detail ? `<span>${detail}</span>` : ''}</div>`
+  const identityRows = [
+    ['Email', user.email || '—'],
+    ['Sign-in', window.__clerk ? 'Managed by Clerk' : 'Local development (no sign-in)'],
+    ['Storage', summary ? (summary.account?.storage === 'neon' ? 'Encrypted cloud database (Neon)' : 'Local files on this machine') : '…'],
+    ['Account ID', summary?.account?.id ? `<code>${escapeHtml(String(summary.account.id).slice(0, 18))}${String(summary.account.id).length > 18 ? '…' : ''}</code>` : '…']
+  ]
+  return `<div class="account-grid">
+    <section class="panel">
+      <div class="panel-top"><div><h2>Identity</h2><p>Who you are signed in as and where your record lives.</p></div></div>
+      <dl class="kv">${identityRows.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>
+      ${window.__clerk ? `<p class="panel-note">Name, email, password, and connected sign-in providers are managed in your profile. <button type="button" class="pl-link pl-link-button" data-open-profile>Open profile</button></p>` : '<p class="panel-note">Sign-in is disabled in local development. Every record is stored under the <code>local-dev</code> account.</p>'}
+    </section>
+    <div class="account-stack">
+      <section class="panel">
+        <div class="panel-top"><div><h2>Study record</h2><p>What Wicker Study currently holds for you.</p></div></div>
+        <dl class="fact-grid">
+          ${fact('Active courses', active, archived ? `${archived} archived` : 'None archived')}
+          ${fact('Flashcards', srDueCache?.totalCards ?? '—', srDueCache ? `${srDueCache.dueCount || 0} due now` : 'Loading…')}
+          ${fact('Open mistakes', mistakeCache?.items?.length ?? '—', 'Scored below 7/10')}
+          ${fact('Study streak', activity ? `${activity.streak}<small>d</small>` : '—', activity ? `${activity.activeDays} active days of 28` : 'Loading…')}
+          ${fact('Average score', activity?.averageScore != null ? `${activity.averageScore}<small>/10</small>` : '—', 'Graded answers, last 120 days')}
+          ${fact('Stored records', summary ? summary.totals.documents : '—', summary ? `${formatBytes(summary.totals.bytes)} · updated ${summary.totals.updatedAt ? relativeTime(summary.totals.updatedAt) : 'never'}` : accountSummaryError ? 'Unavailable' : 'Loading…')}
+        </dl>
+      </section>
+      <section class="panel">
+        <div class="panel-top"><div><h2>Activity</h2><p>${activity ? `${activity.week?.total || 0} actions this week · ${activity.previousWeek || 0} the week before` : 'Loading your study ledger…'}</p></div><a class="pl-link" href="#/practice">Practise</a></div>
+        ${activity ? renderActivityChart(activity) : '<div class="activity-chart is-loading"></div>'}
+        ${activity ? renderActivityFeed(activity, 10) : ''}
+      </section>
+    </div>
+  </div>`
+}
+
+function renderAccountUsage() {
   const chatUsed = aiUsage?.usage?.today?.requests?.chat || 0
   const exerciseUsed = aiUsage?.usage?.today?.requests?.exercises || 0
   const intakeUsed = aiUsage?.usage?.today?.requests?.intake || 0
   const dailyTokens = aiUsage?.usage?.today?.tokens || 0
   const monthlyTokens = aiUsage?.usage?.month?.tokens || 0
-  return `<div class="settings-page">
-    <header class="settings-header">
-      <div><h1>Settings</h1><p>Understand your AI allowance, manage your personal data, and control your account.</p></div>
-      <a class="btn btn-secondary" href="/privacy">Privacy notice</a>
-    </header>
+  const featureLabel = { chat: 'Tutor chat', exercises: 'Extra exercises', intake: 'Plan import' }
+  return `<div class="account-stack">
+    <section class="panel">
+      <div class="panel-top"><div><h2>Allowance</h2><p>AI is used only for the source-grounded tutor, extra exercises you request, and academic documents you explicitly ask to organise.</p></div><button type="button" class="btn btn-secondary btn-sm" data-refresh-usage>${uiIcon('refresh')} Refresh</button></div>
+      ${aiUsage ? `<div class="meter-grid">
+        ${usageBar('Tutor chat today', chatUsed, aiUsage.limits.chat.requestsPerDay, `${aiUsage.remaining.chatToday} messages left · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
+        ${usageBar('Extra exercises today', exerciseUsed, aiUsage.limits.exercises.requestsPerDay, `${aiUsage.remaining.exercisesToday} requests left · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
+        ${usageBar('Plan imports today', intakeUsed, aiUsage.limits.intake.requestsPerDay, `${aiUsage.remaining.intakeToday} imports left · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
+        ${usageBar('Tokens today', dailyTokens, aiUsage.limits.tokensPerDay, `${formatUsageNumber(aiUsage.remaining.tokensToday)} left`)}
+        ${usageBar('Tokens this month', monthlyTokens, aiUsage.limits.tokensPerMonth, `${formatUsageNumber(aiUsage.remaining.tokensMonth)} left · resets ${formatResetDate(aiUsage.resetsAt.month, 'date')}`)}
+      </div>` : aiUsageError
+        ? `<div class="settings-error" role="alert"><strong>Usage is temporarily unavailable.</strong><p>${escapeHtml(aiUsageError)} Refresh to try again.</p></div>`
+        : '<div class="settings-loading"><span></span><p>Loading your current allowance…</p></div>'}
+    </section>
+    <section class="panel">
+      <div class="panel-top"><div><h2>Recent requests</h2><p>Every AI request this month, newest first. Pending requests reserve their maximum output so concurrent calls cannot exceed your limit.</p></div></div>
+      ${aiUsage?.recent?.length ? `<div class="pl-table-wrap"><table class="pl-table usage-table"><thead><tr><th>Feature</th><th>Status</th><th class="num">Input</th><th class="num">Output</th><th>When</th></tr></thead><tbody>${aiUsage.recent.map((event) => `<tr><td>${featureLabel[event.feature] || escapeHtml(event.feature)}</td><td><span class="pl-pill is-${event.status === 'completed' ? 'ok' : event.status === 'failed' ? 'bad' : 'pending'}">${escapeHtml(event.status)}</span></td><td class="num">${formatUsageNumber(event.inputTokens)}${event.estimated && event.status === 'completed' ? '<small> est.</small>' : ''}</td><td class="num">${formatUsageNumber(event.status === 'pending' ? event.reservedTokens : event.outputTokens)}</td><td><time datetime="${event.createdAt}">${relativeTime(event.createdAt)}</time></td></tr>`).join('')}</tbody></table></div>` : aiUsage ? '<p class="panel-note">No AI requests yet this month.</p>' : ''}
+      <p class="panel-note">Direct API calls use provider-reported token totals; local CLI providers use a conservative estimate.</p>
+    </section>
+  </div>`
+}
 
-    <div class="settings-layout">
-      <nav class="settings-nav" aria-label="Settings sections"><a href="#usage">AI usage</a><a href="#data">Your data</a><a href="#account">Account</a></nav>
-      <div class="settings-content">
-        <section class="settings-section" id="usage">
-          <div class="settings-section-head"><div><h2>AI usage</h2><p>AI is used only for the source-grounded tutor, extra exercises you request, and academic documents you explicitly ask to organise.</p></div><button type="button" class="btn btn-secondary" data-refresh-usage>Refresh</button></div>
-          ${aiUsage ? `<div class="usage-summary">
-            ${usageBar('Tutor chat today', chatUsed, aiUsage.limits.chat.requestsPerDay, `${aiUsage.remaining.chatToday} messages remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
-            ${usageBar('Extra exercise requests today', exerciseUsed, aiUsage.limits.exercises.requestsPerDay, `${aiUsage.remaining.exercisesToday} requests remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
-            ${usageBar('Academic plan imports today', intakeUsed, aiUsage.limits.intake.requestsPerDay, `${aiUsage.remaining.intakeToday} imports remaining · resets ${formatResetDate(aiUsage.resetsAt.day)}`)}
-            ${usageBar('Tokens today', dailyTokens, aiUsage.limits.tokensPerDay, `${formatUsageNumber(aiUsage.remaining.tokensToday)} tokens remaining`)}
-            ${usageBar('Tokens this month', monthlyTokens, aiUsage.limits.tokensPerMonth, `${formatUsageNumber(aiUsage.remaining.tokensMonth)} tokens remaining · resets ${formatResetDate(aiUsage.resetsAt.month, 'date')}`)}
-          </div><div class="usage-note"><strong>How counting works</strong><p>Direct API calls use provider-reported token totals. Local CLI providers use a conservative estimate. Pending requests reserve their maximum output allowance so concurrent requests cannot exceed your limit.</p></div>` : aiUsageError
-            ? `<div class="settings-error" role="alert"><strong>Usage is temporarily unavailable.</strong><p>${escapeHtml(aiUsageError)} Refresh to try again.</p></div>`
-            : '<div class="settings-loading"><span></span><p>Loading your current allowance…</p></div>'}
-        </section>
-
-        <section class="settings-section" id="data">
-          <div class="settings-section-head"><div><h2>Your data</h2><p>Download a machine-readable copy of the personal information stored by Wicker Study.</p></div></div>
-          <div class="settings-action-row"><div><strong>Export personal data</strong><p>Includes synced study records, notes, attempts, review history, account details, and AI usage events. Shared course material is not duplicated in the export.</p></div><button type="button" class="btn btn-secondary" data-export-data>${uiIcon('download')} Download JSON</button></div>
-          <p class="settings-legal-note">For access, correction, restriction, or objection requests that are not available here, contact <a href="mailto:privacy@wicker.life">privacy@wicker.life</a>.</p>
-        </section>
-
-        <section class="settings-section" id="account">
-          <div class="settings-section-head"><div><h2>Account</h2><p>Your authentication identity and private study record.</p></div></div>
-          <dl class="account-register"><div><dt>Email</dt><dd>${escapeHtml(email)}</dd></div>${created ? `<div><dt>Member since</dt><dd>${escapeHtml(created)}</dd></div>` : ''}<div><dt>Storage</dt><dd>Personal records separated by account</dd></div></dl>
-          <div class="danger-zone"><div><strong>Delete account and data</strong><p>Permanently removes your authentication identity, synced progress, notes, attempts, flashcards, mistakes, tutor history, personal exercises, and AI usage ledger. This cannot be undone.</p></div><button type="button" class="btn btn-danger" data-account-delete-open>${uiIcon('trash')} Delete account</button></div>
-        </section>
+function renderAccountData() {
+  const summary = accountSummary
+  return `<div class="account-stack">
+    <section class="panel">
+      <div class="panel-top"><div><h2>What is stored</h2><p>Your personal record, separated from shared course material. Nothing here is used to train models.</p></div>${summary ? `<span class="panel-stat"><strong>${formatBytes(summary.totals.bytes)}</strong><small>${summary.totals.documents} record${summary.totals.documents === 1 ? '' : 's'}</small></span>` : ''}</div>
+      ${summary ? (summary.namespaces.length ? `<div class="pl-table-wrap"><table class="pl-table storage-table"><thead><tr><th>Record</th><th class="num">Items</th><th class="num">Size</th><th>Updated</th><th>Reset</th></tr></thead><tbody>${summary.namespaces.map((entry) => `<tr><td><strong>${escapeHtml(entry.label)}</strong><small>${escapeHtml(entry.namespace)}</small></td><td class="num">${entry.count}</td><td class="num">${formatBytes(entry.bytes)}</td><td>${entry.updatedAt ? relativeTime(entry.updatedAt) : '—'}</td><td>${entry.study ? '<span class="pl-pill is-ok">Study data</span>' : '<span class="pl-pill">Kept on reset</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="panel-note">Nothing stored yet. Records appear as you read, practise, and plan.</p>') : accountSummaryError ? `<div class="settings-error" role="alert"><strong>Storage details are unavailable.</strong><p>${escapeHtml(accountSummaryError)}</p></div>` : '<div class="settings-loading"><span></span><p>Reading your record…</p></div>'}
+    </section>
+    <section class="panel">
+      <div class="panel-top"><div><h2>Your data</h2><p>Export, reset, or remove what Wicker Study holds about you.</p></div></div>
+      <div class="action-list">
+        <div class="action-row"><div><strong>Export personal data</strong><p>A machine-readable JSON copy of your study records, plan, attempts, review history, account details, and AI usage events.</p></div><button type="button" class="btn btn-secondary" data-export-data>${uiIcon('download')} Download JSON</button></div>
+        <div class="action-row"><div><strong>Reset study data</strong><p>Clears progress, flashcards, mistakes, mock sessions, personal exercises, and the activity log. Your account, academic plan, and AI usage ledger are kept.</p></div><button type="button" class="btn btn-secondary btn-danger-outline" data-account-reset-open="study">${uiIcon('refresh')} Reset study data</button></div>
+        <div class="action-row"><div><strong>Erase all personal data</strong><p>Removes every record including your academic plan and usage ledger, but keeps your sign-in so you can start again.</p></div><button type="button" class="btn btn-secondary btn-danger-outline" data-account-reset-open="everything">${uiIcon('trash')} Erase everything</button></div>
       </div>
+      <p class="settings-legal-note">For access, correction, restriction, or objection requests that are not available here, contact <a href="mailto:privacy@wicker.life">privacy@wicker.life</a>. See the <a href="/privacy">privacy notice</a>.</p>
+    </section>
+    <section class="panel panel-danger">
+      <div class="action-row"><div><strong>Delete account</strong><p>Permanently removes your sign-in identity together with all personal data. This cannot be undone.</p></div><button type="button" class="btn btn-danger" data-account-delete-open>${uiIcon('trash')} Delete account</button></div>
+    </section>
+  </div>`
+}
+
+const accountResetState = { open: false, scope: 'study', confirmation: '', working: false, error: null }
+
+function renderAccountResetModal() {
+  if (!accountResetState.open) return ''
+  const everything = accountResetState.scope === 'everything'
+  const enabled = accountResetState.confirmation === 'RESET' && !accountResetState.working
+  return `<div class="confirm-overlay account-delete-overlay" data-account-reset-overlay>
+    <div class="account-delete-panel" role="alertdialog" aria-modal="true" aria-labelledby="account-reset-title" aria-describedby="account-reset-description">
+      <div class="account-delete-head"><div><h2 id="account-reset-title">${everything ? 'Erase all personal data?' : 'Reset your study data?'}</h2><p id="account-reset-description">${everything ? 'Every personal record is removed. Your sign-in stays, so you can start from an empty workspace.' : 'Your study record is cleared. Your account, academic plan, and AI usage ledger are kept.'}</p></div><button type="button" class="icon-btn" data-account-reset-close aria-label="Close dialog" ${accountResetState.working ? 'disabled' : ''}>${uiIcon('close')}</button></div>
+      <div class="account-delete-warning"><strong>This cannot be undone.</strong><ul><li>Reading progress, mastery, and course order</li><li>Flashcards, spaced-repetition history, and mistakes</li><li>Mock sessions, personal exercises, and the activity log</li>${everything ? '<li>Academic plan, programme choices, and AI usage ledger</li>' : ''}</ul></div>
+      <label class="account-delete-confirm"><span>Type <b>RESET</b> to confirm</span><input type="text" aria-label="Type RESET to confirm" data-account-reset-input value="${escapeHtml(accountResetState.confirmation)}" autocomplete="off" autocapitalize="characters" spellcheck="false" ${accountResetState.working ? 'disabled' : ''}></label>
+      ${accountResetState.error ? `<p class="account-delete-error" role="alert">${escapeHtml(accountResetState.error)}</p>` : ''}
+      <div class="confirm-actions"><button type="button" class="btn btn-secondary" data-account-reset-close ${accountResetState.working ? 'disabled' : ''}>Keep my data</button><button type="button" class="btn btn-danger" data-account-reset-confirm ${enabled ? '' : 'disabled'}>${accountResetState.working ? 'Resetting…' : everything ? 'Erase everything' : 'Reset study data'}</button></div>
     </div>
   </div>`
 }
@@ -2446,27 +2585,58 @@ async function moveCourse(courseId, dir) {
   }
 }
 
-function renderAppHeader() {
+// ----- Identity helpers (Clerk when configured, local otherwise) -----------
+function currentUser() {
+  const user = window.__clerk?.user
+  const email = user?.primaryEmailAddress?.emailAddress || null
+  const first = user?.firstName || null
+  const last = user?.lastName || null
+  const name = [first, last].filter(Boolean).join(' ') || (email ? email.split('@')[0] : null) || (window.__authMode === 'local' ? 'Local student' : 'Student')
+  const initials = (first && last) ? `${first[0]}${last[0]}` : name.replace(/[^a-zA-Z0-9 ]/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('') || 'W'
+  return {
+    name,
+    firstName: first || null,
+    email: email || (window.__authMode === 'local' ? 'Local development account' : null),
+    initials: initials.toUpperCase(),
+    createdAt: user?.createdAt ? new Date(user.createdAt) : null,
+    imageUrl: user?.hasImage ? user.imageUrl : null,
+    provider: window.__clerk ? 'Clerk' : 'Local'
+  }
+}
+
+function renderAvatar(user, size = 'sm') {
+  return user.imageUrl
+    ? `<span class="dash-avatar dash-avatar-${size}"><img src="${escapeHtml(user.imageUrl)}" alt="" /></span>`
+    : `<span class="dash-avatar dash-avatar-${size}" aria-hidden="true">${escapeHtml(user.initials)}</span>`
+}
+
+function renderSidebar() {
+  const user = currentUser()
+  const active = activeCourses().length
+  const due = (srDueCache?.dueCount || 0) + (mistakeCache?.items?.length || 0)
+  const link = (cls, href, label, icon, isActive, count) => `<a class="dash-nav-link ${cls}${isActive ? ' active' : ''}" href="${href}"${isActive ? ' aria-current="page"' : ''}><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>${count ? `<span class="dash-nav-count">${count}</span>` : ''}</a>`
   return `
-    <header class="app-header" data-route="${route.page}">
-      <div class="app-header-brand">
-        <a class="brand" href="#/">
-          <span class="brand-mark">W</span>
-          <span class="brand-text"><strong>Wicker Study</strong><small>Academic workspace</small></span>
+    <aside class="dash-side">
+      <a class="dash-brand" href="#/"><span class="brand-mark">W</span><span class="dash-brand-text"><strong>Wicker Study</strong><small>Academic workspace</small></span></a>
+      <button type="button" class="dash-search" data-search-open title="Search course (⌘⇧F)"><span class="nav-icon">${uiIcon('search')}</span><span>Search</span><kbd>⌘⇧F</kbd></button>
+      <nav class="dash-nav" aria-label="Primary navigation">
+        <span class="dash-nav-group">Study</span>
+        ${link('nav-home', '#/', 'Home', uiIcon('home'), route.page === 'dashboard')}
+        ${link('nav-courses', '#/courses', 'Courses', uiIcon('book'), ['courses', 'course', 'chapter', 'mock-exam'].includes(route.page), active || null)}
+        ${link('nav-practice', '#/practice', 'Practice', uiIcon('target'), route.page === 'practice', due || null)}
+        <span class="dash-nav-group">Plan</span>
+        ${link('nav-planning', '#/planning', 'Planning', uiIcon('chart'), route.page === 'planning' && route.tab !== 'calendar')}
+        ${link('nav-calendar', '#/planning/calendar', 'Calendar', uiIcon('calendar'), route.page === 'planning' && route.tab === 'calendar')}
+        ${link('nav-account nav-account-mobile', '#/account', 'Account', uiIcon('user'), route.page === 'account')}
+      </nav>
+      <div class="dash-side-foot">
+        <a class="dash-user${route.page === 'account' ? ' active' : ''}" href="#/account" title="Account">
+          ${renderAvatar(user)}
+          <span class="dash-user-text"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.email || 'Signed in')}</small></span>
+          <span class="nav-icon">${uiIcon('chevronRight')}</span>
         </a>
       </div>
-      <nav class="app-nav" aria-label="Primary navigation">
-        ${renderSearchTrigger()}
-        <a class="app-nav-link nav-home ${route.page === 'dashboard' ? 'active' : ''}" href="#/" title="Home"><span class="nav-icon tool-icon">${uiIcon('play')}</span><span class="nav-label">Home</span></a>
-        <a class="app-nav-link nav-courses ${['courses', 'course', 'chapter', 'mock-exam'].includes(route.page) ? 'active' : ''}" href="#/courses" title="Courses"><span class="nav-icon tool-icon">${ICONS.dashboard}</span><span class="nav-label">Courses</span></a>
-        <a class="app-nav-link nav-practice ${route.page === 'practice' ? 'active' : ''}" href="#/practice" title="Practice"><span class="nav-icon tool-icon">${ICONS.practice}</span><span class="nav-label">Practice</span></a>
-        <a class="app-nav-link nav-planning ${route.page === 'planning' ? 'active' : ''}" href="#/planning" title="Academic planning"><span class="nav-icon tool-icon">${ICONS.stats}</span><span class="nav-label">Planning</span></a>
-        <a class="app-nav-link nav-settings ${route.page === 'settings' ? 'active' : ''}" href="#/settings" title="Settings"><span class="nav-icon tool-icon">${uiIcon('settings')}</span><span class="nav-label">Settings</span></a>
-      </nav>
-      <div class="app-account">
-        ${window.__clerk ? '<button type="button" class="sidebar-signout" data-sign-out>Sign out</button>' : ''}
-      </div>
-    </header>
+    </aside>
   `
 }
 
@@ -2693,8 +2863,61 @@ function renderCourseLedger(courses, { manage = false } = {}) {
   }).join('')}</div>`
 }
 
+// ----- Activity (server-side study ledger) ---------------------------------
+let activityCache = null
+let activityLoadedAt = 0
+let activityLoading = false
+async function loadActivity(force = false) {
+  if (activityLoading) return activityCache
+  if (activityCache && !force && Date.now() - activityLoadedAt < 60_000) return activityCache
+  activityLoading = true
+  try { activityCache = await fetchJson('/api/activity?days=28') }
+  catch (error) { activityCache = { error: error.message, series: [], streak: 0, week: { total: 0 }, recent: [] } }
+  finally { activityLoading = false; activityLoadedAt = Date.now() }
+  return activityCache
+}
+function invalidateActivity() { activityLoadedAt = 0 }
+
+const ACTIVITY_LABELS = { answer: 'Answered', review: 'Reviewed', mock: 'Mock sat', resolve: 'Resolved', read: 'Read' }
+const ACTIVITY_ICONS = { answer: 'edit', review: 'layers', mock: 'timer', resolve: 'check', read: 'book' }
+
+function renderActivityChart(summary, { compact = false } = {}) {
+  const series = summary?.series || []
+  const max = Math.max(1, ...series.map((day) => day.total))
+  const total = series.reduce((sum, day) => sum + day.total, 0)
+  if (!series.length || !total) {
+    return `<div class="activity-empty"><p>No study activity in the last ${summary?.days || 28} days. Answer a question, review a card, or sit a mock and it shows up here.</p><a class="btn btn-primary btn-sm" href="#/practice">Start practising</a></div>`
+  }
+  const today = new Date().toISOString().slice(0, 10)
+  return `<div class="activity-chart${compact ? ' is-compact' : ''}" role="img" aria-label="Study activity, ${total} actions over ${series.length} days">
+    ${series.map((day) => {
+      const height = day.total ? Math.max(8, Math.round((day.total / max) * 100)) : 3
+      const date = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(`${day.date}T12:00:00Z`))
+      return `<span class="activity-bar${day.total ? ' has-value' : ''}${day.date === today ? ' is-today' : ''}" style="--h:${height}%" title="${date}: ${day.total} action${day.total === 1 ? '' : 's'}"></span>`
+    }).join('')}
+  </div>`
+}
+
+function renderActivityFeed(summary, limit = 6) {
+  const recent = (summary?.recent || []).slice(0, limit)
+  if (!recent.length) return ''
+  return `<ol class="activity-feed">${recent.map((event) => {
+    const course = event.courseId ? state.courses.find((c) => c.id === event.courseId) : null
+    const where = [course?.code, event.chapterId ? `Ch ${event.chapterId}` : null].filter(Boolean).join(' · ')
+    const score = typeof event.score === 'number' && event.type !== 'review' ? `<span class="activity-score${event.score >= 7 ? ' is-good' : event.score < 5 ? ' is-low' : ''}">${event.type === 'mock' ? `${Math.round(event.score * 10)}%` : `${event.score}/10`}</span>` : ''
+    return `<li><span class="activity-icon is-${event.type}">${uiIcon(ACTIVITY_ICONS[event.type] || 'check')}</span><span class="activity-copy"><strong>${ACTIVITY_LABELS[event.type] || event.type}${where ? ` <em>${escapeHtml(where)}</em>` : ''}</strong><small>${escapeHtml(event.label || (event.type === 'review' ? 'Flashcard recall' : ''))}</small></span>${score}<time datetime="${event.at}">${relativeTime(event.at)}</time></li>`
+  }).join('')}</ol>`
+}
+
+function greeting() {
+  const hour = new Date().getHours()
+  return hour < 5 ? 'Late night' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+}
+
 function renderHome() {
   ensureHomeData()
+  if (!activityLoading && (!activityCache || Date.now() - activityLoadedAt > 60_000)) loadActivity().then(() => render())
+  const user = currentUser()
   const mistakeCount = mistakeCache?.items?.length ?? null
   const srDue = srDueCache?.dueCount ?? null
   const srTotal = srDueCache?.totalCards ?? null
@@ -2704,20 +2927,35 @@ function renderHome() {
   const fallback = courses[0]
   const resumeCourse = recent?.course || fallback
   const resumeChapter = recent?.chapter || fallback?.chapters?.find((ch) => ch.file?.endsWith('.md'))
-  const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+  const today = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
   const hasPlan = Boolean(academicsData?.workspace?.courses?.length)
   const soonest = exams[0]
+  const activity = activityCache
+  const week = activity?.week?.total ?? null
+  const streak = activity?.streak ?? null
+  const delta = activity ? week - (activity.previousWeek || 0) : null
+  const dueTotal = (srDue || 0) + (mistakeCount || 0)
   const nextLine = soonest
-    ? `${countdownLabel(soonest.days)} · ${escapeHtml(soonest.course.code || soonest.course.name)} ${escapeHtml(soonest.course.name)}`
-    : hasPlan ? 'No exam dates recorded yet' : academicsData ? 'No academic plan yet' : 'Loading your plan…'
+    ? `Next exam ${countdownLabel(soonest.days).toLowerCase()} — ${escapeHtml(soonest.course.code || '')} ${escapeHtml(soonest.course.name)}.`
+    : hasPlan ? 'No exam dates recorded yet — add them in Planning and they appear here.' : academicsData ? 'Set up your academic plan to see exam countdowns here.' : 'Loading your plan…'
+  const todayLine = dueTotal ? `${dueTotal} item${dueTotal === 1 ? '' : 's'} waiting in your queues.` : srDueCache && mistakeCache ? 'Your queues are clear.' : ''
 
-  const queue = (href, label, value, detail, icon) => `<a class="queue-card" href="${href}"><span class="queue-icon">${icon}</span><span class="queue-copy"><strong>${label}</strong><small>${detail}</small></span>${value == null ? '' : `<span class="queue-value">${value}</span>`}${uiIcon('chevronRight')}</a>`
+  const kpi = (href, cls, icon, label, value, detail) => `<a class="kpi ${cls}" href="${href}"><span class="kpi-icon">${uiIcon(icon)}</span><span class="kpi-label">${label}</span><span class="kpi-value">${value}</span><span class="kpi-detail">${detail}</span></a>`
 
   return `
-    <header class="home-head">
-      <div><p class="home-date">${escapeHtml(today)}</p><h1>${soonest ? `Next exam ${countdownLabel(soonest.days).toLowerCase()}` : 'What do you want to study?'}</h1><p class="home-sub">${nextLine}</p></div>
-      <div class="home-head-actions">${renderSearchTrigger()}<a class="btn btn-secondary btn-sm home-settings" href="#/settings" title="Settings">${uiIcon('settings')}<span>Settings</span></a></div>
+    <header class="page-head home-head">
+      <div><p class="page-eyebrow">${escapeHtml(today)}</p><h1>${greeting()}${user.firstName ? `, ${escapeHtml(user.firstName)}` : ''}</h1><p class="page-sub">${nextLine} ${todayLine}</p></div>
+      <div class="page-head-actions">${renderSearchTrigger()}<a class="btn btn-primary" href="#/practice">${uiIcon('play')} Practise</a></div>
     </header>
+
+    <div class="kpi-strip">
+      ${kpi('#/planning/calendar', soonest && soonest.days !== null && soonest.days <= 7 ? 'is-danger' : 'is-brand', 'calendar', 'Next exam',
+        soonest ? (soonest.days === null ? '—' : soonest.days < 0 ? 'Today' : `${soonest.days}<small>${soonest.days === 1 ? 'day' : 'days'}</small>`) : '—',
+        soonest ? `${escapeHtml(soonest.course.code || soonest.course.name)} · ${academicDate(soonest.attempt.examDate)}` : hasPlan ? 'No dates recorded' : 'No plan yet')}
+      ${kpi('#/practice/flashcards', 'is-brand', 'layers', 'Flashcards due', srDue == null ? '—' : srDue, srTotal == null ? 'Loading…' : srTotal ? `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck` : 'Add cards from any question')}
+      ${kpi('#/practice/mistakes', mistakeCount ? 'is-warning' : 'is-success', 'alert', 'Open mistakes', mistakeCount == null ? '—' : mistakeCount, mistakeCount == null ? 'Loading…' : mistakeCount ? 'Scored below 7/10, unresolved' : 'Nothing to fix right now')}
+      ${kpi('#/account/profile', streak ? 'is-flame' : 'is-neutral', 'flame', 'Study streak', streak == null ? '—' : `${streak}<small>${streak === 1 ? 'day' : 'days'}</small>`, week == null ? 'Loading…' : `${week} action${week === 1 ? '' : 's'} this week${delta ? ` · ${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)}` : ''}`)}
+    </div>
 
     <div class="home-grid">
       <section class="home-main">
@@ -2727,28 +2965,35 @@ function renderHome() {
           <span class="resume-cta">${uiIcon('play')} Open chapter</span>
         </a>` : ''}
 
-        <nav class="queue-list" aria-label="Study queues">
-          ${queue('#/practice', 'Mixed practice', null, 'Published questions across every active course', ICONS.practice)}
-          ${queue('#/practice/flashcards', 'Flashcards due', srDue == null ? '—' : srDue, srTotal == null ? 'Loading…' : srTotal ? `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck` : 'Add cards from any question', ICONS.practice)}
-          ${queue('#/practice/mistakes', 'Open mistakes', mistakeCount == null ? '—' : mistakeCount, mistakeCount == null ? 'Loading…' : mistakeCount ? 'Graded below 7/10 and not yet resolved' : 'Nothing to fix right now', ICONS.mistakes)}
-          ${queue('#/practice/mocks', 'Timed mocks', null, 'Sit a chapter under exam conditions', ICONS.mocks)}
-        </nav>
+        <section class="panel">
+          <div class="panel-top"><div><h2>Activity</h2><p>${activity ? `${activity.activeDays || 0} active day${activity.activeDays === 1 ? '' : 's'} in the last 28 · ${activity.week?.answer || 0} answered, ${activity.week?.review || 0} reviewed, ${activity.week?.mock || 0} mock${activity.week?.mock === 1 ? '' : 's'} this week` : 'Loading your study ledger…'}</p></div>${activity?.averageScore != null ? `<span class="panel-stat"><strong>${activity.averageScore}<small>/10</small></strong><small>avg. score</small></span>` : ''}</div>
+          ${activity ? renderActivityChart(activity) : '<div class="activity-chart is-loading"></div>'}
+          ${activity ? renderActivityFeed(activity) : ''}
+        </section>
 
-        <div class="home-section-head"><h2>Courses</h2><a class="pl-link" href="#/courses">Manage</a></div>
+        <div class="section-head"><h2>Courses</h2><a class="pl-link" href="#/courses">Manage</a></div>
         ${renderCourseLedger(courses)}
       </section>
 
       <aside class="home-aside">
-        <section class="home-aside-block">
-          <div class="home-aside-head"><h2>Upcoming exams</h2><a class="pl-link" href="#/planning/calendar">Calendar</a></div>
+        <section class="panel panel-aside">
+          <div class="panel-top"><h2>Upcoming exams</h2><a class="pl-link" href="#/planning/calendar">Calendar</a></div>
           ${exams.length ? `<ol class="exam-list">${exams.map((item) => `<li>
             <span class="exam-days${item.days !== null && item.days <= 7 ? ' is-soon' : ''}"><strong>${item.days === null ? '—' : item.days < 0 ? '0' : item.days}</strong><small>${item.days === 1 ? 'day' : 'days'}</small></span>
             <span class="exam-copy"><strong>${escapeHtml(item.course.code || item.course.name)}</strong><small>${escapeHtml(item.course.name)} · ${academicDate(item.attempt.examDate)}</small></span>
             ${item.editorial ? `<a class="pl-link" href="#/course/${item.editorial.id}">Study</a>` : '<span class="exam-noteditorial">No material</span>'}
           </li>`).join('')}</ol>` : `<div class="home-empty">${hasPlan ? '<p>No upcoming exam dates. Add one to a course attempt and it will appear here and on the course page.</p><a class="btn btn-secondary btn-sm" href="#/planning/courses">Add exam dates</a>' : academicsData ? '<p>Set up your academic plan to see exam countdowns, credits, and requirements alongside your study material.</p><a class="btn btn-primary btn-sm" href="#/planning">Set up plan</a>' : '<p>Loading your plan…</p>'}</div>`}
         </section>
-        ${academicsData?.summary && hasPlan ? `<section class="home-aside-block">
-          <div class="home-aside-head"><h2>Programme</h2><a class="pl-link" href="#/planning">Plan</a></div>
+        <section class="panel panel-aside">
+          <div class="panel-top"><h2>Quick start</h2></div>
+          <nav class="quick-list" aria-label="Quick start">
+            <a href="#/practice"><span class="nav-icon">${uiIcon('target')}</span><span><strong>Mixed practice</strong><small>Every active course, balanced</small></span>${uiIcon('chevronRight')}</a>
+            <a href="#/practice/mocks"><span class="nav-icon">${uiIcon('timer')}</span><span><strong>Timed mock</strong><small>A chapter under exam conditions</small></span>${uiIcon('chevronRight')}</a>
+            <a href="#/practice/flashcards"><span class="nav-icon">${uiIcon('layers')}</span><span><strong>Flashcards</strong><small>${srTotal ? `${srTotal} in your deck` : 'Build your deck'}</small></span>${uiIcon('chevronRight')}</a>
+          </nav>
+        </section>
+        ${academicsData?.summary && hasPlan ? `<section class="panel panel-aside">
+          <div class="panel-top"><h2>Programme</h2><a class="pl-link" href="#/planning">Plan</a></div>
           <dl class="pl-facts"><div><dt>Earned credits</dt><dd>${academicsData.summary.earnedEcts}</dd></div><div><dt>Courses passed</dt><dd>${academicsData.summary.passedCourses} / ${academicsData.summary.totalCourses}</dd></div>${academicsData.summary.gpa != null ? `<div><dt>Weighted GPA</dt><dd>${academicsData.summary.gpa}</dd></div>` : ''}</dl>
         </section>` : ''}
       </aside>
@@ -2771,7 +3016,6 @@ function renderCoursesPage() {
   `
 }
 
-const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
 
 function renderPracticeShell() {
   if (!srDueCache) loadSrDue().then(() => render())
@@ -2779,8 +3023,11 @@ function renderPracticeShell() {
   const counts = { flashcards: srDueCache?.dueCount, mistakes: mistakeCache?.items?.length }
   const tab = route.tab || 'questions'
   const body = tab === 'flashcards' ? renderSrPage() : tab === 'mistakes' ? renderMistakesPage() : tab === 'mocks' ? renderMocksPage() : renderPracticePage()
+  const dueTotal = (counts.flashcards || 0) + (counts.mistakes || 0)
+  const sub = dueTotal ? `${dueTotal} item${dueTotal === 1 ? '' : 's'} waiting — ${counts.flashcards || 0} flashcard${counts.flashcards === 1 ? '' : 's'} due, ${counts.mistakes || 0} open mistake${counts.mistakes === 1 ? '' : 's'}.` : srDueCache && mistakeCache ? 'Your queues are clear. Work through published questions or sit a timed mock.' : 'Loading your queues…'
   return `<div class="practice-shell">
-    <nav class="pl-tabs" aria-label="Practice sections"><div>${PRACTICE_TABS.map(([id, label]) => `<a href="#/practice/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}${counts[id] ? `<span class="pl-tab-count">${counts[id]}</span>` : ''}</a>`).join('')}</div></nav>
+    <header class="page-head"><div><p class="page-eyebrow">Practice</p><h1>${PRACTICE_TABS.find(([id]) => id === tab)?.[1] || 'Practice'}</h1><p class="page-sub">${sub}</p></div><div class="page-head-actions">${renderSearchTrigger()}</div></header>
+    <nav class="page-tabs" aria-label="Practice sections"><div>${PRACTICE_TABS.map(([id, label]) => `<a href="#/practice/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}${counts[id] ? `<span class="pl-tab-count">${counts[id]}</span>` : ''}</a>`).join('')}</div></nav>
     ${body}
   </div>`
 }
@@ -8522,6 +8769,56 @@ function bindEvents() {
     })
   })
 
+  document.querySelectorAll('[data-open-profile]').forEach((button) => {
+    button.addEventListener('click', () => { window.__clerk?.openUserProfile?.() })
+  })
+  document.querySelectorAll('[data-account-reset-open]').forEach((button) => {
+    button.addEventListener('click', () => {
+      Object.assign(accountResetState, { open: true, scope: button.dataset.accountResetOpen === 'everything' ? 'everything' : 'study', confirmation: '', error: null })
+      render()
+    })
+  })
+  const closeReset = () => {
+    if (accountResetState.working) return
+    Object.assign(accountResetState, { open: false, confirmation: '', error: null })
+    render()
+  }
+  document.querySelectorAll('[data-account-reset-close]').forEach((button) => button.addEventListener('click', closeReset))
+  document.querySelectorAll('[data-account-reset-overlay]').forEach((overlay) => {
+    overlay.addEventListener('mousedown', (event) => { if (event.target === overlay) closeReset() })
+  })
+  document.querySelectorAll('[data-account-reset-input]').forEach((input) => {
+    input.addEventListener('input', (event) => {
+      accountResetState.confirmation = event.currentTarget.value
+      const confirmButton = document.querySelector('[data-account-reset-confirm]')
+      if (confirmButton) confirmButton.disabled = accountResetState.confirmation !== 'RESET'
+    })
+  })
+  document.querySelectorAll('[data-account-reset-confirm]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (accountResetState.confirmation !== 'RESET' || accountResetState.working) return
+      accountResetState.working = true
+      accountResetState.error = null
+      render()
+      try {
+        await fetchJson('/api/account/data', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmation: 'RESET', scope: accountResetState.scope })
+        })
+        for (const key of Object.keys(localStorage)) {
+          if (/^(chapter-read:|chapter-tab|recent-chapter|attempt|practice|mock)/.test(key)) localStorage.removeItem(key)
+        }
+        window.location.assign('/app#/account/data')
+        window.location.reload()
+      } catch (error) {
+        accountResetState.working = false
+        accountResetState.error = `Reset could not be completed. Nothing was changed. ${error.message}`
+        render()
+      }
+    })
+  })
+
   // ----- Course search (popup) -----
   document.querySelectorAll('[data-search-open]').forEach((btn) => {
     btn.addEventListener('click', () => openSearchPopup())
@@ -9099,7 +9396,14 @@ function bindEvents() {
   document.querySelectorAll('[data-chapter-read-toggle]').forEach((btn) => {
     btn.addEventListener('click', (event) => {
       const [cid, chid] = event.currentTarget.dataset.chapterReadToggle.split('/')
-      setChapterRead(cid, chid, !isChapterRead(cid, chid))
+      const nowRead = !isChapterRead(cid, chid)
+      setChapterRead(cid, chid, nowRead)
+      if (nowRead) {
+        const course = state.courses.find((c) => c.id === cid)
+        const chapter = course?.chapters?.find((ch) => ch.id === chid)
+        fetch('/api/activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'read', courseId: cid, chapterId: chid, label: chapter?.name || '' }) })
+          .then(() => invalidateActivity()).catch(() => {})
+      }
       render()
     })
   })

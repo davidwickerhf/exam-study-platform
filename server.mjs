@@ -12,7 +12,8 @@ import { authenticate, authConfig, deleteAuthUser, getAuthUser, isPublicApi } fr
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
-import { deletePersonalData, exportPersonalData } from './lib/account-data.mjs'
+import { deletePersonalData, deleteStudyData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
+import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
@@ -2846,6 +2847,40 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    if (url.pathname === '/api/activity' && req.method === 'GET') {
+      const days = Math.min(120, Math.max(7, Number.parseInt(url.searchParams.get('days') || '28', 10) || 28))
+      send(res, 200, JSON.stringify(await getActivitySummary({ days })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/activity' && req.method === 'POST') {
+      // Only reading is reported by the client; every other event is recorded
+      // by the server when the underlying action succeeds.
+      const body = await readBody(req, 64 * 1024)
+      if (body?.type !== 'read') { send(res, 400, JSON.stringify({ error: 'Only read events can be reported by the client.' })); return }
+      const event = await recordActivity('read', { courseId: body.courseId, chapterId: body.chapterId, label: body.label })
+      send(res, 200, JSON.stringify({ ok: true, event }))
+      return
+    }
+
+    if (url.pathname === '/api/account/summary' && req.method === 'GET') {
+      const identity = await getAuthUser(currentAuth().userId)
+      const summary = await summarisePersonalData()
+      send(res, 200, JSON.stringify({ account: { ...identity, mode: currentAuth().mode, storage: storageMode() }, ...summary }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    if (url.pathname === '/api/account/data' && req.method === 'DELETE') {
+      const body = await readBody(req, 64 * 1024)
+      if (body?.confirmation !== 'RESET') {
+        send(res, 400, JSON.stringify({ error: 'Type RESET to confirm.' }))
+        return
+      }
+      const scope = body.scope === 'everything' ? 'everything' : 'study'
+      const removed = scope === 'everything' ? await deletePersonalData() : await deleteStudyData()
+      send(res, 200, JSON.stringify({ ok: true, scope, removed }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
     if (url.pathname === '/api/account/export' && req.method === 'GET') {
       const identity = await getAuthUser(currentAuth().userId)
       const payload = await exportPersonalData(identity)
@@ -3696,6 +3731,9 @@ const server = createServer(async (req, res) => {
           }
         }
 
+        if (body._meta?.courseId) {
+          await recordActivity('answer', { courseId: body._meta.courseId, chapterId: body._meta.chapterId, score, label: body.question?.question }).catch(() => {})
+        }
         send(res, 200, JSON.stringify({ correction, score, savedAsMistake }))
       } catch (err) {
         send(res, 500, JSON.stringify({ error: err.message }))
@@ -3731,6 +3769,7 @@ const server = createServer(async (req, res) => {
     const mistakeMatch = url.pathname.match(/^\/api\/mistakes\/([^/]+)\/?(resolve)?$/)
     if (mistakeMatch && req.method === 'POST' && mistakeMatch[2] === 'resolve') {
       const updated = await updateMistake(mistakeMatch[1], { resolvedAt: new Date().toISOString() })
+      if (updated) await recordActivity('resolve', { courseId: updated.courseId, chapterId: updated.chapterId, label: updated.question }).catch(() => {})
       send(res, updated ? 200 : 404, JSON.stringify(updated ? { ok: true, mistake: updated } : { error: 'Not found' }))
       return
     }
@@ -3781,6 +3820,7 @@ const server = createServer(async (req, res) => {
       card.history.push({ at: updated.lastReviewed, quality: Number(body.quality) })
       state.cards[body.questionId] = card
       await writeSrState(state)
+      await recordActivity('review', { score: Number(body.quality) * 2 }).catch(() => {})
       send(res, 200, JSON.stringify({ ok: true, card }))
       return
     }
@@ -3979,6 +4019,7 @@ const server = createServer(async (req, res) => {
       const history = [...(c.sr?.history || []), { quality, at: new Date().toISOString() }]
       c.sr = { ...newSr, history }
       await writeFlashcards(all)
+      await recordActivity('review', { courseId: c.courseId, chapterId: c.chapterId, score: quality * 2, label: c.front }).catch(() => {})
       send(res, 200, JSON.stringify(c))
       return
     }
@@ -4074,6 +4115,10 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/mocks' && req.method === 'POST') {
       const body = await readBody(req)
       const saved = await saveMockSession(body)
+      if (saved?.submittedAt) {
+        const pct = saved.totalMax ? Math.round((Number(saved.totalScore || 0) / Number(saved.totalMax)) * 100) : null
+        await recordActivity('mock', { courseId: saved.courseId, chapterId: saved.chapterId, score: pct == null ? null : pct / 10, label: `${(saved.questions || []).length} questions` }).catch(() => {})
+      }
       send(res, 200, JSON.stringify(saved))
       return
     }
