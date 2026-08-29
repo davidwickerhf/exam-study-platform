@@ -35,7 +35,8 @@ It is the source of truth; the summary below is for orientation.
   `/api/flashcards/…`, `/api/mistakes/{id}/resolve`, `/api/activity` (read events),
   `/api/academics` (PUT with `expectedRevision`).
 - Admin: `/api/admin/status`, `/api/admin/courses/{id}` (+ `/chapters`,
-  `/materials`, `/items`, `/papers`, `/chapters/{id}/questions`), `/api/admin/programmes/{id}`.
+  `/materials` with `/materials/extract` for PDFs, `/items`, `/papers`,
+  `/chapters/{id}/questions`, `/chapters/{id}/flashcards`), `/api/admin/programmes/{id}`.
 
 Editorial writes act on the **active release** in Neon and take effect
 immediately (caches are invalidated). Local servers answer 501 for them.
@@ -43,7 +44,13 @@ immediately (caches are invalidated). Local servers answer 501 for them.
 Published question banks are stored in `editorial_questions` (db/009), seeded
 once from `data/cache/questions/` on the first hosted start. The programme
 catalogue is stored in `editorial_programmes`, seeded from
-`data/editorial-programmes.json`. After seeding, the database is authoritative.
+`data/editorial-programmes.json`; editorial flashcards in `editorial_flashcards`
+(db/010), seeded from `data/flashcards.template.json`. After seeding, the
+database is authoritative.
+
+PDF uploads are text-extracted with Poppler's `pdftotext` (installed in the
+production image) and indexed per page for the tutor; scanned PDFs need OCR via
+`npm run content:extract`.
 
 ## MCP server
 
@@ -72,8 +79,8 @@ Tools: `list_courses`, `get_course`, `get_chapter`, `search_course`,
 `get_academic_plan`, `list_known_programmes`, `get_activity`, `get_account_summary`,
 `submit_answer`, `set_mastery`, `review_card`, `add_to_deck`, `create_flashcard`,
 `review_flashcard`, `resolve_mistake`, `record_chapter_read`, `save_academic_plan`,
-`set_course_visibility`, and the `admin_*` family (courses, chapters, materials,
-items, papers, questions, programmes).
+`set_course_visibility`, and the `admin_*` family (courses, chapters, materials
+including `admin_extract_material`, items, papers, questions, flashcards, programmes).
 
 ## Claude skill
 

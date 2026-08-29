@@ -29,7 +29,7 @@ import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
-import { editorialMode, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
+import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
@@ -2243,7 +2243,9 @@ const flashcardsTemplatePath = resolve(__dirname, 'data/flashcards.template.json
 async function readFlashcards() {
   let editorial = { cards: [] }
   let legacy = null
-  if (existsSync(flashcardsTemplatePath)) try { editorial = JSON.parse(await readFile(flashcardsTemplatePath, 'utf8')) } catch {}
+  const hosted = editorialMode() === 'neon' ? await getEditorialFlashcards().catch(() => null) : null
+  if (hosted) editorial = { cards: hosted }
+  else if (existsSync(flashcardsTemplatePath)) try { editorial = JSON.parse(await readFile(flashcardsTemplatePath, 'utf8')) } catch {}
   if (storageMode() === 'local' && existsSync(flashcardsPath)) try { legacy = JSON.parse(await readFile(flashcardsPath, 'utf8')) } catch {}
   let rows = await listFlashcardRows()
   if (!rows.length && legacy?.cards?.length) rows = legacy.cards
@@ -2570,6 +2572,8 @@ if (editorialMode() === 'neon') {
   try {
     const seeded = await admin.seedQuestionsFromCache(cacheDir)
     if (seeded.seeded) console.log(`Seeded ${seeded.seeded} published questions into editorial_questions`)
+    const cards = await admin.seedFlashcardsFromTemplate(flashcardsTemplatePath)
+    if (cards.seeded) console.log(`Seeded ${cards.seeded} editorial flashcards into editorial_flashcards`)
     await admin.primeProgrammeCatalogue()
   } catch (error) {
     console.warn('Editorial seed/prime skipped:', error.message)
@@ -3097,6 +3101,17 @@ const server = createServer(async (req, res) => {
             if (seg.length === 3 && req.method === 'GET') return ok({ courseId, materials: (await listMaterials(courseId)) || [] })
             if (seg.length === 3 && req.method === 'PUT') return ok(await admin.putMaterial(courseId, path, body))
             if (seg.length === 3 && req.method === 'DELETE') return ok(await admin.deleteMaterial(courseId, path))
+            if (seg[3] === 'extract' && seg.length === 4 && req.method === 'POST') return ok(await admin.extractMaterial(courseId, path))
+          }
+          if (seg[2] === 'flashcards') {
+            if (seg.length === 3 && req.method === 'GET') return ok({ courseId, cards: await admin.listFlashcards(courseId) })
+            if (seg.length === 4 && req.method === 'DELETE') return ok(await admin.deleteFlashcard(courseId, seg[3]))
+          }
+          if (seg[2] === 'chapters' && seg[3] && seg[4] === 'flashcards') {
+            if (seg.length === 5 && req.method === 'GET') return ok({ courseId, chapterId: seg[3], cards: await admin.listFlashcards(courseId, seg[3]) })
+            if (seg.length === 5 && req.method === 'PUT') return ok(await admin.replaceFlashcards(courseId, seg[3], Array.isArray(body) ? body : body?.cards))
+            if (seg.length === 6 && req.method === 'PUT') return ok(await admin.upsertFlashcard(courseId, seg[3], { ...body, id: body?.id || seg[5] }))
+            if (seg.length === 6 && req.method === 'DELETE') return ok(await admin.deleteFlashcard(courseId, seg[5]))
           }
           if (seg[2] === 'items' && seg[3]) {
             if (seg.length === 4 && req.method === 'PUT') return ok(await admin.upsertItem(courseId, seg[3], body))
