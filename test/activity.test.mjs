@@ -4,6 +4,7 @@ import { recordActivity, readActivity, summariseActivity } from '../lib/activity
 import { deletePersonalData, deleteStudyData, summarisePersonalData } from '../lib/account-data.mjs'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { readDocument, writeDocument } from '../lib/user-store.mjs'
+import { createAcademicProgramme, readAcademicState } from '../lib/academics.mjs'
 
 test('activity summary computes streak, weekly totals, and series', () => {
   const now = new Date('2026-08-29T10:00:00Z')
@@ -38,21 +39,22 @@ test('activity is recorded per user and study reset keeps plan and AI ledger', a
     await withRequestContext({ userId }, async () => {
       await recordActivity('answer', { courseId: 'sec', chapterId: '01', score: 9, label: 'What is a nonce?' })
       await recordActivity('review', {})
-      await writeDocument('academics', 'workspace', { keep: true })
+      await createAcademicProgramme({ programme: 'Kept programme' })
       await writeDocument('ai', 'usage', { events: [] })
       const events = await readActivity()
       assert.equal(events.length, 2)
       assert.equal(events[0].courseId, 'sec')
 
       const summary = await summarisePersonalData()
-      assert.equal(summary.totals.documents, 4)
+      assert.equal(summary.namespaces.find((entry) => entry.namespace === 'activity')?.count, 2)
       assert.ok(summary.namespaces.find((entry) => entry.namespace === 'activity')?.study)
       assert.equal(summary.namespaces.find((entry) => entry.namespace === 'academics')?.study, false)
+      assert.notEqual(summary.namespaces.find((entry) => entry.namespace === 'ai')?.study, true)
 
       const removed = await deleteStudyData()
       assert.equal(removed.activityEvents, 2)
       assert.deepEqual(await readActivity(), [])
-      assert.deepEqual(await readDocument('academics', 'workspace', {}), { keep: true })
+      assert.equal((await readAcademicState()).workspace.profile.programme, 'Kept programme')
       assert.deepEqual(await readDocument('ai', 'usage', {}), { events: [] })
     })
   } finally {

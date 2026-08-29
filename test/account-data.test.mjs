@@ -17,12 +17,11 @@ test('account export and deletion stay scoped to the authenticated user', async 
       id: deletedUser,
       email: 'student@example.test'
     }))
-    assert.equal(exported.schemaVersion, 2)
+    assert.equal(exported.schemaVersion, 3)
     assert.equal(exported.account.id, deletedUser)
     assert.equal(exported.account.email, 'student@example.test')
-    assert.deepEqual(exported.personalDocuments, [
-      { namespace: 'study', key: 'progress', value: { mastery: 3 } }
-    ])
+    assert.ok(Array.isArray(exported.activity))
+    assert.deepEqual(exported.academics, [])
 
     await withRequestContext({ userId: deletedUser }, () => deletePersonalData())
 

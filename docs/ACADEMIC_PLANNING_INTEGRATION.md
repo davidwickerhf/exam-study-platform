@@ -7,7 +7,8 @@ Wicker Study, but do not merge the Nuxt application or copy its local-storage
 architecture wholesale.
 
 Wicker Study should own one authenticated academic-planning document per
-programme workspace in the existing `user_documents` store. The current five
+programme workspace, stored relationally (`academic_programmes`, `academic_courses`,
+`academic_attempts`, `academic_events`, `academic_gates`). The current five
 study courses can then link to planning courses by stable course code. Planning
 becomes a first-class signed-in area alongside Courses, Practice, Mistakes, and
 Mock sessions.
@@ -45,9 +46,9 @@ consolidated.
 | Concern | Owner | Proposed source of truth |
 | --- | --- | --- |
 | Study course content, chapters, papers | Editorial | Existing active Neon release |
-| Programme and academic year | User | `user_documents` |
-| Course credits, grades, attempts, exam dates | User | `user_documents` |
-| Progression rules and planning scenarios | User | `user_documents` |
+| Programme and academic year | User | `academic_programmes` |
+| Course credits, grades, attempts, exam dates | User | `academic_courses`, `academic_attempts` |
+| Progression rules and planning scenarios | User | `academic_gates`, `academic_programmes.planning_objectives` |
 | Derived GPA, credit totals, risk, minimum path | Application | Computed from the user document |
 | Link from a study course to a planning course | User record + editorial course code | Stable course code, with optional explicit override |
 

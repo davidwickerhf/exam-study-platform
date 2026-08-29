@@ -11,6 +11,16 @@ import './lib/env.mjs'
 import { authenticate, authConfig, deleteAuthUser, getAuthUser, isPublicApi } from './lib/auth.mjs'
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
+import { storeImportedProgramme } from './lib/academics.mjs'
+import {
+  listCourseSettings, upsertCourseSettings, listItemProgress, upsertItemProgress, hasProgress,
+  listPersonalExercises, addPersonalExercises, deletePersonalExercise,
+  listFlashcardRows, rememberFlashcards, writeFlashcardDiff,
+  listSrCards, rememberSrCards, writeSrDiff, upsertSrCards, upsertFlashcards,
+  listMistakes, insertMistake, updateMistake as updateMistakeRow, deleteMistakesWhere,
+  listMockSessions as listMockSessionRows, getMockSession, saveMockSession as saveMockSessionRow, deleteMockSessionsWhere,
+  getBrowserState, putBrowserState
+} from './lib/study-store.mjs'
 import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
 import { deletePersonalData, deleteStudyData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
 import { getActivitySummary, recordActivity } from './lib/activity.mjs'
@@ -301,11 +311,34 @@ async function readBody(req, maxBytes = 5 * 1024 * 1024) {
 async function readState() {
   const template = await loadEditorialState(templatePath)
   // Import the legacy single-user file once in local mode. It is never removed.
-  const fallback = storageMode() === 'local' && existsSync(dataPath)
-    ? JSON.parse(await readFile(dataPath, 'utf8'))
-    : template
-  const personal = await readDocument('progress', 'study-state', fallback)
-  return mergeEditorialState(template, personal)
+  const [settings, progress] = await Promise.all([listCourseSettings(), listItemProgress()])
+  if (!settings.length && !progress.length && storageMode() === 'local' && existsSync(dataPath)) {
+    try { return mergeEditorialState(template, JSON.parse(await readFile(dataPath, 'utf8'))) } catch {}
+  }
+  return mergeEditorialRows(template, settings, progress)
+}
+
+// Personal rows (course settings, item progress) laid over the editorial template.
+function mergeEditorialRows(editorial, settings, progress) {
+  const settingsById = new Map(settings.map((row) => [row.courseId, row]))
+  const progressById = new Map(progress.map((row) => [row.itemId, row]))
+  const courses = (editorial.courses || []).map((course) => {
+    const saved = settingsById.get(course.id)
+    const items = (course.items || []).map((item) => {
+      const row = progressById.get(item.id)
+      if (!row) return { ...item }
+      const merged = { ...item }
+      for (const field of ['mastery', 'masteryUpdatedAt', 'reviewLog', 'notes', 'priority']) if (field in row) merged[field] = row[field]
+      return merged
+    })
+    return {
+      ...course,
+      items,
+      ...(saved && typeof saved.archived === 'boolean' ? { archived: saved.archived } : {}),
+      ...(saved && typeof saved.order === 'number' ? { order: saved.order } : {})
+    }
+  })
+  return { ...editorial, courses, meta: { ...editorial.meta } }
 }
 
 // Course structure and learning material always come from the maintained
@@ -333,9 +366,15 @@ function mergeEditorialState(editorial, personal) {
   return { ...editorial, courses, meta: { ...editorial.meta, updatedAt: personal?.meta?.updatedAt || editorial.meta?.updatedAt } }
 }
 
+// Full-state write (PUT /api/state): persist every personal field as rows.
 async function writeState(state) {
   state.meta.updatedAt = new Date().toISOString()
-  await writeDocument('progress', 'study-state', state)
+  const settings = []
+  for (const course of state.courses || []) {
+    if (typeof course.archived === 'boolean' || typeof course.order === 'number') settings.push({ courseId: course.id, archived: course.archived, order: course.order })
+    for (const item of course.items || []) if (hasProgress(item)) await upsertItemProgress(course.id, item)
+  }
+  await upsertCourseSettings(settings)
 }
 
 function findItem(state, itemId) {
@@ -1016,7 +1055,7 @@ async function loadOrGenerateQuestions(state, course, chapter) {
     } catch {}
   }
   if (!published.length) published = await findSelfTestQuestions(state, course, chapter)
-  const personal = await readDocument('exercises', `${course.id}-${chapter.id}`, { questions: [] })
+  const personal = { questions: await listPersonalExercises(course.id, chapter.id) }
   const questions = [...published, ...(personal.questions || [])]
   if (!questions.length) {
     const error = new Error('No published exercises are available for this chapter yet.')
@@ -2182,16 +2221,22 @@ async function readFlashcards() {
   let legacy = null
   if (existsSync(flashcardsTemplatePath)) try { editorial = JSON.parse(await readFile(flashcardsTemplatePath, 'utf8')) } catch {}
   if (storageMode() === 'local' && existsSync(flashcardsPath)) try { legacy = JSON.parse(await readFile(flashcardsPath, 'utf8')) } catch {}
-  const personal = await readDocument('learning', 'flashcards', legacy || editorial)
-  const savedById = new Map((personal.cards || []).map((card) => [card.id, card]))
-  const editorialIds = new Set((editorial.cards || []).map((card) => card.id))
+  let rows = await listFlashcardRows()
+  if (!rows.length && legacy?.cards?.length) rows = legacy.cards
+  const savedById = new Map(rows.map((card) => [card.id, card]))
+  const editorialById = new Map((editorial.cards || []).map((card) => [card.id, card]))
+  const editorialIds = new Set(editorialById.keys())
   const cards = (editorial.cards || []).map((card) => ({ ...card, ...(savedById.get(card.id) || {}) }))
-  cards.push(...(personal.cards || []).filter((card) => !editorialIds.has(card.id)))
-  return { ...personal, cards }
+  cards.push(...rows.filter((card) => !editorialIds.has(card.id)))
+  const container = { cards }
+  flashcardEditorial.set(container, { editorialIds, editorialById })
+  return rememberFlashcards(container, rows)
 }
 
+const flashcardEditorial = new WeakMap()
+
 async function writeFlashcards(state) {
-  await writeDocument('learning', 'flashcards', state)
+  await writeFlashcardDiff(state, state.cards || [], flashcardEditorial.get(state) || {})
 }
 
 function initialSr() {
@@ -2334,70 +2379,34 @@ function parseScore(correction) {
 }
 
 async function readMistakes(filter = {}) {
-  const all = []
-  for (const document of await listDocuments('mistakes')) {
-    if (Array.isArray(document.value)) all.push(...document.value)
-  }
-  return all.filter((m) => {
-    if (filter.courseId && m.courseId !== filter.courseId) return false
-    if (filter.chapterId && m.chapterId !== filter.chapterId) return false
-    if (filter.open !== undefined && (filter.open ? m.resolvedAt : !m.resolvedAt)) return false
-    return true
-  }).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-}
-
-async function writeMistakeBucket(courseId, chapterId, mistakes) {
-  await writeDocument('mistakes', `${courseId}-${chapterId || 'misc'}`, mistakes)
+  return listMistakes(filter)
 }
 
 async function addMistake(record) {
-  const key = `${record.courseId}-${record.chapterId || 'misc'}`
-  let bucket = await readDocument('mistakes', key, [])
-  // dedupe: if same questionId already exists and is open, replace it
-  bucket = bucket.filter((m) => !(m.questionId === record.questionId && !m.resolvedAt))
-  bucket.push(record)
-  await writeDocument('mistakes', key, bucket)
-  return record
+  return insertMistake(record)
 }
 
 async function updateMistake(id, patch) {
-  for (const document of await listDocuments('mistakes')) {
-    try {
-      const bucket = document.value
-      const idx = bucket.findIndex((m) => m.id === id)
-      if (idx < 0) continue
-      Object.assign(bucket[idx], patch)
-      await writeDocument('mistakes', document.key, bucket)
-      return bucket[idx]
-    } catch {}
-  }
-  return null
+  return updateMistakeRow(id, patch)
 }
 
 async function deleteMistake(id) {
-  for (const document of await listDocuments('mistakes')) {
-    try {
-      const bucket = document.value
-      const next = bucket.filter((m) => m.id !== id)
-      if (next.length !== bucket.length) {
-        await writeDocument('mistakes', document.key, next)
-        return true
-      }
-    } catch {}
-  }
-  return false
+  return (await deleteMistakesWhere({ id })) > 0
 }
 
 // ----- SR (SM-2) -----
 
 async function readSrState() {
-  let fallback = { cards: {} }
-  if (existsSync(srPath)) try { fallback = JSON.parse(await readFile(srPath, 'utf8')) } catch {}
-  return readDocument('learning', 'spaced-repetition', fallback)
+  let cards = await listSrCards()
+  if (!Object.keys(cards).length && storageMode() === 'local' && existsSync(srPath)) {
+    try { cards = JSON.parse(await readFile(srPath, 'utf8')).cards || {} } catch {}
+    return rememberSrCards({ cards }, {})
+  }
+  return rememberSrCards({ cards }, cards)
 }
 
 async function writeSrState(state) {
-  await writeDocument('learning', 'spaced-repetition', state)
+  await writeSrDiff(state, state.cards || {})
 }
 
 function sm2(card, quality) {
@@ -2464,24 +2473,15 @@ async function findQuestion(state, questionId) {
 // ----- Mocks -----
 
 async function listMockSessions() {
-  const out = []
-  for (const document of await listDocuments('mock-sessions')) {
-    try {
-      const s = document.value
-      out.push({ id: s.id, courseId: s.courseId, chapterId: s.chapterId, submittedAt: s.submittedAt, totalScore: s.totalScore, totalMax: s.totalMax, count: s.questions?.length || 0, duration: s.duration })
-    } catch {}
-  }
-  out.sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
-  return out
+  return listMockSessionRows()
 }
 
 async function saveMockSession(session) {
-  await writeDocument('mock-sessions', session.id, session)
-  return session
+  return saveMockSessionRow(session)
 }
 
 async function readMockSession(id) {
-  return readDocument('mock-sessions', id, null)
+  return getMockSession(id)
 }
 
 async function migrateLegacyLocalData() {
@@ -2492,19 +2492,53 @@ async function migrateLegacyLocalData() {
   if (existsSync(mistakesDir)) {
     for (const file of await readdir(mistakesDir)) {
       if (!file.endsWith('.json')) continue
-      try { await writeDocument('mistakes', file.slice(0, -5), JSON.parse(await readFile(resolve(mistakesDir, file), 'utf8'))) } catch {}
+      try { for (const record of JSON.parse(await readFile(resolve(mistakesDir, file), 'utf8'))) if (record?.id) await insertMistake(record) } catch {}
     }
   }
   if (existsSync(mocksDir)) {
     for (const file of await readdir(mocksDir)) {
       if (!file.endsWith('.json')) continue
-      try { await writeDocument('mock-sessions', file.slice(0, -5), JSON.parse(await readFile(resolve(mocksDir, file), 'utf8'))) } catch {}
+      try { const session = JSON.parse(await readFile(resolve(mocksDir, file), 'utf8')); if (session?.id) await saveMockSessionRow(session) } catch {}
     }
   }
   await writeDocument('migration', 'legacy-v1', { importedAt: new Date().toISOString(), originalsPreserved: true })
 }
 
 await migrateLegacyLocalData()
+
+// Local mode only: move the JSON documents of the earlier per-namespace store
+// into the table-shaped repositories (Neon does this in db/007).
+async function migrateLocalDocumentsToTables() {
+  if (storageMode() !== 'local') return
+  if (await readDocument('migration', 'tables-v1', null)) return
+  const index = await readDocument('academics', 'index', null)
+  for (const document of await listDocuments('academics')) {
+    // Local keys are path-sanitised, so `programme:default` is stored as `programme_default`.
+    if (!/^programme[:_]/.test(document.key)) continue
+    const programmeId = document.value?.id || document.key.slice(10)
+    try { await storeImportedProgramme({ ...document.value, id: programmeId }, (index?.activeProgrammeId || 'default') === programmeId) } catch {}
+  }
+  const sr = await readDocument('learning', 'spaced-repetition', null)
+  if (sr?.cards) await upsertSrCards(Object.entries(sr.cards))
+  const fc = await readDocument('learning', 'flashcards', null)
+  if (Array.isArray(fc?.cards)) await upsertFlashcards(fc.cards.filter((card) => card?.id))
+  for (const document of await listDocuments('mistakes')) if (Array.isArray(document.value)) for (const record of document.value) if (record?.id) await insertMistake(record)
+  for (const document of await listDocuments('mock-sessions')) if (document.value?.id) await saveMockSessionRow(document.value)
+  for (const document of await listDocuments('exercises')) {
+    const [courseId, ...rest] = document.key.split('-')
+    if (Array.isArray(document.value?.questions)) await addPersonalExercises(courseId, rest.join('-'), document.value.questions.filter((q) => q?.id))
+  }
+  const browser = await readDocument('browser', 'local-storage', null)
+  if (browser) await putBrowserState(browser)
+  const progress = await readDocument('progress', 'study-state', null)
+  if (progress?.courses) await writeState(progress)
+  for (const namespace of ['academics', 'learning', 'mistakes', 'mock-sessions', 'exercises', 'browser', 'progress']) {
+    for (const document of await listDocuments(namespace)) await deleteDocument(namespace, document.key)
+  }
+  await writeDocument('migration', 'tables-v1', { migratedAt: new Date().toISOString() })
+}
+
+await migrateLocalDocumentsToTables()
 
 const MATH_FORMATTING_RULE = [
   `MATH FORMATTING — strict, non-negotiable:`,
@@ -2995,7 +3029,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/browser-state' && req.method === 'GET') {
-      send(res, 200, JSON.stringify(await readDocument('browser', 'local-storage', {})))
+      send(res, 200, JSON.stringify(await getBrowserState()))
       return
     }
     if (url.pathname === '/api/browser-state' && req.method === 'PUT') {
@@ -3004,7 +3038,7 @@ const server = createServer(async (req, res) => {
         send(res, 400, JSON.stringify({ error: 'Expected a JSON object' }))
         return
       }
-      await writeDocument('browser', 'local-storage', body)
+      await putBrowserState(body)
       send(res, 200, JSON.stringify({ ok: true }))
       return
     }
@@ -3125,7 +3159,7 @@ const server = createServer(async (req, res) => {
         return
       }
       applyPatch(found.item, patch)
-      await writeState(state)
+      await upsertItemProgress(found.course.id, found.item)
       send(res, 200, JSON.stringify({ ok: true, item: found.item }))
       return
     }
@@ -3143,8 +3177,7 @@ const server = createServer(async (req, res) => {
       }
       if (typeof patch.archived === 'boolean') course.archived = patch.archived
       if (typeof patch.order === 'number') course.order = patch.order
-      state.meta.updatedAt = new Date().toISOString()
-      await writeState(state)
+      await upsertCourseSettings({ courseId, ...(typeof patch.archived === 'boolean' ? { archived: patch.archived } : {}), ...(typeof patch.order === 'number' ? { order: patch.order } : {}) })
       send(res, 200, JSON.stringify({ ok: true, course: { id: course.id, archived: !!course.archived, order: course.order } }))
       return
     }
@@ -3346,12 +3379,8 @@ const server = createServer(async (req, res) => {
       const body = await readBody(req)
       const state = await readState()
       const ids = Array.isArray(body.order) ? body.order : []
-      ids.forEach((id, i) => {
-        const c = state.courses.find((x) => x.id === id)
-        if (c) c.order = i + 1
-      })
-      state.meta.updatedAt = new Date().toISOString()
-      await writeState(state)
+      const ordered = ids.map((id, i) => ({ id, i })).filter(({ id }) => state.courses.some((x) => x.id === id))
+      await upsertCourseSettings(ordered.map(({ id, i }) => ({ courseId: id, order: i + 1 })))
       send(res, 200, JSON.stringify({ ok: true }))
       return
     }
@@ -3589,15 +3618,11 @@ const server = createServer(async (req, res) => {
         sendManagedContentOnly(res)
         return
       }
-      const personal = await readDocument('exercises', `${courseId}-${chapterId}`, { questions: [] })
-      const before = personal.questions?.length || 0
-      personal.questions = (personal.questions || []).filter((question) => question.id !== questionId)
-      if (personal.questions.length === before) {
+      if (!(await deletePersonalExercise(courseId, chapterId, questionId))) {
         send(res, 404, JSON.stringify({ error: 'Personal exercise not found' }))
         return
       }
-      await writeDocument('exercises', `${courseId}-${chapterId}`, personal)
-      send(res, 200, JSON.stringify({ ok: true, removed: questionId, remaining: personal.questions.length }))
+      send(res, 200, JSON.stringify({ ok: true, removed: questionId, remaining: (await listPersonalExercises(courseId, chapterId)).length }))
       return
     }
 
@@ -3655,15 +3680,11 @@ const server = createServer(async (req, res) => {
         const count = Math.max(1, Math.min(30, Number(body.count) || 8))
         const customPrompt = typeof body.customPrompt === 'string' ? body.customPrompt.trim().slice(0, 2000) : ''
         const existingPayload = await loadOrGenerateQuestions(state, course, chapter).catch(() => ({ questions: [] }))
-        const personal = await readDocument('exercises', `${courseId}-${chapterId}`, { questions: [] })
         const chapterContent = await readKbFile(state, course, chapter.file).catch(() => null)
         if (!chapterContent) throw new Error(`Chapter content not readable (${chapter.file})`)
         const newOnes = await generateAdditionalQuestions(course, chapter, chapterContent, existingPayload.questions || [], requestedTypes, count, customPrompt)
         const stamped = newOnes.map((q) => ({ ...q, id: `extra-${chapter.id}-${randomUUID()}`, source: 'Personal extra' }))
-        await writeDocument('exercises', `${courseId}-${chapterId}`, {
-          questions: [...(personal.questions || []), ...stamped],
-          updatedAt: new Date().toISOString()
-        })
+        await addPersonalExercises(courseId, chapterId, stamped)
         const payload = await loadOrGenerateQuestions(state, course, chapter)
         send(res, 200, JSON.stringify({ added: stamped.length, total: payload.questions.length, payload, usage: await getAiUsageSummary() }))
       } catch (err) {
@@ -3864,14 +3885,8 @@ const server = createServer(async (req, res) => {
       }
       const out = { scope, courseId, removed: { mistakes: 0, sr: 0, mocks: 0 } }
 
-      const wipeMistakesForChapter = async (cid, chid) => {
-        if (await deleteDocument('mistakes', `${cid}-${chid}`)) out.removed.mistakes++
-      }
-      const wipeMistakesForCourse = async (cid) => {
-        for (const document of await listDocuments('mistakes')) {
-          if (document.key.startsWith(`${cid}-`) && await deleteDocument('mistakes', document.key)) out.removed.mistakes++
-        }
-      }
+      const wipeMistakesForChapter = async (cid, chid) => { out.removed.mistakes += await deleteMistakesWhere({ courseId: cid, chapterId: chid }) }
+      const wipeMistakesForCourse = async (cid) => { out.removed.mistakes += await deleteMistakesWhere({ courseId: cid }) }
       const wipeSrForCards = async (filterFn) => {
         const fc = await readFlashcards()
         const cardIds = new Set((fc.cards || []).filter(filterFn).map((c) => c.id))
@@ -3895,11 +3910,7 @@ const server = createServer(async (req, res) => {
         }
         if (touched) await writeFlashcards(fc)
       }
-      const wipeMockSessionsForCourse = async (cid) => {
-        for (const document of await listDocuments('mock-sessions')) {
-          if (document.value?.courseId === cid && await deleteDocument('mock-sessions', document.key)) out.removed.mocks++
-        }
-      }
+      const wipeMockSessionsForCourse = async (cid) => { out.removed.mocks += await deleteMockSessionsWhere({ courseId: cid }) }
 
       try {
         if (scope === 'chapter' || scope === 'mistakes-chapter') {

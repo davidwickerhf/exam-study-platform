@@ -8,11 +8,13 @@ The application deliberately separates two kinds of data:
 | --- | --- | --- |
 | Course/chapter definitions, Markdown, PDFs and diagrams | Editorial | Reviewed local/Git sources, published as an active relational Neon release |
 | Shipped questions and parsed exams | Editorial | Git (`data/cache/`) pending the same release-table migration |
-| Mastery, notes, review log, course ordering/archive preferences | Individual user | `user_documents` in Neon |
-| Custom/generated flashcards and spaced-repetition scheduling | Individual user | `user_documents` in Neon |
-| Mistakes and mock sessions | Individual user | `user_documents` in Neon |
-| Browser attempts, chapter-read flags and UI preferences | Individual user | Browser `localStorage`, synchronized to `user_documents` |
-| Personal extra exercises | Individual user | `user_documents` in Neon |
+| Mastery, notes, review log, course ordering/archive preferences | Individual user | `item_progress` and `course_settings` in Neon |
+| Custom/generated flashcards and spaced-repetition scheduling | Individual user | `flashcards` and `sr_cards` in Neon |
+| Mistakes and mock sessions | Individual user | `mistakes`, `mock_sessions`, `mock_session_answers` in Neon |
+| Browser attempts, chapter-read flags and UI preferences | Individual user | Browser `localStorage`, synchronized to `browser_state` |
+| Personal extra exercises | Individual user | `personal_exercises` in Neon |
+| Study activity ledger (answers, reviews, mocks, resolved mistakes, reads) | Individual user | `activity_events` in Neon |
+| Academic plan: programmes, courses, attempts, events, gates | Individual user | `academic_*` tables in Neon |
 | AI request/token ledger | Individual user | `ai_usage_events` in Neon |
 
 Every personal document is keyed by Clerk `user_id`. The server derives that ID
@@ -41,7 +43,7 @@ workspace entrypoint.
 
 ## Database
 
-Apply [db/001_user_documents.sql](../db/001_user_documents.sql) with:
+Apply the migrations in `db/` (001–007; `user_documents` now only holds the local-mode migration marker — every personal record has its own table) with:
 
 ```bash
 DATABASE_URL='postgresql://...' npm run db:migrate
@@ -76,8 +78,8 @@ user's current allowance and reset times; HTTP 429 responses include
 Settings exposes the same authenticated usage summary returned by
 `GET /api/ai/usage`, including request and daily/monthly token allowances.
 `GET /api/account/export` produces a no-store JSON download containing the
-current Clerk account fields, personal `user_documents`, and the user's own AI
-usage ledger.
+current Clerk account fields, every personal table (study record, academic
+programmes, activity), and the user's own AI usage ledger.
 
 Permanent deletion is an explicit two-stage action: the interface requires the
 user to type `DELETE`, and `DELETE /api/account` independently validates that
