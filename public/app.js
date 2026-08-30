@@ -2012,6 +2012,17 @@ function renderPlanningStructure(workspace) {
   </section>`
 }
 
+// Exam and resit weeks from the institution calendar that match a course's period.
+function institutionExamWeeks(course) {
+  const calendar = activeEditorialProgrammeReference()?.programme?.calendar || []
+  const period = Number(String(course.period || '').match(/(\d)/)?.[1]) || null
+  const today = new Date().toISOString().slice(0, 10)
+  return calendar
+    .filter((event) => (event.kind === 'exam-week' || event.kind === 'resit-week') && event.date >= today && (!period || event.period === period || (event.kind === 'resit-week' && !event.period)))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 3)
+}
+
 function renderPlanningCourseEditor(course, workspace) {
   const editorial = editorialCourseForAcademic(course)
   return `<tr class="pl-editor-row"><td colspan="7"><div class="pl-editor" id="pl-editor-${escapeHtml(course.id)}">
@@ -2042,7 +2053,7 @@ function renderPlanningCourseEditor(course, workspace) {
       <form class="pl-attempt is-new" data-academic-attempt-add="${escapeHtml(course.id)}">
         <label><span>Academic year</span><input name="academicYear" value="${escapeHtml(workspace.profile.academicYear)}" maxlength="30"></label>
         <label><span>Attempt</span><select name="type">${planningProgrammeOptions('first')}</select></label>
-        <label><span>Exam date</span><input name="examDate" type="date"></label>
+        <label><span>Exam date</span><input name="examDate" type="date">${(() => { const weeks = institutionExamWeeks(course); return weeks.length ? `<small class="pl-hint">Institution: ${weeks.map((week) => `<button type="button" class="pl-link pl-link-button" data-attempt-suggest="${escapeHtml(week.date)}">${escapeHtml(week.title)} · ${academicDate(week.date)}${week.endDate ? `–${new Date(`${week.endDate}T00:00:00`).getDate()}` : ''}</button>`).join(' · ')}</small>` : '' })()}</label>
         <div class="pl-attempt-actions"><button class="btn btn-secondary btn-sm" type="submit">${uiIcon('plus')} Add attempt</button></div>
       </form>
     </div>
@@ -3232,6 +3243,10 @@ function renderHome() {
             ${hasPlan ? `<a href="#/planning/documents"><span class="nav-icon">${uiIcon('upload')}</span><span><strong>Upload a document</strong><small>Transcript, exam schedule, timetable</small></span>${uiIcon('chevronRight')}</a>` : ''}
           </nav>
         </section>
+        ${(() => { if (!hasPlan) return ''; if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes()); const todayIso = new Date().toISOString().slice(0, 10); const dates = (activeEditorialProgrammeReference()?.programme?.calendar || []).filter((event) => event.date >= todayIso && ['exam-week', 'resit-week', 'holiday', 'period', 'study-week', 'project-week'].includes(event.kind)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4); return dates.length ? `<section class="panel panel-aside">
+          <div class="panel-top"><h2>At your institution</h2><a class="pl-link" href="#/calendar">Calendar</a></div>
+          <ol class="exam-list">${dates.map((event) => { const days = daysUntil(event.date); return `<li><span class="exam-days${event.kind === 'exam-week' || event.kind === 'resit-week' ? ' is-soon' : ''}"><strong>${days <= 0 ? 'now' : days}</strong><small>${days <= 0 ? '' : days === 1 ? 'day' : 'days'}</small></span><span class="exam-copy"><strong>${escapeHtml(event.title)}</strong><small>${academicDate(event.date)}${event.endDate ? ` – ${academicDate(event.endDate)}` : ''}</small></span></li>` }).join('')}</ol>
+        </section>` : '' })()}
         ${academicsData?.summary && hasPlan ? `<section class="panel panel-aside">
           <div class="panel-top"><h2>Programme</h2><a class="pl-link" href="#/planning">Plan</a></div>
           <dl class="pl-facts"><div><dt>Earned credits</dt><dd>${academicsData.summary.earnedEcts}</dd></div><div><dt>Courses passed</dt><dd>${academicsData.summary.passedCourses} / ${academicsData.summary.totalCourses}</dd></div>${academicsData.summary.gpa != null ? `<div><dt>Weighted GPA</dt><dd>${academicsData.summary.gpa}</dd></div>` : ''}</dl>
@@ -3245,7 +3260,7 @@ function renderHome() {
 // ----- Calendar page (FullCalendar over the unified feed) ------------------
 const CALENDAR_LIB = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'
 const CALENDAR_VIEWS = [['dayGridMonth', 'Month'], ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['listMonth', 'Agenda']]
-const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', institution: '#59627b', timetable: '#2a7f9e', other: '#7d859b' }
+const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', 'exam-week': '#c2410c', period: '#5b6b8c', 'study-week': '#0f766e', holiday: '#7c3aed', institution: '#59627b', timetable: '#2a7f9e', other: '#7d859b' }
 const calendarState = { composer: false, data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', hidden: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
 let calendarLibPromise = null
 function ensureCalendarLib() {
@@ -3283,6 +3298,7 @@ function visibleCalendarEvents() {
 }
 function toFullCalendarEvent(event) {
   const colour = event.colour || CATEGORY_COLOURS[event.category] || CATEGORY_COLOURS.other
+  if (event.background) return { id: event.id, title: event.title, start: event.start, end: event.end || undefined, allDay: true, display: 'background', backgroundColor: colour, classNames: [`cal-bg`, `cal-bg-${event.kind}`], extendedProps: { ...event, colour } }
   return { id: event.id, title: event.title, start: event.start, end: event.end || undefined, allDay: event.allDay, backgroundColor: 'transparent', borderColor: 'transparent', textColor: colour, classNames: [`cal-${event.category}`], extendedProps: { ...event, colour }, display: 'block' }
 }
 function miniMonth(anchorIso) {
@@ -3353,6 +3369,7 @@ function renderCalendarPage() {
         ${selected ? `<section class="cal-detail calx-detail" style="--accent:${selected.colour || CATEGORY_COLOURS[selected.category] || CATEGORY_COLOURS.other}" role="dialog" aria-label="Event details">
           <div class="panel-top"><h2>${escapeHtml((data.categories || {})[selected.category] || selected.category)}</h2><button type="button" class="icon-btn" data-cal-close aria-label="Close">${uiIcon('close')}</button></div>
           <h3>${escapeHtml(selected.title)}</h3>
+          ${selected.kind && selected.kind !== 'other' && !(selected.period == null && selected.semester == null && !selected.cohorts?.length) ? `<p class="cal-detail-kind">${escapeHtml(({ period: 'Education period', 'exam-week': selected.resit ? 'Exams and resits' : 'Exam week', 'resit-week': 'Resit week', 'study-week': 'Study week', 'project-week': 'Project period', holiday: 'Holiday — no education', intro: 'Introduction', deadline: 'Deadline', ceremony: 'Ceremony' })[selected.kind] || selected.kind)}${selected.period ? ` · Period ${selected.period}` : selected.semester ? ` · Semester ${selected.semester}` : ''}${selected.cohorts?.length ? ` · ${escapeHtml(selected.cohorts.join(', '))}` : ''}</p>` : ''}
           <p class="cal-detail-when">${academicDate(String(selected.start).slice(0, 10))}${!selected.allDay ? ` · ${String(selected.start).slice(11, 16)}${selected.end ? `–${String(selected.end).slice(11, 16)}` : ''}` : selected.end ? ` → ${academicDate(prevDay(String(selected.end).slice(0, 10)))}` : ''}</p>
           ${selected.notes && !(selected.source === 'plan' && !selected.courseId) ? `<p class="cal-detail-notes">${escapeHtml(selected.notes)}</p>` : ''}
           ${selected.source === 'plan' && !selected.courseId ? `<form class="pl-editor cal-editor" data-academic-event-edit="${escapeHtml(selected.id.slice(6))}">
@@ -9036,6 +9053,7 @@ function bindEvents() {
     const courses = academicsData.workspace.courses.map((course) => course.id !== courseId ? course : { ...course, attempts: course.attempts.map((attempt) => attempt.id !== attemptId ? attempt : { ...attempt, academicYear: data.get('academicYear'), type: data.get('type'), examDate: data.get('examDate') || null, status: data.get('status'), grade: data.get('grade') === '' ? null : Number(data.get('grade')) }) })
     saveAcademics({ ...academicsData.workspace, courses })
   }))
+  document.querySelectorAll('[data-attempt-suggest]').forEach((button) => button.addEventListener('click', () => { const input = button.closest('form')?.querySelector('input[name="examDate"]'); if (input) input.value = button.dataset.attemptSuggest }))
   document.querySelectorAll('[data-academic-attempt-add]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault()
     const courseId = form.dataset.academicAttemptAdd

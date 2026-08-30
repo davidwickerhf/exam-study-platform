@@ -827,3 +827,9 @@
 .adm-folders li { display: flex; align-items: center; gap: 6px; color: var(--color-ink-secondary); }
 .adm-folders svg { width: 13px; height: 13px; color: var(--color-ink-tertiary); }
 @media (max-width: 1050px) { .adm-grid { grid-template-columns: minmax(0, 1fr); } }
+.pl-hint { display: block; margin-top: 4px; color: var(--color-ink-secondary); font-size: 11.5px; line-height: 1.5; }
+.pl-hint .pl-link-button { font-size: 11.5px; }
+.cal-detail-kind { margin: 0; color: var(--color-ink-secondary); font: 600 12px/1.4 var(--font-ui); }
+.calx .fc .fc-bg-event { opacity: .09; }
+.calx .fc .fc-bg-event.cal-bg-holiday { opacity: .14; }
+.calx .fc .fc-daygrid-bg-harness .fc-bg-event::after { content: attr(title); }
