@@ -3255,7 +3255,7 @@ function renderCalendarPage() {
   const courses = data?.courses || []
   const feeds = data?.feeds || []
   return `<section class="page-wrap calendar-page">
-    <header class="page-head"><div><p class="page-eyebrow">Calendar</p><h1>${upcoming[0] ? `Next: ${escapeHtml(upcoming[0].title)}` : 'Your calendar'}</h1><p class="page-sub">${data ? `${all.length} date${all.length === 1 ? '' : 's'} from your plan${feeds.length ? `, ${feeds.length} timetable feed${feeds.length === 1 ? '' : 's'}` : ''}${categoryCounts.institution ? ', and your institution calendar' : ''}.` : calendarState.error ? escapeHtml(calendarState.error) : 'Loading your dates…'}</p></div>
+    <header class="page-head cal-head"><div><p class="page-eyebrow">Calendar</p><h1>${upcoming[0] ? `Next: ${escapeHtml(upcoming[0].title)}` : 'Your calendar'}</h1><p class="page-sub">${data ? `${all.length} date${all.length === 1 ? '' : 's'} from your plan${feeds.length ? `, ${feeds.length} timetable feed${feeds.length === 1 ? '' : 's'}` : ''}${categoryCounts.institution ? ', and your institution calendar' : ''}.` : calendarState.error ? escapeHtml(calendarState.error) : 'Loading your dates…'}</p></div>
       <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/planning/documents">${uiIcon('upload')} Add timetable or schedule</a><button type="button" class="btn ${calendarState.composer ? 'btn-secondary' : 'btn-primary'} btn-sm" data-cal-compose>${calendarState.composer ? 'Close' : `${uiIcon('plus')} Add event`}</button></div></header>
     ${calendarState.composer ? `<form class="pl-composer cal-composer" data-academic-event aria-label="Add event">
       <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt — add those under Planning → Courses.</span></div>
@@ -3320,10 +3320,12 @@ function mountCalendar() {
     slotMinTime: '07:00:00',
     slotMaxTime: '22:00:00',
     scrollTime: '08:00:00',
-    height: 'auto',
+    height: '100%',
+    expandRows: true,
+    stickyHeaderDates: true,
     firstDay: 1,
     nowIndicator: true,
-    dayMaxEvents: 4,
+    dayMaxEvents: true,
     navLinks: true,
     events: (info, success) => success(visibleCalendarEvents().map(toFullCalendarEvent)),
     eventClick: (info) => { info.jsEvent.preventDefault(); calendarState.selected = info.event.id; calendarState.date = localIsoDate(calendar.getDate()); render() },
