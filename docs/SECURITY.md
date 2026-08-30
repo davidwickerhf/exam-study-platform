@@ -14,6 +14,13 @@
 
 ## Abuse controls
 
+- Edge rate limit (Vercel Firewall, in front of the container): requests to
+  paths starting with `/api` are limited to 400 per 60 s per IP (fixed
+  window) and denied with 403 beyond that. Blocked requests never reach the
+  app and are not billed. Managed in the Vercel dashboard → Firewall → Rules;
+  changes apply without a redeploy. Bot Protection is deliberately off because
+  it would challenge legitimate agent/MCP traffic that authenticates with
+  bearer keys.
 - Sliding-window rate limits (in-process): 600 requests/min per IP overall,
   60/min per IP for anonymous API routes, 300/min per identity, 120/min for
   mutations, 20/min for AI-backed routes, 60/min for admin writes, 30/hour for
