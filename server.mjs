@@ -3020,7 +3020,16 @@ const server = createServer(async (req, res) => {
       const auth = await authenticate(req)
       if (!auth.authenticated) {
         consume(`authfail:${ip}`, RATE_POLICIES.authFailure)
+        if (auth.reason === 'email_not_allowed') {
+          const domains = authConfig().allowedDomains
+          send(res, 403, JSON.stringify({ error: `This account is not eligible. Wicker Study is available to ${domains.map((d) => `@${d}`).join(' and ')} addresses.`, reason: 'email_not_allowed', allowedDomains: domains }))
+          return
+        }
         send(res, 401, JSON.stringify({ error: auth.mode === 'api-key' ? 'Invalid or revoked API key' : 'Sign in required', reason: auth.reason || 'unauthenticated' }))
+        return
+      }
+      if (url.pathname === '/api/auth/session' && req.method === 'GET') {
+        send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, admin: Boolean(auth.admin), scopes: auth.scopes || null }))
         return
       }
       const denied = authorise(auth, { method: req.method, pathname: url.pathname })

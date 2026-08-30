@@ -234,7 +234,35 @@ export function mountPublicSite(pathname = '/') {
   })
 }
 
-export function mountAuthSite() {
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch])
+}
+
+function domainList(domains) {
+  const names = (domains || []).map((domain) => `<code>@${escapeHtml(domain)}</code>`)
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}` : names[0] || ''
+}
+
+export function mountIneligibleSite({ email, allowedDomains, signOut }) {
+  const gate = document.getElementById('auth-gate')
+  document.getElementById('public-site').hidden = true
+  document.getElementById('app').innerHTML = ''
+  gate.hidden = false
+  gate.innerHTML = `<div class="auth-page auth-page-single">
+    <a class="auth-back" href="/">← Back to Wicker Study</a>
+    <section class="auth-form-column" aria-labelledby="auth-title">
+      <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
+      <div class="auth-form-copy"><h1 id="auth-title">This account isn’t eligible yet.</h1>
+        <p>Wicker Study is open to Maastricht University accounts. Sign in with a ${domainList(allowedDomains)} address${email ? ` — you are signed in as <strong>${escapeHtml(email)}</strong>` : ''}.</p></div>
+      <p class="auth-actions"><button type="button" class="site-button site-button-primary" id="auth-sign-out">Sign out and use another account</button></p>
+      <p class="auth-legal">Think this is a mistake? Contact the administrator with the address you used.</p>
+    </section>
+  </div>`
+  gate.querySelector('#auth-sign-out')?.addEventListener('click', () => signOut())
+  document.title = 'Account not eligible · Wicker Study'
+}
+
+export function mountAuthSite({ allowedDomains = [] } = {}) {
   const publicSite = document.getElementById('public-site')
   const gate = document.getElementById('auth-gate')
   publicSite.hidden = true
@@ -248,6 +276,7 @@ export function mountAuthSite() {
     <section class="auth-form-column" aria-labelledby="auth-title">
       <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
       <div class="auth-form-copy"><h1 id="auth-title">Return to your study record.</h1><p>Open your notes, attempts, mastery history, and review schedule.</p></div>
+      ${allowedDomains.length ? `<p class="auth-eligibility">Use your ${domainList(allowedDomains)} address — other accounts can sign up but cannot enter the workspace.</p>` : ''}
       <div id="clerk-sign-in"></div>
       <p class="auth-legal">By continuing, you agree to the <a href="/terms">Terms</a> and acknowledge the <a href="/privacy">Privacy notice</a>.</p>
     </section>

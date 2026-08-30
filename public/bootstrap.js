@@ -241,7 +241,7 @@ async function main() {
   if (!clerk.user) {
     if (pathname !== '/sign-in') window.history.replaceState(null, '', '/sign-in')
     const { mountAuthSite } = await import(`/public-site.js?v=${ASSET_VERSION}`)
-    mountAuthSite()
+    mountAuthSite({ allowedDomains: config.allowedDomains || [] })
     clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
       fallbackRedirectUrl: `${window.location.origin}/app`,
       signUpFallbackRedirectUrl: `${window.location.origin}/app`,
@@ -273,6 +273,21 @@ async function main() {
   }
 
   if (pathname === '/sign-in') window.history.replaceState(null, '', '/app')
+
+  // Eligibility is enforced server-side (ALLOWED_EMAIL_DOMAINS). A signed-in
+  // account that is not eligible is told so and offered sign-out instead of a
+  // workspace full of 403s.
+  const session = await nativeFetch('/api/auth/session', { headers: await authHeaders() })
+  if (session.status === 403) {
+    const detail = await session.json().catch(() => ({}))
+    const { mountIneligibleSite } = await import(`/public-site.js?v=${ASSET_VERSION}`)
+    mountIneligibleSite({
+      email: clerk.user.primaryEmailAddress?.emailAddress || '',
+      allowedDomains: detail.allowedDomains || config.allowedDomains || [],
+      signOut: () => clerk.signOut({ redirectUrl: `${window.location.origin}/sign-in` })
+    })
+    return
+  }
 
   window.fetch = async (input, init = {}) => {
     const requestUrl = new URL(typeof input === 'string' ? input : input.url, window.location.href)

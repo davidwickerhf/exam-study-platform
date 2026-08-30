@@ -17,6 +17,11 @@
   instance. Social sign-in in production requires custom OAuth credentials
   configured in the Clerk dashboard.
 
+- Eligibility: with `ALLOWED_EMAIL_DOMAINS` set, a session or API key whose
+  owner's primary email is not on an allowed domain (or in `ALLOWED_EMAILS`)
+  gets 403 `email_not_allowed` on every protected route and an explanatory
+  sign-out screen in the app. Primary emails are cached for 10 minutes.
+
 ## Abuse controls
 
 - Edge rate limit (Vercel Firewall, in front of the container): requests to
