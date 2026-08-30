@@ -3200,7 +3200,7 @@ function renderHome() {
 const CALENDAR_LIB = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'
 const CALENDAR_VIEWS = [['dayGridMonth', 'Month'], ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['listMonth', 'Agenda']]
 const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', institution: '#59627b', timetable: '#2a7f9e', other: '#7d859b' }
-const calendarState = { composer: false, data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', categories: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
+const calendarState = { composer: false, data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', hidden: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
 let calendarLibPromise = null
 function ensureCalendarLib() {
   if (calendarState.libReady) return Promise.resolve()
@@ -3224,7 +3224,7 @@ async function loadCalendarEvents(force = false) {
   finally { calendarState.loading = false; render() }
 }
 function calendarEventMatches(event) {
-  if (calendarState.categories.size && !calendarState.categories.has(event.category)) return false
+  if (calendarState.hidden.has(event.category)) return false
   if (calendarState.course !== 'all' && event.courseCode !== calendarState.course) return false
   if (calendarState.search) {
     const needle = calendarState.search.toLowerCase()
@@ -3278,7 +3278,7 @@ function renderCalendarPage() {
     <aside class="calx-rail">
       <button type="button" class="btn btn-primary calx-add" data-cal-compose>${uiIcon('plus')} ${calendarState.composer ? 'Close' : 'Add event'}</button>
       ${miniMonth(calendarState.miniAnchor || anchor)}
-      <div class="calx-group"><h3>My calendars</h3>${categories.length ? `<ul class="calx-toggles">${categories.map(([id, label]) => `<li><label><input type="checkbox" data-cal-category="${id}" ${calendarState.categories.size && !calendarState.categories.has(id) ? '' : 'checked'}><i style="--chip:${CATEGORY_COLOURS[id] || CATEGORY_COLOURS.other}"></i><span>${escapeHtml(label)}</span><small>${categoryCounts[id]}</small></label></li>`).join('')}</ul>` : `<p class="panel-note">${data ? 'No dates yet.' : 'Loading…'}</p>`}</div>
+      <div class="calx-group"><h3>My calendars</h3>${categories.length ? `<ul class="calx-toggles">${categories.map(([id, label]) => `<li><label><input type="checkbox" data-cal-category="${id}" ${calendarState.hidden.has(id) ? '' : 'checked'}><i style="--chip:${CATEGORY_COLOURS[id] || CATEGORY_COLOURS.other}"></i><span>${escapeHtml(label)}</span><small>${categoryCounts[id]}</small></label></li>`).join('')}</ul>` : `<p class="panel-note">${data ? 'No dates yet.' : 'Loading…'}</p>`}</div>
       ${courses.length ? `<div class="calx-group"><h3>Course</h3><select class="cal-course" data-cal-course aria-label="Filter by course"><option value="all">All courses</option>${courses.map((course) => `<option value="${escapeHtml(course.code)}" ${calendarState.course === course.code ? 'selected' : ''}>${escapeHtml(course.code)}</option>`).join('')}</select></div>` : ''}
       <div class="calx-group"><h3>Sources</h3><ul class="calx-sources"><li>${uiIcon('calendar')}<span>Your plan</span></li>${categoryCounts.institution ? `<li>${uiIcon('book')}<span>Institution calendar</span></li>` : ''}${feeds.map((feed) => `<li>${uiIcon('layers')}<span>${escapeHtml(feed.label)}</span></li>`).join('')}</ul><a class="pl-link" href="#/planning/documents">Add timetable or schedule</a></div>
       ${upcoming.length ? `<div class="calx-group"><h3>Coming up</h3><ol class="cal-upcoming">${upcoming.map((event) => `<li><button type="button" data-cal-select="${escapeHtml(event.id)}"><time datetime="${escapeHtml(String(event.start).slice(0, 10))}"><strong>${new Date(`${String(event.start).slice(0, 10)}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { month: 'short' }).format(new Date(`${String(event.start).slice(0, 10)}T00:00:00`))}</span></time><span class="cal-upcoming-copy"><strong>${escapeHtml(event.title)}</strong><small><i style="background:${event.colour || CATEGORY_COLOURS[event.category]}"></i>${escapeHtml((data.categories || {})[event.category] || event.category)}${!event.allDay ? ` · ${String(event.start).slice(11, 16)}` : ''}</small></span></button></li>`).join('')}</ol></div>` : ''}
@@ -8552,17 +8552,14 @@ function bindEvents() {
   document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('input', () => { calendarState.search = input.value; calendarState.instance?.refetchEvents(); document.querySelectorAll('.cal-upcoming').forEach(() => {}) }))
   document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('change', () => render()))
   document.querySelectorAll('[data-cal-category]').forEach((input) => input.addEventListener('change', () => {
-    const all = Object.keys(calendarState.data?.categories || {}).filter((id) => (calendarState.data?.events || []).some((event) => event.category === id))
-    const on = new Set(calendarState.categories.size ? calendarState.categories : all)
-    if (input.checked) on.add(input.dataset.calCategory); else on.delete(input.dataset.calCategory)
-    calendarState.categories = on.size === all.length ? new Set() : on
+    if (input.checked) calendarState.hidden.delete(input.dataset.calCategory); else calendarState.hidden.add(input.dataset.calCategory)
     calendarState.instance?.refetchEvents()
     render()
   }))
   document.querySelectorAll('[data-cal-nav]').forEach((button) => button.addEventListener('click', () => { const calendar = calendarState.instance; if (!calendar) return; const action = button.dataset.calNav; if (action === 'today') calendar.today(); else if (action === 'prev') calendar.prev(); else calendar.next(); calendarState.miniAnchor = null }))
   document.querySelectorAll('[data-cal-goto]').forEach((button) => button.addEventListener('click', () => { calendarState.date = button.dataset.calGoto; calendarState.miniAnchor = null; if (calendarState.instance) calendarState.instance.gotoDate(button.dataset.calGoto); else render() }))
   document.querySelectorAll('[data-cal-mini]').forEach((button) => button.addEventListener('click', () => { const base = new Date(`${calendarState.miniAnchor || calendarState.date || localIsoDate(new Date())}T00:00:00`); base.setMonth(base.getMonth() + Number(button.dataset.calMini), 1); calendarState.miniAnchor = localIsoDate(base); render() }))
-  document.querySelectorAll('[data-cal-clear]').forEach((button) => button.addEventListener('click', () => { calendarState.categories = new Set(); calendarState.search = ''; calendarState.course = 'all'; render() }))
+  document.querySelectorAll('[data-cal-clear]').forEach((button) => button.addEventListener('click', () => { calendarState.hidden = new Set(); calendarState.search = ''; calendarState.course = 'all'; render() }))
   document.querySelectorAll('[data-cal-course]').forEach((select) => select.addEventListener('change', () => { calendarState.course = select.value; render() }))
   document.querySelectorAll('[data-cal-view]').forEach((button) => button.addEventListener('click', () => { calendarState.view = button.dataset.calView; if (calendarState.instance) calendarState.date = localIsoDate(calendarState.instance.getDate()); render() }))
   document.querySelectorAll('[data-cal-select]').forEach((button) => button.addEventListener('click', () => { const event = calendarState.data?.events.find((item) => item.id === button.dataset.calSelect); calendarState.selected = button.dataset.calSelect; if (event) calendarState.date = String(event.start).slice(0, 10); render() }))
