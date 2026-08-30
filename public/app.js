@@ -2578,7 +2578,7 @@ function renderAccountApi() {
 }
 
 // ----- Admin: editorial uploads from the web app ---------------------------
-const adminPanel = { status: null, statusError: null, loading: false, programmeId: '', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null, courseId: '', materialPath: '', materialFile: null, materialBusy: false, materialResult: null, materialError: null }
+const adminPanel = { status: null, statusError: null, loading: false, programmeId: '', calendarSource: 'file', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null, courseId: '', materials: null, materialFile: null, materialFolder: '', newFolder: '', materialName: '', asChapter: false, chapterId: '', chapterName: '', materialBusy: false, materialResult: null, materialError: null }
 async function loadAdminStatus(force = false) {
   if ((adminPanel.status && !force) || adminPanel.loading) return
   adminPanel.loading = true
@@ -2586,55 +2586,101 @@ async function loadAdminStatus(force = false) {
   catch (error) { adminPanel.statusError = error.message }
   finally { adminPanel.loading = false; render() }
 }
+async function loadAdminMaterials() {
+  if (adminPanel.materials) return
+  adminPanel.materials = { loading: true }
+  try { adminPanel.materials = await fetchJson('/api/materials') } catch (error) { adminPanel.materials = { error: error.message, courses: [] } }
+  render()
+}
+function adminCourseFolders(courseId) {
+  const course = (adminPanel.materials?.courses || []).find((item) => item.id === courseId)
+  const folders = new Set()
+  for (const material of course?.materials || []) { const parts = String(material.path).split('/'); if (parts.length > 1) folders.add(parts.slice(0, -1).join('/')) }
+  return { folders: [...folders].sort(), count: course?.materials?.length || 0 }
+}
+function nextChapterId(course) {
+  const ids = (course?.chapters || []).map((chapter) => Number.parseInt(chapter.id, 10)).filter(Number.isFinite)
+  return String((ids.length ? Math.max(...ids) : 0) + 1).padStart(2, '0')
+}
+function adminMaterialPath() {
+  const folder = adminPanel.materialFolder === '__new__' ? adminPanel.newFolder.trim() : adminPanel.materialFolder
+  const name = adminPanel.materialName.trim()
+  if (!name) return ''
+  return folder ? `${folder.replace(/\/+$/, '')}/${name}` : name
+}
 
 function renderAccountAdmin() {
   if (!adminPanel.status && !adminPanel.statusError && !adminPanel.loading) loadAdminStatus()
   if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
+  if (!adminPanel.materials) queueMicrotask(() => loadAdminMaterials())
   const status = adminPanel.status
   const counts = status?.counts || {}
   const programmes = editorialProgrammesData?.programmes || []
   const programme = programmes.find((item) => item.id === (adminPanel.programmeId || programmes[0]?.id))
-  const courses = (state?.courses || []).map((course) => ({ id: course.id, code: course.code, name: course.name }))
+  const published = (programme?.calendar || []).slice().sort((a, b) => a.date.localeCompare(b.date))
+  const today = new Date().toISOString().slice(0, 10)
+  const nextDates = published.filter((event) => event.date >= today).slice(0, 5)
+  const courses = (state?.courses || []).map((course) => ({ id: course.id, code: course.code, name: course.name, chapters: course.chapters }))
+  const course = courses.find((item) => item.id === (adminPanel.courseId || courses[0]?.id))
+  const { folders, count: materialCount } = adminCourseFolders(course?.id)
+  const materialPath = adminMaterialPath()
+  const isMarkdown = /\.md$/i.test(adminPanel.materialName)
   const stat = (label, value) => `<div class="fact"><dt>${label}</dt><dd>${value ?? '—'}</dd></div>`
+  const fileChip = (name, meta, removeAttr) => `<div class="adm-file">${uiIcon('file')}<span><strong>${escapeHtml(name)}</strong>${meta ? `<small>${escapeHtml(meta)}</small>` : ''}</span><button type="button" class="icon-btn" ${removeAttr} aria-label="Remove file">${uiIcon('close')}</button></div>`
   return `<div class="account-stack">
     <section class="panel">
       <div class="panel-top"><div><h2>Editorial content</h2><p>${status ? (status.writable ? `Active release ${status.releaseId}${status.activatedAt ? ` · activated ${relativeTime(status.activatedAt)}` : ''}. Changes take effect immediately.` : 'This server reads content from files; editorial writes need the hosted database.') : adminPanel.statusError ? escapeHtml(adminPanel.statusError) : 'Loading…'}</p></div><a class="btn btn-secondary btn-sm" href="/docs#admin" target="_blank" rel="noopener">${uiIcon('book')} Admin docs</a></div>
       ${status?.writable ? `<dl class="fact-grid">${stat('Courses', counts.courses)}${stat('Chapters', counts.chapters)}${stat('Materials', counts.materials)}${stat('Questions', counts.questions)}${stat('Flashcards', counts.flashcards)}${stat('Programmes', counts.programmes)}</dl>` : ''}
-      <p class="panel-note">Courses, chapters, mastery items, papers, question banks, and flashcards are managed through the admin API and MCP tools (see docs). The two uploads below are the ones that need files.</p>
     </section>
-    <section class="panel">
-      <div class="panel-top"><div><h2>Institution academic calendar</h2><p>Upload the official academic calendar for a known programme. Every student on that programme sees its dates read-only in their Calendar.</p></div></div>
-      ${adminPanel.calendarResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${adminPanel.calendarResult.count} date${adminPanel.calendarResult.count === 1 ? '' : 's'} now on the ${escapeHtml(adminPanel.calendarResult.id)} calendar${adminPanel.calendarResult.replaced ? ' (replaced)' : ' (merged)'}.</span><button type="button" class="pl-link pl-link-button" data-admin-cal-dismiss>Done</button></div>` : ''}
-      <div class="doc-fields">
-        <label><span>Programme</span><select data-admin-programme ${adminPanel.calendarBusy ? 'disabled' : ''}>${programmes.map((item) => `<option value="${escapeHtml(item.id)}" ${programme?.id === item.id ? 'selected' : ''}>${escapeHtml(item.institution?.name || '')} — ${escapeHtml(item.degree)} ${escapeHtml(item.name)}${item.calendar?.length ? ` (${item.calendar.length} dates)` : ''}</option>`).join('') || '<option value="">No known programmes yet</option>'}</select></label>
-        <label class="planning-dropzone doc-dropzone" data-admin-cal-dropzone>
-          <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.ics,application/pdf,image/*,text/plain,text/csv,text/calendar" multiple data-admin-cal-files ${adminPanel.calendarBusy ? 'disabled' : ''}>
-          <span class="planning-dropzone-icon">${uiIcon('upload')}</span>
-          <span><strong>Drop the calendar here or choose files</strong><small>PDF, image, text, or .ics · AI reads documents; .ics is parsed directly</small></span>
-          <span class="btn btn-secondary">Choose files</span>
-        </label>
-        ${adminPanel.calendarFiles.length ? `<ul class="planning-source-list">${adminPanel.calendarFiles.map((file, index) => `<li><span class="planning-source-file-icon">${uiIcon('file')}</span><span><strong>${escapeHtml(file.name)}</strong></span><button type="button" class="pl-danger-link" data-admin-cal-remove="${index}">Remove</button></li>`).join('')}</ul>` : ''}
-        <label><span>…or a calendar feed URL</span><input type="url" data-admin-cal-url placeholder="https://… or webcal://…" value="${escapeHtml(adminPanel.calendarUrl)}" ${adminPanel.calendarBusy ? 'disabled' : ''}></label>
-        <label class="key-form-scopes-inline"><input type="checkbox" data-admin-cal-replace ${adminPanel.calendarReplace ? 'checked' : ''}> <span>Replace the existing calendar instead of merging</span></label>
+
+    <section class="panel adm">
+      <div class="panel-top"><div><h2>Institution academic calendar</h2><p>Official dates for a programme — exam periods, registration windows, holidays. Every student on the programme sees them in their calendar and can add them to their plan.</p></div></div>
+      ${adminPanel.calendarResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${adminPanel.calendarResult.count} date${adminPanel.calendarResult.count === 1 ? '' : 's'} published to ${escapeHtml(programme?.name || adminPanel.calendarResult.id)}${adminPanel.calendarResult.replaced ? ' (replaced)' : ' (merged)'}.</span><button type="button" class="pl-link pl-link-button" data-admin-cal-dismiss>Done</button></div>` : ''}
+      <div class="adm-grid">
+        <div class="adm-flow">
+          <div class="adm-step"><span class="adm-num">1</span><div><label class="adm-field"><span>Programme</span><select data-admin-programme ${adminPanel.calendarBusy ? 'disabled' : ''}>${programmes.map((item) => `<option value="${escapeHtml(item.id)}" ${programme?.id === item.id ? 'selected' : ''}>${escapeHtml(item.institution?.name || '')} — ${escapeHtml(item.degree)} ${escapeHtml(item.name)}</option>`).join('') || '<option value="">No known programmes yet</option>'}</select></label></div></div>
+          <div class="adm-step"><span class="adm-num">2</span><div>
+            <div class="adm-field"><span>Source</span><div class="cal-views adm-seg" role="tablist"><button type="button" role="tab" class="cal-view${adminPanel.calendarSource === 'file' ? ' is-on' : ''}" data-admin-cal-source="file" aria-selected="${adminPanel.calendarSource === 'file'}">Upload files</button><button type="button" role="tab" class="cal-view${adminPanel.calendarSource === 'url' ? ' is-on' : ''}" data-admin-cal-source="url" aria-selected="${adminPanel.calendarSource === 'url'}">Calendar feed URL</button></div></div>
+            ${adminPanel.calendarSource === 'file' ? `${adminPanel.calendarFiles.map((file, index) => fileChip(file.name, file.pageCount ? `${file.pageCount} page${file.pageCount === 1 ? '' : 's'}` : /\.ics$/i.test(file.name) ? 'iCalendar · parsed directly' : 'Read by AI', `data-admin-cal-remove="${index}"`)).join('')}
+            <label class="adm-drop" data-admin-cal-dropzone><input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.ics,application/pdf,image/*,text/plain,text/csv,text/calendar" multiple data-admin-cal-files ${adminPanel.calendarBusy ? 'disabled' : ''}>${uiIcon('upload')}<span><strong>${adminPanel.calendarFiles.length ? 'Add another file' : 'Drop the academic calendar here'}</strong><small>PDF, image, or text is read by AI · .ics is parsed directly</small></span><span class="btn btn-secondary btn-sm">Browse</span></label>` : `<label class="adm-field"><span>Feed URL</span><input type="url" data-admin-cal-url placeholder="https://… or webcal://…" value="${escapeHtml(adminPanel.calendarUrl)}" ${adminPanel.calendarBusy ? 'disabled' : ''}></label>`}
+          </div></div>
+          <div class="adm-step"><span class="adm-num">3</span><div><div class="adm-field"><span>When publishing</span><div class="adm-radios"><label><input type="radio" name="cal-mode" value="merge" ${adminPanel.calendarReplace ? '' : 'checked'} data-admin-cal-mode><span><strong>Merge</strong><small>Keep existing dates, add new ones</small></span></label><label><input type="radio" name="cal-mode" value="replace" ${adminPanel.calendarReplace ? 'checked' : ''} data-admin-cal-mode><span><strong>Replace</strong><small>Start from this source only</small></span></label></div></div></div></div>
+          ${adminPanel.calendarError ? `<p class="account-delete-error" role="alert">${escapeHtml(adminPanel.calendarError)}</p>` : ''}
+          <div class="adm-foot"><span></span><button type="button" class="btn btn-primary" data-admin-cal-submit ${adminPanel.calendarBusy || !programme || (adminPanel.calendarSource === 'file' ? !adminPanel.calendarFiles.length : !adminPanel.calendarUrl.trim()) ? 'disabled' : ''}>${adminPanel.calendarBusy ? 'Publishing…' : `${uiIcon('upload')} Publish calendar`}</button></div>
+        </div>
+        <aside class="adm-side">
+          <h3>Currently published</h3>
+          ${programme ? (published.length ? `<p class="adm-side-sum"><strong>${published.length}</strong> date${published.length === 1 ? '' : 's'} on ${escapeHtml(programme.name)}</p><ol class="adm-dates">${nextDates.map((event) => `<li><time>${academicDate(event.date)}</time><span>${escapeHtml(event.title)}</span></li>`).join('')}</ol>${published.length > nextDates.length ? `<p class="panel-note">${nextDates.length ? `+ ${published.length - nextDates.length} more` : 'All dates are in the past'}</p>` : ''}` : '<p class="panel-note">Nothing published for this programme yet. Upload the official academic calendar to start.</p>') : '<p class="panel-note">Choose a programme.</p>'}
+        </aside>
       </div>
-      ${adminPanel.calendarError ? `<p class="account-delete-error" role="alert">${escapeHtml(adminPanel.calendarError)}</p>` : ''}
-      <div class="pl-form-actions"><span class="pl-spacer"></span><button type="button" class="btn btn-primary" data-admin-cal-submit ${adminPanel.calendarBusy || !programme || (!adminPanel.calendarFiles.length && !adminPanel.calendarUrl.trim()) ? 'disabled' : ''}>${adminPanel.calendarBusy ? 'Uploading…' : `${uiIcon('upload')} Publish calendar`}</button></div>
     </section>
-    <section class="panel">
-      <div class="panel-top"><div><h2>Course material</h2><p>Add or replace a file in a course knowledge base. Markdown and code are indexed for the tutor; PDF text is extracted page by page.</p></div></div>
-      ${adminPanel.materialResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${escapeHtml(adminPanel.materialResult.sourcePath)} stored (${formatBytes(adminPanel.materialResult.bytes)}${adminPanel.materialResult.extractedPages != null ? `, ${adminPanel.materialResult.extractedPages} pages extracted` : ''}${adminPanel.materialResult.indexedChunks ? `, ${adminPanel.materialResult.indexedChunks} chunks indexed` : ''}).</span><button type="button" class="pl-link pl-link-button" data-admin-mat-dismiss>Done</button></div>` : ''}
-      <div class="doc-fields">
-        <label><span>Course</span><select data-admin-course ${adminPanel.materialBusy ? 'disabled' : ''}>${courses.map((course) => `<option value="${escapeHtml(course.id)}" ${(adminPanel.courseId || courses[0]?.id) === course.id ? 'selected' : ''}>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</option>`).join('')}</select></label>
-        <label class="planning-dropzone doc-dropzone" data-admin-mat-dropzone>
-          <input type="file" data-admin-mat-file ${adminPanel.materialBusy ? 'disabled' : ''}>
-          <span class="planning-dropzone-icon">${uiIcon('upload')}</span>
-          <span><strong>${adminPanel.materialFile ? escapeHtml(adminPanel.materialFile.name) : 'Drop a file here or choose one'}</strong><small>Markdown, PDF, image, code, or office file · up to 40 MB</small></span>
-          <span class="btn btn-secondary">Choose file</span>
-        </label>
-        <label><span>Path inside the knowledge base</span><input type="text" data-admin-mat-path placeholder="03 Topic/03 Topic.md" value="${escapeHtml(adminPanel.materialPath)}" ${adminPanel.materialBusy ? 'disabled' : ''}></label>
+
+    <section class="panel adm">
+      <div class="panel-top"><div><h2>Course material</h2><p>Add a file to a course. Markdown can become a chapter straight away; PDFs get their text extracted so the tutor can cite them.</p></div></div>
+      ${adminPanel.materialResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>Stored <strong>${escapeHtml(adminPanel.materialResult.sourcePath)}</strong> (${formatBytes(adminPanel.materialResult.bytes)}${adminPanel.materialResult.extractedPages != null ? `, ${adminPanel.materialResult.extractedPages} pages extracted` : ''})${adminPanel.materialResult.chapter ? ` and published chapter ${escapeHtml(adminPanel.materialResult.chapter.id)} “${escapeHtml(adminPanel.materialResult.chapter.name)}”` : ''}.</span>${adminPanel.materialResult.chapter ? `<a class="pl-link" href="#/course/${encodeURIComponent(course?.id || '')}/chapter/${encodeURIComponent(adminPanel.materialResult.chapter.id)}">Open</a>` : ''}<button type="button" class="pl-link pl-link-button" data-admin-mat-dismiss>Done</button></div>` : ''}
+      <div class="adm-grid">
+        <div class="adm-flow">
+          <div class="adm-step"><span class="adm-num">1</span><div><label class="adm-field"><span>Course</span><select data-admin-course ${adminPanel.materialBusy ? 'disabled' : ''}>${courses.map((item) => `<option value="${escapeHtml(item.id)}" ${course?.id === item.id ? 'selected' : ''}>${escapeHtml(item.code)} — ${escapeHtml(item.name)}</option>`).join('')}</select></label></div></div>
+          <div class="adm-step"><span class="adm-num">2</span><div><div class="adm-field"><span>File</span>${adminPanel.materialFile ? fileChip(adminPanel.materialFile.name, formatBytes(adminPanel.materialFile.size), 'data-admin-mat-clear') : `<label class="adm-drop" data-admin-mat-dropzone><input type="file" data-admin-mat-file ${adminPanel.materialBusy ? 'disabled' : ''}>${uiIcon('upload')}<span><strong>Drop a file here</strong><small>Markdown, PDF, image, code, or office · up to 40 MB</small></span><span class="btn btn-secondary btn-sm">Browse</span></label>`}</div></div></div>
+          <div class="adm-step${adminPanel.materialFile ? '' : ' is-muted'}"><span class="adm-num">3</span><div>
+            <div class="adm-field-row">
+              <label class="adm-field"><span>Folder</span><select data-admin-mat-folder ${adminPanel.materialBusy || !adminPanel.materialFile ? 'disabled' : ''}><option value="" ${!adminPanel.materialFolder ? 'selected' : ''}>Top level of ${escapeHtml(course?.code || 'course')}</option>${folders.map((folder) => `<option value="${escapeHtml(folder)}" ${adminPanel.materialFolder === folder ? 'selected' : ''}>${escapeHtml(folder)}</option>`).join('')}<option value="__new__" ${adminPanel.materialFolder === '__new__' ? 'selected' : ''}>New folder…</option></select></label>
+              ${adminPanel.materialFolder === '__new__' ? `<label class="adm-field"><span>New folder name</span><input type="text" data-admin-mat-newfolder placeholder="08 Networks" value="${escapeHtml(adminPanel.newFolder)}"></label>` : ''}
+              <label class="adm-field"><span>File name</span><input type="text" data-admin-mat-name value="${escapeHtml(adminPanel.materialName)}" placeholder="08 Networks.md" ${adminPanel.materialBusy || !adminPanel.materialFile ? 'disabled' : ''}></label>
+            </div>
+            ${isMarkdown ? `<label class="adm-check"><input type="checkbox" data-admin-mat-chapter ${adminPanel.asChapter ? 'checked' : ''}><span><strong>Publish as a chapter</strong><small>Students see it in the course right away</small></span></label>
+            ${adminPanel.asChapter ? `<div class="adm-field-row"><label class="adm-field adm-field-short"><span>Chapter no.</span><input type="text" data-admin-chapter-id value="${escapeHtml(adminPanel.chapterId || nextChapterId(course))}" maxlength="10"></label><label class="adm-field"><span>Chapter title</span><input type="text" data-admin-chapter-name value="${escapeHtml(adminPanel.chapterName)}" placeholder="Networks" maxlength="200"></label></div>` : ''}` : ''}
+          </div></div>
+          ${adminPanel.materialError ? `<p class="account-delete-error" role="alert">${escapeHtml(adminPanel.materialError)}</p>` : ''}
+          <div class="adm-foot">${materialPath ? `<span class="adm-summary">Will be stored as <code>${escapeHtml(materialPath)}</code></span>` : '<span></span>'}<button type="button" class="btn btn-primary" data-admin-mat-submit ${adminPanel.materialBusy || !adminPanel.materialFile || !materialPath || (adminPanel.asChapter && !adminPanel.chapterName.trim()) ? 'disabled' : ''}>${adminPanel.materialBusy ? 'Uploading…' : `${uiIcon('upload')} ${adminPanel.asChapter ? 'Store and publish chapter' : 'Store material'}`}</button></div>
+        </div>
+        <aside class="adm-side">
+          <h3>${escapeHtml(course?.code || 'Course')} today</h3>
+          <p class="adm-side-sum"><strong>${course?.chapters?.length || 0}</strong> chapter${course?.chapters?.length === 1 ? '' : 's'} · <strong>${materialCount}</strong> file${materialCount === 1 ? '' : 's'}</p>
+          ${folders.length ? `<ul class="adm-folders">${folders.slice(0, 8).map((folder) => `<li>${uiIcon('file')}<span>${escapeHtml(folder)}</span></li>`).join('')}${folders.length > 8 ? `<li class="panel-note">+ ${folders.length - 8} more folders</li>` : ''}</ul>` : '<p class="panel-note">No folders yet — files go to the top level or a new folder.</p>'}
+          <p class="panel-note">Questions, flashcards, and mastery items are managed through the API or MCP tools — see <a href="/docs#admin" target="_blank" rel="noopener">Admin docs</a>.</p>
+        </aside>
       </div>
-      ${adminPanel.materialError ? `<p class="account-delete-error" role="alert">${escapeHtml(adminPanel.materialError)}</p>` : ''}
-      <div class="pl-form-actions"><span class="panel-note">To make a new markdown file a chapter, register it afterwards with <code>admin_upsert_chapter</code> or <code>PUT /api/admin/courses/{id}/chapters/{chapterId}</code>.</span><span class="pl-spacer"></span><button type="button" class="btn btn-primary" data-admin-mat-submit ${adminPanel.materialBusy || !adminPanel.materialFile || !adminPanel.materialPath.trim() ? 'disabled' : ''}>${adminPanel.materialBusy ? 'Uploading…' : `${uiIcon('upload')} Store material`}</button></div>
     </section>
   </div>`
 }
@@ -9301,9 +9347,10 @@ function bindEvents() {
   })
 
   // ----- Admin tab -----
-  document.querySelectorAll('[data-admin-programme]').forEach((select) => select.addEventListener('change', () => { adminPanel.programmeId = select.value }))
-  document.querySelectorAll('[data-admin-cal-url]').forEach((input) => input.addEventListener('input', () => { adminPanel.calendarUrl = input.value; document.querySelector('[data-admin-cal-submit]')?.toggleAttribute('disabled', !(adminPanel.calendarFiles.length || input.value.trim())) }))
-  document.querySelectorAll('[data-admin-cal-replace]').forEach((input) => input.addEventListener('change', () => { adminPanel.calendarReplace = input.checked }))
+  document.querySelectorAll('[data-admin-programme]').forEach((select) => select.addEventListener('change', () => { adminPanel.programmeId = select.value; render() }))
+  document.querySelectorAll('[data-admin-cal-source]').forEach((button) => button.addEventListener('click', () => { adminPanel.calendarSource = button.dataset.adminCalSource; render() }))
+  document.querySelectorAll('[data-admin-cal-url]').forEach((input) => input.addEventListener('input', () => { adminPanel.calendarUrl = input.value; document.querySelector('[data-admin-cal-submit]')?.toggleAttribute('disabled', !input.value.trim()) }))
+  document.querySelectorAll('[data-admin-cal-mode]').forEach((input) => input.addEventListener('change', () => { adminPanel.calendarReplace = input.value === 'replace' }))
   document.querySelectorAll('[data-admin-cal-files]').forEach((input) => input.addEventListener('change', async (event) => {
     for (const file of [...event.target.files].slice(0, MAX_PLANNING_SOURCES)) {
       try { adminPanel.calendarFiles.push(await planningSourcePayload(file)) } catch (error) { adminPanel.calendarError = error.message }
@@ -9311,6 +9358,11 @@ function bindEvents() {
     event.target.value = ''
     render()
   }))
+  document.querySelectorAll('[data-admin-cal-dropzone], [data-admin-mat-dropzone]').forEach((zone) => {
+    ;['dragenter', 'dragover'].forEach((type) => zone.addEventListener(type, (event) => { event.preventDefault(); zone.classList.add('is-dragging') }))
+    ;['dragleave', 'drop'].forEach((type) => zone.addEventListener(type, (event) => { event.preventDefault(); zone.classList.remove('is-dragging') }))
+    zone.addEventListener('drop', (event) => { const input = zone.querySelector('input[type="file"]'); if (input && event.dataTransfer?.files?.length) { input.files = event.dataTransfer.files; input.dispatchEvent(new Event('change', { bubbles: true })) } })
+  })
   document.querySelectorAll('[data-admin-cal-remove]').forEach((button) => button.addEventListener('click', () => { adminPanel.calendarFiles.splice(Number(button.dataset.adminCalRemove), 1); render() }))
   document.querySelectorAll('[data-admin-cal-dismiss]').forEach((button) => button.addEventListener('click', () => { adminPanel.calendarResult = null; render() }))
   document.querySelectorAll('[data-admin-cal-submit]').forEach((button) => button.addEventListener('click', async () => {
@@ -9320,14 +9372,17 @@ function bindEvents() {
     adminPanel.calendarError = null
     render()
     try {
-      const ics = adminPanel.calendarFiles.filter((file) => /\.ics$/i.test(file.name) && file.text)
-      const documents = adminPanel.calendarFiles.filter((file) => !ics.includes(file)).map(({ name, type, pageCount, text, images }) => ({ name, type, pageCount, text, images: (images || []).slice(0, MAX_PLANNING_IMAGE_PAGES) }))
       const path = `/api/admin/programmes/${encodeURIComponent(programmeId)}/calendar`
       let result = null
       let replace = adminPanel.calendarReplace
-      if (adminPanel.calendarUrl.trim()) { result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: adminPanel.calendarUrl.trim(), replace }) }); replace = false }
-      for (const file of ics) { result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ics: file.text, replace }) }); replace = false }
-      if (documents.length) { result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documents, replace }) }) }
+      if (adminPanel.calendarSource === 'url') {
+        result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: adminPanel.calendarUrl.trim(), replace }) })
+      } else {
+        const ics = adminPanel.calendarFiles.filter((file) => /\.ics$/i.test(file.name) && file.text)
+        const documents = adminPanel.calendarFiles.filter((file) => !ics.includes(file)).map(({ name, type, pageCount, text, images }) => ({ name, type, pageCount, text, images: (images || []).slice(0, MAX_PLANNING_IMAGE_PAGES) }))
+        for (const file of ics) { result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ics: file.text, replace }) }); replace = false }
+        if (documents.length) result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documents, replace }) })
+      }
       adminPanel.calendarResult = result
       adminPanel.calendarFiles = []
       adminPanel.calendarUrl = ''
@@ -9340,27 +9395,42 @@ function bindEvents() {
       render()
     }
   }))
-  document.querySelectorAll('[data-admin-course]').forEach((select) => select.addEventListener('change', () => { adminPanel.courseId = select.value }))
-  document.querySelectorAll('[data-admin-mat-path]').forEach((input) => input.addEventListener('input', () => { adminPanel.materialPath = input.value; document.querySelector('[data-admin-mat-submit]')?.toggleAttribute('disabled', !(adminPanel.materialFile && input.value.trim())) }))
+  document.querySelectorAll('[data-admin-course]').forEach((select) => select.addEventListener('change', () => { adminPanel.courseId = select.value; adminPanel.materialFolder = ''; adminPanel.chapterId = ''; render() }))
   document.querySelectorAll('[data-admin-mat-file]').forEach((input) => input.addEventListener('change', (event) => {
-    adminPanel.materialFile = event.target.files[0] || null
-    if (adminPanel.materialFile && !adminPanel.materialPath.trim()) adminPanel.materialPath = adminPanel.materialFile.name
+    const file = event.target.files[0] || null
+    adminPanel.materialFile = file
+    if (file) { adminPanel.materialName = file.name; adminPanel.chapterName = file.name.replace(/\.[^.]+$/, '').replace(/^\d+\s*/, ''); adminPanel.asChapter = /\.md$/i.test(file.name); const lead = file.name.match(/^(\d{1,3})\b/); adminPanel.chapterId = lead ? lead[1].padStart(2, '0') : '' }
     render()
   }))
+  document.querySelectorAll('[data-admin-mat-clear]').forEach((button) => button.addEventListener('click', () => { adminPanel.materialFile = null; adminPanel.materialName = ''; adminPanel.asChapter = false; render() }))
+  document.querySelectorAll('[data-admin-mat-folder]').forEach((select) => select.addEventListener('change', () => { adminPanel.materialFolder = select.value; render() }))
+  document.querySelectorAll('[data-admin-mat-newfolder]').forEach((input) => input.addEventListener('input', () => { adminPanel.newFolder = input.value; const summary = document.querySelector('.adm-summary code'); if (summary) summary.textContent = adminMaterialPath() }))
+  document.querySelectorAll('[data-admin-mat-name]').forEach((input) => input.addEventListener('input', () => { adminPanel.materialName = input.value; const summary = document.querySelector('.adm-summary code'); if (summary) summary.textContent = adminMaterialPath(); document.querySelector('[data-admin-mat-submit]')?.toggleAttribute('disabled', !adminMaterialPath()) }))
+  document.querySelectorAll('[data-admin-mat-name]').forEach((input) => input.addEventListener('change', () => render()))
+  document.querySelectorAll('[data-admin-mat-chapter]').forEach((input) => input.addEventListener('change', () => { adminPanel.asChapter = input.checked; render() }))
+  document.querySelectorAll('[data-admin-chapter-id]').forEach((input) => input.addEventListener('input', () => { adminPanel.chapterId = input.value }))
+  document.querySelectorAll('[data-admin-chapter-name]').forEach((input) => input.addEventListener('input', () => { adminPanel.chapterName = input.value; document.querySelector('[data-admin-mat-submit]')?.toggleAttribute('disabled', !input.value.trim()) }))
   document.querySelectorAll('[data-admin-mat-dismiss]').forEach((button) => button.addEventListener('click', () => { adminPanel.materialResult = null; render() }))
   document.querySelectorAll('[data-admin-mat-submit]').forEach((button) => button.addEventListener('click', async () => {
     const courseId = adminPanel.courseId || state?.courses?.[0]?.id
     const file = adminPanel.materialFile
-    if (!courseId || !file || adminPanel.materialBusy) return
+    const sourcePath = adminMaterialPath()
+    if (!courseId || !file || !sourcePath || adminPanel.materialBusy) return
     adminPanel.materialBusy = true
     adminPanel.materialError = null
     render()
     try {
       const textual = /\.(md|txt|c|h|py|s|html|tex|csv|ipynb)$/i.test(file.name) || file.type.startsWith('text/')
       const body = textual ? { content: await file.text() } : { base64: await readFileAsBase64(file) }
-      adminPanel.materialResult = await fetchJson(`/api/admin/courses/${encodeURIComponent(courseId)}/materials?path=${encodeURIComponent(adminPanel.materialPath.trim())}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      adminPanel.materialFile = null
-      adminPanel.materialPath = ''
+      const result = await fetchJson(`/api/admin/courses/${encodeURIComponent(courseId)}/materials?path=${encodeURIComponent(sourcePath)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (adminPanel.asChapter) {
+        const course = state.courses.find((item) => item.id === courseId)
+        const chapterId = (adminPanel.chapterId || nextChapterId(course)).trim()
+        result.chapter = await fetchJson(`/api/admin/courses/${encodeURIComponent(courseId)}/chapters/${encodeURIComponent(chapterId)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: adminPanel.chapterName.trim(), sourcePath }) })
+        try { state = await fetchJson('/api/state') } catch {}
+      }
+      adminPanel.materialResult = result
+      Object.assign(adminPanel, { materialFile: null, materialName: '', asChapter: false, chapterId: '', chapterName: '', materials: null })
       loadAdminStatus(true)
     } catch (error) {
       adminPanel.materialError = error.message
