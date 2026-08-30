@@ -15,9 +15,7 @@
 html.public-mode {
   height: auto;
   min-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
 }
 body.public-mode {
   height: auto;
@@ -26,7 +24,7 @@ body.public-mode {
   background: var(--color-canvas);
 }
 body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
-#public-site { min-height: 100dvh; color: var(--color-ink); background: var(--color-canvas); }
+#public-site { min-height: 100dvh; overflow-x: clip; color: var(--color-ink); background: var(--color-canvas); }
 #public-site *, #auth-gate * { box-sizing: border-box; }
 #public-site a, #auth-gate a { color: inherit; }
 #public-site svg, #auth-gate svg { width: 18px; height: 18px; }
