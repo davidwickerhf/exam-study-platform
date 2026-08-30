@@ -1,6 +1,9 @@
 FROM node:20-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
+# Editorial extraction: Poppler for PDFs, Tesseract for scans/images, and
+# unzip for DOCX/PPTX XML. Generation remains an explicit admin action.
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr unzip && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci --include=dev
 COPY . .

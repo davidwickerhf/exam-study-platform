@@ -71,6 +71,27 @@
   loopback, link-local, private, CGNAT, or metadata ranges; redirects are
   re-validated hop by hop; bodies capped at 4 MB with a 15 s timeout.
 - Material paths are normalised and confined to the course knowledge base.
+- Editorial URL sources use the same SSRF-safe fetcher and are capped at 12 MB.
+  Folder sources are restricted to an allowlist, capped at 100 MB each and 250
+  sources per sync, uploaded in integrity-checked 512 KiB chunks, and never
+  executed. Office/PDF extraction runs in bounded subprocesses with output and
+  time limits; legacy binary Office formats require conversion.
+
+## Editorial source isolation
+
+- Student course-request files remain private by default. Moving them into a
+  shared candidate edition requires separate contribution permission and an
+  explicit rights basis, followed by administrator acceptance.
+- Raw sources and private retrieval chunks are never included in a published
+  course release. Generated artifacts retain source citations for editorial
+  review; publication rejects withdrawn, rejected, missing, or uncited evidence.
+- Content generation creates a draft change set. It does not mutate the active
+  course until an administrator approves the required artifacts and types the
+  course code to publish a versioned release.
+- Contribution permission can be withdrawn without deleting an already
+  published transformation. Withdrawal prevents future publication from that
+  source; account deletion also removes unshared source bytes when no other
+  contribution record references them.
 
 ## Operational
 

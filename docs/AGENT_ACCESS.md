@@ -45,13 +45,18 @@ It is the source of truth; the summary below is for orientation.
   `/api/flashcards/…`, `/api/mistakes/{id}/resolve`, `/api/activity` (read events),
   `/api/academics` (PUT with `expectedRevision`), `/api/academics/documents/analyze`
   + `/apply` (supporting documents → reviewable change set), `/api/academics/calendars` (.ics links).
-- Admin: `/api/admin/status`, `/api/admin/courses/{id}` (+ `/chapters`,
+- Admin: `/api/admin/status`, `/api/admin/editorial-workspace`,
+  `/api/admin/editorial-editions/{id}` (+ `/sources`, `/process`, `/estimate`,
+  `/generate`, `/publish`), `/api/admin/editorial-contributions/{id}`,
+  `/api/admin/editorial-artifacts/{id}`, `/api/admin/courses/{id}` (+ `/chapters`,
   `/materials` with `/materials/extract` for PDFs, `/items`, `/papers`,
   `/chapters/{id}/questions`, `/chapters/{id}/flashcards`), `/api/admin/programmes/{id}`
   (+ `/calendar` for the institution-wide academic calendar).
 
-Editorial writes act on the **active release** in Neon and take effect
-immediately (caches are invalidated). Local servers answer 501 for them.
+The editorial workspace is private and versioned; its writes do not affect
+students until explicit publication. Legacy `/api/admin/courses/*` writes act
+on the **active release** immediately and remain available for small reviewed
+corrections. Local servers answer 501 for hosted editorial writes.
 
 Published question banks are stored in `editorial_questions` (db/009), seeded
 once from `data/cache/questions/` on the first hosted start. The programme
@@ -60,9 +65,9 @@ catalogue is stored in `editorial_programmes`, seeded from
 (db/010), seeded from `data/flashcards.template.json`. After seeding, the
 database is authoritative.
 
-PDF uploads are text-extracted with Poppler's `pdftotext` (installed in the
-production image) and indexed per page for the tutor; scanned PDFs need OCR via
-`npm run content:extract`.
+Course-source PDFs are text-extracted with Poppler and indexed per page;
+Tesseract handles scanned pages and images, while `unzip` extracts DOCX/PPTX
+text. Public URLs pass DNS and redirect validation before fetching.
 
 ## MCP server
 
@@ -92,7 +97,30 @@ Tools: `list_courses`, `get_course`, `get_chapter`, `search_course`,
 `submit_answer`, `set_mastery`, `review_card`, `add_to_deck`, `create_flashcard`,
 `review_flashcard`, `resolve_mistake`, `record_chapter_read`, `save_academic_plan`,
 `set_course_visibility`, and the `admin_*` family (courses, chapters, materials
-including `admin_extract_material`, items, papers, questions, flashcards, programmes).
+including `admin_extract_material`, items, papers, questions, flashcards,
+programmes, and the complete course-folder/editorial workflow).
+
+### Lazy administrator course workflow
+
+Point the local MCP process at the folder that contains the relevant course
+material and ask the agent to maintain the course. It should:
+
+1. Call `admin_inventory_course_folder` and then
+   `admin_sync_course_folder` with its default dry run.
+2. Show additions, replacements, reused hashes, and possible retirements. Run
+   the sync with `dryRun=false`; use `replaceManifest=true` only when the folder
+   is the authoritative complete set.
+3. Run extraction without AI, then run the course map with AI. Inspect the
+   evidence-linked assessment scheme, especially weights, pass rules, and
+   deadlines.
+4. Call `admin_estimate_course_generation`, show the estimate, and only then
+   call `admin_queue_course_generation` with `confirmed=true`.
+5. Process bounded batches, inspect failures and drafts, edit/approve artifacts,
+   and publish only when the administrator explicitly asks and supplies the
+   course-code confirmation.
+
+Re-running the same folder is an incremental update. The MCP never needs the
+model to read and resend unchanged source text.
 
 ## Claude skill
 

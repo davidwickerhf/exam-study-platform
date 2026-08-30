@@ -19,6 +19,7 @@ test('requests are classified into policies', () => {
   assert.equal(classifyRequest('POST', '/api/chat'), 'ai')
   assert.equal(classifyRequest('POST', '/api/account/api-keys'), 'keyCreate')
   assert.equal(classifyRequest('DELETE', '/api/account'), 'accountDanger')
+  assert.equal(classifyRequest('POST', '/api/admin/editorial-editions/ed-1/sources/asset-1/chunks'), 'editorialUpload')
   assert.equal(classifyRequest('PUT', '/api/admin/courses/x/materials'), 'upload')
   assert.equal(classifyRequest('PUT', '/api/admin/courses/x'), 'admin')
 })

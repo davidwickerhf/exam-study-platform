@@ -18,11 +18,14 @@ test('course-content requests preserve private sources and advance through the i
       assert.equal(created.request.status, 'submitted')
       assert.equal(created.request.pipelineStage, 'collection')
       assert.equal(created.request.files.length, 1)
+      assert.equal(created.request.contributionConsent, false)
 
-      const augmented = await createCourseContentRequest({ academicCourseId: 'course-1', courseCode: 'CS101', courseName: 'Systems', categories: ['exams'], notes: 'I found a mock exam.' })
+      const augmented = await createCourseContentRequest({ academicCourseId: 'course-1', courseCode: 'CS101', courseName: 'Systems', categories: ['exams'], notes: 'I found a mock exam.', contributionConsent: true, contributionLicense: 'own-notes' })
       assert.equal(augmented.created, false)
       assert.deepEqual(augmented.request.categories, ['slides', 'practice', 'exams'])
       assert.match(augmented.request.notes, /Additional submission/)
+      assert.equal(augmented.request.contributionConsent, true)
+      assert.equal(augmented.request.contributionLicense, 'own-notes')
 
       const own = await listOwnCourseContentRequests({ courseId: 'course-1' })
       assert.equal(own.length, 1)

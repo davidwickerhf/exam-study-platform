@@ -41,7 +41,8 @@ import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, ge
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
-import { COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
+import { CONTRIBUTION_LICENSES, COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
+import { estimateEditorialGeneration, listEditorialWorkspace, prepareCourseContentRequest, processEditorialJobs, publishEditorialEdition, queueEditorialGeneration, registerEditorialSources, reviewEditorialContribution, updateEditorialArtifact, uploadEditorialSourceChunk, upsertEditorialEdition, withdrawCourseContentRequestContribution } from './lib/editorial-workflow.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const dataPath = resolve(__dirname, 'data/study-state.json')
@@ -3203,7 +3204,7 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/course-content-requests' && req.method === 'GET') {
       const courseId = url.searchParams.get('courseId') || null
-      send(res, 200, JSON.stringify({ requests: await listOwnCourseContentRequests({ courseId }), stages: COURSE_INGESTION_STAGES, categories: COURSE_REQUEST_CATEGORIES }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      send(res, 200, JSON.stringify({ requests: await listOwnCourseContentRequests({ courseId }), stages: COURSE_INGESTION_STAGES, categories: COURSE_REQUEST_CATEGORIES, contributionLicenses: CONTRIBUTION_LICENSES }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
     if (url.pathname === '/api/course-content-requests' && req.method === 'POST') {
@@ -3237,6 +3238,14 @@ const server = createServer(async (req, res) => {
       } catch (error) {
         send(res, /too large|larger than|limited to/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
       }
+      return
+    }
+    const contentRequestContributionMatch = url.pathname.match(/^\/api\/course-content-requests\/([^/]+)\/contribution$/)
+    if (contentRequestContributionMatch && req.method === 'DELETE') {
+      try {
+        const result = await withdrawCourseContentRequestContribution(decodeURIComponent(contentRequestContributionMatch[1]))
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })) }
       return
     }
 
@@ -3340,9 +3349,35 @@ const server = createServer(async (req, res) => {
         const ok = (payload, status = 200) => send(res, status, JSON.stringify(payload), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
         const seg = url.pathname.split('/').filter(Boolean).slice(2).map(decodeURIComponent) // after /api/admin
         if (seg[0] === 'status' && req.method === 'GET') return ok(await admin.adminStatus())
+        if (seg[0] === 'editorial-workspace' && req.method === 'GET') return ok(await listEditorialWorkspace({ editionId: url.searchParams.get('editionId') || null }))
+        if (seg[0] === 'editorial-editions') {
+          if (seg.length === 1 && req.method === 'POST') return ok(await upsertEditorialEdition(body), 201)
+          const editionId = seg[1]
+          if (seg.length === 2 && req.method === 'GET') return ok(await listEditorialWorkspace({ editionId }))
+          if (seg.length === 3 && seg[2] === 'sources' && req.method === 'POST') return ok(await registerEditorialSources(editionId, body), 201)
+          if (seg.length === 5 && seg[2] === 'sources' && seg[4] === 'chunks' && req.method === 'POST') {
+            const uploaded = await uploadEditorialSourceChunk(seg[3], body)
+            return ok(uploaded, uploaded.complete ? 201 : 202)
+          }
+          if (seg.length === 3 && seg[2] === 'estimate' && req.method === 'GET') return ok(await estimateEditorialGeneration(editionId))
+          if (seg.length === 3 && seg[2] === 'generate' && req.method === 'POST') return ok(await queueEditorialGeneration(editionId, body), 202)
+          if (seg.length === 3 && seg[2] === 'process' && req.method === 'POST') {
+            const useAi = body?.useAi === true
+            return ok(await processEditorialJobs(editionId, {
+              limit: body?.limit,
+              useAi,
+              types: body?.types,
+              generate: useAi ? (prompt, options) => runCodex(prompt, options) : null
+            }))
+          }
+          if (seg.length === 3 && seg[2] === 'publish' && req.method === 'POST') return ok(await publishEditorialEdition(editionId, body), 201)
+        }
+        if (seg[0] === 'editorial-contributions' && seg[1] && req.method === 'PUT') return ok(await reviewEditorialContribution(seg[1], body))
+        if (seg[0] === 'editorial-artifacts' && seg[1] && req.method === 'PUT') return ok(await updateEditorialArtifact(seg[1], body))
         if (seg[0] === 'content-requests') {
-          if (seg.length === 1 && req.method === 'GET') return ok({ requests: await listAdminCourseContentRequests(), stages: COURSE_INGESTION_STAGES, categories: COURSE_REQUEST_CATEGORIES })
+          if (seg.length === 1 && req.method === 'GET') return ok({ requests: await listAdminCourseContentRequests(), stages: COURSE_INGESTION_STAGES, categories: COURSE_REQUEST_CATEGORIES, contributionLicenses: CONTRIBUTION_LICENSES })
           if (seg.length === 2 && req.method === 'PUT') return ok(await updateCourseContentRequest(seg[1], body))
+          if (seg.length === 3 && seg[2] === 'prepare' && req.method === 'POST') return ok(await prepareCourseContentRequest(seg[1]), 201)
           if (seg.length === 4 && seg[2] === 'files' && req.method === 'GET') {
             const file = await getCourseContentRequestFile(seg[1], seg[3])
             if (!file) throw new admin.AdminError('Unknown request attachment.', 404)

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { AGENT_MANIFEST } from '../lib/agent-manifest.mjs'
 import { adminStatus, upsertCourse, AdminError } from '../lib/editorial-admin.mjs'
 import { normalizeEditorialProgramme, setEditorialProgrammeCatalogue, loadEditorialProgrammeCatalogue } from '../lib/editorial-programmes.mjs'
+import { EDITORIAL_RIGHTS_BASES, listEditorialWorkspace } from '../lib/editorial-workflow.mjs'
 
 test('agent manifest lists every scope and has unique method+path pairs', () => {
   const seen = new Set()
@@ -14,11 +15,15 @@ test('agent manifest lists every scope and has unique method+path pairs', () => 
   }
   assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.path.startsWith('/api/admin/')))
   assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.scope === 'write'))
+  assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.path === '/api/admin/editorial-editions/{editionId}/sources'))
+  assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.path === '/api/admin/editorial-editions/{editionId}/publish'))
 })
 
 test('editorial writes are unavailable without a hosted database', async () => {
   assert.deepEqual(await adminStatus(), { mode: 'local', writable: false })
   await assert.rejects(() => upsertCourse('x', { code: 'X', name: 'Y' }), (error) => error instanceof AdminError && error.status === 501)
+  await assert.rejects(() => listEditorialWorkspace(), (error) => error.status === 501)
+  assert.deepEqual(EDITORIAL_RIGHTS_BASES, ['own-notes', 'authorised-course-material', 'public-source', 'admin-supplied'])
 })
 
 test('programme catalogue can be replaced in memory from stored definitions', () => {

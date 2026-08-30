@@ -9,6 +9,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
+import { createHash } from 'node:crypto'
+import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
+import { extname, relative, resolve, sep } from 'node:path'
 
 const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
 const apiKey = process.env.WICKER_STUDY_API_KEY || ''
@@ -36,9 +39,99 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '1.0.0' })
+const server = new McpServer({ name: 'wicker-study', version: '1.1.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
+
+const COURSE_SOURCE_EXTENSIONS = new Set(['.pdf', '.ppt', '.pptx', '.doc', '.docx', '.txt', '.md', '.csv', '.tex', '.html', '.htm', '.png', '.jpg', '.jpeg', '.webp'])
+const SOURCE_MIME = { '.pdf': 'application/pdf', '.ppt': 'application/vnd.ms-powerpoint', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.txt': 'text/plain', '.md': 'text/markdown', '.csv': 'text/csv', '.tex': 'text/x-tex', '.html': 'text/html', '.htm': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }
+const EDITORIAL_CHUNK_BYTES = 512 * 1024
+const MAX_EDITORIAL_FILE_BYTES = 100 * 1024 * 1024
+
+async function inventoryCourseFolder(folderPath) {
+  const root = await realpath(resolve(folderPath))
+  const rootStat = await lstat(root)
+  if (!rootStat.isDirectory()) throw new Error('folderPath must point to a directory.')
+  const files = []
+  const ignored = []
+  async function visit(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+      const path = resolve(directory, entry.name)
+      if (!path.startsWith(`${root}${sep}`)) throw new Error('A folder entry resolved outside the selected course directory.')
+      if (entry.isSymbolicLink()) { ignored.push({ path: relative(root, path), reason: 'symbolic link' }); continue }
+      if (entry.isDirectory()) { await visit(path); continue }
+      if (!entry.isFile()) continue
+      const extension = extname(entry.name).toLowerCase()
+      const sourcePath = relative(root, path).split(sep).join('/')
+      if (!COURSE_SOURCE_EXTENSIONS.has(extension)) { ignored.push({ path: sourcePath, reason: 'unsupported type' }); continue }
+      const details = await lstat(path)
+      if (!details.size || details.size > MAX_EDITORIAL_FILE_BYTES) { ignored.push({ path: sourcePath, reason: details.size ? 'over 100 MB' : 'empty file' }); continue }
+      const bytes = await readFile(path)
+      files.push({ path, relativePath: sourcePath, name: entry.name, type: SOURCE_MIME[extension] || 'application/octet-stream', size: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') })
+      if (files.length > 250) throw new Error('A course-folder sync is limited to 250 supported files.')
+    }
+  }
+  await visit(root)
+  files.sort((left, right) => left.relativePath.localeCompare(right.relativePath, undefined, { numeric: true }))
+  return { root, files, ignored }
+}
+
+function publicInventory(inventory) {
+  return { root: inventory.root, files: inventory.files.map(({ path: _path, ...file }) => file), ignored: inventory.ignored, totals: { files: inventory.files.length, bytes: inventory.files.reduce((sum, file) => sum + file.size, 0) } }
+}
+
+async function syncCourseFolder(args) {
+  const inventory = await inventoryCourseFolder(args.folderPath)
+  let edition = null
+  let editionWorkspace = null
+  if (args.editionId) {
+    editionWorkspace = await api(`/api/admin/editorial-editions/${encodeURIComponent(args.editionId)}`)
+    edition = editionWorkspace.editions?.[0]
+    if (!edition) throw new Error(`Unknown course edition: ${args.editionId}`)
+  }
+  if (!edition && (!args.courseName || !args.courseCode)) throw new Error('courseCode and courseName are required when creating a new edition.')
+  const workspace = await api('/api/admin/editorial-workspace')
+  const matching = edition || workspace.editions?.find((candidate) => candidate.courseCode === String(args.courseCode || '').toUpperCase() && candidate.academicYear === String(args.academicYear || '') && candidate.period === String(args.period || '')) || null
+  if (matching && !editionWorkspace) editionWorkspace = await api(`/api/admin/editorial-editions/${encodeURIComponent(matching.id)}`)
+  const currentSources = matching ? (editionWorkspace?.sources || []).filter((source) => source.contribution.editionId === matching.id && source.contribution.consentStatus === 'accepted') : []
+  const currentByPath = new Map(currentSources.map((source) => [source.contribution.sourcePath, source]))
+  const localPaths = new Set(inventory.files.map((file) => file.relativePath))
+  const plan = {
+    edition: matching,
+    add: inventory.files.filter((file) => !currentByPath.has(file.relativePath)).map((file) => file.relativePath),
+    replace: inventory.files.filter((file) => currentByPath.has(file.relativePath) && currentByPath.get(file.relativePath).sha256 !== file.sha256).map((file) => file.relativePath),
+    reuse: inventory.files.filter((file) => currentByPath.get(file.relativePath)?.sha256 === file.sha256).map((file) => file.relativePath),
+    retire: currentSources.filter((source) => source.contribution.sourcePath && !localPaths.has(source.contribution.sourcePath)).map((source) => source.contribution.sourcePath),
+    inventory: publicInventory(inventory)
+  }
+  if (args.dryRun !== false) return { dryRun: true, ...plan, next: 'Run again with dryRun=false after reviewing add/replace/retire. Set replaceManifest=true only if this folder is the authoritative complete source set.' }
+  if (!edition) {
+    edition = await api('/api/admin/editorial-editions', { method: 'POST', body: { programmeId: args.programmeId, canonicalCourseId: args.canonicalCourseId, institution: args.institution, courseCode: args.courseCode, courseName: args.courseName, academicYear: args.academicYear, period: args.period } })
+  }
+  const registered = await api(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/sources`, {
+    method: 'POST',
+    body: {
+      rightsBasis: 'admin-supplied',
+      replaceManifest: args.replaceManifest === true,
+      sources: inventory.files.map(({ path: _path, ...file }) => file)
+    }
+  })
+  let uploaded = 0
+  let reused = 0
+  for (const source of registered.sources || []) {
+    const file = inventory.files.find((candidate) => candidate.sha256 === source.sha256)
+    if (!file) continue
+    if (!source.uploadRequired) { reused++; continue }
+    const bytes = await readFile(file.path)
+    for (let offset = 0, chunkIndex = 0; offset < bytes.length; offset += EDITORIAL_CHUNK_BYTES, chunkIndex++) {
+      const chunk = bytes.subarray(offset, Math.min(offset + EDITORIAL_CHUNK_BYTES, bytes.length))
+      await api(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/sources/${encodeURIComponent(source.id)}/chunks`, { method: 'POST', body: { chunkIndex, base64: chunk.toString('base64') } })
+    }
+    uploaded++
+  }
+  return { dryRun: false, edition, uploaded, reused, replaceManifest: args.replaceManifest === true, plan }
+}
 
 // ── Read ─────────────────────────────────────────────────────────────────
 server.tool('whoami', 'Who this key acts as, its scopes, programme memberships, and whether it is an administrator.', {}, run(() => api('/api/me')))
@@ -107,6 +200,28 @@ server.tool('remove_calendar_link', 'Remove a saved calendar link.', { id: z.str
 // ── Admin (editorial content; requires an admin key) ─────────────────────
 const adminCourse = (courseId) => `/api/admin/courses/${encodeURIComponent(courseId)}`
 server.tool('admin_status', 'Active release and content counts.', {}, run(() => api('/api/admin/status')))
+server.tool('admin_inventory_course_folder', 'Read a local course-material folder without changing Wicker Study. Returns supported files, SHA-256 hashes, ignored files, and byte totals.', { folderPath: z.string() }, run(({ folderPath }) => inventoryCourseFolder(folderPath).then(publicInventory)))
+server.tool('admin_upsert_course_edition', 'Create or update a private, versioned course edition before sources or drafts are published.', { id: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string(), courseName: z.string(), academicYear: z.string().optional(), period: z.string().optional(), editionKey: z.string().optional() }, run((body) => api('/api/admin/editorial-editions', { method: 'POST', body })))
+server.tool('admin_register_course_urls', 'Register public web sources for an existing edition. They are fetched with SSRF protection during extraction.', { editionId: z.string(), urls: z.array(z.string().url()).min(1).max(30), rightsBasis: z.enum(['public-source', 'authorised-course-material', 'admin-supplied']).default('public-source') }, run(({ editionId, urls, rightsBasis }) => api(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/sources`, { method: 'POST', body: { rightsBasis, sources: urls.map((url, index) => ({ url, name: `linked-source-${index + 1}.html`, relativePath: url })) } })))
+server.tool('admin_sync_course_folder', 'Create or update a versioned course edition from a local folder. Defaults to a dry run. Unchanged files are reused by hash; changed paths supersede older sources. Set replaceManifest only when the folder is the authoritative complete source set.', {
+  folderPath: z.string(), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional(), dryRun: z.boolean().default(true), replaceManifest: z.boolean().default(false)
+}, run(syncCourseFolder))
+server.tool('admin_list_editorial_workspace', 'List compact course-edition summaries, or pass editionId for its sources, rights decisions, topics, jobs, artifacts, estimates, and releases.', { editionId: z.string().optional() }, run(({ editionId }) => api('/api/admin/editorial-workspace', { query: { editionId } })))
+server.tool('admin_prepare_content_request', 'Turn a student request into a candidate shared edition. Fails if the student kept sources private.', { requestId: z.string() }, run(({ requestId }) => api(`/api/admin/content-requests/${encodeURIComponent(requestId)}/prepare`, { method: 'POST', body: {} })))
+server.tool('admin_review_contribution', 'Accept, reject, or withdraw a source contribution after rights review.', { contributionId: z.string(), status: z.enum(['accepted', 'rejected', 'withdrawn']), reviewNote: z.string().optional() }, run(({ contributionId, ...body }) => api(`/api/admin/editorial-contributions/${encodeURIComponent(contributionId)}`, { method: 'PUT', body })))
+server.tool('admin_estimate_course_generation', 'Estimate generation tokens and show cached/reusable artifact counts. This never starts generation.', { editionId: z.string() }, run(({ editionId }) => api(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/estimate`)))
+server.tool('admin_queue_course_generation', 'Queue study pages, exercises, flashcards, and/or quality review. Requires an explicit confirmed=true after showing the token estimate.', { editionId: z.string(), types: z.array(z.enum(['study-pages', 'exercises', 'flashcards', 'quality'])).optional(), confirmed: z.literal(true) }, run(({ editionId, types }) => api(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/generate`, { method: 'POST', body: { types } })))
+server.tool('admin_process_course_pipeline', 'Run pending extraction/mapping/generation jobs. useAi must be true for AI mapping or draft generation. untilIdle repeats bounded API calls; inspect failures and artifacts afterward.', { editionId: z.string(), types: z.array(z.enum(['extract', 'map', 'study-pages', 'exercises', 'flashcards', 'quality'])).optional(), useAi: z.boolean().default(false), limit: z.number().int().min(1).max(25).default(5), untilIdle: z.boolean().default(false), maxRuns: z.number().int().min(1).max(40).default(12) }, run(async ({ editionId, types, useAi, limit, untilIdle, maxRuns }) => {
+  const runs = []
+  for (let index = 0; index < (untilIdle ? maxRuns : 1); index++) {
+    const result = await api(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/process`, { method: 'POST', body: { useAi, limit, types } })
+    runs.push(result)
+    if (!untilIdle || result.remaining === 0 || result.processed === 0) break
+  }
+  return { runs, remaining: runs.at(-1)?.remaining ?? null, processed: runs.reduce((sum, runResult) => sum + Number(runResult.processed || 0), 0) }
+}))
+server.tool('admin_review_course_artifact', 'Edit or approve/reject one generated course artifact. Keep review notes for editorial audit.', { artifactId: z.string(), status: z.enum(['draft', 'review', 'approved', 'rejected']).optional(), title: z.string().optional(), definition: z.record(z.any()).optional(), reviewNote: z.string().optional() }, run(({ artifactId, ...body }) => api(`/api/admin/editorial-artifacts/${encodeURIComponent(artifactId)}`, { method: 'PUT', body })))
+server.tool('admin_publish_course_edition', 'Publish only approved, evidence-linked artifacts. confirmation must exactly match the edition course code; publication is not reversible through this tool.', { editionId: z.string(), confirmation: z.string() }, run(({ editionId, confirmation }) => api(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/publish`, { method: 'POST', body: { confirmation } })))
 server.tool('admin_list_members', 'Members of a programme organisation with roles.', { programmeId: z.string() }, run(({ programmeId }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}/members`)))
 server.tool('admin_set_member', 'Add a user to a programme or change their role (member | admin). Granting admin needs a global administrator.', { programmeId: z.string(), userId: z.string(), role: z.enum(['member', 'admin']).default('member') }, run(({ programmeId, userId, role }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}/members/${encodeURIComponent(userId)}`, { method: 'PUT', body: { role } })))
 server.tool('admin_remove_member', 'Remove a user from a programme organisation.', { programmeId: z.string(), userId: z.string() }, run(({ programmeId, userId }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' })))

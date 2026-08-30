@@ -89,6 +89,7 @@ const courseRequestState = {
   requests: null,
   stages: [],
   categories: [],
+  contributionLicenses: [],
   loading: false,
   sending: false,
   uploadProgress: '',
@@ -97,7 +98,9 @@ const courseRequestState = {
   files: [],
   selectedCategories: new Set(),
   urls: '',
-  notes: ''
+  notes: '',
+  contributionConsent: false,
+  contributionLicense: 'own-notes'
 }
 const planningIntake = {
   step: 'source',
@@ -1580,6 +1583,19 @@ function renderCoursePlanningContext(course) {
   </aside>`
 }
 
+function renderPublishedCourseProfile(course) {
+  const profile = course?.courseProfile
+  if (!profile || (!profile.description && !profile.assessment?.components?.length && !profile.learningOutcomes?.length)) return ''
+  const assessment = profile.assessment || {}
+  const components = assessment.components || []
+  return `<section class="course-information" aria-labelledby="course-information-title">
+    <div class="course-information-intro"><div><h2 id="course-information-title">Course information</h2>${profile.description ? `<p>${escapeHtml(profile.description)}</p>` : ''}</div><span class="pl-pill is-${assessment.status === 'confirmed' ? 'ok' : 'pending'}">${assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span></div>
+    ${components.length ? `<div class="course-assessment-grid">${components.map((component) => `<article><span>${component.weightPercent == null ? '—' : `${component.weightPercent}%`}</span><div><h3>${escapeHtml(component.name)}</h3><p>${escapeHtml([component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : '', component.deadline ? `due ${academicDate(component.deadline)}` : component.deadlineText || ''].filter(Boolean).join(' · '))}</p>${component.notes ? `<small>${escapeHtml(component.notes)}</small>` : ''}</div></article>`).join('')}</div>` : ''}
+    ${(assessment.overallPassRules?.length || assessment.resitRules?.length || assessment.attendanceRules?.length) ? `<dl class="course-rule-ledger">${assessment.overallPassRules?.length ? `<div><dt>Passing the course</dt><dd>${assessment.overallPassRules.map(escapeHtml).join(' · ')}</dd></div>` : ''}${assessment.resitRules?.length ? `<div><dt>Resits</dt><dd>${assessment.resitRules.map(escapeHtml).join(' · ')}</dd></div>` : ''}${assessment.attendanceRules?.length ? `<div><dt>Attendance</dt><dd>${assessment.attendanceRules.map(escapeHtml).join(' · ')}</dd></div>` : ''}</dl>` : ''}
+    ${profile.learningOutcomes?.length ? `<details class="course-outcomes"><summary>Learning outcomes (${profile.learningOutcomes.length})${uiIcon('chevronDown')}</summary><ul>${profile.learningOutcomes.map((outcome) => `<li>${escapeHtml(outcome)}</li>`).join('')}</ul></details>` : ''}
+  </section>`
+}
+
 function planningDraftConnection(course) {
   if (!course) return null
   const code = normalizedCourseCode(course.code)
@@ -2755,7 +2771,13 @@ function renderAccountApi() {
 }
 
 // ----- Admin: editorial uploads from the web app ---------------------------
-const adminPanel = { status: null, statusError: null, loading: false, programmeId: '', calendarSource: 'file', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null, courseId: '', materials: null, materialFile: null, materialFolder: '', newFolder: '', materialName: '', asChapter: false, chapterId: '', chapterName: '', materialBusy: false, materialResult: null, materialError: null, requests: null, requestsLoading: false, requestsError: null, requestBusyId: null, requestSavedId: null }
+const adminPanel = {
+  status: null, statusError: null, loading: false,
+  programmeId: '', calendarSource: 'file', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null,
+  courseId: '', materials: null, materialFile: null, materialFolder: '', newFolder: '', materialName: '', asChapter: false, chapterId: '', chapterName: '', materialBusy: false, materialResult: null, materialError: null,
+  requests: null, requestsLoading: false, requestsError: null, requestBusyId: null, requestSavedId: null,
+  editorial: null, editorialLoading: false, editorialError: null, selectedEditionId: '', editionCode: '', editionName: '', editionYear: '', editionPeriod: '', editionProgrammeId: '', editionInstitution: '', editionFolderFiles: [], editionUrls: '', editionReplaceManifest: false, editionBusy: false, editionProgress: '', editionResult: null, estimate: null, publishConfirmation: '', artifactBusyId: null, editingArtifactId: null, contributionBusyId: null
+}
 async function loadAdminStatus(force = false) {
   if ((adminPanel.status && !force) || adminPanel.loading) return
   adminPanel.loading = true
@@ -2776,6 +2798,21 @@ async function loadAdminRequests(force = false) {
   try { adminPanel.requests = await fetchJson('/api/admin/content-requests') }
   catch (error) { adminPanel.requestsError = error.message }
   finally { adminPanel.requestsLoading = false; render() }
+}
+async function loadAdminEditorial(force = false) {
+  if (adminPanel.editorialLoading || (adminPanel.editorial && !force)) return
+  adminPanel.editorialLoading = true
+  adminPanel.editorialError = null
+  try {
+    const summary = await fetchJson('/api/admin/editorial-workspace')
+    const editions = summary.editions || []
+    if (!editions.some((edition) => edition.id === adminPanel.selectedEditionId)) adminPanel.selectedEditionId = editions[0]?.id || ''
+    const detail = adminPanel.selectedEditionId && adminPanel.selectedEditionId !== '__new__'
+      ? await fetchJson(`/api/admin/editorial-workspace?editionId=${encodeURIComponent(adminPanel.selectedEditionId)}`)
+      : summary
+    adminPanel.editorial = { ...detail, editions }
+  } catch (error) { adminPanel.editorialError = error.message }
+  finally { adminPanel.editorialLoading = false; render() }
 }
 function adminCourseFolders(courseId) {
   const course = (adminPanel.materials?.courses || []).find((item) => item.id === courseId)
@@ -2805,10 +2842,10 @@ function renderAdminRequestInbox() {
       const currentStage = stages.find((stage) => stage.id === request.pipelineStage)
       const isOpen = request.status === 'submitted'
       return `<details class="admin-request" ${isOpen ? 'open' : ''}>
-        <summary><span class="admin-request-course"><strong>${escapeHtml(request.courseCode || 'Course')} · ${escapeHtml(request.courseName)}</strong><small>${escapeHtml([request.period, request.academicYear].filter(Boolean).join(' · ') || 'Academic context not supplied')} · ${request.files.length} file${request.files.length === 1 ? '' : 's'}</small></span><span class="admin-request-stage"><small>${escapeHtml(currentStage?.label || request.pipelineStage)}</small><span class="pl-pill is-${request.status === 'published' ? 'ok' : request.status === 'declined' ? 'bad' : 'pending'}">${requestStatusLabel(request.status)}</span></span>${uiIcon('chevronDown')}</summary>
+        <summary><span class="admin-request-course"><strong>${escapeHtml(request.courseCode || 'Course')} · ${escapeHtml(request.courseName)}</strong><small>${escapeHtml([request.period, request.academicYear].filter(Boolean).join(' · ') || 'Academic context not supplied')} · ${request.files.length} file${request.files.length === 1 ? '' : 's'} · ${request.contributionConsent ? 'shared candidate' : 'private request'}</small></span><span class="admin-request-stage"><small>${escapeHtml(currentStage?.label || request.pipelineStage)}</small><span class="pl-pill is-${request.status === 'published' ? 'ok' : request.status === 'declined' ? 'bad' : 'pending'}">${requestStatusLabel(request.status)}</span></span>${uiIcon('chevronDown')}</summary>
         <div class="admin-request-body">
           <div class="admin-request-sources">
-            <dl><div><dt>Requested by</dt><dd>${escapeHtml(request.requesterEmail || request.userId)}</dd></div><div><dt>Submitted</dt><dd>${relativeTime(request.createdAt)}</dd></div><div><dt>Sources</dt><dd>${request.categories.map((id) => escapeHtml(categoryLabels.get(id) || id)).join(', ') || 'Not categorised'}</dd></div></dl>
+            <dl><div><dt>Requested by</dt><dd>${escapeHtml(request.requesterEmail || request.userId)}</dd></div><div><dt>Submitted</dt><dd>${relativeTime(request.createdAt)}</dd></div><div><dt>Editorial rights</dt><dd>${request.contributionConsent ? `Candidate · ${escapeHtml(request.contributionLicense || 'basis not recorded')}` : 'Private intake only'}</dd></div></dl>
             ${request.notes ? `<div class="admin-request-note"><strong>Student context</strong><p>${escapeHtml(request.notes).replace(/\n/g, '<br>')}</p></div>` : ''}
             ${request.urls.length ? `<div class="admin-request-links"><strong>Links</strong><ul>${request.urls.map((url) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('')}</ul></div>` : ''}
             ${request.files.length ? `<div class="admin-request-files"><strong>Private source files</strong><ul>${request.files.map((file) => `<li>${uiIcon('file')}<span><b>${escapeHtml(file.name)}</b><small>${formatBytes(file.size)}</small></span><a class="btn btn-secondary btn-sm" href="/api/admin/content-requests/${encodeURIComponent(request.id)}/files/${encodeURIComponent(file.id)}">Download</a></li>`).join('')}</ul></div>` : ''}
@@ -2817,6 +2854,7 @@ function renderAdminRequestInbox() {
             <label class="adm-field"><span>Workflow stage</span><select name="pipelineStage">${stages.map((stage) => `<option value="${escapeHtml(stage.id)}" ${stage.id === request.pipelineStage ? 'selected' : ''}>${escapeHtml(stage.label)}</option>`).join('')}</select></label>
             <label class="adm-field"><span>Status</span><select name="status">${['submitted', 'in-progress', 'review', 'published', 'declined'].map((status) => `<option value="${status}" ${status === request.status ? 'selected' : ''}>${requestStatusLabel(status)}</option>`).join('')}</select></label>
             <label class="adm-field"><span>Internal production note</span><textarea name="adminNote" rows="3" placeholder="Rights, missing sources, QA findings, publication release…">${escapeHtml(request.adminNote || '')}</textarea></label>
+            ${request.contributionConsent ? (request.editionId ? `<button type="button" class="btn btn-secondary btn-sm" data-admin-open-edition="${escapeHtml(request.editionId)}">Open shared draft</button>` : `<button type="button" class="btn btn-secondary btn-sm" data-admin-request-prepare="${escapeHtml(request.id)}" ${adminPanel.requestBusyId === request.id ? 'disabled' : ''}>${adminPanel.requestBusyId === request.id ? 'Preparing…' : 'Prepare shared draft'}</button>`) : '<p class="admin-rights-note">Private sources can support this request, but cannot enter the shared generation or publication pipeline.</p>'}
             <div class="adm-foot"><a class="pl-link" href="/docs#course-ingestion" target="_blank" rel="noopener">Open ingestion playbook</a><button type="submit" class="btn btn-primary btn-sm" ${adminPanel.requestBusyId === request.id ? 'disabled' : ''}>${adminPanel.requestBusyId === request.id ? 'Saving…' : adminPanel.requestSavedId === request.id ? 'Saved' : 'Save workflow'}</button></div>
           </form>
         </div>
@@ -2825,11 +2863,91 @@ function renderAdminRequestInbox() {
   </section>`
 }
 
+function selectedEditorialEdition() {
+  return (adminPanel.editorial?.editions || []).find((edition) => edition.id === adminPanel.selectedEditionId) || null
+}
+
+function renderAssessmentScheme(profile = {}) {
+  const assessment = profile.assessment || {}
+  const components = assessment.components || []
+  if (!components.length) return `<div class="editorial-empty"><strong>Assessment rules not mapped yet</strong><p>Add the syllabus or introductory deck, extract the sources, then run the evidence map. Missing or contradictory rules will remain flagged for review.</p></div>`
+  return `<div class="assessment-ledger">
+    ${components.map((component) => `<div><span><strong>${escapeHtml(component.name)}</strong><small>${escapeHtml(component.type || 'Assessment')}${component.minimumPercent != null ? ` · minimum ${component.minimumPercent}%` : ''}${component.deadline ? ` · due ${academicDate(component.deadline)}` : component.deadlineText ? ` · ${escapeHtml(component.deadlineText)}` : ''} · ${(component.evidence || []).length} source ref${(component.evidence || []).length === 1 ? '' : 's'}</small></span><b>${component.weightPercent == null ? '—' : `${component.weightPercent}%`}</b></div>`).join('')}
+    ${assessment.overallPassRules?.length ? `<p><strong>Pass rules</strong> ${assessment.overallPassRules.map(escapeHtml).join(' · ')}</p>` : ''}
+    ${assessment.resitRules?.length ? `<p><strong>Resits</strong> ${assessment.resitRules.map(escapeHtml).join(' · ')}</p>` : ''}
+    ${assessment.weightWarning ? `<p class="is-warning">${escapeHtml(assessment.weightWarning)}</p>` : ''}
+    ${assessment.conflicts?.length ? `<p class="is-warning"><strong>Needs resolution</strong> ${assessment.conflicts.map(escapeHtml).join(' · ')}</p>` : ''}
+  </div>`
+}
+
+function renderAdminEditorialWorkspace() {
+  const data = adminPanel.editorial
+  const editions = data?.editions || []
+  const edition = selectedEditorialEdition()
+  const creating = adminPanel.selectedEditionId === '__new__' || (!edition && !editions.length)
+  const sources = edition ? (data.sources || []).filter((source) => source.contribution.editionId === edition.id) : []
+  const topics = edition ? (data.topics || []).filter((topic) => topic.editionId === edition.id) : []
+  const jobs = edition ? (data.jobs || []).filter((job) => job.editionId === edition.id) : []
+  const artifacts = edition ? (data.artifacts || []).filter((artifact) => artifact.editionId === edition.id) : []
+  const releases = edition ? (data.releases || []).filter((release) => release.editionId === edition.id) : []
+  const pending = (type) => jobs.filter((job) => job.status === 'pending' && (!type || (Array.isArray(type) ? type : [type]).includes(job.type))).length
+  const failures = jobs.filter((job) => job.status === 'failed')
+  const assessmentStatus = edition?.courseProfile?.assessment?.status || 'not-found'
+  const selectedFilesBytes = adminPanel.editionFolderFiles.reduce((sum, file) => sum + file.size, 0)
+  const sourceState = (source) => source.contribution.consentStatus === 'candidate' ? 'Rights review' : source.extractionStatus === 'complete' ? 'Indexed' : source.extractionStatus === 'failed' ? 'Failed' : source.complete ? 'Ready to extract' : 'Uploading'
+  return `<section class="panel editorial-workspace">
+    <div class="panel-top"><div><h2>Course production</h2><p>Build and update shared courses in a private workspace. Sources are deduplicated, every draft keeps its evidence, and publication is a separate approval.</p></div><div class="editorial-head-actions"><button type="button" class="btn btn-secondary btn-sm" data-admin-editorial-refresh>${uiIcon('refresh')} Refresh</button><button type="button" class="btn btn-primary btn-sm" data-admin-new-edition>${uiIcon('plus')} New edition</button></div></div>
+    ${adminPanel.editorialError ? `<div class="settings-error" role="alert"><strong>Editorial workspace could not be loaded.</strong><p>${escapeHtml(adminPanel.editorialError)}</p></div>` : adminPanel.editorialLoading && !data ? '<div class="settings-loading"><span></span><p>Loading editorial workspace…</p></div>' : `
+      ${editions.length ? `<nav class="editorial-edition-strip" aria-label="Course editions">${editions.map((item) => `<button type="button" class="${item.id === edition?.id ? 'is-active' : ''}" data-admin-edition-select="${escapeHtml(item.id)}"><span><strong>${escapeHtml(item.courseCode || item.courseName)}</strong><small>${escapeHtml([item.academicYear, item.period].filter(Boolean).join(' · ') || 'Current edition')}</small></span><b>${item.counts.pendingJobs ? `${item.counts.pendingJobs} queued` : item.status}</b></button>`).join('')}</nav>` : ''}
+      ${creating ? `<form class="editorial-intake" data-admin-edition-form>
+        <div class="editorial-intake-copy"><h3>Create a private course edition</h3><p>Use a distinct academic year and period when the curriculum or assessment differs. Nothing here changes the student-facing course.</p></div>
+        <div class="adm-field-row"><label class="adm-field"><span>Course code</span><input type="text" name="courseCode" maxlength="80" value="${escapeHtml(adminPanel.editionCode)}" placeholder="BCS2140" required></label><label class="adm-field"><span>Course name</span><input type="text" name="courseName" maxlength="300" value="${escapeHtml(adminPanel.editionName)}" placeholder="Operating Systems" required></label></div>
+        <div class="adm-field-row"><label class="adm-field"><span>Academic year</span><input type="text" name="academicYear" maxlength="80" value="${escapeHtml(adminPanel.editionYear)}" placeholder="2026–2027"></label><label class="adm-field"><span>Period</span><input type="text" name="period" maxlength="120" value="${escapeHtml(adminPanel.editionPeriod)}" placeholder="Period 1"></label><label class="adm-field"><span>Institution</span><input type="text" name="institution" maxlength="240" value="${escapeHtml(adminPanel.editionInstitution)}" placeholder="Maastricht University"></label></div>
+        <div class="adm-foot"><span>Sources can be added now or after the edition is created.</span><button type="submit" class="btn btn-primary" ${adminPanel.editionBusy ? 'disabled' : ''}>${adminPanel.editionBusy ? 'Creating…' : 'Create edition'}</button></div>
+      </form>` : edition ? `<div class="editorial-edition-head"><div><span class="pl-pill is-${edition.status === 'active' ? 'ok' : 'pending'}">${escapeHtml(edition.status)}</span><h3>${escapeHtml(edition.courseCode)} · ${escapeHtml(edition.courseName)}</h3><p>${escapeHtml([edition.institution, edition.academicYear, edition.period].filter(Boolean).join(' · ') || 'Edition context not set')}</p></div><dl><div><dt>Sources</dt><dd>${sources.length}</dd></div><div><dt>Topics</dt><dd>${topics.length}</dd></div><div><dt>Drafts</dt><dd>${artifacts.length}</dd></div><div><dt>Releases</dt><dd>${releases.length}</dd></div></dl></div>
+
+        ${adminPanel.editionResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${escapeHtml(adminPanel.editionResult)}</span><button type="button" class="pl-link pl-link-button" data-admin-editorial-dismiss>Done</button></div>` : ''}
+        ${adminPanel.editionProgress ? `<div class="editorial-progress" role="status"><span></span><p>${escapeHtml(adminPanel.editionProgress)}</p></div>` : ''}
+
+        <div class="editorial-columns">
+          <div class="editorial-main">
+            <section class="editorial-section"><div class="editorial-section-head"><div><h3>Source manifest</h3><p>Add a folder snapshot or URLs. Changed paths supersede older versions; unchanged hashes are reused.</p></div><span>${sources.filter((source) => source.contribution.consentStatus === 'accepted').length} accepted</span></div>
+              <div class="editorial-source-inputs">
+                <label class="adm-drop editorial-folder-drop"><input type="file" multiple webkitdirectory directory data-admin-edition-folder ${adminPanel.editionBusy ? 'disabled' : ''}>${uiIcon('upload')}<span><strong>${adminPanel.editionFolderFiles.length ? `${adminPanel.editionFolderFiles.length} files selected` : 'Choose a course folder'}</strong><small>${adminPanel.editionFolderFiles.length ? `${formatBytes(selectedFilesBytes)} · paths preserved` : 'PDF, PPTX, DOCX, text, and images · 100 MB each'}</small></span><span class="btn btn-secondary btn-sm">Choose folder</span></label>
+                <label class="adm-field"><span>Public source URLs <small>one per line</small></span><textarea rows="3" data-admin-edition-urls placeholder="Course page, public syllabus, reading list…">${escapeHtml(adminPanel.editionUrls)}</textarea></label>
+                <label class="adm-check editorial-replace"><input type="checkbox" data-admin-edition-replace ${adminPanel.editionReplaceManifest ? 'checked' : ''}><span><strong>This folder is the complete source set</strong><small>Retire administrator-uploaded paths that are no longer present. Leave off for an incremental weekly update.</small></span></label>
+                <div class="adm-foot"><span>Administrator-supplied · private until publication</span><button type="button" class="btn btn-primary" data-admin-edition-sync ${adminPanel.editionBusy || (!adminPanel.editionFolderFiles.length && !adminPanel.editionUrls.trim()) ? 'disabled' : ''}>${adminPanel.editionBusy ? 'Syncing…' : 'Sync sources'}</button></div>
+              </div>
+              ${sources.length ? `<details class="editorial-disclosure"><summary>${sources.length} source${sources.length === 1 ? '' : 's'} · ${formatBytes(sources.reduce((sum, source) => sum + source.size, 0))}${uiIcon('chevronDown')}</summary><div class="editorial-source-list">${sources.map((source) => `<div class="editorial-source-row"><span>${uiIcon('file')}<span><strong>${escapeHtml(source.contribution.sourcePath || source.name)}</strong><small>${formatBytes(source.size)} · ${escapeHtml(sourceState(source))}${source.extractionError ? ` · ${escapeHtml(source.extractionError)}` : ''}</small></span></span><span class="pl-pill is-${source.contribution.consentStatus === 'accepted' ? 'ok' : source.contribution.consentStatus === 'candidate' ? 'pending' : 'bad'}">${escapeHtml(source.contribution.consentStatus)}</span>${source.contribution.consentStatus === 'candidate' ? `<span class="editorial-row-actions"><button type="button" class="btn btn-secondary btn-sm" data-admin-contribution="${escapeHtml(source.contribution.id)}" data-status="accepted">Accept</button><button type="button" class="btn btn-ghost btn-sm" data-admin-contribution="${escapeHtml(source.contribution.id)}" data-status="rejected">Reject</button></span>` : ''}</div>`).join('')}</div></details>` : '<div class="editorial-empty"><strong>No sources yet</strong><p>Choose the folder containing the syllabus, introductory deck, weekly slides, practice sheets, and mock exams.</p></div>'}
+            </section>
+
+            <section class="editorial-section"><div class="editorial-section-head"><div><h3>Course map and assessment</h3><p>The syllabus and introductory deck establish the authoritative pass requirements; conflicts stay visible.</p></div><span class="pl-pill is-${assessmentStatus === 'confirmed' ? 'ok' : 'pending'}">${escapeHtml(assessmentStatus.replace('-', ' '))}</span></div>${renderAssessmentScheme(edition.courseProfile)}${topics.length ? `<ol class="editorial-topic-list">${topics.map((topic, index) => `<li><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(topic.title)}</strong>${topic.summary ? `<small>${escapeHtml(topic.summary)}</small>` : ''}</div></li>`).join('')}</ol>` : ''}</section>
+
+            <section class="editorial-section"><div class="editorial-section-head"><div><h3>Draft review</h3><p>Generated study pages, exercises, flashcards, and the quality report must be approved individually.</p></div><span>${artifacts.filter((artifact) => artifact.status === 'approved').length}/${artifacts.length} approved</span></div>
+              ${artifacts.length ? `<div class="editorial-artifact-list">${artifacts.map((artifact) => `<div class="editorial-artifact-row"><span><strong>${escapeHtml(artifact.title)}</strong><small>${escapeHtml(artifact.type.replace('-', ' '))} · ${escapeHtml(artifact.status)} · updated ${relativeTime(artifact.updatedAt)}</small></span><span class="editorial-row-actions"><button type="button" class="btn btn-ghost btn-sm" data-admin-artifact-edit="${escapeHtml(artifact.id)}">${adminPanel.editingArtifactId === artifact.id ? 'Close' : 'Edit'}</button>${artifact.status !== 'approved' ? `<button type="button" class="btn btn-secondary btn-sm" data-admin-artifact="${escapeHtml(artifact.id)}" data-status="approved" ${adminPanel.artifactBusyId === artifact.id ? 'disabled' : ''}>Approve</button>` : `<button type="button" class="btn btn-ghost btn-sm" data-admin-artifact="${escapeHtml(artifact.id)}" data-status="review">Reopen</button>`}<button type="button" class="btn btn-ghost btn-sm" data-admin-artifact="${escapeHtml(artifact.id)}" data-status="rejected">Reject</button></span>${adminPanel.editingArtifactId === artifact.id ? `<form class="editorial-artifact-editor" data-admin-artifact-editor="${escapeHtml(artifact.id)}"><label class="adm-field"><span>Title</span><input type="text" name="title" maxlength="240" value="${escapeHtml(artifact.title)}"></label><label class="adm-field"><span>Artifact JSON</span><textarea name="definition" rows="14" spellcheck="false">${escapeHtml(JSON.stringify(artifact.definition, null, 2))}</textarea></label><p>${artifact.type === 'course-outline' ? 'Editing the course profile also updates the assessment information shown to students. Evidence references are revalidated on save.' : 'Keep sourceChunkIds intact so the publication gate can verify evidence.'}</p><div class="adm-foot"><button type="button" class="btn btn-ghost btn-sm" data-admin-artifact-edit="${escapeHtml(artifact.id)}">Cancel</button><button type="submit" class="btn btn-primary btn-sm" ${adminPanel.artifactBusyId === artifact.id ? 'disabled' : ''}>Save draft</button></div></form>` : ''}</div>`).join('')}</div>` : '<div class="editorial-empty"><strong>No drafts yet</strong><p>Extract, map, inspect the estimate, then queue only the content types you need.</p></div>'}
+            </section>
+          </div>
+
+          <aside class="editorial-rail">
+            <section><h3>Pipeline controls</h3><p>Actions are intentionally separate so extraction never silently spends model tokens.</p>
+              <div class="editorial-control-list"><button type="button" class="btn btn-secondary" data-admin-process="extract" ${adminPanel.editionBusy || !pending('extract') ? 'disabled' : ''}><span>Extract sources<small>${pending('extract')} queued · no AI</small></span>${uiIcon('chevronRight')}</button><button type="button" class="btn btn-secondary" data-admin-process="map" ${adminPanel.editionBusy || !pending('map') ? 'disabled' : ''}><span>Map course<small>${pending('map')} queued · uses AI</small></span>${uiIcon('chevronRight')}</button><button type="button" class="btn btn-secondary" data-admin-estimate ${adminPanel.editionBusy || !topics.length ? 'disabled' : ''}><span>Estimate generation<small>No content is generated</small></span>${uiIcon('chevronRight')}</button></div>
+              ${adminPanel.estimate?.edition?.id === edition.id ? `<div class="editorial-estimate"><strong>${formatUsageNumber(adminPanel.estimate.estimatedTokens.total)} estimated tokens</strong><span>${formatUsageNumber(adminPanel.estimate.acceptedCharacters)} accepted source characters · ${adminPanel.estimate.topics} topics</span><button type="button" class="btn btn-primary" data-admin-queue-generation ${adminPanel.editionBusy ? 'disabled' : ''}>Queue complete draft</button></div>` : ''}
+              <button type="button" class="btn btn-secondary editorial-run-drafts" data-admin-process="drafts" ${adminPanel.editionBusy || !pending(['study-pages', 'exercises', 'flashcards', 'quality']) ? 'disabled' : ''}><span>Process drafts<small>${pending(['study-pages', 'exercises', 'flashcards', 'quality'])} queued · uses AI</small></span>${uiIcon('chevronRight')}</button>
+            </section>
+            <section><h3>Job ledger</h3><dl class="editorial-job-facts"><div><dt>Pending</dt><dd>${jobs.filter((job) => job.status === 'pending').length}</dd></div><div><dt>Complete</dt><dd>${jobs.filter((job) => job.status === 'completed').length}</dd></div><div><dt>Failed</dt><dd>${failures.length}</dd></div></dl>${failures.length ? `<ul class="editorial-failures">${failures.slice(0, 5).map((job) => `<li><strong>${escapeHtml(job.type)}</strong><span>${escapeHtml(job.error || 'Unknown failure')}</span></li>`).join('')}</ul>` : '<p class="panel-note">No failed jobs.</p>'}</section>
+            <section class="editorial-publish"><h3>Publish approved edition</h3><p>Requires an approved course profile, study pages, exercises, flashcards, and quality report with accepted evidence.</p><label class="adm-field"><span>Type ${escapeHtml(edition.courseCode || edition.canonicalCourseId)}</span><input type="text" data-admin-publish-confirmation value="${escapeHtml(adminPanel.publishConfirmation)}" autocomplete="off"></label><button type="button" class="btn btn-primary" data-admin-publish-edition ${adminPanel.editionBusy || adminPanel.publishConfirmation.toUpperCase() !== (edition.courseCode || edition.canonicalCourseId).toUpperCase() ? 'disabled' : ''}>Publish edition</button>${releases[0] ? `<small>Latest release v${releases[0].version} · ${relativeTime(releases[0].publishedAt)}</small>` : ''}</section>
+          </aside>
+        </div>` : ''}
+    `}
+  </section>`
+}
+
 function renderAccountAdmin() {
   if (!adminPanel.status && !adminPanel.statusError && !adminPanel.loading) loadAdminStatus()
   if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
   if (!adminPanel.materials) queueMicrotask(() => loadAdminMaterials())
   if (!adminPanel.requests && !adminPanel.requestsLoading && !adminPanel.requestsError) queueMicrotask(() => loadAdminRequests())
+  if (!adminPanel.editorial && !adminPanel.editorialLoading && !adminPanel.editorialError) queueMicrotask(() => loadAdminEditorial())
   const status = adminPanel.status
   const counts = status?.counts || {}
   const programmes = editorialProgrammesData?.programmes || []
@@ -2851,6 +2969,8 @@ function renderAccountAdmin() {
     </section>
 
     ${renderAdminRequestInbox()}
+
+    ${renderAdminEditorialWorkspace()}
 
     <section class="panel adm">
       <div class="panel-top"><div><h2>Institution academic calendar</h2><p>Official dates for a programme — exam periods, registration windows, holidays. Every student on the programme sees them in their calendar and can add them to their plan.</p></div></div>
@@ -2945,6 +3065,22 @@ async function uploadCourseRequestFile(requestId, file, fileNumber, fileTotal) {
   }
 }
 
+async function uploadEditorialSourceFile(editionId, assetId, file, fileNumber, fileTotal) {
+  const totalChunks = Math.ceil(file.size / COURSE_REQUEST_UPLOAD_CHUNK_BYTES)
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+    adminPanel.editionProgress = `Uploading ${fileNumber} of ${fileTotal} · ${file.name} · ${Math.round((chunkIndex / totalChunks) * 100)}%`
+    render()
+    const start = chunkIndex * COURSE_REQUEST_UPLOAD_CHUNK_BYTES
+    const base64 = bufferAsBase64(await file.slice(start, Math.min(start + COURSE_REQUEST_UPLOAD_CHUNK_BYTES, file.size)).arrayBuffer())
+    await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/sources/${encodeURIComponent(assetId)}/chunks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      timeoutMs: 90_000,
+      body: JSON.stringify({ chunkIndex, base64 })
+    })
+  }
+}
+
 function renderAccountUsage() {
   const chatUsed = aiUsage?.usage?.today?.requests?.chat || 0
   const exerciseUsed = aiUsage?.usage?.today?.requests?.exercises || 0
@@ -3017,7 +3153,7 @@ function renderAccountDeleteModal() {
   const enabled = accountDeleteState.confirmation === 'DELETE' && !accountDeleteState.deleting
   return `<div class="confirm-overlay account-delete-overlay" data-account-delete-overlay>
     <div class="account-delete-panel" role="alertdialog" aria-modal="true" aria-labelledby="account-delete-title" aria-describedby="account-delete-description">
-      <div class="account-delete-head"><div><h2 id="account-delete-title">Permanently delete your account?</h2><p id="account-delete-description">The account and all personal study data will be removed. Shared course material is unaffected.</p></div><button type="button" class="icon-btn" data-account-delete-close aria-label="Close deletion dialog" ${accountDeleteState.deleting ? 'disabled' : ''}>${uiIcon('close')}</button></div>
+      <div class="account-delete-head"><div><h2 id="account-delete-title">Permanently delete your account?</h2><p id="account-delete-description">The account and all personal study data will be removed. Your sources are withdrawn from future editorial work; already-published reviewed material is unaffected.</p></div><button type="button" class="icon-btn" data-account-delete-close aria-label="Close deletion dialog" ${accountDeleteState.deleting ? 'disabled' : ''}>${uiIcon('close')}</button></div>
       <div class="account-delete-warning"><strong>This action cannot be undone.</strong><ul><li>Your Clerk authentication identity will be deleted.</li><li>Your progress, notes, answers, review history, chats, and usage records will be erased.</li><li>You will be signed out when deletion finishes.</li></ul></div>
       <label class="account-delete-confirm"><span>Type <b>DELETE</b> to confirm</span><input type="text" aria-label="Type DELETE to confirm account deletion" data-account-delete-input value="${escapeHtml(accountDeleteState.confirmation)}" autocomplete="off" autocapitalize="characters" spellcheck="false" ${accountDeleteState.deleting ? 'disabled' : ''}></label>
       ${accountDeleteState.error ? `<p class="account-delete-error" role="alert">${escapeHtml(accountDeleteState.error)}</p>` : ''}
@@ -3568,6 +3704,7 @@ function resetCourseRequestForm(courseId) {
     requests: null,
     stages: [],
     categories: [],
+    contributionLicenses: [],
     loading: false,
     sending: false,
     uploadProgress: '',
@@ -3576,7 +3713,9 @@ function resetCourseRequestForm(courseId) {
     files: [],
     selectedCategories: new Set(),
     urls: '',
-    notes: ''
+    notes: '',
+    contributionConsent: false,
+    contributionLicense: 'own-notes'
   })
 }
 
@@ -3591,6 +3730,7 @@ async function loadCourseContentRequests(courseId, force = false) {
     courseRequestState.requests = result.requests || []
     courseRequestState.stages = result.stages || []
     courseRequestState.categories = result.categories || []
+    courseRequestState.contributionLicenses = result.contributionLicenses || []
   } catch (error) {
     courseRequestState.error = error.message
   } finally {
@@ -3632,7 +3772,7 @@ function renderCourseRequestPage() {
     <div class="course-request-layout">
       <main class="course-request-main">
         ${courseRequestState.submitted ? `<div class="doc-applied" role="status">${uiIcon('check')}<span><strong>Request received.</strong> The course team has your context and ${courseRequestState.submitted.files.length} source file${courseRequestState.submitted.files.length === 1 ? '' : 's'}.</span></div>` : ''}
-        ${currentRequest ? `<section class="panel course-request-status"><div class="panel-top"><div><p class="page-eyebrow">Request ${escapeHtml(currentRequest.id.slice(0, 8))}</p><h2>${requestStatusLabel(currentRequest.status)}</h2><p>Last updated ${relativeTime(currentRequest.updatedAt)}. Uploaded sources stay private until they pass editorial and rights review.</p></div><span class="pl-pill is-${currentRequest.status === 'published' ? 'ok' : currentRequest.status === 'declined' ? 'bad' : 'pending'}">${requestStatusLabel(currentRequest.status)}</span></div>${renderIngestionProgress(currentRequest)}</section>` : ''}
+        ${currentRequest ? `<section class="panel course-request-status"><div class="panel-top"><div><p class="page-eyebrow">Request ${escapeHtml(currentRequest.id.slice(0, 8))}</p><h2>${requestStatusLabel(currentRequest.status)}</h2><p>Last updated ${relativeTime(currentRequest.updatedAt)}. ${currentRequest.contributionConsent ? 'You offered these sources for shared editorial review; originals remain restricted to authorised administrators.' : 'Your sources are private to this request and cannot be used for a shared course without your permission.'}</p>${currentRequest.contributionConsent ? `<button type="button" class="pl-link pl-link-button" data-course-request-withdraw="${escapeHtml(currentRequest.id)}">Withdraw shared-use permission</button>` : ''}</div><span class="pl-pill is-${currentRequest.status === 'published' ? 'ok' : currentRequest.status === 'declined' ? 'bad' : 'pending'}">${requestStatusLabel(currentRequest.status)}</span></div>${renderIngestionProgress(currentRequest)}</section>` : ''}
         <section class="panel course-request-form-panel">
           <div class="panel-top"><div><h2>${currentRequest ? 'Add more course evidence' : 'Request this course'}</h2><p>Useful source material makes the finished course more accurate, complete, and aligned with your real assessment.</p></div></div>
           <form data-course-request-form>
@@ -3640,8 +3780,9 @@ function renderCourseRequestPage() {
             <label class="adm-field"><span>Source links <small>one URL per line</small></span><textarea name="urls" rows="3" data-course-request-urls placeholder="Course page, syllabus, public reading list, shared folder…">${escapeHtml(courseRequestState.urls)}</textarea></label>
             <div class="adm-field"><span>Files</span>${courseRequestState.files.length ? `<ul class="course-request-files">${courseRequestState.files.map((file, index) => `<li>${uiIcon('file')}<span><strong>${escapeHtml(file.name)}</strong><small>${formatBytes(file.size)}</small></span><button type="button" class="icon-btn" data-course-request-file-remove="${index}" aria-label="Remove ${escapeHtml(file.name)}">${uiIcon('close')}</button></li>`).join('')}</ul>` : ''}<label class="adm-drop course-request-drop" data-course-request-dropzone><input type="file" multiple accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,application/pdf,image/*" aria-label="Upload course materials" data-course-request-files ${courseRequestState.sending ? 'disabled' : ''}>${uiIcon('upload')}<span><strong>${courseRequestState.files.length ? 'Add more files' : 'Drop course material here'}</strong><small>Slides, syllabus, exams, practice sheets, notes, or images · 10 MB each, 30 MB total</small></span><span class="btn btn-secondary btn-sm">Browse</span></label>${fileBytes ? `<small class="course-request-file-total">${formatBytes(fileBytes)} selected</small>` : ''}</div>
             <label class="adm-field"><span>What would make this course useful?</span><textarea name="notes" rows="5" data-course-request-notes placeholder="Tell us about the exam format, difficult topics, missing context, or which curriculum edition these materials belong to…">${escapeHtml(courseRequestState.notes)}</textarea></label>
+            <fieldset class="course-contribution"><legend>Shared course contribution</legend><label class="adm-check"><input type="checkbox" data-course-request-consent ${courseRequestState.contributionConsent ? 'checked' : ''}><span><strong>Let the editorial team consider these sources for the shared course</strong><small>Original files stay restricted to authorised administrators. Only reviewed, evidence-grounded derivatives are published; nothing is published automatically.</small></span></label>${courseRequestState.contributionConsent ? `<label class="adm-field"><span>Why may we use them?</span><select data-course-request-license>${(courseRequestState.contributionLicenses.length ? courseRequestState.contributionLicenses : [['own-notes', 'My own notes or work'], ['authorised-course-material', 'Course material I may share for this purpose'], ['public-source', 'Publicly available source']]).map(([id, label]) => `<option value="${escapeHtml(id)}" ${courseRequestState.contributionLicense === id ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></label>` : '<p>You can still send a private request. The team may inspect the files to help you, but cannot promote them into the shared editorial library.</p>'}</fieldset>
             ${courseRequestState.error ? `<p class="account-delete-error" role="alert">${escapeHtml(courseRequestState.error)}</p>` : ''}
-            <div class="course-request-submit"><p>${uiIcon('shield')} Files are visible to authorised administrators only. Nothing is published automatically.</p><button type="submit" class="btn btn-primary" ${courseRequestState.sending ? 'disabled' : ''}>${courseRequestState.sending ? escapeHtml(courseRequestState.uploadProgress || 'Sending request…') : currentRequest ? 'Add to request' : 'Send request'}</button></div>
+            <div class="course-request-submit"><p>${uiIcon('shield')} ${courseRequestState.contributionConsent ? 'You confirm you may provide these sources for this editorial purpose.' : 'Files stay private to your request.'}</p><button type="submit" class="btn btn-primary" ${courseRequestState.sending ? 'disabled' : ''}>${courseRequestState.sending ? escapeHtml(courseRequestState.uploadProgress || 'Sending request…') : currentRequest ? 'Add to request' : 'Send request'}</button></div>
           </form>
         </section>
       </main>
@@ -4599,6 +4740,8 @@ function renderCourse(courseId) {
           </header>
 
           ${renderCoursePlanningContext(course)}
+
+          ${renderPublishedCourseProfile(course)}
 
           <section class="course-spine-section course-overview-section">
             <div class="panel-head spine-head">
@@ -9000,6 +9143,8 @@ function bindEvents() {
           categories: [...courseRequestState.selectedCategories],
           urls: courseRequestState.urls.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
           notes: courseRequestState.notes,
+          contributionConsent: courseRequestState.contributionConsent,
+          contributionLicense: courseRequestState.contributionConsent ? courseRequestState.contributionLicense : '',
           expectsFiles: files.length > 0
         })
       })
@@ -9013,6 +9158,8 @@ function bindEvents() {
       courseRequestState.selectedCategories = new Set()
       courseRequestState.urls = ''
       courseRequestState.notes = ''
+      courseRequestState.contributionConsent = false
+      courseRequestState.contributionLicense = 'own-notes'
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (error) {
       courseRequestState.error = error.message
@@ -9028,6 +9175,15 @@ function bindEvents() {
   }))
   document.querySelectorAll('[data-course-request-urls]').forEach((input) => input.addEventListener('input', () => { courseRequestState.urls = input.value }))
   document.querySelectorAll('[data-course-request-notes]').forEach((input) => input.addEventListener('input', () => { courseRequestState.notes = input.value }))
+  document.querySelectorAll('[data-course-request-consent]').forEach((input) => input.addEventListener('change', () => { courseRequestState.contributionConsent = input.checked; render() }))
+  document.querySelectorAll('[data-course-request-license]').forEach((select) => select.addEventListener('change', () => { courseRequestState.contributionLicense = select.value }))
+  document.querySelectorAll('[data-course-request-withdraw]').forEach((button) => button.addEventListener('click', async () => {
+    if (!(await showConfirm({ title: 'Withdraw shared-use permission?', message: 'The request remains open, but these sources will be excluded from future shared mapping and publication.', okLabel: 'Withdraw permission' }))) return
+    try {
+      await fetchJson(`/api/course-content-requests/${encodeURIComponent(button.dataset.courseRequestWithdraw)}/contribution`, { method: 'DELETE' })
+      await loadCourseContentRequests(route.academicCourseId, true)
+    } catch (error) { courseRequestState.error = error.message; render() }
+  }))
   const addCourseRequestFiles = (files) => {
     const incoming = [...(files || [])]
     const merged = [...courseRequestState.files]
@@ -9959,6 +10115,235 @@ function bindEvents() {
       adminPanel.requestBusyId = null
       render()
     }
+  }))
+  document.querySelectorAll('[data-admin-request-prepare]').forEach((button) => button.addEventListener('click', async () => {
+    const requestId = button.dataset.adminRequestPrepare
+    if (!requestId || adminPanel.requestBusyId) return
+    adminPanel.requestBusyId = requestId
+    adminPanel.requestsError = null
+    render()
+    try {
+      const workspace = await fetchJson(`/api/admin/content-requests/${encodeURIComponent(requestId)}/prepare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      adminPanel.selectedEditionId = workspace.editions?.[0]?.id || ''
+      adminPanel.editionResult = 'Shared draft prepared. Review source rights before mapping or generation.'
+      adminPanel.editorial = null
+      adminPanel.requests = null
+      await Promise.all([loadAdminEditorial(true), loadAdminRequests(true)])
+      queueMicrotask(() => document.querySelector('.editorial-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    } catch (error) { adminPanel.requestsError = error.message }
+    finally { adminPanel.requestBusyId = null; render() }
+  }))
+  document.querySelectorAll('[data-admin-open-edition]').forEach((button) => button.addEventListener('click', () => {
+    adminPanel.selectedEditionId = button.dataset.adminOpenEdition
+    adminPanel.estimate = null
+    adminPanel.editorial = null
+    loadAdminEditorial(true).then(() => document.querySelector('.editorial-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }))
+
+  document.querySelectorAll('[data-admin-editorial-refresh]').forEach((button) => button.addEventListener('click', () => loadAdminEditorial(true)))
+  document.querySelectorAll('[data-admin-new-edition]').forEach((button) => button.addEventListener('click', () => {
+    Object.assign(adminPanel, { selectedEditionId: '__new__', editionCode: '', editionName: '', editionYear: '', editionPeriod: '', editionInstitution: '', editionFolderFiles: [], editionUrls: '', editionResult: null, editorialError: null, estimate: null, publishConfirmation: '' })
+    render()
+  }))
+  document.querySelectorAll('[data-admin-edition-select]').forEach((button) => button.addEventListener('click', async () => {
+    Object.assign(adminPanel, { selectedEditionId: button.dataset.adminEditionSelect, editionFolderFiles: [], editionUrls: '', editionResult: null, editorialError: null, estimate: null, publishConfirmation: '' })
+    adminPanel.editorial = null
+    await loadAdminEditorial(true)
+  }))
+  document.querySelectorAll('[data-admin-edition-form]').forEach((form) => form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (adminPanel.editionBusy) return
+    const formData = new FormData(form)
+    const payload = {
+      courseCode: String(formData.get('courseCode') || '').trim(), courseName: String(formData.get('courseName') || '').trim(),
+      academicYear: String(formData.get('academicYear') || '').trim(), period: String(formData.get('period') || '').trim(), institution: String(formData.get('institution') || '').trim()
+    }
+    Object.assign(adminPanel, { editionCode: payload.courseCode, editionName: payload.courseName, editionYear: payload.academicYear, editionPeriod: payload.period, editionInstitution: payload.institution, editionBusy: true, editorialError: null, editionProgress: 'Creating private edition…' })
+    render()
+    try {
+      const edition = await fetchJson('/api/admin/editorial-editions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      adminPanel.selectedEditionId = edition.id
+      adminPanel.editionResult = 'Private course edition created. Add the syllabus, introductory deck, and supporting material when ready.'
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.editionBusy = false; adminPanel.editionProgress = ''; render() }
+  }))
+  document.querySelectorAll('[data-admin-edition-folder]').forEach((input) => input.addEventListener('change', () => {
+    const allowed = /\.(pdf|ppt|pptx|doc|docx|txt|md|csv|tex|html?|png|jpe?g|webp)$/i
+    const files = [...(input.files || [])].filter((file) => allowed.test(file.name) && file.size > 0 && file.size <= 100 * 1024 * 1024).slice(0, 250)
+    adminPanel.editionFolderFiles = files
+    if ((input.files?.length || 0) !== files.length) adminPanel.editorialError = 'Some files were skipped because their type is unsupported, they are empty, over 100 MB, or beyond the 250-file limit.'
+    render()
+  }))
+  document.querySelectorAll('[data-admin-edition-urls]').forEach((input) => input.addEventListener('input', () => { adminPanel.editionUrls = input.value }))
+  document.querySelectorAll('[data-admin-edition-replace]').forEach((input) => input.addEventListener('change', () => { adminPanel.editionReplaceManifest = input.checked }))
+  document.querySelectorAll('[data-admin-editorial-dismiss]').forEach((button) => button.addEventListener('click', () => { adminPanel.editionResult = null; render() }))
+  document.querySelectorAll('[data-admin-edition-sync]').forEach((button) => button.addEventListener('click', async () => {
+    const edition = selectedEditorialEdition()
+    if (!edition || adminPanel.editionBusy) return
+    adminPanel.editionBusy = true
+    adminPanel.editorialError = null
+    adminPanel.editionResult = null
+    render()
+    try {
+      const fileSources = []
+      for (const [index, file] of adminPanel.editionFolderFiles.entries()) {
+        adminPanel.editionProgress = `Hashing ${index + 1} of ${adminPanel.editionFolderFiles.length} · ${file.name}`
+        render()
+        fileSources.push({ name: file.name, relativePath: file.webkitRelativePath?.split('/').slice(1).join('/') || file.name, type: file.type, size: file.size, sha256: await fileSha256(file) })
+      }
+      const urls = adminPanel.editionUrls.split(/\r?\n/).map((value) => value.trim()).filter(Boolean)
+      const urlSources = urls.map((url, index) => {
+        try { return { url: new URL(url).toString(), name: `linked-source-${index + 1}.html`, relativePath: url } }
+        catch { throw new Error(`Invalid source URL: ${url.slice(0, 80)}`) }
+      })
+      const incoming = [...fileSources, ...urlSources]
+      const current = (adminPanel.editorial?.sources || []).filter((source) => source.contribution.editionId === edition.id && source.contribution.consentStatus === 'accepted' && source.contribution.rightsBasis === 'admin-supplied')
+      const currentByPath = new Map(current.map((source) => [source.contribution.sourcePath, source]))
+      const incomingPaths = new Set(incoming.map((source) => source.relativePath))
+      const adds = incoming.filter((source) => !currentByPath.has(source.relativePath)).length
+      const replacements = incoming.filter((source) => currentByPath.has(source.relativePath) && currentByPath.get(source.relativePath).sha256 !== source.sha256).length
+      const plannedReused = incoming.filter((source) => currentByPath.get(source.relativePath)?.sha256 === source.sha256).length
+      const retired = adminPanel.editionReplaceManifest ? current.filter((source) => !incomingPaths.has(source.contribution.sourcePath)).length : 0
+      if (!(await showConfirm({ title: `Synchronise sources for ${edition.courseCode}?`, message: `${adds} new · ${replacements} replaced · ${plannedReused} unchanged${adminPanel.editionReplaceManifest ? ` · ${retired} retired` : ''}. This updates only the private source workspace.`, okLabel: 'Synchronise sources', danger: retired > 0 }))) return
+      adminPanel.editionProgress = 'Registering the source manifest…'
+      render()
+      const result = await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/sources`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rightsBasis: 'admin-supplied', replaceManifest: adminPanel.editionReplaceManifest, sources: incoming }) })
+      let uploaded = 0
+      for (const source of result.sources || []) {
+        if (!source.uploadRequired) continue
+        const index = fileSources.findIndex((candidate) => candidate.sha256 === source.sha256)
+        if (index < 0) continue
+        await uploadEditorialSourceFile(edition.id, source.id, adminPanel.editionFolderFiles[index], index + 1, fileSources.length)
+        uploaded++
+      }
+      const reused = (result.sources || []).filter((source) => !source.uploadRequired).length
+      adminPanel.editionResult = `${result.sources?.length || 0} sources synchronised · ${uploaded} uploaded · ${reused} reused by hash. Extract them next; nothing has been generated or published.`
+      adminPanel.editionFolderFiles = []
+      adminPanel.editionUrls = ''
+      adminPanel.estimate = null
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.editionBusy = false; adminPanel.editionProgress = ''; render() }
+  }))
+  document.querySelectorAll('[data-admin-contribution]').forEach((button) => button.addEventListener('click', async () => {
+    const contributionId = button.dataset.adminContribution
+    const status = button.dataset.status
+    if (!contributionId || adminPanel.contributionBusyId) return
+    adminPanel.contributionBusyId = contributionId
+    adminPanel.editorialError = null
+    render()
+    try {
+      await fetchJson(`/api/admin/editorial-contributions/${encodeURIComponent(contributionId)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, reviewNote: status === 'accepted' ? 'Rights basis reviewed in the editorial workspace.' : 'Not approved for shared editorial use.' }) })
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.contributionBusyId = null; render() }
+  }))
+  document.querySelectorAll('[data-admin-process]').forEach((button) => button.addEventListener('click', async () => {
+    const edition = selectedEditorialEdition()
+    if (!edition || adminPanel.editionBusy) return
+    const mode = button.dataset.adminProcess
+    const types = mode === 'extract' ? ['extract'] : mode === 'map' ? ['map'] : ['study-pages', 'exercises', 'flashcards', 'quality']
+    const useAi = mode !== 'extract'
+    adminPanel.editionBusy = true
+    adminPanel.editorialError = null
+    adminPanel.editionProgress = mode === 'extract' ? 'Extracting and indexing sources…' : mode === 'map' ? 'Mapping course topics and assessment rules from evidence…' : 'Generating the next evidence-grounded drafts…'
+    render()
+    try {
+      const result = await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/process`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 180_000, body: JSON.stringify({ types, useAi, limit: mode === 'extract' ? 10 : mode === 'map' ? 1 : 3 }) })
+      const failed = result.jobs.filter((job) => job.status === 'failed')
+      adminPanel.editionResult = failed.length ? `${result.processed} jobs processed; ${failed.length} failed. Review the job ledger before continuing.` : `${result.processed} jobs processed. ${result.remaining} matching jobs remain.`
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.editionBusy = false; adminPanel.editionProgress = ''; render() }
+  }))
+  document.querySelectorAll('[data-admin-estimate]').forEach((button) => button.addEventListener('click', async () => {
+    const edition = selectedEditorialEdition()
+    if (!edition || adminPanel.editionBusy) return
+    adminPanel.editionBusy = true
+    adminPanel.editorialError = null
+    render()
+    try { adminPanel.estimate = await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/estimate`) }
+    catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.editionBusy = false; render() }
+  }))
+  document.querySelectorAll('[data-admin-queue-generation]').forEach((button) => button.addEventListener('click', async () => {
+    const edition = selectedEditorialEdition()
+    if (!edition || adminPanel.editionBusy || !adminPanel.estimate) return
+    if (!(await showConfirm({ title: `Queue a complete ${edition.courseCode} draft?`, message: `Estimated total: ${formatUsageNumber(adminPanel.estimate.estimatedTokens.total)} tokens. Topic artifacts with unchanged mapped evidence are reused.`, okLabel: 'Queue generation' }))) return
+    adminPanel.editionBusy = true
+    adminPanel.editorialError = null
+    adminPanel.editionProgress = 'Queueing versioned drafts…'
+    render()
+    try {
+      const result = await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ types: ['study-pages', 'exercises', 'flashcards', 'quality'] }) })
+      adminPanel.editionResult = `${result.queued} jobs queued · ${result.reused || 0} unchanged topic artifacts reused. Process drafts in small batches, then review each artifact.`
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.editionBusy = false; adminPanel.editionProgress = ''; render() }
+  }))
+  document.querySelectorAll('[data-admin-artifact-edit]').forEach((button) => button.addEventListener('click', () => {
+    adminPanel.editingArtifactId = adminPanel.editingArtifactId === button.dataset.adminArtifactEdit ? null : button.dataset.adminArtifactEdit
+    render()
+  }))
+  document.querySelectorAll('[data-admin-artifact-editor]').forEach((form) => form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const artifactId = form.dataset.adminArtifactEditor
+    if (!artifactId || adminPanel.artifactBusyId) return
+    const formData = new FormData(form)
+    let definition
+    try { definition = JSON.parse(String(formData.get('definition') || '')) }
+    catch (error) { adminPanel.editorialError = `Artifact JSON is invalid: ${error.message}`; render(); return }
+    adminPanel.artifactBusyId = artifactId
+    adminPanel.editorialError = null
+    render()
+    try {
+      await fetchJson(`/api/admin/editorial-artifacts/${encodeURIComponent(artifactId)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: formData.get('title'), definition, status: 'review', reviewNote: 'Edited in the editorial workspace; approval is required again.' }) })
+      adminPanel.editingArtifactId = null
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.artifactBusyId = null; render() }
+  }))
+  document.querySelectorAll('[data-admin-artifact]').forEach((button) => button.addEventListener('click', async () => {
+    const artifactId = button.dataset.adminArtifact
+    if (!artifactId || adminPanel.artifactBusyId) return
+    adminPanel.artifactBusyId = artifactId
+    adminPanel.editorialError = null
+    render()
+    try {
+      await fetchJson(`/api/admin/editorial-artifacts/${encodeURIComponent(artifactId)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: button.dataset.status, reviewNote: button.dataset.status === 'approved' ? 'Approved in the editorial workspace.' : 'Returned for editorial revision.' }) })
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.artifactBusyId = null; render() }
+  }))
+  document.querySelectorAll('[data-admin-publish-confirmation]').forEach((input) => input.addEventListener('input', () => {
+    adminPanel.publishConfirmation = input.value
+    const edition = selectedEditorialEdition()
+    document.querySelector('[data-admin-publish-edition]')?.toggleAttribute('disabled', !edition || input.value.toUpperCase() !== (edition.courseCode || edition.canonicalCourseId).toUpperCase())
+  }))
+  document.querySelectorAll('[data-admin-publish-edition]').forEach((button) => button.addEventListener('click', async () => {
+    const edition = selectedEditorialEdition()
+    if (!edition || adminPanel.editionBusy) return
+    if (!(await showConfirm({ title: `Publish ${edition.courseCode}?`, message: 'Approved artifacts will become the student-facing course in the active release. Source originals remain private.', okLabel: 'Publish course' }))) return
+    adminPanel.editionBusy = true
+    adminPanel.editorialError = null
+    adminPanel.editionProgress = 'Publishing approved artifacts…'
+    render()
+    try {
+      const result = await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 180_000, body: JSON.stringify({ confirmation: adminPanel.publishConfirmation }) })
+      adminPanel.editionResult = `${edition.courseCode} release v${result.version} is live. The shared course now carries its assessment profile and evidence-grounded materials.`
+      adminPanel.publishConfirmation = ''
+      adminPanel.editorial = null
+      await Promise.all([loadAdminEditorial(true), loadState()])
+    } catch (error) { adminPanel.editorialError = error.message }
+    finally { adminPanel.editionBusy = false; adminPanel.editionProgress = ''; render() }
   }))
   document.querySelectorAll('[data-admin-programme]').forEach((select) => select.addEventListener('change', () => { adminPanel.programmeId = select.value; render() }))
   document.querySelectorAll('[data-admin-cal-source]').forEach((button) => button.addEventListener('click', () => { adminPanel.calendarSource = button.dataset.adminCalSource; render() }))

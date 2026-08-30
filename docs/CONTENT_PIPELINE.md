@@ -2,20 +2,54 @@
 
 Student requests for unsupported courses enter through the private course
 intake inbox. Follow `docs/COURSE_INGESTION_PLAYBOOK.md` before adding any
-submitted source to the editorial tree. The playbook defines curriculum-edition
-mapping, retrieval coverage, study-page and exercise authoring, rights review,
-quality gates, and ongoing maintenance; this document defines the release
-mechanics after those gates pass.
+submitted source to a shared edition. The playbook defines curriculum-edition
+mapping, assessment requirements, retrieval coverage, authoring, rights review,
+quality gates, and ongoing maintenance.
 
-## Authoring model
+## Preferred hosted workflow
 
-Course structure lives in `data/study-state.template.json`. Material files live
+The versioned editorial workspace (`db/016`) is the default authoring path. It
+sits between private intake and the active release:
+
+1. Create or select an `editorial_course_edition`. Academic year and period are
+   part of its identity, so a rearranged or retaken curriculum is not flattened
+   into the current one.
+2. Register a source manifest. Files are deduplicated globally by SHA-256 and
+   linked to the edition with a relative path and reviewed rights basis. A new
+   digest at the same path supersedes the old contribution; optional complete
+   manifest mode retires removed administrator paths.
+3. Upload missing files in resumable 512 KiB chunks. Extract PDF text page by
+   page, OCR scans and images, read DOCX/PPTX XML, fetch public URLs through the
+   SSRF guard, and build a private course-edition retrieval index.
+4. Map topics and the canonical course profile. The profile includes learning
+   outcomes, prerequisites, teaching format, and an evidence-linked assessment
+   scheme: components, weights, minimums, deadlines, overall pass rules,
+   attendance rules, resits, and unresolved conflicts.
+5. Inspect the token estimate. Queue only the required study-page, exercise,
+   flashcard, and quality jobs. Each job and artifact is keyed by the accepted
+   source hash, so unchanged work is reused when a weekly deck arrives.
+6. Review and edit every artifact. Publication requires approved course
+   outline, study pages, exercises, flashcards, and quality report; cited
+   sources must still have accepted rights.
+7. Publish with the course-code confirmation. Approved derivatives are copied
+   into the active editorial tables and the originating request is marked live.
+   Source originals stay private.
+
+The web interface is under **Account → Admin → Course production**. The same
+flow is exposed through `/api/admin/editorial-*` and the MCP tools
+`admin_sync_course_folder`, `admin_process_course_pipeline`,
+`admin_estimate_course_generation`, `admin_queue_course_generation`,
+`admin_review_course_artifact`, and `admin_publish_course_edition`.
+
+## Repository release path
+
+Course structure for the bundled seed corpus lives in `data/study-state.template.json`. Material files live
 under each course's `content/<knowledgeBase>/` directory. These local files are
 the immutable authoring sources and backup; hosted requests read the active,
 versioned editorial release from Neon. User notes/progress remain in separate
 Clerk-keyed tables and are never part of an editorial release.
 
-To add content:
+Use this path for repository-authored seed content and disaster recovery:
 
 1. Add Markdown, PDF, image, office document, code sample, or attachment below
    the relevant course knowledge-base directory. Do not place personal data

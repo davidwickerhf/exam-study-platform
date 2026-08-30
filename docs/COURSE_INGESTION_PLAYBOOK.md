@@ -40,10 +40,15 @@ content type, and an edition/date.
   renamed or rearranged topics to the current course while retaining historical
   context.
 - Record exam format, allowed aids, question styles, grading weights, and the
-  expected depth for each outcome.
+  expected depth for each outcome. Treat the syllabus/course manual and
+  introductory deck as the normal authorities for pass requirements. Record
+  every component (for example 70% exam and 30% project), minimum component
+  grades, project/presentation deadlines, attendance rules, and resit rules
+  with document/page evidence. Never resolve a contradiction by guessing.
 
 Exit: each learning outcome and assessment skill has source coverage and an
-explicit home in the proposed course structure.
+explicit home in the proposed course structure; assessment weights total 100%
+or a visible review warning explains why they do not.
 
 ## 4. Build the retrieval index
 
@@ -101,14 +106,18 @@ to students.
 
 ## 8. Publish and maintain
 
-- Add stable course/chapter identifiers and approved materials to the editorial
-  source tree. Run `content:check`, `content:ingest`, `content:publish`,
-  `content:extract`, and `content:index` as described in
+- In hosted mode, approve the versioned course-profile, study-page, exercise,
+  flashcard, and quality-report artifacts, then publish the course edition with
+  explicit course-code confirmation. The workspace copies reviewed derivatives
+  into the active release while keeping original contribution files private.
+- For the bundled repository corpus, use `content:check`, `content:ingest`,
+  `content:publish`, `content:extract`, and `content:index` as described in
   `docs/CONTENT_PIPELINE.md`.
 - Verify the active release, material byte counts, PDF extraction, retrieval
   citations, question banks, flashcards, mocks, and the student-facing route.
-- Mark the request published only after the production course is live. When the
-  syllabus or timetable changes, create a new version and rerun the affected
+- Mark the request published only after the production course is live. When a
+  weekly deck, late mock exam, or corrected syllabus arrives, sync the updated
+  manifest. Hashes retain unchanged artifacts and queue only the affected
   mapping, retrieval, authoring, practice, and QA stages.
 
 Exit: the versioned course is live, observable, and has a named maintenance

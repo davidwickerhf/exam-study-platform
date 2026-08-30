@@ -16,6 +16,8 @@ The application deliberately separates two kinds of data:
 | Study activity ledger (answers, reviews, mocks, resolved mistakes, reads) | Individual user | `activity_events` in Neon |
 | Academic plan: programmes, courses, attempts, events, gates | Individual user | `academic_*` tables in Neon |
 | AI request/token ledger | Individual user | `ai_usage_events` in Neon |
+| Course requests and optional contribution permission | Individual user | `course_content_requests` and private source chunks in Neon |
+| Versioned editions, source manifests, evidence maps, jobs, drafts, review and releases | Editorial | `editorial_course_*`, `editorial_source_*`, `editorial_processing_jobs`, and `editorial_generated_artifacts` in Neon |
 
 Every personal document is keyed by Clerk `user_id`. The server derives that ID
 from a verified session token; it never accepts a user ID from request data.
@@ -38,6 +40,8 @@ therefore appear without overwriting progress or notes.
    request context.
 5. Personal repository calls use that context to address Neon rows.
 6. Editorial reads and retrieval queries use the active immutable Neon release.
+7. Editorial intake and generation happen in a separate private workspace;
+   only an approved publish action copies derivatives into the active release.
 
 Public product and legal pages (`/`, `/about`, `/courses`, `/privacy`, and
 `/terms`) do not initialize Clerk or load the study-workspace dependencies.
@@ -53,7 +57,7 @@ public site.
 
 ## Database
 
-Apply the migrations in `db/` (001–015; `user_documents` now only holds the local-mode migration marker — every personal record has its own table) with:
+Apply the migrations in `db/` (001–016; `user_documents` now only holds the local-mode migration marker — every personal record has its own table) with:
 
 ```bash
 DATABASE_URL='postgresql://...' npm run db:migrate
@@ -94,8 +98,11 @@ programmes, activity), and the user's own AI usage ledger.
 Permanent deletion is an explicit two-stage action: the interface requires the
 user to type `DELETE`, and `DELETE /api/account` independently validates that
 confirmation. The backend deletes only rows keyed by the authenticated Clerk
-user ID, then deletes the corresponding Clerk identity. Shared editorial
-course releases are not personal data and are not changed. Hosting, database,
+user ID, withdraws that account's sources from future editorial processing,
+deletes source bytes when no independently authorised contribution still
+supplies the same asset, and then deletes the corresponding Clerk identity.
+Published reviewed derivatives are separate editorial content and are not
+automatically removed. Hosting, database,
 and identity-provider backup or security-log retention remains governed by the
 configured provider agreements and operational retention settings.
 
