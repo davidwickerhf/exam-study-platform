@@ -2907,6 +2907,10 @@ async function runGenerateAllCoursesJob(masterJobId) {
   }
 }
 
+// Every deploy gets a fresh asset version so immutable caching never serves a
+// stale bundle: the commit SHA on Vercel, the start time elsewhere.
+const BUILD_ID = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || '').slice(0, 12) || Date.now().toString(36)
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -4625,7 +4629,9 @@ const server = createServer(async (req, res) => {
 
     // Versioned assets (?v=…) are immutable; everything else revalidates.
     const versioned = url.searchParams.has('v') && !publicPage
-    send(res, 200, await readFile(filePath), mime[extname(filePath)] || 'application/octet-stream', {
+    let body = await readFile(filePath)
+    if (publicPage) body = body.toString('utf8').replace(/\?v=[^"'&\s]+/g, `?v=${BUILD_ID}`)
+    send(res, 200, body, mime[extname(filePath)] || 'application/octet-stream', {
       'Cache-Control': versioned ? 'public, max-age=31536000, immutable' : publicPage ? 'no-store' : 'public, max-age=300, must-revalidate'
     })
   } catch (error) {

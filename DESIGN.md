@@ -95,7 +95,7 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - Home is action-led and numeric: a greeting header with the next-exam line, four KPI tiles that double as queue links (next exam, flashcards due, open mistakes, study streak), a "continue where you left off" block, the activity ledger (28-day bar chart, weekly totals, recent events), the course ledger ordered by exam proximity, and an aside with upcoming exams, quick-start actions, and programme facts. Courses is the ledger with archive and reorder controls.
 - Practice is one destination with local tabs under its page header: Questions, Flashcards, Mistakes, Mocks. Tab labels carry a count pill when there is due or open work; the header line summarises what is waiting.
 - Study activity is recorded server-side (answers, flashcard reviews, mocks, resolved mistakes, chapters read) and powers the streak, weekly totals, and the feed on Home and in Account. Nothing in the ledger derives from editorial material.
-- Calendar (`#/calendar`) is a first-class destination built on FullCalendar: month, week, day, and agenda views over one unified feed (exam attempts, personal events, the institution calendar, saved timetable feeds). A search field, category chips, and a course filter narrow every view and the "Coming up" aside together; selecting a date opens a detail panel with study/edit/import actions. The Planning → Calendar tab remains the editing ledger.
+- Calendar (`#/calendar`) is a first-class destination built on FullCalendar: month, week, day, and agenda views over one unified feed (exam attempts, personal events, the institution calendar, saved timetable feeds). A search field, category chips, and a course filter narrow every view and the "Coming up" aside together; selecting a date opens a detail panel with study, edit/remove, and import actions; personal events are added from the page header. Calendar is never nested under Planning.
 - Exam dates recorded in Planning flow outward: they order the course ledger, appear as countdowns on Home and in each course header, and never have to be re-entered.
 - Standard pages use a fluid canvas capped at 1440px, with 24–40px responsive page gutters.
 - The dashboard is an operational overview, not a marketing page. Its summary is compact and the course ledger begins within the first viewport.
@@ -115,12 +115,12 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
   Export is a normal account action; deletion is isolated in a bordered danger
   zone and requires a typed confirmation in a focused modal or mobile sheet.
 - Academic Planning is one destination with a local tab row for Overview,
-  Courses, Calendar, Documents, Progress, Planner, and Settings. Documents accepts
+  Courses, Documents, Progress, Planner, and Settings. Documents accepts
   transcripts, exam schedules, timetables, academic calendars, and .ics feeds at
   any time; the reader proposes a change set (results, exam dates, new courses,
   events) that the student ticks and applies — nothing changes silently.
   Institution-wide calendar dates maintained editorially appear read-only in
-  Calendar with an "Add to my plan" action. Courses holds the curriculum ledger, programme-structure choices,
+  the Calendar destination with an "Add to my plan" action. Courses holds the curriculum ledger, programme-structure choices,
   and per-course editing (expanded in place beneath the row); Progress holds
   credits, GPA, and requirements. These views remain peers inside the
   destination; do not reproduce them as global navigation or separate

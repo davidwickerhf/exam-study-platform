@@ -39,7 +39,6 @@ const QUESTION_TYPE_LABELS = {
 const PLANNING_TABS = [
   ['overview', 'Overview'],
   ['courses', 'Courses'],
-  ['calendar', 'Calendar'],
   ['documents', 'Documents'],
   ['progress', 'Progress'],
   ['planner', 'Planner'],
@@ -811,6 +810,7 @@ function parseRoute() {
     const requested = ['usage', 'data', 'api', 'admin'].includes(parts[1]) ? parts[1] : parts[1] === 'account' ? 'data' : 'profile'
     return { page: 'account', tab: requested }
   }
+  if (parts[0] === 'planning' && parts[1] === 'calendar') return { page: 'calendar', view: null }
   if (parts[0] === 'planning') {
     const requestedTab = PLANNING_TAB_ALIASES[parts[1]] || parts[1] || 'overview'
     const tab = PLANNING_TABS.some(([id]) => id === requestedTab) ? requestedTab : 'overview'
@@ -1453,6 +1453,8 @@ async function saveAcademics(workspace) {
     academicsData = await fetchJson('/api/academics', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace, expectedRevision })
     })
+    calendarState.data = null
+    calendarState.composer = false
     return true
   } catch (error) {
     academicsData = previousData
@@ -1915,7 +1917,7 @@ function renderPlanningOverview() {
     ])}
     <div class="pl-columns">
       <div class="pl-main">
-        ${planningSectionHead('Next up', 'Dated attempts and personal events, soonest first.', '<a class="pl-link" href="#/planning/calendar">Calendar</a>')}
+        ${planningSectionHead('Next up', 'Dated attempts and personal events, soonest first.', '<a class="pl-link" href="#/calendar">Calendar</a>')}
         ${upcoming.length ? `<ol class="pl-upcoming">${upcoming.map((attempt) => {
           const course = workspace.courses.find((item) => item.id === attempt.courseId)
           return `<li><time datetime="${escapeHtml(attempt.examDate)}">${academicDate(attempt.examDate)}</time><div><strong>${escapeHtml(attempt.code || attempt.name)}</strong><span>${escapeHtml(attempt.name)} · ${escapeHtml(attempt.type)}</span></div>${course ? planningStudyCell(course) : ''}</li>`
@@ -1977,7 +1979,7 @@ function renderAcademicPlanningPage() {
   if (!academicsData.workspace.courses.length && route.tab === 'settings' && academicsData.index?.programmes?.length > 1) return planningShell(renderPlanningSettings())
   if (!academicsData.workspace.courses.length || planningIntake.step === 'connected') return planningShell(renderPlanningOverview())
   if (route.tab === 'courses' && route.focus && planningFocusApplied !== route.focus) { planningExpandedCourse = route.focus; planningFocusApplied = route.focus }
-  const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, calendar: renderPlanningCalendar, documents: renderPlanningDocuments, progress: renderPlanningProgress, planner: renderPlanningPlanner, settings: renderPlanningSettings }
+  const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, documents: renderPlanningDocuments, progress: renderPlanningProgress, planner: renderPlanningPlanner, settings: renderPlanningSettings }
   return planningShell((views[route.tab] || renderPlanningOverview)())
 }
 
@@ -2078,61 +2080,6 @@ function renderPlanningCourses() {
   </div>`
 }
 
-function renderPlanningCalendar() {
-  const workspace = academicsData.workspace
-  const attempts = workspace.courses.flatMap((course) => course.attempts.filter((attempt) => attempt.examDate).map((attempt) => ({ id: `${course.id}/${attempt.id}`, date: attempt.examDate, title: course.name, code: course.code, kind: attempt.status === 'upcoming' ? (attempt.type === 'resit' ? 'Resit' : 'Exam') : attempt.status === 'passed' ? 'Passed' : attempt.status === 'failed' ? 'Failed' : 'No-show', status: attempt.status, courseId: course.id, editable: false })))
-  const events = workspace.events.filter((event) => event.date).map((event) => ({ ...event, kind: event.type, editable: true }))
-  const ownKeys = new Set(workspace.events.map((event) => `${event.title.toLowerCase()}|${event.date}`))
-  const institution = (activeEditorialProgrammeReference()?.programme?.calendar || []).filter((event) => event.date && !ownKeys.has(`${event.title.toLowerCase()}|${event.date}`)).map((event) => ({ ...event, id: `institution:${event.id}`, kind: `${event.type} · institution calendar`, institution: true }))
-  const entries = [...attempts, ...events, ...institution].sort((a, b) => a.date.localeCompare(b.date))
-  const today = new Date().toISOString().slice(0, 10)
-  const months = new Map()
-  for (const entry of entries) {
-    const key = entry.date.slice(0, 7)
-    months.set(key, [...(months.get(key) || []), entry])
-  }
-  const monthLabel = (key) => new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date(`${key}-01T00:00:00`))
-  const firstUpcoming = entries.find((entry) => entry.date >= today)
-  return `<div class="pl-page">
-    ${planningPageHeader('Calendar', 'Exam attempts from your courses plus registration windows, deadlines, and personal dates.', `<a class="btn btn-secondary btn-sm" href="#/calendar">${uiIcon('calendar')} Full calendar</a><button type="button" class="btn ${planningEventComposerOpen ? 'btn-secondary' : 'btn-primary'} btn-sm" data-planning-event-toggle>${planningEventComposerOpen ? 'Close' : `${uiIcon('plus')} Add event`}</button>`)}
-    ${planningEventComposerOpen ? `<form class="pl-composer" data-academic-event aria-label="Add academic event">
-      <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt; add them from Courses.</span></div>
-      <div class="pl-fields pl-fields-event">
-        <label class="wide"><span>Title</span><input name="title" maxlength="200" required placeholder="Resit registration closes"></label>
-        <label><span>Date</span><input name="date" type="date" required></label>
-        <label><span>End date</span><input name="endDate" type="date"></label>
-        <label><span>Type</span><select name="type"><option value="registration">Registration</option><option value="deadline">Deadline</option><option value="ceremony">Ceremony</option><option value="other">Other</option></select></label>
-        <label class="wide"><span>Notes</span><input name="notes" maxlength="2000"></label>
-      </div>
-      <div class="pl-form-actions"><button class="btn btn-secondary" type="button" data-planning-event-toggle>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add event</button></div>
-    </form>` : ''}
-    ${entries.length ? [...months.entries()].map(([key, list]) => `<section class="pl-group">
-      <header><h3>${escapeHtml(monthLabel(key))}</h3><span>${list.length} ${list.length === 1 ? 'date' : 'dates'}</span></header>
-      <ol class="pl-timeline">${list.map((entry) => {
-        const expanded = entry.editable && planningExpandedEvent === entry.id
-        const past = entry.date < today
-        return `<li class="pl-timeline-item${past ? ' is-past' : ''}${firstUpcoming && firstUpcoming.id === entry.id ? ' is-next' : ''}${expanded ? ' is-expanded' : ''}">
-          <div class="pl-timeline-row${entry.institution ? ' is-institution' : ''}"${entry.editable ? ` data-planning-expand-event="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-expanded="${expanded}"` : ''}>
-            <time datetime="${escapeHtml(entry.date)}"><strong>${new Date(`${entry.date}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(`${entry.date}T00:00:00`))}</span></time>
-            <div class="pl-timeline-copy"><strong>${escapeHtml(entry.code ? `${entry.code} · ${entry.title}` : entry.title)}</strong><span>${escapeHtml(entry.kind)}${entry.endDate ? ` · until ${academicDate(entry.endDate)}` : ''}${entry.notes ? ` · ${escapeHtml(entry.notes)}` : ''}</span></div>
-            ${entry.courseId ? `<a class="pl-link" href="#/planning/courses/${encodeURIComponent(entry.courseId)}">Course</a>` : entry.institution ? `<button type="button" class="pl-link pl-link-button" data-institution-event-import="${escapeHtml(entry.id.slice(12))}">Add to my plan</button>` : `<span class="pl-chevron" aria-hidden="true">${uiIcon('chevronDown')}</span>`}
-          </div>
-          ${expanded ? `<form class="pl-editor pl-editor-event" data-academic-event-edit="${escapeHtml(entry.id)}">
-            <div class="pl-fields pl-fields-event">
-              <label class="wide"><span>Title</span><input name="title" value="${escapeHtml(entry.title)}" maxlength="200" required></label>
-              <label><span>Date</span><input name="date" type="date" value="${escapeHtml(entry.date || '')}"></label>
-              <label><span>End date</span><input name="endDate" type="date" value="${escapeHtml(entry.endDate || '')}"></label>
-              <label class="wide"><span>Notes</span><input name="notes" value="${escapeHtml(entry.notes || '')}" maxlength="2000"></label>
-            </div>
-            <div class="pl-form-actions"><button type="button" class="pl-danger-link" data-academic-event-remove="${escapeHtml(entry.id)}">Remove event</button><span class="pl-spacer"></span><button type="button" class="btn btn-secondary btn-sm" data-planning-expand-event="${escapeHtml(entry.id)}">Close</button><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
-          </form>` : ''}
-        </li>`
-      }).join('')}</ol>
-    </section>`).join('') : planningEmpty('No dated exams or events', 'Exam dates you add to course attempts appear here automatically, alongside any personal deadlines.', '<a class="btn btn-secondary btn-sm" href="#/planning/courses">Open courses</a>')}
-    ${academicsError ? `<p class="pl-save-error" role="alert">Changes could not be saved: ${escapeHtml(academicsError)}</p>` : ''}
-  </div>`
-}
-
 function gateDescription(gate, workspace) {
   if (gate.type === 'course') {
     const course = workspace.courses.find((item) => item.id === gate.courseId)
@@ -2196,7 +2143,7 @@ function renderPlanningDocuments() {
   const institution = activeEditorialProgrammeReference()?.programme?.calendar || []
   return `<div class="pl-page">
     ${planningPageHeader('Documents', 'Drop a transcript, exam schedule, timetable, or academic calendar whenever you get one. Wicker Study reads it and proposes updates; nothing changes until you apply them.')}
-    ${docs.applied ? `<div class="doc-applied" role="status">${uiIcon('check')} <span>${docs.applied} change${docs.applied === 1 ? '' : 's'} applied to your plan.</span><a class="pl-link" href="#/planning/calendar">Calendar</a><a class="pl-link" href="#/planning/courses">Courses</a><button type="button" class="pl-link pl-link-button" data-doc-reset>Upload another</button></div>` : ''}
+    ${docs.applied ? `<div class="doc-applied" role="status">${uiIcon('check')} <span>${docs.applied} change${docs.applied === 1 ? '' : 's'} applied to your plan.</span><a class="pl-link" href="#/calendar">Calendar</a><a class="pl-link" href="#/planning/courses">Courses</a><button type="button" class="pl-link pl-link-button" data-doc-reset>Upload another</button></div>` : ''}
     ${result ? `<section class="panel doc-result">
       <div class="panel-top"><div><h2>Review proposed changes</h2><p>${result.usedAi === false ? 'Extracted with the basic text parser — check each line. ' : ''}${result.changes.length} proposed from ${result.sources?.length ? result.sources.map((source) => escapeHtml(source.name)).join(', ') : result.link ? escapeHtml(result.link.label) : 'your sources'}${result.kind && result.kind !== 'auto' ? ` · read as ${escapeHtml(DOCUMENT_KINDS.find(([id]) => id === result.kind)?.[1] || result.kind).toLowerCase()}` : ''}.</p></div><button type="button" class="btn btn-ghost btn-sm" data-doc-reset>Discard</button></div>
       ${result.warnings?.length ? `<div class="planning-intake-warnings" role="status"><strong>Notes from the reader</strong><ul>${result.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></div>` : ''}
@@ -2232,7 +2179,7 @@ function renderPlanningDocuments() {
           </form>
         </section>
         <section class="panel panel-aside">
-          <div class="panel-top"><h2>Institution calendar</h2>${institution.length ? '<a class="pl-link" href="#/planning/calendar">Calendar</a>' : ''}</div>
+          <div class="panel-top"><h2>Institution calendar</h2>${institution.length ? '<a class="pl-link" href="#/calendar">Calendar</a>' : ''}</div>
           <p class="panel-note">${institution.length ? `${institution.length} institution-wide date${institution.length === 1 ? '' : 's'} are maintained for your programme and shown in your calendar. Add any of them to your plan from there.` : workspace.programmeTemplate ? 'No institution-wide calendar is maintained for your programme yet.' : 'Link your programme in Settings to see institution-wide dates.'}</p>
         </section>
       </div>
@@ -3253,7 +3200,7 @@ function renderHome() {
 const CALENDAR_LIB = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'
 const CALENDAR_VIEWS = [['dayGridMonth', 'Month'], ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['listMonth', 'Agenda']]
 const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', institution: '#59627b', timetable: '#2a7f9e', other: '#7d859b' }
-const calendarState = { data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', categories: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
+const calendarState = { composer: false, data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', categories: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
 let calendarLibPromise = null
 function ensureCalendarLib() {
   if (calendarState.libReady) return Promise.resolve()
@@ -3294,6 +3241,7 @@ function toFullCalendarEvent(event) {
 }
 function renderCalendarPage() {
   if (!calendarState.data && !calendarState.loading && !calendarState.error) loadCalendarEvents()
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (route.view && CALENDAR_VIEWS.some(([id]) => id === route.view)) calendarState.view = route.view
   const data = calendarState.data
   const all = data?.events || []
@@ -3308,7 +3256,18 @@ function renderCalendarPage() {
   const feeds = data?.feeds || []
   return `<section class="page-wrap calendar-page">
     <header class="page-head"><div><p class="page-eyebrow">Calendar</p><h1>${upcoming[0] ? `Next: ${escapeHtml(upcoming[0].title)}` : 'Your calendar'}</h1><p class="page-sub">${data ? `${all.length} date${all.length === 1 ? '' : 's'} from your plan${feeds.length ? `, ${feeds.length} timetable feed${feeds.length === 1 ? '' : 's'}` : ''}${categoryCounts.institution ? ', and your institution calendar' : ''}.` : calendarState.error ? escapeHtml(calendarState.error) : 'Loading your dates…'}</p></div>
-      <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/planning/documents">${uiIcon('upload')} Add timetable or schedule</a><a class="btn btn-secondary btn-sm" href="#/planning/calendar">${uiIcon('plus')} Add event</a></div></header>
+      <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/planning/documents">${uiIcon('upload')} Add timetable or schedule</a><button type="button" class="btn ${calendarState.composer ? 'btn-secondary' : 'btn-primary'} btn-sm" data-cal-compose>${calendarState.composer ? 'Close' : `${uiIcon('plus')} Add event`}</button></div></header>
+    ${calendarState.composer ? `<form class="pl-composer cal-composer" data-academic-event aria-label="Add event">
+      <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt — add those under Planning → Courses.</span></div>
+      <div class="pl-fields pl-fields-event">
+        <label class="wide"><span>Title</span><input name="title" maxlength="200" required placeholder="Resit registration closes"></label>
+        <label><span>Date</span><input name="date" type="date" required value="${escapeHtml(calendarState.date || today)}"></label>
+        <label><span>End date</span><input name="endDate" type="date"></label>
+        <label><span>Type</span><select name="type"><option value="deadline">Deadline</option><option value="registration">Registration</option><option value="ceremony">Ceremony</option><option value="other">Other</option></select></label>
+        <label class="wide"><span>Notes</span><input name="notes" maxlength="2000"></label>
+      </div>
+      <div class="pl-form-actions"><button class="btn btn-secondary" type="button" data-cal-compose>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add event</button></div>
+    </form>` : ''}
     ${data?.problems?.length ? `<div class="settings-error" role="alert"><strong>${data.problems.length === 1 ? 'A feed could not be read.' : 'Some feeds could not be read.'}</strong><p>${data.problems.map((problem) => `${escapeHtml(problem.label)}: ${escapeHtml(problem.error)}`).join(' · ')}</p></div>` : ''}
     <div class="cal-toolbar">
       <label class="cal-search"><span class="nav-icon">${uiIcon('search')}</span><input type="search" data-cal-search placeholder="Search dates, courses, rooms…" value="${escapeHtml(calendarState.search)}" aria-label="Search calendar"></label>
@@ -3323,8 +3282,17 @@ function renderCalendarPage() {
           <div class="panel-top"><h2>${escapeHtml((data.categories || {})[selected.category] || selected.category)}</h2><button type="button" class="icon-btn" data-cal-close aria-label="Close">${uiIcon('close')}</button></div>
           <h3>${escapeHtml(selected.title)}</h3>
           <p class="cal-detail-when">${academicDate(String(selected.start).slice(0, 10))}${!selected.allDay ? ` · ${String(selected.start).slice(11, 16)}${selected.end ? `–${String(selected.end).slice(11, 16)}` : ''}` : selected.end ? ` → ${academicDate(prevDay(String(selected.end).slice(0, 10)))}` : ''}</p>
-          ${selected.notes ? `<p class="cal-detail-notes">${escapeHtml(selected.notes)}</p>` : ''}
-          <div class="cal-detail-actions">${selected.editorialCourseId ? `<a class="btn btn-primary btn-sm" href="#/course/${encodeURIComponent(selected.editorialCourseId)}">${uiIcon('book')} Study</a>` : ''}${selected.href ? `<a class="btn btn-secondary btn-sm" href="${selected.href}">${selected.category === 'exam' ? 'Edit attempt' : 'Edit in planning'}</a>` : ''}${selected.category === 'institution' ? `<button type="button" class="btn btn-secondary btn-sm" data-institution-event-import="${escapeHtml(selected.id.slice(12))}">Add to my plan</button>` : ''}${selected.feedLabel ? `<span class="panel-note">From ${escapeHtml(selected.feedLabel)}</span>` : ''}</div>
+          ${selected.notes && !(selected.source === 'plan' && !selected.courseId) ? `<p class="cal-detail-notes">${escapeHtml(selected.notes)}</p>` : ''}
+          ${selected.source === 'plan' && !selected.courseId ? `<form class="pl-editor cal-editor" data-academic-event-edit="${escapeHtml(selected.id.slice(6))}">
+            <div class="pl-fields pl-fields-event">
+              <label class="wide"><span>Title</span><input name="title" value="${escapeHtml(selected.title)}" maxlength="200" required></label>
+              <label><span>Date</span><input name="date" type="date" value="${escapeHtml(String(selected.start).slice(0, 10))}"></label>
+              <label><span>End date</span><input name="endDate" type="date" value="${selected.end ? escapeHtml(prevDay(String(selected.end).slice(0, 10))) : ''}"></label>
+              <label class="wide"><span>Notes</span><input name="notes" value="${escapeHtml(selected.notes || '')}" maxlength="2000"></label>
+            </div>
+            <div class="pl-form-actions"><button type="button" class="pl-danger-link" data-academic-event-remove="${escapeHtml(selected.id.slice(6))}">Remove</button><span class="pl-spacer"></span><button type="submit" class="btn btn-primary btn-sm" ${academicsLoading ? 'disabled' : ''}>Save</button></div>
+          </form>` : ''}
+          <div class="cal-detail-actions">${selected.editorialCourseId ? `<a class="btn btn-primary btn-sm" href="#/course/${encodeURIComponent(selected.editorialCourseId)}">${uiIcon('book')} Study</a>` : ''}${selected.category === 'exam' && selected.href ? `<a class="btn btn-secondary btn-sm" href="${selected.href}">Edit attempt</a>` : ''}${selected.category === 'institution' ? `<button type="button" class="btn btn-secondary btn-sm" data-institution-event-import="${escapeHtml(selected.id.slice(12))}">Add to my plan</button>` : ''}${selected.feedLabel ? `<span class="panel-note">From ${escapeHtml(selected.feedLabel)}</span>` : ''}</div>
         </section>` : ''}
         <section class="panel panel-aside">
           <div class="panel-top"><h2>Coming up</h2><span class="panel-note">${visible.length !== all.length ? `${visible.length} of ${all.length}` : ''}</span></div>
@@ -8554,6 +8522,7 @@ function bindEvents() {
   document.querySelectorAll('[data-cal-view]').forEach((button) => button.addEventListener('click', () => { calendarState.view = button.dataset.calView; if (calendarState.instance) calendarState.date = localIsoDate(calendarState.instance.getDate()); render() }))
   document.querySelectorAll('[data-cal-select]').forEach((button) => button.addEventListener('click', () => { const event = calendarState.data?.events.find((item) => item.id === button.dataset.calSelect); calendarState.selected = button.dataset.calSelect; if (event) calendarState.date = String(event.start).slice(0, 10); render() }))
   document.querySelectorAll('[data-cal-close]').forEach((button) => button.addEventListener('click', () => { calendarState.selected = null; render() }))
+  document.querySelectorAll('[data-cal-compose]').forEach((button) => button.addEventListener('click', () => { calendarState.composer = !calendarState.composer; render() }))
 
   // ----- Documents tab -----
   document.querySelectorAll('[data-doc-files]').forEach((input) => input.addEventListener('change', (event) => { addDocumentSources(event.target.files); event.target.value = '' }))
@@ -8991,12 +8960,12 @@ function bindEvents() {
     saveAcademics({ ...academicsData.workspace, courses: academicsData.workspace.courses.map((course) => course.id === courseId ? { ...course, attempts: course.attempts.filter((attempt) => attempt.id !== attemptId) } : course) })
   }))
   document.querySelectorAll('[data-academic-event]').forEach((form) => form.addEventListener('submit', (event) => {
-    event.preventDefault(); const data = new FormData(form)
+    event.preventDefault(); if (!academicsData) return; const data = new FormData(form)
     const item = { id: `event-${Date.now()}`, title: data.get('title'), date: data.get('date'), endDate: data.get('endDate') || null, type: data.get('type'), notes: data.get('notes') }
     planningEventComposerOpen = false
     saveAcademics({ ...academicsData.workspace, events: [...academicsData.workspace.events, item] })
   }))
-  document.querySelectorAll('[data-academic-event-remove]').forEach((button) => button.addEventListener('click', () => { planningExpandedEvent = null; return saveAcademics({ ...academicsData.workspace, events: academicsData.workspace.events.filter((item) => item.id !== button.dataset.academicEventRemove) }) }))
+  document.querySelectorAll('[data-academic-event-remove]').forEach((button) => button.addEventListener('click', () => { planningExpandedEvent = null; calendarState.selected = null; return saveAcademics({ ...academicsData.workspace, events: academicsData.workspace.events.filter((item) => item.id !== button.dataset.academicEventRemove) }) }))
   document.querySelectorAll('[data-academic-event-edit]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(form); const id = form.dataset.academicEventEdit
     const events = academicsData.workspace.events.map((item) => item.id === id ? { ...item, title: data.get('title'), date: data.get('date') || null, endDate: data.get('endDate') || null, notes: data.get('notes') } : item)

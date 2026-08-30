@@ -1,4 +1,6 @@
 const nativeFetch = window.fetch.bind(window)
+// Asset version comes from this script's own URL (set per deploy by the server).
+const ASSET_VERSION = new URL(import.meta.url).searchParams.get('v') || 'dev'
 const AUTH_TOKEN_TIMEOUT_MS = 5000
 const AUTH_TOKEN_EXPIRY_SKEW_MS = 15000
 let cachedAuthToken = null
@@ -158,7 +160,7 @@ async function startApplication() {
   document.getElementById('app').innerHTML = bootSkeleton('Loading your courses…')
   // The application and its first data request start immediately; reader
   // libraries stream in behind them.
-  const app = import(`/app.js?v=20260830-docs`)
+  const app = import(`/app.js?v=${ASSET_VERSION}`)
   setTimeout(() => loadStudyDependencies().catch(() => {}), 0)
   await app
 }
@@ -199,7 +201,7 @@ async function authHeaders() {
 async function main() {
   const pathname = normalizedPath()
   if (['/', '/about', '/courses', '/docs', '/privacy', '/terms'].includes(pathname)) {
-    const { mountPublicSite } = await import('/public-site.js?v=20260830-docs')
+    const { mountPublicSite } = await import(`/public-site.js?v=${ASSET_VERSION}`)
     mountPublicSite(pathname)
     return
   }
@@ -236,7 +238,7 @@ async function main() {
 
   if (!clerk.user) {
     if (pathname !== '/sign-in') window.history.replaceState(null, '', '/sign-in')
-    const { mountAuthSite } = await import('/public-site.js?v=20260830-docs')
+    const { mountAuthSite } = await import(`/public-site.js?v=${ASSET_VERSION}`)
     mountAuthSite()
     clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
       fallbackRedirectUrl: `${window.location.origin}/app`,
