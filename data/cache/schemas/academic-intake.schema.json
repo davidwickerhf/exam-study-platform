@@ -6,11 +6,21 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "university": { "type": "string" },
-        "programme": { "type": "string" },
-        "academicYear": { "type": "string" }
+        "university": {
+          "type": "string"
+        },
+        "programme": {
+          "type": "string"
+        },
+        "academicYear": {
+          "type": "string"
+        }
       },
-      "required": ["university", "programme", "academicYear"]
+      "required": [
+        "university",
+        "programme",
+        "academicYear"
+      ]
     },
     "courses": {
       "type": "array",
@@ -19,13 +29,27 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "code": { "type": "string" },
-          "name": { "type": "string" },
-          "ects": { "type": "number" },
-          "yearLevel": { "type": "string" },
-          "period": { "type": "string" },
-          "passMark": { "type": "number" },
-          "notes": { "type": "string" },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ects": {
+            "type": "number"
+          },
+          "yearLevel": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "passMark": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "string"
+          },
           "attempts": {
             "type": "array",
             "maxItems": 20,
@@ -33,17 +57,60 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "academicYear": { "type": "string" },
-                "type": { "type": "string", "enum": ["first", "resit", "carry-over", "other"] },
-                "examDate": { "type": ["string", "null"] },
-                "grade": { "type": ["number", "null"] },
-                "status": { "type": "string", "enum": ["upcoming", "passed", "failed", "no-show"] }
+                "academicYear": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "resit",
+                    "carry-over",
+                    "other"
+                  ]
+                },
+                "examDate": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "grade": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "upcoming",
+                    "passed",
+                    "failed",
+                    "no-show"
+                  ]
+                }
               },
-              "required": ["academicYear", "type", "examDate", "grade", "status"]
+              "required": [
+                "academicYear",
+                "type",
+                "examDate",
+                "grade",
+                "status"
+              ]
             }
           }
         },
-        "required": ["code", "name", "ects", "yearLevel", "period", "passMark", "notes", "attempts"]
+        "required": [
+          "code",
+          "name",
+          "ects",
+          "yearLevel",
+          "period",
+          "passMark",
+          "notes",
+          "attempts"
+        ]
       }
     },
     "events": {
@@ -53,20 +120,97 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "title": { "type": "string" },
-          "date": { "type": ["string", "null"] },
-          "endDate": { "type": ["string", "null"] },
-          "type": { "type": "string", "enum": ["registration", "deadline", "ceremony", "other"] },
-          "notes": { "type": "string" }
+          "title": {
+            "type": "string"
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "registration",
+              "deadline",
+              "ceremony",
+              "other"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "period",
+              "exam-week",
+              "resit-week",
+              "study-week",
+              "project-week",
+              "holiday",
+              "intro",
+              "deadline",
+              "ceremony",
+              "other"
+            ]
+          },
+          "period": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "semester": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "resit": {
+            "type": "boolean"
+          },
+          "cohorts": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string"
+            }
+          }
         },
-        "required": ["title", "date", "endDate", "type", "notes"]
+        "required": [
+          "title",
+          "date",
+          "endDate",
+          "type",
+          "notes",
+          "kind",
+          "period",
+          "semester",
+          "resit",
+          "cohorts"
+        ]
       }
     },
     "warnings": {
       "type": "array",
       "maxItems": 20,
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     }
   },
-  "required": ["profile", "courses", "events", "warnings"]
+  "required": [
+    "profile",
+    "courses",
+    "events",
+    "warnings"
+  ]
 }

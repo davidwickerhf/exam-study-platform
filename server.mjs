@@ -56,6 +56,7 @@ if (Boolean(process.env.DATABASE_URL) !== authConfig().enabled) {
 //   codex  — spawns the Anthropic Codex.app CLI (default; current user setup)
 //   claude — spawns the `claude` CLI (Claude Code), if installed
 //   api    — direct call to Anthropic Messages API via fetch (no CLI needed)
+//   openai — direct call to the OpenAI Chat Completions API via fetch
 //
 // Provider is picked in this order:
 //   1. process.env.LLM_PROVIDER
@@ -79,6 +80,9 @@ const CODEX_MODEL  = process.env.CODEX_MODEL  || llmConfig.codexModel  || ''
 const CLAUDE_BIN   = process.env.CLAUDE_BIN   || llmConfig.claudeBin   || 'claude'
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || llmConfig.anthropicApiKey || ''
 const ANTHROPIC_MODEL   = process.env.ANTHROPIC_MODEL   || llmConfig.anthropicModel  || 'claude-sonnet-4-5'
+const OPENAI_API_KEY    = process.env.OPENAI_API_KEY    || llmConfig.openaiApiKey    || ''
+const OPENAI_MODEL      = process.env.OPENAI_MODEL      || llmConfig.openaiModel     || 'gpt-4.1'
+const OPENAI_BASE_URL   = (process.env.OPENAI_BASE_URL  || llmConfig.openaiBaseUrl   || 'https://api.openai.com/v1').replace(/\/+$/, '')
 
 // ─── Self-update config ─────────────────────────────────────────────────────
 // Read at boot — git HEAD + remote origin URL → parsed owner/repo for the
@@ -829,8 +833,10 @@ async function runCodex(prompt, opts = {}) {
     switch (LLM_PROVIDER) {
       case 'codex':  result = await runCodexCli(prompt, opts); break
       case 'claude': result = await runClaudeCli(prompt, opts); break
-      case 'api':    result = await runAnthropicApi(prompt, { ...opts, maxOutputTokens }); break
-      default: throw new Error(`Unknown LLM_PROVIDER: ${LLM_PROVIDER} (expected codex|claude|api)`)
+      case 'api':
+      case 'anthropic': result = await runAnthropicApi(prompt, { ...opts, maxOutputTokens }); break
+      case 'openai': result = await runOpenAiApi(prompt, { ...opts, maxOutputTokens }); break
+      default: throw new Error(`Unknown LLM_PROVIDER: ${LLM_PROVIDER} (expected codex|claude|api|openai)`)
     }
     const text = typeof result === 'string' ? result : result.text
     if (reservation) {
@@ -980,11 +986,66 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
   }
 }
 
+// OpenAI Chat Completions with JSON-schema structured output and image inputs.
+async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000 } = {}) {
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
+  }
+  let schema = null
+  if (schemaPath) {
+    try { schema = JSON.parse(await readFile(schemaPath, 'utf8')) } catch {}
+  }
+  try {
+    const content = [{ type: 'text', text: prompt }]
+    for (const imagePath of images) {
+      const extension = extname(imagePath).toLowerCase()
+      const mediaType = extension === '.png' ? 'image/png' : extension === '.webp' ? 'image/webp' : extension === '.gif' ? 'image/gif' : 'image/jpeg'
+      content.push({ type: 'image_url', image_url: { url: `data:${mediaType};base64,${(await readFile(imagePath)).toString('base64')}`, detail: 'high' } })
+    }
+    const body = {
+      model: OPENAI_MODEL,
+      max_completion_tokens: maxOutputTokens,
+      messages: [
+        { role: 'system', content: schema ? 'You extract academic facts and answer only with JSON that conforms to the supplied schema. Never include prose outside the JSON.' : 'You are a precise academic study assistant.' },
+        { role: 'user', content }
+      ],
+      ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: false } } } : {})
+    }
+    const resp = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${OPENAI_API_KEY}` },
+      body: JSON.stringify(body)
+    })
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '')
+      throw new Error(`OpenAI API ${resp.status}: ${errText.slice(0, 500)}`)
+    }
+    const data = await resp.json()
+    const choice = data.choices?.[0]
+    const text = (typeof choice?.message?.content === 'string' ? choice.message.content : (choice?.message?.content || []).map((part) => part.text || '').join('')).trim()
+    if (!text) throw new Error(`OpenAI API returned no content (finish_reason=${choice?.finish_reason})`)
+    return {
+      text,
+      usage: {
+        inputTokens: Number(data.usage?.prompt_tokens || estimateTokens(prompt)),
+        outputTokens: Number(data.usage?.completion_tokens || estimateTokens(text)),
+        estimated: !data.usage
+      }
+    }
+  } finally {
+    for (const imagePath of images) {
+      if (imagePath.startsWith('/tmp/exam-platform-images/')) {
+        try { await unlink(imagePath) } catch {}
+      }
+    }
+  }
+}
+
 const DOCUMENT_KIND_GUIDANCE = {
   transcript: 'These sources are transcripts or grade lists: focus on passed/failed attempts with grades and academic years; do not invent upcoming courses.',
   'exam-schedule': 'These sources are exam schedules: focus on exam dates (ISO), attempt type (first/resit), and the course each date belongs to; mark them upcoming.',
   timetable: 'These sources are timetables or calendars: extract dated events (lectures need not be listed individually; capture exams, deadlines, registration windows, and course-level dates).',
-  'academic-calendar': 'These sources are institutional academic calendars: extract registration windows, exam periods, deadlines, holidays, and ceremonies as events with ISO dates and end dates; no courses unless explicitly listed.',
+  'academic-calendar': 'These sources are institutional academic calendars. Extract every dated entry as an event with ISO date and endDate (multi-day spans), and classify each with kind: period (education/teaching period), exam-week, resit-week, study-week, project-week, holiday (no education), intro, deadline (registration/enrolment), ceremony, or other. Fill period (1-6) or semester (1-2) when the entry names one, resit=true when resits are included, and cohorts with any cohort codes (BY1, BY2/3, MA P1, BAY1 …). Use clean titles such as "Period 1", "Exam week · Period 1", "Resits · Semester 1 (BY1)", "Christmas Holiday". No courses unless explicitly listed.',
   curriculum: 'These sources are curricula or handbooks: focus on course codes, names, credits, levels, and periods.'
 }
 
@@ -4678,5 +4739,6 @@ server.listen(port, () => {
   console.log(`LLM provider: ${LLM_PROVIDER}`)
   if (LLM_PROVIDER === 'codex') console.log(`Codex bin: ${CODEX_BIN}${existsSync(CODEX_BIN) ? '' : ' (NOT FOUND)'}`)
   if (LLM_PROVIDER === 'claude') console.log(`Claude bin: ${CLAUDE_BIN}`)
-  if (LLM_PROVIDER === 'api') console.log(`Model: ${ANTHROPIC_MODEL} (API key ${ANTHROPIC_API_KEY ? 'set' : 'MISSING'})`)
+  if (LLM_PROVIDER === 'api' || LLM_PROVIDER === 'anthropic') console.log(`Model: ${ANTHROPIC_MODEL} (API key ${ANTHROPIC_API_KEY ? 'set' : 'MISSING'})`)
+  if (LLM_PROVIDER === 'openai') console.log(`Model: ${OPENAI_MODEL} (OpenAI key ${OPENAI_API_KEY ? 'set' : 'MISSING'})`)
 })
