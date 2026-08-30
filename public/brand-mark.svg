@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">Wicker Study</title>
+  <desc id="description">A folded W monogram shaped from interlocking book pages.</desc>
   <rect width="64" height="64" rx="13" fill="#3f51d9"/>
   <path fill="#ffffff" d="M12 15h7.4l5.9 26.1L29.8 28h4.4l4.5 13.1L44.6 15H52l-8.2 34H36L32 36.6 28 49h-7.8L12 15Z"/>
   <path fill="#c8ceff" d="m29.8 28 2.2 8.6 2.2-8.6h-4.4Z"/>

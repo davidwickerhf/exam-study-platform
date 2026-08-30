@@ -2,6 +2,7 @@
 
 import { SignIn, SignUp } from '@clerk/nextjs'
 import { useEffect } from 'react'
+import { BrandMark } from '@/components/brand/brand-mark'
 import { contacts } from '@/lib/site-content'
 import { SiteIcon } from '@/components/site/icon'
 
@@ -46,7 +47,7 @@ export function AuthPage({ mode, enabled, allowedDomains }: { mode: 'sign-in' | 
       <div className="auth-page">
         <section className="auth-form-column" aria-labelledby="auth-title">
           <a className="auth-back" href="/">← Back to Wicker Study</a>
-          <a className="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
+          <a className="site-brand" href="/" aria-label="Wicker Study home"><BrandMark className="site-brand-mark" /><strong>Wicker Study</strong></a>
           <div className="auth-form-copy">
             <h1 id="auth-title">{signUp ? 'Create your study record.' : 'Return to your study record.'}</h1>
             <p>{signUp ? 'Your notes, attempts, mastery history, and review schedule — private to you, on any device.' : 'Open your notes, attempts, mastery history, and review schedule.'}</p>

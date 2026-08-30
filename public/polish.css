@@ -529,6 +529,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   background: var(--color-brand);
   color: white;
   font: 700 16px/1 var(--font-ui);
+  object-fit: contain;
 }
 .brand-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.02em; }
 .brand-text small { color: var(--color-ink-tertiary); font-size: 10px; }

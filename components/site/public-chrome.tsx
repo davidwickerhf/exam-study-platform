@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
+import { BrandMark } from '@/components/brand/brand-mark'
 import { operatorName } from '@/lib/site-content'
 import { ContactLink } from './contact-link'
 import { SiteIcon } from './icon'
@@ -45,7 +46,7 @@ export function PublicChrome({ children }: { children: ReactNode }) {
           </div>
         )}
         <header className="site-header">
-          <Link className="site-brand" href="/" aria-label="Wicker Study home"><span>W</span><strong>Wicker Study</strong></Link>
+          <Link className="site-brand" href="/" aria-label="Wicker Study home"><BrandMark className="site-brand-mark" /><strong>Wicker Study</strong></Link>
           <button className="site-menu-button" type="button" aria-expanded={menuOpen} aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} onClick={() => setMenuOpen((open) => !open)}>
             <SiteIcon name={menuOpen ? 'close' : 'menu'} />
           </button>
@@ -58,7 +59,7 @@ export function PublicChrome({ children }: { children: ReactNode }) {
         {children}
         <footer className="site-footer">
           <div className="site-footer-main">
-            <Link className="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></Link>
+            <Link className="site-brand" href="/" aria-label="Wicker Study home"><BrandMark className="site-brand-mark" /><strong>Wicker Study</strong></Link>
             <p>A private academic workspace built around maintained university course material.</p>
           </div>
           <nav aria-label="Legal and product links">

@@ -87,6 +87,13 @@ Wicker Study is a modern academic instrument: calm enough for long reading sessi
 
 The application uses one sans-serif voice throughout. Manrope carries interface and authored course content; IBM Plex Mono is reserved for measurements, identifiers, scores, dates, and progress values. Serif type is prohibited across all product surfaces.
 
+## Brand identity
+
+- The Wicker Study mark is the folded `W` in `public/brand-mark.svg`: two outer page strokes and a lighter central fold, contained by the brand-indigo square geometry.
+- Use the mark with the live Manrope wordmark “Wicker Study”; never typeset a plain `W` in a coloured tile as a substitute.
+- The mark must remain square, must not be recoloured per course, and must retain at least one-eighth of its width as clear space when used without the wordmark.
+- Browser, saved-home-screen, and installed-app icons are derived from this same master mark. Do not introduce a separate favicon symbol.
+
 ## Layout
 
 - The application is a dashboard shell: a 236px white sidebar on desktop (brand, search field, grouped navigation — Study: Home, Courses, Practice; Plan: Planning, Calendar — and an account block with avatar initials at the foot) beside a scrolling canvas column capped at 1180px. On compact screens the sidebar becomes a five-item bottom bar (Home, Courses, Practice, Planning, Account) and search moves into page headers. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.

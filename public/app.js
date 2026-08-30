@@ -2925,7 +2925,7 @@ function renderSidebar() {
   const link = (cls, href, label, icon, isActive, count) => `<a class="dash-nav-link ${cls}${isActive ? ' active' : ''}" href="${href}"${isActive ? ' aria-current="page"' : ''}><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>${count ? `<span class="dash-nav-count">${count}</span>` : ''}</a>`
   return `
     <aside class="dash-side">
-      <a class="dash-brand" href="#/"><span class="brand-mark">W</span><span class="dash-brand-text"><strong>Wicker Study</strong><small>Academic workspace</small></span></a>
+      <a class="dash-brand" href="#/" aria-label="Wicker Study home"><img class="brand-mark" src="/brand-mark.svg" width="64" height="64" alt="" aria-hidden="true"><span class="dash-brand-text"><strong>Wicker Study</strong><small>Academic workspace</small></span></a>
       <button type="button" class="dash-search" data-search-open title="Search course (⌘⇧F)"><span class="nav-icon">${uiIcon('search')}</span><span>Search</span><kbd>⌘⇧F</kbd></button>
       <nav class="dash-nav" aria-label="Primary navigation">
         <span class="dash-nav-group">Study</span>

@@ -29,7 +29,15 @@ export const metadata: Metadata = {
     template: '%s · Wicker Study'
   },
   description: 'A private, source-grounded academic workspace for structured university course study, practice, and exam readiness.',
-  icons: { icon: '/favicon.svg', apple: '/favicon.svg' },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }]
+  },
+  manifest: '/site.webmanifest',
   applicationName: 'Wicker Study'
 }
 

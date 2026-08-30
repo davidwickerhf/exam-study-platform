@@ -51,13 +51,9 @@
   width: 32px;
   height: 32px;
   flex: 0 0 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   border-radius: var(--radius-sm);
-  background: var(--color-brand);
-  color: #fff;
-  font: 700 16px/1 var(--font-ui);
+  object-fit: contain;
 }
 .dash-brand-text { min-width: 0; display: grid; gap: 1px; }
 .dash-brand-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }

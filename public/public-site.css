@@ -47,7 +47,7 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
   backdrop-filter: blur(12px);
 }
 .site-brand { display: inline-flex; align-items: center; gap: var(--space-3); text-decoration: none; white-space: nowrap; }
-.site-brand > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: var(--radius-sm); color: white; background: var(--color-brand); font-weight: 700; }
+.site-brand-mark { width: 34px; height: 34px; flex: 0 0 34px; display: block; border-radius: var(--radius-sm); }
 .site-brand strong { font-size: 15px; letter-spacing: -.025em; }
 .site-nav { display: flex; align-items: center; gap: var(--space-1); }
 .site-nav > a:not(.site-button) { min-height: var(--control-md); padding: 0 var(--space-3); display: inline-flex; align-items: center; border-radius: var(--radius-sm); color: var(--color-ink-secondary); font-size: 13px; font-weight: 500; text-decoration: none; }
