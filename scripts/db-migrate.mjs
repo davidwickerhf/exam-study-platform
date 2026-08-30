@@ -3,6 +3,7 @@ import '../lib/env.mjs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { neon } from '@neondatabase/serverless'
+import { splitSqlStatements } from '../lib/sql-statements.mjs'
 
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is required')
@@ -13,7 +14,7 @@ const migrations = ['001_user_documents.sql', '002_editorial_content.sql', '003_
 const queries = [sql`SELECT pg_advisory_xact_lock(2026083001)`]
 for (const migration of migrations) {
   const source = await readFile(resolve('db', migration), 'utf8')
-  for (const statement of source.split(';').map((part) => part.trim()).filter(Boolean)) queries.push(sql.query(statement))
+  for (const statement of splitSqlStatements(source)) queries.push(sql.query(statement))
 }
 await sql.transaction(queries)
 for (const migration of migrations) console.log(`Applied db/${migration}`)
