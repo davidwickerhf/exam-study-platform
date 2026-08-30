@@ -89,6 +89,27 @@
                     "failed",
                     "no-show"
                   ]
+                },
+                "courseCode": {
+                  "type": "string"
+                },
+                "courseName": {
+                  "type": "string"
+                },
+                "ects": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "yearLevel": {
+                  "type": "string"
+                },
+                "period": {
+                  "type": "string"
+                },
+                "curriculumVersion": {
+                  "type": "string"
                 }
               },
               "required": [

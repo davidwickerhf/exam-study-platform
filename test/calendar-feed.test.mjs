@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { aggregateCalendar, calendarPeriodCourseEvidence, resolveAcademicTimeContext } from '../lib/calendar-feed.mjs'
+import { aggregateCalendar, calendarPeriodCourseEvidence, resolveAcademicTimeContext, resolveExamWindow } from '../lib/calendar-feed.mjs'
 import { normalizeAcademicWorkspace } from '../lib/academics.mjs'
 
 test('calendar aggregates attempts, events, institution dates, and feeds without duplicates', () => {
@@ -49,14 +49,34 @@ test('academic time context scopes timetable evidence to the active period', () 
   ]
   const context = resolveAcademicTimeContext(calendar, { date: '2026-09-30' })
   assert.deepEqual({ period: context.period, phase: context.phase, start: context.start, end: context.end }, { period: 'Period 1', phase: 'teaching', start: '2026-08-31', end: '2026-10-23' })
+  assert.deepEqual(resolveExamWindow(calendar, context, { date: '2026-09-30' }), { title: 'Exam week · Period 1', start: '2026-10-12', end: '2026-10-16', period: 'Period 1', academicYear: '2026-2027' })
 
-  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [{ id: 'stats', code: 'BCS1520', name: 'Statistics', attempts: [] }] })
+  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [{ id: 'stats', code: 'BCS1520', name: 'Statistics', period: 'Period 1', attempts: [{ status: 'upcoming' }] }] })
   const evidence = calendarPeriodCourseEvidence(workspace, [{ link: { label: 'Timetable' }, events: [
     { title: 'BCS1520 Lecture', date: '2026-09-02', notes: '' },
     { title: 'BCS3130 Game Theory', date: '2026-09-03', notes: '' },
     { title: 'BCS9999 Period 2 course', date: '2026-11-03', notes: '' }
   ] }], context)
-  assert.deepEqual(evidence.map((item) => [item.code, item.selected, item.eventCount]), [['BCS1520', true, 1], ['BCS3130', false, 1]])
+  assert.deepEqual(evidence.map((item) => [item.code, item.selected, item.active, item.eventCount]), [['BCS1520', true, true, 1], ['BCS3130', false, false, 1]])
+})
+
+test('the active-period answer is the intersection of current attempts and timetable evidence', () => {
+  const calendar = [
+    { title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', kind: 'period', period: 1, academicYear: '2026-2027' },
+    { title: 'Exam week · Period 1', date: '2026-10-12', endDate: '2026-10-16', kind: 'exam-week', period: 1, academicYear: '2026-2027' }
+  ]
+  const codes = ['BCS2120', 'BCS2130', 'BCS2140', 'BCS3120', 'BCS3130', 'BCS3210']
+  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [
+    ...codes.map((code) => ({ code, name: code, period: 'Period 1', attempts: [{ status: 'upcoming', academicYear: '2026-2027' }] })),
+    { code: 'BCS3300', name: 'Project 3-1', period: 'Period 1', attempts: [{ status: 'upcoming', academicYear: '2026-2027' }] },
+    { code: 'BCS2510', name: 'Historical course', period: 'Period 5', programmeRequirement: 'historical', attempts: [{ status: 'passed', academicYear: '2024-2025' }] }
+  ] })
+  const feeds = [{ link: { id: 'feed', label: 'Timetable' }, events: codes.map((code, index) => ({ id: String(index), title: `${code} Lecture`, date: `2026-09-0${index + 1}`, notes: '' })) }]
+  const result = aggregateCalendar({ workspace, institutionCalendar: calendar, feeds, date: '2026-09-01' })
+
+  assert.deepEqual(result.periodCourses.filter((item) => item.active).map((item) => item.code), codes)
+  assert.equal(result.periodCourses.filter((item) => item.active).length, 6)
+  assert.deepEqual(result.examWindow, { title: 'Exam week · Period 1', start: '2026-10-12', end: '2026-10-16', period: 'Period 1', academicYear: '2026-2027' })
 })
 
 test('academic context looks ahead before teaching starts', () => {

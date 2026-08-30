@@ -10,9 +10,11 @@
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
+import './lib/env.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const serverPath = resolve(__dirname, 'server.mjs')
+const migrationPath = resolve(__dirname, 'scripts/db-migrate.mjs')
 
 const RESTART_EXIT_CODE = 23
 
@@ -38,6 +40,22 @@ function start() {
   })
 }
 
+function startProduction() {
+  if (!process.env.DATABASE_URL) { start(); return }
+  console.log('Applying database migrations before startup…')
+  child = spawn('node', [migrationPath], { stdio: 'inherit', cwd: __dirname })
+  child.on('exit', (code, signal) => {
+    if (shuttingDown) return
+    if (signal) process.kill(process.pid, signal)
+    else if (code !== 0) process.exit(code ?? 1)
+    else { child = null; start() }
+  })
+  child.on('error', (err) => {
+    console.error(`runner: failed to apply database migrations: ${err.message}`)
+    process.exit(1)
+  })
+}
+
 function shutdown(signal) {
   shuttingDown = true
   if (child && !child.killed) child.kill(signal)
@@ -47,4 +65,4 @@ process.on('SIGINT',  () => shutdown('SIGINT'))
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGHUP',  () => shutdown('SIGHUP'))
 
-start()
+startProduction()

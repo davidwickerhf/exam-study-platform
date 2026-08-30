@@ -30,7 +30,7 @@ import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
-import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext } from './lib/calendar-feed.mjs'
+import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
@@ -41,6 +41,7 @@ import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, ge
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
+import { COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const dataPath = resolve(__dirname, 'data/study-state.json')
@@ -65,11 +66,13 @@ function academicCalendarFor(workspace, reference = academicReferenceFor(workspa
 }
 
 function calendarConnectionSummary(workspace, events, link, date) {
-  const academicContext = resolveAcademicTimeContext(academicCalendarFor(workspace), { date })
+  const institutionCalendar = academicCalendarFor(workspace)
+  const academicContext = resolveAcademicTimeContext(institutionCalendar, { date })
   return {
     ...calendarChangeSet(workspace, events, link),
     academicContext,
-    periodCourses: calendarPeriodCourseEvidence(workspace, [{ link, events }], academicContext)
+    periodCourses: calendarPeriodCourseEvidence(workspace, [{ link, events }], academicContext),
+    examWindow: resolveExamWindow(institutionCalendar, academicContext, { date })
   }
 }
 
@@ -1166,6 +1169,7 @@ async function analyseAcademicIntake(body) {
     'In Maastricht academic overviews, the prefixes YYYY-YYYY-100/200/400/500 identify the academic year and teaching period; the following BCS line is the course code for that row. A dash under Current courses means upcoming, while rows under Failed courses are failed and rows under Completed courses are passed. NG has no numeric grade; keep grade null.',
     'A transcript describes history, not the current curriculum. Do not infer that an old course is currently selected, and do not use an old course order, year level, period, title, or credit value to rewrite today’s programme.',
     'If a course code changed between curriculum years, return separate course records. If the code stayed the same but the title or credits changed, group attempts by code and add a warning describing the historical variation.',
+    'For every attempt, preserve the course facts that applied at that sitting when known: courseCode, courseName, ects, yearLevel, period, and curriculumVersion. These are historical snapshots; a later official curriculum may move or rename the canonical course without invalidating them.',
     'Use ISO YYYY-MM-DD for explicit dates. If only a month, semester, or vague date is given, leave examDate null and preserve the wording in notes.',
     'For transcript grades, use the numeric value as printed on a 0–100 scale. Do not convert grading systems. If the scale is unclear, leave grade null.',
     'Only set an attempt to passed or failed when the source explicitly supports it. Use upcoming for explicitly enrolled or scheduled courses.',
@@ -3197,6 +3201,45 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    if (url.pathname === '/api/course-content-requests' && req.method === 'GET') {
+      const courseId = url.searchParams.get('courseId') || null
+      send(res, 200, JSON.stringify({ requests: await listOwnCourseContentRequests({ courseId }), stages: COURSE_INGESTION_STAGES, categories: COURSE_REQUEST_CATEGORIES }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/course-content-requests' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 42 * 1024 * 1024)
+        const { workspace } = await readAcademicState()
+        const academicCourseId = String(body?.academicCourseId || '')
+        const course = workspace.courses.find((candidate) => candidate.id === academicCourseId)
+        if (!course) { send(res, 404, JSON.stringify({ error: 'This course is not in your current academic record.' })); return }
+        const result = await createCourseContentRequest({
+          ...body,
+          programmeId: workspace.id,
+          academicCourseId: course.id,
+          courseCode: course.code,
+          courseName: course.name,
+          academicYear: body?.academicYear || workspace.profile?.academicYear || '',
+          period: body?.period || course.period || ''
+        }, { requesterEmail: currentAuth().email })
+        send(res, result.created ? 201 : 200, JSON.stringify({ ...result, stages: COURSE_INGESTION_STAGES }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /too large|larger than|limited to/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    const contentRequestFileMatch = url.pathname.match(/^\/api\/course-content-requests\/([^/]+)\/files$/)
+    if (contentRequestFileMatch && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 1024 * 1024)
+        const result = await uploadCourseContentRequestFileChunk(decodeURIComponent(contentRequestFileMatch[1]), body)
+        send(res, result.complete ? 201 : 202, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /too large|larger than|limited to/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+
     if (url.pathname === '/api/account' && req.method === 'DELETE') {
       const body = await readBody(req, 1024 * 1024)
       if (body?.confirmation !== 'DELETE') {
@@ -3297,6 +3340,21 @@ const server = createServer(async (req, res) => {
         const ok = (payload, status = 200) => send(res, status, JSON.stringify(payload), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
         const seg = url.pathname.split('/').filter(Boolean).slice(2).map(decodeURIComponent) // after /api/admin
         if (seg[0] === 'status' && req.method === 'GET') return ok(await admin.adminStatus())
+        if (seg[0] === 'content-requests') {
+          if (seg.length === 1 && req.method === 'GET') return ok({ requests: await listAdminCourseContentRequests(), stages: COURSE_INGESTION_STAGES, categories: COURSE_REQUEST_CATEGORIES })
+          if (seg.length === 2 && req.method === 'PUT') return ok(await updateCourseContentRequest(seg[1], body))
+          if (seg.length === 4 && seg[2] === 'files' && req.method === 'GET') {
+            const file = await getCourseContentRequestFile(seg[1], seg[3])
+            if (!file) throw new admin.AdminError('Unknown request attachment.', 404)
+            const filename = file.name.replace(/[\r\n"]/g, '_')
+            return send(res, 200, file.data, file.type || 'application/octet-stream', {
+              'Cache-Control': 'private, no-store',
+              'Content-Length': String(file.data.length),
+              'Content-Disposition': `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+              'X-Content-Type-Options': 'nosniff'
+            })
+          }
+        }
         if (seg[0] === 'programmes') {
           // Membership administration: global admins for any programme, programme
           // admins for their own. Roles: member | admin.

@@ -186,6 +186,12 @@ CREATE TABLE IF NOT EXISTS academic_attempts (
   exam_date DATE,
   grade NUMERIC(5, 2),
   status TEXT NOT NULL DEFAULT 'upcoming',
+  course_code TEXT NOT NULL DEFAULT '',
+  course_name TEXT NOT NULL DEFAULT '',
+  ects NUMERIC(6, 2),
+  year_level TEXT NOT NULL DEFAULT '',
+  period TEXT NOT NULL DEFAULT '',
+  curriculum_version TEXT NOT NULL DEFAULT '',
   PRIMARY KEY (user_id, programme_id, course_id, id),
   FOREIGN KEY (user_id, programme_id, course_id) REFERENCES academic_courses (user_id, programme_id, id) ON DELETE CASCADE
 );

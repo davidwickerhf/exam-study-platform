@@ -1,5 +1,12 @@
 # Editorial content pipeline
 
+Student requests for unsupported courses enter through the private course
+intake inbox. Follow `docs/COURSE_INGESTION_PLAYBOOK.md` before adding any
+submitted source to the editorial tree. The playbook defines curriculum-edition
+mapping, retrieval coverage, study-page and exercise authoring, rights review,
+quality gates, and ongoing maintenance; this document defines the release
+mechanics after those gates pass.
+
 ## Authoring model
 
 Course structure lives in `data/study-state.template.json`. Material files live

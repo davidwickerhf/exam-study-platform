@@ -53,7 +53,7 @@ public site.
 
 ## Database
 
-Apply the migrations in `db/` (001–007; `user_documents` now only holds the local-mode migration marker — every personal record has its own table) with:
+Apply the migrations in `db/` (001–015; `user_documents` now only holds the local-mode migration marker — every personal record has its own table) with:
 
 ```bash
 DATABASE_URL='postgresql://...' npm run db:migrate
@@ -113,7 +113,9 @@ the target reported by `vercel domains inspect study.wicker.life --scope wickerl
 1. Create a Neon project and copy its pooled `DATABASE_URL`.
 2. Create a Clerk application and copy both API keys.
 3. Configure the variables from `.env.example` in the hosting platform.
-4. Run `npm run db:migrate` once against Neon.
+4. Run `npm run db:migrate` once against Neon. The production runner also
+   applies the same idempotent migrations under a database advisory lock before
+   accepting traffic, so deploys cannot start against an older schema.
 5. Publish the reviewed corpus with `npm run content:publish`.
 6. Deploy to Vercel with `Dockerfile.vercel`, or build the standard Dockerfile
    on another Node-capable container host. `.dockerignore` excludes `content/`;

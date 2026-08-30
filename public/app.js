@@ -45,6 +45,24 @@ const PLANNING_TABS = [
   ['settings', 'Settings']
 ]
 const PLANNING_TAB_ALIASES = { curriculum: 'courses', credits: 'progress', requirements: 'progress' }
+const COURSE_REQUEST_CATEGORY_OPTIONS = [
+  ['slides', 'Lecture slides'],
+  ['syllabus', 'Syllabus or course manual'],
+  ['exams', 'Past or mock exams'],
+  ['practice', 'Practice or tutorial sheets'],
+  ['reading', 'Readings and reference links'],
+  ['other', 'Other course material']
+]
+const COURSE_INGESTION_STAGE_FALLBACK = [
+  ['collection', 'Collect & verify'],
+  ['extraction', 'Extract & normalise'],
+  ['mapping', 'Map the course'],
+  ['retrieval', 'Build retrieval index'],
+  ['authoring', 'Create study pages'],
+  ['exercises', 'Create practice'],
+  ['quality', 'Quality review'],
+  ['publication', 'Publish & maintain']
+]
 let state = null
 // Route tables are declared before parseRoute runs on cold load.
 const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
@@ -66,6 +84,21 @@ let planningExpandedCourse = null
 let planningFocusApplied = null
 let planningExpandedEvent = null
 let planningExpandedGate = null
+const courseRequestState = {
+  courseId: null,
+  requests: null,
+  stages: [],
+  categories: [],
+  loading: false,
+  sending: false,
+  uploadProgress: '',
+  error: null,
+  submitted: null,
+  files: [],
+  selectedCategories: new Set(),
+  urls: '',
+  notes: ''
+}
 const planningIntake = {
   step: 'source',
   files: [],
@@ -837,6 +870,9 @@ function parseRoute() {
     const focus = parts[2] ? decodeURIComponent(parts[2]) : null
     return { page: 'planning', tab, focus }
   }
+  if (parts[0] === 'course-request' && parts[1]) {
+    return { page: 'course-request', academicCourseId: decodeURIComponent(parts[1]) }
+  }
   if (parts[0] === 'course') {
     return {
       page: 'course',
@@ -1245,6 +1281,10 @@ function computeTitle() {
     const label = route.tab === 'overview' ? 'Academic plan' : (PLANNING_TABS.find(([id]) => id === route.tab)?.[1] || 'Academic planning')
     return `${label} — Academic planning${suffix}`
   }
+  if (route.page === 'course-request') {
+    const course = academicsData?.workspace?.courses?.find((candidate) => candidate.id === route.academicCourseId)
+    return course ? `${course.code || course.name} material request${suffix}` : 'Course material request' + suffix
+  }
   if (route.page === 'course') {
     const c = state.courses.find((c) => c.id === route.id)
     return c ? `${c.code}${c.shortName ? ' ' + c.shortName : ''}${suffix}` : 'Course' + suffix
@@ -1435,6 +1475,7 @@ function routeView() {
   if (route.page === 'practice') return renderPracticeShell()
   if (route.page === 'account') return renderAccountPage()
   if (route.page === 'planning') return renderAcademicPlanningPage()
+  if (route.page === 'course-request') return renderCourseRequestPage()
   if (route.page === 'course') return renderCourse(route.id)
   return renderDashboard()
 }
@@ -1515,7 +1556,7 @@ function academicStudyLink(course, label = 'Open course materials') {
   const editorial = editorialCourseForAcademic(course)
   return editorial
     ? `<a class="planning-study-link" href="#/course/${encodeURIComponent(editorial.id)}">${uiIcon('chevronRight')}<span>${escapeHtml(label)}</span></a>`
-    : '<span class="planning-study-unlinked">No matching study material</span>'
+    : `<a class="planning-study-link is-request" href="#/course-request/${encodeURIComponent(course.id)}">${uiIcon('chevronRight')}<span>Request course material</span></a>`
 }
 
 function renderCoursePlanningContext(course) {
@@ -2068,6 +2109,7 @@ function renderPlanningCourseEditor(course, workspace) {
         <label><span>Exam date</span><input name="examDate" type="date" value="${escapeHtml(attempt.examDate || '')}"></label>
         <label><span>Status</span><select name="status">${['upcoming', 'passed', 'failed', 'no-show'].map((value) => `<option value="${value}" ${attempt.status === value ? 'selected' : ''}>${value === 'no-show' ? 'No-show' : value[0].toUpperCase() + value.slice(1)}</option>`).join('')}</select></label>
         <label><span>Grade</span><input name="grade" type="number" step="0.01" value="${attempt.grade ?? ''}" placeholder="—"></label>
+        ${(() => { const context = [attempt.curriculumVersion || attempt.academicYear, attempt.yearLevel, attempt.period, attempt.ects != null ? `${attempt.ects} ECTS` : null, attempt.courseCode && attempt.courseCode !== course.code ? attempt.courseCode : null, attempt.courseName && attempt.courseName !== course.name ? attempt.courseName : null].filter(Boolean); return context.length ? `<p class="pl-attempt-context"><strong>Recorded context</strong><span>${context.map(escapeHtml).join(' · ')}</span></p>` : '' })()}
         <div class="pl-attempt-actions"><button class="btn btn-secondary btn-sm" type="submit">Save</button><button class="pl-danger-link" type="button" data-academic-attempt-remove="${escapeHtml(course.id)}/${escapeHtml(attempt.id)}" title="Remove attempt">${uiIcon('trash')}<span class="sr-only">Remove attempt</span></button></div>
       </form>`).join('')}
       <form class="pl-attempt is-new" data-academic-attempt-add="${escapeHtml(course.id)}">
@@ -2134,7 +2176,7 @@ function gateProgress(gate, workspace) {
 
 // ----- Documents: supporting files at any time → reviewable change set -----
 const DOCUMENT_KINDS = [['auto', 'Detect automatically'], ['academic-overview', 'Academic overview / study progress'], ['transcript', 'Transcript or grade list'], ['exam-schedule', 'Exam schedule'], ['timetable', 'Timetable or calendar'], ['academic-calendar', 'Academic calendar'], ['curriculum', 'Curriculum or handbook']]
-const CHANGE_GROUPS = [['profile-conflict', 'Programme conflicts'], ['course-conflict', 'Course conflicts'], ['attempt-conflict', 'Schedule and result conflicts'], ['result', 'Results and grades'], ['exam-date', 'Exam dates'], ['new-course', 'Courses not in your plan'], ['course-detail', 'Course details'], ['event', 'Dates and events'], ['profile', 'Programme details']]
+const CHANGE_GROUPS = [['profile-conflict', 'Programme conflicts'], ['course-conflict', 'Course conflicts'], ['attempt-conflict', 'Schedule and result conflicts'], ['enrollment', 'Current enrolment'], ['result', 'Results and grades'], ['exam-date', 'Upcoming attempts'], ['history', 'Academic history'], ['attempt-context', 'Historical course context'], ['new-course', 'Courses needing a decision'], ['course-detail', 'Current course details'], ['event', 'Dates and events'], ['profile', 'Programme details']]
 const planningDocuments = { files: [], description: '', kind: 'auto', processing: false, analysing: false, error: null, result: null, selected: new Set(), applying: false, applied: null, calendarUrl: '', calendarLabel: '', calendarBusy: false, calendarError: null, calendarPreview: null, calendarNotice: null }
 
 async function addDocumentSources(fileList) {
@@ -2159,7 +2201,9 @@ function renderChangeSet(result, { selectable = true } = {}) {
   return CHANGE_GROUPS.map(([kind, label]) => {
     const list = changes.filter((change) => change.kind === kind)
     if (!list.length) return ''
-    return `<section class="doc-group"><header><h3>${label}</h3><span>${list.length}</span></header><ul class="doc-changes">${list.map((change) => `<li><label><input type="checkbox" data-doc-toggle="${escapeHtml(change.id)}" ${planningDocuments.selected.has(change.id) ? 'checked' : ''} ${selectable ? '' : 'disabled'}><span><strong>${escapeHtml(change.label)}</strong><small>${escapeHtml(change.detail || '')}${change.requiresDecision ? ' <em class="doc-decision">Decision needed</em>' : ''}</small></span></label></li>`).join('')}</ul></section>`
+    const open = list.length <= 6 || list.some((change) => change.requiresDecision) || kind === 'enrollment'
+    const selected = list.filter((change) => planningDocuments.selected.has(change.id)).length
+    return `<details class="doc-group" ${open ? 'open' : ''}><summary><strong>${label}</strong><span>${selected} selected · ${list.length}</span></summary><ul class="doc-changes">${list.map((change) => `<li><label><input type="checkbox" data-doc-toggle="${escapeHtml(change.id)}" ${planningDocuments.selected.has(change.id) ? 'checked' : ''} ${selectable ? '' : 'disabled'}><span><strong>${escapeHtml(change.label)}</strong><small>${escapeHtml(change.detail || '')}${change.requiresDecision ? ' <em class="doc-decision">Decision needed</em>' : ''}</small></span></label></li>`).join('')}</ul></details>`
   }).join('')
 }
 
@@ -2170,6 +2214,7 @@ function mergeReconciliations(left, right) {
   const matched = unique([...(left.matched || []), ...(right.matched || [])], (item) => item.courseId || item.key)
   const matchedIds = new Set(matched.map((item) => item.courseId).filter(Boolean))
   const unselected = unique([...(left.unselected || []), ...(right.unselected || [])], (item) => item.code || item.key || item.name)
+  const historical = unique([...(left.historical || []), ...(right.historical || [])], (item) => item.code || item.key || item.name)
   const missing = unique([...(left.missing || []), ...(right.missing || [])], (item) => item.courseId || item.code || item.name).filter((item) => !matchedIds.has(item.courseId))
   const conflicts = unique([...(left.conflicts || []), ...(right.conflicts || [])], (item) => item.id || item.label)
   const observed = matched.length + unselected.length
@@ -2180,6 +2225,7 @@ function mergeReconciliations(left, right) {
     coverage: { observed, matched: matched.length, selectedInScope: Math.max(Number(left.coverage?.selectedInScope) || 0, Number(right.coverage?.selectedInScope) || 0), missing: missing.length },
     matched,
     unselected,
+    historical,
     missing,
     conflicts
   }
@@ -2206,15 +2252,17 @@ function renderReconciliation(result) {
   const unselected = reconciliation.unselected || []
   const context = result?.academicContext || null
   const periodCourses = result?.periodCourses || []
+  const examWindow = result?.examWindow || null
   const missing = reconciliation.missing || []
   const conflicts = reconciliation.conflicts || []
   if (reconciliation.status === 'aligned') return `<div class="doc-reconciliation is-aligned" role="status">${uiIcon('check')}<div><strong>Course cross-check complete</strong><p>All ${matched.length} course reference${matched.length === 1 ? '' : 's'} in this source match your selected courses.</p></div></div>`
   const issueCount = unselected.length + missing.length + conflicts.length
   const reviewedLabel = `${matched.length} matched · ${issueCount} to review`
-  return `<section class="doc-reconciliation is-review" role="${unselected.length || conflicts.length ? 'alert' : 'status'}" aria-label="Course cross-check">
-    <header>${uiIcon('alert')}<div><strong>Course cross-check needs review</strong><p>${reviewedLabel}. Your selected courses remain unchanged until you approve a proposed change.</p></div></header>
+  const currentEnrollment = result?.kind === 'academic-overview' && unselected.length && !conflicts.length
+  return `<section class="doc-reconciliation is-review" role="${conflicts.length ? 'alert' : 'status'}" aria-label="Course cross-check">
+    <header>${uiIcon('alert')}<div><strong>${currentEnrollment ? 'Current enrolment found' : 'Course cross-check needs review'}</strong><p>${reviewedLabel}. ${currentEnrollment ? 'The document explicitly lists these as current; their additions are prepared below, and you can untick anything that is not yours.' : 'Your selected courses remain unchanged until you approve a proposed change.'}</p></div></header>
     <div class="doc-reconciliation-groups">
-      ${unselected.length ? `<div><h3>Found, but not selected</h3><ul>${unselected.map((item) => `<li><span><strong>${escapeHtml(item.code || item.name)}</strong>${item.code && item.name && item.name !== item.code ? `<small>${escapeHtml(item.name)}</small>` : ''}</span>${item.changeId ? `<button type="button" class="pl-link pl-link-button" data-doc-jump="${escapeHtml(item.changeId)}">Review choice</button>` : ''}</li>`).join('')}</ul><p>Select its “Add to selected courses” change only if it belongs in your plan.</p></div>` : ''}
+      ${unselected.length ? `<div><h3>${currentEnrollment ? 'Listed as current' : 'Found, but not selected'}</h3><ul>${unselected.map((item) => `<li><span><strong>${escapeHtml(item.code || item.name)}</strong>${item.code && item.name && item.name !== item.code ? `<small>${escapeHtml(item.name)}</small>` : ''}</span>${item.changeId ? `<button type="button" class="pl-link pl-link-button" data-doc-jump="${escapeHtml(item.changeId)}">Review</button>` : ''}</li>`).join('')}</ul><p>${currentEnrollment ? 'These are current-enrolment evidence, not programme conflicts.' : 'Select its “Add to selected courses” change only if it belongs in your plan.'}</p></div>` : ''}
       ${missing.length ? `<div><h3>Selected, but not found here</h3><ul>${missing.map((item) => `<li><span><strong>${escapeHtml(item.code || item.name)}</strong>${item.code && item.name ? `<small>${escapeHtml(item.name)}</small>` : ''}</span></li>`).join('')}</ul><p>This does not remove anything; a timetable or transcript may cover only part of your programme.</p></div>` : ''}
       ${conflicts.length ? `<div><h3>Facts that disagree</h3><ul>${conflicts.map((item) => `<li><span><strong>${escapeHtml(item.label)}</strong></span><button type="button" class="pl-link pl-link-button" data-doc-jump="${escapeHtml(item.id)}">Review choice</button></li>`).join('')}</ul><p>Conflict choices start unchecked so the existing plan wins by default.</p></div>` : ''}
     </div>
@@ -2240,7 +2288,7 @@ function renderCalendarFeedSummary(result, { connected = false, file = false } =
       <div><dt>Date range</dt><dd>${escapeHtml(range)}</dd></div>
       <div><dt>Course match</dt><dd>${matched ? `${matched} selected course${matched === 1 ? '' : 's'}` : 'No selected courses found'}</dd></div>
     </dl>
-    ${context ? `<div class="calendar-feed-period"><strong>${escapeHtml(context.period)}${context.academicYear ? ` · ${escapeHtml(context.academicYear)}` : ''}</strong><p>${periodCourses.length ? `${periodCourses.length} course${periodCourses.length === 1 ? '' : 's'} appear in this timetable window. This is current-period evidence, not a complete curriculum.` : 'No course appointments were found inside the current academic-period window.'}</p>${periodCourses.length ? `<ul>${periodCourses.slice(0, 10).map((item) => `<li class="${item.selected ? 'is-selected' : 'is-unselected'}">${escapeHtml(item.code)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+    ${context ? `<div class="calendar-feed-period"><strong>${escapeHtml(context.period)}${context.academicYear ? ` · ${escapeHtml(context.academicYear)}` : ''}</strong><p>${periodCourses.length ? `${periodCourses.filter((item) => item.active).length || periodCourses.filter((item) => item.selected).length} active course${(periodCourses.filter((item) => item.active).length || periodCourses.filter((item) => item.selected).length) === 1 ? '' : 's'} are supported by this timetable window.` : 'No course appointments were found inside the current academic-period window.'}${examWindow ? ` Their exams fall in ${escapeHtml(examWindow.title)}, ${academicDate(examWindow.start)}${examWindow.end !== examWindow.start ? `–${academicDate(examWindow.end)}` : ''}.` : ''}</p>${periodCourses.length ? `<ul>${periodCourses.slice(0, 10).map((item) => `<li class="${item.active ? 'is-selected' : 'is-unselected'}">${escapeHtml(item.code)}</li>`).join('')}</ul>` : ''}</div>` : ''}
     ${unselected.length ? `<div class="calendar-feed-mismatch" role="status"><div>${uiIcon('alert')}<span><strong>${unselected.length} course code${unselected.length === 1 ? '' : 's'} ${unselected.length === 1 ? 'is' : 'are'} not in your plan</strong><small>These appointments stay visible, but the feed will not change your course choices.</small></span></div><ul>${unselected.slice(0, 8).map((item) => `<li>${escapeHtml(item.code || item.name)}</li>`).join('')}${unselected.length > 8 ? `<li>+${unselected.length - 8} more</li>` : ''}</ul></div>` : `<p class="calendar-feed-aligned">${uiIcon('check')} ${matched ? 'Every course code found in this feed matches your selected plan.' : 'No extra course codes were detected in this feed.'}</p>`}
     <p class="calendar-feed-foot">No appointments are copied into Documents or your academic record. Removing the connection removes its events from Calendar.</p>
   </section>`
@@ -2707,7 +2755,7 @@ function renderAccountApi() {
 }
 
 // ----- Admin: editorial uploads from the web app ---------------------------
-const adminPanel = { status: null, statusError: null, loading: false, programmeId: '', calendarSource: 'file', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null, courseId: '', materials: null, materialFile: null, materialFolder: '', newFolder: '', materialName: '', asChapter: false, chapterId: '', chapterName: '', materialBusy: false, materialResult: null, materialError: null }
+const adminPanel = { status: null, statusError: null, loading: false, programmeId: '', calendarSource: 'file', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null, courseId: '', materials: null, materialFile: null, materialFolder: '', newFolder: '', materialName: '', asChapter: false, chapterId: '', chapterName: '', materialBusy: false, materialResult: null, materialError: null, requests: null, requestsLoading: false, requestsError: null, requestBusyId: null, requestSavedId: null }
 async function loadAdminStatus(force = false) {
   if ((adminPanel.status && !force) || adminPanel.loading) return
   adminPanel.loading = true
@@ -2720,6 +2768,14 @@ async function loadAdminMaterials() {
   adminPanel.materials = { loading: true }
   try { adminPanel.materials = await fetchJson('/api/materials') } catch (error) { adminPanel.materials = { error: error.message, courses: [] } }
   render()
+}
+async function loadAdminRequests(force = false) {
+  if (adminPanel.requestsLoading || (adminPanel.requests && !force)) return
+  adminPanel.requestsLoading = true
+  adminPanel.requestsError = null
+  try { adminPanel.requests = await fetchJson('/api/admin/content-requests') }
+  catch (error) { adminPanel.requestsError = error.message }
+  finally { adminPanel.requestsLoading = false; render() }
 }
 function adminCourseFolders(courseId) {
   const course = (adminPanel.materials?.courses || []).find((item) => item.id === courseId)
@@ -2738,10 +2794,42 @@ function adminMaterialPath() {
   return folder ? `${folder.replace(/\/+$/, '')}/${name}` : name
 }
 
+function renderAdminRequestInbox() {
+  const requests = adminPanel.requests?.requests || []
+  const stages = adminPanel.requests?.stages || COURSE_INGESTION_STAGE_FALLBACK.map(([id, label]) => ({ id, label }))
+  const categoryLabels = new Map((adminPanel.requests?.categories || COURSE_REQUEST_CATEGORY_OPTIONS).map(([id, label]) => [id, label]))
+  const open = requests.filter((request) => !['published', 'declined'].includes(request.status)).length
+  return `<section class="panel adm admin-request-inbox">
+    <div class="panel-top"><div><h2>Course intake inbox</h2><p>Student evidence enters the standard source-grounded production pipeline. Nothing becomes public until rights, coverage, citations, exercises, and quality have been reviewed.</p></div>${requests.length ? `<span class="panel-stat"><strong>${open}</strong><small>open of ${requests.length}</small></span>` : ''}</div>
+    ${adminPanel.requestsError ? `<div class="settings-error" role="alert"><strong>Requests could not be loaded.</strong><p>${escapeHtml(adminPanel.requestsError)}</p><button type="button" class="btn btn-secondary btn-sm" data-admin-requests-retry>Try again</button></div>` : adminPanel.requestsLoading && !adminPanel.requests ? '<div class="settings-loading"><span></span><p>Loading course requests…</p></div>' : !requests.length ? '<div class="home-empty"><p>No course requests yet. Courses without maintained content will send material here.</p></div>' : `<div class="admin-request-list">${requests.map((request) => {
+      const currentStage = stages.find((stage) => stage.id === request.pipelineStage)
+      const isOpen = request.status === 'submitted'
+      return `<details class="admin-request" ${isOpen ? 'open' : ''}>
+        <summary><span class="admin-request-course"><strong>${escapeHtml(request.courseCode || 'Course')} · ${escapeHtml(request.courseName)}</strong><small>${escapeHtml([request.period, request.academicYear].filter(Boolean).join(' · ') || 'Academic context not supplied')} · ${request.files.length} file${request.files.length === 1 ? '' : 's'}</small></span><span class="admin-request-stage"><small>${escapeHtml(currentStage?.label || request.pipelineStage)}</small><span class="pl-pill is-${request.status === 'published' ? 'ok' : request.status === 'declined' ? 'bad' : 'pending'}">${requestStatusLabel(request.status)}</span></span>${uiIcon('chevronDown')}</summary>
+        <div class="admin-request-body">
+          <div class="admin-request-sources">
+            <dl><div><dt>Requested by</dt><dd>${escapeHtml(request.requesterEmail || request.userId)}</dd></div><div><dt>Submitted</dt><dd>${relativeTime(request.createdAt)}</dd></div><div><dt>Sources</dt><dd>${request.categories.map((id) => escapeHtml(categoryLabels.get(id) || id)).join(', ') || 'Not categorised'}</dd></div></dl>
+            ${request.notes ? `<div class="admin-request-note"><strong>Student context</strong><p>${escapeHtml(request.notes).replace(/\n/g, '<br>')}</p></div>` : ''}
+            ${request.urls.length ? `<div class="admin-request-links"><strong>Links</strong><ul>${request.urls.map((url) => `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a></li>`).join('')}</ul></div>` : ''}
+            ${request.files.length ? `<div class="admin-request-files"><strong>Private source files</strong><ul>${request.files.map((file) => `<li>${uiIcon('file')}<span><b>${escapeHtml(file.name)}</b><small>${formatBytes(file.size)}</small></span><a class="btn btn-secondary btn-sm" href="/api/admin/content-requests/${encodeURIComponent(request.id)}/files/${encodeURIComponent(file.id)}">Download</a></li>`).join('')}</ul></div>` : ''}
+          </div>
+          <form class="admin-request-controls" data-admin-request-form="${escapeHtml(request.id)}">
+            <label class="adm-field"><span>Workflow stage</span><select name="pipelineStage">${stages.map((stage) => `<option value="${escapeHtml(stage.id)}" ${stage.id === request.pipelineStage ? 'selected' : ''}>${escapeHtml(stage.label)}</option>`).join('')}</select></label>
+            <label class="adm-field"><span>Status</span><select name="status">${['submitted', 'in-progress', 'review', 'published', 'declined'].map((status) => `<option value="${status}" ${status === request.status ? 'selected' : ''}>${requestStatusLabel(status)}</option>`).join('')}</select></label>
+            <label class="adm-field"><span>Internal production note</span><textarea name="adminNote" rows="3" placeholder="Rights, missing sources, QA findings, publication release…">${escapeHtml(request.adminNote || '')}</textarea></label>
+            <div class="adm-foot"><a class="pl-link" href="/docs#course-ingestion" target="_blank" rel="noopener">Open ingestion playbook</a><button type="submit" class="btn btn-primary btn-sm" ${adminPanel.requestBusyId === request.id ? 'disabled' : ''}>${adminPanel.requestBusyId === request.id ? 'Saving…' : adminPanel.requestSavedId === request.id ? 'Saved' : 'Save workflow'}</button></div>
+          </form>
+        </div>
+      </details>`
+    }).join('')}</div>`}
+  </section>`
+}
+
 function renderAccountAdmin() {
   if (!adminPanel.status && !adminPanel.statusError && !adminPanel.loading) loadAdminStatus()
   if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
   if (!adminPanel.materials) queueMicrotask(() => loadAdminMaterials())
+  if (!adminPanel.requests && !adminPanel.requestsLoading && !adminPanel.requestsError) queueMicrotask(() => loadAdminRequests())
   const status = adminPanel.status
   const counts = status?.counts || {}
   const programmes = editorialProgrammesData?.programmes || []
@@ -2761,6 +2849,8 @@ function renderAccountAdmin() {
       <div class="panel-top"><div><h2>Editorial content</h2><p>${status ? (status.writable ? `Active release ${status.releaseId}${status.activatedAt ? ` · activated ${relativeTime(status.activatedAt)}` : ''}. Changes take effect immediately.` : 'This server reads content from files; editorial writes need the hosted database.') : adminPanel.statusError ? escapeHtml(adminPanel.statusError) : 'Loading…'}</p></div><a class="btn btn-secondary btn-sm" href="/docs#admin" target="_blank" rel="noopener">${uiIcon('book')} Admin docs</a></div>
       ${status?.writable ? `<dl class="fact-grid">${stat('Courses', counts.courses)}${stat('Chapters', counts.chapters)}${stat('Materials', counts.materials)}${stat('Questions', counts.questions)}${stat('Flashcards', counts.flashcards)}${stat('Programmes', counts.programmes)}</dl>` : ''}
     </section>
+
+    ${renderAdminRequestInbox()}
 
     <section class="panel adm">
       <div class="panel-top"><div><h2>Institution academic calendar</h2><p>Official dates for a programme — exam periods, registration windows, holidays. Every student on the programme sees them in their calendar and can add them to their plan.</p></div></div>
@@ -2821,6 +2911,38 @@ function readFileAsBase64(file) {
     reader.onerror = () => rejectRead(new Error(`Could not read ${file.name}`))
     reader.readAsDataURL(file)
   })
+}
+
+const COURSE_REQUEST_UPLOAD_CHUNK_BYTES = 512 * 1024
+
+function bufferAsBase64(buffer) {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + 8192, bytes.length)))
+  return btoa(binary)
+}
+
+async function fileSha256(file) {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function uploadCourseRequestFile(requestId, file, fileNumber, fileTotal) {
+  const sha256 = await fileSha256(file)
+  const fileId = sha256
+  const totalChunks = Math.ceil(file.size / COURSE_REQUEST_UPLOAD_CHUNK_BYTES)
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+    courseRequestState.uploadProgress = `Uploading ${fileNumber} of ${fileTotal} · ${Math.round((chunkIndex / totalChunks) * 100)}%`
+    render()
+    const start = chunkIndex * COURSE_REQUEST_UPLOAD_CHUNK_BYTES
+    const base64 = bufferAsBase64(await file.slice(start, Math.min(start + COURSE_REQUEST_UPLOAD_CHUNK_BYTES, file.size)).arrayBuffer())
+    await fetchJson(`/api/course-content-requests/${encodeURIComponent(requestId)}/files`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      timeoutMs: 60_000,
+      body: JSON.stringify({ fileId, name: file.name, type: file.type, size: file.size, sha256, chunkIndex, totalChunks, base64 })
+    })
+  }
 }
 
 function renderAccountUsage() {
@@ -2978,7 +3100,7 @@ function renderAvatar(user, size = 'sm') {
 
 function renderSidebar() {
   const user = currentUser()
-  const active = activeCourses().length
+  const active = currentAcademicCourseEntries().length || activeCourses().length
   const due = (srDueCache?.dueCount || 0) + (mistakeCache?.items?.length || 0)
   const link = (cls, href, label, icon, isActive, count) => `<a class="dash-nav-link ${cls}${isActive ? ' active' : ''}" href="${href}"${isActive ? ' aria-current="page"' : ''}><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>${count ? `<span class="dash-nav-count">${count}</span>` : ''}</a>`
   return `
@@ -2988,7 +3110,7 @@ function renderSidebar() {
       <nav class="dash-nav" aria-label="Primary navigation">
         <span class="dash-nav-group">Study</span>
         ${link('nav-home', '#/', 'Home', uiIcon('home'), route.page === 'dashboard')}
-        ${link('nav-courses', '#/courses', 'Courses', uiIcon('book'), ['courses', 'course', 'chapter', 'mock-exam'].includes(route.page), active || null)}
+        ${link('nav-courses', '#/courses', 'Courses', uiIcon('book'), ['courses', 'course', 'chapter', 'mock-exam', 'course-request'].includes(route.page), active || null)}
         ${link('nav-practice', '#/practice', 'Practice', uiIcon('target'), route.page === 'practice', due || null)}
         <span class="dash-nav-group">Plan</span>
         ${link('nav-planning', '#/planning', 'Planning', uiIcon('chart'), route.page === 'planning' && route.tab !== 'calendar')}
@@ -3188,6 +3310,46 @@ function upcomingExams() {
     .sort((a, b) => a.attempt.examDate.localeCompare(b.attempt.examDate))
 }
 
+function sameAcademicYear(left, right) {
+  return String(left || '').replace(/[–—/]/g, '-').trim() === String(right || '').replace(/[–—/]/g, '-').trim()
+}
+
+// The current-course answer is source-aware: a manual period assignment wins,
+// otherwise it is the intersection of an upcoming academic attempt and events
+// in the timetable's current academic-period window.
+function currentAcademicCourseEntries() {
+  const workspace = academicsData?.workspace
+  if (!workspace?.courses?.length) return []
+  const context = calendarState.data?.academicContext || null
+  const assignments = workspace.planning?.periodAssignments || []
+  const assignment = context ? assignments.find((item) => item.period === context.period && sameAcademicYear(item.academicYear, context.academicYear)) : null
+  let academicCourses = []
+  let source = 'record'
+  if (assignment?.courseIds?.length) {
+    const byId = new Map(workspace.courses.map((course) => [course.id, course]))
+    academicCourses = assignment.courseIds.map((id) => byId.get(id)).filter(Boolean)
+    source = 'manual'
+  } else {
+    const evidence = (calendarState.data?.periodCourses || []).filter((item) => item.active)
+    if (evidence.length) {
+      const byId = new Map(workspace.courses.map((course) => [course.id, course]))
+      const byCode = new Map(workspace.courses.map((course) => [normalizedCourseCode(course.code), course]))
+      academicCourses = evidence.map((item) => byId.get(item.courseId) || byCode.get(normalizedCourseCode(item.code))).filter(Boolean)
+      source = 'cross-referenced'
+    } else {
+      academicCourses = workspace.courses.filter((course) => course.programmeRequirement !== 'historical'
+        && (course.attempts || []).some((attempt) => attempt.status === 'upcoming')
+        && (!context?.period || !course.period || course.period === context.period))
+    }
+  }
+  const seen = new Set()
+  return academicCourses.filter((course) => course && !seen.has(course.id) && seen.add(course.id)).map((academic) => ({
+    academic,
+    editorial: editorialCourseForAcademic(academic),
+    source
+  }))
+}
+
 function nextExamFor(course) {
   return upcomingExams().find((item) => item.editorial?.id === course.id) || null
 }
@@ -3196,7 +3358,27 @@ function ensureHomeData() {
   if (!mistakeCache) loadMistakes().then(() => render())
   if (!srDueCache) loadSrDue().then(() => render())
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
+  if (!calendarState.data && !calendarState.loading && !calendarState.error) queueMicrotask(() => loadCalendarEvents())
   ensureCoverage()
+}
+
+function renderCurrentCourseLedger(entries, examWindow) {
+  if (!entries.length) return renderCourseLedger(activeCourses())
+  return `<div class="ledger current-course-ledger" role="list">${entries.map(({ academic, editorial }) => {
+    const progress = editorial ? courseProgress(editorial) : null
+    const datedExam = (academic.attempts || []).filter((attempt) => attempt.status === 'upcoming' && attempt.examDate).sort((a, b) => a.examDate.localeCompare(b.examDate))[0]
+    const examCell = datedExam
+      ? `<span class="ledger-exam"><strong>${countdownLabel(daysUntil(datedExam.examDate))}</strong><small>${academicDate(datedExam.examDate)} · ${escapeHtml(datedExam.type)}</small></span>`
+      : examWindow ? `<span class="ledger-exam is-editorial"><strong>${escapeHtml(examWindow.title)}</strong><small>${academicDate(examWindow.start)}–${academicDate(examWindow.end)}</small></span>`
+        : '<span class="ledger-exam is-none"><strong>Exam date pending</strong><small>Current course</small></span>'
+    const href = editorial ? `#/course/${encodeURIComponent(editorial.id)}` : `#/course-request/${encodeURIComponent(academic.id)}`
+    return `<a class="ledger-row${editorial ? '' : ' is-missing-content'}" role="listitem" href="${href}">
+      <span class="ledger-code">${escapeHtml(academic.code || 'Course')}<em>${editorial ? escapeHtml(editorial.shortName || '') : 'Current'}</em></span>
+      <span class="ledger-name"><strong>${escapeHtml(academic.name)}</strong><small>${editorial ? `${progress.done} of ${progress.total} chapters read` : 'Course recognised · study content not available yet'}</small></span>
+      ${examCell}
+      ${editorial ? `<span class="ledger-progress"><i><b style="width:${progress.masteryPct}%"></b></i><span>${progress.masteryPct}%</span></span>` : `<span class="ledger-progress is-request"><span>Request material</span>${uiIcon('chevronRight')}</span>`}
+    </a>`
+  }).join('')}</div>`
 }
 
 function renderCourseLedger(courses, { manage = false } = {}) {
@@ -3290,11 +3472,15 @@ function renderHome() {
   const srDue = srDueCache?.dueCount ?? null
   const srTotal = srDueCache?.totalCards ?? null
   const exams = upcomingExams().slice(0, 4)
+  const currentEntries = currentAcademicCourseEntries()
+  const examWindow = calendarState.data?.examWindow || null
   const recent = recentChapter()
   const courses = activeCourses()
-  const fallback = courses[0]
-  const resumeCourse = recent?.course || fallback
-  const resumeChapter = recent?.chapter || fallback?.chapters?.find((ch) => ch.file?.endsWith('.md'))
+  const currentEditorial = currentEntries.map((entry) => entry.editorial).filter(Boolean)
+  const fallback = currentEditorial[0] || courses[0]
+  const recentIsCurrent = recent && (!currentEntries.length || currentEditorial.some((course) => course.id === recent.course.id))
+  const resumeCourse = recentIsCurrent ? recent.course : fallback
+  const resumeChapter = recentIsCurrent ? recent.chapter : fallback?.chapters?.find((ch) => ch.file?.endsWith('.md'))
   const today = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
   const hasPlan = Boolean(academicsData?.workspace?.courses?.length)
   const soonest = exams[0]
@@ -3305,6 +3491,7 @@ function renderHome() {
   const dueTotal = (srDue || 0) + (mistakeCount || 0)
   const nextLine = soonest
     ? `Next exam ${countdownLabel(soonest.days).toLowerCase()} — ${escapeHtml(soonest.course.code || '')} ${escapeHtml(soonest.course.name)}.`
+    : examWindow && currentEntries.length ? `${currentEntries.length} current course${currentEntries.length === 1 ? '' : 's'} lead into ${escapeHtml(examWindow.title.toLowerCase())}, ${academicDate(examWindow.start)}–${academicDate(examWindow.end)}.`
     : hasPlan ? 'No exam dates recorded yet — add them in Planning and they appear here.' : academicsData ? 'Set up your academic plan to see exam countdowns here.' : 'Loading your plan…'
   const todayLine = dueTotal ? `${dueTotal} item${dueTotal === 1 ? '' : 's'} waiting in your queues.` : srDueCache && mistakeCache ? 'Your queues are clear.' : ''
 
@@ -3318,8 +3505,8 @@ function renderHome() {
 
     <div class="kpi-strip">
       ${kpi('#/calendar', soonest && soonest.days !== null && soonest.days <= 7 ? 'is-danger' : 'is-brand', 'calendar', 'Next exam',
-        soonest ? (soonest.days === null ? '—' : soonest.days < 0 ? 'Today' : `${soonest.days}<small>${soonest.days === 1 ? 'day' : 'days'}</small>`) : '—',
-        soonest ? `${escapeHtml(soonest.course.code || soonest.course.name)} · ${academicDate(soonest.attempt.examDate)}` : hasPlan ? 'No dates recorded' : 'No plan yet')}
+        soonest ? (soonest.days === null ? '—' : soonest.days < 0 ? 'Today' : `${soonest.days}<small>${soonest.days === 1 ? 'day' : 'days'}</small>`) : examWindow ? `${Math.max(0, daysUntil(examWindow.start))}<small>days</small>` : '—',
+        soonest ? `${escapeHtml(soonest.course.code || soonest.course.name)} · ${academicDate(soonest.attempt.examDate)}` : examWindow ? `${escapeHtml(examWindow.title)} · ${currentEntries.length} courses` : hasPlan ? 'No dates recorded' : 'No plan yet')}
       ${kpi('#/practice/flashcards', 'is-brand', 'layers', 'Flashcards due', srDue == null ? '—' : srDue, srTotal == null ? 'Loading…' : srTotal ? `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck` : 'Add cards from any question')}
       ${kpi('#/practice/mistakes', mistakeCount ? 'is-warning' : 'is-success', 'alert', 'Open mistakes', mistakeCount == null ? '—' : mistakeCount, mistakeCount == null ? 'Loading…' : mistakeCount ? 'Scored below 7/10, unresolved' : 'Nothing to fix right now')}
       ${kpi('#/account/profile', streak ? 'is-flame' : 'is-neutral', 'flame', 'Study streak', streak == null ? '—' : `${streak}<small>${streak === 1 ? 'day' : 'days'}</small>`, week == null ? 'Loading…' : `${week} action${week === 1 ? '' : 's'} this week${delta ? ` · ${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)}` : ''}`)}
@@ -3328,7 +3515,7 @@ function renderHome() {
     <div class="home-grid">
       <section class="home-main">
         ${resumeCourse && resumeChapter ? `<a class="resume-card" href="#/course/${resumeCourse.id}/chapter/${resumeChapter.id}">
-          <span class="resume-label">${recent ? 'Continue where you left off' : 'Start reading'}</span>
+          <span class="resume-label">${recentIsCurrent ? 'Continue where you left off' : 'Start reading'}</span>
           <span class="resume-title"><em>${escapeHtml(resumeCourse.code)} · Ch ${escapeHtml(resumeChapter.id)}</em><strong>${escapeHtml(resumeChapter.name)}</strong></span>
           <span class="resume-cta">${uiIcon('play')} Open chapter</span>
         </a>` : ''}
@@ -3339,8 +3526,8 @@ function renderHome() {
           ${activity ? renderActivityFeed(activity) : ''}
         </section>
 
-        <div class="section-head"><h2>Courses</h2><a class="pl-link" href="#/courses">Manage</a></div>
-        ${renderCourseLedger(courses)}
+        <div class="section-head"><div><h2>${calendarState.data?.academicContext?.period || 'Current courses'}</h2>${currentEntries.length ? `<p>${currentEntries.length} active course${currentEntries.length === 1 ? '' : 's'} · ${currentEntries[0].source === 'cross-referenced' ? 'cross-referenced from your academic record and timetable' : currentEntries[0].source === 'manual' ? 'set for this period' : 'from your academic record'}</p>` : ''}</div><a class="pl-link" href="#/planning/courses">Manage</a></div>
+        ${renderCurrentCourseLedger(currentEntries, examWindow)}
       </section>
 
       <aside class="home-aside">
@@ -3349,13 +3536,13 @@ function renderHome() {
           ${exams.length ? `<ol class="exam-list">${exams.map((item) => `<li>
             <span class="exam-days${item.days !== null && item.days <= 7 ? ' is-soon' : ''}"><strong>${item.days === null ? '—' : item.days < 0 ? '0' : item.days}</strong><small>${item.days === 1 ? 'day' : 'days'}</small></span>
             <span class="exam-copy"><strong>${escapeHtml(item.course.code || item.course.name)}</strong><small>${escapeHtml(item.course.name)} · ${academicDate(item.attempt.examDate)}</small></span>
-            ${item.editorial ? `<a class="pl-link" href="#/course/${item.editorial.id}">Study</a>` : '<span class="exam-noteditorial">No material</span>'}
-          </li>`).join('')}</ol>` : `<div class="home-empty">${hasPlan ? '<p>No upcoming exam dates. Add one to a course attempt and it will appear here and on the course page.</p><a class="btn btn-secondary btn-sm" href="#/planning/courses">Add exam dates</a>' : academicsData ? '<p>Set up your academic plan to see exam countdowns, credits, and requirements alongside your study material.</p><a class="btn btn-primary btn-sm" href="#/planning">Set up plan</a>' : '<p>Loading your plan…</p>'}</div>`}
+            ${item.editorial ? `<a class="pl-link" href="#/course/${item.editorial.id}">Study</a>` : `<a class="pl-link" href="#/course-request/${encodeURIComponent(item.course.id)}">Request</a>`}
+          </li>`).join('')}</ol>` : examWindow && currentEntries.length ? `<div class="home-exam-window"><span class="home-exam-window-date"><strong>${academicDate(examWindow.start)}</strong><small>through ${academicDate(examWindow.end)}</small></span><p>Your ${currentEntries.length} current courses are associated with this upcoming exam period. Individual times appear when the timetable publishes them.</p><ul>${currentEntries.map(({ academic }) => `<li>${escapeHtml(academic.code || academic.name)}</li>`).join('')}</ul></div>` : `<div class="home-empty">${hasPlan ? '<p>No upcoming exam dates. Add one to a course attempt and it will appear here and on the course page.</p><a class="btn btn-secondary btn-sm" href="#/planning/courses">Add exam dates</a>' : academicsData ? '<p>Set up your academic plan to see exam countdowns, credits, and requirements alongside your study material.</p><a class="btn btn-primary btn-sm" href="#/planning">Set up plan</a>' : '<p>Loading your plan…</p>'}</div>`}
         </section>
         <section class="panel panel-aside">
           <div class="panel-top"><h2>Quick start</h2></div>
           <nav class="quick-list" aria-label="Quick start">
-            <a href="#/practice"><span class="nav-icon">${uiIcon('target')}</span><span><strong>Mixed practice</strong><small>Every active course, balanced</small></span>${uiIcon('chevronRight')}</a>
+            <a href="#/practice"><span class="nav-icon">${uiIcon('target')}</span><span><strong>Mixed practice</strong><small>Across maintained course material</small></span>${uiIcon('chevronRight')}</a>
             <a href="#/practice/mocks"><span class="nav-icon">${uiIcon('timer')}</span><span><strong>Timed mock</strong><small>A chapter under exam conditions</small></span>${uiIcon('chevronRight')}</a>
             <a href="#/practice/flashcards"><span class="nav-icon">${uiIcon('layers')}</span><span><strong>Flashcards</strong><small>${srTotal ? `${srTotal} in your deck` : 'Build your deck'}</small></span>${uiIcon('chevronRight')}</a>
             ${hasPlan ? `<a href="#/planning/documents"><span class="nav-icon">${uiIcon('upload')}</span><span><strong>Upload a document</strong><small>Transcript, exam schedule, timetable</small></span>${uiIcon('chevronRight')}</a>` : ''}
@@ -3373,6 +3560,97 @@ function renderHome() {
     </div>
     ${renderGenerateAllCoursesCard()}
   `
+}
+
+function resetCourseRequestForm(courseId) {
+  Object.assign(courseRequestState, {
+    courseId,
+    requests: null,
+    stages: [],
+    categories: [],
+    loading: false,
+    sending: false,
+    uploadProgress: '',
+    error: null,
+    submitted: null,
+    files: [],
+    selectedCategories: new Set(),
+    urls: '',
+    notes: ''
+  })
+}
+
+async function loadCourseContentRequests(courseId, force = false) {
+  if (courseRequestState.courseId !== courseId) resetCourseRequestForm(courseId)
+  if (courseRequestState.loading || (courseRequestState.requests && !force)) return
+  courseRequestState.loading = true
+  courseRequestState.error = null
+  render()
+  try {
+    const result = await fetchJson(`/api/course-content-requests?courseId=${encodeURIComponent(courseId)}`)
+    courseRequestState.requests = result.requests || []
+    courseRequestState.stages = result.stages || []
+    courseRequestState.categories = result.categories || []
+  } catch (error) {
+    courseRequestState.error = error.message
+  } finally {
+    courseRequestState.loading = false
+    render()
+  }
+}
+
+function requestStatusLabel(status) {
+  return ({ submitted: 'Submitted', 'in-progress': 'In production', review: 'Quality review', published: 'Published', declined: 'Closed' })[status] || status
+}
+
+function renderIngestionProgress(request) {
+  const stages = courseRequestState.stages.length ? courseRequestState.stages : COURSE_INGESTION_STAGE_FALLBACK.map(([id, label]) => ({ id, label }))
+  const activeIndex = Math.max(0, stages.findIndex((stage) => stage.id === request.pipelineStage))
+  return `<ol class="course-request-progress" aria-label="Course ingestion progress">${stages.map((stage, index) => `<li class="${index < activeIndex || request.status === 'published' ? 'is-complete' : index === activeIndex ? 'is-current' : ''}"><span>${index < activeIndex || request.status === 'published' ? uiIcon('check') : index + 1}</span><div><strong>${escapeHtml(stage.label)}</strong>${stage.detail ? `<small>${escapeHtml(stage.detail)}</small>` : ''}</div></li>`).join('')}</ol>`
+}
+
+function renderCourseRequestPage() {
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
+  if (!calendarState.data && !calendarState.loading && !calendarState.error) queueMicrotask(() => loadCalendarEvents())
+  if (!academicsData) return `<div class="course-request-shell"><div class="settings-loading"><span></span><p>${academicsError ? escapeHtml(academicsError) : 'Loading this course from your academic record…'}</p></div></div>`
+  const course = academicsData.workspace.courses.find((candidate) => candidate.id === route.academicCourseId)
+  if (!course) return `<div class="course-request-shell"><a class="back-link" href="#/">← Home</a><section class="panel course-request-missing"><h1>Course not found</h1><p>This course is no longer in the active academic record.</p><a class="btn btn-secondary" href="#/planning/courses">Review courses</a></section></div>`
+  const editorial = editorialCourseForAcademic(course)
+  if (editorial) return `<div class="course-request-shell"><a class="back-link" href="#/">← Home</a><section class="panel course-request-missing"><span class="course-request-mark is-ready">${uiIcon('check')}</span><p class="page-eyebrow">Material available</p><h1>${escapeHtml(course.code || course.name)}</h1><p>This course now has maintained study content.</p><a class="btn btn-primary" href="#/course/${encodeURIComponent(editorial.id)}">Open course</a></section></div>`
+  if (courseRequestState.courseId !== course.id) resetCourseRequestForm(course.id)
+  if (!courseRequestState.requests && !courseRequestState.loading && !courseRequestState.error) queueMicrotask(() => loadCourseContentRequests(course.id))
+  const currentRequest = (courseRequestState.requests || []).find((request) => !['published', 'declined'].includes(request.status)) || (courseRequestState.requests || [])[0]
+  const categories = courseRequestState.categories.length ? courseRequestState.categories : COURSE_REQUEST_CATEGORY_OPTIONS
+  const examWindow = calendarState.data?.examWindow
+  const fileBytes = courseRequestState.files.reduce((sum, file) => sum + file.size, 0)
+  return `<div class="course-request-shell">
+    <a class="back-link" href="#/">← Home</a>
+    <header class="course-request-hero">
+      <div><p class="page-eyebrow">${escapeHtml(course.period || calendarState.data?.academicContext?.period || 'Current course')}</p><h1>${escapeHtml(course.code || '')}${course.code ? ' · ' : ''}${escapeHtml(course.name)}</h1><p>We recognise this course in your academic record and timetable, but do not have maintained study content for it yet.</p></div>
+      <span class="course-request-mark">${uiIcon('book')}</span>
+    </header>
+    <div class="course-request-layout">
+      <main class="course-request-main">
+        ${courseRequestState.submitted ? `<div class="doc-applied" role="status">${uiIcon('check')}<span><strong>Request received.</strong> The course team has your context and ${courseRequestState.submitted.files.length} source file${courseRequestState.submitted.files.length === 1 ? '' : 's'}.</span></div>` : ''}
+        ${currentRequest ? `<section class="panel course-request-status"><div class="panel-top"><div><p class="page-eyebrow">Request ${escapeHtml(currentRequest.id.slice(0, 8))}</p><h2>${requestStatusLabel(currentRequest.status)}</h2><p>Last updated ${relativeTime(currentRequest.updatedAt)}. Uploaded sources stay private until they pass editorial and rights review.</p></div><span class="pl-pill is-${currentRequest.status === 'published' ? 'ok' : currentRequest.status === 'declined' ? 'bad' : 'pending'}">${requestStatusLabel(currentRequest.status)}</span></div>${renderIngestionProgress(currentRequest)}</section>` : ''}
+        <section class="panel course-request-form-panel">
+          <div class="panel-top"><div><h2>${currentRequest ? 'Add more course evidence' : 'Request this course'}</h2><p>Useful source material makes the finished course more accurate, complete, and aligned with your real assessment.</p></div></div>
+          <form data-course-request-form>
+            <fieldset class="course-request-fieldset"><legend>What can you provide?</legend><div class="course-request-categories">${categories.map(([id, label]) => `<label><input type="checkbox" name="category" value="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" ${courseRequestState.selectedCategories.has(id) ? 'checked' : ''}><span>${uiIcon('check')}<strong>${escapeHtml(label)}</strong></span></label>`).join('')}</div></fieldset>
+            <label class="adm-field"><span>Source links <small>one URL per line</small></span><textarea name="urls" rows="3" data-course-request-urls placeholder="Course page, syllabus, public reading list, shared folder…">${escapeHtml(courseRequestState.urls)}</textarea></label>
+            <div class="adm-field"><span>Files</span>${courseRequestState.files.length ? `<ul class="course-request-files">${courseRequestState.files.map((file, index) => `<li>${uiIcon('file')}<span><strong>${escapeHtml(file.name)}</strong><small>${formatBytes(file.size)}</small></span><button type="button" class="icon-btn" data-course-request-file-remove="${index}" aria-label="Remove ${escapeHtml(file.name)}">${uiIcon('close')}</button></li>`).join('')}</ul>` : ''}<label class="adm-drop course-request-drop" data-course-request-dropzone><input type="file" multiple accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,application/pdf,image/*" aria-label="Upload course materials" data-course-request-files ${courseRequestState.sending ? 'disabled' : ''}>${uiIcon('upload')}<span><strong>${courseRequestState.files.length ? 'Add more files' : 'Drop course material here'}</strong><small>Slides, syllabus, exams, practice sheets, notes, or images · 10 MB each, 30 MB total</small></span><span class="btn btn-secondary btn-sm">Browse</span></label>${fileBytes ? `<small class="course-request-file-total">${formatBytes(fileBytes)} selected</small>` : ''}</div>
+            <label class="adm-field"><span>What would make this course useful?</span><textarea name="notes" rows="5" data-course-request-notes placeholder="Tell us about the exam format, difficult topics, missing context, or which curriculum edition these materials belong to…">${escapeHtml(courseRequestState.notes)}</textarea></label>
+            ${courseRequestState.error ? `<p class="account-delete-error" role="alert">${escapeHtml(courseRequestState.error)}</p>` : ''}
+            <div class="course-request-submit"><p>${uiIcon('shield')} Files are visible to authorised administrators only. Nothing is published automatically.</p><button type="submit" class="btn btn-primary" ${courseRequestState.sending ? 'disabled' : ''}>${courseRequestState.sending ? escapeHtml(courseRequestState.uploadProgress || 'Sending request…') : currentRequest ? 'Add to request' : 'Send request'}</button></div>
+          </form>
+        </section>
+      </main>
+      <aside class="course-request-aside">
+        <section class="panel"><h2>What the course team builds</h2><ol><li>Source-grounded study pages with page-level citations</li><li>Worked examples and topic connections</li><li>Progressive exercises and practice sheets</li><li>Flashcards and representative mock exams</li><li>A reviewed, versioned course that can be updated later</li></ol></section>
+        ${examWindow ? `<section class="panel"><p class="page-eyebrow">Upcoming assessment window</p><h2>${escapeHtml(examWindow.title)}</h2><p>${academicDate(examWindow.start)}–${academicDate(examWindow.end)}</p><small>Individual exam times will appear when they are published by the timetable.</small></section>` : ''}
+      </aside>
+    </div>
+  </div>`
 }
 
 // ----- Calendar page (FullCalendar over the unified feed) ------------------
@@ -3474,13 +3752,15 @@ function renderCalendarPage() {
   const samePeriod = (assignment) => assignment && academicContext && String(assignment.academicYear).replace(/[–—/]/g, '-') === String(academicContext.academicYear).replace(/[–—/]/g, '-') && assignment.period === academicContext.period
   const currentAssignment = assignments.findLast(samePeriod) || null
   const inferredPeriodCourses = data?.periodCourses || []
-  const activeCourseIds = currentAssignment?.courseIds || inferredPeriodCourses.filter((item) => item.selected && item.courseId).map((item) => item.courseId)
+  const inferredActiveCourses = inferredPeriodCourses.filter((item) => item.active && item.courseId)
+  const activeCourseIds = currentAssignment?.courseIds || (inferredActiveCourses.length ? inferredActiveCourses : inferredPeriodCourses.filter((item) => item.selected && item.courseId)).map((item) => item.courseId)
   const activeCourses = activeCourseIds.map((id) => workspace?.courses?.find((course) => course.id === id)).filter(Boolean)
+  const examWindow = data?.examWindow || null
   const contextTiming = academicContext?.phase === 'upcoming'
     ? academicContext.daysUntil === 1 ? 'starts tomorrow' : academicContext.daysUntil === 0 ? 'starts today' : `starts in ${academicContext.daysUntil} days`
     : academicContext?.start ? `${academicDate(academicContext.start)}${academicContext.end && academicContext.end !== academicContext.start ? ` – ${academicDate(academicContext.end)}` : ''}` : 'set manually'
   const contextNotice = workspace ? `<section class="calx-context${calendarState.periodEditor ? ' is-editing' : ''}" aria-label="Current academic period">
-    <div class="calx-context-row">${uiIcon('book')}<div><strong>${academicContext ? `${escapeHtml(academicContext.period)}${academicContext.academicYear ? ` · ${escapeHtml(academicContext.academicYear)}` : ''}` : 'Current study period is not set'}</strong><p>${academicContext ? `${escapeHtml(contextTiming)} · ${currentAssignment ? 'courses set manually' : inferredPeriodCourses.length ? 'courses inferred from the current timetable window' : `based on ${escapeHtml(academicContext.source || 'the academic calendar')}`}` : 'Add an academic calendar or set the period and courses yourself.'}</p>${activeCourses.length ? `<ul>${activeCourses.map((course) => `<li>${escapeHtml(course.code || course.name)}</li>`).join('')}</ul>` : ''}</div><button type="button" class="btn btn-secondary btn-sm" data-cal-period-edit>${calendarState.periodEditor ? 'Close' : activeCourses.length ? 'Set current courses' : 'Set period and courses'}</button></div>
+    <div class="calx-context-row">${uiIcon('book')}<div><strong>${academicContext ? `${escapeHtml(academicContext.period)}${academicContext.academicYear ? ` · ${escapeHtml(academicContext.academicYear)}` : ''}` : 'Current study period is not set'}</strong><p>${academicContext ? `${escapeHtml(contextTiming)} · ${currentAssignment ? `${activeCourses.length} course${activeCourses.length === 1 ? '' : 's'} set manually` : activeCourses.length ? `${activeCourses.length} active course${activeCourses.length === 1 ? '' : 's'} cross-referenced from your academic record and timetable` : inferredPeriodCourses.length ? 'courses inferred from the current timetable window' : `based on ${escapeHtml(academicContext.source || 'the academic calendar')}`}` : 'Add an academic calendar or set the period and courses yourself.'}</p>${examWindow && activeCourses.length ? `<p class="calx-context-exams"><strong>Upcoming exam period</strong> ${escapeHtml(examWindow.title)} · ${academicDate(examWindow.start)}${examWindow.end !== examWindow.start ? `–${academicDate(examWindow.end)}` : ''}</p>` : ''}${activeCourses.length ? `<ul>${activeCourses.map((course) => `<li>${escapeHtml(course.code || course.name)}</li>`).join('')}</ul>` : ''}</div><button type="button" class="btn btn-secondary btn-sm" data-cal-period-edit>${calendarState.periodEditor ? 'Close' : activeCourses.length ? 'Set current courses' : 'Set period and courses'}</button></div>
     ${calendarState.periodEditor ? `<form class="calx-period-editor" data-cal-period-assignment>
       <div class="calx-period-fields"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(academicContext?.academicYear || workspace.profile.academicYear || '')}" maxlength="30" required placeholder="2026–2027"></label><label><span>Period</span><select name="period">${[1, 2, 3, 4, 5, 6].map((period) => `<option value="Period ${period}" ${academicContext?.period === `Period ${period}` ? 'selected' : ''}>Period ${period}</option>`).join('')}</select></label></div>
       <fieldset><legend>Courses in this period</legend><div>${workspace.courses.filter((course) => course.programmeRequirement !== 'historical').map((course) => `<label><input type="checkbox" name="courseIds" value="${escapeHtml(course.id)}" ${activeCourseIds.includes(course.id) ? 'checked' : ''}><span><strong>${escapeHtml(course.code || course.name)}</strong>${course.code ? `<small>${escapeHtml(course.name)}</small>` : ''}</span></label>`).join('')}</div></fieldset>
@@ -8699,6 +8979,76 @@ function bindEvents() {
   window.__autoWrap = autoWrapBareLatex
   window.__renderMarkdown = renderMarkdown
 
+  document.querySelectorAll('[data-course-request-form]').forEach((form) => form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const course = academicsData?.workspace?.courses?.find((candidate) => candidate.id === route.academicCourseId)
+    if (!course || courseRequestState.sending) return
+    courseRequestState.sending = true
+    courseRequestState.uploadProgress = 'Sending request…'
+    courseRequestState.error = null
+    render()
+    try {
+      const files = [...courseRequestState.files]
+      const result = await fetchJson('/api/course-content-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        timeoutMs: 60_000,
+        body: JSON.stringify({
+          academicCourseId: course.id,
+          academicYear: calendarState.data?.academicContext?.academicYear || academicsData.workspace.profile?.academicYear || '',
+          period: calendarState.data?.academicContext?.period || course.period || '',
+          categories: [...courseRequestState.selectedCategories],
+          urls: courseRequestState.urls.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+          notes: courseRequestState.notes,
+          expectsFiles: files.length > 0
+        })
+      })
+      for (let index = 0; index < files.length; index += 1) await uploadCourseRequestFile(result.request.id, files[index], index + 1, files.length)
+      const refreshed = await fetchJson(`/api/course-content-requests?courseId=${encodeURIComponent(course.id)}`)
+      const submitted = (refreshed.requests || []).find((request) => request.id === result.request.id) || result.request
+      courseRequestState.submitted = submitted
+      courseRequestState.requests = refreshed.requests || [submitted, ...(courseRequestState.requests || []).filter((request) => request.id !== submitted.id)]
+      courseRequestState.stages = result.stages || courseRequestState.stages
+      courseRequestState.files = []
+      courseRequestState.selectedCategories = new Set()
+      courseRequestState.urls = ''
+      courseRequestState.notes = ''
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (error) {
+      courseRequestState.error = error.message
+    } finally {
+      courseRequestState.sending = false
+      courseRequestState.uploadProgress = ''
+      render()
+    }
+  }))
+  document.querySelectorAll('[data-course-request-form] input[name="category"]').forEach((input) => input.addEventListener('change', () => {
+    if (input.checked) courseRequestState.selectedCategories.add(input.value)
+    else courseRequestState.selectedCategories.delete(input.value)
+  }))
+  document.querySelectorAll('[data-course-request-urls]').forEach((input) => input.addEventListener('input', () => { courseRequestState.urls = input.value }))
+  document.querySelectorAll('[data-course-request-notes]').forEach((input) => input.addEventListener('input', () => { courseRequestState.notes = input.value }))
+  const addCourseRequestFiles = (files) => {
+    const incoming = [...(files || [])]
+    const merged = [...courseRequestState.files]
+    for (const file of incoming) {
+      if (merged.length >= 8) { courseRequestState.error = 'Attach at most 8 files per submission.'; break }
+      if (file.size > 10 * 1024 * 1024) { courseRequestState.error = `${file.name} is larger than 10 MB.`; continue }
+      if (merged.some((candidate) => candidate.name === file.name && candidate.size === file.size)) continue
+      merged.push(file)
+    }
+    if (merged.reduce((sum, file) => sum + file.size, 0) > 30 * 1024 * 1024) courseRequestState.error = 'Attachments are limited to 30 MB per submission.'
+    else courseRequestState.files = merged
+    render()
+  }
+  document.querySelectorAll('[data-course-request-files]').forEach((input) => input.addEventListener('change', () => { addCourseRequestFiles(input.files); input.value = '' }))
+  document.querySelectorAll('[data-course-request-file-remove]').forEach((button) => button.addEventListener('click', () => { courseRequestState.files.splice(Number(button.dataset.courseRequestFileRemove), 1); courseRequestState.error = null; render() }))
+  document.querySelectorAll('[data-course-request-dropzone]').forEach((zone) => {
+    ;['dragenter', 'dragover'].forEach((type) => zone.addEventListener(type, (event) => { event.preventDefault(); zone.classList.add('is-dragging') }))
+    ;['dragleave', 'drop'].forEach((type) => zone.addEventListener(type, (event) => { event.preventDefault(); zone.classList.remove('is-dragging') }))
+    zone.addEventListener('drop', (event) => addCourseRequestFiles(event.dataTransfer?.files))
+  })
+
   document.querySelectorAll('[data-editorial-programmes-retry]').forEach((button) => button.addEventListener('click', () => loadEditorialProgrammes({ force: true })))
   document.querySelectorAll('[data-planning-programme-use]').forEach((button) => button.addEventListener('click', () => {
     const reference = editorialProgrammeReference(button.dataset.planningProgrammeUse, button.dataset.planningProgrammeVersion)
@@ -8860,6 +9210,8 @@ function bindEvents() {
   }))
   document.querySelectorAll('[data-doc-jump]').forEach((button) => button.addEventListener('click', () => {
     const input = document.querySelector(`[data-doc-toggle="${CSS.escape(button.dataset.docJump)}"]`)
+    const group = input?.closest('details')
+    if (group) group.open = true
     input?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
     input?.focus({ preventScroll: true })
   }))
@@ -9581,6 +9933,33 @@ function bindEvents() {
   })
 
   // ----- Admin tab -----
+  document.querySelectorAll('[data-admin-requests-retry]').forEach((button) => button.addEventListener('click', () => loadAdminRequests(true)))
+  document.querySelectorAll('[data-admin-request-form]').forEach((form) => form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const requestId = form.dataset.adminRequestForm
+    if (!requestId || adminPanel.requestBusyId) return
+    const data = new FormData(form)
+    const payload = { status: data.get('status'), pipelineStage: data.get('pipelineStage'), adminNote: data.get('adminNote') }
+    adminPanel.requestBusyId = requestId
+    adminPanel.requestSavedId = null
+    adminPanel.requestsError = null
+    render()
+    try {
+      const updated = await fetchJson(`/api/admin/content-requests/${encodeURIComponent(requestId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (adminPanel.requests?.requests) adminPanel.requests.requests = adminPanel.requests.requests.map((request) => request.id === requestId ? updated : request)
+      adminPanel.requestSavedId = requestId
+      setTimeout(() => { if (adminPanel.requestSavedId === requestId) { adminPanel.requestSavedId = null; render() } }, 1800)
+    } catch (error) {
+      adminPanel.requestsError = error.message
+    } finally {
+      adminPanel.requestBusyId = null
+      render()
+    }
+  }))
   document.querySelectorAll('[data-admin-programme]').forEach((select) => select.addEventListener('change', () => { adminPanel.programmeId = select.value; render() }))
   document.querySelectorAll('[data-admin-cal-source]').forEach((button) => button.addEventListener('click', () => { adminPanel.calendarSource = button.dataset.adminCalSource; render() }))
   document.querySelectorAll('[data-admin-cal-url]').forEach((input) => input.addEventListener('input', () => { adminPanel.calendarUrl = input.value; document.querySelector('[data-admin-cal-submit]')?.toggleAttribute('disabled', !input.value.trim()) }))

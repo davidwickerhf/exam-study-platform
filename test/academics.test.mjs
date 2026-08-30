@@ -9,13 +9,21 @@ test('academic records preserve user-owned dates and generalized curriculum fiel
     profile: { university: 'Example University', programme: 'Flexible degree', academicYear: '2030/31', currentYearKey: 'cohort-b' },
     courses: [{
       id: 'x', code: 'cs-101', name: 'Changing Curriculum', ects: 7.5, yearLevel: 'Foundation', period: 'Winter intensive', passMark: 60,
-      attempts: [{ id: 'x-retake', academicYear: '2030/31', type: 'resit', examDate: '2031-02-14', grade: null, status: 'upcoming' }]
+      attempts: [{ id: 'x-retake', academicYear: '2030/31', type: 'resit', examDate: '2031-02-14', grade: null, status: 'upcoming', courseCode: 'OLD-101', courseName: 'Earlier Course Name', ects: 6, yearLevel: 'Year 2', period: 'Period 5', curriculumVersion: '2029-2030' }]
     }]
   })
   assert.equal(workspace.courses[0].code, 'CS-101')
   assert.equal(workspace.courses[0].yearLevel, 'Foundation')
   assert.equal(workspace.courses[0].period, 'Winter intensive')
   assert.equal(workspace.courses[0].attempts[0].examDate, '2031-02-14')
+  assert.deepEqual({
+    courseCode: workspace.courses[0].attempts[0].courseCode,
+    courseName: workspace.courses[0].attempts[0].courseName,
+    ects: workspace.courses[0].attempts[0].ects,
+    yearLevel: workspace.courses[0].attempts[0].yearLevel,
+    period: workspace.courses[0].attempts[0].period,
+    curriculumVersion: workspace.courses[0].attempts[0].curriculumVersion
+  }, { courseCode: 'OLD-101', courseName: 'Earlier Course Name', ects: 6, yearLevel: 'Year 2', period: 'Period 5', curriculumVersion: '2029-2030' })
 })
 
 test('academic records preserve editorial programme provenance and unresolved choices', () => {

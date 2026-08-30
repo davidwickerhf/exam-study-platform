@@ -134,6 +134,12 @@ test('equivalent academic-year punctuation does not create a conflict', () => {
   assert.equal(set.changes.some((change) => change.payload?.field === 'academicYear'), false)
 })
 
+test('equivalent programme wording does not create a false conflict', () => {
+  const workspace = normalizeAcademicWorkspace({ profile: { programme: 'Bachelor of Science Computer Science' }, courses: [], events: [] })
+  const set = buildChangeSet(workspace, { profile: { programme: 'Bachelor of Science in Computer Science' }, courses: [], events: [] }, { kind: 'transcript' })
+  assert.equal(set.changes.some((change) => change.payload?.field === 'programme'), false)
+})
+
 test('a calendar subscription returns a compact cross-reference instead of event changes', () => {
   const workspace = normalizeAcademicWorkspace({
     profile: {},
@@ -216,9 +222,61 @@ test('an older transcript code with the same course name stays a historical cour
   }, { kind: 'transcript', sourceLabel: 'Old transcript' })
 
   assert.equal(set.changes.some((change) => change.kind === 'course-conflict'), false)
-  const historical = set.changes.find((change) => change.kind === 'new-course')
+  const historical = set.changes.find((change) => change.kind === 'history')
   assert.equal(historical.payload.course.code, 'OLD100')
   assert.equal(historical.payload.course.programmeRequirement, 'historical')
+  assert.equal(historical.selectedByDefault, true)
+  assert.equal(historical.requiresDecision, false)
+  assert.deepEqual(set.reconciliation.unselected, [])
+  assert.deepEqual(set.reconciliation.historical.map((item) => item.code), ['OLD100'])
+})
+
+test('an academic overview enriches a dated transcript sitting instead of duplicating it', () => {
+  const initial = normalizeAcademicWorkspace({ profile: { programme: 'BSc Computer Science' }, courses: [], events: [] })
+  const transcript = buildChangeSet(initial, {
+    profile: { programme: 'Bachelor of Science in Computer Science' },
+    courses: [{ code: '', name: 'Operating Systems', ects: 4, yearLevel: 'Year 2', period: 'Period 4', programmeRequirement: 'historical', attempts: [{ academicYear: '2025–2026', type: 'first', examDate: '2026-03-18', grade: 4, status: 'failed', courseName: 'Operating Systems', ects: 4, yearLevel: 'Year 2', period: 'Period 4', curriculumVersion: '2025–2026' }] }]
+  }, { kind: 'transcript', sourceLabel: 'Transcript' })
+  assert.equal(transcript.changes.some((change) => change.requiresDecision), false)
+  const withTranscript = applyChanges(initial, transcript.changes).workspace
+
+  const overview = buildChangeSet(withTranscript, {
+    profile: { programme: 'Bachelor of Science Computer Science' },
+    courses: [{ code: 'BCS2140', name: 'Operating Systems', ects: 4, yearLevel: 'Year 3', period: 'Period 1', attempts: [
+      { academicYear: '2025–2026', type: 'first', examDate: null, grade: 4, status: 'failed', courseCode: 'BCS2140', courseName: 'Operating Systems', ects: 4, yearLevel: 'Year 2', period: 'Period 4', curriculumVersion: '2025–2026' },
+      { academicYear: '2026–2027', type: 'carry-over', examDate: null, grade: null, status: 'upcoming', courseCode: 'BCS2140', courseName: 'Operating Systems', ects: 4, yearLevel: 'Year 3', period: 'Period 1', curriculumVersion: '2026–2027' }
+    ] }]
+  }, { kind: 'academic-overview', sourceLabel: 'Academic Work' })
+
+  assert.equal(overview.changes.some((change) => change.requiresDecision), false)
+  assert.equal(overview.changes.some((change) => change.kind === 'result'), false)
+  const applied = applyChanges(withTranscript, overview.changes).workspace
+  const course = applied.courses[0]
+  assert.equal(course.code, 'BCS2140')
+  assert.equal(course.programmeRequirement, null)
+  assert.equal(course.period, 'Period 1')
+  assert.equal(course.attempts.length, 2)
+  assert.equal(course.attempts[0].examDate, '2026-03-18')
+  assert.equal(course.attempts[0].period, 'Period 4')
+  assert.equal(course.attempts[1].period, 'Period 1')
+})
+
+test('historical placement never conflicts with a rearranged current curriculum', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: {},
+    courses: [{ id: 'it-management', code: 'BCS2510', name: 'IT Management & Privacy', ects: 4, yearLevel: 'Year 3', period: 'Period 2', attempts: [{ id: 'passed', academicYear: '2024–2025', type: 'first', examDate: '2025-06-16', grade: 9, status: 'passed' }] }]
+  })
+  const set = buildChangeSet(workspace, {
+    profile: {},
+    courses: [{ code: 'BCS2510', name: 'IT Management & Privacy', ects: 4, yearLevel: 'Year 2', period: 'Period 5', programmeRequirement: 'historical', attempts: [{ academicYear: '2024–2025', type: 'first', examDate: null, grade: 9, status: 'passed', courseCode: 'BCS2510', courseName: 'IT Management & Privacy', ects: 4, yearLevel: 'Year 2', period: 'Period 5', curriculumVersion: '2024–2025' }] }]
+  }, { kind: 'academic-overview', sourceLabel: 'Academic Work' })
+
+  assert.equal(set.changes.some((change) => change.kind === 'course-conflict' || change.kind === 'attempt-conflict'), false)
+  const applied = applyChanges(workspace, set.changes).workspace.courses[0]
+  assert.equal(applied.yearLevel, 'Year 3')
+  assert.equal(applied.period, 'Period 2')
+  assert.equal(applied.attempts[0].yearLevel, 'Year 2')
+  assert.equal(applied.attempts[0].period, 'Period 5')
 })
 
 test('an uploaded academic calendar keeps structured period context out of personal events', () => {
