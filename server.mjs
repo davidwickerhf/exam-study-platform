@@ -31,6 +31,8 @@ import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/acad
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { aggregateCalendar, feedEvents } from './lib/calendar-feed.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
+import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
+import { securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
@@ -267,9 +269,7 @@ function send(res, status, body, type = 'application/json; charset=utf-8', heade
   let payload = body
   const responseHeaders = {
     'Content-Type': type,
-    'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    ...securityHeaders({ page: /^text\/html/.test(type) }),
     ...headers
   }
   if (gzipCapable.has(res) && payload && COMPRESSIBLE.test(type) && Buffer.byteLength(payload) > 1024 && !responseHeaders['Content-Encoding']) {
@@ -295,6 +295,15 @@ function sendAiError(res, error) {
     'X-RateLimit-Reason': error.reason
   })
   return true
+}
+
+function sendRateLimited(res, budget, message = 'Too many requests. Slow down and try again shortly.') {
+  send(res, 429, JSON.stringify({ error: message, retryAfter: budget.retryAfter }), 'application/json; charset=utf-8', {
+    'Retry-After': String(budget.retryAfter),
+    'RateLimit-Limit': String(budget.limit),
+    'RateLimit-Remaining': '0',
+    'RateLimit-Reset': String(budget.retryAfter)
+  })
 }
 
 function sendManagedContentOnly(res) {
@@ -2981,6 +2990,21 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
     if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) gzipCapable.add(res)
+    const ip = clientIp(req)
+    const isApi = url.pathname.startsWith('/api/')
+
+    // Per-IP ceiling on everything, plus a tight budget for repeated auth failures.
+    const ipBudget = consume(`ip:${ip}`, RATE_POLICIES.ip)
+    if (!ipBudget.allowed) { sendRateLimited(res, ipBudget); return }
+    if (isApi && !consume(`authfail:${ip}`, { ...RATE_POLICIES.authFailure, dryRun: true }).allowed) {
+      sendRateLimited(res, consume(`authfail:${ip}`, { ...RATE_POLICIES.authFailure, dryRun: true }), 'Too many failed authentication attempts.')
+      return
+    }
+    // Public API routes get a small anonymous budget per IP.
+    if (isApi && isPublicApi(url.pathname)) {
+      const anonymous = consume(`anon:${ip}`, RATE_POLICIES.anonymousApi)
+      if (!anonymous.allowed) { sendRateLimited(res, anonymous); return }
+    }
 
     if (url.pathname === '/api/auth/config' && req.method === 'GET') {
       send(res, 200, JSON.stringify(authConfig()))
@@ -2995,14 +3019,31 @@ const server = createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/') && !isPublicApi(url.pathname)) {
       const auth = await authenticate(req)
       if (!auth.authenticated) {
+        consume(`authfail:${ip}`, RATE_POLICIES.authFailure)
         send(res, 401, JSON.stringify({ error: auth.mode === 'api-key' ? 'Invalid or revoked API key' : 'Sign in required', reason: auth.reason || 'unauthenticated' }))
         return
       }
       const denied = authorise(auth, { method: req.method, pathname: url.pathname })
       if (denied) {
+        consume(`authfail:${ip}`, RATE_POLICIES.authFailure)
         send(res, 403, JSON.stringify({ error: denied }))
         return
       }
+      // Browser sessions ride on cookies; refuse mutations that did not originate here.
+      if (auth.mode === 'clerk' && isForbiddenCrossSite(req)) {
+        send(res, 403, JSON.stringify({ error: 'Cross-site request refused.' }))
+        return
+      }
+      // Per-identity budgets by route class (AI allowances apply on top).
+      const identity = auth.keyId ? `key:${auth.keyId}` : `user:${auth.userId}`
+      const policy = classifyRequest(req.method, url.pathname)
+      const budget = consume(`${policy}:${identity}`, RATE_POLICIES[policy])
+      if (!budget.allowed) { sendRateLimited(res, budget); return }
+      if (policy !== 'user') {
+        const overall = consume(`user:${identity}`, RATE_POLICIES.user)
+        if (!overall.allowed) { sendRateLimited(res, overall); return }
+      }
+      if (url.pathname.startsWith('/api/admin/') && req.method !== 'GET') console.info(`[admin] ${auth.userId}${auth.keyId ? ` key=${auth.keyId}` : ''} ${req.method} ${url.pathname}${url.search}`)
       setRequestContext(auth)
     }
 
@@ -3013,7 +3054,7 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/account/api-keys' && req.method === 'POST') {
       const body = await readBody(req, 64 * 1024)
       try {
-        send(res, 201, JSON.stringify(await createApiKey({ name: body?.name, scopes: body?.scopes })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        send(res, 201, JSON.stringify(await createApiKey({ name: body?.name, scopes: body?.scopes, lifetime: body?.lifetime })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error.message }))
       }
@@ -4710,9 +4751,16 @@ const server = createServer(async (req, res) => {
       'Cache-Control': versioned ? 'public, max-age=31536000, immutable' : publicPage ? 'no-store' : 'public, max-age=300, must-revalidate'
     })
   } catch (error) {
-    send(res, 500, JSON.stringify({ error: error.message }))
+    console.error('Unhandled request error:', error)
+    send(res, 500, JSON.stringify({ error: process.env.NODE_ENV === 'production' ? 'Something went wrong on the server.' : error.message }))
   }
 })
+
+// Slow-client protection.
+server.requestTimeout = 60_000
+server.headersTimeout = 20_000
+server.keepAliveTimeout = 10_000
+server.maxHeadersCount = 100
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {

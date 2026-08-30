@@ -833,3 +833,6 @@
 .calx .fc .fc-bg-event { opacity: .09; }
 .calx .fc .fc-bg-event.cal-bg-holiday { opacity: .14; }
 .calx .fc .fc-daygrid-bg-harness .fc-bg-event::after { content: attr(title); }
+.key-form-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
+.key-form-life { max-width: 180px; }
+.key-form-life select { min-height: var(--control-md); padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); font: 500 14px/1 var(--font-ui); background: var(--color-surface); }

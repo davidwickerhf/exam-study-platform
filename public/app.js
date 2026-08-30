@@ -671,7 +671,7 @@ function ensureStudyDeps() {
 function depsPlaceholder(label = 'Loading the reader…') {
   ensureStudyDeps()
   return studyDepsError
-    ? `<div class="deps-pending"><p>The reader libraries could not be loaded. Check your connection and <button type="button" class="pl-link pl-link-button" onclick="location.reload()">reload</button>.</p></div>`
+    ? `<div class="deps-pending"><p>The reader libraries could not be loaded. Check your connection and <button type="button" class="pl-link pl-link-button" data-reload>reload</button>.</p></div>`
     : `<div class="deps-pending"><p><span class="boot-spinner"></span>${label}</p></div>`
 }
 
@@ -2557,9 +2557,10 @@ function renderAccountApi() {
     </section>` : ''}
     <section class="panel">
       <div class="panel-top"><div><h2>Personal API keys</h2><p>Keys act as you, limited to their scopes. Send them as <code>Authorization: Bearer wsk_…</code>. Keys cannot manage other keys, reset data, or delete the account.</p></div></div>
-      ${apiKeysError ? `<div class="settings-error" role="alert"><strong>Keys could not be loaded.</strong><p>${escapeHtml(apiKeysError)}</p></div>` : !apiKeysCache ? '<div class="settings-loading"><span></span><p>Loading keys…</p></div>' : keys.length ? `<div class="pl-table-wrap"><table class="pl-table keys-table"><thead><tr><th>Name</th><th>Key</th><th>Scopes</th><th>Created</th><th>Last used</th><th></th></tr></thead><tbody>${keys.map((key) => `<tr class="${key.revokedAt ? 'is-revoked' : ''}"><td><strong>${escapeHtml(key.name)}</strong></td><td><code>${escapeHtml(key.prefix)}…</code></td><td>${key.scopes.map((scope) => `<span class="pl-pill ${scope === 'admin' ? 'is-bad' : scope === 'write' ? 'is-pending' : 'is-ok'}">${scope}</span>`).join(' ')}</td><td><time>${relativeTime(key.createdAt)}</time></td><td>${key.lastUsedAt ? `<time>${relativeTime(key.lastUsedAt)}</time>` : '<span class="muted">never</span>'}</td><td class="num">${key.revokedAt ? '<span class="pl-pill">revoked</span>' : `<button type="button" class="btn btn-sm btn-danger-outline" data-api-key-revoke="${escapeHtml(key.id)}">Revoke</button>`}</td></tr>`).join('')}</tbody></table></div>` : '<p class="panel-note">No keys yet. Create one to let an agent or the MCP server work with your record.</p>'}
+      ${apiKeysError ? `<div class="settings-error" role="alert"><strong>Keys could not be loaded.</strong><p>${escapeHtml(apiKeysError)}</p></div>` : !apiKeysCache ? '<div class="settings-loading"><span></span><p>Loading keys…</p></div>' : keys.length ? `<div class="pl-table-wrap"><table class="pl-table keys-table"><thead><tr><th>Name</th><th>Key</th><th>Scopes</th><th>Created</th><th>Last used</th><th></th></tr></thead><tbody>${keys.map((key) => `<tr class="${key.revokedAt ? 'is-revoked' : ''}"><td><strong>${escapeHtml(key.name)}</strong></td><td><code>${escapeHtml(key.prefix)}…</code></td><td>${key.scopes.map((scope) => `<span class="pl-pill ${scope === 'admin' ? 'is-bad' : scope === 'write' ? 'is-pending' : 'is-ok'}">${scope}</span>`).join(' ')}</td><td><time>${relativeTime(key.createdAt)}</time></td><td>${key.lastUsedAt ? `<time>${relativeTime(key.lastUsedAt)}</time>` : '<span class="muted">never</span>'}${key.expiresAt ? `<br><small class="muted">${key.expiresAt < new Date().toISOString() ? 'expired' : `expires ${academicDate(key.expiresAt.slice(0, 10))}`}</small>` : ''}</td><td class="num">${key.revokedAt ? '<span class="pl-pill">revoked</span>' : `<button type="button" class="btn btn-sm btn-danger-outline" data-api-key-revoke="${escapeHtml(key.id)}">Revoke</button>`}</td></tr>`).join('')}</tbody></table></div>` : '<p class="panel-note">No keys yet. Create one to let an agent or the MCP server work with your record.</p>'}
       <form class="key-form" data-api-key-form>
-        <label class="key-form-name"><span>Key name</span><input name="name" maxlength="80" placeholder="e.g. Claude Desktop" value="${escapeHtml(apiKeyForm.name)}" required ${apiKeyForm.creating ? 'disabled' : ''}></label>
+        <div class="key-form-row"><label class="key-form-name"><span>Key name</span><input name="name" maxlength="80" placeholder="e.g. Claude Desktop" value="${escapeHtml(apiKeyForm.name)}" required ${apiKeyForm.creating ? 'disabled' : ''}></label>
+        <label class="key-form-name key-form-life"><span>Expires</span><select name="lifetime" ${apiKeyForm.creating ? 'disabled' : ''}><option value="30d">In 30 days</option><option value="90d" selected>In 90 days</option><option value="1y">In 1 year</option></select></label></div>
         <fieldset class="key-form-scopes"><legend>Scopes</legend>
           ${['read', 'write', ...(admin ? ['admin'] : [])].map((scope) => `<label><input type="checkbox" name="scope" value="${scope}" ${apiKeyForm.scopes.includes(scope) ? 'checked' : ''} ${scope === 'read' ? 'disabled checked' : ''}><span><strong>${scope}</strong><small>${scopeCopy[scope]}</small></span></label>`).join('')}
         </fieldset>
@@ -4417,7 +4418,7 @@ function renderCoverage(course) {
         <td>${items.length}</td>
         <td>${uncovered ? '—' : `${progress.avg.toFixed(2)}/4`}</td>
         <td><div class="mini-bar"><span style="width:${progress.masteryPct}%"></span></div></td>
-        <td class="item-pills">${items.map((item) => `<a href="#/course/${course.id}/item/${item.id}" class="item-pill ${isDone(item) ? 'done' : ''}" onclick="event.stopPropagation()">${item.title}</a>`).join('')}</td>
+        <td class="item-pills">${items.map((item) => `<a href="#/course/${course.id}/item/${item.id}" class="item-pill ${isDone(item) ? 'done' : ''}" data-stop-propagation>${item.title}</a>`).join('')}</td>
       </tr>
     `
   }).join('')
@@ -4533,8 +4534,8 @@ function renderFullItem(course, item) {
       </div>
       <details class="review-log">
         <summary>Review log<span class="log-count">${reviewLog.length}</span>
-          <button type="button" class="log-btn" data-log-quiz="${item.id}" onclick="event.preventDefault(); event.stopPropagation();">+ Log quiz score</button>
-          <button type="button" class="log-btn" data-log-review="${item.id}" onclick="event.preventDefault(); event.stopPropagation();">+ Log review</button>
+          <button type="button" class="log-btn" data-log-quiz="${item.id}" data-stop-propagation data-prevent-default>+ Log quiz score</button>
+          <button type="button" class="log-btn" data-log-review="${item.id}" data-stop-propagation data-prevent-default>+ Log review</button>
         </summary>
         ${reviewLog.length ? `<ul class="review-events">${reviewLog.slice().reverse().map((ev) => `
           <li><span class="when">${relativeTime(ev.at)}</span><span class="kind">${ev.kind || 'review'}</span>${ev.kind === 'mastery-change' ? `<span class="delta">${ev.prevMastery ?? 0} → ${ev.mastery}</span>` : ''}${ev.score != null ? `<span class="score">${ev.score}</span>` : ''}${ev.note ? `<span class="note">${ev.note}</span>` : ''}</li>
@@ -9334,7 +9335,7 @@ function bindEvents() {
       apiKeyForm.error = null
       render()
       try {
-        apiKeyForm.created = await fetchJson('/api/account/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: apiKeyForm.name, scopes: apiKeyForm.scopes }) })
+        apiKeyForm.created = await fetchJson('/api/account/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: apiKeyForm.name, scopes: apiKeyForm.scopes, lifetime: form.elements.lifetime?.value || '90d' }) })
         apiKeyForm.name = ''
         apiKeyForm.scopes = ['read']
         await loadApiKeys(true)
@@ -9457,6 +9458,9 @@ function bindEvents() {
       render()
     }
   }))
+
+  document.querySelectorAll('[data-reload]').forEach((button) => button.addEventListener('click', () => location.reload()))
+  document.querySelectorAll('[data-stop-propagation]').forEach((el) => el.addEventListener('click', (event) => { event.stopPropagation(); if (el.hasAttribute('data-prevent-default')) event.preventDefault() }, true))
 
   document.querySelectorAll('[data-open-profile]').forEach((button) => {
     button.addEventListener('click', () => { window.__clerk?.openUserProfile?.() })

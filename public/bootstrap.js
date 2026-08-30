@@ -1,6 +1,8 @@
 const nativeFetch = window.fetch.bind(window)
 // Asset version comes from this script's own URL (set per deploy by the server).
 const ASSET_VERSION = new URL(import.meta.url).searchParams.get('v') || 'dev'
+// Fonts load without blocking first paint (no inline handler, CSP-friendly).
+for (const link of document.querySelectorAll('link[data-fonts]')) { const apply = () => { link.media = 'all' }; if (link.sheet) apply(); else link.addEventListener('load', apply, { once: true }) }
 const AUTH_TOKEN_TIMEOUT_MS = 5000
 const AUTH_TOKEN_EXPIRY_SKEW_MS = 15000
 let cachedAuthToken = null
