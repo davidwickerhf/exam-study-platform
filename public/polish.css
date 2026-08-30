@@ -425,8 +425,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 /* ========================================================================== */
 
 :root {
-  --font-ui: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-data: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  --font-ui: var(--next-font-ui, "Manrope"), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-data: var(--next-font-data, "IBM Plex Mono"), ui-monospace, SFMono-Regular, Consolas, monospace;
   --color-canvas: #f7f7f4;
   --color-surface: #ffffff;
   --color-surface-subtle: #f1f2f6;

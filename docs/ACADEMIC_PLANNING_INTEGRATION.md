@@ -52,6 +52,28 @@ consolidated.
 | Derived GPA, credit totals, risk, minimum path | Application | Computed from the user document |
 | Link from a study course to a planning course | User record + editorial course code | Stable course code, with optional explicit override |
 
+### Cross-source reconciliation
+
+The active workspace course list is the canonical selected plan. Supporting
+sources are evidence against that plan, not an alternative source of truth.
+Every transcript, timetable, exam schedule, curriculum, academic calendar, and
+saved calendar feed is compared with the selected courses before its changes
+are applied:
+
+- course references already selected are linked by normalized course code (or
+  exact normalized name when a code is absent);
+- a referenced but unselected course becomes an explicit, initially unchecked
+  “add course” decision, and its events cannot be imported without that course;
+- selected courses missing from a source are reported for review but never
+  removed, because a source may cover only one term or part of a programme;
+- disagreements in programme facts, credits, periods, dates, grades, or attempt
+  status become initially unchecked conflict decisions;
+- a timetable scheduling an already completed course cannot overwrite the
+  completed attempt and is treated as a possible resit or mistaken enrolment.
+
+Live calendar aggregation repeats the timetable comparison so saved feeds
+cannot drift silently after a later sync.
+
 Do not put grades or programme progress into editorial course tables. Likewise,
 do not copy editorial chapters or papers into the planning document.
 
@@ -251,6 +273,8 @@ Maastricht-specific defaults from the source project:
 - JSON programme import/export;
 - revision-checked writes to prevent silent stale-tab overwrites;
 - account isolation through the existing authenticated `user_documents` store.
+- reconciliation across selected courses, transcripts, timetables, schedules,
+  calendars, and saved feeds, with explicit conflict decisions.
 
 No editorial course, curriculum, progression rule, exam date, or personal grade
 is seeded into a new account. Exact course code is available as a link key, but

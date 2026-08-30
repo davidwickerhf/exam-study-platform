@@ -10,10 +10,11 @@ flashcards for five courses:
 - **BCS2420** — Computer Security
 - **BCS2540** — Numerical Methods
 
-Built on Node (no framework), publishes versioned editorial material to Neon,
-stores private progress there behind Clerk authentication, and limits student
-AI access to retrieval-grounded tutor chat plus explicitly requested personal
-extra exercises. Answer checks run locally against published references.
+Built with Next.js App Router, React, TypeScript, and an established Node API.
+It publishes versioned editorial material to Neon, stores private progress
+there behind Clerk authentication, and limits student AI access to
+retrieval-grounded tutor chat plus explicitly requested personal extra
+exercises. Answer checks run locally against published references.
 
 The public site is available at `/`, with product information at `/about`, the
 maintained catalogue at `/courses`, and the current privacy notice and terms at
@@ -33,7 +34,7 @@ git clone https://github.com/davidwickerhf/exam-study-platform.git
 cd exam-study-platform
 npm install
 npm run setup     # interactive: detects providers, picks one, seeds state
-npm start         # serves at http://localhost:4177
+npm run dev       # Next.js + API server at http://localhost:4177
 ```
 
 That's it. `npm run setup` is idempotent — re-run any time to switch LLM
@@ -94,10 +95,24 @@ exam-study-platform/
 │   ├── flashcards.json             # ← gitignored: your SR state
 │   ├── llm-config.json             # ← gitignored: provider + API key
 │   └── cache/                      # ← committed: generated content (questions, etc.)
-├── public/                  # client JS/CSS
-├── server.mjs               # the whole backend (~2000 lines)
+├── app/                     # Next.js App Router pages and layouts
+├── components/              # React site, auth, and workspace boundaries
+├── public/                  # static assets, shared CSS, legacy study engine
+├── lib/                     # typed/shared data plus backend services
+├── server.mjs               # Node API and Next.js custom-server integration
 ├── setup.mjs                # interactive first-run setup
 └── package.json
+```
+
+The product and legal pages, metadata, fonts, and Clerk access surfaces are
+React-owned. The signed-in study engine remains temporarily isolated in
+`components/workspace/legacy-workspace.tsx`; its API contract stays stable
+while individual workspace destinations move from `public/app.js` into React.
+
+Run the complete framework verification before deploying:
+
+```bash
+npm run verify
 ```
 
 ## Configuration
@@ -156,7 +171,10 @@ and AI usage, Vercel hosts the service, and the configured AI provider receives
 only requested tutor, further-exercise, or academic-plan extraction inputs.
 Curriculum and transcript files are processed as an import draft; the original
 files are not retained, and only the academic fields the user reviews and
-confirms are saved.
+confirms are saved. Timetables, transcripts, exam schedules, curricula, and
+calendar feeds are cross-checked against the courses selected in the active
+academic plan. Unselected courses and conflicting facts remain unchecked until
+the user explicitly accepts them; a source omission never deletes a course.
 
 Signed-in users can see their AI allowances in Settings, export their active
 personal record as JSON, and permanently delete both the stored personal record

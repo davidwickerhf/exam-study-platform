@@ -13,7 +13,7 @@
 - Account deletion and data resets require a typed confirmation and a session.
 
 - Production runs on a Clerk *production* instance on the app's own domain
-  (Frontend API `clerk.wicker.life`); preview deployments keep the development
+  (Frontend API `clerk.study.wicker.life`); preview deployments keep the development
   instance. Social sign-in in production requires custom OAuth credentials
   configured in the Clerk dashboard.
 
@@ -74,6 +74,7 @@
 
 ## Operational
 
+- Report suspected vulnerabilities privately to `security@study.wicker.life`.
 - Editorial writes are logged with the acting user/key.
 - 500 responses carry a generic message in production; details go to logs.
 - Secrets live only in environment variables. Rotate `DATABASE_URL` and API

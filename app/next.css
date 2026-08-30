@@ -1,0 +1,68 @@
+:root {
+  --font-ui: var(--next-font-ui), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-data: var(--next-font-data), ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+html,
+body {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+body:not(.app-mode) {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+html.app-mode,
+body.app-mode,
+body.app-mode #app {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.next-workspace-root {
+  min-height: 100dvh;
+}
+
+.next-workspace-root #app {
+  min-height: 100dvh;
+}
+
+.next-boot-error {
+  min-height: 100dvh;
+  padding: clamp(32px, 8vw, 96px);
+  display: grid;
+  place-content: center;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  text-align: center;
+}
+
+.next-boot-error h1 {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(32px, 5vw, 52px);
+}
+
+.next-boot-error p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--color-ink-secondary);
+  line-height: 1.65;
+}
+
+.next-local-access {
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+
+.next-local-access p {
+  margin: 0;
+  color: var(--color-ink-secondary);
+}

@@ -9,5 +9,6 @@ data/sr-state.json
 data/mistakes
 data/mocks
 node_modules
+.next
 npm-debug.log
 *.log

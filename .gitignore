@@ -30,6 +30,8 @@ data/*.bak-*
 
 # ── Node ────────────────────────────────────────────────────────────────────
 node_modules/
+.next/
+*.tsbuildinfo
 npm-debug.log*
 .pnpm-debug.log*
 

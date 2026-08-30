@@ -63,6 +63,9 @@ test('change sets diff a draft against the plan and apply selectively', () => {
   const examDate = set.changes.find((change) => change.kind === 'exam-date')
   assert.equal(examDate.payload.attemptId, 'a1')
   assert.deepEqual(examDate.payload.updates, { examDate: '2026-10-14' })
+  assert.equal(set.changes.find((change) => change.kind === 'new-course').selectedByDefault, false)
+  assert.equal(set.reconciliation.status, 'attention')
+  assert.deepEqual(set.reconciliation.unselected.map((item) => item.code), ['BCS2999'])
 
   const accepted = set.changes.filter((change) => change.kind !== 'new-course')
   const { workspace: next, applied } = applyChanges(workspace, accepted)
@@ -79,4 +82,54 @@ test('change sets diff a draft against the plan and apply selectively', () => {
   // Re-running the same draft proposes nothing that is already applied.
   const again = buildChangeSet(next, draft)
   assert.deepEqual(again.changes.map((change) => change.kind), ['new-course'])
+})
+
+test('a timetable cannot silently schedule a completed course or replace selected course facts', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: {},
+    courses: [{ id: 'c-stats', code: 'BCS1520', name: 'Statistics', ects: 4, attempts: [{ id: 'a-passed', academicYear: '2025-2026', type: 'first', examDate: '2026-05-20', grade: 8, status: 'passed' }] }]
+  })
+  const set = buildChangeSet(workspace, {
+    profile: {},
+    courses: [{ code: 'BCS1520', name: 'Statistics', ects: 6, attempts: [{ academicYear: '2026-2027', type: 'first', examDate: '2026-10-14', grade: null, status: 'upcoming' }] }],
+    events: []
+  }, { kind: 'timetable', sourceLabel: 'Autumn timetable' })
+
+  const courseConflict = set.changes.find((change) => change.kind === 'course-conflict')
+  const attemptConflict = set.changes.find((change) => change.kind === 'attempt-conflict')
+  assert.match(courseConflict.detail, /4 ECTS.*6 ECTS/)
+  assert.match(attemptConflict.label, /scheduled although already completed/)
+  assert.equal(courseConflict.selectedByDefault, false)
+  assert.equal(attemptConflict.selectedByDefault, false)
+
+  const unchanged = applyChanges(workspace, set.changes.filter((change) => change.selectedByDefault !== false)).workspace
+  assert.equal(unchanged.courses[0].ects, 4)
+  assert.equal(unchanged.courses[0].attempts.length, 1)
+  assert.equal(unchanged.courses[0].attempts[0].status, 'passed')
+})
+
+test('events for an unselected course require that course to be added', () => {
+  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [], events: [] })
+  const set = buildChangeSet(workspace, {
+    profile: {},
+    courses: [],
+    events: [{ title: 'BCS2999 Lecture', date: '2026-09-02', endDate: null, type: 'other', notes: '09:00–11:00' }]
+  }, { kind: 'timetable', sourceLabel: 'Timetable' })
+  const addCourse = set.changes.find((change) => change.kind === 'new-course')
+  const addEvent = set.changes.find((change) => change.kind === 'event')
+
+  assert.equal(addEvent.requiresCourseChangeId, addCourse.id)
+  assert.equal(addEvent.selectedByDefault, false)
+  assert.equal(applyChanges(workspace, [addEvent]).applied.length, 0)
+
+  const applied = applyChanges(workspace, [addEvent, addCourse])
+  assert.deepEqual(applied.applied, [addCourse.id, addEvent.id])
+  assert.equal(applied.workspace.courses[0].code, 'BCS2999')
+  assert.equal(applied.workspace.events.length, 1)
+})
+
+test('equivalent academic-year punctuation does not create a conflict', () => {
+  const workspace = normalizeAcademicWorkspace({ profile: { academicYear: '2026-2027' }, courses: [], events: [] })
+  const set = buildChangeSet(workspace, { profile: { academicYear: '2026–2027' }, courses: [], events: [] }, { kind: 'transcript' })
+  assert.equal(set.changes.some((change) => change.payload?.field === 'academicYear'), false)
 })

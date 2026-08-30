@@ -24,7 +24,10 @@ The product is used for long, high-focus desktop study sessions and shorter mobi
 
 ## Capabilities and Constraints
 
-- Existing vanilla HTML, CSS, and JavaScript architecture remains in place.
+- Next.js App Router, React, and TypeScript own routing, public/legal pages,
+  authentication, metadata, and the application boundary. The remaining
+  vanilla study engine is an isolated migration boundary, not the platform
+  architecture.
 - Clerk provides authentication and Neon stores editorial and personal data.
 - All existing workflows and local lesson sources must remain intact.
 - The interface must handle dense academic material without wasting wide-screen space.

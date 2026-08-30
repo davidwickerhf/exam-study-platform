@@ -1,0 +1,75 @@
+'use client'
+
+import { SignIn, SignUp } from '@clerk/nextjs'
+import { useEffect } from 'react'
+import { contacts } from '@/lib/site-content'
+import { SiteIcon } from '@/components/site/icon'
+
+const appearance = {
+  variables: {
+    colorPrimary: '#3f51d9',
+    colorText: '#20263a',
+    colorTextSecondary: '#59627b',
+    colorBackground: '#ffffff',
+    colorInputBackground: '#ffffff',
+    colorInputText: '#20263a',
+    borderRadius: '4px',
+    fontFamily: 'var(--font-ui)',
+    fontSize: '14px'
+  },
+  elements: {
+    rootBox: 'clerk-root',
+    cardBox: 'clerk-card-box',
+    card: 'clerk-card',
+    header: 'clerk-header',
+    footer: 'clerk-footer',
+    socialButtonsBlockButton: 'clerk-social-button',
+    formButtonPrimary: 'clerk-primary-button',
+    formFieldInput: 'clerk-input'
+  }
+} as const
+
+function formatDomains(domains: string[]) {
+  return domains.map((domain) => `@${domain}`).join(domains.length > 1 ? ' or ' : '')
+}
+
+export function AuthPage({ mode, enabled, allowedDomains }: { mode: 'sign-in' | 'sign-up'; enabled: boolean; allowedDomains: string[] }) {
+  const signUp = mode === 'sign-up'
+
+  useEffect(() => {
+    document.documentElement.classList.remove('public-mode', 'app-mode')
+    document.body.classList.remove('public-mode', 'app-mode')
+  }, [])
+
+  return (
+    <main id="auth-gate" className="auth-gate">
+      <div className="auth-page">
+        <section className="auth-form-column" aria-labelledby="auth-title">
+          <a className="auth-back" href="/">← Back to Wicker Study</a>
+          <a className="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
+          <div className="auth-form-copy">
+            <h1 id="auth-title">{signUp ? 'Create your study record.' : 'Return to your study record.'}</h1>
+            <p>{signUp ? 'Your notes, attempts, mastery history, and review schedule — private to you, on any device.' : 'Open your notes, attempts, mastery history, and review schedule.'}</p>
+          </div>
+          {allowedDomains.length > 0 && <p className="auth-eligibility">For Maastricht University students and staff. {signUp ? 'Sign up' : 'Sign in'} with your <code>{formatDomains(allowedDomains)}</code> address.</p>}
+          <div id="clerk-sign-in">
+            {enabled ? (
+              signUp
+                ? <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/app" appearance={appearance} />
+                : <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl="/app" appearance={appearance} />
+            ) : (
+              <div className="next-local-access"><p>Authentication is disabled in this local environment.</p><a className="site-button site-button-primary" href="/app">Open local workspace <SiteIcon name="arrow" /></a></div>
+            )}
+          </div>
+          <p className="auth-switch">{signUp ? <>Already have an account? <a href="/sign-in">Sign in</a></> : <>New here? <a href="/sign-up">Create an account</a></>}</p>
+          <p className="auth-legal">By continuing, you agree to the <a href="/terms">Terms</a> and acknowledge the <a href="/privacy">Privacy notice</a>. Need help? <a href={`mailto:${contacts.support}`}>{contacts.support}</a>.</p>
+        </section>
+        <aside className="auth-product-column" aria-label="Product overview">
+          <div className="auth-product-copy"><h2>One place for the full course-to-exam loop.</h2><p>Maintained sources, focused practice, and a private record that resumes on any device.</p></div>
+          <div className="auth-course-sheet"><header><span>Today’s study plan</span><strong>3 actions</strong></header><div><b>Continue</b><span>BCS1540 · Dynamic Programming</span><em>22 min</em></div><div><b>Review</b><span>Statistics flashcards</span><em>6 due</em></div><div><b>Correct</b><span>Computer Security mistakes</span><em>3 open</em></div></div>
+          <p className="auth-privacy-note"><SiteIcon name="shield" /> Course content is shared. Your notes and progress are private to your account.</p>
+        </aside>
+      </div>
+    </main>
+  )
+}

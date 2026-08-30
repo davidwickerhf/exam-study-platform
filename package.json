@@ -3,12 +3,14 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.9"
   },
   "scripts": {
     "setup": "node setup.mjs",
     "dev": "node server.mjs",
-    "start": "node runner.mjs",
+    "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "start": "NODE_ENV=production node runner.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "content:check": "node scripts/content-ingest.mjs",
     "content:ingest": "node scripts/content-ingest.mjs --write",
@@ -18,16 +20,25 @@
     "content:verify-precomputed": "node scripts/verify-precomputed.mjs",
     "user:import": "node scripts/import-local-user.mjs",
     "mcp": "node mcp/server.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "verify": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@clerk/backend": "^3.16.12",
+    "@clerk/nextjs": "^7.8.3",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@neondatabase/serverless": "^1.1.0",
     "dotenv": "^17.4.2",
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "ajv": "^8.20.0"
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "ajv": "^8.20.0",
+    "typescript": "^7.0.2"
   }
 }

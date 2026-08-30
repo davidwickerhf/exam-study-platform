@@ -28,18 +28,28 @@ therefore appear without overwriting progress or notes.
 
 ## Request flow
 
-1. `public/bootstrap.js` reads `/api/auth/config`.
-2. In hosted mode it loads Clerk, presents sign-in, and attaches a fresh Clerk
-   token to API requests.
-3. The backend verifies the token and binds the Clerk user ID to the async
+1. The custom Node server sends API requests to the established backend router
+   and delegates document and static-asset requests to Next.js.
+2. Next.js App Router renders the public, legal, access, and workspace routes.
+   A fresh CSP nonce is attached to each dynamically rendered document.
+3. In hosted mode `@clerk/nextjs` presents sign-in and the workspace adapter
+   attaches a fresh Clerk token to protected API requests.
+4. The backend verifies the token and binds the Clerk user ID to the async
    request context.
-4. Personal repository calls use that context to address Neon rows.
-5. Editorial reads and retrieval queries use the active immutable Neon release.
+5. Personal repository calls use that context to address Neon rows.
+6. Editorial reads and retrieval queries use the active immutable Neon release.
 
 Public product and legal pages (`/`, `/about`, `/courses`, `/privacy`, and
 `/terms`) do not initialize Clerk or load the study-workspace dependencies.
 `/sign-in` is the dedicated Clerk surface and `/app` is the authenticated
 workspace entrypoint.
+
+The public, legal, and authentication layer is fully React and TypeScript. The
+large existing study engine is loaded only inside `LegacyWorkspace`, an
+explicit compatibility boundary. This preserves the API and personal-data
+behavior while workspace destinations are migrated incrementally; the legacy
+engine no longer owns the HTML document, page routing, Clerk lifecycle, or
+public site.
 
 ## Database
 
@@ -108,7 +118,9 @@ the target reported by `vercel domains inspect study.wicker.life --scope wickerl
 6. Deploy to Vercel with `Dockerfile.vercel`, or build the standard Dockerfile
    on another Node-capable container host. `.dockerignore` excludes `content/`;
    the hosted runtime reads it from Neon.
-7. Verify `/api/health` reports `{ "ok": true, "mode": "neon" }`.
+7. The image runs `next build` before pruning development dependencies and
+   starting the combined Node/Next runtime.
+8. Verify `/api/health` reports `{ "ok": true, "mode": "neon" }`.
 
 For local hosted-mode verification, put the same values in ignored
 `.env.local` (the Clerk CLI uses this filename) or `.env`.

@@ -8,6 +8,7 @@ import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { gzipSync } from 'node:zlib'
 import { randomUUID } from 'node:crypto'
+import next from 'next'
 import './lib/env.mjs'
 import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
@@ -42,13 +43,20 @@ import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const publicDir = resolve(__dirname, 'public')
 const dataPath = resolve(__dirname, 'data/study-state.json')
 const templatePath = resolve(__dirname, 'data/study-state.template.json')
 const cacheDir = resolve(__dirname, 'data/cache')
 const bundledContentDir = resolve(__dirname, 'content')
 const port = Number(process.env.PORT || 4177)
+const hostname = process.env.HOSTNAME || '0.0.0.0'
+const development = process.env.NODE_ENV !== 'production'
 const MAX_ACADEMIC_INTAKE_BODY_BYTES = 12 * 1024 * 1024
+
+// Next.js owns page rendering and static assets. The established Node API
+// remains in this process while its routes are migrated independently.
+const nextApp = next({ dev: development, hostname, port })
+const nextHandler = nextApp.getRequestHandler()
+await nextApp.prepare()
 
 if (Boolean(process.env.DATABASE_URL) !== authConfig().enabled) {
   throw new Error('Hosted mode requires DATABASE_URL, CLERK_PUBLISHABLE_KEY, and CLERK_SECRET_KEY together. Refusing a partially configured deployment.')
@@ -3019,10 +3027,6 @@ async function runGenerateAllCoursesJob(masterJobId) {
   }
 }
 
-// Every deploy gets a fresh asset version so immutable caching never serves a
-// stale bundle: the commit SHA on Vercel, the start time elsewhere.
-const BUILD_ID = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || '').slice(0, 12) || Date.now().toString(36)
-
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -3391,7 +3395,8 @@ const server = createServer(async (req, res) => {
         const body = await readBody(req, MAX_ACADEMIC_INTAKE_BODY_BYTES)
         const { workspace } = await readAcademicState()
         const analysis = await analyseAcademicIntake(body)
-        const changeSet = buildChangeSet(workspace, analysis.draft, { source: 'document', kind: analysis.kind })
+        const sourceLabel = analysis.sources?.map((item) => item.name).filter(Boolean).join(', ') || (String(body?.description || '').trim() ? 'Supplied description' : 'Uploaded source')
+        const changeSet = buildChangeSet(workspace, analysis.draft, { source: 'document', sourceLabel, kind: analysis.kind })
         send(res, 200, JSON.stringify({ ...changeSet, usedAi: analysis.usedAi, sources: analysis.sources, revision: workspace.revision, usage: analysis.usage }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         if (!sendAiError(res, error)) send(res, /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
@@ -4826,21 +4831,12 @@ const server = createServer(async (req, res) => {
       send(res, 200, await readFile(resolve(__dirname, '.claude/skills/wicker-study/SKILL.md'), 'utf8'), 'text/markdown; charset=utf-8', { 'Cache-Control': 'public, max-age=300' })
       return
     }
-    const publicPage = ['/', '/about', '/courses', '/docs', '/privacy', '/terms', '/sign-in', '/sign-up', '/app'].includes(normalizedPagePath)
-    const requested = publicPage ? '/index.html' : url.pathname
-    const filePath = resolve(join(publicDir, requested))
-    if (!filePath.startsWith(publicDir) || !existsSync(filePath)) {
-      send(res, 404, 'Not found', 'text/plain; charset=utf-8')
-      return
-    }
-
-    // Versioned assets (?v=…) are immutable; everything else revalidates.
-    const versioned = url.searchParams.has('v') && !publicPage
-    let body = await readFile(filePath)
-    if (publicPage) body = body.toString('utf8').replace(/\?v=[^"'&\s]+/g, `?v=${BUILD_ID}`)
-    send(res, 200, body, mime[extname(filePath)] || 'application/octet-stream', {
-      'Cache-Control': versioned ? 'public, max-age=31536000, immutable' : publicPage ? 'no-store' : 'public, max-age=300, must-revalidate'
-    })
+    const nonce = Buffer.from(randomUUID()).toString('base64')
+    const pageHeaders = securityHeaders({ page: true, nonce, development })
+    req.headers['x-nonce'] = nonce
+    req.headers['content-security-policy'] = pageHeaders['Content-Security-Policy']
+    for (const [name, value] of Object.entries(pageHeaders)) res.setHeader(name, value)
+    await nextHandler(req, res)
   } catch (error) {
     console.error('Unhandled request error:', error)
     send(res, 500, JSON.stringify({ error: process.env.NODE_ENV === 'production' ? 'Something went wrong on the server.' : error.message }))
@@ -4871,8 +4867,8 @@ server.on('error', (err) => {
   process.exit(1)
 })
 
-server.listen(port, () => {
-  console.log(`Exam Study Platform running at http://localhost:${port}`)
+server.listen(port, hostname, () => {
+  console.log(`Exam Study Platform running at http://${hostname}:${port}`)
   console.log(`Personal storage: ${storageMode()}`)
   console.log(`Authentication: ${authConfig().mode}`)
   console.log(`LLM provider: ${LLM_PROVIDER}`)

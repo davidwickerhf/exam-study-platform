@@ -2114,7 +2114,7 @@ function gateProgress(gate, workspace) {
 
 // ----- Documents: supporting files at any time → reviewable change set -----
 const DOCUMENT_KINDS = [['auto', 'Detect automatically'], ['transcript', 'Transcript or grade list'], ['exam-schedule', 'Exam schedule'], ['timetable', 'Timetable or calendar'], ['academic-calendar', 'Academic calendar'], ['curriculum', 'Curriculum or handbook']]
-const CHANGE_GROUPS = [['result', 'Results and grades'], ['exam-date', 'Exam dates'], ['new-course', 'New courses'], ['course-detail', 'Course details'], ['event', 'Dates and events'], ['profile', 'Programme details']]
+const CHANGE_GROUPS = [['profile-conflict', 'Programme conflicts'], ['course-conflict', 'Course conflicts'], ['attempt-conflict', 'Schedule and result conflicts'], ['result', 'Results and grades'], ['exam-date', 'Exam dates'], ['new-course', 'Courses not in your plan'], ['course-detail', 'Course details'], ['event', 'Dates and events'], ['profile', 'Programme details']]
 const planningDocuments = { files: [], description: '', kind: 'auto', processing: false, analysing: false, error: null, result: null, selected: new Set(), applying: false, applied: null, calendarUrl: '', calendarLabel: '', calendarBusy: false, calendarError: null }
 
 async function addDocumentSources(fileList) {
@@ -2139,8 +2139,64 @@ function renderChangeSet(result, { selectable = true } = {}) {
   return CHANGE_GROUPS.map(([kind, label]) => {
     const list = changes.filter((change) => change.kind === kind)
     if (!list.length) return ''
-    return `<section class="doc-group"><header><h3>${label}</h3><span>${list.length}</span></header><ul class="doc-changes">${list.map((change) => `<li><label><input type="checkbox" data-doc-toggle="${escapeHtml(change.id)}" ${planningDocuments.selected.has(change.id) ? 'checked' : ''} ${selectable ? '' : 'disabled'}><span><strong>${escapeHtml(change.label)}</strong><small>${escapeHtml(change.detail || '')}</small></span></label></li>`).join('')}</ul></section>`
+    return `<section class="doc-group"><header><h3>${label}</h3><span>${list.length}</span></header><ul class="doc-changes">${list.map((change) => `<li><label><input type="checkbox" data-doc-toggle="${escapeHtml(change.id)}" ${planningDocuments.selected.has(change.id) ? 'checked' : ''} ${selectable ? '' : 'disabled'}><span><strong>${escapeHtml(change.label)}</strong><small>${escapeHtml(change.detail || '')}${change.requiresDecision ? ' <em class="doc-decision">Decision needed</em>' : ''}</small></span></label></li>`).join('')}</ul></section>`
   }).join('')
+}
+
+function mergeReconciliations(left, right) {
+  if (!left) return right || null
+  if (!right) return left
+  const unique = (items, keyOf) => [...new Map([...(items || [])].map((item) => [keyOf(item), item])).values()]
+  const matched = unique([...(left.matched || []), ...(right.matched || [])], (item) => item.courseId || item.key)
+  const matchedIds = new Set(matched.map((item) => item.courseId).filter(Boolean))
+  const unselected = unique([...(left.unselected || []), ...(right.unselected || [])], (item) => item.code || item.key || item.name)
+  const missing = unique([...(left.missing || []), ...(right.missing || [])], (item) => item.courseId || item.code || item.name).filter((item) => !matchedIds.has(item.courseId))
+  const conflicts = unique([...(left.conflicts || []), ...(right.conflicts || [])], (item) => item.id || item.label)
+  const observed = matched.length + unselected.length
+  return {
+    kind: left.kind === right.kind ? left.kind : 'mixed',
+    sourceLabel: [left.sourceLabel, right.sourceLabel].filter(Boolean).join(', '),
+    status: unselected.length || conflicts.length ? 'attention' : missing.length ? 'review' : observed ? 'aligned' : 'not-applicable',
+    coverage: { observed, matched: matched.length, selectedInScope: Math.max(Number(left.coverage?.selectedInScope) || 0, Number(right.coverage?.selectedInScope) || 0), missing: missing.length },
+    matched,
+    unselected,
+    missing,
+    conflicts
+  }
+}
+
+function mergeDocumentResults(left, right, source) {
+  if (!left) return { ...right, sources: source ? [source] : right.sources }
+  const changes = [...(left.changes || [])]
+  for (const change of right.changes || []) if (!changes.some((item) => item.id === change.id)) changes.push(change)
+  return {
+    ...left,
+    kind: left.kind === right.kind ? left.kind : 'mixed',
+    changes,
+    sources: [...(left.sources || []), ...(source ? [source] : right.sources || [])],
+    warnings: [...new Set([...(left.warnings || []), ...(right.warnings || [])])],
+    reconciliation: mergeReconciliations(left.reconciliation, right.reconciliation)
+  }
+}
+
+function renderReconciliation(result) {
+  const reconciliation = result?.reconciliation
+  if (!reconciliation || reconciliation.status === 'not-applicable') return ''
+  const matched = reconciliation.matched || []
+  const unselected = reconciliation.unselected || []
+  const missing = reconciliation.missing || []
+  const conflicts = reconciliation.conflicts || []
+  if (reconciliation.status === 'aligned') return `<div class="doc-reconciliation is-aligned" role="status">${uiIcon('check')}<div><strong>Course cross-check complete</strong><p>All ${matched.length} course reference${matched.length === 1 ? '' : 's'} in this source match your selected courses.</p></div></div>`
+  const issueCount = unselected.length + missing.length + conflicts.length
+  const reviewedLabel = `${matched.length} matched · ${issueCount} to review`
+  return `<section class="doc-reconciliation is-review" role="${unselected.length || conflicts.length ? 'alert' : 'status'}" aria-label="Course cross-check">
+    <header>${uiIcon('alert')}<div><strong>Course cross-check needs review</strong><p>${reviewedLabel}. Your selected courses remain unchanged until you approve a proposed change.</p></div></header>
+    <div class="doc-reconciliation-groups">
+      ${unselected.length ? `<div><h3>Found, but not selected</h3><ul>${unselected.map((item) => `<li><span><strong>${escapeHtml(item.code || item.name)}</strong>${item.code && item.name && item.name !== item.code ? `<small>${escapeHtml(item.name)}</small>` : ''}</span>${item.changeId ? `<button type="button" class="pl-link pl-link-button" data-doc-jump="${escapeHtml(item.changeId)}">Review choice</button>` : ''}</li>`).join('')}</ul><p>Select its “Add to selected courses” change only if it belongs in your plan.</p></div>` : ''}
+      ${missing.length ? `<div><h3>Selected, but not found here</h3><ul>${missing.map((item) => `<li><span><strong>${escapeHtml(item.code || item.name)}</strong>${item.code && item.name ? `<small>${escapeHtml(item.name)}</small>` : ''}</span></li>`).join('')}</ul><p>This does not remove anything; a timetable or transcript may cover only part of your programme.</p></div>` : ''}
+      ${conflicts.length ? `<div><h3>Facts that disagree</h3><ul>${conflicts.map((item) => `<li><span><strong>${escapeHtml(item.label)}</strong></span><button type="button" class="pl-link pl-link-button" data-doc-jump="${escapeHtml(item.id)}">Review choice</button></li>`).join('')}</ul><p>Conflict choices start unchecked so the existing plan wins by default.</p></div>` : ''}
+    </div>
+  </section>`
 }
 
 function renderPlanningDocuments() {
@@ -2157,6 +2213,7 @@ function renderPlanningDocuments() {
     ${docs.applied ? `<div class="doc-applied" role="status">${uiIcon('check')} <span>${docs.applied} change${docs.applied === 1 ? '' : 's'} applied to your plan.</span><a class="pl-link" href="#/calendar">Calendar</a><a class="pl-link" href="#/planning/courses">Courses</a><button type="button" class="pl-link pl-link-button" data-doc-reset>Upload another</button></div>` : ''}
     ${result ? `<section class="panel doc-result">
       <div class="panel-top"><div><h2>Review proposed changes</h2><p>${result.usedAi === false ? 'Extracted with the basic text parser — check each line. ' : ''}${result.changes.length} proposed from ${result.sources?.length ? result.sources.map((source) => escapeHtml(source.name)).join(', ') : result.link ? escapeHtml(result.link.label) : 'your sources'}${result.kind && result.kind !== 'auto' ? ` · read as ${escapeHtml(DOCUMENT_KINDS.find(([id]) => id === result.kind)?.[1] || result.kind).toLowerCase()}` : ''}.</p></div><button type="button" class="btn btn-ghost btn-sm" data-doc-reset>Discard</button></div>
+      ${renderReconciliation(result)}
       ${result.warnings?.length ? `<div class="planning-intake-warnings" role="status"><strong>Notes from the reader</strong><ul>${result.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></div>` : ''}
       ${renderChangeSet(result)}
       ${docs.error ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.error)}</p>` : ''}
@@ -2750,7 +2807,7 @@ function renderAccountData() {
         <div class="action-row"><div><strong>Reset study data</strong><p>Clears progress, flashcards, mistakes, mock sessions, personal exercises, and the activity log. Your account, academic plan, and AI usage ledger are kept.</p></div><button type="button" class="btn btn-secondary btn-danger-outline" data-account-reset-open="study">${uiIcon('refresh')} Reset study data</button></div>
         <div class="action-row"><div><strong>Erase all personal data</strong><p>Removes every record including your academic plan and usage ledger, but keeps your sign-in so you can start again.</p></div><button type="button" class="btn btn-secondary btn-danger-outline" data-account-reset-open="everything">${uiIcon('trash')} Erase everything</button></div>
       </div>
-      <p class="settings-legal-note">For access, correction, restriction, or objection requests that are not available here, contact <a href="mailto:privacy@wicker.life">privacy@wicker.life</a>. See the <a href="/privacy">privacy notice</a>.</p>
+      <p class="settings-legal-note">For access, correction, restriction, or objection requests that are not available here, contact <a href="mailto:privacy@study.wicker.life">privacy@study.wicker.life</a>. See the <a href="/privacy">privacy notice</a>.</p>
     </section>
     <section class="panel panel-danger">
       <div class="action-row"><div><strong>Delete account</strong><p>Permanently removes your sign-in identity together with all personal data. This cannot be undone.</p></div><button type="button" class="btn btn-danger" data-account-delete-open>${uiIcon('trash')} Delete account</button></div>
@@ -3339,6 +3396,14 @@ function renderCalendarPage() {
   const anchor = calendarState.date || today
   const titleDate = new Date(`${anchor}T00:00:00`)
   const title = calendarState.instance ? calendarState.instance.view.title : new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(titleDate)
+  const reconciliation = data?.reconciliation
+  const unselectedCourses = reconciliation?.unselected || []
+  const missingCourses = reconciliation?.missing || []
+  const crossCheckNotice = unselectedCourses.length || missingCourses.length ? `<div class="calx-crosscheck ${unselectedCourses.length ? 'is-attention' : 'is-review'}" role="${unselectedCourses.length ? 'alert' : 'status'}">
+    ${uiIcon(unselectedCourses.length ? 'alert' : 'check')}
+    <div><strong>${unselectedCourses.length ? `${unselectedCourses.length} timetable course${unselectedCourses.length === 1 ? '' : 's'} ${unselectedCourses.length === 1 ? 'is' : 'are'} not in your selected plan` : `${missingCourses.length} selected course${missingCourses.length === 1 ? '' : 's'} ${missingCourses.length === 1 ? 'was' : 'were'} not found in the timetable`}</strong><p>${unselectedCourses.length ? `${unselectedCourses.slice(0, 4).map((item) => item.code || item.name).join(', ')}${unselectedCourses.length > 4 ? ` and ${unselectedCourses.length - 4} more` : ''}. Review the feed before adding these courses or their events.` : 'Nothing was removed. The feed may cover only part of your programme.'}</p></div>
+    <a class="btn btn-secondary btn-sm" href="#/planning/documents">Review in Documents</a>
+  </div>` : ''
   return `<section class="calx">
     <aside class="calx-rail">
       <button type="button" class="btn btn-primary calx-add" data-cal-compose>${uiIcon('plus')} ${calendarState.composer ? 'Close' : 'Add event'}</button>
@@ -3357,6 +3422,7 @@ function renderCalendarPage() {
         </div>
       </header>
       ${data?.problems?.length ? `<div class="settings-error calx-problem" role="alert"><strong>${data.problems.length === 1 ? 'A feed could not be read.' : 'Some feeds could not be read.'}</strong><p>${data.problems.map((problem) => `${escapeHtml(problem.label)}: ${escapeHtml(problem.error)}`).join(' · ')}</p></div>` : ''}
+      ${crossCheckNotice}
       ${calendarState.composer ? `<form class="pl-composer cal-composer" data-academic-event aria-label="Add event">
         <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt — add those under Planning → Courses.</span></div>
         <div class="pl-fields pl-fields-event">
@@ -8644,7 +8710,7 @@ function bindEvents() {
   document.querySelectorAll('[data-doc-description]').forEach((area) => area.addEventListener('input', () => { planningDocuments.description = area.value; document.querySelector('[data-doc-analyse]')?.toggleAttribute('disabled', !(planningDocuments.files.length || area.value.trim())) }))
   const showChangeSet = (result) => {
     planningDocuments.result = result
-    planningDocuments.selected = new Set((result.changes || []).map((change) => change.id))
+    planningDocuments.selected = new Set((result.changes || []).filter((change) => change.selectedByDefault !== false).map((change) => change.id))
     planningDocuments.applied = null
     planningDocuments.error = null
   }
@@ -8664,7 +8730,7 @@ function bindEvents() {
       }
       for (const file of icsFiles) {
         const preview = await fetchJson('/api/academics/calendars/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ics: file.text }) })
-        result = result ? { ...result, changes: [...result.changes, ...preview.changes.filter((change) => !result.changes.some((item) => item.id === change.id))], sources: [...(result.sources || []), { name: file.name }] } : { ...preview, sources: [{ name: file.name }] }
+        result = mergeDocumentResults(result, preview, { name: file.name })
       }
       if (!result) throw new Error('Add a file or a description first.')
       showChangeSet(result)
@@ -8675,7 +8741,23 @@ function bindEvents() {
       render()
     }
   }))
-  document.querySelectorAll('[data-doc-toggle]').forEach((input) => input.addEventListener('change', () => { if (input.checked) planningDocuments.selected.add(input.dataset.docToggle); else planningDocuments.selected.delete(input.dataset.docToggle); render() }))
+  document.querySelectorAll('[data-doc-toggle]').forEach((input) => input.addEventListener('change', () => {
+    const changes = planningDocuments.result?.changes || []
+    const change = changes.find((item) => item.id === input.dataset.docToggle)
+    if (input.checked) {
+      planningDocuments.selected.add(input.dataset.docToggle)
+      if (change?.requiresCourseChangeId) planningDocuments.selected.add(change.requiresCourseChangeId)
+    } else {
+      planningDocuments.selected.delete(input.dataset.docToggle)
+      for (const dependent of changes.filter((item) => item.requiresCourseChangeId === input.dataset.docToggle)) planningDocuments.selected.delete(dependent.id)
+    }
+    render()
+  }))
+  document.querySelectorAll('[data-doc-jump]').forEach((button) => button.addEventListener('click', () => {
+    const input = document.querySelector(`[data-doc-toggle="${CSS.escape(button.dataset.docJump)}"]`)
+    input?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+    input?.focus({ preventScroll: true })
+  }))
   document.querySelectorAll('[data-doc-select-all]').forEach((button) => button.addEventListener('click', () => { const all = planningDocuments.result?.changes || []; planningDocuments.selected = planningDocuments.selected.size === all.length ? new Set() : new Set(all.map((change) => change.id)); render() }))
   document.querySelectorAll('[data-doc-reset]').forEach((button) => button.addEventListener('click', () => { Object.assign(planningDocuments, { files: [], description: '', result: null, selected: new Set(), error: null, applied: null }); render() }))
   document.querySelectorAll('[data-doc-apply]').forEach((button) => button.addEventListener('click', async () => {
@@ -8689,6 +8771,8 @@ function bindEvents() {
     try {
       const saved = await fetchJson('/api/academics/documents/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ changes, expectedRevision: academicsData.workspace.revision }) })
       academicsData = { ...academicsData, index: saved.index, workspace: saved.workspace, summary: saved.summary }
+      calendarState.data = null
+      calendarState.loadedAt = 0
       Object.assign(planningDocuments, { files: [], description: '', result: null, selected: new Set(), applied: saved.applied?.length || changes.length })
     } catch (error) {
       planningDocuments.error = /another tab/.test(error.message) ? 'Your plan changed elsewhere. Reload the page and read the document again.' : error.message

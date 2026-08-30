@@ -16,10 +16,13 @@ test('calendar aggregates attempts, events, institution dates, and feeds without
       { id: 'i1', title: 'Resit registration window', date: '2026-10-01', endDate: '2026-10-07', type: 'registration', notes: '' },
       { id: 'i2', title: 'Christmas break', date: '2026-12-21', endDate: '2027-01-03', type: 'other', notes: '' }
     ],
-    feeds: [{ link: { id: 'f1', label: 'Timetable' }, events: [{ id: 'x', title: 'BCS1520 Lecture', date: '2026-09-02', endDate: null, type: 'other', notes: '09:00–11:00 · Room 1' }] }]
+    feeds: [{ link: { id: 'f1', label: 'Timetable' }, events: [
+      { id: 'x', title: 'BCS1520 Lecture', date: '2026-09-02', endDate: null, type: 'other', notes: '09:00–11:00 · Room 1' },
+      { id: 'y', title: 'BCS2999 Elective', date: '2026-09-03', endDate: null, type: 'other', notes: '13:00–15:00 · Room 2' }
+    ] }]
   })
   const categories = result.events.map((event) => event.category)
-  assert.deepEqual(categories, ['timetable', 'registration', 'exam', 'institution'])
+  assert.deepEqual(categories, ['timetable', 'timetable', 'registration', 'exam', 'institution'])
   const exam = result.events.find((event) => event.category === 'exam')
   assert.equal(exam.colour, '#123456')
   assert.equal(exam.editorialCourseId, 'stats')
@@ -28,7 +31,10 @@ test('calendar aggregates attempts, events, institution dates, and feeds without
   assert.equal(lecture.end, '2026-09-02T11:00:00')
   assert.equal(lecture.allDay, false)
   assert.equal(lecture.courseCode, 'BCS1520')
+  assert.equal(lecture.courseId, 'c1')
   const registration = result.events.find((event) => event.category === 'registration')
   assert.equal(registration.end, '2026-10-08')
-  assert.deepEqual(result.courses.map((course) => course.code), ['BCS1520'])
+  assert.deepEqual(result.courses.map((course) => course.code), ['BCS1520', 'BCS2999'])
+  assert.equal(result.reconciliation.status, 'attention')
+  assert.deepEqual(result.reconciliation.unselected.map((course) => course.code), ['BCS2999'])
 })

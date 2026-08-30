@@ -119,6 +119,10 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
   transcripts, exam schedules, timetables, academic calendars, and .ics feeds at
   any time; the reader proposes a change set (results, exam dates, new courses,
   events) that the student ticks and applies — nothing changes silently.
+  Each source is cross-checked against the active selected-course ledger.
+  Unselected source courses, scheduled completed courses, and disagreeing facts
+  are explicit unchecked decisions; source omissions are informational and
+  never remove a selected course.
   Institution-wide calendar dates maintained editorially appear read-only in
   the Calendar destination with an "Add to my plan" action. Courses holds the curriculum ledger, programme-structure choices,
   and per-course editing (expanded in place beneath the row); Progress holds
