@@ -34,6 +34,7 @@ strings (`"02"`). Always resolve them with `GET /api/courses` before guessing.
 | Mistakes, mocks | `GET /api/mistakes?open=true`, `GET /api/mocks` |
 | Academic plan, exam dates | `GET /api/academics` |
 | Streak and recent activity | `GET /api/activity?days=28` |
+| Unified calendar (exams, deadlines, institution dates, timetable feeds) | `GET /api/calendar/events` |
 
 ## Studying on the student's behalf (scope: write)
 

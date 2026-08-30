@@ -63,6 +63,8 @@ server.tool('list_mock_sessions', 'Completed mock sessions.', {}, run(() => api(
 server.tool('get_mock_session', 'One mock session with every answer and correction.', { sessionId: z.string() }, run(({ sessionId }) => api(`/api/mocks/${encodeURIComponent(sessionId)}`)))
 server.tool('get_academic_plan', 'Active academic programme: courses, attempts, exam dates, events, gates, summary.', {}, run(() => api('/api/academics')))
 server.tool('list_known_programmes', 'The catalogue of known bachelor programmes.', {}, run(() => api('/api/editorial-programmes')))
+server.tool('get_calendar', 'Unified calendar: exams, deadlines, registration windows, institution dates, and timetable feed events.', { from: z.string().optional().describe('ISO date; omit for everything'), to: z.string().optional() },
+  run(async ({ from, to }) => { const data = await api('/api/calendar/events'); const events = data.events.filter((e) => (!from || String(e.start) >= from) && (!to || String(e.start) <= to)); return { ...data, events } }))
 server.tool('get_activity', 'Study activity series, streak, weekly totals, recent events.', { days: z.number().int().min(7).max(120).optional() }, run(({ days }) => api('/api/activity', { query: { days } })))
 server.tool('get_account_summary', 'What is stored for the account, per record family.', {}, run(() => api('/api/account/summary')))
 

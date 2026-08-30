@@ -799,6 +799,7 @@ function parseRoute() {
     return { page: 'mock-exam', courseId: decodeURIComponent(parts[1]) }
   }
   if (parts[0] === 'courses') return { page: 'courses' }
+  if (parts[0] === 'calendar') return { page: 'calendar', view: parts[1] || null }
   if (parts[0] === 'mistakes') return { page: 'practice', tab: 'mistakes' }
   if (parts[0] === 'sr') return { page: 'practice', tab: 'flashcards' }
   if (parts[0] === 'mocks') return { page: 'practice', tab: 'mocks', sessionId: parts[1] ? decodeURIComponent(parts[1]) : null }
@@ -1216,6 +1217,7 @@ function computeTitle() {
   if (!state) return 'Wicker Study'
   if (route.page === 'dashboard') return 'Home' + suffix
   if (route.page === 'courses') return 'Courses' + suffix
+  if (route.page === 'calendar') return 'Calendar' + suffix
   if (route.page === 'practice') return (PRACTICE_TABS.find(([id]) => id === route.tab)?.[1] || 'Practice') + ' · Practice' + suffix
   if (route.page === 'mocks') return (route.sessionId ? 'Mock session' : 'Mock sessions') + suffix
   if (route.page === 'account') return (ACCOUNT_TABS.find(([id]) => id === route.tab)?.[1] || 'Account') + ' · Account' + suffix
@@ -1339,6 +1341,7 @@ function render() {
     dialogReturnFocusSelector = null
   }
   autosizeAnswerTextareas()
+  if (route.page === 'calendar') mountCalendar()
   restoreScrollState(scrollSnap)
   // Restore focus to the search input across re-renders so arrow keys / Enter keep working.
   if (searchState.open && (activeSearchInput || _searchPendingFocus)) {
@@ -1408,6 +1411,7 @@ function routeView() {
   if (route.page === 'chapter') return renderChapterPage()
   if (route.page === 'mock-exam') return renderMockExamPage()
   if (route.page === 'courses') return renderCoursesPage()
+  if (route.page === 'calendar') return renderCalendarPage()
   if (route.page === 'practice') return renderPracticeShell()
   if (route.page === 'account') return renderAccountPage()
   if (route.page === 'planning') return renderAcademicPlanningPage()
@@ -2090,7 +2094,7 @@ function renderPlanningCalendar() {
   const monthLabel = (key) => new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date(`${key}-01T00:00:00`))
   const firstUpcoming = entries.find((entry) => entry.date >= today)
   return `<div class="pl-page">
-    ${planningPageHeader('Calendar', 'Exam attempts from your courses plus registration windows, deadlines, and personal dates.', `<button type="button" class="btn ${planningEventComposerOpen ? 'btn-secondary' : 'btn-primary'} btn-sm" data-planning-event-toggle>${planningEventComposerOpen ? 'Close' : `${uiIcon('plus')} Add event`}</button>`)}
+    ${planningPageHeader('Calendar', 'Exam attempts from your courses plus registration windows, deadlines, and personal dates.', `<a class="btn btn-secondary btn-sm" href="#/calendar">${uiIcon('calendar')} Full calendar</a><button type="button" class="btn ${planningEventComposerOpen ? 'btn-secondary' : 'btn-primary'} btn-sm" data-planning-event-toggle>${planningEventComposerOpen ? 'Close' : `${uiIcon('plus')} Add event`}</button>`)}
     ${planningEventComposerOpen ? `<form class="pl-composer" data-academic-event aria-label="Add academic event">
       <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt; add them from Courses.</span></div>
       <div class="pl-fields pl-fields-event">
@@ -2866,7 +2870,7 @@ function renderSidebar() {
         ${link('nav-practice', '#/practice', 'Practice', uiIcon('target'), route.page === 'practice', due || null)}
         <span class="dash-nav-group">Plan</span>
         ${link('nav-planning', '#/planning', 'Planning', uiIcon('chart'), route.page === 'planning' && route.tab !== 'calendar')}
-        ${link('nav-calendar', '#/planning/calendar', 'Calendar', uiIcon('calendar'), route.page === 'planning' && route.tab === 'calendar')}
+        ${link('nav-calendar', '#/calendar', 'Calendar', uiIcon('calendar'), route.page === 'calendar')}
         ${link('nav-account nav-account-mobile', '#/account', 'Account', uiIcon('user'), route.page === 'account')}
         <span class="dash-nav-group">Help</span>
         <a class="dash-nav-link nav-docs" href="/docs" target="_blank" rel="noopener"><span class="nav-icon">${uiIcon('book')}</span><span class="nav-label">Docs</span><span class="dash-nav-ext">↗</span></a>
@@ -3191,7 +3195,7 @@ function renderHome() {
     </header>
 
     <div class="kpi-strip">
-      ${kpi('#/planning/calendar', soonest && soonest.days !== null && soonest.days <= 7 ? 'is-danger' : 'is-brand', 'calendar', 'Next exam',
+      ${kpi('#/calendar', soonest && soonest.days !== null && soonest.days <= 7 ? 'is-danger' : 'is-brand', 'calendar', 'Next exam',
         soonest ? (soonest.days === null ? '—' : soonest.days < 0 ? 'Today' : `${soonest.days}<small>${soonest.days === 1 ? 'day' : 'days'}</small>`) : '—',
         soonest ? `${escapeHtml(soonest.course.code || soonest.course.name)} · ${academicDate(soonest.attempt.examDate)}` : hasPlan ? 'No dates recorded' : 'No plan yet')}
       ${kpi('#/practice/flashcards', 'is-brand', 'layers', 'Flashcards due', srDue == null ? '—' : srDue, srTotal == null ? 'Loading…' : srTotal ? `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck` : 'Add cards from any question')}
@@ -3219,7 +3223,7 @@ function renderHome() {
 
       <aside class="home-aside">
         <section class="panel panel-aside">
-          <div class="panel-top"><h2>Upcoming exams</h2><a class="pl-link" href="#/planning/calendar">Calendar</a></div>
+          <div class="panel-top"><h2>Upcoming exams</h2><a class="pl-link" href="#/calendar">Calendar</a></div>
           ${exams.length ? `<ol class="exam-list">${exams.map((item) => `<li>
             <span class="exam-days${item.days !== null && item.days <= 7 ? ' is-soon' : ''}"><strong>${item.days === null ? '—' : item.days < 0 ? '0' : item.days}</strong><small>${item.days === 1 ? 'day' : 'days'}</small></span>
             <span class="exam-copy"><strong>${escapeHtml(item.course.code || item.course.name)}</strong><small>${escapeHtml(item.course.name)} · ${academicDate(item.attempt.examDate)}</small></span>
@@ -3243,6 +3247,123 @@ function renderHome() {
     </div>
     ${renderGenerateAllCoursesCard()}
   `
+}
+
+// ----- Calendar page (FullCalendar over the unified feed) ------------------
+const CALENDAR_LIB = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'
+const CALENDAR_VIEWS = [['dayGridMonth', 'Month'], ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['listMonth', 'Agenda']]
+const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', institution: '#59627b', timetable: '#2a7f9e', other: '#7d859b' }
+const calendarState = { data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', categories: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
+let calendarLibPromise = null
+function ensureCalendarLib() {
+  if (calendarState.libReady) return Promise.resolve()
+  if (!calendarLibPromise) {
+    calendarLibPromise = new Promise((resolveLoad, rejectLoad) => {
+      const script = document.createElement('script')
+      script.src = CALENDAR_LIB
+      script.onload = () => { calendarState.libReady = true; resolveLoad() }
+      script.onerror = () => { calendarState.libError = 'The calendar library could not be loaded. Check your connection and reload.'; calendarLibPromise = null; rejectLoad(new Error(calendarState.libError)) }
+      document.head.append(script)
+    })
+  }
+  return calendarLibPromise
+}
+async function loadCalendarEvents(force = false) {
+  if (calendarState.loading || (calendarState.data && !force && Date.now() - calendarState.loadedAt < 60_000)) return
+  calendarState.loading = true
+  calendarState.error = null
+  try { calendarState.data = await fetchJson('/api/calendar/events'); calendarState.loadedAt = Date.now() }
+  catch (error) { calendarState.error = error.message }
+  finally { calendarState.loading = false; render() }
+}
+function calendarEventMatches(event) {
+  if (calendarState.categories.size && !calendarState.categories.has(event.category)) return false
+  if (calendarState.course !== 'all' && event.courseCode !== calendarState.course) return false
+  if (calendarState.search) {
+    const needle = calendarState.search.toLowerCase()
+    return `${event.title} ${event.notes || ''} ${event.courseCode || ''} ${event.feedLabel || ''}`.toLowerCase().includes(needle)
+  }
+  return true
+}
+function visibleCalendarEvents() {
+  return (calendarState.data?.events || []).filter(calendarEventMatches)
+}
+function toFullCalendarEvent(event) {
+  const colour = event.colour || CATEGORY_COLOURS[event.category] || CATEGORY_COLOURS.other
+  return { id: event.id, title: event.title, start: event.start, end: event.end || undefined, allDay: event.allDay, backgroundColor: event.category === 'institution' ? 'transparent' : colour, borderColor: colour, textColor: event.category === 'institution' ? colour : '#fff', classNames: [`cal-${event.category}`], extendedProps: event }
+}
+function renderCalendarPage() {
+  if (!calendarState.data && !calendarState.loading && !calendarState.error) loadCalendarEvents()
+  if (route.view && CALENDAR_VIEWS.some(([id]) => id === route.view)) calendarState.view = route.view
+  const data = calendarState.data
+  const all = data?.events || []
+  const visible = visibleCalendarEvents()
+  const today = new Date().toISOString().slice(0, 10)
+  const upcoming = visible.filter((event) => String(event.start).slice(0, 10) >= today).slice(0, 6)
+  const selected = calendarState.selected ? all.find((event) => event.id === calendarState.selected) : null
+  const categoryCounts = {}
+  for (const event of all) categoryCounts[event.category] = (categoryCounts[event.category] || 0) + 1
+  const categories = Object.entries(data?.categories || {}).filter(([id]) => categoryCounts[id])
+  const courses = data?.courses || []
+  const feeds = data?.feeds || []
+  return `<section class="page-wrap calendar-page">
+    <header class="page-head"><div><p class="page-eyebrow">Calendar</p><h1>${upcoming[0] ? `Next: ${escapeHtml(upcoming[0].title)}` : 'Your calendar'}</h1><p class="page-sub">${data ? `${all.length} date${all.length === 1 ? '' : 's'} from your plan${feeds.length ? `, ${feeds.length} timetable feed${feeds.length === 1 ? '' : 's'}` : ''}${categoryCounts.institution ? ', and your institution calendar' : ''}.` : calendarState.error ? escapeHtml(calendarState.error) : 'Loading your dates…'}</p></div>
+      <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/planning/documents">${uiIcon('upload')} Add timetable or schedule</a><a class="btn btn-secondary btn-sm" href="#/planning/calendar">${uiIcon('plus')} Add event</a></div></header>
+    ${data?.problems?.length ? `<div class="settings-error" role="alert"><strong>${data.problems.length === 1 ? 'A feed could not be read.' : 'Some feeds could not be read.'}</strong><p>${data.problems.map((problem) => `${escapeHtml(problem.label)}: ${escapeHtml(problem.error)}`).join(' · ')}</p></div>` : ''}
+    <div class="cal-toolbar">
+      <label class="cal-search"><span class="nav-icon">${uiIcon('search')}</span><input type="search" data-cal-search placeholder="Search dates, courses, rooms…" value="${escapeHtml(calendarState.search)}" aria-label="Search calendar"></label>
+      <div class="cal-chips" role="group" aria-label="Filter by type">${categories.map(([id, label]) => `<button type="button" class="cal-chip${calendarState.categories.has(id) ? ' is-on' : ''}" data-cal-category="${id}" style="--chip:${CATEGORY_COLOURS[id] || CATEGORY_COLOURS.other}"><i></i>${escapeHtml(label)}<small>${categoryCounts[id]}</small></button>`).join('')}${calendarState.categories.size || calendarState.search || calendarState.course !== 'all' ? '<button type="button" class="pl-link pl-link-button" data-cal-clear>Clear</button>' : ''}</div>
+      ${courses.length ? `<select class="cal-course" data-cal-course aria-label="Filter by course"><option value="all">All courses</option>${courses.map((course) => `<option value="${escapeHtml(course.code)}" ${calendarState.course === course.code ? 'selected' : ''}>${escapeHtml(course.code)}</option>`).join('')}</select>` : ''}
+      <div class="cal-views" role="tablist" aria-label="Calendar view">${CALENDAR_VIEWS.map(([id, label]) => `<button type="button" role="tab" class="cal-view${calendarState.view === id ? ' is-on' : ''}" data-cal-view="${id}" aria-selected="${calendarState.view === id}">${label}</button>`).join('')}</div>
+    </div>
+    <div class="cal-layout">
+      <div class="panel cal-panel">${calendarState.libError ? `<div class="deps-pending"><p>${escapeHtml(calendarState.libError)}</p></div>` : `<div class="cal-host" data-cal-host aria-busy="${!calendarState.libReady || !data}">${!calendarState.libReady || !data ? `<div class="deps-pending"><p><span class="boot-spinner"></span>Loading the calendar…</p></div>` : ''}</div>`}</div>
+      <aside class="cal-aside">
+        ${selected ? `<section class="panel panel-aside cal-detail" style="--accent:${selected.colour || CATEGORY_COLOURS[selected.category] || CATEGORY_COLOURS.other}">
+          <div class="panel-top"><h2>${escapeHtml((data.categories || {})[selected.category] || selected.category)}</h2><button type="button" class="icon-btn" data-cal-close aria-label="Close">${uiIcon('close')}</button></div>
+          <h3>${escapeHtml(selected.title)}</h3>
+          <p class="cal-detail-when">${academicDate(String(selected.start).slice(0, 10))}${!selected.allDay ? ` · ${String(selected.start).slice(11, 16)}${selected.end ? `–${String(selected.end).slice(11, 16)}` : ''}` : selected.end ? ` → ${academicDate(prevDay(String(selected.end).slice(0, 10)))}` : ''}</p>
+          ${selected.notes ? `<p class="cal-detail-notes">${escapeHtml(selected.notes)}</p>` : ''}
+          <div class="cal-detail-actions">${selected.editorialCourseId ? `<a class="btn btn-primary btn-sm" href="#/course/${encodeURIComponent(selected.editorialCourseId)}">${uiIcon('book')} Study</a>` : ''}${selected.href ? `<a class="btn btn-secondary btn-sm" href="${selected.href}">${selected.category === 'exam' ? 'Edit attempt' : 'Edit in planning'}</a>` : ''}${selected.category === 'institution' ? `<button type="button" class="btn btn-secondary btn-sm" data-institution-event-import="${escapeHtml(selected.id.slice(12))}">Add to my plan</button>` : ''}${selected.feedLabel ? `<span class="panel-note">From ${escapeHtml(selected.feedLabel)}</span>` : ''}</div>
+        </section>` : ''}
+        <section class="panel panel-aside">
+          <div class="panel-top"><h2>Coming up</h2><span class="panel-note">${visible.length !== all.length ? `${visible.length} of ${all.length}` : ''}</span></div>
+          ${upcoming.length ? `<ol class="cal-upcoming">${upcoming.map((event) => `<li><button type="button" data-cal-select="${escapeHtml(event.id)}"><time datetime="${escapeHtml(String(event.start).slice(0, 10))}"><strong>${new Date(`${String(event.start).slice(0, 10)}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { month: 'short' }).format(new Date(`${String(event.start).slice(0, 10)}T00:00:00`))}</span></time><span class="cal-upcoming-copy"><strong>${escapeHtml(event.title)}</strong><small><i style="background:${event.colour || CATEGORY_COLOURS[event.category]}"></i>${escapeHtml((data.categories || {})[event.category] || event.category)}${!event.allDay ? ` · ${String(event.start).slice(11, 16)}` : ''}</small></span></button></li>`).join('')}</ol>` : `<p class="panel-note">${data ? (all.length ? 'Nothing matches the current filters.' : 'No dates yet. Add exam dates in Planning, upload a schedule, or link a timetable feed.') : 'Loading…'}</p>`}
+        </section>
+        ${feeds.length ? `<section class="panel panel-aside"><div class="panel-top"><h2>Feeds</h2><a class="pl-link" href="#/planning/documents">Manage</a></div><ul class="cal-feeds">${feeds.map((feed) => `<li>${uiIcon('calendar')}<span>${escapeHtml(feed.label)}</span></li>`).join('')}</ul></section>` : ''}
+      </aside>
+    </div>
+  </section>`
+}
+function localIsoDate(value) { const d = value instanceof Date ? value : new Date(value); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+function prevDay(date) { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() - 1); return value.toISOString().slice(0, 10) }
+function mountCalendar() {
+  const host = document.querySelector('[data-cal-host]')
+  if (!host) { calendarState.instance = null; return }
+  if (!calendarState.data) return
+  if (!calendarState.libReady) { ensureCalendarLib().then(() => render()).catch(() => render()); return }
+  host.innerHTML = ''
+  const calendar = new window.FullCalendar.Calendar(host, {
+    initialView: calendarState.view,
+    initialDate: calendarState.date || undefined,
+    headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+    buttonIcons: false,
+    buttonText: { prev: '‹', next: '›', today: 'Today' },
+    slotMinTime: '07:00:00',
+    slotMaxTime: '22:00:00',
+    scrollTime: '08:00:00',
+    height: 'auto',
+    firstDay: 1,
+    nowIndicator: true,
+    dayMaxEvents: 4,
+    navLinks: true,
+    events: (info, success) => success(visibleCalendarEvents().map(toFullCalendarEvent)),
+    eventClick: (info) => { info.jsEvent.preventDefault(); calendarState.selected = info.event.id; calendarState.date = localIsoDate(calendar.getDate()); render() },
+    datesSet: (info) => { calendarState.date = localIsoDate(calendar.getDate()) },
+    eventDidMount: (info) => { info.el.title = `${info.event.title}${info.event.extendedProps.notes ? ` — ${info.event.extendedProps.notes}` : ''}` }
+  })
+  calendar.render()
+  calendarState.instance = calendar
 }
 
 function renderCoursesPage() {
@@ -8424,6 +8545,16 @@ function bindEvents() {
   }))
 
   document.querySelectorAll('[data-planning-files]').forEach((input) => input.addEventListener('change', () => addPlanningSources(input.files)))
+  // ----- Calendar page -----
+  document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('input', () => { calendarState.search = input.value; calendarState.instance?.refetchEvents(); document.querySelectorAll('.cal-upcoming').forEach(() => {}) }))
+  document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('change', () => render()))
+  document.querySelectorAll('[data-cal-category]').forEach((button) => button.addEventListener('click', () => { const id = button.dataset.calCategory; if (calendarState.categories.has(id)) calendarState.categories.delete(id); else calendarState.categories.add(id); render() }))
+  document.querySelectorAll('[data-cal-clear]').forEach((button) => button.addEventListener('click', () => { calendarState.categories = new Set(); calendarState.search = ''; calendarState.course = 'all'; render() }))
+  document.querySelectorAll('[data-cal-course]').forEach((select) => select.addEventListener('change', () => { calendarState.course = select.value; render() }))
+  document.querySelectorAll('[data-cal-view]').forEach((button) => button.addEventListener('click', () => { calendarState.view = button.dataset.calView; if (calendarState.instance) calendarState.date = localIsoDate(calendarState.instance.getDate()); render() }))
+  document.querySelectorAll('[data-cal-select]').forEach((button) => button.addEventListener('click', () => { const event = calendarState.data?.events.find((item) => item.id === button.dataset.calSelect); calendarState.selected = button.dataset.calSelect; if (event) calendarState.date = String(event.start).slice(0, 10); render() }))
+  document.querySelectorAll('[data-cal-close]').forEach((button) => button.addEventListener('click', () => { calendarState.selected = null; render() }))
+
   // ----- Documents tab -----
   document.querySelectorAll('[data-doc-files]').forEach((input) => input.addEventListener('change', (event) => { addDocumentSources(event.target.files); event.target.value = '' }))
   document.querySelectorAll('[data-doc-dropzone]').forEach((dropzone) => {

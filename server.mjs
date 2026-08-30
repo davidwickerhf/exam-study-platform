@@ -29,6 +29,8 @@ import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
+import { aggregateCalendar, feedEvents } from './lib/calendar-feed.mjs'
+import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
@@ -3156,6 +3158,21 @@ const server = createServer(async (req, res) => {
       } catch (error) {
         if (!sendAiError(res, error)) send(res, /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
       }
+      return
+    }
+
+    // Unified calendar feed for the Calendar page.
+    if (url.pathname === '/api/calendar/events' && req.method === 'GET') {
+      const [{ workspace }, state] = await Promise.all([readAcademicState(), readState()])
+      const reference = workspace.programmeTemplate ? findEditorialProgramme(workspace.programmeTemplate.programmeId, workspace.programmeTemplate.versionId) : null
+      const feeds = []
+      const problems = []
+      for (const link of workspace.calendars || []) {
+        try { feeds.push({ link, events: await feedEvents(link) }) }
+        catch (error) { problems.push({ id: link.id, label: link.label, error: error.message }) }
+      }
+      const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: reference?.programme?.calendar || [], feeds })
+      send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
 
