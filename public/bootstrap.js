@@ -277,7 +277,7 @@ async function main() {
   // Eligibility is enforced server-side (ALLOWED_EMAIL_DOMAINS). A signed-in
   // account that is not eligible is told so and offered sign-out instead of a
   // workspace full of 403s.
-  const session = await nativeFetch('/api/auth/session', { headers: await authHeaders() })
+  let session = await nativeFetch('/api/auth/session', { headers: await authHeaders() })
   if (session.status === 403) {
     const detail = await session.json().catch(() => ({}))
     const { mountIneligibleSite } = await import(`/public-site.js?v=${ASSET_VERSION}`)
@@ -287,6 +287,22 @@ async function main() {
       signOut: () => clerk.signOut({ redirectUrl: `${window.location.origin}/sign-in` })
     })
     return
+  }
+  // Programme scoping: most people are placed automatically from their email
+  // domain. When several programmes match, they choose once.
+  const sessionInfo = session.ok ? await session.json().catch(() => null) : null
+  if (sessionInfo?.needsProgramme && sessionInfo.eligible?.length > 1) {
+    const { mountProgrammePicker } = await import(`/public-site.js?v=${ASSET_VERSION}`)
+    await new Promise((resolve) => mountProgrammePicker({
+      email: sessionInfo.email || '',
+      programmes: sessionInfo.eligible,
+      choose: async (programmeId) => {
+        const response = await nativeFetch('/api/account/programme', { method: 'POST', headers: { 'content-type': 'application/json', ...await authHeaders() }, body: JSON.stringify({ programmeId }) })
+        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Could not join this programme.')
+        resolve()
+      },
+      signOut: () => clerk.signOut({ redirectUrl: `${window.location.origin}/sign-in` })
+    }))
   }
 
   window.fetch = async (input, init = {}) => {

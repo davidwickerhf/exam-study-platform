@@ -308,3 +308,12 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 .auth-page-single { grid-template-columns: minmax(0, 1fr); }
 .auth-page-single .auth-form-column { max-width: 560px; }
 .auth-actions { margin: var(--space-5) 0 0; }
+
+/* Programme picker (one-time, when an email domain matches several programmes). */
+.auth-programmes { display: grid; gap: var(--space-3); max-width: 480px; margin-top: var(--space-5); }
+.auth-programme { display: grid; gap: 2px; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); text-align: left; cursor: pointer; font: inherit; color: var(--color-ink); }
+.auth-programme:hover { border-color: var(--color-brand); }
+.auth-programme:disabled { opacity: 0.6; cursor: wait; }
+.auth-programme strong { font-size: 15px; }
+.auth-programme span { color: var(--color-ink-secondary); font-size: 13px; }
+.auth-error { max-width: 480px; margin-top: var(--space-3); color: #b4233d; font-size: 13px; }

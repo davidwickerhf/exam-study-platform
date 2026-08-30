@@ -23,6 +23,16 @@ keys, reset data, or delete the account — those need a signed-in session.
 Send the key as `Authorization: Bearer wsk_…`. Keys work in every mode
 (Clerk-protected production and local development).
 
+## Programmes and organisations
+
+Each maintained programme is an organisation. A key acts inside its owner's
+memberships: `GET /api/me` lists them (`programmes[]` with `role` `member` or
+`admin`); `POST /api/account/programme { programmeId }` joins a programme
+whose institution domains match the owner's email. Programme admins may
+update their own programme, its institution calendar, and its members
+(`/api/admin/programmes/{id}/members[/{userId}]`) without being global
+administrators; only global administrators grant the admin role.
+
 ## Discovering the API
 
 `GET /api/agent/manifest` returns every endpoint with its scope and body shape.

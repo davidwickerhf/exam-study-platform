@@ -6,7 +6,10 @@
       "institution": {
         "name": "Maastricht University",
         "city": "Maastricht",
-        "country": "Netherlands"
+        "country": "Netherlands",
+        "domains": [
+          "maastrichtuniversity.nl"
+        ]
       },
       "name": "Computer Science",
       "degree": "Bachelor of Science",

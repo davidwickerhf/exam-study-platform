@@ -79,6 +79,14 @@ Deletes are `DELETE` on the same paths and are irreversible — confirm with the
 user before deleting a course, chapter, or programme. Check `GET /api/admin/status`
 to see counts before and after bulk changes.
 
+## Programmes (organisations)
+
+`whoami` shows the student's programme memberships. If `needsProgramme` is true and
+`eligible` lists several programmes, ask which one applies and call `join_programme`.
+Programme admins can update their own programme, its calendar, and its members
+(`admin_list_members`, `admin_set_member`, `admin_remove_member`); only global admins
+grant the admin role.
+
 ## Conventions
 
 - Send JSON bodies with `Content-Type: application/json`.

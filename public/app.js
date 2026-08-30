@@ -2496,8 +2496,10 @@ function renderAccountProfile(user) {
   const active = activeCourses().length
   const archived = archivedCourses().length
   const fact = (label, value, detail) => `<div class="fact"><dt>${label}</dt><dd>${value}</dd>${detail ? `<span>${detail}</span>` : ''}</div>`
+  const programmes = summary?.programmes || []
   const identityRows = [
     ['Email', user.email || '—'],
+    ['Programme', programmes.length ? programmes.map((membership) => `${escapeHtml(membership.programme ? `${membership.programme.degree} ${membership.programme.name}` : membership.programmeId)}${membership.role === 'admin' ? ' <span class="pill">Programme admin</span>' : ''}`).join('<br>') : summary ? (window.__clerk ? 'Not linked to a programme yet' : 'All programmes (local development)') : '…'],
     ['Sign-in', window.__clerk ? 'Managed by Clerk' : 'Local development (no sign-in)'],
     ['Storage', summary ? (summary.account?.storage === 'neon' ? 'Encrypted cloud database (Neon)' : 'Local files on this machine') : '…'],
     ['Account ID', summary?.account?.id ? `<code>${escapeHtml(String(summary.account.id).slice(0, 18))}${String(summary.account.id).length > 18 ? '…' : ''}</code>` : '…']

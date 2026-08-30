@@ -41,7 +41,8 @@ const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses t
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
 // ── Read ─────────────────────────────────────────────────────────────────
-server.tool('whoami', 'Who this key acts as, its scopes, and whether it is an administrator.', {}, run(() => api('/api/me')))
+server.tool('whoami', 'Who this key acts as, its scopes, programme memberships, and whether it is an administrator.', {}, run(() => api('/api/me')))
+server.tool('join_programme', 'Join a maintained programme (organisation). Only programmes whose institution domains match the student’s email can be joined.', { programmeId: z.string() }, run(({ programmeId }) => api('/api/account/programme', { method: 'POST', body: { programmeId } })))
 server.tool('list_courses', 'Courses with chapters and progress counts.', {}, run(() => api('/api/courses')))
 server.tool('get_course', 'One course: chapters, mastery items with the student’s mastery, exam papers.', { courseId }, run(({ courseId }) => api(`/api/courses/${encodeURIComponent(courseId)}`)))
 server.tool('get_chapter', 'Chapter markdown content. relPath opens a linked file or sub-page inside the chapter folder.', { courseId, chapterId, relPath: z.string().optional() },
@@ -106,6 +107,9 @@ server.tool('remove_calendar_link', 'Remove a saved calendar link.', { id: z.str
 // ── Admin (editorial content; requires an admin key) ─────────────────────
 const adminCourse = (courseId) => `/api/admin/courses/${encodeURIComponent(courseId)}`
 server.tool('admin_status', 'Active release and content counts.', {}, run(() => api('/api/admin/status')))
+server.tool('admin_list_members', 'Members of a programme organisation with roles.', { programmeId: z.string() }, run(({ programmeId }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}/members`)))
+server.tool('admin_set_member', 'Add a user to a programme or change their role (member | admin). Granting admin needs a global administrator.', { programmeId: z.string(), userId: z.string(), role: z.enum(['member', 'admin']).default('member') }, run(({ programmeId, userId, role }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}/members/${encodeURIComponent(userId)}`, { method: 'PUT', body: { role } })))
+server.tool('admin_remove_member', 'Remove a user from a programme organisation.', { programmeId: z.string(), userId: z.string() }, run(({ programmeId, userId }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' })))
 server.tool('admin_upsert_course', 'Create or update a course.', { courseId, code: z.string().optional(), name: z.string().optional(), shortName: z.string().optional(), exam: z.string().optional(), role: z.string().optional(), accent: z.string().optional(), knowledgeBase: z.string().optional(), visualStyle: z.string().optional(), examProfile: z.string().optional(), position: z.number().int().optional(), extra: z.record(z.any()).optional() },
   run(({ courseId, ...body }) => api(adminCourse(courseId), { method: 'PUT', body })))
 server.tool('admin_delete_course', 'Delete a course and everything under it. Irreversible.', { courseId }, run(({ courseId }) => api(adminCourse(courseId), { method: 'DELETE' })))

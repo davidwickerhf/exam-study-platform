@@ -9,7 +9,7 @@ import { promisify } from 'node:util'
 import { gzipSync } from 'node:zlib'
 import { randomUUID } from 'node:crypto'
 import './lib/env.mjs'
-import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi } from './lib/auth.mjs'
+import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
@@ -35,6 +35,7 @@ import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
+import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
 import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
@@ -338,6 +339,42 @@ async function readBody(req, maxBytes = 5 * 1024 * 1024) {
   }
   const raw = Buffer.concat(chunks).toString('utf8')
   return raw ? JSON.parse(raw) : {}
+}
+
+// What the client learns after sign-in: identity, programme memberships, and
+// — before the person belongs anywhere — which programmes their email can
+// join. With exactly one candidate the membership is created on the spot.
+async function sessionPayload(auth, { autoScope = false } = {}) {
+  const catalogue = loadEditorialProgrammeCatalogue()
+  let memberships = auth.memberships
+  const eligible = memberships === null ? catalogue.programmes : programmesForEmail(catalogue.programmes, auth.email, { trusted: auth.trusted })
+  let joined = null
+  if (autoScope && auth.mode === 'clerk' && memberships) {
+    const decision = scopeDecision({ memberships, eligible })
+    if (decision.action === 'join') {
+      try {
+        joined = await joinProgramme({ userId: auth.userId, email: auth.email, programmeId: decision.programmeId, trusted: auth.trusted })
+        forgetAuthUser(auth.userId)
+        memberships = [joined]
+      } catch (error) {
+        console.warn(`[organisations] auto-join failed for ${auth.userId}: ${error.message}`)
+      }
+    }
+  }
+  const byId = new Map(catalogue.programmes.map((programme) => [programme.id, programme]))
+  const programmes = (memberships || []).map((membership) => ({ ...membership, programme: byId.has(membership.programmeId) ? publicProgramme(byId.get(membership.programmeId)) : null }))
+  const needsProgramme = memberships !== null && !programmes.length
+  return {
+    userId: auth.userId,
+    mode: auth.mode,
+    email: auth.email || null,
+    admin: Boolean(auth.admin),
+    scopes: auth.scopes || null,
+    programmes,
+    needsProgramme,
+    eligible: needsProgramme ? eligible.map(publicProgramme) : [],
+    joined
+  }
 }
 
 async function readState() {
@@ -3029,7 +3066,7 @@ const server = createServer(async (req, res) => {
         return
       }
       if (url.pathname === '/api/auth/session' && req.method === 'GET') {
-        send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, admin: Boolean(auth.admin), scopes: auth.scopes || null }))
+        send(res, 200, JSON.stringify(await sessionPayload(auth, { autoScope: true })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
         return
       }
       const denied = authorise(auth, { method: req.method, pathname: url.pathname })
@@ -3099,7 +3136,8 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/account/summary' && req.method === 'GET') {
       const identity = await getAuthUser(currentAuth().userId)
       const summary = await summarisePersonalData()
-      send(res, 200, JSON.stringify({ account: { ...identity, mode: currentAuth().mode, storage: storageMode() }, ...summary }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      const session = await sessionPayload(currentAuth())
+      send(res, 200, JSON.stringify({ account: { ...identity, mode: currentAuth().mode, storage: storageMode() }, programmes: session.programmes, ...summary }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
 
@@ -3169,7 +3207,22 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/me' && req.method === 'GET') {
       const auth = currentAuth()
-      send(res, 200, JSON.stringify({ userId: auth.userId, mode: auth.mode, storage: storageMode(), admin: Boolean(auth.admin), scopes: auth.scopes || null }))
+      send(res, 200, JSON.stringify({ ...(await sessionPayload(auth)), storage: storageMode() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    // Choose a programme (one-time, when the email domain matches several).
+    if (url.pathname === '/api/account/programme' && req.method === 'POST') {
+      const auth = currentAuth()
+      const body = await readBody(req, 16 * 1024)
+      if (auth.mode === 'local') { send(res, 400, JSON.stringify({ error: 'Programme membership is not used in local development; every programme is visible.' })); return }
+      try {
+        await joinProgramme({ userId: auth.userId, email: auth.email, programmeId: String(body?.programmeId || ''), trusted: auth.trusted })
+        forgetAuthUser(auth.userId)
+        const refreshed = await identityFor(auth.userId, { fresh: true })
+        send(res, 200, JSON.stringify(await sessionPayload({ ...auth, memberships: refreshed.memberships })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /Unknown programme/.test(error.message) ? 404 : 403, JSON.stringify({ error: error.message }))
+      }
       return
     }
 
@@ -3212,6 +3265,31 @@ const server = createServer(async (req, res) => {
         const seg = url.pathname.split('/').filter(Boolean).slice(2).map(decodeURIComponent) // after /api/admin
         if (seg[0] === 'status' && req.method === 'GET') return ok(await admin.adminStatus())
         if (seg[0] === 'programmes') {
+          // Membership administration: global admins for any programme, programme
+          // admins for their own. Roles: member | admin.
+          if (seg.length >= 3 && seg[2] === 'members') {
+            const programmeId = seg[1]
+            const caller = currentAuth()
+            const mayManage = caller.admin || caller.memberships?.some((membership) => membership.programmeId === programmeId && membership.role === 'admin')
+            if (!mayManage) throw new admin.AdminError('Administrator access required.', 403)
+            if (seg.length === 3 && req.method === 'GET') return ok({ programmeId, members: await listMembers(programmeId) })
+            if (seg.length === 4 && req.method === 'PUT') {
+              const role = String(body?.role || 'member')
+              if (role === 'admin' && !caller.admin) throw new admin.AdminError('Only global administrators grant programme admin.', 403)
+              try { const saved = await setMembership({ userId: seg[3], programmeId, role }); forgetAuthUser(seg[3]); return ok(saved) }
+              catch (error) { throw new admin.AdminError(error.message, /Unknown programme/.test(error.message) ? 404 : 400) }
+            }
+            if (seg.length === 4 && req.method === 'DELETE') {
+              if (seg[3] === caller.userId && !caller.admin) throw new admin.AdminError('Programme admins cannot remove themselves.', 400)
+              const removed = await removeMembership({ userId: seg[3], programmeId }); forgetAuthUser(seg[3]); return ok({ removed })
+            }
+          }
+          if (seg.length === 1 && req.method === 'GET') {
+            const caller = currentAuth()
+            const own = new Set((caller.memberships || []).filter((membership) => membership.role === 'admin').map((membership) => membership.programmeId))
+            const counts = await membershipCounts()
+            return ok((await admin.listProgrammes()).filter((programme) => caller.admin || own.has(programme.id)).map((programme) => ({ ...programme, membership: counts[programme.id] || { members: 0, admins: 0 } })))
+          }
           if (seg.length === 3 && seg[2] === 'calendar' && req.method === 'PUT') {
             let events = Array.isArray(body?.events) ? body.events : null
             if (!events && body?.ics) events = parseIcs(String(body.ics))
@@ -3229,7 +3307,6 @@ const server = createServer(async (req, res) => {
             if (!events.length) throw new admin.AdminError(usedAi === false ? 'No dates could be read from this source, and the AI reader is not configured on this server (set LLM_PROVIDER and the provider key). Nothing was changed.' : 'No dates could be read from this source. Nothing was changed.', 422)
             return ok({ ...(await admin.setProgrammeCalendar(seg[1], events, { replace: body?.replace !== false })), usedAi, read: events.length })
           }
-          if (seg.length === 1 && req.method === 'GET') return ok(await admin.listProgrammes())
           if (seg.length === 2 && req.method === 'PUT') return ok(await admin.upsertProgramme(seg[1], body))
           if (seg.length === 2 && req.method === 'DELETE') return ok(await admin.deleteProgramme(seg[1]))
         }
@@ -3293,7 +3370,10 @@ const server = createServer(async (req, res) => {
     // Unified calendar feed for the Calendar page.
     if (url.pathname === '/api/calendar/events' && req.method === 'GET') {
       const [{ workspace }, state] = await Promise.all([readAcademicState(), readState()])
-      const reference = workspace.programmeTemplate ? findEditorialProgramme(workspace.programmeTemplate.programmeId, workspace.programmeTemplate.versionId) : null
+      const memberProgramme = currentAuth().memberships?.[0]?.programmeId
+      const reference = workspace.programmeTemplate
+        ? findEditorialProgramme(workspace.programmeTemplate.programmeId, workspace.programmeTemplate.versionId)
+        : memberProgramme ? findEditorialProgramme(memberProgramme) : null
       const feeds = []
       const problems = []
       for (const link of workspace.calendars || []) {
@@ -3382,7 +3462,9 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/editorial-programmes' && req.method === 'GET') {
-      send(res, 200, JSON.stringify(loadEditorialProgrammeCatalogue()), 'application/json; charset=utf-8', { 'Cache-Control': 'private, max-age=300' })
+      const auth = currentAuth()
+      const catalogue = auth.admin ? loadEditorialProgrammeCatalogue() : scopeCatalogue(loadEditorialProgrammeCatalogue(), { memberships: auth.memberships ?? null, email: auth.email, trusted: auth.trusted })
+      send(res, 200, JSON.stringify(catalogue), 'application/json; charset=utf-8', { 'Cache-Control': 'private, max-age=300' })
       return
     }
 

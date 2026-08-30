@@ -22,6 +22,15 @@
   gets 403 `email_not_allowed` on every protected route and an explanatory
   sign-out screen in the app. Primary emails are cached for 10 minutes.
 
+- Programme scoping: every editorial programme is an organisation
+  (`programme_memberships`). At first sign-in the server matches the email
+  domain against `institution.domains` of the catalogue and joins the student
+  automatically (one match) or asks once (several); only programmes matching
+  the email can be joined. Members see only their programmes' catalogue and
+  institution calendar; programme admins may maintain their own programme
+  (`PUT /api/admin/programmes/{id}`, `/calendar`, `/members`) and nothing
+  else. Programme admin is granted by global administrators only.
+
 ## Abuse controls
 
 - Edge rate limit (Vercel Firewall, in front of the container): requests to

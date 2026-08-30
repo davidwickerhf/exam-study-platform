@@ -262,6 +262,37 @@ export function mountIneligibleSite({ email, allowedDomains, signOut }) {
   document.title = 'Account not eligible · Wicker Study'
 }
 
+export function mountProgrammePicker({ email, programmes, choose, signOut }) {
+  const gate = document.getElementById('auth-gate')
+  document.getElementById('public-site').hidden = true
+  document.getElementById('app').innerHTML = ''
+  gate.hidden = false
+  gate.innerHTML = `<div class="auth-page auth-page-single">
+    <a class="auth-back" href="/">← Back to Wicker Study</a>
+    <section class="auth-form-column" aria-labelledby="auth-title">
+      <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
+      <div class="auth-form-copy"><h1 id="auth-title">Which programme are you in?</h1>
+        <p>Your address${email ? ` <strong>${escapeHtml(email)}</strong>` : ''} matches more than one maintained programme. Choose yours to see its courses and institution calendar. You can ask an administrator to change it later.</p></div>
+      <div class="auth-programmes" role="list">${programmes.map((programme) => `<button type="button" class="auth-programme" role="listitem" data-programme="${escapeHtml(programme.id)}"><strong>${escapeHtml(programme.degree)} ${escapeHtml(programme.name)}</strong><span>${escapeHtml(programme.institution?.name || '')}${programme.institution?.city ? ` · ${escapeHtml(programme.institution.city)}` : ''}</span></button>`).join('')}</div>
+      <p class="auth-error" id="auth-programme-error" hidden></p>
+      <p class="auth-legal"><button type="button" class="pl-link pl-link-button" id="auth-sign-out">Sign out</button></p>
+    </section>
+  </div>`
+  const error = gate.querySelector('#auth-programme-error')
+  gate.querySelectorAll('[data-programme]').forEach((button) => button.addEventListener('click', async () => {
+    gate.querySelectorAll('[data-programme]').forEach((item) => { item.disabled = true })
+    error.hidden = true
+    try { await choose(button.dataset.programme) }
+    catch (failure) {
+      error.textContent = failure.message
+      error.hidden = false
+      gate.querySelectorAll('[data-programme]').forEach((item) => { item.disabled = false })
+    }
+  }))
+  gate.querySelector('#auth-sign-out')?.addEventListener('click', () => signOut())
+  document.title = 'Choose your programme · Wicker Study'
+}
+
 export function mountAuthSite({ allowedDomains = [] } = {}) {
   const publicSite = document.getElementById('public-site')
   const gate = document.getElementById('auth-gate')
