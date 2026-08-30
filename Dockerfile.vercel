@@ -9,4 +9,4 @@ COPY . .
 RUN npm run build
 RUN npm prune --omit=dev
 EXPOSE 8080
-CMD ["node", "server.mjs"]
+CMD ["node", "runner.mjs"]

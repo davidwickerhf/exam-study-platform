@@ -8,4 +8,4 @@ RUN npm run content:verify-precomputed
 RUN npm run build
 RUN npm prune --omit=dev
 EXPOSE 4177
-CMD ["node", "server.mjs"]
+CMD ["node", "runner.mjs"]
