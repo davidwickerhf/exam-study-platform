@@ -318,3 +318,14 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 
 .auth-switch { max-width: 440px; margin: var(--space-4) auto 0; color: var(--color-ink-secondary); font-size: 13px; }
 .auth-switch a { color: var(--color-brand) !important; font-weight: 600; }
+
+/* The form column scrolls on its own; the product column stays put. */
+@media (min-width: 821px) {
+  .auth-page { height: 100dvh; min-height: 0; overflow: hidden; }
+  .auth-form-column { min-height: 0; overflow-y: auto; justify-content: safe center; }
+  .auth-product-column { min-height: 0; height: 100dvh; overflow: hidden; }
+  .auth-back { position: absolute; }
+  .auth-form-column { position: relative; }
+}
+/* Keep the back link clear of the brand when the column is taller than the viewport. */
+.auth-form-column > .site-brand { margin-top: var(--space-4); }
