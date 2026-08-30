@@ -30,6 +30,7 @@ import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgram
 import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { aggregateCalendar, feedEvents } from './lib/calendar-feed.mjs'
+import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
@@ -1055,6 +1056,10 @@ async function analyseAcademicIntake(body) {
     if (error instanceof AiLimitError) throw error
     console.warn('Academic intake AI extraction failed; using text fallback:', error.message)
     parsed = fallbackAcademicIntake(sourceText, editorialCourses)
+    if (kind === 'academic-calendar' || kind === 'timetable' || kind === 'auto') {
+      const calendar = parseAcademicCalendarText(sourceText)
+      if (calendar.events.length) { parsed.events = [...(parsed.events || []), ...calendar.events]; if (calendar.academicYear && !parsed.profile?.academicYear) parsed.profile = { ...(parsed.profile || {}), academicYear: calendar.academicYear } }
+    }
     parsed.warnings = [...(parsed.warnings || []), 'Automatic extraction used the basic text parser. Review every field before saving.']
   } finally {
     for (const imagePath of imagePaths) {
@@ -3100,9 +3105,18 @@ const server = createServer(async (req, res) => {
             let events = Array.isArray(body?.events) ? body.events : null
             if (!events && body?.ics) events = parseIcs(String(body.ics))
             if (!events && body?.url) events = await fetchCalendar(normalizeCalendarLink(body).url)
-            if (!events && Array.isArray(body?.documents)) events = (await analyseAcademicIntake({ ...body, kind: 'academic-calendar' })).draft.events
+            let usedAi = null
+            if (!events && Array.isArray(body?.documents)) {
+              const analysis = await analyseAcademicIntake({ ...body, kind: 'academic-calendar' })
+              usedAi = analysis.usedAi
+              // The deterministic legend parser complements (or replaces) the AI read.
+              const parsedEvents = parseAcademicCalendarText(body.documents.map((document) => document?.text || '').join('\n')).events
+              const keys = new Set(analysis.draft.events.map((event) => `${String(event.title).toLowerCase()}|${event.date}`))
+              events = [...analysis.draft.events, ...parsedEvents.filter((event) => !keys.has(`${event.title.toLowerCase()}|${event.date}`))]
+            }
             if (!events) throw new admin.AdminError('Provide events, ics, url, or documents.')
-            return ok(await admin.setProgrammeCalendar(seg[1], events, { replace: body?.replace !== false }))
+            if (!events.length) throw new admin.AdminError(usedAi === false ? 'No dates could be read from this source, and the AI reader is not configured on this server (set LLM_PROVIDER and the provider key). Nothing was changed.' : 'No dates could be read from this source. Nothing was changed.', 422)
+            return ok({ ...(await admin.setProgrammeCalendar(seg[1], events, { replace: body?.replace !== false })), usedAi, read: events.length })
           }
           if (seg.length === 1 && req.method === 'GET') return ok(await admin.listProgrammes())
           if (seg.length === 2 && req.method === 'PUT') return ok(await admin.upsertProgramme(seg[1], body))
