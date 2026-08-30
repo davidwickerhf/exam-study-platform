@@ -307,7 +307,7 @@ export function mountAuthSite({ allowedDomains = [] } = {}) {
     <section class="auth-form-column" aria-labelledby="auth-title">
       <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
       <div class="auth-form-copy"><h1 id="auth-title">Return to your study record.</h1><p>Open your notes, attempts, mastery history, and review schedule.</p></div>
-      ${allowedDomains.length ? `<p class="auth-eligibility">Use your ${domainList(allowedDomains)} address — other accounts can sign up but cannot enter the workspace.</p>` : ''}
+      ${allowedDomains.length ? `<p class="auth-eligibility">For Maastricht University students and staff. Sign in with your ${domainList(allowedDomains)} address.</p>` : ''}
       <div id="clerk-sign-in"></div>
       <p class="auth-legal">By continuing, you agree to the <a href="/terms">Terms</a> and acknowledge the <a href="/privacy">Privacy notice</a>.</p>
     </section>
