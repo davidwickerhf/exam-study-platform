@@ -3237,8 +3237,25 @@ function visibleCalendarEvents() {
 }
 function toFullCalendarEvent(event) {
   const colour = event.colour || CATEGORY_COLOURS[event.category] || CATEGORY_COLOURS.other
-  return { id: event.id, title: event.title, start: event.start, end: event.end || undefined, allDay: event.allDay, backgroundColor: event.category === 'institution' ? 'transparent' : colour, borderColor: colour, textColor: event.category === 'institution' ? colour : '#fff', classNames: [`cal-${event.category}`], extendedProps: event }
+  return { id: event.id, title: event.title, start: event.start, end: event.end || undefined, allDay: event.allDay, backgroundColor: 'transparent', borderColor: 'transparent', textColor: colour, classNames: [`cal-${event.category}`], extendedProps: { ...event, colour }, display: 'block' }
 }
+function miniMonth(anchorIso) {
+  const anchor = new Date(`${anchorIso || localIsoDate(new Date())}T00:00:00`)
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
+  const startOffset = (first.getDay() + 6) % 7
+  const today = localIsoDate(new Date())
+  const marks = new Set((calendarState.data?.events || []).map((event) => String(event.start).slice(0, 10)))
+  const cells = []
+  for (let i = 0; i < 42; i++) {
+    const day = new Date(first.getFullYear(), first.getMonth(), 1 - startOffset + i)
+    const iso = localIsoDate(day)
+    cells.push(`<button type="button" class="mini-day${day.getMonth() !== first.getMonth() ? ' is-outside' : ''}${iso === today ? ' is-today' : ''}${iso === calendarState.date ? ' is-current' : ''}${marks.has(iso) ? ' has-events' : ''}" data-cal-goto="${iso}" aria-label="${iso}">${day.getDate()}</button>`)
+  }
+  const label = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(first)
+  calendarState.railMonth = localIsoDate(first).slice(0, 7)
+  return `<div class="mini-month"><div class="mini-head"><strong>${escapeHtml(label)}</strong><span><button type="button" class="icon-btn" data-cal-mini="-1" aria-label="Previous month">${uiIcon('arrowLeft')}</button><button type="button" class="icon-btn" data-cal-mini="1" aria-label="Next month">${uiIcon('chevronRight')}</button></span></div><div class="mini-grid" aria-hidden="true">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d) => `<span>${d}</span>`).join('')}</div><div class="mini-grid">${cells.join('')}</div></div>`
+}
+
 function renderCalendarPage() {
   if (!calendarState.data && !calendarState.loading && !calendarState.error) loadCalendarEvents()
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
@@ -3246,39 +3263,48 @@ function renderCalendarPage() {
   const data = calendarState.data
   const all = data?.events || []
   const visible = visibleCalendarEvents()
-  const today = new Date().toISOString().slice(0, 10)
-  const upcoming = visible.filter((event) => String(event.start).slice(0, 10) >= today).slice(0, 6)
+  const today = localIsoDate(new Date())
+  const upcoming = visible.filter((event) => String(event.start).slice(0, 10) >= today).slice(0, 5)
   const selected = calendarState.selected ? all.find((event) => event.id === calendarState.selected) : null
   const categoryCounts = {}
   for (const event of all) categoryCounts[event.category] = (categoryCounts[event.category] || 0) + 1
   const categories = Object.entries(data?.categories || {}).filter(([id]) => categoryCounts[id])
   const courses = data?.courses || []
   const feeds = data?.feeds || []
-  return `<section class="page-wrap calendar-page">
-    <header class="page-head cal-head"><div><p class="page-eyebrow">Calendar</p><h1>${upcoming[0] ? `Next: ${escapeHtml(upcoming[0].title)}` : 'Your calendar'}</h1><p class="page-sub">${data ? `${all.length} date${all.length === 1 ? '' : 's'} from your plan${feeds.length ? `, ${feeds.length} timetable feed${feeds.length === 1 ? '' : 's'}` : ''}${categoryCounts.institution ? ', and your institution calendar' : ''}.` : calendarState.error ? escapeHtml(calendarState.error) : 'Loading your dates…'}</p></div>
-      <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/planning/documents">${uiIcon('upload')} Add timetable or schedule</a><button type="button" class="btn ${calendarState.composer ? 'btn-secondary' : 'btn-primary'} btn-sm" data-cal-compose>${calendarState.composer ? 'Close' : `${uiIcon('plus')} Add event`}</button></div></header>
-    ${calendarState.composer ? `<form class="pl-composer cal-composer" data-academic-event aria-label="Add event">
-      <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt — add those under Planning → Courses.</span></div>
-      <div class="pl-fields pl-fields-event">
-        <label class="wide"><span>Title</span><input name="title" maxlength="200" required placeholder="Resit registration closes"></label>
-        <label><span>Date</span><input name="date" type="date" required value="${escapeHtml(calendarState.date || today)}"></label>
-        <label><span>End date</span><input name="endDate" type="date"></label>
-        <label><span>Type</span><select name="type"><option value="deadline">Deadline</option><option value="registration">Registration</option><option value="ceremony">Ceremony</option><option value="other">Other</option></select></label>
-        <label class="wide"><span>Notes</span><input name="notes" maxlength="2000"></label>
-      </div>
-      <div class="pl-form-actions"><button class="btn btn-secondary" type="button" data-cal-compose>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Add event</button></div>
-    </form>` : ''}
-    ${data?.problems?.length ? `<div class="settings-error" role="alert"><strong>${data.problems.length === 1 ? 'A feed could not be read.' : 'Some feeds could not be read.'}</strong><p>${data.problems.map((problem) => `${escapeHtml(problem.label)}: ${escapeHtml(problem.error)}`).join(' · ')}</p></div>` : ''}
-    <div class="cal-toolbar">
-      <label class="cal-search"><span class="nav-icon">${uiIcon('search')}</span><input type="search" data-cal-search placeholder="Search dates, courses, rooms…" value="${escapeHtml(calendarState.search)}" aria-label="Search calendar"></label>
-      <div class="cal-chips" role="group" aria-label="Filter by type">${categories.map(([id, label]) => `<button type="button" class="cal-chip${calendarState.categories.has(id) ? ' is-on' : ''}" data-cal-category="${id}" style="--chip:${CATEGORY_COLOURS[id] || CATEGORY_COLOURS.other}"><i></i>${escapeHtml(label)}<small>${categoryCounts[id]}</small></button>`).join('')}${calendarState.categories.size || calendarState.search || calendarState.course !== 'all' ? '<button type="button" class="pl-link pl-link-button" data-cal-clear>Clear</button>' : ''}</div>
-      ${courses.length ? `<select class="cal-course" data-cal-course aria-label="Filter by course"><option value="all">All courses</option>${courses.map((course) => `<option value="${escapeHtml(course.code)}" ${calendarState.course === course.code ? 'selected' : ''}>${escapeHtml(course.code)}</option>`).join('')}</select>` : ''}
-      <div class="cal-views" role="tablist" aria-label="Calendar view">${CALENDAR_VIEWS.map(([id, label]) => `<button type="button" role="tab" class="cal-view${calendarState.view === id ? ' is-on' : ''}" data-cal-view="${id}" aria-selected="${calendarState.view === id}">${label}</button>`).join('')}</div>
-    </div>
-    <div class="cal-layout">
-      <div class="panel cal-panel">${calendarState.libError ? `<div class="deps-pending"><p>${escapeHtml(calendarState.libError)}</p></div>` : `<div class="cal-host" data-cal-host aria-busy="${!calendarState.libReady || !data}">${!calendarState.libReady || !data ? `<div class="deps-pending"><p><span class="boot-spinner"></span>Loading the calendar…</p></div>` : ''}</div>`}</div>
-      <aside class="cal-aside">
-        ${selected ? `<section class="panel panel-aside cal-detail" style="--accent:${selected.colour || CATEGORY_COLOURS[selected.category] || CATEGORY_COLOURS.other}">
+  const anchor = calendarState.date || today
+  const titleDate = new Date(`${anchor}T00:00:00`)
+  const title = calendarState.instance ? calendarState.instance.view.title : new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(titleDate)
+  return `<section class="calx">
+    <aside class="calx-rail">
+      <button type="button" class="btn btn-primary calx-add" data-cal-compose>${uiIcon('plus')} ${calendarState.composer ? 'Close' : 'Add event'}</button>
+      ${miniMonth(calendarState.miniAnchor || anchor)}
+      <div class="calx-group"><h3>My calendars</h3>${categories.length ? `<ul class="calx-toggles">${categories.map(([id, label]) => `<li><label><input type="checkbox" data-cal-category="${id}" ${calendarState.categories.size && !calendarState.categories.has(id) ? '' : 'checked'}><i style="--chip:${CATEGORY_COLOURS[id] || CATEGORY_COLOURS.other}"></i><span>${escapeHtml(label)}</span><small>${categoryCounts[id]}</small></label></li>`).join('')}</ul>` : `<p class="panel-note">${data ? 'No dates yet.' : 'Loading…'}</p>`}</div>
+      ${courses.length ? `<div class="calx-group"><h3>Course</h3><select class="cal-course" data-cal-course aria-label="Filter by course"><option value="all">All courses</option>${courses.map((course) => `<option value="${escapeHtml(course.code)}" ${calendarState.course === course.code ? 'selected' : ''}>${escapeHtml(course.code)}</option>`).join('')}</select></div>` : ''}
+      <div class="calx-group"><h3>Sources</h3><ul class="calx-sources"><li>${uiIcon('calendar')}<span>Your plan</span></li>${categoryCounts.institution ? `<li>${uiIcon('book')}<span>Institution calendar</span></li>` : ''}${feeds.map((feed) => `<li>${uiIcon('layers')}<span>${escapeHtml(feed.label)}</span></li>`).join('')}</ul><a class="pl-link" href="#/planning/documents">Add timetable or schedule</a></div>
+      ${upcoming.length ? `<div class="calx-group"><h3>Coming up</h3><ol class="cal-upcoming">${upcoming.map((event) => `<li><button type="button" data-cal-select="${escapeHtml(event.id)}"><time datetime="${escapeHtml(String(event.start).slice(0, 10))}"><strong>${new Date(`${String(event.start).slice(0, 10)}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { month: 'short' }).format(new Date(`${String(event.start).slice(0, 10)}T00:00:00`))}</span></time><span class="cal-upcoming-copy"><strong>${escapeHtml(event.title)}</strong><small><i style="background:${event.colour || CATEGORY_COLOURS[event.category]}"></i>${escapeHtml((data.categories || {})[event.category] || event.category)}${!event.allDay ? ` · ${String(event.start).slice(11, 16)}` : ''}</small></span></button></li>`).join('')}</ol></div>` : ''}
+    </aside>
+    <div class="calx-main">
+      <header class="calx-bar">
+        <div class="calx-nav"><button type="button" class="btn btn-secondary btn-sm" data-cal-nav="today">Today</button><span class="calx-arrows"><button type="button" class="icon-btn" data-cal-nav="prev" aria-label="Previous">${uiIcon('arrowLeft')}</button><button type="button" class="icon-btn" data-cal-nav="next" aria-label="Next">${uiIcon('chevronRight')}</button></span><h1 class="calx-title" data-cal-title>${escapeHtml(title)}</h1></div>
+        <div class="calx-tools">
+          <label class="cal-search"><span class="nav-icon">${uiIcon('search')}</span><input type="search" data-cal-search placeholder="Search" value="${escapeHtml(calendarState.search)}" aria-label="Search calendar"></label>
+          <div class="cal-views" role="tablist" aria-label="Calendar view">${CALENDAR_VIEWS.map(([id, label]) => `<button type="button" role="tab" class="cal-view${calendarState.view === id ? ' is-on' : ''}" data-cal-view="${id}" aria-selected="${calendarState.view === id}">${label}</button>`).join('')}</div>
+        </div>
+      </header>
+      ${data?.problems?.length ? `<div class="settings-error calx-problem" role="alert"><strong>${data.problems.length === 1 ? 'A feed could not be read.' : 'Some feeds could not be read.'}</strong><p>${data.problems.map((problem) => `${escapeHtml(problem.label)}: ${escapeHtml(problem.error)}`).join(' · ')}</p></div>` : ''}
+      ${calendarState.composer ? `<form class="pl-composer cal-composer" data-academic-event aria-label="Add event">
+        <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt — add those under Planning → Courses.</span></div>
+        <div class="pl-fields pl-fields-event">
+          <label class="wide"><span>Title</span><input name="title" maxlength="200" required placeholder="Resit registration closes"></label>
+          <label><span>Date</span><input name="date" type="date" required value="${escapeHtml(calendarState.date || today)}"></label>
+          <label><span>End date</span><input name="endDate" type="date"></label>
+          <label><span>Type</span><select name="type"><option value="deadline">Deadline</option><option value="registration">Registration</option><option value="ceremony">Ceremony</option><option value="other">Other</option></select></label>
+          <label class="wide"><span>Notes</span><input name="notes" maxlength="2000"></label>
+        </div>
+        <div class="pl-form-actions"><button class="btn btn-secondary" type="button" data-cal-compose>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading || !academicsData ? 'disabled' : ''}>Add event</button></div>
+      </form>` : ''}
+      <div class="calx-grid">${calendarState.libError ? `<div class="deps-pending"><p>${escapeHtml(calendarState.libError)}</p></div>` : `<div class="cal-host" data-cal-host aria-busy="${!calendarState.libReady || !data}">${!calendarState.libReady || !data ? `<div class="deps-pending"><p><span class="boot-spinner"></span>Loading the calendar…</p></div>` : ''}</div>`}
+        ${selected ? `<section class="cal-detail calx-detail" style="--accent:${selected.colour || CATEGORY_COLOURS[selected.category] || CATEGORY_COLOURS.other}" role="dialog" aria-label="Event details">
           <div class="panel-top"><h2>${escapeHtml((data.categories || {})[selected.category] || selected.category)}</h2><button type="button" class="icon-btn" data-cal-close aria-label="Close">${uiIcon('close')}</button></div>
           <h3>${escapeHtml(selected.title)}</h3>
           <p class="cal-detail-when">${academicDate(String(selected.start).slice(0, 10))}${!selected.allDay ? ` · ${String(selected.start).slice(11, 16)}${selected.end ? `–${String(selected.end).slice(11, 16)}` : ''}` : selected.end ? ` → ${academicDate(prevDay(String(selected.end).slice(0, 10)))}` : ''}</p>
@@ -3294,12 +3320,7 @@ function renderCalendarPage() {
           </form>` : ''}
           <div class="cal-detail-actions">${selected.editorialCourseId ? `<a class="btn btn-primary btn-sm" href="#/course/${encodeURIComponent(selected.editorialCourseId)}">${uiIcon('book')} Study</a>` : ''}${selected.category === 'exam' && selected.href ? `<a class="btn btn-secondary btn-sm" href="${selected.href}">Edit attempt</a>` : ''}${selected.category === 'institution' ? `<button type="button" class="btn btn-secondary btn-sm" data-institution-event-import="${escapeHtml(selected.id.slice(12))}">Add to my plan</button>` : ''}${selected.feedLabel ? `<span class="panel-note">From ${escapeHtml(selected.feedLabel)}</span>` : ''}</div>
         </section>` : ''}
-        <section class="panel panel-aside">
-          <div class="panel-top"><h2>Coming up</h2><span class="panel-note">${visible.length !== all.length ? `${visible.length} of ${all.length}` : ''}</span></div>
-          ${upcoming.length ? `<ol class="cal-upcoming">${upcoming.map((event) => `<li><button type="button" data-cal-select="${escapeHtml(event.id)}"><time datetime="${escapeHtml(String(event.start).slice(0, 10))}"><strong>${new Date(`${String(event.start).slice(0, 10)}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { month: 'short' }).format(new Date(`${String(event.start).slice(0, 10)}T00:00:00`))}</span></time><span class="cal-upcoming-copy"><strong>${escapeHtml(event.title)}</strong><small><i style="background:${event.colour || CATEGORY_COLOURS[event.category]}"></i>${escapeHtml((data.categories || {})[event.category] || event.category)}${!event.allDay ? ` · ${String(event.start).slice(11, 16)}` : ''}</small></span></button></li>`).join('')}</ol>` : `<p class="panel-note">${data ? (all.length ? 'Nothing matches the current filters.' : 'No dates yet. Add exam dates in Planning, upload a schedule, or link a timetable feed.') : 'Loading…'}</p>`}
-        </section>
-        ${feeds.length ? `<section class="panel panel-aside"><div class="panel-top"><h2>Feeds</h2><a class="pl-link" href="#/planning/documents">Manage</a></div><ul class="cal-feeds">${feeds.map((feed) => `<li>${uiIcon('calendar')}<span>${escapeHtml(feed.label)}</span></li>`).join('')}</ul></section>` : ''}
-      </aside>
+      </div>
     </div>
   </section>`
 }
@@ -3314,9 +3335,13 @@ function mountCalendar() {
   const calendar = new window.FullCalendar.Calendar(host, {
     initialView: calendarState.view,
     initialDate: calendarState.date || undefined,
-    headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-    buttonIcons: false,
-    buttonText: { prev: '‹', next: '›', today: 'Today' },
+    headerToolbar: false,
+    dayHeaderFormat: { weekday: 'short' },
+    views: { timeGridWeek: { dayHeaderFormat: { weekday: 'short', day: 'numeric' } }, timeGridDay: { dayHeaderFormat: { weekday: 'long', day: 'numeric', month: 'long' } } },
+    allDaySlot: true,
+    slotDuration: '01:00:00',
+    slotLabelFormat: { hour: 'numeric', minute: '2-digit', hour12: false },
+    eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
     slotMinTime: '07:00:00',
     slotMaxTime: '22:00:00',
     scrollTime: '08:00:00',
@@ -3329,8 +3354,16 @@ function mountCalendar() {
     navLinks: true,
     events: (info, success) => success(visibleCalendarEvents().map(toFullCalendarEvent)),
     eventClick: (info) => { info.jsEvent.preventDefault(); calendarState.selected = info.event.id; calendarState.date = localIsoDate(calendar.getDate()); render() },
-    datesSet: (info) => { calendarState.date = localIsoDate(calendar.getDate()) },
-    eventDidMount: (info) => { info.el.title = `${info.event.title}${info.event.extendedProps.notes ? ` — ${info.event.extendedProps.notes}` : ''}` }
+    datesSet: () => {
+      calendarState.date = localIsoDate(calendar.getDate())
+      const heading = document.querySelector('[data-cal-title]')
+      if (heading) heading.textContent = calendar.view.title
+      // The rail's mini month follows the main view; re-render only when the month changes.
+      if (calendarState.railMonth && calendarState.railMonth !== calendarState.date.slice(0, 7) && !calendarState.miniAnchor) { queueMicrotask(() => render()); return }
+      document.querySelectorAll('.mini-day.is-current').forEach((el) => el.classList.remove('is-current'))
+      document.querySelector(`.mini-day[data-cal-goto="${calendarState.date}"]`)?.classList.add('is-current')
+    },
+    eventDidMount: (info) => { info.el.style.setProperty('--ev', info.event.extendedProps.colour); info.el.title = `${info.event.title}${info.event.extendedProps.notes ? ` — ${info.event.extendedProps.notes}` : ''}` }
   })
   calendar.render()
   calendarState.instance = calendar
@@ -8518,7 +8551,17 @@ function bindEvents() {
   // ----- Calendar page -----
   document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('input', () => { calendarState.search = input.value; calendarState.instance?.refetchEvents(); document.querySelectorAll('.cal-upcoming').forEach(() => {}) }))
   document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('change', () => render()))
-  document.querySelectorAll('[data-cal-category]').forEach((button) => button.addEventListener('click', () => { const id = button.dataset.calCategory; if (calendarState.categories.has(id)) calendarState.categories.delete(id); else calendarState.categories.add(id); render() }))
+  document.querySelectorAll('[data-cal-category]').forEach((input) => input.addEventListener('change', () => {
+    const all = Object.keys(calendarState.data?.categories || {}).filter((id) => (calendarState.data?.events || []).some((event) => event.category === id))
+    const on = new Set(calendarState.categories.size ? calendarState.categories : all)
+    if (input.checked) on.add(input.dataset.calCategory); else on.delete(input.dataset.calCategory)
+    calendarState.categories = on.size === all.length ? new Set() : on
+    calendarState.instance?.refetchEvents()
+    render()
+  }))
+  document.querySelectorAll('[data-cal-nav]').forEach((button) => button.addEventListener('click', () => { const calendar = calendarState.instance; if (!calendar) return; const action = button.dataset.calNav; if (action === 'today') calendar.today(); else if (action === 'prev') calendar.prev(); else calendar.next(); calendarState.miniAnchor = null }))
+  document.querySelectorAll('[data-cal-goto]').forEach((button) => button.addEventListener('click', () => { calendarState.date = button.dataset.calGoto; calendarState.miniAnchor = null; if (calendarState.instance) calendarState.instance.gotoDate(button.dataset.calGoto); else render() }))
+  document.querySelectorAll('[data-cal-mini]').forEach((button) => button.addEventListener('click', () => { const base = new Date(`${calendarState.miniAnchor || calendarState.date || localIsoDate(new Date())}T00:00:00`); base.setMonth(base.getMonth() + Number(button.dataset.calMini), 1); calendarState.miniAnchor = localIsoDate(base); render() }))
   document.querySelectorAll('[data-cal-clear]').forEach((button) => button.addEventListener('click', () => { calendarState.categories = new Set(); calendarState.search = ''; calendarState.course = 'all'; render() }))
   document.querySelectorAll('[data-cal-course]').forEach((select) => select.addEventListener('change', () => { calendarState.course = select.value; render() }))
   document.querySelectorAll('[data-cal-view]').forEach((button) => button.addEventListener('click', () => { calendarState.view = button.dataset.calView; if (calendarState.instance) calendarState.date = localIsoDate(calendarState.instance.getDate()); render() }))
