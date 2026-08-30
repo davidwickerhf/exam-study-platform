@@ -39,6 +39,21 @@ test('academic records preserve editorial programme provenance and unresolved ch
   assert.equal(workspace.courses[0].programmeRequirement, 'required')
 })
 
+test('academic records preserve manual period assignments and uploaded calendar context', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: {},
+    courses: [{ id: 'c1', code: 'CS101', name: 'Systems', attempts: [] }],
+    planning: {
+      objectives: {},
+      periodAssignments: [{ academicYear: '2026-2027', period: 'Period 1', courseIds: ['c1', 'c1'], source: 'manual' }],
+      academicPeriods: [{ title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', kind: 'period', period: 1, academicYear: '2026-2027' }]
+    }
+  })
+  assert.deepEqual(workspace.planning.periodAssignments[0].courseIds, ['c1'])
+  assert.equal(workspace.planning.academicPeriods[0].kind, 'period')
+  assert.equal(workspace.planning.academicPeriods[0].period, 1)
+})
+
 test('academic summary derives credits, weighted GPA, and upcoming exams', () => {
   const workspace = normalizeAcademicWorkspace({
     profile: {},

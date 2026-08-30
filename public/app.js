@@ -529,9 +529,26 @@ async function extractPlanningPdf(file) {
   for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber)
     const content = await page.getTextContent()
-    const pageText = content.items.map((item) => item.str).join(' ').replace(/\s+/g, ' ').trim()
+    const rows = []
+    for (const item of content.items.filter((entry) => String(entry.str || '').trim())) {
+      const x = Number(item.transform?.[4]) || 0
+      const y = Number(item.transform?.[5]) || 0
+      let row = rows.find((candidate) => Math.abs(candidate.y - y) <= 2)
+      if (!row) { row = { y, items: [] }; rows.push(row) }
+      row.items.push({ x, end: x + (Number(item.width) || 0), text: String(item.str).trim() })
+    }
+    const pageText = rows.sort((left, right) => right.y - left.y).map((row) => {
+      const items = row.items.sort((left, right) => left.x - right.x)
+      let end = 0
+      return items.map((item, index) => {
+        const separator = index && item.x - end > 10 ? '\t' : index ? ' ' : ''
+        end = Math.max(end, item.end)
+        return `${separator}${item.text}`
+      }).join('')
+    }).join('\n').trim()
     if (pageText) textPages.push(`Page ${pageNumber}\n${pageText}`)
-    if (pageText.length < 80 && images.length < MAX_PLANNING_IMAGE_PAGES) {
+    const visualPageLimit = pageText.length < 80 ? MAX_PLANNING_IMAGE_PAGES : 2
+    if (images.length < visualPageLimit) {
       const baseViewport = page.getViewport({ scale: 1 })
       const scale = Math.min(1.6, 1500 / Math.max(1, baseViewport.width))
       const viewport = page.getViewport({ scale })
@@ -643,6 +660,7 @@ function setChapterTab(courseId, chapterId, tab) {
 
 let mobileStudyPanel = null
 let studyToolsTab = 'progress'
+let calendarAutoRefreshTimer = null
 const filterState = { category: 'all', mastery: 'all', sort: 'priority', search: '' }
 // questionFilter: checkbox-style multi-select.
 // types: array of question type ids selected ('written','calc','tf','mc','pseudocode'). Empty = show ALL.
@@ -653,8 +671,10 @@ const questionFilter = { types: [], sources: [], openDd: null }
 window.addEventListener('hashchange', () => {
   mobileStudyPanel = null
   route = parseRoute()
+  if (route.page !== 'calendar' && calendarAutoRefreshTimer) { clearTimeout(calendarAutoRefreshTimer); calendarAutoRefreshTimer = null }
   render()
   if (route.page === 'planning') loadAcademics()
+  if (route.page === 'calendar') loadCalendarEvents(true)
 })
 
 init()
@@ -2113,9 +2133,9 @@ function gateProgress(gate, workspace) {
 }
 
 // ----- Documents: supporting files at any time → reviewable change set -----
-const DOCUMENT_KINDS = [['auto', 'Detect automatically'], ['transcript', 'Transcript or grade list'], ['exam-schedule', 'Exam schedule'], ['timetable', 'Timetable or calendar'], ['academic-calendar', 'Academic calendar'], ['curriculum', 'Curriculum or handbook']]
+const DOCUMENT_KINDS = [['auto', 'Detect automatically'], ['academic-overview', 'Academic overview / study progress'], ['transcript', 'Transcript or grade list'], ['exam-schedule', 'Exam schedule'], ['timetable', 'Timetable or calendar'], ['academic-calendar', 'Academic calendar'], ['curriculum', 'Curriculum or handbook']]
 const CHANGE_GROUPS = [['profile-conflict', 'Programme conflicts'], ['course-conflict', 'Course conflicts'], ['attempt-conflict', 'Schedule and result conflicts'], ['result', 'Results and grades'], ['exam-date', 'Exam dates'], ['new-course', 'Courses not in your plan'], ['course-detail', 'Course details'], ['event', 'Dates and events'], ['profile', 'Programme details']]
-const planningDocuments = { files: [], description: '', kind: 'auto', processing: false, analysing: false, error: null, result: null, selected: new Set(), applying: false, applied: null, calendarUrl: '', calendarLabel: '', calendarBusy: false, calendarError: null }
+const planningDocuments = { files: [], description: '', kind: 'auto', processing: false, analysing: false, error: null, result: null, selected: new Set(), applying: false, applied: null, calendarUrl: '', calendarLabel: '', calendarBusy: false, calendarError: null, calendarPreview: null, calendarNotice: null }
 
 async function addDocumentSources(fileList) {
   const remaining = MAX_PLANNING_SOURCES - planningDocuments.files.length
@@ -2184,6 +2204,8 @@ function renderReconciliation(result) {
   if (!reconciliation || reconciliation.status === 'not-applicable') return ''
   const matched = reconciliation.matched || []
   const unselected = reconciliation.unselected || []
+  const context = result?.academicContext || null
+  const periodCourses = result?.periodCourses || []
   const missing = reconciliation.missing || []
   const conflicts = reconciliation.conflicts || []
   if (reconciliation.status === 'aligned') return `<div class="doc-reconciliation is-aligned" role="status">${uiIcon('check')}<div><strong>Course cross-check complete</strong><p>All ${matched.length} course reference${matched.length === 1 ? '' : 's'} in this source match your selected courses.</p></div></div>`
@@ -2199,6 +2221,47 @@ function renderReconciliation(result) {
   </section>`
 }
 
+function renderCalendarFeedSummary(result, { connected = false, file = false } = {}) {
+  const summary = result?.feedSummary || {}
+  const reconciliation = result?.reconciliation || {}
+  const unselected = reconciliation.unselected || []
+  const range = summary.rangeStart
+    ? `${academicDate(summary.rangeStart)}${summary.rangeEnd && summary.rangeEnd !== summary.rangeStart ? ` – ${academicDate(summary.rangeEnd)}` : ''}`
+    : 'No dated appointments found'
+  const matched = Number(summary.matchedCourseCount) || 0
+  const eventCount = Number(summary.eventCount) || 0
+  return `<section class="calendar-feed-summary${connected ? ' is-connected' : ''}" aria-label="Calendar feed summary">
+    <header>
+      <span class="calendar-feed-summary-icon">${uiIcon(connected ? 'check' : 'calendar')}</span>
+      <div><strong>${connected ? 'Calendar connected' : file ? 'Calendar file checked' : 'Feed is ready to connect'}</strong><p>${file ? 'This file is a snapshot. Discard this check, then use Calendar connections if you have a feed URL that should keep updating.' : `Appointments stay in the feed and refresh automatically every ${summary.refreshIntervalMinutes || 15} minutes while you use the calendar.`}</p></div>
+    </header>
+    <dl>
+      <div><dt>Appointments</dt><dd>${eventCount}</dd></div>
+      <div><dt>Date range</dt><dd>${escapeHtml(range)}</dd></div>
+      <div><dt>Course match</dt><dd>${matched ? `${matched} selected course${matched === 1 ? '' : 's'}` : 'No selected courses found'}</dd></div>
+    </dl>
+    ${context ? `<div class="calendar-feed-period"><strong>${escapeHtml(context.period)}${context.academicYear ? ` · ${escapeHtml(context.academicYear)}` : ''}</strong><p>${periodCourses.length ? `${periodCourses.length} course${periodCourses.length === 1 ? '' : 's'} appear in this timetable window. This is current-period evidence, not a complete curriculum.` : 'No course appointments were found inside the current academic-period window.'}</p>${periodCourses.length ? `<ul>${periodCourses.slice(0, 10).map((item) => `<li class="${item.selected ? 'is-selected' : 'is-unselected'}">${escapeHtml(item.code)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+    ${unselected.length ? `<div class="calendar-feed-mismatch" role="status"><div>${uiIcon('alert')}<span><strong>${unselected.length} course code${unselected.length === 1 ? '' : 's'} ${unselected.length === 1 ? 'is' : 'are'} not in your plan</strong><small>These appointments stay visible, but the feed will not change your course choices.</small></span></div><ul>${unselected.slice(0, 8).map((item) => `<li>${escapeHtml(item.code || item.name)}</li>`).join('')}${unselected.length > 8 ? `<li>+${unselected.length - 8} more</li>` : ''}</ul></div>` : `<p class="calendar-feed-aligned">${uiIcon('check')} ${matched ? 'Every course code found in this feed matches your selected plan.' : 'No extra course codes were detected in this feed.'}</p>`}
+    <p class="calendar-feed-foot">No appointments are copied into Documents or your academic record. Removing the connection removes its events from Calendar.</p>
+  </section>`
+}
+
+function renderDocumentResult(result, docs, selectedCount) {
+  if (result.kind === 'calendar-feed') return `<section class="panel doc-result">
+    <div class="panel-top"><div><h2>Calendar checked</h2><p>${escapeHtml(result.sources?.map((source) => source.name).filter(Boolean).join(', ') || result.link?.label || result.sourceLabel || 'Calendar')}</p></div><button type="button" class="btn btn-ghost btn-sm" data-doc-reset>Discard</button></div>
+    ${renderCalendarFeedSummary(result, { file: true })}
+    ${docs.error ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.error)}</p>` : ''}
+  </section>`
+  return `<section class="panel doc-result">
+    <div class="panel-top"><div><h2>Review proposed changes</h2><p>${result.usedAi === false ? 'Extracted with the basic text parser — check each line. ' : ''}${result.changes.length} proposed from ${result.sources?.length ? result.sources.map((source) => escapeHtml(source.name)).join(', ') : result.link ? escapeHtml(result.link.label) : 'your sources'}${result.kind && result.kind !== 'auto' ? ` · read as ${escapeHtml(DOCUMENT_KINDS.find(([id]) => id === result.kind)?.[1] || result.kind).toLowerCase()}` : ''}.</p></div><button type="button" class="btn btn-ghost btn-sm" data-doc-reset>Discard</button></div>
+    ${renderReconciliation(result)}
+    ${result.warnings?.length ? `<div class="planning-intake-warnings" role="status"><strong>Notes from the reader</strong><ul>${result.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></div>` : ''}
+    ${renderChangeSet(result)}
+    ${docs.error ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.error)}</p>` : ''}
+    ${result.changes.length ? `<div class="pl-form-actions"><button type="button" class="btn btn-secondary btn-sm" data-doc-select-all>${selectedCount === result.changes.length ? 'Clear all' : 'Select all'}</button><span class="pl-spacer"></span><span class="doc-count">${selectedCount} of ${result.changes.length} selected</span><button type="button" class="btn btn-primary" data-doc-apply ${selectedCount && !docs.applying ? '' : 'disabled'}>${docs.applying ? 'Applying…' : 'Apply selected'}</button></div>` : ''}
+  </section>`
+}
+
 function renderPlanningDocuments() {
   const workspace = academicsData.workspace
   const docs = planningDocuments
@@ -2211,14 +2274,7 @@ function renderPlanningDocuments() {
   return `<div class="pl-page">
     ${planningPageHeader('Documents', 'Drop a transcript, exam schedule, timetable, or academic calendar whenever you get one. Wicker Study reads it and proposes updates; nothing changes until you apply them.')}
     ${docs.applied ? `<div class="doc-applied" role="status">${uiIcon('check')} <span>${docs.applied} change${docs.applied === 1 ? '' : 's'} applied to your plan.</span><a class="pl-link" href="#/calendar">Calendar</a><a class="pl-link" href="#/planning/courses">Courses</a><button type="button" class="pl-link pl-link-button" data-doc-reset>Upload another</button></div>` : ''}
-    ${result ? `<section class="panel doc-result">
-      <div class="panel-top"><div><h2>Review proposed changes</h2><p>${result.usedAi === false ? 'Extracted with the basic text parser — check each line. ' : ''}${result.changes.length} proposed from ${result.sources?.length ? result.sources.map((source) => escapeHtml(source.name)).join(', ') : result.link ? escapeHtml(result.link.label) : 'your sources'}${result.kind && result.kind !== 'auto' ? ` · read as ${escapeHtml(DOCUMENT_KINDS.find(([id]) => id === result.kind)?.[1] || result.kind).toLowerCase()}` : ''}.</p></div><button type="button" class="btn btn-ghost btn-sm" data-doc-reset>Discard</button></div>
-      ${renderReconciliation(result)}
-      ${result.warnings?.length ? `<div class="planning-intake-warnings" role="status"><strong>Notes from the reader</strong><ul>${result.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></div>` : ''}
-      ${renderChangeSet(result)}
-      ${docs.error ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.error)}</p>` : ''}
-      ${result.changes.length ? `<div class="pl-form-actions"><button type="button" class="btn btn-secondary btn-sm" data-doc-select-all>${selectedCount === result.changes.length ? 'Clear all' : 'Select all'}</button><span class="pl-spacer"></span><span class="doc-count">${selectedCount} of ${result.changes.length} selected</span><button type="button" class="btn btn-primary" data-doc-apply ${selectedCount && !docs.applying ? '' : 'disabled'}>${docs.applying ? 'Applying…' : 'Apply selected'}</button></div>` : ''}
-    </section>` : `<div class="doc-grid">
+    ${result ? renderDocumentResult(result, docs, selectedCount) : `<div class="doc-grid">
       <section class="panel">
         <div class="panel-top"><div><h2>Upload a document</h2><p>PDF, screenshot, or text. Files are read for this update only; originals are not stored.</p></div></div>
         <label class="planning-dropzone doc-dropzone${docs.processing ? ' is-processing' : ''}" data-doc-dropzone>
@@ -2237,14 +2293,16 @@ function renderPlanningDocuments() {
       </section>
       <div class="account-stack">
         <section class="panel">
-          <div class="panel-top"><div><h2>Calendar links</h2><p>Timetable or exam-schedule feeds (.ics / webcal). Saved links can be re-synced any time.</p></div></div>
-          ${calendars.length ? `<ul class="doc-calendars">${calendars.map((link) => `<li><span class="nav-icon">${uiIcon('calendar')}</span><span><strong>${escapeHtml(link.label)}</strong><small>${link.eventCount} event${link.eventCount === 1 ? '' : 's'} · ${link.lastSyncedAt ? `synced ${relativeTime(link.lastSyncedAt)}` : 'never synced'}</small></span><button type="button" class="btn btn-sm btn-secondary" data-cal-sync="${escapeHtml(link.id)}" ${docs.calendarBusy ? 'disabled' : ''}>Sync</button><button type="button" class="pl-danger-link" data-cal-remove="${escapeHtml(link.id)}">Remove</button></li>`).join('')}</ul>` : ''}
+          <div class="panel-top"><div><h2>Calendar connections</h2><p>Subscribe to a timetable or exam-schedule feed. Wicker checks for updates every 15 minutes while you use Calendar.</p></div></div>
+          ${docs.calendarNotice ? `<div class="calendar-feed-notice is-${escapeHtml(docs.calendarNotice.type || 'success')}" role="status">${uiIcon(docs.calendarNotice.type === 'error' ? 'alert' : 'check')}<span>${escapeHtml(docs.calendarNotice.message)}</span></div>` : ''}
+          ${calendars.length ? `<ul class="doc-calendars">${calendars.map((link) => `<li><span class="nav-icon">${uiIcon('calendar')}</span><span><strong>${escapeHtml(link.label)}</strong><small>${link.eventCount} appointment${link.eventCount === 1 ? '' : 's'} · ${link.unselectedCourseCount ? `${link.unselectedCourseCount} outside your plan · ` : ''}${link.lastSyncedAt ? `checked ${relativeTime(link.lastSyncedAt)}` : 'not checked yet'}</small></span><button type="button" class="btn btn-sm btn-secondary" data-cal-sync="${escapeHtml(link.id)}" ${docs.calendarBusy ? 'disabled' : ''}>Sync now</button><button type="button" class="pl-danger-link" data-cal-remove="${escapeHtml(link.id)}">Remove</button></li>`).join('')}</ul>` : '<p class="panel-note">No calendar feeds connected yet.</p>'}
           <form class="doc-calendar-form" data-cal-form>
             <label><span>Feed URL</span><input name="url" type="url" placeholder="https://… or webcal://…" value="${escapeHtml(docs.calendarUrl)}" ${docs.calendarBusy ? 'disabled' : ''} required></label>
-            <label><span>Label</span><input name="label" maxlength="120" placeholder="Exam timetable" value="${escapeHtml(docs.calendarLabel)}" ${docs.calendarBusy ? 'disabled' : ''}></label>
+            <label><span>Name</span><input name="label" maxlength="120" placeholder="University timetable" value="${escapeHtml(docs.calendarLabel)}" ${docs.calendarBusy ? 'disabled' : ''}></label>
             ${docs.calendarError ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.calendarError)}</p>` : ''}
-            <div class="pl-form-actions"><button type="button" class="btn btn-secondary btn-sm" data-cal-preview ${docs.calendarBusy ? 'disabled' : ''}>Preview</button><button type="submit" class="btn btn-primary btn-sm" ${docs.calendarBusy ? 'disabled' : ''}>${docs.calendarBusy ? 'Working…' : 'Save and sync'}</button></div>
+            <div class="pl-form-actions">${docs.calendarPreview ? '<button type="button" class="btn btn-ghost btn-sm" data-cal-preview-clear>Clear check</button>' : ''}<span class="pl-spacer"></span><button type="button" class="btn btn-secondary btn-sm" data-cal-preview ${docs.calendarBusy ? 'disabled' : ''}>Check feed</button><button type="submit" class="btn btn-primary btn-sm" ${docs.calendarBusy ? 'disabled' : ''}>${docs.calendarBusy ? 'Connecting…' : 'Connect calendar'}</button></div>
           </form>
+          ${docs.calendarPreview ? renderCalendarFeedSummary(docs.calendarPreview, { connected: docs.calendarPreview.connectionState === 'connected' }) : ''}
         </section>
         <section class="panel panel-aside">
           <div class="panel-top"><h2>Institution calendar</h2>${institution.length ? '<a class="pl-link" href="#/calendar">Calendar</a>' : ''}</div>
@@ -3321,8 +3379,18 @@ function renderHome() {
 const CALENDAR_LIB = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'
 const CALENDAR_VIEWS = [['dayGridMonth', 'Month'], ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['listMonth', 'Agenda']]
 const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', 'exam-week': '#c2410c', period: '#5b6b8c', 'study-week': '#0f766e', holiday: '#7c3aed', institution: '#59627b', timetable: '#2a7f9e', other: '#7d859b' }
-const calendarState = { composer: false, data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', hidden: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
+const CALENDAR_AUTO_REFRESH_MS = 15 * 60_000 + 2_000
+const calendarState = { composer: false, periodEditor: false, data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', hidden: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
 let calendarLibPromise = null
+function scheduleCalendarAutoRefresh() {
+  if (calendarAutoRefreshTimer) clearTimeout(calendarAutoRefreshTimer)
+  calendarAutoRefreshTimer = null
+  if (route.page !== 'calendar') return
+  calendarAutoRefreshTimer = setTimeout(() => {
+    calendarAutoRefreshTimer = null
+    if (route.page === 'calendar') loadCalendarEvents(true)
+  }, CALENDAR_AUTO_REFRESH_MS)
+}
 function ensureCalendarLib() {
   if (calendarState.libReady) return Promise.resolve()
   if (!calendarLibPromise) {
@@ -3340,9 +3408,9 @@ async function loadCalendarEvents(force = false) {
   if (calendarState.loading || (calendarState.data && !force && Date.now() - calendarState.loadedAt < 60_000)) return
   calendarState.loading = true
   calendarState.error = null
-  try { calendarState.data = await fetchJson('/api/calendar/events'); calendarState.loadedAt = Date.now() }
+  try { calendarState.data = await fetchJson(`/api/calendar/events?date=${encodeURIComponent(localIsoDate(new Date()))}`); calendarState.loadedAt = Date.now() }
   catch (error) { calendarState.error = error.message }
-  finally { calendarState.loading = false; render() }
+  finally { calendarState.loading = false; scheduleCalendarAutoRefresh(); render() }
 }
 function calendarEventMatches(event) {
   if (calendarState.hidden.has(event.category)) return false
@@ -3398,11 +3466,32 @@ function renderCalendarPage() {
   const title = calendarState.instance ? calendarState.instance.view.title : new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(titleDate)
   const reconciliation = data?.reconciliation
   const unselectedCourses = reconciliation?.unselected || []
-  const missingCourses = reconciliation?.missing || []
-  const crossCheckNotice = unselectedCourses.length || missingCourses.length ? `<div class="calx-crosscheck ${unselectedCourses.length ? 'is-attention' : 'is-review'}" role="${unselectedCourses.length ? 'alert' : 'status'}">
-    ${uiIcon(unselectedCourses.length ? 'alert' : 'check')}
-    <div><strong>${unselectedCourses.length ? `${unselectedCourses.length} timetable course${unselectedCourses.length === 1 ? '' : 's'} ${unselectedCourses.length === 1 ? 'is' : 'are'} not in your selected plan` : `${missingCourses.length} selected course${missingCourses.length === 1 ? '' : 's'} ${missingCourses.length === 1 ? 'was' : 'were'} not found in the timetable`}</strong><p>${unselectedCourses.length ? `${unselectedCourses.slice(0, 4).map((item) => item.code || item.name).join(', ')}${unselectedCourses.length > 4 ? ` and ${unselectedCourses.length - 4} more` : ''}. Review the feed before adding these courses or their events.` : 'Nothing was removed. The feed may cover only part of your programme.'}</p></div>
-    <a class="btn btn-secondary btn-sm" href="#/planning/documents">Review in Documents</a>
+  const workspace = academicsData?.workspace
+  const assignments = workspace?.planning?.periodAssignments || []
+  const inferredContext = data?.academicContext || null
+  const latestAssignment = assignments.at(-1) || null
+  const academicContext = inferredContext || (latestAssignment ? { academicYear: latestAssignment.academicYear, period: latestAssignment.period, label: latestAssignment.period, phase: 'manual', source: 'Manual setting', start: null, end: null, daysUntil: 0 } : null)
+  const samePeriod = (assignment) => assignment && academicContext && String(assignment.academicYear).replace(/[–—/]/g, '-') === String(academicContext.academicYear).replace(/[–—/]/g, '-') && assignment.period === academicContext.period
+  const currentAssignment = assignments.findLast(samePeriod) || null
+  const inferredPeriodCourses = data?.periodCourses || []
+  const activeCourseIds = currentAssignment?.courseIds || inferredPeriodCourses.filter((item) => item.selected && item.courseId).map((item) => item.courseId)
+  const activeCourses = activeCourseIds.map((id) => workspace?.courses?.find((course) => course.id === id)).filter(Boolean)
+  const contextTiming = academicContext?.phase === 'upcoming'
+    ? academicContext.daysUntil === 1 ? 'starts tomorrow' : academicContext.daysUntil === 0 ? 'starts today' : `starts in ${academicContext.daysUntil} days`
+    : academicContext?.start ? `${academicDate(academicContext.start)}${academicContext.end && academicContext.end !== academicContext.start ? ` – ${academicDate(academicContext.end)}` : ''}` : 'set manually'
+  const contextNotice = workspace ? `<section class="calx-context${calendarState.periodEditor ? ' is-editing' : ''}" aria-label="Current academic period">
+    <div class="calx-context-row">${uiIcon('book')}<div><strong>${academicContext ? `${escapeHtml(academicContext.period)}${academicContext.academicYear ? ` · ${escapeHtml(academicContext.academicYear)}` : ''}` : 'Current study period is not set'}</strong><p>${academicContext ? `${escapeHtml(contextTiming)} · ${currentAssignment ? 'courses set manually' : inferredPeriodCourses.length ? 'courses inferred from the current timetable window' : `based on ${escapeHtml(academicContext.source || 'the academic calendar')}`}` : 'Add an academic calendar or set the period and courses yourself.'}</p>${activeCourses.length ? `<ul>${activeCourses.map((course) => `<li>${escapeHtml(course.code || course.name)}</li>`).join('')}</ul>` : ''}</div><button type="button" class="btn btn-secondary btn-sm" data-cal-period-edit>${calendarState.periodEditor ? 'Close' : activeCourses.length ? 'Set current courses' : 'Set period and courses'}</button></div>
+    ${calendarState.periodEditor ? `<form class="calx-period-editor" data-cal-period-assignment>
+      <div class="calx-period-fields"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(academicContext?.academicYear || workspace.profile.academicYear || '')}" maxlength="30" required placeholder="2026–2027"></label><label><span>Period</span><select name="period">${[1, 2, 3, 4, 5, 6].map((period) => `<option value="Period ${period}" ${academicContext?.period === `Period ${period}` ? 'selected' : ''}>Period ${period}</option>`).join('')}</select></label></div>
+      <fieldset><legend>Courses in this period</legend><div>${workspace.courses.filter((course) => course.programmeRequirement !== 'historical').map((course) => `<label><input type="checkbox" name="courseIds" value="${escapeHtml(course.id)}" ${activeCourseIds.includes(course.id) ? 'checked' : ''}><span><strong>${escapeHtml(course.code || course.name)}</strong>${course.code ? `<small>${escapeHtml(course.name)}</small>` : ''}</span></label>`).join('')}</div></fieldset>
+      ${assignments.length ? `<p class="calx-period-saved">Saved periods: ${assignments.map((assignment) => `${escapeHtml(assignment.period)} (${assignment.courseIds.length})`).join(' · ')}</p>` : ''}
+      <div class="cal-compose-actions"><button type="button" class="btn btn-ghost" data-cal-period-edit>Cancel</button><button type="submit" class="btn btn-primary">Save period courses</button></div>
+    </form>` : ''}
+  </section>` : ''
+  const crossCheckNotice = unselectedCourses.length ? `<div class="calx-crosscheck is-attention" role="status">
+    ${uiIcon('alert')}
+    <div><strong>${unselectedCourses.length} timetable course${unselectedCourses.length === 1 ? '' : 's'} ${unselectedCourses.length === 1 ? 'is' : 'are'} not in your selected plan</strong><p>${unselectedCourses.slice(0, 4).map((item) => item.code || item.name).join(', ')}${unselectedCourses.length > 4 ? ` and ${unselectedCourses.length - 4} more` : ''}. Their appointments remain visible, but the feed does not change your course choices.</p></div>
+    <a class="btn btn-secondary btn-sm" href="#/planning/documents">Manage feeds</a>
   </div>` : ''
   return `<section class="calx">
     <aside class="calx-rail">
@@ -3422,17 +3511,18 @@ function renderCalendarPage() {
         </div>
       </header>
       ${data?.problems?.length ? `<div class="settings-error calx-problem" role="alert"><strong>${data.problems.length === 1 ? 'A feed could not be read.' : 'Some feeds could not be read.'}</strong><p>${data.problems.map((problem) => `${escapeHtml(problem.label)}: ${escapeHtml(problem.error)}`).join(' · ')}</p></div>` : ''}
+      ${contextNotice}
       ${crossCheckNotice}
-      ${calendarState.composer ? `<form class="pl-composer cal-composer" data-academic-event aria-label="Add event">
-        <div class="pl-composer-head"><strong>Add an event</strong><span>Exam dates belong to a course attempt — add those under Planning → Courses.</span></div>
-        <div class="pl-fields pl-fields-event">
-          <label class="wide"><span>Title</span><input name="title" maxlength="200" required placeholder="Resit registration closes"></label>
-          <label><span>Date</span><input name="date" type="date" required value="${escapeHtml(calendarState.date || today)}"></label>
-          <label><span>End date</span><input name="endDate" type="date"></label>
-          <label><span>Type</span><select name="type"><option value="deadline">Deadline</option><option value="registration">Registration</option><option value="ceremony">Ceremony</option><option value="other">Other</option></select></label>
-          <label class="wide"><span>Notes</span><input name="notes" maxlength="2000"></label>
+      ${calendarState.composer ? `<form class="cal-composer" data-academic-event aria-labelledby="cal-compose-title">
+        <header class="cal-compose-head"><div><h2 id="cal-compose-title">Add an event</h2><p>For a course exam, add an attempt under Planning → Courses so it stays attached to the course.</p></div><button type="button" class="icon-btn" data-cal-compose aria-label="Close event editor">${uiIcon('close')}</button></header>
+        <div class="cal-compose-fields">
+          <label class="is-title"><span>Event title</span><input name="title" maxlength="200" required autofocus placeholder="What is happening?"></label>
+          <label class="is-type"><span>Event type</span><select name="type"><option value="deadline">Deadline</option><option value="registration">Registration</option><option value="ceremony">Ceremony</option><option value="other">Other</option></select></label>
+          <label class="is-date"><span>Starts</span><input name="date" type="date" required value="${escapeHtml(calendarState.date || today)}"></label>
+          <label class="is-date"><span>Ends <small>optional</small></span><input name="endDate" type="date"></label>
+          <label class="is-notes"><span>Notes <small>optional</small></span><textarea name="notes" maxlength="2000" rows="2" placeholder="Location, link, or anything you need to remember"></textarea></label>
         </div>
-        <div class="pl-form-actions"><button class="btn btn-secondary" type="button" data-cal-compose>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading || !academicsData ? 'disabled' : ''}>Add event</button></div>
+        <footer class="cal-compose-actions"><button class="btn btn-ghost" type="button" data-cal-compose>Cancel</button><button class="btn btn-primary" type="submit" ${academicsLoading || !academicsData ? 'disabled' : ''}>Add to calendar</button></footer>
       </form>` : ''}
       <div class="calx-grid">${calendarState.libError ? `<div class="deps-pending"><p>${escapeHtml(calendarState.libError)}</p></div>` : `<div class="cal-host" data-cal-host aria-busy="${!calendarState.libReady || !data}">${!calendarState.libReady || !data ? `<div class="deps-pending"><p><span class="boot-spinner"></span>Loading the calendar…</p></div>` : ''}</div>`}
         ${selected ? `<section class="cal-detail calx-detail" style="--accent:${selected.colour || CATEGORY_COLOURS[selected.category] || CATEGORY_COLOURS.other}" role="dialog" aria-label="Event details">
@@ -8697,6 +8787,21 @@ function bindEvents() {
   document.querySelectorAll('[data-cal-select]').forEach((button) => button.addEventListener('click', () => { const event = calendarState.data?.events.find((item) => item.id === button.dataset.calSelect); calendarState.selected = button.dataset.calSelect; if (event) calendarState.date = String(event.start).slice(0, 10); render() }))
   document.querySelectorAll('[data-cal-close]').forEach((button) => button.addEventListener('click', () => { calendarState.selected = null; render() }))
   document.querySelectorAll('[data-cal-compose]').forEach((button) => button.addEventListener('click', () => { calendarState.composer = !calendarState.composer; render() }))
+  document.querySelectorAll('[data-cal-period-edit]').forEach((button) => button.addEventListener('click', () => { calendarState.periodEditor = !calendarState.periodEditor; render() }))
+  document.querySelectorAll('[data-cal-period-assignment]').forEach((form) => form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    if (!academicsData?.workspace || academicsLoading) return
+    const data = new FormData(form)
+    const academicYear = String(data.get('academicYear') || '').trim()
+    const period = String(data.get('period') || '').trim()
+    const courseIds = data.getAll('courseIds').map(String)
+    const existing = academicsData.workspace.planning?.periodAssignments || []
+    const same = (assignment) => String(assignment.academicYear).replace(/[–—/]/g, '-') === academicYear.replace(/[–—/]/g, '-') && assignment.period === period
+    const assignment = { id: `period-${academicYear}-${period}`.toLowerCase().replace(/[^a-z0-9]+/g, '-'), academicYear, period, courseIds, source: 'manual', updatedAt: new Date().toISOString() }
+    const planning = { ...(academicsData.workspace.planning || {}), periodAssignments: [...existing.filter((item) => !same(item)), assignment] }
+    const saved = await saveAcademics({ ...academicsData.workspace, planning })
+    if (saved) { calendarState.periodEditor = false; render() }
+  }))
 
   // ----- Documents tab -----
   document.querySelectorAll('[data-doc-files]').forEach((input) => input.addEventListener('change', (event) => { addDocumentSources(event.target.files); event.target.value = '' }))
@@ -8729,7 +8834,7 @@ function bindEvents() {
         aiUsage = result.usage || aiUsage
       }
       for (const file of icsFiles) {
-        const preview = await fetchJson('/api/academics/calendars/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ics: file.text }) })
+        const preview = await fetchJson('/api/academics/calendars/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ics: file.text, date: localIsoDate(new Date()) }) })
         result = mergeDocumentResults(result, preview, { name: file.name })
       }
       if (!result) throw new Error('Add a file or a description first.')
@@ -8781,15 +8886,29 @@ function bindEvents() {
       render()
     }
   }))
-  const calendarRequest = async (path, body) => {
+  const calendarRequest = async (path, body, action = 'connect') => {
     planningDocuments.calendarBusy = true
     planningDocuments.calendarError = null
+    planningDocuments.calendarNotice = null
     render()
     try {
-      const response = await fetchJson(path, { method: body === undefined ? 'DELETE' : 'POST', headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
+      const response = await fetchJson(path, { method: body === undefined ? 'DELETE' : 'POST', headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify({ ...body, date: localIsoDate(new Date()) }) })
       if (response.workspace) academicsData = { ...academicsData, index: response.index, workspace: response.workspace, summary: response.summary }
       const changeSet = response.changeSet || (response.changes ? response : null)
-      if (changeSet) { showChangeSet({ ...changeSet, link: response.link || changeSet.link || { label: 'Calendar' } }); planningDocuments.calendarUrl = ''; planningDocuments.calendarLabel = '' }
+      if (action === 'preview') {
+        planningDocuments.calendarPreview = { ...response, connectionState: 'preview' }
+      } else if (action === 'remove') {
+        planningDocuments.calendarPreview = null
+        planningDocuments.calendarNotice = { type: 'success', message: 'Calendar connection removed. Its appointments no longer appear in Calendar.' }
+      } else if (changeSet) {
+        planningDocuments.calendarPreview = { ...changeSet, link: response.link || changeSet.link || { label: 'Calendar' }, connectionState: 'connected' }
+        planningDocuments.calendarNotice = { type: 'success', message: action === 'sync' ? `${response.link?.label || 'Calendar'} is up to date.` : `${response.link?.label || 'Calendar'} is connected and will keep updating automatically.` }
+        if (action === 'connect') { planningDocuments.calendarUrl = ''; planningDocuments.calendarLabel = '' }
+      }
+      if (action !== 'preview') {
+        calendarState.data = null
+        calendarState.loadedAt = 0
+      }
     } catch (error) {
       planningDocuments.calendarError = error.message
     } finally {
@@ -8799,14 +8918,15 @@ function bindEvents() {
   }
   document.querySelectorAll('[data-cal-form]').forEach((form) => {
     form.addEventListener('input', () => { planningDocuments.calendarUrl = form.elements.url.value; planningDocuments.calendarLabel = form.elements.label.value })
-    form.addEventListener('submit', (event) => { event.preventDefault(); if (!form.elements.url.value.trim()) return; calendarRequest('/api/academics/calendars', { url: form.elements.url.value.trim(), label: form.elements.label.value.trim() }) })
+    form.addEventListener('submit', (event) => { event.preventDefault(); if (!form.elements.url.value.trim()) return; calendarRequest('/api/academics/calendars', { url: form.elements.url.value.trim(), label: form.elements.label.value.trim() }, 'connect') })
   })
-  document.querySelectorAll('[data-cal-preview]').forEach((button) => button.addEventListener('click', () => { const form = button.closest('form'); if (!form?.elements.url.value.trim()) { planningDocuments.calendarError = 'Enter a feed URL first.'; render(); return } calendarRequest('/api/academics/calendars/preview', { url: form.elements.url.value.trim(), label: form.elements.label.value.trim() }) }))
-  document.querySelectorAll('[data-cal-sync]').forEach((button) => button.addEventListener('click', () => calendarRequest(`/api/academics/calendars/${encodeURIComponent(button.dataset.calSync)}/sync`, {})))
+  document.querySelectorAll('[data-cal-preview]').forEach((button) => button.addEventListener('click', () => { const form = button.closest('form'); if (!form?.elements.url.value.trim()) { planningDocuments.calendarError = 'Enter a feed URL first.'; render(); return } calendarRequest('/api/academics/calendars/preview', { url: form.elements.url.value.trim(), label: form.elements.label.value.trim() }, 'preview') }))
+  document.querySelectorAll('[data-cal-preview-clear]').forEach((button) => button.addEventListener('click', () => { planningDocuments.calendarPreview = null; planningDocuments.calendarNotice = null; render() }))
+  document.querySelectorAll('[data-cal-sync]').forEach((button) => button.addEventListener('click', () => calendarRequest(`/api/academics/calendars/${encodeURIComponent(button.dataset.calSync)}/sync`, {}, 'sync')))
   document.querySelectorAll('[data-cal-remove]').forEach((button) => button.addEventListener('click', async () => {
     const link = academicsData?.workspace?.calendars?.find((item) => item.id === button.dataset.calRemove)
-    if (!(await showConfirm({ title: `Remove “${link?.label || 'calendar'}”?`, message: 'Events already added to your plan stay; the link will no longer sync.', okLabel: 'Remove link', danger: true }))) return
-    calendarRequest(`/api/academics/calendars/${encodeURIComponent(button.dataset.calRemove)}`)
+    if (!(await showConfirm({ title: `Remove “${link?.label || 'calendar'}”?`, message: 'Its appointments will disappear from Calendar. Your selected courses and academic record stay unchanged.', okLabel: 'Remove connection', danger: true }))) return
+    calendarRequest(`/api/academics/calendars/${encodeURIComponent(button.dataset.calRemove)}`, undefined, 'remove')
   }))
   document.querySelectorAll('[data-institution-event-import]').forEach((button) => button.addEventListener('click', async () => {
     const event = (activeEditorialProgrammeReference()?.programme?.calendar || []).find((item) => item.id === button.dataset.institutionEventImport)
@@ -9085,7 +9205,7 @@ function bindEvents() {
   document.querySelectorAll('[data-planning-expand]').forEach(planningExpandHandler('planningExpand', (id) => { planningExpandedCourse = planningExpandedCourse === id ? null : id }))
   document.querySelectorAll('[data-planning-expand-event]').forEach(planningExpandHandler('planningExpandEvent', (id) => { planningExpandedEvent = planningExpandedEvent === id ? null : id }))
   document.querySelectorAll('[data-planning-expand-gate]').forEach(planningExpandHandler('planningExpandGate', (id) => { planningExpandedGate = planningExpandedGate === id ? null : id }))
-  document.querySelectorAll('[data-planning-scenario-reset]').forEach((button) => button.addEventListener('click', () => saveAcademics({ ...academicsData.workspace, planning: { objectives: {} } })))
+  document.querySelectorAll('[data-planning-scenario-reset]').forEach((button) => button.addEventListener('click', () => saveAcademics({ ...academicsData.workspace, planning: { ...(academicsData.workspace.planning || {}), objectives: {} } })))
   document.querySelectorAll('[data-planning-gate-type]').forEach((select) => {
     const sync = () => {
       const form = select.closest('form')
@@ -9154,7 +9274,16 @@ function bindEvents() {
   }))
   document.querySelectorAll('[data-academic-event]').forEach((form) => form.addEventListener('submit', (event) => {
     event.preventDefault(); if (!academicsData) return; const data = new FormData(form)
-    const item = { id: `event-${Date.now()}`, title: data.get('title'), date: data.get('date'), endDate: data.get('endDate') || null, type: data.get('type'), notes: data.get('notes') }
+    const date = String(data.get('date') || '')
+    const endDate = String(data.get('endDate') || '')
+    if (endDate && endDate < date) {
+      const input = form.elements.endDate
+      input.setCustomValidity('The end date must be the same as or later than the start date.')
+      input.reportValidity()
+      input.addEventListener('input', () => input.setCustomValidity(''), { once: true })
+      return
+    }
+    const item = { id: `event-${Date.now()}`, title: data.get('title'), date, endDate: endDate || null, type: data.get('type'), notes: data.get('notes') }
     planningEventComposerOpen = false
     saveAcademics({ ...academicsData.workspace, events: [...academicsData.workspace.events, item] })
   }))
@@ -9181,7 +9310,7 @@ function bindEvents() {
     const current = academicsData.workspace.planning?.objectives?.[id] || { mode: 'current', outcome: 'actual' }
     const next = select.dataset.academicObjectiveMode ? { ...current, mode: select.value } : { ...current, outcome: select.value }
     const objectives = { ...(academicsData.workspace.planning?.objectives || {}), [id]: next }
-    saveAcademics({ ...academicsData.workspace, planning: { objectives } })
+    saveAcademics({ ...academicsData.workspace, planning: { ...(academicsData.workspace.planning || {}), objectives } })
   }))
   document.querySelectorAll('[data-academic-switch]').forEach((button) => button.addEventListener('click', async () => {
     academicsLoading = true; render()

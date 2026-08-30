@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { applyChanges, buildChangeSet, normalizeCalendarLink, parseIcs } from '../lib/academic-documents.mjs'
+import { applyChanges, buildChangeSet, calendarChangeSet, normalizeCalendarLink, parseIcs } from '../lib/academic-documents.mjs'
 import { normalizeAcademicWorkspace } from '../lib/academics.mjs'
 
 const ICS = `BEGIN:VCALENDAR
@@ -132,4 +132,105 @@ test('equivalent academic-year punctuation does not create a conflict', () => {
   const workspace = normalizeAcademicWorkspace({ profile: { academicYear: '2026-2027' }, courses: [], events: [] })
   const set = buildChangeSet(workspace, { profile: { academicYear: '2026–2027' }, courses: [], events: [] }, { kind: 'transcript' })
   assert.equal(set.changes.some((change) => change.payload?.field === 'academicYear'), false)
+})
+
+test('a calendar subscription returns a compact cross-reference instead of event changes', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: {},
+    courses: [
+      { id: 'c-stats', code: 'BCS1520', name: 'Statistics', attempts: [] },
+      { id: 'c-alg', code: 'BCS1540', name: 'Algorithmic Design', attempts: [] }
+    ]
+  })
+  const events = [
+    { id: 'one', title: 'BCS1520/2026-100/Lecture', date: '2026-09-01', type: 'other', notes: '09:00–11:00' },
+    { id: 'two', title: 'BCS3130/2026-100/Lecture', date: '2026-09-02', type: 'other', notes: '11:00–13:00' },
+    { id: 'three', title: 'DACS: Course registration closes 17 July 2025', date: '2026-07-06', type: 'registration', notes: 'This appointment opens on 2026-06-01' }
+  ]
+  const result = calendarChangeSet(workspace, events, { id: 'cal-1', label: 'University timetable' })
+
+  assert.equal(result.kind, 'calendar-feed')
+  assert.deepEqual(result.changes, [])
+  assert.deepEqual(result.reconciliation.unselected.map((item) => item.code), ['BCS3130'])
+  assert.deepEqual(result.reconciliation.missing, [])
+  assert.equal(result.feedSummary.eventCount, 3)
+  assert.equal(result.feedSummary.matchedEvents, 1)
+  assert.equal(result.feedSummary.unselectedEvents, 1)
+  assert.equal(result.feedSummary.generalEvents, 1)
+  assert.equal(result.feedSummary.rangeStart, '2026-07-06')
+  assert.equal(result.feedSummary.rangeEnd, '2026-09-02')
+})
+
+test('a transcript preserves repeated attempts without rewriting the current curriculum', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: { academicYear: '2026-2027' },
+    courses: [{ id: 'current-stats', code: 'BCS1520', name: 'Current Statistics', ects: 6, yearLevel: 'Year 2', period: 'Period 1', attempts: [] }]
+  })
+  const set = buildChangeSet(workspace, {
+    profile: { academicYear: '2024-2025' },
+    courses: [{
+      code: 'BCS1520', name: 'Old Statistics', ects: 5, yearLevel: 'Year 1', period: 'Period 4',
+      attempts: [
+        { academicYear: '2023-2024', type: 'first', examDate: '2024-01-20', grade: 4.2, status: 'failed' },
+        { academicYear: '2023-2024', type: 'resit', examDate: '2024-06-18', grade: 5.1, status: 'failed' },
+        { academicYear: '2024-2025', type: 'carry-over', examDate: '2025-01-21', grade: 6.4, status: 'passed' }
+      ]
+    }]
+  }, { kind: 'transcript', sourceLabel: 'Official transcript' })
+
+  assert.equal(set.changes.some((change) => change.kind === 'profile' || change.kind === 'profile-conflict' || change.kind === 'course-detail' || change.kind === 'course-conflict'), false)
+  const results = set.changes.filter((change) => change.kind === 'result')
+  assert.equal(results.length, 3)
+  assert.equal(new Set(results.map((change) => change.id)).size, 3)
+  const applied = applyChanges(workspace, results).workspace
+  assert.equal(applied.profile.academicYear, '2026-2027')
+  assert.equal(applied.courses[0].name, 'Current Statistics')
+  assert.equal(applied.courses[0].ects, 6)
+  assert.deepEqual(applied.courses[0].attempts.map((attempt) => attempt.grade), [4.2, 5.1, 6.4])
+})
+
+test('an academic overview keeps a failed course active as a later carry-over', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: { academicYear: '2026–2027' },
+    courses: [{ id: 'interfaces', code: 'BCS2130', name: 'Intelligent User Interfaces', ects: 4, period: 'Period 1', attempts: [{ id: 'failed-2025', academicYear: '2025–2026', type: 'first', grade: 5, status: 'failed' }] }]
+  })
+  const set = buildChangeSet(workspace, {
+    profile: { academicYear: '2026–2027' },
+    courses: [{ code: 'BCS2130', name: 'Intelligent User Interfaces', ects: 4, period: 'Period 1', attempts: [
+      { academicYear: '2025–2026', type: 'first', grade: 5, status: 'failed' },
+      { academicYear: '2026–2027', type: 'carry-over', examDate: null, grade: null, status: 'upcoming' }
+    ] }]
+  }, { kind: 'academic-overview', sourceLabel: 'Academic overview' })
+
+  assert.equal(set.changes.some((change) => change.kind === 'attempt-conflict'), false)
+  const carryOver = set.changes.find((change) => change.kind === 'exam-date')
+  assert.equal(carryOver.payload.attempt.type, 'carry-over')
+  assert.equal(carryOver.payload.attempt.status, 'upcoming')
+})
+
+test('an older transcript code with the same course name stays a historical course', () => {
+  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [{ id: 'current', code: 'NEW200', name: 'Systems', attempts: [] }] })
+  const set = buildChangeSet(workspace, {
+    profile: {},
+    courses: [{ code: 'OLD100', name: 'Systems', attempts: [{ academicYear: '2022-2023', type: 'first', grade: 7, status: 'passed' }] }]
+  }, { kind: 'transcript', sourceLabel: 'Old transcript' })
+
+  assert.equal(set.changes.some((change) => change.kind === 'course-conflict'), false)
+  const historical = set.changes.find((change) => change.kind === 'new-course')
+  assert.equal(historical.payload.course.code, 'OLD100')
+  assert.equal(historical.payload.course.programmeRequirement, 'historical')
+})
+
+test('an uploaded academic calendar keeps structured period context out of personal events', () => {
+  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [], events: [] })
+  const set = buildChangeSet(workspace, {
+    profile: {}, courses: [],
+    events: [{ title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', type: 'other', kind: 'period', period: 1, semester: null, resit: false, cohorts: [], academicYear: '2026-2027', notes: '' }]
+  }, { kind: 'academic-calendar', sourceLabel: 'Faculty calendar' })
+  const event = set.changes.find((change) => change.kind === 'event')
+  const applied = applyChanges(workspace, [event]).workspace
+
+  assert.equal(applied.events.length, 0)
+  assert.equal(applied.planning.academicPeriods.length, 1)
+  assert.deepEqual({ kind: applied.planning.academicPeriods[0].kind, period: applied.planning.academicPeriods[0].period, academicYear: applied.planning.academicPeriods[0].academicYear }, { kind: 'period', period: 1, academicYear: '2026-2027' })
 })

@@ -48,3 +48,19 @@ test('course matching accepts selected names and rejects room numbers', () => {
   assert.equal(courseReferenceInText('Room 101 · Group 12', plan.courses), null)
   assert.equal(courseReferenceInText('BCS-1520 lecture', plan.courses)?.course?.id, 'c-stats')
 })
+
+test('an explicit changed course code is not masked by a reused selected title', () => {
+  const plan = workspace()
+  const reference = courseReferenceInText('BCS2999 Statistics lecture', plan.courses)
+
+  assert.equal(reference.code, 'BCS2999')
+  assert.equal(reference.course, null)
+})
+
+test('reconciliation attaches each appointment to an observed course once', () => {
+  const result = reconcileAcademicSource(workspace(), {
+    events: [{ id: 'outside-1', title: 'BCS2999 New elective', date: '2026-09-02', notes: '' }]
+  }, { kind: 'calendar-feed', sourceLabel: 'Timetable feed' })
+
+  assert.equal(result.unselected[0].events.length, 1)
+})

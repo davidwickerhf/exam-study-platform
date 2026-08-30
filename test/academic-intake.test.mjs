@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from '../lib/academic-intake.mjs'
+import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from '../lib/academic-intake.mjs'
 
 test('academic intake normalizes, deduplicates, and connects courses by code', () => {
   const draft = normalizeAcademicIntakeDraft({
@@ -41,4 +41,92 @@ BCS1520 Statistics 10 ECTS passed 74%
   assert.equal(draft.courses[1].attempts[0].status, 'passed')
   assert.equal(draft.courses[1].attempts[0].grade, 74)
   assert.equal(draft.connections.matched, 1)
+})
+
+test('transcript intake groups a course but preserves every distinct sitting and curriculum warning', () => {
+  const draft = normalizeAcademicIntakeDraft({
+    profile: { academicYear: '2025–2026' },
+    courses: [
+      { code: 'BCS1520', name: 'Statistics', ects: 5, yearLevel: 'Year 1', attempts: [{ academicYear: '2024–2025', type: 'first', grade: 4.5, status: 'failed' }] },
+      { code: 'BCS1520', name: 'Statistics and Data', ects: 6, yearLevel: 'Year 2', attempts: [{ academicYear: '2025–2026', type: 'resit', grade: 6.8, status: 'passed' }] }
+    ]
+  }, [], { kind: 'transcript' })
+
+  assert.equal(draft.courses.length, 1)
+  assert.equal(draft.courses[0].programmeRequirement, 'historical')
+  assert.deepEqual(draft.courses[0].attempts.map((attempt) => [attempt.academicYear, attempt.type, attempt.grade, attempt.status]), [
+    ['2024–2025', 'first', 4.5, 'failed'],
+    ['2025–2026', 'resit', 6.8, 'passed']
+  ])
+  assert.ok(draft.warnings.some((warning) => /different course titles/.test(warning)))
+  assert.ok(draft.warnings.some((warning) => /different credit values/.test(warning)))
+})
+
+test('Maastricht academic overview separates current enrolment from historical attempts', () => {
+  const draft = fallbackAcademicIntake(`
+Maastricht University
+Academic overview
+Bachelor of Science in Computer Science
+Current courses
+Course code Description Result Credits
+2026-2027-500- Algorithmic Design - 0,0/4,0
+BCS1540
+Failed courses
+2025-2026-500- Algorithmic Design NG 0,0/4,0
+BCS1540
+2024-2025-500- Algorithmic Design 2,0 0,0/4,0
+BCS1540
+Completed courses
+2025-2026-500- Statistics 7,0 4,0/4,0
+BCS1520
+  `, [], { kind: 'auto' })
+
+  assert.equal(detectAcademicDocumentKind('Academic overview\nCurrent courses\nFailed courses\nCompleted courses'), 'academic-overview')
+  assert.equal(draft.profile.university, 'Maastricht University')
+  assert.equal(draft.profile.programme, 'Bachelor of Science in Computer Science')
+  const algorithmic = draft.courses.find((course) => course.code === 'BCS1540')
+  assert.equal(algorithmic.programmeRequirement, null)
+  assert.equal(algorithmic.period, 'Period 5')
+  assert.deepEqual(algorithmic.attempts.map((attempt) => [attempt.academicYear, attempt.type, attempt.grade, attempt.status]), [
+    ['2024–2025', 'first', 2, 'failed'],
+    ['2025–2026', 'carry-over', null, 'failed'],
+    ['2026–2027', 'carry-over', null, 'upcoming']
+  ])
+  assert.equal(draft.courses.find((course) => course.code === 'BCS1520').programmeRequirement, 'historical')
+})
+
+test('official transcript rows cross-reference overview codes without duplicating the same sitting', () => {
+  const draft = fallbackAcademicIntake(`
+Transcript / Resultatenoverzicht
+Bachelor of Science in Computer Science
+BSc CS year 1 core courses
+Statistics 3,0 05.06.2024 4,00 0,00 1
+Statistics NG 23.05.2025 4,00 0,00 1
+Statistics 7,0 18.06.2026 4,00 4,00 1
+END OF TRANSCRIPT
+Academic overview
+Completed courses
+2025-2026-500- Statistics 7,0 4,0/4,0
+BCS1520
+  `, [], { kind: 'auto' })
+
+  const statistics = draft.courses.find((course) => course.code === 'BCS1520')
+  assert.equal(statistics.programmeRequirement, 'historical')
+  assert.deepEqual(statistics.attempts.map((attempt) => [attempt.examDate, attempt.academicYear, attempt.grade, attempt.status]), [
+    ['2024-06-05', '2023–2024', 3, 'failed'],
+    ['2025-05-23', '2024–2025', null, 'failed'],
+    ['2026-06-18', '2025–2026', 7, 'passed']
+  ])
+})
+
+test('a title-only old transcript does not borrow a code from the current catalogue', () => {
+  const draft = fallbackAcademicIntake(`
+Transcript / Resultatenoverzicht
+BSc CS year 1 core courses
+Statistics 7,0 18.06.2026 4,00 4,00 1
+END OF TRANSCRIPT
+  `, [{ id: 'current-stats', code: 'BCS1520', name: 'Statistics' }], { kind: 'transcript' })
+
+  assert.equal(draft.courses[0].code, '')
+  assert.equal(draft.courses[0].programmeRequirement, 'historical')
 })
