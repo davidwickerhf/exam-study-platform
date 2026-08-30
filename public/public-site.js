@@ -249,8 +249,8 @@ export function mountIneligibleSite({ email, allowedDomains, signOut }) {
   document.getElementById('app').innerHTML = ''
   gate.hidden = false
   gate.innerHTML = `<div class="auth-page auth-page-single">
-    <a class="auth-back" href="/">← Back to Wicker Study</a>
     <section class="auth-form-column" aria-labelledby="auth-title">
+      <a class="auth-back" href="/">← Back to Wicker Study</a>
       <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
       <div class="auth-form-copy"><h1 id="auth-title">This account isn’t eligible yet.</h1>
         <p>Wicker Study is open to Maastricht University accounts. Sign in with a ${domainList(allowedDomains)} address${email ? ` — you are signed in as <strong>${escapeHtml(email)}</strong>` : ''}.</p></div>
@@ -268,8 +268,8 @@ export function mountProgrammePicker({ email, programmes, choose, signOut }) {
   document.getElementById('app').innerHTML = ''
   gate.hidden = false
   gate.innerHTML = `<div class="auth-page auth-page-single">
-    <a class="auth-back" href="/">← Back to Wicker Study</a>
     <section class="auth-form-column" aria-labelledby="auth-title">
+      <a class="auth-back" href="/">← Back to Wicker Study</a>
       <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
       <div class="auth-form-copy"><h1 id="auth-title">Which programme are you in?</h1>
         <p>Your address${email ? ` <strong>${escapeHtml(email)}</strong>` : ''} matches more than one maintained programme. Choose yours to see its courses and institution calendar. You can ask an administrator to change it later.</p></div>
@@ -304,8 +304,8 @@ export function mountAuthSite({ allowedDomains = [], mode = 'sign-in' } = {}) {
   document.querySelector('.skip-link')?.setAttribute('href', '#auth-gate')
   gate.hidden = false
   gate.innerHTML = `<div class="auth-page">
-    <a class="auth-back" href="/">← Back to Wicker Study</a>
     <section class="auth-form-column" aria-labelledby="auth-title">
+      <a class="auth-back" href="/">← Back to Wicker Study</a>
       <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
       <div class="auth-form-copy">${signUp ? '<h1 id="auth-title">Create your study record.</h1><p>Your notes, attempts, mastery history, and review schedule — private to you, on any device.</p>' : '<h1 id="auth-title">Return to your study record.</h1><p>Open your notes, attempts, mastery history, and review schedule.</p>'}</div>
       ${allowedDomains.length ? `<p class="auth-eligibility">For Maastricht University students and staff. ${signUp ? 'Sign up' : 'Sign in'} with your ${domainList(allowedDomains)} address.</p>` : ''}

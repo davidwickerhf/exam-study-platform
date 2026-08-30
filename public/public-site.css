@@ -204,7 +204,7 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 /* Authentication is a dedicated access page, not the public home page. */
 .auth-gate { width: 100%; min-height: 100dvh; padding: 0; display: block; overflow-y: auto; background: var(--color-canvas); }
 .auth-page { width: 100%; min-height: 100dvh; display: grid; grid-template-columns: minmax(480px, 42%) minmax(0, 58%); }
-.auth-back { position: fixed; z-index: 2; top: var(--space-5); left: var(--space-6); color: var(--color-ink-secondary) !important; font-size: 12px; text-decoration: none; }
+.auth-back { display: block; margin-bottom: var(--space-7); color: var(--color-ink-secondary) !important; font-size: 12px; text-decoration: none; }
 .auth-form-column { min-width: 0; padding: clamp(80px, 9vh, 104px) clamp(var(--space-6), 6vw, 88px) var(--space-7); display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--color-border); background: var(--color-surface); }
 .auth-form-column > * { width: min(100%, 440px); margin-inline: auto; }
 .auth-form-column .site-brand { margin-bottom: var(--space-8); }
@@ -283,7 +283,6 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
   .reading-cta { padding: var(--space-5); align-items: stretch; flex-direction: column; }
   .legal-hero dl { width: 100%; }.legal-layout { gap: var(--space-7); }.legal-layout > nav { grid-template-columns: 1fr 1fr; }
   .legal-table > div { grid-template-columns: 1fr; }.legal-table em { grid-column: 1; }
-  .auth-back { top: var(--space-4); left: var(--space-4); }
   .auth-form-column { min-height: 100dvh; padding: 72px var(--space-5) var(--space-7); border: 0; }
   .auth-form-column .site-brand { margin-bottom: var(--space-7); }.auth-form-copy h1 { font-size: 40px; }
   .auth-product-column { min-height: auto; padding: var(--space-8) var(--space-5); }.auth-product-copy h2 { font-size: 40px; }
@@ -324,8 +323,7 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
   .auth-page { height: 100dvh; min-height: 0; overflow: hidden; }
   .auth-form-column { min-height: 0; overflow-y: auto; justify-content: safe center; }
   .auth-product-column { min-height: 0; height: 100dvh; overflow: hidden; }
-  .auth-back { position: absolute; }
   .auth-form-column { position: relative; }
 }
 /* Keep the back link clear of the brand when the column is taller than the viewport. */
-.auth-form-column > .site-brand { margin-top: var(--space-4); }
+.auth-form-column { padding-top: clamp(40px, 5vh, 56px); }
