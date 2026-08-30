@@ -4593,7 +4593,12 @@ const server = createServer(async (req, res) => {
     }
 
     const normalizedPagePath = url.pathname.replace(/\/+$/, '') || '/'
-    const publicPage = ['/', '/about', '/courses', '/privacy', '/terms', '/sign-in', '/app'].includes(normalizedPagePath)
+    // The Claude skill is published so it can be installed with one curl.
+    if (normalizedPagePath === '/skills/wicker-study/SKILL.md' && req.method === 'GET') {
+      send(res, 200, await readFile(resolve(__dirname, '.claude/skills/wicker-study/SKILL.md'), 'utf8'), 'text/markdown; charset=utf-8', { 'Cache-Control': 'public, max-age=300' })
+      return
+    }
+    const publicPage = ['/', '/about', '/courses', '/docs', '/privacy', '/terms', '/sign-in', '/app'].includes(normalizedPagePath)
     const requested = publicPage ? '/index.html' : url.pathname
     const filePath = resolve(join(publicDir, requested))
     if (!filePath.startsWith(publicDir) || !existsSync(filePath)) {

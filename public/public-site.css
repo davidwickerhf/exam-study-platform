@@ -296,3 +296,8 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
   .product-proof { animation: proof-arrive 700ms cubic-bezier(.16, 1, .3, 1) both; }
   @keyframes proof-arrive { from { opacity: .01; transform: translateY(18px); filter: blur(5px); } to { opacity: 1; transform: none; filter: none; } }
 }
+
+/* Docs page */
+.docs-page pre { margin: 12px 0; padding: 14px 16px; overflow-x: auto; border: 1px solid #dfe2ea; border-radius: 8px; background: #f1f2f6; font: 400 12.5px/1.6 "IBM Plex Mono", monospace; }
+.docs-page code { font-family: "IBM Plex Mono", monospace; font-size: .92em; }
+.docs-page p code, .docs-page li code, .docs-page span code { padding: 1px 5px; border-radius: 3px; background: #f1f2f6; }

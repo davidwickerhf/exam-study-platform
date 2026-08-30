@@ -86,6 +86,14 @@ including `admin_extract_material`, items, papers, questions, flashcards, progra
 
 ## Claude skill
 
+Install for your user with one command (the skill is published by the app):
+
+```bash
+mkdir -p ~/.claude/skills/wicker-study && curl -fsSL https://study.wicker.life/skills/wicker-study/SKILL.md -o ~/.claude/skills/wicker-study/SKILL.md
+```
+
+The public `/docs` page carries the same instructions for students.
+
 `.claude/skills/wicker-study/SKILL.md` teaches Claude Code the workflows above
 (reading, studying on a student's behalf, maintaining content). It is picked up
 automatically in this repository; copy it into another project's

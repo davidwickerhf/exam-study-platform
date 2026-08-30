@@ -49,7 +49,7 @@ const PLANNING_TAB_ALIASES = { curriculum: 'courses', credits: 'progress', requi
 let state = null
 // Route tables are declared before parseRoute runs on cold load.
 const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
-const ACCOUNT_TABS = [['profile', 'Profile'], ['usage', 'AI usage'], ['api', 'API access'], ['data', 'Data & privacy']]
+const ACCOUNT_TABS = [['profile', 'Profile'], ['usage', 'AI usage'], ['api', 'API access'], ['data', 'Data & privacy'], ['admin', 'Admin']]
 
 let route = parseRoute()
 let academicsData = null
@@ -676,9 +676,11 @@ function depsPlaceholder(label = 'Loading the reader…') {
     : `<div class="deps-pending"><p><span class="boot-spinner"></span>${label}</p></div>`
 }
 
+let meInfo = null
 async function init() {
   window.__bootStatus?.('Loading your courses…')
   state = await fetchJson('/api/state')
+  fetchJson('/api/me').then((info) => { meInfo = info; if (info?.admin) render() }).catch(() => {})
   loadAiUsage().then(() => render()).catch(() => {})
   render()
   // Pre-load SR membership so the "+ Add to flashcards" buttons correctly
@@ -805,7 +807,7 @@ function parseRoute() {
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
   if (parts[0] === 'settings' || parts[0] === 'account') {
-    const requested = parts[1] === 'usage' ? 'usage' : parts[1] === 'data' ? 'data' : parts[1] === 'api' ? 'api' : parts[1] === 'account' ? 'data' : 'profile'
+    const requested = ['usage', 'data', 'api', 'admin'].includes(parts[1]) ? parts[1] : parts[1] === 'account' ? 'data' : 'profile'
     return { page: 'account', tab: requested }
   }
   if (parts[0] === 'planning') {
@@ -2509,9 +2511,11 @@ function renderAccountPage() {
   if (!accountSummary && !accountSummaryLoading && !accountSummaryError) loadAccountSummary().then(() => render())
   if (!activityLoading && (!activityCache || Date.now() - activityLoadedAt > 60_000)) loadActivity().then(() => render())
   const user = currentUser()
-  const tab = ACCOUNT_TABS.some(([id]) => id === route.tab) ? route.tab : 'profile'
+  const isAdmin = Boolean(meInfo?.admin || apiKeysCache?.admin)
+  const tabs = ACCOUNT_TABS.filter(([id]) => id !== 'admin' || isAdmin)
+  const tab = tabs.some(([id]) => id === route.tab) ? route.tab : 'profile'
   const memberSince = longDate(user.createdAt || accountSummary?.account?.createdAt)
-  const body = tab === 'usage' ? renderAccountUsage() : tab === 'data' ? renderAccountData() : tab === 'api' ? renderAccountApi() : renderAccountProfile(user)
+  const body = tab === 'usage' ? renderAccountUsage() : tab === 'data' ? renderAccountData() : tab === 'api' ? renderAccountApi() : tab === 'admin' ? renderAccountAdmin() : renderAccountProfile(user)
   return `<section class="page-wrap account-page">
     <header class="page-head">
       <div class="page-head-identity">${renderAvatar(user, 'lg')}<div><p class="page-eyebrow">Account</p><h1>${escapeHtml(user.name)}</h1><p class="page-sub">${escapeHtml(user.email || 'Signed in')}${memberSince ? ` · Member since ${escapeHtml(memberSince)}` : ''}${window.__clerk ? '' : ' · No sign-in configured'}</p></div></div>
@@ -2519,7 +2523,7 @@ function renderAccountPage() {
         ${window.__clerk ? `<button type="button" class="btn btn-secondary" data-open-profile>${uiIcon('edit')} Edit profile</button><button type="button" class="btn btn-ghost" data-sign-out>${uiIcon('logout')} Sign out</button>` : ''}
       </div>
     </header>
-    <nav class="page-tabs" aria-label="Account sections"><div>${ACCOUNT_TABS.map(([id, label]) => `<a href="#/account/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>
+    <nav class="page-tabs" aria-label="Account sections"><div>${tabs.map(([id, label]) => `<a href="#/account/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>
     ${body}
   </section>`
 }
@@ -2616,8 +2620,81 @@ function renderAccountApi() {
   }
 }</code></pre>
       <p class="panel-note">From a checkout: <code>WICKER_STUDY_URL=${escapeHtml(origin)} WICKER_STUDY_API_KEY=wsk_… npm run mcp</code>.</p>
+      <div class="panel-top"><div><h2>Install the Claude skill</h2><p>Teaches Claude Code the study, planning, and content workflows. One command, then set <code>WICKER_STUDY_API_KEY</code>.</p></div><a class="pl-link" href="/docs#skill" target="_blank" rel="noopener">Docs</a></div>
+      <pre class="code-block"><code>mkdir -p ~/.claude/skills/wicker-study &amp;&amp; curl -fsSL ${escapeHtml(origin)}/skills/wicker-study/SKILL.md -o ~/.claude/skills/wicker-study/SKILL.md</code></pre>
     </section>
   </div>`
+}
+
+// ----- Admin: editorial uploads from the web app ---------------------------
+const adminPanel = { status: null, statusError: null, loading: false, programmeId: '', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null, courseId: '', materialPath: '', materialFile: null, materialBusy: false, materialResult: null, materialError: null }
+async function loadAdminStatus(force = false) {
+  if ((adminPanel.status && !force) || adminPanel.loading) return
+  adminPanel.loading = true
+  try { adminPanel.status = await fetchJson('/api/admin/status'); adminPanel.statusError = null }
+  catch (error) { adminPanel.statusError = error.message }
+  finally { adminPanel.loading = false; render() }
+}
+
+function renderAccountAdmin() {
+  if (!adminPanel.status && !adminPanel.statusError && !adminPanel.loading) loadAdminStatus()
+  if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
+  const status = adminPanel.status
+  const counts = status?.counts || {}
+  const programmes = editorialProgrammesData?.programmes || []
+  const programme = programmes.find((item) => item.id === (adminPanel.programmeId || programmes[0]?.id))
+  const courses = (state?.courses || []).map((course) => ({ id: course.id, code: course.code, name: course.name }))
+  const stat = (label, value) => `<div class="fact"><dt>${label}</dt><dd>${value ?? '—'}</dd></div>`
+  return `<div class="account-stack">
+    <section class="panel">
+      <div class="panel-top"><div><h2>Editorial content</h2><p>${status ? (status.writable ? `Active release ${status.releaseId}${status.activatedAt ? ` · activated ${relativeTime(status.activatedAt)}` : ''}. Changes take effect immediately.` : 'This server reads content from files; editorial writes need the hosted database.') : adminPanel.statusError ? escapeHtml(adminPanel.statusError) : 'Loading…'}</p></div><a class="btn btn-secondary btn-sm" href="/docs#admin" target="_blank" rel="noopener">${uiIcon('book')} Admin docs</a></div>
+      ${status?.writable ? `<dl class="fact-grid">${stat('Courses', counts.courses)}${stat('Chapters', counts.chapters)}${stat('Materials', counts.materials)}${stat('Questions', counts.questions)}${stat('Flashcards', counts.flashcards)}${stat('Programmes', counts.programmes)}</dl>` : ''}
+      <p class="panel-note">Courses, chapters, mastery items, papers, question banks, and flashcards are managed through the admin API and MCP tools (see docs). The two uploads below are the ones that need files.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-top"><div><h2>Institution academic calendar</h2><p>Upload the official academic calendar for a known programme. Every student on that programme sees its dates read-only in their Calendar.</p></div></div>
+      ${adminPanel.calendarResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${adminPanel.calendarResult.count} date${adminPanel.calendarResult.count === 1 ? '' : 's'} now on the ${escapeHtml(adminPanel.calendarResult.id)} calendar${adminPanel.calendarResult.replaced ? ' (replaced)' : ' (merged)'}.</span><button type="button" class="pl-link pl-link-button" data-admin-cal-dismiss>Done</button></div>` : ''}
+      <div class="doc-fields">
+        <label><span>Programme</span><select data-admin-programme ${adminPanel.calendarBusy ? 'disabled' : ''}>${programmes.map((item) => `<option value="${escapeHtml(item.id)}" ${programme?.id === item.id ? 'selected' : ''}>${escapeHtml(item.institution?.name || '')} — ${escapeHtml(item.degree)} ${escapeHtml(item.name)}${item.calendar?.length ? ` (${item.calendar.length} dates)` : ''}</option>`).join('') || '<option value="">No known programmes yet</option>'}</select></label>
+        <label class="planning-dropzone doc-dropzone" data-admin-cal-dropzone>
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.ics,application/pdf,image/*,text/plain,text/csv,text/calendar" multiple data-admin-cal-files ${adminPanel.calendarBusy ? 'disabled' : ''}>
+          <span class="planning-dropzone-icon">${uiIcon('upload')}</span>
+          <span><strong>Drop the calendar here or choose files</strong><small>PDF, image, text, or .ics · AI reads documents; .ics is parsed directly</small></span>
+          <span class="btn btn-secondary">Choose files</span>
+        </label>
+        ${adminPanel.calendarFiles.length ? `<ul class="planning-source-list">${adminPanel.calendarFiles.map((file, index) => `<li><span class="planning-source-file-icon">${uiIcon('file')}</span><span><strong>${escapeHtml(file.name)}</strong></span><button type="button" class="pl-danger-link" data-admin-cal-remove="${index}">Remove</button></li>`).join('')}</ul>` : ''}
+        <label><span>…or a calendar feed URL</span><input type="url" data-admin-cal-url placeholder="https://… or webcal://…" value="${escapeHtml(adminPanel.calendarUrl)}" ${adminPanel.calendarBusy ? 'disabled' : ''}></label>
+        <label class="key-form-scopes-inline"><input type="checkbox" data-admin-cal-replace ${adminPanel.calendarReplace ? 'checked' : ''}> <span>Replace the existing calendar instead of merging</span></label>
+      </div>
+      ${adminPanel.calendarError ? `<p class="account-delete-error" role="alert">${escapeHtml(adminPanel.calendarError)}</p>` : ''}
+      <div class="pl-form-actions"><span class="pl-spacer"></span><button type="button" class="btn btn-primary" data-admin-cal-submit ${adminPanel.calendarBusy || !programme || (!adminPanel.calendarFiles.length && !adminPanel.calendarUrl.trim()) ? 'disabled' : ''}>${adminPanel.calendarBusy ? 'Uploading…' : `${uiIcon('upload')} Publish calendar`}</button></div>
+    </section>
+    <section class="panel">
+      <div class="panel-top"><div><h2>Course material</h2><p>Add or replace a file in a course knowledge base. Markdown and code are indexed for the tutor; PDF text is extracted page by page.</p></div></div>
+      ${adminPanel.materialResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${escapeHtml(adminPanel.materialResult.sourcePath)} stored (${formatBytes(adminPanel.materialResult.bytes)}${adminPanel.materialResult.extractedPages != null ? `, ${adminPanel.materialResult.extractedPages} pages extracted` : ''}${adminPanel.materialResult.indexedChunks ? `, ${adminPanel.materialResult.indexedChunks} chunks indexed` : ''}).</span><button type="button" class="pl-link pl-link-button" data-admin-mat-dismiss>Done</button></div>` : ''}
+      <div class="doc-fields">
+        <label><span>Course</span><select data-admin-course ${adminPanel.materialBusy ? 'disabled' : ''}>${courses.map((course) => `<option value="${escapeHtml(course.id)}" ${(adminPanel.courseId || courses[0]?.id) === course.id ? 'selected' : ''}>${escapeHtml(course.code)} — ${escapeHtml(course.name)}</option>`).join('')}</select></label>
+        <label class="planning-dropzone doc-dropzone" data-admin-mat-dropzone>
+          <input type="file" data-admin-mat-file ${adminPanel.materialBusy ? 'disabled' : ''}>
+          <span class="planning-dropzone-icon">${uiIcon('upload')}</span>
+          <span><strong>${adminPanel.materialFile ? escapeHtml(adminPanel.materialFile.name) : 'Drop a file here or choose one'}</strong><small>Markdown, PDF, image, code, or office file · up to 40 MB</small></span>
+          <span class="btn btn-secondary">Choose file</span>
+        </label>
+        <label><span>Path inside the knowledge base</span><input type="text" data-admin-mat-path placeholder="03 Topic/03 Topic.md" value="${escapeHtml(adminPanel.materialPath)}" ${adminPanel.materialBusy ? 'disabled' : ''}></label>
+      </div>
+      ${adminPanel.materialError ? `<p class="account-delete-error" role="alert">${escapeHtml(adminPanel.materialError)}</p>` : ''}
+      <div class="pl-form-actions"><span class="panel-note">To make a new markdown file a chapter, register it afterwards with <code>admin_upsert_chapter</code> or <code>PUT /api/admin/courses/{id}/chapters/{chapterId}</code>.</span><span class="pl-spacer"></span><button type="button" class="btn btn-primary" data-admin-mat-submit ${adminPanel.materialBusy || !adminPanel.materialFile || !adminPanel.materialPath.trim() ? 'disabled' : ''}>${adminPanel.materialBusy ? 'Uploading…' : `${uiIcon('upload')} Store material`}</button></div>
+    </section>
+  </div>`
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolveRead, rejectRead) => {
+    const reader = new FileReader()
+    reader.onload = () => resolveRead(String(reader.result).split(',')[1] || '')
+    reader.onerror = () => rejectRead(new Error(`Could not read ${file.name}`))
+    reader.readAsDataURL(file)
+  })
 }
 
 function renderAccountUsage() {
@@ -2791,6 +2868,8 @@ function renderSidebar() {
         ${link('nav-planning', '#/planning', 'Planning', uiIcon('chart'), route.page === 'planning' && route.tab !== 'calendar')}
         ${link('nav-calendar', '#/planning/calendar', 'Calendar', uiIcon('calendar'), route.page === 'planning' && route.tab === 'calendar')}
         ${link('nav-account nav-account-mobile', '#/account', 'Account', uiIcon('user'), route.page === 'account')}
+        <span class="dash-nav-group">Help</span>
+        <a class="dash-nav-link nav-docs" href="/docs" target="_blank" rel="noopener"><span class="nav-icon">${uiIcon('book')}</span><span class="nav-label">Docs</span><span class="dash-nav-ext">↗</span></a>
       </nav>
       <div class="dash-side-foot">
         <a class="dash-user${route.page === 'account' ? ' active' : ''}" href="#/account" title="Account">
@@ -9078,6 +9157,76 @@ function bindEvents() {
       render()
     })
   })
+
+  // ----- Admin tab -----
+  document.querySelectorAll('[data-admin-programme]').forEach((select) => select.addEventListener('change', () => { adminPanel.programmeId = select.value }))
+  document.querySelectorAll('[data-admin-cal-url]').forEach((input) => input.addEventListener('input', () => { adminPanel.calendarUrl = input.value; document.querySelector('[data-admin-cal-submit]')?.toggleAttribute('disabled', !(adminPanel.calendarFiles.length || input.value.trim())) }))
+  document.querySelectorAll('[data-admin-cal-replace]').forEach((input) => input.addEventListener('change', () => { adminPanel.calendarReplace = input.checked }))
+  document.querySelectorAll('[data-admin-cal-files]').forEach((input) => input.addEventListener('change', async (event) => {
+    for (const file of [...event.target.files].slice(0, MAX_PLANNING_SOURCES)) {
+      try { adminPanel.calendarFiles.push(await planningSourcePayload(file)) } catch (error) { adminPanel.calendarError = error.message }
+    }
+    event.target.value = ''
+    render()
+  }))
+  document.querySelectorAll('[data-admin-cal-remove]').forEach((button) => button.addEventListener('click', () => { adminPanel.calendarFiles.splice(Number(button.dataset.adminCalRemove), 1); render() }))
+  document.querySelectorAll('[data-admin-cal-dismiss]').forEach((button) => button.addEventListener('click', () => { adminPanel.calendarResult = null; render() }))
+  document.querySelectorAll('[data-admin-cal-submit]').forEach((button) => button.addEventListener('click', async () => {
+    const programmeId = adminPanel.programmeId || editorialProgrammesData?.programmes?.[0]?.id
+    if (!programmeId || adminPanel.calendarBusy) return
+    adminPanel.calendarBusy = true
+    adminPanel.calendarError = null
+    render()
+    try {
+      const ics = adminPanel.calendarFiles.filter((file) => /\.ics$/i.test(file.name) && file.text)
+      const documents = adminPanel.calendarFiles.filter((file) => !ics.includes(file)).map(({ name, type, pageCount, text, images }) => ({ name, type, pageCount, text, images: (images || []).slice(0, MAX_PLANNING_IMAGE_PAGES) }))
+      const path = `/api/admin/programmes/${encodeURIComponent(programmeId)}/calendar`
+      let result = null
+      let replace = adminPanel.calendarReplace
+      if (adminPanel.calendarUrl.trim()) { result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: adminPanel.calendarUrl.trim(), replace }) }); replace = false }
+      for (const file of ics) { result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ics: file.text, replace }) }); replace = false }
+      if (documents.length) { result = await fetchJson(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documents, replace }) }) }
+      adminPanel.calendarResult = result
+      adminPanel.calendarFiles = []
+      adminPanel.calendarUrl = ''
+      editorialProgrammesData = null
+      loadEditorialProgrammes({ force: true })
+    } catch (error) {
+      adminPanel.calendarError = error.message
+    } finally {
+      adminPanel.calendarBusy = false
+      render()
+    }
+  }))
+  document.querySelectorAll('[data-admin-course]').forEach((select) => select.addEventListener('change', () => { adminPanel.courseId = select.value }))
+  document.querySelectorAll('[data-admin-mat-path]').forEach((input) => input.addEventListener('input', () => { adminPanel.materialPath = input.value; document.querySelector('[data-admin-mat-submit]')?.toggleAttribute('disabled', !(adminPanel.materialFile && input.value.trim())) }))
+  document.querySelectorAll('[data-admin-mat-file]').forEach((input) => input.addEventListener('change', (event) => {
+    adminPanel.materialFile = event.target.files[0] || null
+    if (adminPanel.materialFile && !adminPanel.materialPath.trim()) adminPanel.materialPath = adminPanel.materialFile.name
+    render()
+  }))
+  document.querySelectorAll('[data-admin-mat-dismiss]').forEach((button) => button.addEventListener('click', () => { adminPanel.materialResult = null; render() }))
+  document.querySelectorAll('[data-admin-mat-submit]').forEach((button) => button.addEventListener('click', async () => {
+    const courseId = adminPanel.courseId || state?.courses?.[0]?.id
+    const file = adminPanel.materialFile
+    if (!courseId || !file || adminPanel.materialBusy) return
+    adminPanel.materialBusy = true
+    adminPanel.materialError = null
+    render()
+    try {
+      const textual = /\.(md|txt|c|h|py|s|html|tex|csv|ipynb)$/i.test(file.name) || file.type.startsWith('text/')
+      const body = textual ? { content: await file.text() } : { base64: await readFileAsBase64(file) }
+      adminPanel.materialResult = await fetchJson(`/api/admin/courses/${encodeURIComponent(courseId)}/materials?path=${encodeURIComponent(adminPanel.materialPath.trim())}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      adminPanel.materialFile = null
+      adminPanel.materialPath = ''
+      loadAdminStatus(true)
+    } catch (error) {
+      adminPanel.materialError = error.message
+    } finally {
+      adminPanel.materialBusy = false
+      render()
+    }
+  }))
 
   document.querySelectorAll('[data-open-profile]').forEach((button) => {
     button.addEventListener('click', () => { window.__clerk?.openUserProfile?.() })

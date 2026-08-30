@@ -158,7 +158,7 @@ async function startApplication() {
   document.getElementById('app').innerHTML = bootSkeleton('Loading your courses…')
   // The application and its first data request start immediately; reader
   // libraries stream in behind them.
-  const app = import(`/app.js?v=20260829-dashboard`)
+  const app = import(`/app.js?v=20260830-docs`)
   setTimeout(() => loadStudyDependencies().catch(() => {}), 0)
   await app
 }
@@ -198,8 +198,8 @@ async function authHeaders() {
 
 async function main() {
   const pathname = normalizedPath()
-  if (['/', '/about', '/courses', '/privacy', '/terms'].includes(pathname)) {
-    const { mountPublicSite } = await import('/public-site.js?v=20260827-planning-intake')
+  if (['/', '/about', '/courses', '/docs', '/privacy', '/terms'].includes(pathname)) {
+    const { mountPublicSite } = await import('/public-site.js?v=20260830-docs')
     mountPublicSite(pathname)
     return
   }
@@ -236,7 +236,7 @@ async function main() {
 
   if (!clerk.user) {
     if (pathname !== '/sign-in') window.history.replaceState(null, '', '/sign-in')
-    const { mountAuthSite } = await import('/public-site.js?v=20260827-planning-intake')
+    const { mountAuthSite } = await import('/public-site.js?v=20260830-docs')
     mountAuthSite()
     clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
       fallbackRedirectUrl: `${window.location.origin}/app`,
