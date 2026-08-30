@@ -28,6 +28,7 @@ import { deletePersonalData, deleteStudyData, exportPersonalData, summarisePerso
 import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
+import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
@@ -976,7 +977,16 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
   }
 }
 
+const DOCUMENT_KIND_GUIDANCE = {
+  transcript: 'These sources are transcripts or grade lists: focus on passed/failed attempts with grades and academic years; do not invent upcoming courses.',
+  'exam-schedule': 'These sources are exam schedules: focus on exam dates (ISO), attempt type (first/resit), and the course each date belongs to; mark them upcoming.',
+  timetable: 'These sources are timetables or calendars: extract dated events (lectures need not be listed individually; capture exams, deadlines, registration windows, and course-level dates).',
+  'academic-calendar': 'These sources are institutional academic calendars: extract registration windows, exam periods, deadlines, holidays, and ceremonies as events with ISO dates and end dates; no courses unless explicitly listed.',
+  curriculum: 'These sources are curricula or handbooks: focus on course codes, names, credits, levels, and periods.'
+}
+
 async function analyseAcademicIntake(body) {
+  const kind = DOCUMENT_KINDS[body?.kind] ? String(body.kind) : 'auto'
   const description = String(body?.description || '').trim().slice(0, 20_000)
   const documents = (Array.isArray(body?.documents) ? body.documents : []).slice(0, 8).map((document) => ({
     name: String(document?.name || 'Untitled source').trim().slice(0, 160),
@@ -1014,6 +1024,7 @@ async function analyseAcademicIntake(body) {
     'Only set an attempt to passed or failed when the source explicitly supports it. Use upcoming for explicitly enrolled or scheduled courses.',
     'Course codes should be uppercase without spaces around hyphens. ECTS/credits must be numeric.',
     'Return strict JSON conforming to the schema. JSON only — no markdown or preamble.',
+    DOCUMENT_KIND_GUIDANCE[kind] || 'Detect what each source is (transcript, exam schedule, timetable, academic calendar, curriculum) and extract accordingly.',
     '',
     'MAINTAINED STUDY CATALOGUE (for code recognition only; do not add catalogue courses absent from the student sources):',
     catalogue,
@@ -1052,6 +1063,7 @@ async function analyseAcademicIntake(body) {
   const draft = normalizeAcademicIntakeDraft(parsed, editorialCourses)
   return {
     draft,
+    kind,
     usedAi,
     sources: documents.map(({ name, type, pageCount }) => ({ name, type, pageCount })),
     usage: await getAiUsageSummary()
@@ -3078,6 +3090,14 @@ const server = createServer(async (req, res) => {
         const seg = url.pathname.split('/').filter(Boolean).slice(2).map(decodeURIComponent) // after /api/admin
         if (seg[0] === 'status' && req.method === 'GET') return ok(await admin.adminStatus())
         if (seg[0] === 'programmes') {
+          if (seg.length === 3 && seg[2] === 'calendar' && req.method === 'PUT') {
+            let events = Array.isArray(body?.events) ? body.events : null
+            if (!events && body?.ics) events = parseIcs(String(body.ics))
+            if (!events && body?.url) events = await fetchCalendar(normalizeCalendarLink(body).url)
+            if (!events && Array.isArray(body?.documents)) events = (await analyseAcademicIntake({ ...body, kind: 'academic-calendar' })).draft.events
+            if (!events) throw new admin.AdminError('Provide events, ics, url, or documents.')
+            return ok(await admin.setProgrammeCalendar(seg[1], events, { replace: body?.replace !== false }))
+          }
           if (seg.length === 1 && req.method === 'GET') return ok(await admin.listProgrammes())
           if (seg.length === 2 && req.method === 'PUT') return ok(await admin.upsertProgramme(seg[1], body))
           if (seg.length === 2 && req.method === 'DELETE') return ok(await admin.deleteProgramme(seg[1]))
@@ -3135,6 +3155,82 @@ const server = createServer(async (req, res) => {
         send(res, 200, JSON.stringify(await analyseAcademicIntake(body)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         if (!sendAiError(res, error)) send(res, /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+
+    // Supporting documents at any time: analyse → reviewable change set → apply.
+    if (url.pathname === '/api/academics/documents/analyze' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, MAX_ACADEMIC_INTAKE_BODY_BYTES)
+        const { workspace } = await readAcademicState()
+        const analysis = await analyseAcademicIntake(body)
+        const changeSet = buildChangeSet(workspace, analysis.draft, { source: 'document', kind: analysis.kind })
+        send(res, 200, JSON.stringify({ ...changeSet, usedAi: analysis.usedAi, sources: analysis.sources, revision: workspace.revision, usage: analysis.usage }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        if (!sendAiError(res, error)) send(res, /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    if (url.pathname === '/api/academics/documents/apply' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 4 * 1024 * 1024)
+        const state = await readAcademicState()
+        if (Number(body?.expectedRevision) !== state.workspace.revision) { send(res, 409, JSON.stringify({ error: 'This programme changed in another tab. Reload before applying again.' })); return }
+        const { workspace, applied } = applyChanges(state.workspace, body?.changes)
+        const saved = await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
+        send(res, 200, JSON.stringify({ ...saved, applied }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    // Calendar links (.ics): preview, save, re-sync, remove.
+    if (url.pathname === '/api/academics/calendars/preview' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 4 * 1024 * 1024)
+        const { workspace } = await readAcademicState()
+        const events = body?.ics ? parseIcs(String(body.ics)) : await fetchCalendar(normalizeCalendarLink(body).url)
+        const link = body?.ics ? { id: 'pasted', label: 'Pasted calendar' } : normalizeCalendarLink(body)
+        send(res, 200, JSON.stringify({ ...calendarChangeSet(workspace, events, link), events: events.length, link, revision: workspace.revision }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    if (url.pathname === '/api/academics/calendars' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 64 * 1024)
+        const state = await readAcademicState()
+        const link = normalizeCalendarLink(body)
+        const events = await fetchCalendar(link.url)
+        const workspace = structuredClone(state.workspace)
+        workspace.calendars = [...workspace.calendars.filter((item) => item.url !== link.url), { ...link, lastSyncedAt: new Date().toISOString(), eventCount: events.length }]
+        const saved = await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
+        send(res, 200, JSON.stringify({ ...saved, changeSet: calendarChangeSet(saved.workspace, events, link) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    const calendarMatch = url.pathname.match(/^\/api\/academics\/calendars\/([^/]+)(?:\/(sync))?$/)
+    if (calendarMatch && (req.method === 'DELETE' || (req.method === 'POST' && calendarMatch[2] === 'sync'))) {
+      try {
+        const state = await readAcademicState()
+        const link = state.workspace.calendars.find((item) => item.id === decodeURIComponent(calendarMatch[1]))
+        if (!link) { send(res, 404, JSON.stringify({ error: 'Unknown calendar link' })); return }
+        const workspace = structuredClone(state.workspace)
+        if (req.method === 'DELETE') {
+          workspace.calendars = workspace.calendars.filter((item) => item.id !== link.id)
+          send(res, 200, JSON.stringify(await saveActiveAcademicWorkspace(workspace, state.workspace.revision)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+          return
+        }
+        const events = await fetchCalendar(link.url)
+        workspace.calendars = workspace.calendars.map((item) => item.id === link.id ? { ...item, lastSyncedAt: new Date().toISOString(), eventCount: events.length } : item)
+        const saved = await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
+        send(res, 200, JSON.stringify({ ...saved, changeSet: calendarChangeSet(saved.workspace, events, link) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
       }
       return
     }

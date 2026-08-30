@@ -33,10 +33,12 @@ It is the source of truth; the summary below is for orientation.
   `/api/sr/due`, `/api/mistakes`, `/api/mocks`, `/api/academics`, `/api/activity`.
 - Write: `/api/grade`, `/api/items/{id}` (PATCH), `/api/sr/review`,
   `/api/flashcards/…`, `/api/mistakes/{id}/resolve`, `/api/activity` (read events),
-  `/api/academics` (PUT with `expectedRevision`).
+  `/api/academics` (PUT with `expectedRevision`), `/api/academics/documents/analyze`
+  + `/apply` (supporting documents → reviewable change set), `/api/academics/calendars` (.ics links).
 - Admin: `/api/admin/status`, `/api/admin/courses/{id}` (+ `/chapters`,
   `/materials` with `/materials/extract` for PDFs, `/items`, `/papers`,
-  `/chapters/{id}/questions`, `/chapters/{id}/flashcards`), `/api/admin/programmes/{id}`.
+  `/chapters/{id}/questions`, `/chapters/{id}/flashcards`), `/api/admin/programmes/{id}`
+  (+ `/calendar` for the institution-wide academic calendar).
 
 Editorial writes act on the **active release** in Neon and take effect
 immediately (caches are invalidated). Local servers answer 501 for them.

@@ -92,6 +92,15 @@ server.tool('save_academic_plan', 'Save the active academic programme workspace.
 server.tool('set_course_visibility', 'Archive/unarchive or reorder a course for the student.', { courseId, archived: z.boolean().optional(), order: z.number().int().optional() },
   run(({ courseId, archived, order }) => api(`/api/courses/${encodeURIComponent(courseId)}`, { method: 'PATCH', body: { archived, order } })))
 
+server.tool('analyze_documents', 'Analyse supporting documents (transcript, exam schedule, timetable, academic calendar, curriculum) with AI and return a reviewable change set against the student’s plan. Uses the student’s intake allowance. Follow with apply_changes.', { kind: z.enum(['auto', 'transcript', 'exam-schedule', 'timetable', 'academic-calendar', 'curriculum']).optional(), description: z.string().optional(), documents: z.array(z.object({ name: z.string(), type: z.string().optional(), text: z.string().optional(), images: z.array(z.string()).optional() })) },
+  run((body) => api('/api/academics/documents/analyze', { method: 'POST', body })))
+server.tool('apply_changes', 'Apply accepted change objects (from analyze_documents or a calendar preview) to the active plan.', { changes: z.array(z.record(z.any())), expectedRevision: z.number().int() },
+  run((body) => api('/api/academics/documents/apply', { method: 'POST', body })))
+server.tool('preview_calendar', 'Parse an iCalendar link or pasted .ics text into a change set without saving.', { url: z.string().optional(), ics: z.string().optional() }, run((body) => api('/api/academics/calendars/preview', { method: 'POST', body })))
+server.tool('save_calendar_link', 'Save a timetable/exam-schedule calendar link to the plan and get its events as a change set.', { url: z.string(), label: z.string().optional() }, run((body) => api('/api/academics/calendars', { method: 'POST', body })))
+server.tool('sync_calendar_link', 'Re-fetch a saved calendar link and get new events as a change set.', { id: z.string() }, run(({ id }) => api(`/api/academics/calendars/${encodeURIComponent(id)}/sync`, { method: 'POST', body: {} })))
+server.tool('remove_calendar_link', 'Remove a saved calendar link.', { id: z.string() }, run(({ id }) => api(`/api/academics/calendars/${encodeURIComponent(id)}`, { method: 'DELETE' })))
+
 // ── Admin (editorial content; requires an admin key) ─────────────────────
 const adminCourse = (courseId) => `/api/admin/courses/${encodeURIComponent(courseId)}`
 server.tool('admin_status', 'Active release and content counts.', {}, run(() => api('/api/admin/status')))
@@ -128,6 +137,8 @@ server.tool('admin_delete_question', 'Delete one published question.', { courseI
 server.tool('admin_list_programmes', 'Programme catalogue as stored.', {}, run(() => api('/api/admin/programmes')))
 server.tool('admin_upsert_programme', 'Create or update a known bachelor programme. Definition: { institution: { name, city?, country? }, name, degree, durationYears, totalEcts, language, versions: [{ id, label, status, courses: [{ id, code, name, ects, yearLevel, period, requirement }], choiceGroups?, pathways?, requirements? }] }.', { programmeId: z.string(), definition: z.record(z.any()) },
   run(({ programmeId, definition }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}`, { method: 'PUT', body: definition })))
+server.tool('admin_set_programme_calendar', 'Set the institution-wide academic calendar for a known programme from events, an .ics text, a calendar URL, or documents (AI-analysed).', { programmeId: z.string(), events: z.array(z.record(z.any())).optional(), ics: z.string().optional(), url: z.string().optional(), documents: z.array(z.record(z.any())).optional(), replace: z.boolean().optional() },
+  run(({ programmeId, ...body }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}/calendar`, { method: 'PUT', body })))
 server.tool('admin_delete_programme', 'Remove a known programme from the catalogue.', { programmeId: z.string() }, run(({ programmeId }) => api(`/api/admin/programmes/${encodeURIComponent(programmeId)}`, { method: 'DELETE' })))
 
 server.resource('manifest', 'wicker-study://manifest', { description: 'HTTP API manifest with every endpoint and scope' }, async () => ({ contents: [{ uri: 'wicker-study://manifest', mimeType: 'application/json', text: JSON.stringify(await api('/api/agent/manifest'), null, 2) }] }))

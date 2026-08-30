@@ -113,9 +113,13 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 - Account replaces Settings at `#/account` with four tabs. API access: personal keys (name, scopes, one-time secret, revoke) and agent/MCP setup snippets. Profile: identity register, study-record facts, and the activity ledger. AI usage: allowance meters in two columns plus a table of recent requests. Data & privacy: a storage table (each record family, count, size, whether a reset clears it), export, reset study data (keeps account, plan, and usage ledger), erase everything (keeps sign-in), and the isolated account-deletion danger panel. Resets and deletion require a typed confirmation in a focused modal.
   Export is a normal account action; deletion is isolated in a bordered danger
   zone and requires a typed confirmation in a focused modal or mobile sheet.
-- Academic Planning is one destination with a sticky, horizontally scrollable
-  local tab row for Overview, Courses, Calendar, Progress, Planner, and
-  Settings. Courses holds the curriculum ledger, programme-structure choices,
+- Academic Planning is one destination with a local tab row for Overview,
+  Courses, Calendar, Documents, Progress, Planner, and Settings. Documents accepts
+  transcripts, exam schedules, timetables, academic calendars, and .ics feeds at
+  any time; the reader proposes a change set (results, exam dates, new courses,
+  events) that the student ticks and applies — nothing changes silently.
+  Institution-wide calendar dates maintained editorially appear read-only in
+  Calendar with an "Add to my plan" action. Courses holds the curriculum ledger, programme-structure choices,
   and per-course editing (expanded in place beneath the row); Progress holds
   credits, GPA, and requirements. These views remain peers inside the
   destination; do not reproduce them as global navigation or separate

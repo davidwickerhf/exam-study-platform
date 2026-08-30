@@ -9,7 +9,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1)
 }
 const sql = neon(process.env.DATABASE_URL)
-for (const migration of ['001_user_documents.sql', '002_editorial_content.sql', '003_editorial_retrieval.sql', '004_ai_usage.sql', '005_academic_intake_usage.sql', '006_activity_events.sql', '007_personal_tables.sql', '008_api_keys.sql', '009_editorial_admin.sql', '010_editorial_flashcards.sql']) {
+for (const migration of ['001_user_documents.sql', '002_editorial_content.sql', '003_editorial_retrieval.sql', '004_ai_usage.sql', '005_academic_intake_usage.sql', '006_activity_events.sql', '007_personal_tables.sql', '008_api_keys.sql', '009_editorial_admin.sql', '010_editorial_flashcards.sql', '011_calendars.sql']) {
   const source = await readFile(resolve('db', migration), 'utf8')
   for (const statement of source.split(';').map((part) => part.trim()).filter(Boolean)) await sql.query(statement)
   console.log(`Applied db/${migration}`)

@@ -567,3 +567,37 @@
 .code-block { margin: 0; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-subtle); font: 400 12px/1.55 var(--font-data); overflow-x: auto; }
 .panel-note code, .panel-top p code { padding: 1px 5px; border-radius: 3px; background: var(--color-surface-subtle); font: 500 12px/1.4 var(--font-data); }
 @media (max-width: 820px) { .secret-row { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Documents (supporting files → change set) ─────────────────────────── */
+.doc-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: var(--space-4); align-items: start; }
+.doc-dropzone { margin: 0; }
+.doc-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+.doc-fields label { display: grid; gap: var(--space-1); }
+.doc-fields label span { color: var(--color-ink-secondary); font: 600 12px/1.3 var(--font-ui); }
+.doc-fields select, .doc-fields textarea, .doc-calendar-form input { min-height: var(--control-md); padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); font: 500 14px/1.4 var(--font-ui); background: var(--color-surface); }
+.doc-fields textarea { resize: vertical; }
+.doc-calendar-form { display: grid; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
+.doc-calendar-form label { display: grid; gap: var(--space-1); }
+.doc-calendar-form label span { color: var(--color-ink-secondary); font: 600 12px/1.3 var(--font-ui); }
+.doc-calendars { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.doc-calendars li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-3); }
+.doc-calendars .nav-icon { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--color-brand); background: var(--color-brand-soft); }
+.doc-calendars .nav-icon svg { width: 15px; height: 15px; }
+.doc-calendars strong { display: block; font-size: 13px; }
+.doc-calendars small { color: var(--color-ink-secondary); font-size: 12px; }
+.doc-result { gap: var(--space-4); }
+.doc-group header { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 var(--space-2); }
+.doc-group h3 { margin: 0; font: 600 13px/1.3 var(--font-ui); }
+.doc-group header span { color: var(--color-ink-tertiary); font: 500 12px/1 var(--font-data); }
+.doc-changes { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-1); }
+.doc-changes label { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: var(--space-3); align-items: start; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; }
+.doc-changes label:has(input:checked) { border-color: var(--color-brand); background: var(--color-brand-soft); }
+.doc-changes input { margin: 3px 0 0; }
+.doc-changes strong { display: block; font-size: 13px; }
+.doc-changes small { color: var(--color-ink-secondary); font-size: 12px; }
+.doc-count { color: var(--color-ink-secondary); font: 500 12px/1 var(--font-data); }
+.doc-applied { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid #bfe3d0; border-radius: var(--radius-md); background: #f3fbf6; color: var(--color-success); font-size: 13px; }
+.doc-applied svg { width: 16px; height: 16px; }
+.doc-applied span { flex: 1 1 auto; color: var(--color-ink); }
+.pl-timeline-row.is-institution .pl-timeline-copy strong { color: var(--color-ink-secondary); }
+@media (max-width: 1050px) { .doc-grid { grid-template-columns: minmax(0, 1fr); } }

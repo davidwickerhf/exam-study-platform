@@ -40,6 +40,7 @@ const PLANNING_TABS = [
   ['overview', 'Overview'],
   ['courses', 'Courses'],
   ['calendar', 'Calendar'],
+  ['documents', 'Documents'],
   ['progress', 'Progress'],
   ['planner', 'Planner'],
   ['settings', 'Settings']
@@ -1829,7 +1830,7 @@ function planningShellHead() {
   const profile = academicsData?.workspace?.profile || {}
   const title = String(profile.programme || '').trim() || 'Academic plan'
   const sub = [profile.degree, profile.university, profile.academicYear].filter((value) => String(value || '').trim()).map(escapeHtml).join(' · ')
-  return `<header class="page-head"><div><p class="page-eyebrow">Planning</p><h1>${escapeHtml(title)}</h1><p class="page-sub">${sub || 'Your programme, courses, exam dates, and progress — private to your account.'}</p></div><div class="page-head-actions"><span class="pl-private" title="Only visible to your account">Private record</span>${academicsLoading ? '<span class="pl-saving" role="status">Saving…</span>' : ''}</div></header>`
+  return `<header class="page-head"><div><p class="page-eyebrow">Planning</p><h1>${escapeHtml(title)}</h1><p class="page-sub">${sub || 'Your programme, courses, exam dates, and progress — private to your account.'}</p></div><div class="page-head-actions"><span class="pl-private" title="Only visible to your account">Private record</span>${academicsLoading ? '<span class="pl-saving" role="status">Saving…</span>' : ''}${academicsData?.workspace?.courses?.length && route.tab !== 'documents' ? `<a class="btn btn-secondary btn-sm" href="#/planning/documents">${uiIcon('upload')} Upload document</a>` : ''}</div></header>`
 }
 
 function planningSectionHead(title, description, actions = '') {
@@ -1970,7 +1971,7 @@ function renderAcademicPlanningPage() {
   if (!academicsData.workspace.courses.length && route.tab === 'settings' && academicsData.index?.programmes?.length > 1) return planningShell(renderPlanningSettings())
   if (!academicsData.workspace.courses.length || planningIntake.step === 'connected') return planningShell(renderPlanningOverview())
   if (route.tab === 'courses' && route.focus && planningFocusApplied !== route.focus) { planningExpandedCourse = route.focus; planningFocusApplied = route.focus }
-  const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, calendar: renderPlanningCalendar, progress: renderPlanningProgress, planner: renderPlanningPlanner, settings: renderPlanningSettings }
+  const views = { overview: renderPlanningOverview, courses: renderPlanningCourses, calendar: renderPlanningCalendar, documents: renderPlanningDocuments, progress: renderPlanningProgress, planner: renderPlanningPlanner, settings: renderPlanningSettings }
   return planningShell((views[route.tab] || renderPlanningOverview)())
 }
 
@@ -2075,7 +2076,9 @@ function renderPlanningCalendar() {
   const workspace = academicsData.workspace
   const attempts = workspace.courses.flatMap((course) => course.attempts.filter((attempt) => attempt.examDate).map((attempt) => ({ id: `${course.id}/${attempt.id}`, date: attempt.examDate, title: course.name, code: course.code, kind: attempt.status === 'upcoming' ? (attempt.type === 'resit' ? 'Resit' : 'Exam') : attempt.status === 'passed' ? 'Passed' : attempt.status === 'failed' ? 'Failed' : 'No-show', status: attempt.status, courseId: course.id, editable: false })))
   const events = workspace.events.filter((event) => event.date).map((event) => ({ ...event, kind: event.type, editable: true }))
-  const entries = [...attempts, ...events].sort((a, b) => a.date.localeCompare(b.date))
+  const ownKeys = new Set(workspace.events.map((event) => `${event.title.toLowerCase()}|${event.date}`))
+  const institution = (activeEditorialProgrammeReference()?.programme?.calendar || []).filter((event) => event.date && !ownKeys.has(`${event.title.toLowerCase()}|${event.date}`)).map((event) => ({ ...event, id: `institution:${event.id}`, kind: `${event.type} · institution calendar`, institution: true }))
+  const entries = [...attempts, ...events, ...institution].sort((a, b) => a.date.localeCompare(b.date))
   const today = new Date().toISOString().slice(0, 10)
   const months = new Map()
   for (const entry of entries) {
@@ -2103,10 +2106,10 @@ function renderPlanningCalendar() {
         const expanded = entry.editable && planningExpandedEvent === entry.id
         const past = entry.date < today
         return `<li class="pl-timeline-item${past ? ' is-past' : ''}${firstUpcoming && firstUpcoming.id === entry.id ? ' is-next' : ''}${expanded ? ' is-expanded' : ''}">
-          <div class="pl-timeline-row"${entry.editable ? ` data-planning-expand-event="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-expanded="${expanded}"` : ''}>
+          <div class="pl-timeline-row${entry.institution ? ' is-institution' : ''}"${entry.editable ? ` data-planning-expand-event="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-expanded="${expanded}"` : ''}>
             <time datetime="${escapeHtml(entry.date)}"><strong>${new Date(`${entry.date}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(`${entry.date}T00:00:00`))}</span></time>
             <div class="pl-timeline-copy"><strong>${escapeHtml(entry.code ? `${entry.code} · ${entry.title}` : entry.title)}</strong><span>${escapeHtml(entry.kind)}${entry.endDate ? ` · until ${academicDate(entry.endDate)}` : ''}${entry.notes ? ` · ${escapeHtml(entry.notes)}` : ''}</span></div>
-            ${entry.courseId ? `<a class="pl-link" href="#/planning/courses/${encodeURIComponent(entry.courseId)}">Course</a>` : `<span class="pl-chevron" aria-hidden="true">${uiIcon('chevronDown')}</span>`}
+            ${entry.courseId ? `<a class="pl-link" href="#/planning/courses/${encodeURIComponent(entry.courseId)}">Course</a>` : entry.institution ? `<button type="button" class="pl-link pl-link-button" data-institution-event-import="${escapeHtml(entry.id.slice(12))}">Add to my plan</button>` : `<span class="pl-chevron" aria-hidden="true">${uiIcon('chevronDown')}</span>`}
           </div>
           ${expanded ? `<form class="pl-editor pl-editor-event" data-academic-event-edit="${escapeHtml(entry.id)}">
             <div class="pl-fields pl-fields-event">
@@ -2143,6 +2146,92 @@ function gateProgress(gate, workspace) {
   }
   const earned = workspace.courses.filter((course) => !course.hiddenFromStats && passed(course) && (gate.type !== 'credit-level' || course.yearLevel === gate.level)).reduce((sum, course) => sum + course.ects, 0)
   return { value: earned, target: gate.target, unit: 'ECTS' }
+}
+
+// ----- Documents: supporting files at any time → reviewable change set -----
+const DOCUMENT_KINDS = [['auto', 'Detect automatically'], ['transcript', 'Transcript or grade list'], ['exam-schedule', 'Exam schedule'], ['timetable', 'Timetable or calendar'], ['academic-calendar', 'Academic calendar'], ['curriculum', 'Curriculum or handbook']]
+const CHANGE_GROUPS = [['result', 'Results and grades'], ['exam-date', 'Exam dates'], ['new-course', 'New courses'], ['course-detail', 'Course details'], ['event', 'Dates and events'], ['profile', 'Programme details']]
+const planningDocuments = { files: [], description: '', kind: 'auto', processing: false, analysing: false, error: null, result: null, selected: new Set(), applying: false, applied: null, calendarUrl: '', calendarLabel: '', calendarBusy: false, calendarError: null }
+
+async function addDocumentSources(fileList) {
+  const remaining = MAX_PLANNING_SOURCES - planningDocuments.files.length
+  const selected = [...(fileList || [])].slice(0, Math.max(0, remaining))
+  if (!selected.length) { planningDocuments.error = remaining <= 0 ? `You can add up to ${MAX_PLANNING_SOURCES} files at once.` : null; render(); return }
+  planningDocuments.processing = true
+  planningDocuments.error = null
+  render()
+  const failures = []
+  for (const file of selected) {
+    try { planningDocuments.files.push(await planningSourcePayload(file)) } catch (error) { failures.push(error.message) }
+  }
+  planningDocuments.processing = false
+  planningDocuments.error = failures.length ? failures.join(' ') : null
+  render()
+}
+
+function renderChangeSet(result, { selectable = true } = {}) {
+  const changes = result?.changes || []
+  if (!changes.length) return `<div class="pl-empty"><div><strong>Nothing new to apply</strong><p>Everything in ${result?.kind === 'timetable' ? 'this calendar' : 'these documents'} is already in your plan${result?.warnings?.length ? ', but see the notes above' : ''}.</p></div></div>`
+  return CHANGE_GROUPS.map(([kind, label]) => {
+    const list = changes.filter((change) => change.kind === kind)
+    if (!list.length) return ''
+    return `<section class="doc-group"><header><h3>${label}</h3><span>${list.length}</span></header><ul class="doc-changes">${list.map((change) => `<li><label><input type="checkbox" data-doc-toggle="${escapeHtml(change.id)}" ${planningDocuments.selected.has(change.id) ? 'checked' : ''} ${selectable ? '' : 'disabled'}><span><strong>${escapeHtml(change.label)}</strong><small>${escapeHtml(change.detail || '')}</small></span></label></li>`).join('')}</ul></section>`
+  }).join('')
+}
+
+function renderPlanningDocuments() {
+  const workspace = academicsData.workspace
+  const docs = planningDocuments
+  const files = docs.files
+  const canAnalyse = !docs.processing && !docs.analysing && (files.length > 0 || docs.description.trim().length > 0)
+  const result = docs.result
+  const selectedCount = result ? result.changes.filter((change) => docs.selected.has(change.id)).length : 0
+  const calendars = workspace.calendars || []
+  const institution = activeEditorialProgrammeReference()?.programme?.calendar || []
+  return `<div class="pl-page">
+    ${planningPageHeader('Documents', 'Drop a transcript, exam schedule, timetable, or academic calendar whenever you get one. Wicker Study reads it and proposes updates; nothing changes until you apply them.')}
+    ${docs.applied ? `<div class="doc-applied" role="status">${uiIcon('check')} <span>${docs.applied} change${docs.applied === 1 ? '' : 's'} applied to your plan.</span><a class="pl-link" href="#/planning/calendar">Calendar</a><a class="pl-link" href="#/planning/courses">Courses</a><button type="button" class="pl-link pl-link-button" data-doc-reset>Upload another</button></div>` : ''}
+    ${result ? `<section class="panel doc-result">
+      <div class="panel-top"><div><h2>Review proposed changes</h2><p>${result.usedAi === false ? 'Extracted with the basic text parser — check each line. ' : ''}${result.changes.length} proposed from ${result.sources?.length ? result.sources.map((source) => escapeHtml(source.name)).join(', ') : result.link ? escapeHtml(result.link.label) : 'your sources'}${result.kind && result.kind !== 'auto' ? ` · read as ${escapeHtml(DOCUMENT_KINDS.find(([id]) => id === result.kind)?.[1] || result.kind).toLowerCase()}` : ''}.</p></div><button type="button" class="btn btn-ghost btn-sm" data-doc-reset>Discard</button></div>
+      ${result.warnings?.length ? `<div class="planning-intake-warnings" role="status"><strong>Notes from the reader</strong><ul>${result.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join('')}</ul></div>` : ''}
+      ${renderChangeSet(result)}
+      ${docs.error ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.error)}</p>` : ''}
+      ${result.changes.length ? `<div class="pl-form-actions"><button type="button" class="btn btn-secondary btn-sm" data-doc-select-all>${selectedCount === result.changes.length ? 'Clear all' : 'Select all'}</button><span class="pl-spacer"></span><span class="doc-count">${selectedCount} of ${result.changes.length} selected</span><button type="button" class="btn btn-primary" data-doc-apply ${selectedCount && !docs.applying ? '' : 'disabled'}>${docs.applying ? 'Applying…' : 'Apply selected'}</button></div>` : ''}
+    </section>` : `<div class="doc-grid">
+      <section class="panel">
+        <div class="panel-top"><div><h2>Upload a document</h2><p>PDF, screenshot, or text. Files are read for this update only; originals are not stored.</p></div></div>
+        <label class="planning-dropzone doc-dropzone${docs.processing ? ' is-processing' : ''}" data-doc-dropzone>
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.ics,application/pdf,image/*,text/plain,text/csv,text/calendar" multiple data-doc-files ${docs.processing || docs.analysing ? 'disabled' : ''}>
+          <span class="planning-dropzone-icon">${uiIcon('upload')}</span>
+          <span><strong>${docs.processing ? 'Reading your files…' : 'Drop files here or choose from your device'}</strong><small>Up to ${MAX_PLANNING_SOURCES} files · PDF, JPG, PNG, TXT, CSV, ICS</small></span>
+          <span class="btn btn-secondary">Choose files</span>
+        </label>
+        ${files.length ? `<ul class="planning-source-list" aria-label="Added files">${files.map((file, index) => `<li><span class="planning-source-file-icon">${uiIcon('file')}</span><span><strong>${escapeHtml(file.name)}</strong><small>${file.pageCount ? `${file.pageCount} page${file.pageCount === 1 ? '' : 's'}` : file.text ? `${Math.round(file.text.length / 1000)}k characters` : 'image'}</small></span><button type="button" class="pl-danger-link" data-doc-remove="${index}">Remove</button></li>`).join('')}</ul>` : ''}
+        <div class="doc-fields">
+          <label><span>What is it?</span><select data-doc-kind>${DOCUMENT_KINDS.map(([id, label]) => `<option value="${id}" ${docs.kind === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+          <label class="wide"><span>Anything to add (optional)</span><textarea data-doc-description maxlength="20000" rows="2" placeholder="e.g. This is my 2025–2026 transcript; grades are out of 10.">${escapeHtml(docs.description)}</textarea></label>
+        </div>
+        ${docs.error ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.error)}</p>` : ''}
+        <div class="pl-form-actions"><span class="panel-note">${aiAllowance('intake') === 'Usage allowance loads after sign-in.' ? '' : `${aiUsage?.remaining?.intakeToday ?? '—'} of ${aiUsage?.limits?.intake?.requestsPerDay ?? '—'} document reads left today`}</span><span class="pl-spacer"></span><button type="button" class="btn btn-primary" data-doc-analyse ${canAnalyse ? '' : 'disabled'}>${docs.analysing ? 'Reading…' : `${uiIcon('sparkle')} Read and propose updates`}</button></div>
+      </section>
+      <div class="account-stack">
+        <section class="panel">
+          <div class="panel-top"><div><h2>Calendar links</h2><p>Timetable or exam-schedule feeds (.ics / webcal). Saved links can be re-synced any time.</p></div></div>
+          ${calendars.length ? `<ul class="doc-calendars">${calendars.map((link) => `<li><span class="nav-icon">${uiIcon('calendar')}</span><span><strong>${escapeHtml(link.label)}</strong><small>${link.eventCount} event${link.eventCount === 1 ? '' : 's'} · ${link.lastSyncedAt ? `synced ${relativeTime(link.lastSyncedAt)}` : 'never synced'}</small></span><button type="button" class="btn btn-sm btn-secondary" data-cal-sync="${escapeHtml(link.id)}" ${docs.calendarBusy ? 'disabled' : ''}>Sync</button><button type="button" class="pl-danger-link" data-cal-remove="${escapeHtml(link.id)}">Remove</button></li>`).join('')}</ul>` : ''}
+          <form class="doc-calendar-form" data-cal-form>
+            <label><span>Feed URL</span><input name="url" type="url" placeholder="https://… or webcal://…" value="${escapeHtml(docs.calendarUrl)}" ${docs.calendarBusy ? 'disabled' : ''} required></label>
+            <label><span>Label</span><input name="label" maxlength="120" placeholder="Exam timetable" value="${escapeHtml(docs.calendarLabel)}" ${docs.calendarBusy ? 'disabled' : ''}></label>
+            ${docs.calendarError ? `<p class="account-delete-error" role="alert">${escapeHtml(docs.calendarError)}</p>` : ''}
+            <div class="pl-form-actions"><button type="button" class="btn btn-secondary btn-sm" data-cal-preview ${docs.calendarBusy ? 'disabled' : ''}>Preview</button><button type="submit" class="btn btn-primary btn-sm" ${docs.calendarBusy ? 'disabled' : ''}>${docs.calendarBusy ? 'Working…' : 'Save and sync'}</button></div>
+          </form>
+        </section>
+        <section class="panel panel-aside">
+          <div class="panel-top"><h2>Institution calendar</h2>${institution.length ? '<a class="pl-link" href="#/planning/calendar">Calendar</a>' : ''}</div>
+          <p class="panel-note">${institution.length ? `${institution.length} institution-wide date${institution.length === 1 ? '' : 's'} are maintained for your programme and shown in your calendar. Add any of them to your plan from there.` : workspace.programmeTemplate ? 'No institution-wide calendar is maintained for your programme yet.' : 'Link your programme in Settings to see institution-wide dates.'}</p>
+        </section>
+      </div>
+    </div>`}
+  </div>`
 }
 
 function renderPlanningProgress() {
@@ -3064,6 +3153,7 @@ function renderHome() {
             <a href="#/practice"><span class="nav-icon">${uiIcon('target')}</span><span><strong>Mixed practice</strong><small>Every active course, balanced</small></span>${uiIcon('chevronRight')}</a>
             <a href="#/practice/mocks"><span class="nav-icon">${uiIcon('timer')}</span><span><strong>Timed mock</strong><small>A chapter under exam conditions</small></span>${uiIcon('chevronRight')}</a>
             <a href="#/practice/flashcards"><span class="nav-icon">${uiIcon('layers')}</span><span><strong>Flashcards</strong><small>${srTotal ? `${srTotal} in your deck` : 'Build your deck'}</small></span>${uiIcon('chevronRight')}</a>
+            ${hasPlan ? `<a href="#/planning/documents"><span class="nav-icon">${uiIcon('upload')}</span><span><strong>Upload a document</strong><small>Transcript, exam schedule, timetable</small></span>${uiIcon('chevronRight')}</a>` : ''}
           </nav>
         </section>
         ${academicsData?.summary && hasPlan ? `<section class="panel panel-aside">
@@ -8255,6 +8345,106 @@ function bindEvents() {
   }))
 
   document.querySelectorAll('[data-planning-files]').forEach((input) => input.addEventListener('change', () => addPlanningSources(input.files)))
+  // ----- Documents tab -----
+  document.querySelectorAll('[data-doc-files]').forEach((input) => input.addEventListener('change', (event) => { addDocumentSources(event.target.files); event.target.value = '' }))
+  document.querySelectorAll('[data-doc-dropzone]').forEach((dropzone) => {
+    ;['dragenter', 'dragover'].forEach((type) => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add('is-dragging') }))
+    ;['dragleave', 'drop'].forEach((type) => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.remove('is-dragging') }))
+    dropzone.addEventListener('drop', (event) => { if (!planningDocuments.processing && !planningDocuments.analysing) addDocumentSources(event.dataTransfer?.files) })
+  })
+  document.querySelectorAll('[data-doc-remove]').forEach((button) => button.addEventListener('click', () => { planningDocuments.files.splice(Number(button.dataset.docRemove), 1); render() }))
+  document.querySelectorAll('[data-doc-kind]').forEach((select) => select.addEventListener('change', () => { planningDocuments.kind = select.value }))
+  document.querySelectorAll('[data-doc-description]').forEach((area) => area.addEventListener('input', () => { planningDocuments.description = area.value; document.querySelector('[data-doc-analyse]')?.toggleAttribute('disabled', !(planningDocuments.files.length || area.value.trim())) }))
+  const showChangeSet = (result) => {
+    planningDocuments.result = result
+    planningDocuments.selected = new Set((result.changes || []).map((change) => change.id))
+    planningDocuments.applied = null
+    planningDocuments.error = null
+  }
+  document.querySelectorAll('[data-doc-analyse]').forEach((button) => button.addEventListener('click', async () => {
+    if (planningDocuments.analysing) return
+    planningDocuments.analysing = true
+    planningDocuments.error = null
+    render()
+    try {
+      let remainingImages = MAX_PLANNING_IMAGE_PAGES
+      const icsFiles = planningDocuments.files.filter((file) => /\.ics$/i.test(file.name) && file.text)
+      const documents = planningDocuments.files.filter((file) => !icsFiles.includes(file)).map(({ name, type, pageCount, text, images }) => { const selectedImages = (images || []).slice(0, remainingImages); remainingImages -= selectedImages.length; return { name, type, pageCount, text, images: selectedImages } })
+      let result = null
+      if (documents.length || planningDocuments.description.trim()) {
+        result = await fetchJson('/api/academics/documents/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: planningDocuments.kind, description: planningDocuments.description, documents }) })
+        aiUsage = result.usage || aiUsage
+      }
+      for (const file of icsFiles) {
+        const preview = await fetchJson('/api/academics/calendars/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ics: file.text }) })
+        result = result ? { ...result, changes: [...result.changes, ...preview.changes.filter((change) => !result.changes.some((item) => item.id === change.id))], sources: [...(result.sources || []), { name: file.name }] } : { ...preview, sources: [{ name: file.name }] }
+      }
+      if (!result) throw new Error('Add a file or a description first.')
+      showChangeSet(result)
+    } catch (error) {
+      planningDocuments.error = error.message
+    } finally {
+      planningDocuments.analysing = false
+      render()
+    }
+  }))
+  document.querySelectorAll('[data-doc-toggle]').forEach((input) => input.addEventListener('change', () => { if (input.checked) planningDocuments.selected.add(input.dataset.docToggle); else planningDocuments.selected.delete(input.dataset.docToggle); render() }))
+  document.querySelectorAll('[data-doc-select-all]').forEach((button) => button.addEventListener('click', () => { const all = planningDocuments.result?.changes || []; planningDocuments.selected = planningDocuments.selected.size === all.length ? new Set() : new Set(all.map((change) => change.id)); render() }))
+  document.querySelectorAll('[data-doc-reset]').forEach((button) => button.addEventListener('click', () => { Object.assign(planningDocuments, { files: [], description: '', result: null, selected: new Set(), error: null, applied: null }); render() }))
+  document.querySelectorAll('[data-doc-apply]').forEach((button) => button.addEventListener('click', async () => {
+    const result = planningDocuments.result
+    if (!result || planningDocuments.applying) return
+    const changes = result.changes.filter((change) => planningDocuments.selected.has(change.id))
+    if (!changes.length) return
+    planningDocuments.applying = true
+    planningDocuments.error = null
+    render()
+    try {
+      const saved = await fetchJson('/api/academics/documents/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ changes, expectedRevision: academicsData.workspace.revision }) })
+      academicsData = { ...academicsData, index: saved.index, workspace: saved.workspace, summary: saved.summary }
+      Object.assign(planningDocuments, { files: [], description: '', result: null, selected: new Set(), applied: saved.applied?.length || changes.length })
+    } catch (error) {
+      planningDocuments.error = /another tab/.test(error.message) ? 'Your plan changed elsewhere. Reload the page and read the document again.' : error.message
+    } finally {
+      planningDocuments.applying = false
+      render()
+    }
+  }))
+  const calendarRequest = async (path, body) => {
+    planningDocuments.calendarBusy = true
+    planningDocuments.calendarError = null
+    render()
+    try {
+      const response = await fetchJson(path, { method: body === undefined ? 'DELETE' : 'POST', headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
+      if (response.workspace) academicsData = { ...academicsData, index: response.index, workspace: response.workspace, summary: response.summary }
+      const changeSet = response.changeSet || (response.changes ? response : null)
+      if (changeSet) { showChangeSet({ ...changeSet, link: response.link || changeSet.link || { label: 'Calendar' } }); planningDocuments.calendarUrl = ''; planningDocuments.calendarLabel = '' }
+    } catch (error) {
+      planningDocuments.calendarError = error.message
+    } finally {
+      planningDocuments.calendarBusy = false
+      render()
+    }
+  }
+  document.querySelectorAll('[data-cal-form]').forEach((form) => {
+    form.addEventListener('input', () => { planningDocuments.calendarUrl = form.elements.url.value; planningDocuments.calendarLabel = form.elements.label.value })
+    form.addEventListener('submit', (event) => { event.preventDefault(); if (!form.elements.url.value.trim()) return; calendarRequest('/api/academics/calendars', { url: form.elements.url.value.trim(), label: form.elements.label.value.trim() }) })
+  })
+  document.querySelectorAll('[data-cal-preview]').forEach((button) => button.addEventListener('click', () => { const form = button.closest('form'); if (!form?.elements.url.value.trim()) { planningDocuments.calendarError = 'Enter a feed URL first.'; render(); return } calendarRequest('/api/academics/calendars/preview', { url: form.elements.url.value.trim(), label: form.elements.label.value.trim() }) }))
+  document.querySelectorAll('[data-cal-sync]').forEach((button) => button.addEventListener('click', () => calendarRequest(`/api/academics/calendars/${encodeURIComponent(button.dataset.calSync)}/sync`, {})))
+  document.querySelectorAll('[data-cal-remove]').forEach((button) => button.addEventListener('click', async () => {
+    const link = academicsData?.workspace?.calendars?.find((item) => item.id === button.dataset.calRemove)
+    if (!(await showConfirm({ title: `Remove “${link?.label || 'calendar'}”?`, message: 'Events already added to your plan stay; the link will no longer sync.', okLabel: 'Remove link', danger: true }))) return
+    calendarRequest(`/api/academics/calendars/${encodeURIComponent(button.dataset.calRemove)}`)
+  }))
+  document.querySelectorAll('[data-institution-event-import]').forEach((button) => button.addEventListener('click', async () => {
+    const event = (activeEditorialProgrammeReference()?.programme?.calendar || []).find((item) => item.id === button.dataset.institutionEventImport)
+    if (!event) return
+    const workspace = structuredClone(academicsData.workspace)
+    workspace.events.push({ id: `event-${Date.now().toString(36)}`, title: event.title, date: event.date, endDate: event.endDate, type: event.type, notes: event.notes })
+    await saveAcademics(workspace)
+  }))
+
   document.querySelectorAll('[data-planning-dropzone]').forEach((dropzone) => {
     ;['dragenter', 'dragover'].forEach((type) => dropzone.addEventListener(type, (event) => {
       event.preventDefault()
