@@ -239,12 +239,17 @@ async function main() {
   window.__clerkSession = clerk.session
 
   if (!clerk.user) {
-    if (pathname !== '/sign-in') window.history.replaceState(null, '', '/sign-in')
+    const mode = pathname === '/sign-up' ? 'sign-up' : 'sign-in'
+    if (pathname !== `/${mode}`) window.history.replaceState(null, '', `/${mode}`)
     const { mountAuthSite } = await import(`/public-site.js?v=${ASSET_VERSION}`)
-    mountAuthSite({ allowedDomains: config.allowedDomains || [] })
-    clerk.mountSignIn(document.getElementById('clerk-sign-in'), {
+    mountAuthSite({ allowedDomains: config.allowedDomains || [], mode })
+    const mount = mode === 'sign-up' ? clerk.mountSignUp.bind(clerk) : clerk.mountSignIn.bind(clerk)
+    mount(document.getElementById('clerk-sign-in'), {
       fallbackRedirectUrl: `${window.location.origin}/app`,
       signUpFallbackRedirectUrl: `${window.location.origin}/app`,
+      signInFallbackRedirectUrl: `${window.location.origin}/app`,
+      signInUrl: `${window.location.origin}/sign-in`,
+      signUpUrl: `${window.location.origin}/sign-up`,
       appearance: {
         variables: {
           colorPrimary: '#3f51d9',

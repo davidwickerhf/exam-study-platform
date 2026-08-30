@@ -315,3 +315,6 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 .auth-programme strong { font-size: 15px; }
 .auth-programme span { color: var(--color-ink-secondary); font-size: 13px; }
 .auth-error { max-width: 480px; margin-top: var(--space-3); color: #b4233d; font-size: 13px; }
+
+.auth-switch { max-width: 440px; margin: var(--space-4) auto 0; color: var(--color-ink-secondary); font-size: 13px; }
+.auth-switch a { color: var(--color-brand) !important; font-weight: 600; }

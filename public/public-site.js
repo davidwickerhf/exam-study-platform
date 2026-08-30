@@ -293,7 +293,8 @@ export function mountProgrammePicker({ email, programmes, choose, signOut }) {
   document.title = 'Choose your programme · Wicker Study'
 }
 
-export function mountAuthSite({ allowedDomains = [] } = {}) {
+export function mountAuthSite({ allowedDomains = [], mode = 'sign-in' } = {}) {
+  const signUp = mode === 'sign-up'
   const publicSite = document.getElementById('public-site')
   const gate = document.getElementById('auth-gate')
   publicSite.hidden = true
@@ -306,9 +307,10 @@ export function mountAuthSite({ allowedDomains = [] } = {}) {
     <a class="auth-back" href="/">← Back to Wicker Study</a>
     <section class="auth-form-column" aria-labelledby="auth-title">
       <a class="site-brand" href="/"><span>W</span><strong>Wicker Study</strong></a>
-      <div class="auth-form-copy"><h1 id="auth-title">Return to your study record.</h1><p>Open your notes, attempts, mastery history, and review schedule.</p></div>
-      ${allowedDomains.length ? `<p class="auth-eligibility">For Maastricht University students and staff. Sign in with your ${domainList(allowedDomains)} address.</p>` : ''}
+      <div class="auth-form-copy">${signUp ? '<h1 id="auth-title">Create your study record.</h1><p>Your notes, attempts, mastery history, and review schedule — private to you, on any device.</p>' : '<h1 id="auth-title">Return to your study record.</h1><p>Open your notes, attempts, mastery history, and review schedule.</p>'}</div>
+      ${allowedDomains.length ? `<p class="auth-eligibility">For Maastricht University students and staff. ${signUp ? 'Sign up' : 'Sign in'} with your ${domainList(allowedDomains)} address.</p>` : ''}
       <div id="clerk-sign-in"></div>
+      <p class="auth-switch">${signUp ? 'Already have an account? <a href="/sign-in">Sign in</a>' : 'New here? <a href="/sign-up">Create an account</a>'}</p>
       <p class="auth-legal">By continuing, you agree to the <a href="/terms">Terms</a> and acknowledge the <a href="/privacy">Privacy notice</a>.</p>
     </section>
     <aside class="auth-product-column" aria-label="Product overview">
@@ -317,5 +319,5 @@ export function mountAuthSite({ allowedDomains = [] } = {}) {
       <p class="auth-privacy-note">${icon('shield')} Course content is shared. Your notes and progress are private to your account.</p>
     </aside>
   </div>`
-  document.title = 'Sign in · Wicker Study'
+  document.title = `${signUp ? 'Create an account' : 'Sign in'} · Wicker Study`
 }

@@ -4826,7 +4826,7 @@ const server = createServer(async (req, res) => {
       send(res, 200, await readFile(resolve(__dirname, '.claude/skills/wicker-study/SKILL.md'), 'utf8'), 'text/markdown; charset=utf-8', { 'Cache-Control': 'public, max-age=300' })
       return
     }
-    const publicPage = ['/', '/about', '/courses', '/docs', '/privacy', '/terms', '/sign-in', '/app'].includes(normalizedPagePath)
+    const publicPage = ['/', '/about', '/courses', '/docs', '/privacy', '/terms', '/sign-in', '/sign-up', '/app'].includes(normalizedPagePath)
     const requested = publicPage ? '/index.html' : url.pathname
     const filePath = resolve(join(publicDir, requested))
     if (!filePath.startsWith(publicDir) || !existsSync(filePath)) {
