@@ -44,7 +44,8 @@ npm-debug.log*
 *.log
 .env
 .env.local
-/.claude/
+/.claude/*
+!/.claude/skills/
 
 # Archived courses (May 2026, already done) — keep local caches for the
 # maintainer but don't ship them. The platform's study-state template only
