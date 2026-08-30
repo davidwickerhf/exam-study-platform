@@ -220,7 +220,19 @@ async function main() {
 
   const { Clerk } = await import('https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/+esm')
   const clerk = new Clerk(config.publishableKey)
-  await clerk.load()
+  // Clerk's components step through their own flow with the URL hash; when
+  // they finally send the person to another page (e.g. /app after verifying an
+  // email) that must be a real navigation so this bootstrap runs again.
+  const route = (to, replace) => {
+    const target = new URL(to, window.location.href)
+    if (target.origin === window.location.origin && target.pathname === window.location.pathname) {
+      window.history[replace ? 'replaceState' : 'pushState'](null, '', target.href)
+      return
+    }
+    if (replace) window.location.replace(target.href)
+    else window.location.assign(target.href)
+  }
+  await clerk.load({ routerPush: (to) => route(to, false), routerReplace: (to) => route(to, true) })
   window.__clerk = clerk
 
   // Clerk's prebuilt component returns social OAuth/SAML flows to this hash.
