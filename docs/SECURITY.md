@@ -12,6 +12,11 @@
   `ADMIN_USER_IDS`; `/api/admin/*` requires that flag.
 - Account deletion and data resets require a typed confirmation and a session.
 
+- Production runs on a Clerk *production* instance on the app's own domain
+  (Frontend API `clerk.wicker.life`); preview deployments keep the development
+  instance. Social sign-in in production requires custom OAuth credentials
+  configured in the Clerk dashboard.
+
 ## Abuse controls
 
 - Edge rate limit (Vercel Firewall, in front of the container): requests to
