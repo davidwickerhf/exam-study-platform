@@ -44,8 +44,8 @@ flow is exposed through `/api/admin/editorial-*` and the MCP tools
 ### Canvas source snapshots
 
 For a Canvas course dashboard, run the local MCP tool
-`admin_import_canvas_course` with no arguments. On macOS it asks locally for the
-Modules URL, opens Finder to choose a dedicated output folder, and asks for a hidden,
+`admin_import_canvas_course` with no arguments. On macOS one local import panel collects
+the Modules URL, opens Finder to choose a dedicated output folder, and accepts a secure,
 one-time Canvas Personal Access Token. An environment variable is only used when an
 administrator explicitly asks to use it as a local shortcut.
 The token stays out of Wicker and is not written to a source folder, log, or config file.

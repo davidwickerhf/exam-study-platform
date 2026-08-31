@@ -110,9 +110,9 @@ or paste a Canvas password, MFA/OTP code, browser cookie, or session export.
 
 - The administrator completes Canvas SAML/OTP in Canvas and creates a short-lived
   Personal Access Token if their institution permits it. On macOS, call
-  `admin_import_canvas_course` with no arguments: local native dialogs ask for the
-  Modules URL, select the output folder in Finder, and collect the token with a hidden,
-  one-time input. It is never saved. An existing local `CANVAS_ACCESS_TOKEN` is used
+  `admin_import_canvas_course` with no arguments: one local native panel collects the
+  Modules URL, selects the output folder in Finder, and accepts the token in a secure,
+  one-time field. It is never saved. An existing local `CANVAS_ACCESS_TOKEN` is used
   only when explicitly passed as the optional `accessTokenEnv` shortcut.
 - The importer collects accessible module files, pages, assignments, discussions,
   quizzes, and external-link references into a stable, categorised folder with a hidden

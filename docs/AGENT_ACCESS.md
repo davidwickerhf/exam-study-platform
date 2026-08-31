@@ -134,9 +134,9 @@ Canvas sign-in, Microsoft SAML, and OTP stay with Canvas. Do not put a password,
 browser cookie, or Canvas access token in Wicker Study, an agent prompt, or a source
 folder. After the administrator signs in to Canvas, they may create a short-lived
 Personal Access Token if their institution permits it. Calling
-`admin_import_canvas_course` with no arguments on macOS opens local dialogs for the
-course URL, Finder output folder, and a hidden one-time token; it is not saved. An
-environment variable is used only when explicitly passed as `accessTokenEnv`.
+`admin_import_canvas_course` with no arguments on macOS opens one local import panel
+for the course URL, Finder output folder, and secure one-time token field; it is not
+saved. An environment variable is used only when explicitly passed as `accessTokenEnv`.
 
 ```json
 {}
