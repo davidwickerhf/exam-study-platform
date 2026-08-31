@@ -6,6 +6,22 @@ submitted source to a shared edition. The playbook defines curriculum-edition
 mapping, assessment requirements, retrieval coverage, authoring, rights review,
 quality gates, and ongoing maintenance.
 
+## Editorial writing standard
+
+Original authorised material is retained as the private, immutable source record
+for as long as it is authorised; generated pages are a reviewable teaching
+derivative, not a replacement or a compressed copy of that record. Each meaningful
+course-specific claim must remain evidence-linked. A source conflict, ambiguous
+requirement, or coverage gap is recorded for review rather than guessed away.
+
+Student-facing pages teach the underlying idea directly: definition, mechanism or
+reasoning, worked example, limits/common mistakes, and a self-check. Do not publish
+curriculum commentary (“this course covers…”) as if it were a lesson, generic AI
+filler, unsupported assertions, or generated material mislabelled as official.
+The workflow's quality report treats missing evidence, incomplete topic packages,
+unextracted sources, thin pages, and meta-summary language as publication blockers.
+The full operational standard is in `docs/COURSE_INGESTION_PLAYBOOK.md`.
+
 ## Preferred hosted workflow
 
 The versioned editorial workspace (`db/016`) is the default authoring path. It
@@ -43,17 +59,19 @@ flow is exposed through `/api/admin/editorial-*` and the MCP tools
 
 ### Canvas source snapshots
 
-For a Canvas course dashboard, run the local MCP tool
-`admin_import_canvas_course` with no arguments. On macOS one local import panel collects
-the Modules URL, opens Finder to choose a dedicated output folder, and accepts a secure,
-one-time Canvas Personal Access Token. An environment variable is only used when an
-administrator explicitly asks to use it as a local shortcut.
-The token stays out of Wicker and is not written to a source folder, log, or config file.
-Canvas passwords, SAML sessions, and OTP values are never collected or automated.
-Import locally first, inspect the manifest, then submit only authorised material with
-the tool's explicit rights confirmation. Canvas snapshots enter the editorial workspace
-as candidate contributions, so extraction, AI work, and publishing cannot happen until
-an administrator accepts them. Re-running the same folder is the update path when new
+Students can connect a Canvas Personal Access Token in the signed-in **Canvas archive**
+screen. The hosted service encrypts it at rest and exposes only account-scoped course
+bytes to `canvas_*_remote_*` MCP tools—never the token itself. A local Claude/Codex
+process can therefore create a private local snapshot and do analysis with its own
+subscription. Canvas passwords, SAML sessions, and OTP values are never collected or
+automated.
+
+For an authorised editorial collection, an administrator can still use
+`admin_import_canvas_course` with a host-scoped macOS Keychain token. Import locally
+first, inspect the manifest, then submit only authorised material with the tool's
+explicit rights confirmation. Canvas snapshots enter the editorial workspace as
+candidate contributions, so extraction, AI work, and publishing cannot happen until an
+administrator accepts them. Re-running the same folder is the update path when new
 weekly material appears; paths no longer returned by Canvas are flagged, never deleted.
 
 ## Repository release path

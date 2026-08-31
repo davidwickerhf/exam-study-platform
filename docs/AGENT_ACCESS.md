@@ -124,23 +124,22 @@ model to read and resend unchanged source text.
 
 ### Canvas Modules import
 
-`admin_import_canvas_course` turns an accessible Canvas course Modules URL into a
-local, categorised source snapshot: module folders for downloadable files, readable
-records for pages, assignments, discussions and quizzes, and safe references for
-external links. It defaults to local-only and produces a hidden import manifest so
-the administrator can inspect the collection before Wicker receives any source.
+`canvas_import_remote_course` turns a course selected from the caller’s encrypted
+account-level Canvas connection into a local, categorised source snapshot. The local
+agent receives source bytes only, so Claude/Codex can process the folder with its own
+subscription without ever receiving the Canvas token. The snapshot includes Canvas
+syllabus content, separately stored course files, accessible module records,
+assignments, discussions, quizzes, quiz questions where permitted, and safe references
+for external links. Rich-text Canvas pages and their same-course links are followed
+recursively; third-party URLs are indexed but never crawled.
 
-Canvas sign-in, Microsoft SAML, and OTP stay with Canvas. Do not put a password, OTP,
-browser cookie, or Canvas access token in Wicker Study, an agent prompt, or a source
-folder. After the administrator signs in to Canvas, they may create a short-lived
-Personal Access Token if their institution permits it. Calling
-`admin_import_canvas_course` with no arguments on macOS opens one local import panel
-for the course URL, Finder output folder, and secure one-time token field; it is not
-saved. An environment variable is used only when explicitly passed as `accessTokenEnv`.
-
-```json
-{}
-```
+Canvas sign-in, Microsoft SAML, and OTP stay with Canvas. Never put a password, OTP,
+browser cookie, or Canvas access token in an agent prompt or a source folder. The one
+exception is the signed-in Canvas archive Settings UI: it encrypts a Personal Access
+Token at rest for that account and does not return it through the API/MCP. Use
+`canvas_list_remote_courses` and `canvas_list_remote_course_modules` to discover the
+right course before importing. `admin_import_canvas_course` remains available for an
+administrator’s authorised local-Keychain workflow.
 
 Only after confirming they are authorised to submit the materials should an
 administrator set `syncToWicker:true`, `rightsConfirmed:true`, and eventually

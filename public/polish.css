@@ -2128,6 +2128,7 @@ html:not(.public-mode), body:not(.public-mode), body:not(.public-mode) #app {
 .course-planning-context span { color: var(--color-ink-secondary); font-size: 14px; }
 .course-planning-context.is-unlinked { border-style: dashed; background: var(--color-surface-subtle); }
 .course-planning-context .btn { flex: 0 0 auto; }
+.course-canvas-archive { border-color: color-mix(in srgb, var(--color-brand) 28%, var(--color-border)); background: color-mix(in srgb, var(--color-brand) 4%, var(--color-surface)); }
 
 .planning-study-link {
   width: fit-content;

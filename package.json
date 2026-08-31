@@ -20,6 +20,7 @@
     "content:verify-precomputed": "node scripts/verify-precomputed.mjs",
     "user:import": "node scripts/import-local-user.mjs",
     "canvas:sync": "node scripts/canvas-course-sync.mjs",
+    "canvas:agent": "node scripts/wicker-local-agent.mjs",
     "mcp": "node mcp/server.mjs",
     "test": "node --test",
     "verify": "npm run typecheck && npm test && npm run build"

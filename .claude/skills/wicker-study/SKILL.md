@@ -1,6 +1,6 @@
 ---
 name: wicker-study
-description: Study with or maintain a Wicker Study deployment. Read course material and progress, record study activity, reconcile academic documents, or—with an admin key—import a Canvas course or ingest a local course folder into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
+description: Study with or maintain a Wicker Study deployment. Read course material and progress, reconcile academic documents, collect a private Canvas course snapshot through an account connection without receiving its token, or—with an admin key—ingest authorised local material into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
 ---
 
 # Wicker Study
@@ -91,6 +91,26 @@ filesystem. The safe workflow is:
    it requires typing the course code as confirmation. Publication creates a new,
    reviewable release and never exposes the original source files.
 
+### Editorial writing standard (admin content only)
+
+Generated pages are source-preserving teaching derivatives. Keep authorised original
+sources intact and private while they remain authorised; never silently discard,
+rewrite, or reconcile a meaningful curriculum, teaching, or assessment claim. Map it
+to an edition-specific topic, record the conflict/gap, or leave it visibly for review.
+Do not confuse clear writing with copying source text verbatim.
+
+Teach the concept itself. A publishable study page gives a precise definition, explains
+how or why it works, walks through a realistic example, identifies assumptions/limits
+and common mistakes, then offers a self-check or practice bridge. Never use “this
+course/chapter covers X” or a topic list as the lesson—explain X. Keep every
+course-specific claim, rule, example, question, and answer tied to approved source
+chunks. Clearly label editorial inference and do not invent missing facts.
+
+The quality report blocks publication for missing citations, unextracted sources,
+incomplete topic packages, thin/meta-summary pages, and unresolved factual or coverage
+issues. An administrator may edit an artifact after genuine source review, but must
+not clear a blocker merely to make a release pass.
+
 For a student content request, private upload is the default. Only call
 `admin_prepare_content_request` when the request records separate shared-use permission,
 then accept or reject its rights basis with `admin_review_contribution`. A withdrawal
@@ -101,52 +121,71 @@ The matching HTTP endpoints are listed in `GET /api/agent/manifest`; use them wh
 is unavailable. Folder sync remains an MCP-only convenience because the client must
 hash and upload local bytes.
 
-### Canvas course import (local MCP only)
+### Canvas source collection
 
-When an administrator gives a Canvas course Modules URL, use
-`admin_import_canvas_course`, not browser scraping or a request for account
-credentials. Canvas authentication stays with Canvas: never ask for, receive, store,
-or paste a Canvas password, MFA/OTP code, browser cookie, or session export.
+Canvas passwords, MFA/OTP codes, browser cookies, and session exports are never
+accepted. A Canvas Personal Access Token (PAT) is the only supported credential.
+**Never ask for it in chat, put it in an MCP argument, echo it, or put it in a source
+folder.** There are two intentionally separate collection paths.
 
-- The administrator completes Canvas SAML/OTP in Canvas and creates a Personal Access
-  Token if their institution permits it. **Never request the token in chat or as a
-  tool argument.** On this Mac, ask them to copy it in Canvas and confirm that it is
-  on the clipboard, then call `admin_save_canvas_token_from_clipboard({ courseUrl })`.
-  The tool reads the clipboard locally once, returns no token, and stores it in their
-  macOS Keychain scoped to the Canvas host. Later local MCP sessions reuse that entry.
-  Re-run the same tool after a token rotation. A different Mac, user account, or Canvas
-  host needs its own local credential.
-- Call `admin_import_canvas_course` with the exact Modules URL and an absolute local
-  `outputFolder`; it needs no terminal or native dialog. Use `accessTokenEnv` only for
-  a non-macOS automated environment where a local secret manager supplies the value.
-- The importer collects accessible module files, pages, assignments, discussions,
-  quizzes, and external-link references into a stable, categorised folder with a hidden
-  manifest. It does not fetch third-party links. If Canvas denies the optional
-  course-wide Files index, retain and report that skip while importing the accessible
-  Module material; do not mistake that single 403 for an invalid token.
-- To discover an account’s history, call `admin_list_canvas_courses`. It includes
-  current and concluded enrolments and accepts an optional query over course title,
-  code, term, and title initials — for example, `IUI` finds *Intelligent User
-  Interfaces*. Show the compact matching list if a natural-language request is
-  ambiguous; preserve distinct academic years and Canvas course ids.
-- For an explicit request such as “scrape all IUI courses across the years”, call
-  `admin_import_canvas_course_set` with `query:"IUI"` and a parent `outputFolder`.
-  It imports sequentially, placing each distinct Canvas course in its own stable
-  term/code/id folder. It only creates local private snapshots; a later editorial
-  submission still needs the separate rights-confirmed review flow.
-- Inspect the local `README.md`, manifest, and skipped items. Re-run into the same
-  folder whenever Canvas publishes new weekly material; unchanged files are reused by
-  hash during the later folder sync. Paths no longer returned by Canvas are flagged for
-  review and never deleted automatically.
-- Only if the administrator confirms they are authorised to submit the material, call
-  the importer again with `syncToWicker:true`, `rightsConfirmed:true`, and first keep
-  `dryRun:true`. Show the plan. On explicit confirmation, use `dryRun:false`.
-  Imported sources are still **candidate** rights-review records, not accepted
-  editorial material. Do not extract, map, generate, or publish until the relevant
-  contribution has been reviewed and accepted.
-- If Canvas Personal Access Tokens are unavailable, report that the importer cannot
-  safely automate a password-plus-OTP flow. Do not attempt to bypass MFA, automate an
-  interactive OTP challenge, or substitute a saved browser session.
+#### Account connection → local Claude/Codex snapshot (normal user path)
+
+The student saves their PAT themselves in **Wicker Study → Canvas archive** while
+signed in to the website. Wicker encrypts it server-side at rest, scopes it to that
+account and Canvas origin, and never returns it in an API response, account export, or
+MCP result. API keys cannot create, read, or delete this credential. The service must
+have `CANVAS_CONNECTION_ENCRYPTION_KEY` configured; if it is not, fail closed and tell
+the student to contact the service administrator.
+
+A local Claude/Codex MCP process still needs its own Wicker `wsk_…` API key, but only
+to authenticate as that user. It must use the account-connection tools below instead
+of local Keychain tools; the proxy streams source bytes, not the PAT.
+
+1. Call `canvas_list_remote_courses({ query? })`. It includes active and concluded
+   enrolments. Search by title, course code, term, or initials: `IUI` finds
+   *Intelligent User Interfaces*. Preserve separate Canvas IDs and terms rather than
+   merging retakes or similarly named courses.
+2. For a precise choice, call `canvas_list_remote_course_modules({ courseUrl })`.
+   Omit `moduleIds` only when the student asked for the full course.
+3. Call `canvas_import_remote_course({ courseUrl, outputFolder, moduleIds? })`.
+   The snapshot is written to the local filesystem of the Claude/Codex MCP process so
+   the subscription model can inspect it without consuming Wicker generation tokens.
+   For “all IUI courses across the years”, use
+   `canvas_import_remote_course_set({ query:"IUI", outputFolder })`; each Canvas
+   course receives a distinct term/code/id folder.
+4. Read the generated `README.md` and `.wicker-canvas-import.json`. The snapshot
+   contains the Canvas rich-text syllabus, separately stored course-manual/syllabus
+   files, accessible module content, ungrouped assignments/quizzes/discussions, and
+   quiz questions only where Canvas permits them. Rich-text Canvas pages are followed
+   recursively inside the same course; linked Canvas files are downloaded; every URL
+   is recorded in a nearby `link-index`. Third-party sites are recorded, never crawled.
+
+Re-run into the same local folder when weekly materials appear. The manifest flags
+paths Canvas no longer reports and never deletes local material automatically.
+
+#### Direct browser ZIP → Wicker Local (device hand-off)
+
+The Canvas archive screen lets a student choose a course and module subset, then make a
+ZIP directly on their own device. It uses **Wicker Local**, an opt-in loopback process
+on `127.0.0.1`, and a host-scoped macOS Keychain token. The course bytes and Keychain
+token do not pass through the production server in this path. Start it with
+`npm run canvas:agent`; after copying a PAT in Canvas, use the UI’s **Use copied Canvas
+token** control. The local bridge never accepts a token over HTTP.
+
+#### Admin / editorial path (separate rights gate)
+
+An administrator may instead use `admin_save_canvas_token_from_clipboard`,
+`admin_list_canvas_courses`, `admin_list_canvas_course_modules`,
+`admin_import_canvas_course`, `admin_import_canvas_course_set`, and
+`admin_export_canvas_course_zip` with a host-scoped local Keychain token. This is for
+authorised editorial collection, not normal student use.
+
+Importing creates a private source snapshot only. Do not make it shared content merely
+because a user uploaded or downloaded it. Only after the administrator confirms rights
+may they use the separate `admin_sync_course_folder` dry run and rights-review flow.
+Candidate sources must be reviewed before extraction, mapping, generation, or
+publication. If Canvas does not offer PAT access, do not automate password-plus-OTP or
+attempt to bypass MFA.
 
 ## Direct content maintenance (scope: admin, hosted only)
 

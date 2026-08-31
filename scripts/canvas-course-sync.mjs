@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { importCanvasCourse } from '../lib/canvas-course-import.mjs'
+import { CANVAS_IMPORT_LIMITS, importCanvasCourse } from '../lib/canvas-course-import.mjs'
 import { forgetSavedCanvasAccessToken, promptForLocalCanvasImport } from '../lib/local-canvas-prompts.mjs'
 
 // The normal interactive flow intentionally does not read .env files. A human gets
@@ -19,7 +19,7 @@ function options(argv) {
 
 const args = options(process.argv.slice(2))
 if (args.help) {
-  console.error('Usage: npm run canvas:sync (terminal prompts; copy a token to save it in macOS Keychain), or npm run canvas:sync -- --course-url https://canvas.example.edu/courses/123/modules --output /absolute/path/to/course-folder [--token-env CANVAS_ACCESS_TOKEN] [--max-resources 250]. Remove a saved token with --forget-token --course-url https://canvas.example.edu/courses/123/modules.')
+  console.error(`Usage: npm run canvas:sync (terminal prompts; copy a token to save it in macOS Keychain), or npm run canvas:sync -- --course-url https://canvas.example.edu/courses/123/modules --output /absolute/path/to/course-folder [--token-env CANVAS_ACCESS_TOKEN] [--max-resources up to ${CANVAS_IMPORT_LIMITS.maxResources}]. Remove a saved token with --forget-token --course-url https://canvas.example.edu/courses/123/modules.`)
 } else {
   const tokenEnv = args['token-env'] ? String(args['token-env']) : null
   const suppliedToken = tokenEnv ? process.env[tokenEnv] : undefined

@@ -1583,6 +1583,19 @@ function renderCoursePlanningContext(course) {
   </aside>`
 }
 
+function canvasArchiveHref(course) {
+  const academic = academicCourseForEditorial(course)
+  const search = normalizedCourseCode(academic?.code || course?.code) || academic?.name || course?.name || ''
+  return `/canvas${search ? `?course=${encodeURIComponent(search)}` : ''}`
+}
+
+function renderCourseCanvasArchive(course) {
+  return `<aside class="course-planning-context course-canvas-archive" aria-label="Private Canvas material">
+    <div><p class="eyebrow">Private Canvas material</p><strong>Bring your current or previous Canvas class</strong><span>Choose modules, then download a private source ZIP with the syllabus, assessments, linked pages, and accessible files.</span></div>
+    <a class="btn btn-secondary" href="${canvasArchiveHref(course)}">Open Canvas archive</a>
+  </aside>`
+}
+
 function renderPublishedCourseProfile(course) {
   const profile = course?.courseProfile
   if (!profile || (!profile.description && !profile.assessment?.components?.length && !profile.learningOutcomes?.length)) return ''
@@ -3804,6 +3817,7 @@ function renderCourseRequestPage() {
       <main class="course-request-main">
         ${courseRequestState.submitted ? `<div class="doc-applied" role="status">${uiIcon('check')}<span><strong>Request received.</strong> The course team has your context and ${courseRequestState.submitted.files.length} source file${courseRequestState.submitted.files.length === 1 ? '' : 's'}.</span></div>` : ''}
         ${currentRequest ? `<section class="panel course-request-status"><div class="panel-top"><div><p class="page-eyebrow">Request ${escapeHtml(currentRequest.id.slice(0, 8))}</p><h2>${requestStatusLabel(currentRequest.status)}</h2><p>Last updated ${relativeTime(currentRequest.updatedAt)}. ${currentRequest.contributionConsent ? 'You offered these sources for shared editorial review; originals remain restricted to authorised administrators.' : 'Your sources are private to this request and cannot be used for a shared course without your permission.'}</p>${currentRequest.contributionConsent ? `<button type="button" class="pl-link pl-link-button" data-course-request-withdraw="${escapeHtml(currentRequest.id)}">Withdraw shared-use permission</button>` : ''}</div><span class="pl-pill is-${currentRequest.status === 'published' ? 'ok' : currentRequest.status === 'declined' ? 'bad' : 'pending'}">${requestStatusLabel(currentRequest.status)}</span></div>${renderIngestionProgress(currentRequest)}</section>` : ''}
+        ${renderCourseCanvasArchive(course)}
         <section class="panel course-request-form-panel">
           <div class="panel-top"><div><h2>${currentRequest ? 'Add more course evidence' : 'Request this course'}</h2><p>Useful source material makes the finished course more accurate, complete, and aligned with your real assessment.</p></div></div>
           <form data-course-request-form>
@@ -4790,6 +4804,8 @@ function renderCourse(courseId) {
           </header>
 
           ${renderCoursePlanningContext(course)}
+
+          ${renderCourseCanvasArchive(course)}
 
           ${renderPublishedCourseProfile(course)}
 

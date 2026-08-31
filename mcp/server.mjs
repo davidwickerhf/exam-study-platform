@@ -12,7 +12,8 @@ import { z } from 'zod'
 import { createHash } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath } from 'node:fs/promises'
 import { extname, join, relative, resolve, sep } from 'node:path'
-import { CANVAS_IMPORT_LIMITS, canvasCourseFolderName, filterCanvasCourses, importCanvasCourse, listCanvasCourses } from '../lib/canvas-course-import.mjs'
+import { CANVAS_IMPORT_LIMITS, canvasCourseFolderName, filterCanvasCourses, importCanvasCourse, listCanvasCourseModules, listCanvasCourses, parseCanvasCourseUrl } from '../lib/canvas-course-import.mjs'
+import { exportCanvasCourseZip } from '../lib/canvas-course-export.mjs'
 import { getSavedCanvasAccessToken, promptForLocalCanvasImport, saveCanvasAccessTokenFromClipboard } from '../lib/local-canvas-prompts.mjs'
 
 const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
@@ -22,7 +23,7 @@ if (!apiKey) {
   process.exit(1)
 }
 
-async function api(path, { method = 'GET', body, query } = {}) {
+async function apiResponse(path, { method = 'GET', body, query } = {}) {
   const url = new URL(baseUrl + path)
   for (const [key, value] of Object.entries(query || {})) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value))
   const response = await fetch(url, {
@@ -30,10 +31,20 @@ async function api(path, { method = 'GET', body, query } = {}) {
     headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined
   })
+  if (!response.ok) {
+    const text = await response.text()
+    let data
+    try { data = text ? JSON.parse(text) : null } catch { data = { raw: text } }
+    throw new Error(`${method} ${path} → ${response.status}: ${data?.error || text.slice(0, 300)}`)
+  }
+  return response
+}
+
+async function api(path, options = {}) {
+  const response = await apiResponse(path, options)
   const text = await response.text()
   let data
   try { data = text ? JSON.parse(text) : null } catch { data = { raw: text } }
-  if (!response.ok) throw new Error(`${method} ${path} → ${response.status}: ${data?.error || text.slice(0, 300)}`)
   return data
 }
 
@@ -151,6 +162,7 @@ async function importCanvasCourseAndMaybeSync(args) {
     courseUrl: input.courseUrl,
     accessToken: input.accessToken,
     outputFolder: input.outputFolder,
+    moduleIds: args.moduleIds,
     maxResources: args.maxResources,
     maxFileBytes: args.maxFileBytes
   })
@@ -203,6 +215,95 @@ async function importLocalCanvasCourseSet(args) {
     const outputFolder = join(root, canvasCourseFolderName(course))
     const imported = await importCanvasCourse({ courseUrl: course.courseUrl, accessToken, outputFolder, maxResources: args.maxResources, maxFileBytes: args.maxFileBytes })
     imports.push({ course, imported })
+  }
+  return { root, query: args.query || null, matched: catalog.matched, imported: imports.length, omittedByMaxCourses: catalog.matched - imports.length, imports }
+}
+
+async function exportLocalCanvasCourseZip(args) {
+  const accessToken = await localCanvasAccessToken(args.courseUrl, args.accessTokenEnv)
+  return exportCanvasCourseZip({ courseUrl: args.courseUrl, accessToken, moduleIds: args.moduleIds, outputPath: args.zipPath, maxResources: args.maxResources, maxFileBytes: args.maxFileBytes })
+}
+
+// A remote Canvas connection is deliberately proxied through the Wicker API.
+// The local MCP receives course bytes, not the user’s Canvas PAT, so Codex or
+// Claude can analyse the snapshot in its own workspace without seeing or
+// retaining that third-party credential.
+function remoteCanvasFetch(courseUrl) {
+  const canvas = parseCanvasCourseUrl(courseUrl)
+  const platformOrigin = new URL(baseUrl).origin
+  return async (input) => {
+    const target = new URL(String(input))
+    if (target.origin === canvas.origin && target.pathname.startsWith('/api/v1/')) {
+      const response = await apiResponse('/api/integrations/canvas/proxy', {
+        query: { canvasUrl: canvas.origin, path: `${target.pathname}${target.search}` }
+      })
+      // The server intentionally replaces Canvas file URLs with a relative,
+      // authenticated Wicker proxy path. The local importer needs an absolute
+      // URL to stream those bytes, but still never receives the Canvas PAT.
+      if (!/^\/api\/v1\/courses\/\d+\/files(?:\/\d+)?$/.test(target.pathname)) return response
+      const payload = await response.json()
+      const absoluteFileUrl = (file) => file && typeof file === 'object' && typeof file.url === 'string' && file.url.startsWith('/api/integrations/canvas/')
+        ? { ...file, url: new URL(file.url, platformOrigin).toString() }
+        : file
+      const rewritten = Array.isArray(payload) ? payload.map(absoluteFileUrl) : absoluteFileUrl(payload)
+      return new Response(JSON.stringify(rewritten), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          ...(response.headers.get('link') ? { link: response.headers.get('link') } : {})
+        }
+      })
+    }
+    if (target.origin === platformOrigin && /^\/api\/integrations\/canvas\/courses\/\d+\/files\/\d+\/download$/.test(target.pathname)) {
+      return apiResponse(`${target.pathname}${target.search}`)
+    }
+    throw new Error('The remote Canvas importer refused an unexpected download URL.')
+  }
+}
+
+async function listRemoteCanvasCourses({ canvasUrl, query }) {
+  const catalog = await api('/api/integrations/canvas/courses', { query: { canvasUrl } })
+  const courses = filterCanvasCourses(catalog.courses || [], query)
+  return { ...catalog, total: (catalog.courses || []).length, query: query || null, matched: courses.length, courses }
+}
+
+async function listRemoteCanvasCourseModules({ courseUrl }) {
+  const canvas = parseCanvasCourseUrl(courseUrl)
+  return api(`/api/integrations/canvas/courses/${encodeURIComponent(canvas.courseId)}/modules`, { query: { canvasUrl: canvas.origin } })
+}
+
+async function importRemoteCanvasCourse(args) {
+  const imported = await importCanvasCourse({
+    courseUrl: args.courseUrl,
+    // This satisfies the local importer’s no-empty-token guard. The fetch
+    // adapter above discards it; only Wicker’s server holds the real PAT.
+    accessToken: 'stored-remotely-by-wicker',
+    outputFolder: args.outputFolder,
+    moduleIds: args.moduleIds,
+    maxResources: args.maxResources,
+    maxFileBytes: args.maxFileBytes,
+    fetchImpl: remoteCanvasFetch(args.courseUrl)
+  })
+  return {
+    imported,
+    next: 'Analyse this private local snapshot with your Claude/Codex subscription. If you are authorised to propose shared material, use the separate rights-reviewed editorial sync; importing from Canvas never publishes anything automatically.'
+  }
+}
+
+async function importRemoteCanvasCourseSet(args) {
+  const catalog = await listRemoteCanvasCourses(args)
+  if (!catalog.courses.length) throw new Error(`No remote Canvas courses matched ${JSON.stringify(args.query || '')}. Use canvas_list_remote_courses first to inspect the available titles and terms.`)
+  const root = resolve(args.outputFolder)
+  await mkdir(root, { recursive: true })
+  const selected = catalog.courses.slice(0, Math.min(args.maxCourses, catalog.courses.length))
+  const imports = []
+  for (const course of selected) {
+    imports.push({ course, ...(await importRemoteCanvasCourse({
+      courseUrl: course.courseUrl,
+      outputFolder: join(root, canvasCourseFolderName(course)),
+      maxResources: args.maxResources,
+      maxFileBytes: args.maxFileBytes
+    })) })
   }
   return { root, query: args.query || null, matched: catalog.matched, imported: imports.length, omittedByMaxCourses: catalog.matched - imports.length, imports }
 }
@@ -262,6 +363,20 @@ server.tool('save_academic_plan', 'Save the active academic programme workspace.
 server.tool('set_course_visibility', 'Archive/unarchive or reorder a course for the student.', { courseId, archived: z.boolean().optional(), order: z.number().int().optional() },
   run(({ courseId, archived, order }) => api(`/api/courses/${encodeURIComponent(courseId)}`, { method: 'PATCH', body: { archived, order } })))
 
+// ── Canvas through the account connection (no local PAT) ──────────────────
+server.tool('canvas_list_remote_courses', 'List current and concluded Canvas courses from the caller’s encrypted Wicker Study Canvas connection. Search title, course code, term, or title initials (for example “IUI”). The Canvas PAT is never returned to the agent.', {
+  canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().max(240).optional()
+}, run(listRemoteCanvasCourses))
+server.tool('canvas_list_remote_course_modules', 'List modules for a Canvas course using the caller’s encrypted Wicker Study Canvas connection. Use this before importing a chosen subset.', {
+  courseUrl: z.string().url()
+}, run(listRemoteCanvasCourseModules))
+server.tool('canvas_import_remote_course', 'Download an entire Canvas course or selected modules into a private local folder through Wicker’s authenticated Canvas proxy. The destination is local to this MCP process, so Claude/Codex can analyse it using its own subscription; it never receives the Canvas PAT. Canvas pages are followed recursively within the course, linked files download when accessible, and URLs are compiled into link indexes.', {
+  courseUrl: z.string().url(), outputFolder: z.string().min(1), moduleIds: z.array(z.string().min(1)).max(500).optional(), maxResources: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxResources).default(CANVAS_IMPORT_LIMITS.maxResources), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes)
+}, run(importRemoteCanvasCourse))
+server.tool('canvas_import_remote_course_set', 'Find every remotely connected Canvas course matching a title, course code, term, or initials, then create separate local snapshots for each. Use for requests such as “import all IUI courses across the years”; preserve each Canvas course id and academic term as a separate source edition.', {
+  canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().min(1).max(240), outputFolder: z.string().min(1), maxCourses: z.number().int().min(1).max(100).default(25), maxResources: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxResources).default(CANVAS_IMPORT_LIMITS.maxResources), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes)
+}, run(importRemoteCanvasCourseSet))
+
 server.tool('analyze_documents', 'Analyse supporting documents (transcript, exam schedule, timetable, academic calendar, curriculum) with AI and return a reviewable change set against the student’s plan. Uses the student’s intake allowance. Follow with apply_changes.', { kind: z.enum(['auto', 'transcript', 'exam-schedule', 'timetable', 'academic-calendar', 'curriculum']).optional(), description: z.string().optional(), documents: z.array(z.object({ name: z.string(), type: z.string().optional(), text: z.string().optional(), images: z.array(z.string()).optional() })) },
   run((body) => api('/api/academics/documents/analyze', { method: 'POST', body })))
 server.tool('apply_changes', 'Apply accepted change objects (from analyze_documents or a calendar preview) to the active plan.', { changes: z.array(z.record(z.any())), expectedRevision: z.number().int() },
@@ -289,11 +404,17 @@ server.tool('admin_save_canvas_token_from_clipboard', 'Store a Canvas Personal A
 server.tool('admin_list_canvas_courses', 'List every Canvas course available to this account, including concluded and prior-year enrolments. Query matches course name, code, term, and title initials (for example “IUI” matches Intelligent User Interfaces). Uses the host-scoped local Keychain token and returns no credential.', {
   canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().max(240).optional(), accessTokenEnv: z.string().optional()
 }, run(listLocalCanvasCourses))
+server.tool('admin_list_canvas_course_modules', 'List a Canvas course’s modules and contained item counts so the administrator can choose the whole course or a precise module subset. Uses the local Keychain token and returns no credential.', {
+  courseUrl: z.string().url(), accessTokenEnv: z.string().optional()
+}, run(async ({ courseUrl, accessTokenEnv }) => listCanvasCourseModules({ courseUrl, accessToken: await localCanvasAccessToken(courseUrl, accessTokenEnv) })))
 server.tool('admin_import_canvas_course_set', 'Find every Canvas course matching a name, code, term, or title initials and import each into its own deterministic local folder. This is for requests such as “scrape all IUI courses across the years”. It is local-only and sequential; use admin_list_canvas_courses first when the requested match is ambiguous. Never pass Canvas credentials.', {
   canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().min(1).max(240), outputFolder: z.string().min(1), accessTokenEnv: z.string().optional(), maxCourses: z.number().int().min(1).max(100).default(25), maxResources: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxResources).default(CANVAS_IMPORT_LIMITS.maxResources), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes)
 }, run(importLocalCanvasCourseSet))
+server.tool('admin_export_canvas_course_zip', 'Download a selected Canvas course or module subset into one local ZIP archive. Materials are only held in a temporary local staging folder, then removed after the ZIP succeeds. zipPath must be a new absolute local .zip path; existing files are never overwritten. Never pass Canvas credentials.', {
+  courseUrl: z.string().url(), moduleIds: z.array(z.string().min(1)).max(500).optional(), zipPath: z.string().min(1), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxResources).default(CANVAS_IMPORT_LIMITS.maxResources), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes)
+}, run(exportLocalCanvasCourseZip))
 server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. Provide courseUrl and outputFolder; on the same Mac it reuses the host-scoped token in the user Keychain. Use admin_save_canvas_token_from_clipboard to provision or replace that local credential without exposing it to the agent. A denied course-wide Files index is recorded as skipped while accessible Module material continues. Large files stream directly to disk, with a 1 GB per-file limit. Never pass a Canvas password, OTP, cookie, or token here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
-  courseUrl: z.string().url().optional(), outputFolder: z.string().optional(), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(250).default(250), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
+  courseUrl: z.string().url().optional(), outputFolder: z.string().optional(), moduleIds: z.array(z.string().min(1)).max(500).optional(), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxResources).default(CANVAS_IMPORT_LIMITS.maxResources), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
 }, run(importCanvasCourseAndMaybeSync))
 server.tool('admin_list_editorial_workspace', 'List compact course-edition summaries, or pass editionId for its sources, rights decisions, topics, jobs, artifacts, estimates, and releases.', { editionId: z.string().optional() }, run(({ editionId }) => api('/api/admin/editorial-workspace', { query: { editionId } })))
 server.tool('admin_prepare_content_request', 'Turn a student request into a candidate shared edition. Fails if the student kept sources private.', { requestId: z.string() }, run(({ requestId }) => api(`/api/admin/content-requests/${encodeURIComponent(requestId)}/prepare`, { method: 'POST', body: {} })))

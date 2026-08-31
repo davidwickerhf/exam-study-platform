@@ -8,6 +8,7 @@ import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { gzipSync } from 'node:zlib'
 import { randomUUID } from 'node:crypto'
+import { Readable } from 'node:stream'
 import next from 'next'
 import './lib/env.mjs'
 import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser } from './lib/auth.mjs'
@@ -34,7 +35,9 @@ import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchC
 import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
-import { securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
+import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
+import { CanvasConnectionError, canvasAccessToken, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
+import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -54,6 +57,138 @@ const port = Number(process.env.PORT || 4177)
 const hostname = process.env.HOSTNAME || '0.0.0.0'
 const development = process.env.NODE_ENV !== 'production'
 const MAX_ACADEMIC_INTAKE_BODY_BYTES = 12 * 1024 * 1024
+const MAX_CANVAS_API_RESPONSE_BYTES = 4 * 1024 * 1024
+const MAX_CANVAS_FILE_BYTES = 1024 * 1024 * 1024
+const CANVAS_API_TIMEOUT_MS = 30_000
+const CANVAS_FILE_TIMEOUT_MS = 10 * 60_000
+
+function canvasProxyError(response, path) {
+  if (response.status === 401) return new CanvasConnectionError(`Canvas rejected the saved connection while requesting ${path}. Reconnect Canvas in Settings.`)
+  if (response.status === 403) return new CanvasConnectionError(`Canvas denied access to ${path}. Check that this account can open the course.`)
+  if (response.status === 404) return new CanvasConnectionError(`Canvas could not find ${path}. The course or material may no longer be available.`)
+  return new CanvasConnectionError(`Canvas request failed (HTTP ${response.status}) at ${path}.`)
+}
+
+function canvasApiPath(value, origin) {
+  const raw = String(value || '')
+  if (!raw || raw.length > 2_048 || !raw.startsWith('/api/v1/') || raw.startsWith('//')) throw new CanvasConnectionError('Canvas proxy paths must be a short Canvas API path.')
+  const target = new URL(raw, origin)
+  if (target.origin !== origin || !target.pathname.startsWith('/api/v1/')) throw new CanvasConnectionError('Canvas proxy requests must stay on the connected Canvas host.')
+  return target
+}
+
+async function readCanvasJson(response) {
+  const declared = Number(response.headers.get('content-length') || 0)
+  if (declared > MAX_CANVAS_API_RESPONSE_BYTES) throw new CanvasConnectionError('Canvas returned an unexpectedly large API response.')
+  const reader = response.body?.getReader()
+  if (!reader) throw new CanvasConnectionError('Canvas returned an empty API response.')
+  const chunks = []
+  let total = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > MAX_CANVAS_API_RESPONSE_BYTES) {
+      reader.cancel().catch(() => {})
+      throw new CanvasConnectionError('Canvas returned an unexpectedly large API response.')
+    }
+    chunks.push(Buffer.from(value))
+  }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')) }
+  catch { throw new CanvasConnectionError('Canvas returned an unreadable API response.') }
+}
+
+async function requestCanvasApi({ origin, token, path }) {
+  const target = canvasApiPath(path, origin)
+  let response
+  try {
+    response = await fetch(target, {
+      headers: { accept: 'application/json', authorization: `Bearer ${token}` },
+      redirect: 'error',
+      signal: AbortSignal.timeout(CANVAS_API_TIMEOUT_MS)
+    })
+  } catch {
+    throw new CanvasConnectionError('Canvas could not be reached. Check the Canvas host and try again.')
+  }
+  if (!response.ok) throw canvasProxyError(response, target.pathname)
+  return { response, target }
+}
+
+function fileProxyPath(courseId, fileId) {
+  return `/api/integrations/canvas/courses/${encodeURIComponent(courseId)}/files/${encodeURIComponent(fileId)}/download`
+}
+
+function replaceCanvasFileUrls(value, path) {
+  const match = path.match(/^\/api\/v1\/courses\/(\d+)\/files(?:\/(\d+))?$/)
+  if (!match) return value
+  const [_, courseId, specificFileId] = match
+  const replace = (file) => {
+    if (!file || typeof file !== 'object' || !String(file.id || '').match(/^\d+$/)) return file
+    return { ...file, url: fileProxyPath(courseId, String(file.id)) }
+  }
+  if (specificFileId) return replace(value)
+  return Array.isArray(value) ? value.map(replace) : value
+}
+
+function safeAttachmentName(value, fallback = 'canvas-material') {
+  const cleaned = String(value || '').replace(/[\r\n"\\/:*?<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 180)
+  return cleaned || fallback
+}
+
+async function streamCanvasFile(req, res, { canvasUrl, courseId, fileId }) {
+  if (!/^\d+$/.test(String(courseId)) || !/^\d+$/.test(String(fileId))) throw new CanvasConnectionError('Canvas course and file identifiers must be numeric.')
+  const { origin, token } = await canvasAccessToken({ canvasUrl })
+  const detailResponse = await requestCanvasApi({ origin, token, path: `/api/v1/courses/${courseId}/files/${fileId}` })
+  const detail = await readCanvasJson(detailResponse.response)
+  if (!detail?.url) throw new CanvasConnectionError('Canvas did not provide a downloadable file URL.')
+  let target
+  try { target = await assertPublicUrl(detail.url) }
+  catch { throw new CanvasConnectionError('Canvas provided an unsafe file download URL.') }
+  for (let hop = 0; hop < 5; hop++) {
+    let response
+    try {
+      response = await fetch(target, {
+        headers: { accept: 'application/octet-stream, */*;q=0.8', ...(target.origin === origin ? { authorization: `Bearer ${token}` } : {}) },
+        redirect: 'manual',
+        signal: AbortSignal.timeout(CANVAS_FILE_TIMEOUT_MS)
+      })
+    } catch {
+      throw new CanvasConnectionError('Canvas file download could not be started.')
+    }
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get('location')
+      if (!location) throw new CanvasConnectionError('Canvas file download returned an invalid redirect.')
+      try { target = await assertPublicUrl(new URL(location, target)) }
+      catch { throw new CanvasConnectionError('Canvas file download redirected to an unsafe URL.') }
+      continue
+    }
+    if (!response.ok) throw canvasProxyError(response, `/api/v1/courses/${courseId}/files/${fileId}/download`)
+    if (!response.body) throw new CanvasConnectionError('Canvas returned an empty file download.')
+    const contentLength = response.headers.get('content-length')
+    if (Number(contentLength || 0) > MAX_CANVAS_FILE_BYTES) throw new CanvasConnectionError('Canvas file exceeds the 1 GB individual download limit.')
+    // The browser may legitimately download a large lecture recording or an
+    // archive of past papers. Extend the socket inactivity timeout for this
+    // one authenticated stream without weakening normal API request limits.
+    req.setTimeout(CANVAS_FILE_TIMEOUT_MS)
+    res.writeHead(200, {
+      ...securityHeaders(),
+      'Content-Type': response.headers.get('content-type') || detail.content_type || 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${safeAttachmentName(detail.display_name || detail.filename)}"; filename*=UTF-8''${encodeURIComponent(safeAttachmentName(detail.display_name || detail.filename))}`,
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+      ...(contentLength ? { 'Content-Length': contentLength } : {})
+    })
+    let streamed = 0
+    const body = Readable.fromWeb(response.body)
+    body.on('data', (chunk) => {
+      streamed += chunk.length
+      if (streamed > MAX_CANVAS_FILE_BYTES) body.destroy(new Error('Canvas file exceeded the download limit.'))
+    })
+    body.on('error', () => res.destroy()).pipe(res)
+    return
+  }
+  throw new CanvasConnectionError('Canvas file download redirected too many times.')
+}
 
 function academicReferenceFor(workspace) {
   const memberProgramme = currentAuth().memberships?.[0]?.programmeId
@@ -3174,6 +3309,82 @@ const server = createServer(async (req, res) => {
     if (apiKeyMatch && req.method === 'DELETE') {
       const ok = await revokeApiKey(decodeURIComponent(apiKeyMatch[1]))
       send(res, ok ? 200 : 404, JSON.stringify(ok ? { ok: true } : { error: 'Key not found or already revoked' }))
+      return
+    }
+
+    // Canvas credentials are account data, not agent input. A signed-in browser
+    // may store or remove one; API keys can only use an existing connection.
+    if (url.pathname === '/api/account/integrations/canvas' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ connections: await listCanvasConnections() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/account/integrations/canvas' && req.method === 'PUT') {
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const connection = await saveCanvasConnection({ canvasUrl: body?.canvasUrl, accessToken: body?.accessToken })
+        send(res, 200, JSON.stringify({ connection }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Could not save the Canvas connection.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/account/integrations/canvas' && req.method === 'DELETE') {
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const removed = await removeCanvasConnection({ canvasUrl: body?.canvasUrl })
+        send(res, removed ? 200 : 404, JSON.stringify(removed ? { removed: true } : { error: 'Canvas connection not found.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Could not remove the Canvas connection.' }))
+      }
+      return
+    }
+
+    const canvasOrigin = () => parseCanvasOrigin(url.searchParams.get('canvasUrl') || 'https://canvas.maastrichtuniversity.nl').origin
+    if (url.pathname === '/api/integrations/canvas/courses' && req.method === 'GET') {
+      try {
+        const origin = canvasOrigin()
+        const { token } = await canvasAccessToken({ canvasUrl: origin })
+        const catalog = await listCanvasCourses({ canvasUrl: origin, accessToken: token })
+        send(res, 200, JSON.stringify(catalog), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas course list unavailable.' }))
+      }
+      return
+    }
+    const canvasModuleMatch = url.pathname.match(/^\/api\/integrations\/canvas\/courses\/(\d+)\/modules$/)
+    if (canvasModuleMatch && req.method === 'GET') {
+      try {
+        const origin = canvasOrigin()
+        const { token } = await canvasAccessToken({ canvasUrl: origin })
+        const courseUrl = `${origin}/courses/${canvasModuleMatch[1]}/modules`
+        send(res, 200, JSON.stringify(await listCanvasCourseModules({ courseUrl, accessToken: token })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas course modules unavailable.' }))
+      }
+      return
+    }
+    const canvasFileMatch = url.pathname.match(/^\/api\/integrations\/canvas\/courses\/(\d+)\/files\/(\d+)\/download$/)
+    if (canvasFileMatch && req.method === 'GET') {
+      try {
+        await streamCanvasFile(req, res, { canvasUrl: canvasOrigin(), courseId: canvasFileMatch[1], fileId: canvasFileMatch[2] })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas file download unavailable.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/proxy' && req.method === 'GET') {
+      try {
+        const origin = canvasOrigin()
+        const { token } = await canvasAccessToken({ canvasUrl: origin })
+        const { response, target } = await requestCanvasApi({ origin, token, path: url.searchParams.get('path') || '' })
+        const payload = replaceCanvasFileUrls(await readCanvasJson(response), target.pathname)
+        send(res, 200, JSON.stringify(payload), 'application/json; charset=utf-8', {
+          'Cache-Control': 'no-store',
+          ...(response.headers.get('link') ? { Link: response.headers.get('link') } : {})
+        })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas proxy request unavailable.' }))
+      }
       return
     }
 

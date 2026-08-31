@@ -4,6 +4,34 @@ This is the default process for turning an unsupported academic course into a
 maintained Wicker Study course. A student request and its attachments are
 private intake evidence, not publishable content.
 
+## Editorial standard: source-preserving teaching
+
+Generated material is a teaching derivative, never a replacement for its
+sources. Keep approved originals intact and private for provenance, rights, and
+later review. Do not silently drop, rewrite, or reconcile a meaningful teaching,
+assessment, or curriculum claim: map it to an edition-specific topic, record a
+conflict or gap, or keep it visibly pending review. Clear writing does **not**
+mean copying slides verbatim; it means preserving the source record while making
+the learning explanation better.
+
+Every study page must teach rather than describe the curriculum. It should:
+
+- define the idea precisely in plain language;
+- explain the mechanism, derivation, or reasoning—not merely name it;
+- use a realistic, step-by-step worked example;
+- cover assumptions, limits, edge cases, and common mistakes;
+- end with a useful self-check or bridge to practice; and
+- retain source evidence for every course-specific claim, rule, example, and
+  generated question.
+
+Do not publish meta-summaries such as “this course covers X and Y,” topic lists
+presented as lessons, generic subject trivia, unsupported certainty, or generated
+questions labelled as official university material. Explain **X and Y** directly.
+Label editorial explanation or inference where it goes beyond an explicit source,
+and surface contradictions rather than guessing. The quality report and a human
+reviewer must clear source, coverage, factual, and teaching-quality blockers before
+publication.
+
 ## 1. Collect and verify
 
 - Confirm the university, course code and title, academic year, period, and
@@ -66,12 +94,15 @@ coverage matrix without leaking another course or edition.
 
 ## 5. Create useful study pages
 
-- Write concise concept explanations, definitions, diagrams, worked examples,
-  common misconceptions, prerequisite refreshers, and links between topics.
+- Write substantial but clean concept explanations, precise definitions,
+  diagrams, worked examples, common misconceptions, prerequisite refreshers,
+  and links between topics. Explain the concept itself; never substitute a
+  “the course covers…” description for the explanation.
 - Ground factual claims and course-specific rules in indexed sources. Clearly
   label editorial explanation or inference.
 - Prefer a coherent learning path over a slide-by-slide transcription. Include
-  source and curriculum-edition context where it matters.
+  source and curriculum-edition context where it matters, without hiding source
+  details that change the learner's understanding or assessment.
 
 Exit: every chapter is accurate, navigable, source-grounded, and useful without
 having the original slides open beside it.
@@ -94,6 +125,10 @@ the actual assessment rather than generic subject trivia.
 - Check factual accuracy, calculations, code, citations, retrieval coverage,
   curriculum edition, assessment alignment, difficulty distribution,
   accessibility, and mobile layout.
+- Check that every study page is direct instruction rather than meta-language:
+  it needs a definition, reasoning/mechanism, worked example, limits or common
+  mistakes, and a self-check. Reject thin summaries even when they are factually
+  correct.
 - Check that solutions do not leak into question views, private details are
   absent, source rights permit publication, and generated material is labelled
   where needed.
