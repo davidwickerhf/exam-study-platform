@@ -252,6 +252,7 @@ const LLM_PROVIDER = (process.env.LLM_PROVIDER || llmConfig.provider || 'codex')
 const CODEX_BIN    = process.env.CODEX_BIN    || llmConfig.codexBin    || '/Applications/Codex.app/Contents/Resources/codex'
 const CODEX_MODEL  = process.env.CODEX_MODEL  || llmConfig.codexModel  || ''
 const CLAUDE_BIN   = process.env.CLAUDE_BIN   || llmConfig.claudeBin   || 'claude'
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || llmConfig.claudeModel || ''
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || llmConfig.anthropicApiKey || ''
 const ANTHROPIC_MODEL   = process.env.ANTHROPIC_MODEL   || llmConfig.anthropicModel  || 'claude-sonnet-4-5'
 const OPENAI_API_KEY    = process.env.OPENAI_API_KEY    || llmConfig.openaiApiKey    || ''
@@ -259,11 +260,26 @@ const OPENAI_MODEL      = process.env.OPENAI_MODEL      || llmConfig.openaiModel
 const OPENAI_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || llmConfig.openaiReasoningEffort || DEFAULT_OPENAI_REASONING_EFFORT
 const OPENAI_BASE_URL   = (process.env.OPENAI_BASE_URL  || llmConfig.openaiBaseUrl   || 'https://api.openai.com/v1').replace(/\/+$/, '')
 
+// Per-stage model overrides for the editorial pipeline. Mapping and the quality
+// audit reason over a whole course and want the strong model; drafting is
+// schema-bound extraction from evidence already chosen for it, runs well on a
+// small model, and is by far the most numerous call. Unset means "use the
+// provider's default model", which is the previous behaviour.
+const EDITORIAL_STAGE_MODELS = Object.freeze({
+  map: process.env.LLM_MAP_MODEL || llmConfig.mapModel || '',
+  draft: process.env.LLM_DRAFT_MODEL || llmConfig.draftModel || '',
+  quality: process.env.LLM_QUALITY_MODEL || llmConfig.qualityModel || ''
+})
+
+function stageModel(stage) {
+  return (stage && EDITORIAL_STAGE_MODELS[stage]) || ''
+}
+
 function llmConfiguration() {
   return publicLlmConfiguration({
     provider: LLM_PROVIDER,
     codexModel: CODEX_MODEL,
-    claudeModel: '',
+    claudeModel: CLAUDE_MODEL,
     anthropicModel: ANTHROPIC_MODEL,
     openAiModel: OPENAI_MODEL,
     openAiReasoning: OPENAI_REASONING_EFFORT,
@@ -1086,12 +1102,13 @@ async function runCodex(prompt, opts = {}) {
   }
   try {
     let result
+    const model = opts.model || stageModel(opts.stage)
     switch (LLM_PROVIDER) {
-      case 'codex':  result = await runCodexCli(prompt, opts); break
-      case 'claude': result = await runClaudeCli(prompt, opts); break
+      case 'codex':  result = await runCodexCli(prompt, { ...opts, model }); break
+      case 'claude': result = await runClaudeCli(prompt, { ...opts, model }); break
       case 'api':
-      case 'anthropic': result = await runAnthropicApi(prompt, { ...opts, maxOutputTokens }); break
-      case 'openai': result = await runOpenAiApi(prompt, { ...opts, maxOutputTokens }); break
+      case 'anthropic': result = await runAnthropicApi(prompt, { ...opts, maxOutputTokens, model }); break
+      case 'openai': result = await runOpenAiApi(prompt, { ...opts, maxOutputTokens, model }); break
       default: throw new Error(`Unknown LLM_PROVIDER: ${LLM_PROVIDER} (expected codex|claude|api|openai)`)
     }
     const text = typeof result === 'string' ? result : result.text
@@ -1144,11 +1161,13 @@ async function runCodexCli(prompt, { schemaPath, images = [] } = {}) {
   })
 }
 
-async function runClaudeCli(prompt, { schemaPath, images = [] } = {}) {
+async function runClaudeCli(prompt, { schemaPath, images = [], model = '' } = {}) {
   // Claude Code CLI: `claude --print [-p prompt]`. Reads stdin if no -p.
   // Schema enforcement isn't a first-class flag in claude CLI — we lean on the
   // prompt's "JSON only" instruction, same as the api provider.
   const args = ['--print']
+  const chosen = model || CLAUDE_MODEL
+  if (chosen) args.push('--model', chosen)
   for (const img of images) args.push('--image', img)
   return new Promise((res, rej) => {
     const child = spawn(CLAUDE_BIN, args, { stdio: ['pipe', 'pipe', 'pipe'] })
