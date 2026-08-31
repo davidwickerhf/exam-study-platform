@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
 import { extname, relative, resolve, sep } from 'node:path'
 import { importCanvasCourse } from '../lib/canvas-course-import.mjs'
-import { promptForLocalCanvasImport } from '../lib/local-canvas-prompts.mjs'
+import { promptForLocalCanvasImport, saveCanvasAccessTokenFromClipboard } from '../lib/local-canvas-prompts.mjs'
 
 const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
 const apiKey = process.env.WICKER_STUDY_API_KEY || ''
@@ -41,7 +41,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '1.2.0' })
+const server = new McpServer({ name: 'wicker-study', version: '1.2.1' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
@@ -246,7 +246,13 @@ server.tool('admin_register_course_urls', 'Register public web sources for an ex
 server.tool('admin_sync_course_folder', 'Create or update a versioned course edition from a local folder. Defaults to a dry run. Unchanged files are reused by hash; changed paths supersede older sources. Set replaceManifest only when the folder is the authoritative complete source set.', {
   folderPath: z.string(), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional(), dryRun: z.boolean().default(true), replaceManifest: z.boolean().default(false), rightsBasis: z.enum(['authorised-course-material', 'admin-supplied']).default('admin-supplied'), consentStatus: z.enum(['accepted', 'candidate']).default('accepted')
 }, run(syncCourseFolder))
-server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. The CLI prompts locally only when it has an interactive terminal. An MCP caller provides courseUrl and outputFolder; on the same Mac it reuses the host-scoped token in the user Keychain, or may name a local token with accessTokenEnv. Never pass a Canvas password or OTP here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
+server.tool('admin_save_canvas_token_from_clipboard', 'Store a Canvas Personal Access Token from this Mac’s clipboard in macOS Keychain for the Canvas host. Ask the administrator to copy the token in Canvas and confirm it is on the clipboard; never ask them to paste it into chat or a tool argument. The token value is never returned. Replaces the saved token for this host.', {
+  courseUrl: z.string().url()
+}, run(async ({ courseUrl }) => {
+  const saved = await saveCanvasAccessTokenFromClipboard(courseUrl)
+  return { saved: true, host: saved.host, next: 'Use admin_import_canvas_course with the course URL and an output folder. Future local MCP sessions on this Mac reuse this host-scoped Keychain token.' }
+}))
+server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. Provide courseUrl and outputFolder; on the same Mac it reuses the host-scoped token in the user Keychain. Use admin_save_canvas_token_from_clipboard to provision or replace that local credential without exposing it to the agent. A denied course-wide Files index is recorded as skipped while accessible Module material continues. Never pass a Canvas password, OTP, cookie, or token here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
   courseUrl: z.string().url().optional(), outputFolder: z.string().optional(), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(250).default(250), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
 }, run(importCanvasCourseAndMaybeSync))
 server.tool('admin_list_editorial_workspace', 'List compact course-edition summaries, or pass editionId for its sources, rights decisions, topics, jobs, artifacts, estimates, and releases.', { editionId: z.string().optional() }, run(({ editionId }) => api('/api/admin/editorial-workspace', { query: { editionId } })))

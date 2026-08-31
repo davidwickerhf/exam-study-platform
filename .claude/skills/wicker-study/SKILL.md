@@ -108,15 +108,22 @@ When an administrator gives a Canvas course Modules URL, use
 credentials. Canvas authentication stays with Canvas: never ask for, receive, store,
 or paste a Canvas password, MFA/OTP code, browser cookie, or session export.
 
-- The administrator completes Canvas SAML/OTP in Canvas and creates a short-lived
-  Personal Access Token if their institution permits it. On macOS, call
-  `admin_import_canvas_course` with no arguments: one local native panel collects the
-  Modules URL, selects the output folder in Finder, and accepts the token in a secure,
-  one-time field. It is never saved. An existing local `CANVAS_ACCESS_TOKEN` is used
-  only when explicitly passed as the optional `accessTokenEnv` shortcut.
+- The administrator completes Canvas SAML/OTP in Canvas and creates a Personal Access
+  Token if their institution permits it. **Never request the token in chat or as a
+  tool argument.** On this Mac, ask them to copy it in Canvas and confirm that it is
+  on the clipboard, then call `admin_save_canvas_token_from_clipboard({ courseUrl })`.
+  The tool reads the clipboard locally once, returns no token, and stores it in their
+  macOS Keychain scoped to the Canvas host. Later local MCP sessions reuse that entry.
+  Re-run the same tool after a token rotation. A different Mac, user account, or Canvas
+  host needs its own local credential.
+- Call `admin_import_canvas_course` with the exact Modules URL and an absolute local
+  `outputFolder`; it needs no terminal or native dialog. Use `accessTokenEnv` only for
+  a non-macOS automated environment where a local secret manager supplies the value.
 - The importer collects accessible module files, pages, assignments, discussions,
   quizzes, and external-link references into a stable, categorised folder with a hidden
-  manifest. It does not fetch third-party links.
+  manifest. It does not fetch third-party links. If Canvas denies the optional
+  course-wide Files index, retain and report that skip while importing the accessible
+  Module material; do not mistake that single 403 for an invalid token.
 - Inspect the local `README.md`, manifest, and skipped items. Re-run into the same
   folder whenever Canvas publishes new weekly material; unchanged files are reused by
   hash during the later folder sync. Paths no longer returned by Canvas are flagged for

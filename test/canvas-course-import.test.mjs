@@ -87,6 +87,56 @@ test('Canvas importer distinguishes PAT verification from course access denial',
   }
 })
 
+test('Canvas importer keeps accessible module material when the optional Files index is denied', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'wicker-canvas-import-'))
+  try {
+    const result = await importCanvasCourse({
+      courseUrl: 'https://canvas.example.edu/courses/1/modules',
+      accessToken: 'local-token-only',
+      outputFolder: root,
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1, name: 'Canvas learner' })
+        if (url.pathname === '/api/v1/courses/1') return json({ id: 1, name: 'Accessible course', course_code: 'CS101' })
+        if (url.pathname === '/api/v1/courses/1/modules') return json([{ id: 10, name: 'Week 1', position: 1, items: [{ id: 11, type: 'Page', title: 'Welcome', position: 1, page_url: 'welcome' }] }])
+        if (url.pathname === '/api/v1/courses/1/files') return new Response('', { status: 403 })
+        if (url.pathname === '/api/v1/courses/1/pages/welcome') return json({ title: 'Welcome', body: '<p>Accessible through Modules.</p>', published: true })
+        throw new Error(`Unexpected Canvas request: ${url}`)
+      }
+    })
+    assert.equal(result.resources, 1)
+    assert.ok(result.skipped.some((item) => item.label === 'Course-wide Files listing' && /HTTP 403/.test(item.reason)))
+    const manifest = JSON.parse(await readFile(join(root, '.wicker-canvas-import.json'), 'utf8'))
+    assert.equal(manifest.resources[0].kind, 'page')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('Canvas importer tolerates an indented item without a preceding module heading', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'wicker-canvas-import-'))
+  try {
+    const result = await importCanvasCourse({
+      courseUrl: 'https://canvas.example.edu/courses/1/modules',
+      accessToken: 'local-token-only',
+      outputFolder: root,
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1, name: 'Canvas learner' })
+        if (url.pathname === '/api/v1/courses/1') return json({ id: 1, name: 'Accessible course', course_code: 'CS101' })
+        if (url.pathname === '/api/v1/courses/1/modules') return json([{ id: 10, name: 'Week 1', position: 1, items: [{ id: 11, type: 'ExternalUrl', title: 'Course reference', position: 1, indent: 2, external_url: 'https://example.edu/reference' }] }])
+        if (url.pathname === '/api/v1/courses/1/files') return json([])
+        throw new Error(`Unexpected Canvas request: ${url}`)
+      }
+    })
+    assert.equal(result.resources, 1)
+    const manifest = JSON.parse(await readFile(join(root, '.wicker-canvas-import.json'), 'utf8'))
+    assert.equal(manifest.resources[0].kind, 'external-link')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('Canvas importer refuses to overwrite a folder that was not created by it', async () => {
   const root = await mkdtemp(join(tmpdir(), 'wicker-canvas-import-'))
   try {
