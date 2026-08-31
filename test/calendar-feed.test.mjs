@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { aggregateCalendar, calendarPeriodCourseEvidence, resolveAcademicTimeContext, resolveExamWindow } from '../lib/calendar-feed.mjs'
+import { aggregateCalendar, calendarPeriodCourseEvidence, isTeachingAppointment, resolveAcademicTimeContext, resolveExamWindow } from '../lib/calendar-feed.mjs'
 import { normalizeAcademicWorkspace } from '../lib/academics.mjs'
 
 test('calendar aggregates attempts, events, institution dates, and feeds without duplicates', () => {
@@ -77,6 +77,44 @@ test('the active-period answer is the intersection of current attempts and timet
   assert.deepEqual(result.periodCourses.filter((item) => item.active).map((item) => item.code), codes)
   assert.equal(result.periodCourses.filter((item) => item.active).length, 6)
   assert.deepEqual(result.examWindow, { title: 'Exam week · Period 1', start: '2026-10-12', end: '2026-10-16', period: 'Period 1', academicYear: '2026-2027' })
+})
+
+test('teaching appointments remain current-course evidence before they are copied into the academic record', () => {
+  const calendar = [{ title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', kind: 'period', period: 1, academicYear: '2026-2027' }]
+  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [
+    { code: 'BCS2120', name: 'Introduction to Artificial Intelligence', period: 'Period 1', attempts: [{ status: 'upcoming' }] },
+    { code: 'BCS2130', name: 'Intelligent User Interfaces', period: 'Period 1', attempts: [{ status: 'upcoming' }] },
+    { code: 'BCS2140', name: 'Operating Systems', period: 'Period 1', attempts: [{ status: 'upcoming' }] }
+  ] })
+  const feed = { link: { id: 'feed', label: 'Timetable' }, events: [
+    { title: 'BCS2120/2026-100/Lecture Tue/01 - Introduction to Artificial Intelligence', date: '2026-09-01', notes: '09:00–11:00 · PHS1' },
+    { title: 'BCS2130/2026-100/Lecture Thu/01 - Intelligent User Interfaces', date: '2026-09-03', notes: '09:00–11:00 · PHS1' },
+    { title: 'BCS2140/2026-100/Lecture Mon/01 - Operating Systems', date: '2026-09-07', notes: '09:00–11:00 · PHS1' },
+    { title: 'BCS3120/2026-100/Lecture Tue/01 - Ubiquitous Computing & Internet of Things', date: '2026-09-01', notes: '11:30–13:30 · PHS1' },
+    { title: 'BCS3130/2026-100/Lecture Mon/01 - Game Theory', date: '2026-09-07', notes: '11:30–13:30 · PHS1' },
+    { title: 'BCS3210/2026-100/Lecture Wed/01 - Block Chains', date: '2026-09-02', notes: '11:30–13:30 · PHS1' },
+    { title: 'BCS3300/2026-002/Project Opening (P1)/01 - Project 3-1', date: '2026-08-31', notes: '07:00–08:30 · DACS Online · Type: Project' }
+  ] }
+  const result = aggregateCalendar({ workspace, institutionCalendar: calendar, feeds: [feed], date: '2026-09-01' })
+  assert.deepEqual(result.periodCourses.map((item) => item.code), ['BCS2120', 'BCS2130', 'BCS2140', 'BCS3120', 'BCS3130', 'BCS3210'])
+  assert.equal(result.periodCourses.filter((item) => item.selected).length, 3)
+  assert.equal(result.periodCourses.filter((item) => item.teaching).length, 6)
+})
+
+test('a coded project-opening notice stays in Calendar but is not enrolment evidence', () => {
+  const projectOpening = { title: 'BCS3300/2026-002/Project Opening (P1)/01 - Project 3-1', date: '2026-08-31', notes: '07:00–08:30 · DACS Online · Type: Project' }
+  assert.equal(isTeachingAppointment(projectOpening), false)
+
+  const calendar = [{ title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', kind: 'period', period: 1, academicYear: '2026-2027' }]
+  const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [
+    { id: 'project', code: 'BCS3300', name: 'Project 3-1', period: 'Period 1', attempts: [{ status: 'upcoming' }] },
+    { id: 'iui', code: 'BCS2130', name: 'Intelligent User Interfaces', period: 'Period 1', attempts: [{ status: 'upcoming' }] }
+  ] })
+  const result = aggregateCalendar({ workspace, institutionCalendar: calendar, feeds: [{ link: { id: 'feed', label: 'Timetable' }, events: [projectOpening, { title: 'BCS2130/2026-100/Lecture Thu/01 - Intelligent User Interfaces', date: '2026-09-03', notes: '09:00–11:00 · PHS1 C0.016' }] }], date: '2026-09-01' })
+  assert.deepEqual(result.periodCourses.map((item) => item.code), ['BCS2130'])
+  const project = result.events.find((event) => event.sourceTitle === projectOpening.title)
+  assert.equal(project.title, 'BCS3300 · Project 3-1')
+  assert.equal(project.activity, 'Project Opening')
 })
 
 test('academic context looks ahead before teaching starts', () => {

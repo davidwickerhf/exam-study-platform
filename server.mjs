@@ -428,9 +428,15 @@ async function sessionPayload(auth, { autoScope = false } = {}) {
 }
 
 async function readState() {
-  const template = await loadEditorialState(templatePath)
   // Import the legacy single-user file once in local mode. It is never removed.
-  const [settings, progress] = await Promise.all([listCourseSettings(), listItemProgress()])
+  // Editorial state and the student's small progress overlay are independent
+  // database reads. Starting them together removes one cold-start round trip
+  // from the workspace's critical /api/state path.
+  const [template, settings, progress] = await Promise.all([
+    loadEditorialState(templatePath),
+    listCourseSettings(),
+    listItemProgress()
+  ])
   if (!settings.length && !progress.length && storageMode() === 'local' && existsSync(dataPath)) {
     try { return mergeEditorialState(template, JSON.parse(await readFile(dataPath, 'utf8'))) } catch {}
   }
@@ -3232,7 +3238,28 @@ const server = createServer(async (req, res) => {
         const body = await readBody(req, 42 * 1024 * 1024)
         const { workspace } = await readAcademicState()
         const academicCourseId = String(body?.academicCourseId || '')
-        const course = workspace.courses.find((candidate) => candidate.id === academicCourseId)
+        let course = workspace.courses.find((candidate) => candidate.id === academicCourseId)
+        // A current timetable can surface a legitimate course before the
+        // student has copied it into their long-lived academic record. Permit
+        // a content request only when that exact inferred code is still
+        // evidenced by the user's saved live timetable in the active period.
+        if (!course && academicCourseId.startsWith('inferred:')) {
+          const requestedCode = academicCourseId.slice('inferred:'.length).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+          const feeds = []
+          for (const link of workspace.calendars || []) {
+            try { feeds.push({ link, events: await feedEvents(link) }) } catch {}
+          }
+          const context = resolveAcademicTimeContext(academicCalendarFor(workspace), { date: new Date() })
+          const inferred = calendarPeriodCourseEvidence(workspace, feeds, context)
+            .find((item) => item.teaching && String(item.code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase() === requestedCode)
+          if (inferred) course = {
+            id: academicCourseId,
+            code: inferred.code,
+            name: inferred.name || inferred.code,
+            period: context?.period || '',
+            attempts: []
+          }
+        }
         if (!course) { send(res, 404, JSON.stringify({ error: 'This course is not in your current academic record.' })); return }
         const result = await createCourseContentRequest({
           ...body,

@@ -3450,12 +3450,13 @@ function sameAcademicYear(left, right) {
   return String(left || '').replace(/[–—/]/g, '-').trim() === String(right || '').replace(/[–—/]/g, '-').trim()
 }
 
-// The current-course answer is source-aware: a manual period assignment wins,
-// otherwise it is the intersection of an upcoming academic attempt and events
-// in the timetable's current academic-period window.
+// The current-course answer is source-aware: a manual period assignment wins.
+// Otherwise every teaching appointment in the timetable's current academic
+// period is shown, including courses not yet copied into the personal record.
+// A feed is evidence, not a silent change to a student's enrolment record.
 function currentAcademicCourseEntries() {
   const workspace = academicsData?.workspace
-  if (!workspace?.courses?.length) return []
+  if (!workspace) return []
   const context = calendarState.data?.academicContext || null
   const assignments = workspace.planning?.periodAssignments || []
   const assignment = context ? assignments.find((item) => item.period === context.period && sameAcademicYear(item.academicYear, context.academicYear)) : null
@@ -3466,12 +3467,19 @@ function currentAcademicCourseEntries() {
     academicCourses = assignment.courseIds.map((id) => byId.get(id)).filter(Boolean)
     source = 'manual'
   } else {
-    const evidence = (calendarState.data?.periodCourses || []).filter((item) => item.active)
+    const evidence = (calendarState.data?.periodCourses || []).filter((item) => item.teaching)
     if (evidence.length) {
       const byId = new Map(workspace.courses.map((course) => [course.id, course]))
       const byCode = new Map(workspace.courses.map((course) => [normalizedCourseCode(course.code), course]))
-      academicCourses = evidence.map((item) => byId.get(item.courseId) || byCode.get(normalizedCourseCode(item.code))).filter(Boolean)
-      source = 'cross-referenced'
+      academicCourses = evidence.map((item) => byId.get(item.courseId) || byCode.get(normalizedCourseCode(item.code)) || {
+        id: `inferred:${normalizedCourseCode(item.code)}`,
+        code: item.code,
+        name: item.name || item.code,
+        period: context?.period || '',
+        attempts: [],
+        inferredFromTimetable: true
+      })
+      source = academicCourses.some((course) => course.inferredFromTimetable) ? 'timetable' : 'cross-referenced'
     } else {
       academicCourses = workspace.courses.filter((course) => course.programmeRequirement !== 'historical'
         && (course.attempts || []).some((attempt) => attempt.status === 'upcoming')
@@ -3479,10 +3487,14 @@ function currentAcademicCourseEntries() {
     }
   }
   const seen = new Set()
-  return academicCourses.filter((course) => course && !seen.has(course.id) && seen.add(course.id)).map((academic) => ({
+  return academicCourses.filter((course) => {
+    const identity = normalizedCourseCode(course?.code) || course?.id
+    return course && identity && !seen.has(identity) && seen.add(identity)
+  }).map((academic) => ({
     academic,
     editorial: editorialCourseForAcademic(academic),
-    source
+    source,
+    inferred: Boolean(academic.inferredFromTimetable)
   }))
 }
 
@@ -3495,7 +3507,6 @@ function ensureHomeData() {
   if (!srDueCache) loadSrDue().then(() => render())
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (!calendarState.data && !calendarState.loading && !calendarState.error) queueMicrotask(() => loadCalendarEvents())
-  ensureCoverage()
 }
 
 function renderCurrentCourseLedger(entries, examWindow) {
@@ -3613,7 +3624,9 @@ function renderHome() {
   const recent = recentChapter()
   const courses = activeCourses()
   const currentEditorial = currentEntries.map((entry) => entry.editorial).filter(Boolean)
-  const fallback = currentEditorial[0] || courses[0]
+  // Do not fall back to an unrelated catalogue course while the current
+  // timetable is known but its course materials have not been published.
+  const fallback = currentEditorial[0] || (currentEntries.length ? null : courses[0])
   const recentIsCurrent = recent && (!currentEntries.length || currentEditorial.some((course) => course.id === recent.course.id))
   const resumeCourse = recentIsCurrent ? recent.course : fallback
   const resumeChapter = recentIsCurrent ? recent.chapter : fallback?.chapters?.find((ch) => ch.file?.endsWith('.md'))
@@ -3662,7 +3675,7 @@ function renderHome() {
           ${activity ? renderActivityFeed(activity) : ''}
         </section>
 
-        <div class="section-head"><div><h2>${calendarState.data?.academicContext?.period || 'Current courses'}</h2>${currentEntries.length ? `<p>${currentEntries.length} active course${currentEntries.length === 1 ? '' : 's'} · ${currentEntries[0].source === 'cross-referenced' ? 'cross-referenced from your academic record and timetable' : currentEntries[0].source === 'manual' ? 'set for this period' : 'from your academic record'}</p>` : ''}</div><a class="pl-link" href="#/planning/courses">Manage</a></div>
+        <div class="section-head"><div><h2>${calendarState.data?.academicContext?.period || 'Current courses'}</h2>${currentEntries.length ? `<p>${currentEntries.length} active course${currentEntries.length === 1 ? '' : 's'} · ${currentEntries[0].source === 'timetable' ? 'identified from teaching appointments in your timetable' : currentEntries[0].source === 'cross-referenced' ? 'cross-referenced from your academic record and timetable' : currentEntries[0].source === 'manual' ? 'set for this period' : 'from your academic record'}</p>` : ''}</div><a class="pl-link" href="#/planning/courses">Manage</a></div>
         ${renderCurrentCourseLedger(currentEntries, examWindow)}
       </section>
 
@@ -3694,7 +3707,6 @@ function renderHome() {
         </section>` : ''}
       </aside>
     </div>
-    ${renderGenerateAllCoursesCard()}
   `
 }
 
@@ -3749,12 +3761,30 @@ function renderIngestionProgress(request) {
   return `<ol class="course-request-progress" aria-label="Course ingestion progress">${stages.map((stage, index) => `<li class="${index < activeIndex || request.status === 'published' ? 'is-complete' : index === activeIndex ? 'is-current' : ''}"><span>${index < activeIndex || request.status === 'published' ? uiIcon('check') : index + 1}</span><div><strong>${escapeHtml(stage.label)}</strong>${stage.detail ? `<small>${escapeHtml(stage.detail)}</small>` : ''}</div></li>`).join('')}</ol>`
 }
 
+function courseForContentRequest() {
+  const workspace = academicsData?.workspace
+  const stored = workspace?.courses?.find((candidate) => candidate.id === route.academicCourseId)
+  if (stored) return stored
+  if (!route.academicCourseId?.startsWith('inferred:')) return null
+  const code = normalizedCourseCode(route.academicCourseId.slice('inferred:'.length))
+  const evidence = (calendarState.data?.periodCourses || []).find((item) => item.teaching && normalizedCourseCode(item.code) === code)
+  if (!evidence) return null
+  return {
+    id: route.academicCourseId,
+    code: evidence.code,
+    name: evidence.name || evidence.code,
+    period: calendarState.data?.academicContext?.period || '',
+    attempts: [],
+    inferredFromTimetable: true
+  }
+}
+
 function renderCourseRequestPage() {
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (!calendarState.data && !calendarState.loading && !calendarState.error) queueMicrotask(() => loadCalendarEvents())
-  if (!academicsData) return `<div class="course-request-shell"><div class="settings-loading"><span></span><p>${academicsError ? escapeHtml(academicsError) : 'Loading this course from your academic record…'}</p></div></div>`
-  const course = academicsData.workspace.courses.find((candidate) => candidate.id === route.academicCourseId)
-  if (!course) return `<div class="course-request-shell"><a class="back-link" href="#/">← Home</a><section class="panel course-request-missing"><h1>Course not found</h1><p>This course is no longer in the active academic record.</p><a class="btn btn-secondary" href="#/planning/courses">Review courses</a></section></div>`
+  if (!academicsData || (route.academicCourseId?.startsWith('inferred:') && !calendarState.data && !calendarState.error)) return `<div class="course-request-shell"><div class="settings-loading"><span></span><p>${academicsError || calendarState.error ? escapeHtml(academicsError || calendarState.error) : 'Loading this course from your academic record and timetable…'}</p></div></div>`
+  const course = courseForContentRequest()
+  if (!course) return `<div class="course-request-shell"><a class="back-link" href="#/">← Home</a><section class="panel course-request-missing"><h1>Course not found</h1><p>This course is no longer in the active academic record or timetable.</p><a class="btn btn-secondary" href="#/planning/courses">Review courses</a></section></div>`
   const editorial = editorialCourseForAcademic(course)
   if (editorial) return `<div class="course-request-shell"><a class="back-link" href="#/">← Home</a><section class="panel course-request-missing"><span class="course-request-mark is-ready">${uiIcon('check')}</span><p class="page-eyebrow">Material available</p><h1>${escapeHtml(course.code || course.name)}</h1><p>This course now has maintained study content.</p><a class="btn btn-primary" href="#/course/${encodeURIComponent(editorial.id)}">Open course</a></section></div>`
   if (courseRequestState.courseId !== course.id) resetCourseRequestForm(course.id)
@@ -3766,7 +3796,7 @@ function renderCourseRequestPage() {
   return `<div class="course-request-shell">
     <a class="back-link" href="#/">← Home</a>
     <header class="course-request-hero">
-      <div><p class="page-eyebrow">${escapeHtml(course.period || calendarState.data?.academicContext?.period || 'Current course')}</p><h1>${escapeHtml(course.code || '')}${course.code ? ' · ' : ''}${escapeHtml(course.name)}</h1><p>We recognise this course in your academic record and timetable, but do not have maintained study content for it yet.</p></div>
+      <div><p class="page-eyebrow">${escapeHtml(course.period || calendarState.data?.academicContext?.period || 'Current course')}</p><h1>${escapeHtml(course.code || '')}${course.code ? ' · ' : ''}${escapeHtml(course.name)}</h1><p>${course.inferredFromTimetable ? 'Your live timetable identifies this as a current teaching course. ' : 'We recognise this course in your academic record and timetable, but '}We do not have maintained study content for it yet.</p></div>
       <span class="course-request-mark">${uiIcon('book')}</span>
     </header>
     <div class="course-request-layout">
@@ -3804,10 +3834,13 @@ let calendarLibPromise = null
 function scheduleCalendarAutoRefresh() {
   if (calendarAutoRefreshTimer) clearTimeout(calendarAutoRefreshTimer)
   calendarAutoRefreshTimer = null
-  if (route.page !== 'calendar') return
+  // Home uses the same live timetable evidence to answer “current courses”,
+  // so refresh it alongside Calendar rather than leaving a long-open
+  // dashboard to show the period that was true at initial load.
+  if (!['calendar', 'dashboard'].includes(route.page)) return
   calendarAutoRefreshTimer = setTimeout(() => {
     calendarAutoRefreshTimer = null
-    if (route.page === 'calendar') loadCalendarEvents(true)
+    if (['calendar', 'dashboard'].includes(route.page)) loadCalendarEvents(true)
   }, CALENDAR_AUTO_REFRESH_MS)
 }
 function ensureCalendarLib() {
@@ -3883,8 +3916,6 @@ function renderCalendarPage() {
   const anchor = calendarState.date || today
   const titleDate = new Date(`${anchor}T00:00:00`)
   const title = calendarState.instance ? calendarState.instance.view.title : new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(titleDate)
-  const reconciliation = data?.reconciliation
-  const unselectedCourses = reconciliation?.unselected || []
   const workspace = academicsData?.workspace
   const assignments = workspace?.planning?.periodAssignments || []
   const inferredContext = data?.academicContext || null
@@ -3893,26 +3924,29 @@ function renderCalendarPage() {
   const samePeriod = (assignment) => assignment && academicContext && String(assignment.academicYear).replace(/[–—/]/g, '-') === String(academicContext.academicYear).replace(/[–—/]/g, '-') && assignment.period === academicContext.period
   const currentAssignment = assignments.findLast(samePeriod) || null
   const inferredPeriodCourses = data?.periodCourses || []
+  const currentEntries = currentAcademicCourseEntries()
+  const activeCourses = currentEntries.map((entry) => entry.academic)
+  const timetableOnly = currentEntries.filter((entry) => entry.inferred).map((entry) => entry.academic)
   const inferredActiveCourses = inferredPeriodCourses.filter((item) => item.active && item.courseId)
   const activeCourseIds = currentAssignment?.courseIds || (inferredActiveCourses.length ? inferredActiveCourses : inferredPeriodCourses.filter((item) => item.selected && item.courseId)).map((item) => item.courseId)
-  const activeCourses = activeCourseIds.map((id) => workspace?.courses?.find((course) => course.id === id)).filter(Boolean)
   const examWindow = data?.examWindow || null
   const contextTiming = academicContext?.phase === 'upcoming'
     ? academicContext.daysUntil === 1 ? 'starts tomorrow' : academicContext.daysUntil === 0 ? 'starts today' : `starts in ${academicContext.daysUntil} days`
     : academicContext?.start ? `${academicDate(academicContext.start)}${academicContext.end && academicContext.end !== academicContext.start ? ` – ${academicDate(academicContext.end)}` : ''}` : 'set manually'
   const contextNotice = workspace ? `<section class="calx-context${calendarState.periodEditor ? ' is-editing' : ''}" aria-label="Current academic period">
-    <div class="calx-context-row">${uiIcon('book')}<div><strong>${academicContext ? `${escapeHtml(academicContext.period)}${academicContext.academicYear ? ` · ${escapeHtml(academicContext.academicYear)}` : ''}` : 'Current study period is not set'}</strong><p>${academicContext ? `${escapeHtml(contextTiming)} · ${currentAssignment ? `${activeCourses.length} course${activeCourses.length === 1 ? '' : 's'} set manually` : activeCourses.length ? `${activeCourses.length} active course${activeCourses.length === 1 ? '' : 's'} cross-referenced from your academic record and timetable` : inferredPeriodCourses.length ? 'courses inferred from the current timetable window' : `based on ${escapeHtml(academicContext.source || 'the academic calendar')}`}` : 'Add an academic calendar or set the period and courses yourself.'}</p>${examWindow && activeCourses.length ? `<p class="calx-context-exams"><strong>Upcoming exam period</strong> ${escapeHtml(examWindow.title)} · ${academicDate(examWindow.start)}${examWindow.end !== examWindow.start ? `–${academicDate(examWindow.end)}` : ''}</p>` : ''}${activeCourses.length ? `<ul>${activeCourses.map((course) => `<li>${escapeHtml(course.code || course.name)}</li>`).join('')}</ul>` : ''}</div><button type="button" class="btn btn-secondary btn-sm" data-cal-period-edit>${calendarState.periodEditor ? 'Close' : activeCourses.length ? 'Set current courses' : 'Set period and courses'}</button></div>
+    <div class="calx-context-row">${uiIcon('book')}<div><strong>${academicContext ? `${escapeHtml(academicContext.period)}${academicContext.academicYear ? ` · ${escapeHtml(academicContext.academicYear)}` : ''}` : 'Current study period is not set'}</strong><p>${academicContext ? `${escapeHtml(contextTiming)} · ${currentAssignment ? `${activeCourses.length} course${activeCourses.length === 1 ? '' : 's'} set manually` : activeCourses.length ? `${activeCourses.length} current teaching course${activeCourses.length === 1 ? '' : 's'} detected from your timetable` : inferredPeriodCourses.length ? 'teaching appointments detected in the current timetable window' : `based on ${escapeHtml(academicContext.source || 'the academic calendar')}`}` : 'Add an academic calendar or set the period and courses yourself.'}</p>${timetableOnly.length ? `<p class="calx-context-note">${timetableOnly.length} course${timetableOnly.length === 1 ? '' : 's'} ${timetableOnly.length === 1 ? 'is' : 'are'} currently evidenced only by the timetable. They are shown here, but are not copied into your academic record automatically.</p>` : ''}${examWindow && activeCourses.length ? `<p class="calx-context-exams"><strong>Upcoming exam period</strong> ${escapeHtml(examWindow.title)} · ${academicDate(examWindow.start)}${examWindow.end !== examWindow.start ? `–${academicDate(examWindow.end)}` : ''}</p>` : ''}${activeCourses.length ? `<ul>${activeCourses.map((course) => `<li>${escapeHtml(course.code || course.name)}</li>`).join('')}</ul>` : ''}</div><button type="button" class="btn btn-secondary btn-sm" data-cal-period-edit>${calendarState.periodEditor ? 'Close' : activeCourses.length ? 'Review period plan' : 'Set period and courses'}</button></div>
     ${calendarState.periodEditor ? `<form class="calx-period-editor" data-cal-period-assignment>
       <div class="calx-period-fields"><label><span>Academic year</span><input name="academicYear" value="${escapeHtml(academicContext?.academicYear || workspace.profile.academicYear || '')}" maxlength="30" required placeholder="2026–2027"></label><label><span>Period</span><select name="period">${[1, 2, 3, 4, 5, 6].map((period) => `<option value="Period ${period}" ${academicContext?.period === `Period ${period}` ? 'selected' : ''}>Period ${period}</option>`).join('')}</select></label></div>
       <fieldset><legend>Courses in this period</legend><div>${workspace.courses.filter((course) => course.programmeRequirement !== 'historical').map((course) => `<label><input type="checkbox" name="courseIds" value="${escapeHtml(course.id)}" ${activeCourseIds.includes(course.id) ? 'checked' : ''}><span><strong>${escapeHtml(course.code || course.name)}</strong>${course.code ? `<small>${escapeHtml(course.name)}</small>` : ''}</span></label>`).join('')}</div></fieldset>
+      ${timetableOnly.length ? `<p class="calx-period-saved">Also detected in the timetable: ${timetableOnly.map((course) => escapeHtml(course.code || course.name)).join(', ')}. Review these in Documents before adding them to your personal record.</p>` : ''}
       ${assignments.length ? `<p class="calx-period-saved">Saved periods: ${assignments.map((assignment) => `${escapeHtml(assignment.period)} (${assignment.courseIds.length})`).join(' · ')}</p>` : ''}
       <div class="cal-compose-actions"><button type="button" class="btn btn-ghost" data-cal-period-edit>Cancel</button><button type="submit" class="btn btn-primary">Save period courses</button></div>
     </form>` : ''}
   </section>` : ''
-  const crossCheckNotice = unselectedCourses.length ? `<div class="calx-crosscheck is-attention" role="status">
-    ${uiIcon('alert')}
-    <div><strong>${unselectedCourses.length} timetable course${unselectedCourses.length === 1 ? '' : 's'} ${unselectedCourses.length === 1 ? 'is' : 'are'} not in your selected plan</strong><p>${unselectedCourses.slice(0, 4).map((item) => item.code || item.name).join(', ')}${unselectedCourses.length > 4 ? ` and ${unselectedCourses.length - 4} more` : ''}. Their appointments remain visible, but the feed does not change your course choices.</p></div>
-    <a class="btn btn-secondary btn-sm" href="#/planning/documents">Manage feeds</a>
+  const crossCheckNotice = timetableOnly.length ? `<div class="calx-crosscheck is-review" role="status">
+    ${uiIcon('book')}
+    <div><strong>${timetableOnly.length} teaching course${timetableOnly.length === 1 ? '' : 's'} ${timetableOnly.length === 1 ? 'is' : 'are'} shown from your timetable</strong><p>${timetableOnly.map((course) => escapeHtml(course.code || course.name)).join(', ')}. They count as current here, but the system will not alter your personal course record without your review.</p></div>
+    <a class="btn btn-secondary btn-sm" href="#/planning/documents">Review records</a>
   </div>` : ''
   return `<section class="calx">
     <aside class="calx-rail">
@@ -3951,7 +3985,8 @@ function renderCalendarPage() {
           <h3>${escapeHtml(selected.title)}</h3>
           ${selected.kind && selected.kind !== 'other' && !(selected.period == null && selected.semester == null && !selected.cohorts?.length) ? `<p class="cal-detail-kind">${escapeHtml(({ period: 'Education period', 'exam-week': selected.resit ? 'Exams and resits' : 'Exam week', 'resit-week': 'Resit week', 'study-week': 'Study week', 'project-week': 'Project period', holiday: 'Holiday — no education', intro: 'Introduction', deadline: 'Deadline', ceremony: 'Ceremony' })[selected.kind] || selected.kind)}${selected.period ? ` · Period ${selected.period}` : selected.semester ? ` · Semester ${selected.semester}` : ''}${selected.cohorts?.length ? ` · ${escapeHtml(selected.cohorts.join(', '))}` : ''}</p>` : ''}
           <p class="cal-detail-when">${academicDate(String(selected.start).slice(0, 10))}${!selected.allDay ? ` · ${String(selected.start).slice(11, 16)}${selected.end ? `–${String(selected.end).slice(11, 16)}` : ''}` : selected.end ? ` → ${academicDate(prevDay(String(selected.end).slice(0, 10)))}` : ''}</p>
-          ${selected.notes && !(selected.source === 'plan' && !selected.courseId) ? `<p class="cal-detail-notes">${escapeHtml(selected.notes)}</p>` : ''}
+          ${selected.notes && !(selected.source === 'plan' && !selected.courseId) && !selected.feedLabel ? `<p class="cal-detail-notes">${escapeHtml(selected.notes)}</p>` : ''}
+          ${selected.feedLabel ? `<p class="cal-detail-source">${escapeHtml(selected.activity || 'Timetable appointment')} · ${escapeHtml(selected.feedLabel)}</p>${selected.notes || selected.sourceTitle ? `<details class="cal-detail-raw"><summary>Timetable details</summary>${selected.notes ? `<p>${escapeHtml(selected.notes)}</p>` : ''}${selected.sourceTitle ? `<p>Source: ${escapeHtml(selected.sourceTitle)}</p>` : ''}</details>` : ''}` : ''}
           ${selected.source === 'plan' && !selected.courseId ? `<form class="pl-editor cal-editor" data-academic-event-edit="${escapeHtml(selected.id.slice(6))}">
             <div class="pl-fields pl-fields-event">
               <label class="wide"><span>Title</span><input name="title" value="${escapeHtml(selected.title)}" maxlength="200" required></label>
@@ -3994,8 +4029,22 @@ function mountCalendar() {
     firstDay: 1,
     nowIndicator: true,
     dayMaxEvents: true,
+    slotEventOverlap: false,
+    eventMinHeight: 32,
     navLinks: true,
     events: (info, success) => success(visibleCalendarEvents().map(toFullCalendarEvent)),
+    eventContent: (info) => {
+      const event = info.event.extendedProps
+      if (event.category !== 'timetable' || info.event.allDay) {
+        return { html: `<span class="cal-event-default">${info.timeText ? `<small>${escapeHtml(info.timeText)}</small>` : ''}<span>${escapeHtml(info.event.title)}</span></span>` }
+      }
+      const code = event.courseCode || ''
+      const name = event.courseName || info.event.title || 'Timetable appointment'
+      const activity = event.activity && event.activity !== 'Timetable' ? event.activity : ''
+      return {
+        html: `<span class="cal-event-compact"><small>${escapeHtml(info.timeText)}</small><strong>${escapeHtml(code)}</strong><span>${escapeHtml(activity ? `${activity} · ${name}` : name)}</span></span>`
+      }
+    },
     eventClick: (info) => { info.jsEvent.preventDefault(); calendarState.selected = info.event.id; calendarState.date = localIsoDate(calendar.getDate()); render() },
     datesSet: () => {
       calendarState.date = localIsoDate(calendar.getDate())
@@ -9124,7 +9173,7 @@ function bindEvents() {
 
   document.querySelectorAll('[data-course-request-form]').forEach((form) => form.addEventListener('submit', async (event) => {
     event.preventDefault()
-    const course = academicsData?.workspace?.courses?.find((candidate) => candidate.id === route.academicCourseId)
+    const course = courseForContentRequest()
     if (!course || courseRequestState.sending) return
     courseRequestState.sending = true
     courseRequestState.uploadProgress = 'Sending request…'

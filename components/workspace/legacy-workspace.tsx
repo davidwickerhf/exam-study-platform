@@ -179,8 +179,11 @@ function loadLegacyApplication(version: string) {
 
 async function startLegacyApplication(version: string) {
   prepareWorkspaceDom('Loading your courses…')
-  window.setTimeout(() => void loadStudyDependencies().catch(() => undefined), 0)
-  await configureCloudSync()
+  // Reading the optional browser-state backup and downloading the entire
+  // reader toolchain used to block the first workspace render. Neither is
+  // needed for Home, Planning, or Calendar. The study reader still loads its
+  // dependencies on demand through __ensureStudyDeps.
+  void configureCloudSync()
   await loadLegacyApplication(version)
 }
 
