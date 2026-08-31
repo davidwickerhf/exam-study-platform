@@ -168,7 +168,18 @@ final class ImportForm: NSObject {
   }
 
   func present() -> ImportOutput {
-    NSApplication.shared.activate(ignoringOtherApps: true)
+    // A Swift command-line process defaults to a background activation policy.
+    // Without promoting it first, `runModal()` can block with an alert window that
+    // exists but is hidden behind a full-screen Terminal window (or on another Space).
+    let application = NSApplication.shared
+    application.setActivationPolicy(.regular)
+    let window = alert.window
+    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    window.level = .modalPanel
+    window.center()
+    window.makeKeyAndOrderFront(nil)
+    window.orderFrontRegardless()
+    NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
     while true {
       let response = alert.runModal()
       if response != .alertFirstButtonReturn {
