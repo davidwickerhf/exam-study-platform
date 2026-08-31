@@ -51,7 +51,8 @@ sits between private intake and the active release:
    into the active editorial tables and the originating request is marked live.
    Source originals stay private.
 
-The web interface is under **Account → Admin → Course production**. The same
+The web interface is the **Administration** area in the sidebar: pick a
+programme, open a curriculum course, then work in its **Production** tab. The same
 flow is exposed through `/api/admin/editorial-*` and the MCP tools
 `admin_import_canvas_course`, `admin_sync_course_folder`, `admin_process_course_pipeline`,
 `admin_estimate_course_generation`, `admin_queue_course_generation`,
