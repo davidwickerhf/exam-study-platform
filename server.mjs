@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 import next from 'next'
 import './lib/env.mjs'
-import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser } from './lib/auth.mjs'
+import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localTestUserId } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
@@ -219,7 +219,9 @@ const nextApp = next({ dev: development, hostname, port })
 const nextHandler = nextApp.getRequestHandler()
 await nextApp.prepare()
 
-if (Boolean(process.env.DATABASE_URL) !== authConfig().enabled) {
+// A local test user is an explicit, named development configuration rather
+// than a half-finished deployment, so it satisfies this pairing on its own.
+if (!localTestUserId() && Boolean(process.env.DATABASE_URL) !== authConfig().enabled) {
   throw new Error('Hosted mode requires DATABASE_URL, CLERK_PUBLISHABLE_KEY, and CLERK_SECRET_KEY together. Refusing a partially configured deployment.')
 }
 
@@ -5297,6 +5299,7 @@ server.listen(port, hostname, () => {
   console.log(`Exam Study Platform running at http://${hostname}:${port}`)
   console.log(`Personal storage: ${storageMode()}`)
   console.log(`Authentication: ${authConfig().mode}`)
+  if (localTestUserId()) console.log(`  ! Every request acts as ${localTestUserId()} without signing in — development only.`)
   console.log(`LLM provider: ${LLM_PROVIDER}`)
   if (LLM_PROVIDER === 'codex') console.log(`Codex bin: ${CODEX_BIN}${existsSync(CODEX_BIN) ? '' : ' (NOT FOUND)'}`)
   if (LLM_PROVIDER === 'claude') console.log(`Claude bin: ${CLAUDE_BIN}`)
