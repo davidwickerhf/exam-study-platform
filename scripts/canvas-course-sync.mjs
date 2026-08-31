@@ -1,5 +1,11 @@
 #!/usr/bin/env node
+import { config } from 'dotenv'
 import { importCanvasCourse } from '../lib/canvas-course-import.mjs'
+
+// Local convenience only. Existing shell variables always win; this never reads or
+// writes a deployed environment.
+config({ path: '.env.local', override: false, quiet: true })
+config({ path: '.env', override: false, quiet: true })
 
 function options(argv) {
   const values = {}

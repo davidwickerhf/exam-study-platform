@@ -135,7 +135,8 @@ Canvas sign-in, Microsoft SAML, and OTP stay with Canvas. Do not put a password,
 browser cookie, or Canvas access token in Wicker Study, an agent prompt, or a source
 folder. After the administrator signs in to Canvas, they may create a short-lived
 Personal Access Token if their institution permits it and set it only in the local MCP
-environment as `CANVAS_ACCESS_TOKEN`.
+environment as `CANVAS_ACCESS_TOKEN` (the standalone `npm run canvas:sync` command
+also loads an ignored local `.env.local` or `.env`).
 
 ```json
 {
