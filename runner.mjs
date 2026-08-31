@@ -19,6 +19,7 @@ const migrationPath = resolve(__dirname, 'scripts/db-migrate.mjs')
 const RESTART_EXIT_CODE = 23
 
 let child = null
+let migrationChild = null
 let shuttingDown = false
 
 function start() {
@@ -41,24 +42,31 @@ function start() {
 }
 
 function startProduction() {
-  if (!process.env.DATABASE_URL) { start(); return }
-  console.log('Applying database migrations before startup…')
-  child = spawn('node', [migrationPath], { stdio: 'inherit', cwd: __dirname })
-  child.on('exit', (code, signal) => {
+  // A web container must be able to serve its first request immediately.
+  // Waiting for every migration check here made otherwise small workspace
+  // reads wait several seconds whenever Vercel started a fresh container.
+  // The migration runner still executes on every production boot; it simply
+  // no longer occupies the request-serving process while doing so.
+  start()
+  if (!process.env.DATABASE_URL) return
+  console.log('Applying database migrations in the background…')
+  migrationChild = spawn('node', [migrationPath], { stdio: 'inherit', cwd: __dirname })
+  migrationChild.on('exit', (code, signal) => {
+    migrationChild = null
     if (shuttingDown) return
-    if (signal) process.kill(process.pid, signal)
-    else if (code !== 0) process.exit(code ?? 1)
-    else { child = null; start() }
+    if (signal) console.warn(`Database migration process stopped by ${signal}; the server remains available.`)
+    else if (code !== 0) console.error(`Database migrations exited with code ${code}; the server remains available, but this deployment needs attention.`)
+    else console.log('Database migrations are up to date.')
   })
-  child.on('error', (err) => {
+  migrationChild.on('error', (err) => {
     console.error(`runner: failed to apply database migrations: ${err.message}`)
-    process.exit(1)
   })
 }
 
 function shutdown(signal) {
   shuttingDown = true
   if (child && !child.killed) child.kill(signal)
+  if (migrationChild && !migrationChild.killed) migrationChild.kill(signal)
   setTimeout(() => process.exit(0), 500)
 }
 process.on('SIGINT',  () => shutdown('SIGINT'))

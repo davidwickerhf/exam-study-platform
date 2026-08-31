@@ -41,7 +41,7 @@ import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from '.
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
-import { editorialMode, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
+import { editorialMode, editorialShellFromState, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialShell, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
@@ -576,6 +576,23 @@ async function readState() {
     try { return mergeEditorialState(template, JSON.parse(await readFile(dataPath, 'utf8'))) } catch {}
   }
   return mergeEditorialRows(template, settings, progress)
+}
+
+// The first signed-in response deliberately excludes the full learning
+// inventory. It lets Home paint its course list while detailed material and
+// per-item progress are fetched only when a learning surface needs them.
+async function readWorkspaceShell() {
+  const [template, settings] = await Promise.all([
+    loadEditorialShell(templatePath),
+    listCourseSettings()
+  ])
+  if (!settings.length && storageMode() === 'local' && existsSync(dataPath)) {
+    try {
+      const legacy = mergeEditorialState(await loadEditorialState(templatePath), JSON.parse(await readFile(dataPath, 'utf8')))
+      return editorialShellFromState(legacy)
+    } catch {}
+  }
+  return mergeEditorialRows(template, settings, [])
 }
 
 // Personal rows (course settings, item progress) laid over the editorial template.
@@ -4028,6 +4045,11 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/state' && req.method === 'GET') {
       send(res, 200, JSON.stringify(await readState()))
+      return
+    }
+
+    if (url.pathname === '/api/workspace-shell' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(await readWorkspaceShell()))
       return
     }
 

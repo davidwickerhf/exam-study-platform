@@ -59,12 +59,14 @@ flow is exposed through `/api/admin/editorial-*` and the MCP tools
 
 ### Canvas source snapshots
 
-Students can connect a Canvas Personal Access Token in the signed-in **Canvas archive**
-screen. The hosted service encrypts it at rest and exposes only account-scoped course
-bytes to `canvas_*_remote_*` MCP tools—never the token itself. A local Claude/Codex
-process can therefore create a private local snapshot and do analysis with its own
-subscription. Canvas passwords, SAML sessions, and OTP values are never collected or
-automated.
+Students can connect a Canvas Personal Access Token in signed-in **Account →
+Connections**. For Maastricht, the setup links directly to
+`https://canvas.maastrichtuniversity.nl/profile/settings`, where the student creates
+and copies the token after completing Canvas sign-in. The hosted service encrypts the
+token at rest and exposes only account-scoped course bytes to `canvas_*_remote_*` MCP
+tools—never the token itself. A local Claude/Codex process can therefore create a
+private local snapshot and do analysis with its own subscription. Canvas passwords,
+SAML sessions, and OTP values are never collected or automated.
 
 For an authorised editorial collection, an administrator can still use
 `admin_import_canvas_course` with a host-scoped macOS Keychain token. Import locally

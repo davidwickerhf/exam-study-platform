@@ -64,6 +64,9 @@ const COURSE_INGESTION_STAGE_FALLBACK = [
   ['publication', 'Publish & maintain']
 ]
 let state = null
+let stateLevel = 'none'
+let fullStateLoad = null
+let fullStateError = null
 // Route tables are declared before parseRoute runs on cold load.
 const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
 const ACCOUNT_TABS = [['profile', 'Profile'], ['connections', 'Connections'], ['usage', 'AI usage'], ['api', 'API access'], ['data', 'Data & privacy'], ['admin', 'Admin']]
@@ -709,6 +712,7 @@ window.addEventListener('hashchange', () => {
   route = parseRoute()
   if (route.page !== 'calendar' && calendarAutoRefreshTimer) { clearTimeout(calendarAutoRefreshTimer); calendarAutoRefreshTimer = null }
   render()
+  ensureRouteState()
   if (route.page === 'planning') loadAcademics()
   if (route.page === 'calendar') loadCalendarEvents(true)
 })
@@ -732,16 +736,34 @@ function depsPlaceholder(label = 'Loading the reader…') {
 }
 
 let meInfo = null
+function hasFullState() { return stateLevel === 'full' }
+function routeNeedsFullState(target = route) { return ['chapter', 'mock-exam', 'practice', 'course'].includes(target?.page) }
+async function loadState(full = true) {
+  if (full && hasFullState()) return state
+  if (full && fullStateLoad) return fullStateLoad
+  const request = fetchJson(full ? '/api/state' : '/api/workspace-shell').then((nextState) => {
+    state = nextState
+    stateLevel = full ? 'full' : 'shell'
+    fullStateError = null
+    return state
+  })
+  if (!full) return request
+  fullStateLoad = request.catch((error) => {
+    fullStateError = error?.message || 'The learning material could not be loaded.'
+    throw error
+  }).finally(() => { fullStateLoad = null })
+  return fullStateLoad
+}
+function ensureRouteState() {
+  if (!state || hasFullState() || !routeNeedsFullState() || fullStateLoad || fullStateError) return
+  loadState(true).then(() => render()).catch(() => render())
+}
 async function init() {
-  window.__bootStatus?.('Loading your courses…')
-  state = await fetchJson('/api/state')
-  fetchJson('/api/me').then((info) => { meInfo = info; if (info?.admin) render() }).catch(() => {})
-  loadAiUsage().then(() => render()).catch(() => {})
+  window.__bootStatus?.('Opening your workspace…')
+  await loadState(false)
   render()
-  // Pre-load SR membership so the "+ Add to flashcards" buttons correctly
-  // show "✓ In SR" for cards already in the deck — works regardless of
-  // whether the user lands on dashboard or directly on a chapter page.
-  loadSrDue().then(() => render()).catch(() => {})
+  ensureRouteState()
+  fetchJson('/api/me').then((info) => { meInfo = info; if (info?.admin) render() }).catch(() => {})
 
   // Outside-click closes any open multi-select dropdown or toolbar overflow menu
   document.addEventListener('click', (event) => {
@@ -1471,6 +1493,10 @@ function autosizeAnswerTextareas(root = document) {
 }
 
 function routeView() {
+  if (routeNeedsFullState() && !hasFullState()) {
+    ensureRouteState()
+    return `<section class="page-wrap"><div class="route-state-loading" role="status"><span class="boot-spinner"></span><div><strong>${fullStateError ? 'Course material is unavailable' : 'Opening course material'}</strong><p>${fullStateError ? `${escapeHtml(fullStateError)} Try reloading the page.` : 'Your workspace is ready; loading the detailed course record now.'}</p></div></div></section>`
+  }
   if (route.page === 'chapter') return renderChapterPage()
   if (route.page === 'mock-exam') return renderMockExamPage()
   if (route.page === 'courses') return renderCoursesPage()
@@ -2686,7 +2712,7 @@ function renderAccountPage() {
 let canvasConnections = null
 let canvasConnectionsError = null
 let canvasConnectionsLoading = false
-const canvasConnectionForm = { canvasUrl: 'https://canvas.maastrichtuniversity.nl', saving: false, error: null, removing: null }
+const canvasConnectionForm = { canvasUrl: 'https://canvas.maastrichtuniversity.nl', customHost: false, saving: false, error: null, removing: null }
 async function loadCanvasConnections(force = false) {
   if ((canvasConnections && !force) || canvasConnectionsLoading) return canvasConnections
   canvasConnectionsLoading = true
@@ -2701,13 +2727,20 @@ function renderAccountConnections() {
   if (!canvasConnections && !canvasConnectionsLoading && !canvasConnectionsError) loadCanvasConnections().then(() => render())
   const connections = canvasConnections?.connections || []
   return `<div class="account-stack account-connections">
-    <section class="panel">
-      <div class="panel-top"><div><h2>Canvas connection</h2><p>Save one Personal Access Token per Canvas host. It is encrypted for your account, never displayed again, and is used only when you choose to list or archive your courses.</p></div><a class="btn btn-secondary btn-sm" href="/canvas">Open course archive</a></div>
+    <section class="panel canvas-connect-panel">
+      <div class="panel-top"><div><h2>Connect Canvas</h2><p>Bring your own course materials into your private workspace. Canvas remains responsible for your sign-in and OTP.</p></div><a class="btn btn-secondary btn-sm" href="/canvas">Open course archive</a></div>
       ${canvasConnectionsError ? `<div class="settings-error" role="alert"><strong>Canvas settings are unavailable.</strong><p>${escapeHtml(canvasConnectionsError)}</p></div>` : ''}
       <form class="connection-form" data-canvas-connection-form>
-        <label class="adm-field"><span>Canvas address</span><input type="url" name="canvasUrl" value="${escapeHtml(canvasConnectionForm.canvasUrl)}" placeholder="https://canvas.example.edu" autocomplete="url" required ${canvasConnectionForm.saving ? 'disabled' : ''}></label>
-        <label class="adm-field"><span>Personal Access Token</span><input type="password" name="accessToken" placeholder="Paste token from Canvas" autocomplete="off" spellcheck="false" required ${canvasConnectionForm.saving ? 'disabled' : ''}></label>
-        <div class="connection-form-actions"><p><strong>Never paste a password, OTP, cookie, or session export.</strong> Create a Personal Access Token in Canvas after signing in there.</p><button type="submit" class="btn btn-primary" ${canvasConnectionForm.saving ? 'disabled' : ''}>${canvasConnectionForm.saving ? 'Securing connection…' : 'Connect Canvas'}</button></div>
+        <ol class="canvas-connect-steps">
+          <li><span>1</span><div><strong>Create a Canvas access token</strong><p>Open Canvas settings in a signed-in tab, create a Personal Access Token, then copy it.</p><a class="pl-link" href="https://canvas.maastrichtuniversity.nl/profile/settings" target="_blank" rel="noopener noreferrer">Open Maastricht Canvas settings ↗</a></div></li>
+          <li><span>2</span><div><strong>Paste it below</strong><p>We encrypt it for your account and never display it again.</p><a class="pl-link" href="/docs#canvas-access-token">Read the token setup guide</a></div></li>
+        </ol>
+        <div class="canvas-connect-entry">
+          <div class="canvas-host-summary"><div><span>Canvas host</span><strong>${canvasConnectionForm.customHost ? 'Another Canvas institution' : 'Maastricht University'}</strong><small>${escapeHtml(canvasConnectionForm.canvasUrl)}</small></div><button type="button" class="pl-link pl-link-button" data-canvas-host-toggle>${canvasConnectionForm.customHost ? 'Use Maastricht Canvas' : 'Use another host'}</button></div>
+          ${canvasConnectionForm.customHost ? `<label class="adm-field"><span>Canvas address</span><input type="url" name="canvasUrl" value="${escapeHtml(canvasConnectionForm.canvasUrl)}" placeholder="https://canvas.example.edu" autocomplete="url" required ${canvasConnectionForm.saving ? 'disabled' : ''}></label>` : `<input type="hidden" name="canvasUrl" value="${escapeHtml(canvasConnectionForm.canvasUrl)}">`}
+          <label class="adm-field canvas-token-field"><span>Personal Access Token</span><input type="password" name="accessToken" placeholder="Paste the token you just copied" autocomplete="off" spellcheck="false" required ${canvasConnectionForm.saving ? 'disabled' : ''}></label>
+          <div class="canvas-connect-submit"><p><strong>Do not paste a password, OTP, cookie, or session export.</strong> Only the Personal Access Token belongs here.</p><button type="submit" class="btn btn-primary" ${canvasConnectionForm.saving ? 'disabled' : ''}>${canvasConnectionForm.saving ? 'Saving secure connection…' : 'Connect Canvas'}</button></div>
+        </div>
         ${canvasConnectionForm.error ? `<p class="account-delete-error" role="alert">${escapeHtml(canvasConnectionForm.error)}</p>` : ''}
       </form>
     </section>
@@ -10288,6 +10321,13 @@ function bindEvents() {
       }
     })
   })
+  document.querySelectorAll('[data-canvas-host-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      canvasConnectionForm.customHost = !canvasConnectionForm.customHost
+      if (!canvasConnectionForm.customHost) canvasConnectionForm.canvasUrl = 'https://canvas.maastrichtuniversity.nl'
+      render()
+    })
+  })
   document.querySelectorAll('[data-canvas-connection-remove]').forEach((button) => {
     button.addEventListener('click', async () => {
       const canvasUrl = button.dataset.canvasConnectionRemove
@@ -10674,7 +10714,7 @@ function bindEvents() {
         const course = state.courses.find((item) => item.id === courseId)
         const chapterId = (adminPanel.chapterId || nextChapterId(course)).trim()
         result.chapter = await fetchJson(`/api/admin/courses/${encodeURIComponent(courseId)}/chapters/${encodeURIComponent(chapterId)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: adminPanel.chapterName.trim(), sourcePath }) })
-        try { state = await fetchJson('/api/state') } catch {}
+        try { await loadState(true) } catch {}
       }
       adminPanel.materialResult = result
       Object.assign(adminPanel, { materialFile: null, materialName: '', asChapter: false, chapterId: '', chapterName: '', materials: null })
