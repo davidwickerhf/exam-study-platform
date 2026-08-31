@@ -19,6 +19,7 @@
     "content:index": "node scripts/index-retrieval.mjs",
     "content:verify-precomputed": "node scripts/verify-precomputed.mjs",
     "user:import": "node scripts/import-local-user.mjs",
+    "canvas:sync": "node scripts/canvas-course-sync.mjs",
     "mcp": "node mcp/server.mjs",
     "test": "node --test",
     "verify": "npm run typecheck && npm test && npm run build"

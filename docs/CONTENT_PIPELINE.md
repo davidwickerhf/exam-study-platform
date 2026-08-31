@@ -37,9 +37,22 @@ sits between private intake and the active release:
 
 The web interface is under **Account → Admin → Course production**. The same
 flow is exposed through `/api/admin/editorial-*` and the MCP tools
-`admin_sync_course_folder`, `admin_process_course_pipeline`,
+`admin_import_canvas_course`, `admin_sync_course_folder`, `admin_process_course_pipeline`,
 `admin_estimate_course_generation`, `admin_queue_course_generation`,
 `admin_review_course_artifact`, and `admin_publish_course_edition`.
+
+### Canvas source snapshots
+
+For a Canvas course dashboard, run the local MCP tool
+`admin_import_canvas_course` with the Modules URL and a dedicated local output folder.
+It uses a Canvas Personal Access Token from the local MCP environment, keeps the token
+out of Wicker, and writes a categorised snapshot for every accessible module resource.
+Canvas passwords, SAML sessions, and OTP values are never collected or automated.
+Import locally first, inspect the manifest, then submit only authorised material with
+the tool's explicit rights confirmation. Canvas snapshots enter the editorial workspace
+as candidate contributions, so extraction, AI work, and publishing cannot happen until
+an administrator accepts them. Re-running the same folder is the update path when new
+weekly material appears.
 
 ## Repository release path
 

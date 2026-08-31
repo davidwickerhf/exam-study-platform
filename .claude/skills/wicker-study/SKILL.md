@@ -1,6 +1,6 @@
 ---
 name: wicker-study
-description: Study with or maintain a Wicker Study deployment. Read course material and progress, record study activity, reconcile academic documents, or—with an admin key—ingest a local course folder or URLs into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
+description: Study with or maintain a Wicker Study deployment. Read course material and progress, record study activity, reconcile academic documents, or—with an admin key—import a Canvas course or ingest a local course folder into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
 ---
 
 # Wicker Study
@@ -100,6 +100,34 @@ creation, or course access as contribution consent.
 The matching HTTP endpoints are listed in `GET /api/agent/manifest`; use them when MCP
 is unavailable. Folder sync remains an MCP-only convenience because the client must
 hash and upload local bytes.
+
+### Canvas course import (local MCP only)
+
+When an administrator gives a Canvas course Modules URL, use
+`admin_import_canvas_course`, not browser scraping or a request for account
+credentials. Canvas authentication stays with Canvas: never ask for, receive, store,
+or paste a Canvas password, MFA/OTP code, browser cookie, or session export.
+
+- The administrator completes Canvas SAML/OTP in Canvas, creates a short-lived Canvas
+  Personal Access Token if their institution permits it, and places it only in the
+  local MCP process environment as `CANVAS_ACCESS_TOKEN`.
+- First call `admin_import_canvas_course` with `courseUrl`, a dedicated absolute
+  `outputFolder`, and its default `syncToWicker:false`. It collects accessible module
+  files, pages, assignments, discussions, quizzes, and external-link references into
+  a stable, categorised folder with a hidden manifest. It does not fetch third-party
+  links.
+- Inspect the local `README.md`, manifest, and skipped items. Re-run into the same
+  folder whenever Canvas publishes new weekly material; unchanged files are reused by
+  hash during the later folder sync.
+- Only if the administrator confirms they are authorised to submit the material, call
+  the importer again with `syncToWicker:true`, `rightsConfirmed:true`, and first keep
+  `dryRun:true`. Show the plan. On explicit confirmation, use `dryRun:false`.
+  Imported sources are still **candidate** rights-review records, not accepted
+  editorial material. Do not extract, map, generate, or publish until the relevant
+  contribution has been reviewed and accepted.
+- If Canvas Personal Access Tokens are unavailable, report that the importer cannot
+  safely automate a password-plus-OTP flow. Do not attempt to bypass MFA, automate an
+  interactive OTP challenge, or substitute a saved browser session.
 
 ## Direct content maintenance (scope: admin, hosted only)
 

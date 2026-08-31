@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
 import { extname, relative, resolve, sep } from 'node:path'
+import { importCanvasCourse } from '../lib/canvas-course-import.mjs'
 
 const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
 const apiKey = process.env.WICKER_STUDY_API_KEY || ''
@@ -39,7 +40,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '1.1.0' })
+const server = new McpServer({ name: 'wicker-study', version: '1.2.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
@@ -94,7 +95,7 @@ async function syncCourseFolder(args) {
   const workspace = await api('/api/admin/editorial-workspace')
   const matching = edition || workspace.editions?.find((candidate) => candidate.courseCode === String(args.courseCode || '').toUpperCase() && candidate.academicYear === String(args.academicYear || '') && candidate.period === String(args.period || '')) || null
   if (matching && !editionWorkspace) editionWorkspace = await api(`/api/admin/editorial-editions/${encodeURIComponent(matching.id)}`)
-  const currentSources = matching ? (editionWorkspace?.sources || []).filter((source) => source.contribution.editionId === matching.id && source.contribution.consentStatus === 'accepted') : []
+  const currentSources = matching ? (editionWorkspace?.sources || []).filter((source) => source.contribution.editionId === matching.id && ['accepted', 'candidate'].includes(source.contribution.consentStatus)) : []
   const currentByPath = new Map(currentSources.map((source) => [source.contribution.sourcePath, source]))
   const localPaths = new Set(inventory.files.map((file) => file.relativePath))
   const plan = {
@@ -105,14 +106,15 @@ async function syncCourseFolder(args) {
     retire: currentSources.filter((source) => source.contribution.sourcePath && !localPaths.has(source.contribution.sourcePath)).map((source) => source.contribution.sourcePath),
     inventory: publicInventory(inventory)
   }
-  if (args.dryRun !== false) return { dryRun: true, ...plan, next: 'Run again with dryRun=false after reviewing add/replace/retire. Set replaceManifest=true only if this folder is the authoritative complete source set.' }
+  if (args.dryRun !== false) return { dryRun: true, ...plan, consentStatus: args.consentStatus || 'accepted', rightsBasis: args.rightsBasis || 'admin-supplied', next: 'Run again with dryRun=false after reviewing add/replace/retire. Set replaceManifest=true only if this folder is the authoritative complete source set.' }
   if (!edition) {
     edition = await api('/api/admin/editorial-editions', { method: 'POST', body: { programmeId: args.programmeId, canonicalCourseId: args.canonicalCourseId, institution: args.institution, courseCode: args.courseCode, courseName: args.courseName, academicYear: args.academicYear, period: args.period } })
   }
   const registered = await api(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/sources`, {
     method: 'POST',
     body: {
-      rightsBasis: 'admin-supplied',
+      rightsBasis: args.rightsBasis || 'admin-supplied',
+      consentStatus: args.consentStatus || 'accepted',
       replaceManifest: args.replaceManifest === true,
       sources: inventory.files.map(({ path: _path, ...file }) => file)
     }
@@ -130,7 +132,44 @@ async function syncCourseFolder(args) {
     }
     uploaded++
   }
-  return { dryRun: false, edition, uploaded, reused, replaceManifest: args.replaceManifest === true, plan }
+  return { dryRun: false, edition, uploaded, reused, replaceManifest: args.replaceManifest === true, consentStatus: args.consentStatus || 'accepted', rightsBasis: args.rightsBasis || 'admin-supplied', plan }
+}
+
+function localEnvironmentName(value) {
+  const name = String(value || 'CANVAS_ACCESS_TOKEN')
+  if (!/^[A-Z][A-Z0-9_]{0,127}$/.test(name)) throw new Error('accessTokenEnv must name a local environment variable, for example CANVAS_ACCESS_TOKEN.')
+  return name
+}
+
+async function importCanvasCourseAndMaybeSync(args) {
+  const accessTokenEnv = localEnvironmentName(args.accessTokenEnv)
+  const accessToken = process.env[accessTokenEnv]
+  if (!accessToken) throw new Error(`Set ${accessTokenEnv} in the local MCP environment after signing in to Canvas. Wicker Study never receives Canvas passwords or OTP codes.`)
+  if (args.syncToWicker === true && args.rightsConfirmed !== true) throw new Error('Set rightsConfirmed=true only after confirming that you are authorised to submit these Canvas materials for editorial review.')
+  const imported = await importCanvasCourse({
+    courseUrl: args.courseUrl,
+    accessToken,
+    outputFolder: args.outputFolder,
+    maxResources: args.maxResources
+  })
+  if (args.syncToWicker !== true) return {
+    imported,
+    next: 'Review the local source snapshot first. To submit it to the private editorial workspace, rerun with syncToWicker=true, rightsConfirmed=true, and dryRun=false. Sources will still arrive as review candidates; accepting them, extraction, generation, and publication remain separate decisions.'
+  }
+  const sync = await syncCourseFolder({
+    ...args,
+    folderPath: imported.root,
+    courseCode: args.courseCode || imported.course.code || undefined,
+    courseName: args.courseName || imported.course.name,
+    rightsBasis: 'authorised-course-material',
+    consentStatus: 'candidate',
+    replaceManifest: false
+  })
+  return {
+    imported,
+    sync,
+    next: sync.dryRun ? 'Inspect the proposed folder sync, then explicitly rerun with dryRun=false. Imported Canvas sources remain candidates for rights review.' : 'Open Course production, review and accept the candidate sources you are authorised to use, then extract and map the course. Nothing has been published.'
+  }
 }
 
 // ── Read ─────────────────────────────────────────────────────────────────
@@ -204,8 +243,11 @@ server.tool('admin_inventory_course_folder', 'Read a local course-material folde
 server.tool('admin_upsert_course_edition', 'Create or update a private, versioned course edition before sources or drafts are published.', { id: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string(), courseName: z.string(), academicYear: z.string().optional(), period: z.string().optional(), editionKey: z.string().optional() }, run((body) => api('/api/admin/editorial-editions', { method: 'POST', body })))
 server.tool('admin_register_course_urls', 'Register public web sources for an existing edition. They are fetched with SSRF protection during extraction.', { editionId: z.string(), urls: z.array(z.string().url()).min(1).max(30), rightsBasis: z.enum(['public-source', 'authorised-course-material', 'admin-supplied']).default('public-source') }, run(({ editionId, urls, rightsBasis }) => api(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/sources`, { method: 'POST', body: { rightsBasis, sources: urls.map((url, index) => ({ url, name: `linked-source-${index + 1}.html`, relativePath: url })) } })))
 server.tool('admin_sync_course_folder', 'Create or update a versioned course edition from a local folder. Defaults to a dry run. Unchanged files are reused by hash; changed paths supersede older sources. Set replaceManifest only when the folder is the authoritative complete source set.', {
-  folderPath: z.string(), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional(), dryRun: z.boolean().default(true), replaceManifest: z.boolean().default(false)
+  folderPath: z.string(), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional(), dryRun: z.boolean().default(true), replaceManifest: z.boolean().default(false), rightsBasis: z.enum(['authorised-course-material', 'admin-supplied']).default('admin-supplied'), consentStatus: z.enum(['accepted', 'candidate']).default('accepted')
 }, run(syncCourseFolder))
+server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. Canvas access uses a local Personal Access Token environment variable after the administrator completes Canvas SAML/OTP; never pass a Canvas password or OTP here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
+  courseUrl: z.string().url(), outputFolder: z.string(), accessTokenEnv: z.string().default('CANVAS_ACCESS_TOKEN'), maxResources: z.number().int().min(1).max(250).default(250), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
+}, run(importCanvasCourseAndMaybeSync))
 server.tool('admin_list_editorial_workspace', 'List compact course-edition summaries, or pass editionId for its sources, rights decisions, topics, jobs, artifacts, estimates, and releases.', { editionId: z.string().optional() }, run(({ editionId }) => api('/api/admin/editorial-workspace', { query: { editionId } })))
 server.tool('admin_prepare_content_request', 'Turn a student request into a candidate shared edition. Fails if the student kept sources private.', { requestId: z.string() }, run(({ requestId }) => api(`/api/admin/content-requests/${encodeURIComponent(requestId)}/prepare`, { method: 'POST', body: {} })))
 server.tool('admin_review_contribution', 'Accept, reject, or withdraw a source contribution after rights review.', { contributionId: z.string(), status: z.enum(['accepted', 'rejected', 'withdrawn']), reviewNote: z.string().optional() }, run(({ contributionId, ...body }) => api(`/api/admin/editorial-contributions/${encodeURIComponent(contributionId)}`, { method: 'PUT', body })))
