@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { CanvasCourseImportError, importCanvasCourse, parseCanvasCourseUrl } from '../lib/canvas-course-import.mjs'
+import { CanvasCourseImportError, filterCanvasCourses, importCanvasCourse, listCanvasCourses, parseCanvasCourseUrl } from '../lib/canvas-course-import.mjs'
 
 function json(value, headers = {}) {
   return new Response(JSON.stringify(value), { status: 200, headers: { 'content-type': 'application/json', ...headers } })
@@ -67,6 +67,26 @@ test('Canvas course URLs require HTTPS and never carry credentials', () => {
   assert.throws(() => parseCanvasCourseUrl('http://canvas.example.edu/courses/1/modules'), CanvasCourseImportError)
   assert.throws(() => parseCanvasCourseUrl('https://name:password@canvas.example.edu/courses/1/modules'), CanvasCourseImportError)
   assert.deepEqual(parseCanvasCourseUrl('https://canvas.example.edu/courses/1/modules'), { origin: 'https://canvas.example.edu', courseId: '1', courseUrl: 'https://canvas.example.edu/courses/1/modules' })
+})
+
+test('Canvas course discovery includes prior terms and searches title initials', async () => {
+  const result = await listCanvasCourses({
+    canvasUrl: 'https://canvas.example.edu',
+    accessToken: 'local-token-only',
+    fetchImpl: async (input) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1, name: 'Canvas learner' })
+      if (url.pathname === '/api/v1/users/self/courses') return json([
+        { id: 10, name: 'Intelligent User Interfaces (2024-2025-100-BCS2130)', course_code: 'BCS2130', workflow_state: 'completed', term: { id: 2, name: '2024_100 Period 1' }, enrollments: [{ type: 'StudentEnrollment', enrollment_state: 'completed' }] },
+        { id: 11, name: 'Algorithmic Design (2025-2026-500-BCS1540)', course_code: 'BCS1540', workflow_state: 'available', term: { id: 3, name: '2025_500 Period 5' } }
+      ])
+      throw new Error(`Unexpected Canvas request: ${url}`)
+    }
+  })
+  assert.equal(result.courses.length, 2)
+  assert.equal(filterCanvasCourses(result.courses, 'IUI')[0].id, '10')
+  assert.equal(filterCanvasCourses(result.courses, 'Algorithmic Design')[0].id, '11')
+  assert.equal(result.courses[0].courseUrl, 'https://canvas.example.edu/courses/10/modules')
 })
 
 test('Canvas importer distinguishes PAT verification from course access denial', async () => {

@@ -124,6 +124,16 @@ or paste a Canvas password, MFA/OTP code, browser cookie, or session export.
   manifest. It does not fetch third-party links. If Canvas denies the optional
   course-wide Files index, retain and report that skip while importing the accessible
   Module material; do not mistake that single 403 for an invalid token.
+- To discover an account’s history, call `admin_list_canvas_courses`. It includes
+  current and concluded enrolments and accepts an optional query over course title,
+  code, term, and title initials — for example, `IUI` finds *Intelligent User
+  Interfaces*. Show the compact matching list if a natural-language request is
+  ambiguous; preserve distinct academic years and Canvas course ids.
+- For an explicit request such as “scrape all IUI courses across the years”, call
+  `admin_import_canvas_course_set` with `query:"IUI"` and a parent `outputFolder`.
+  It imports sequentially, placing each distinct Canvas course in its own stable
+  term/code/id folder. It only creates local private snapshots; a later editorial
+  submission still needs the separate rights-confirmed review flow.
 - Inspect the local `README.md`, manifest, and skipped items. Re-run into the same
   folder whenever Canvas publishes new weekly material; unchanged files are reused by
   hash during the later folder sync. Paths no longer returned by Canvas are flagged for

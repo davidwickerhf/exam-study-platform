@@ -10,10 +10,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { createHash } from 'node:crypto'
-import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
-import { extname, relative, resolve, sep } from 'node:path'
-import { CANVAS_IMPORT_LIMITS, importCanvasCourse } from '../lib/canvas-course-import.mjs'
-import { promptForLocalCanvasImport, saveCanvasAccessTokenFromClipboard } from '../lib/local-canvas-prompts.mjs'
+import { lstat, mkdir, readFile, readdir, realpath } from 'node:fs/promises'
+import { extname, join, relative, resolve, sep } from 'node:path'
+import { CANVAS_IMPORT_LIMITS, canvasCourseFolderName, filterCanvasCourses, importCanvasCourse, listCanvasCourses } from '../lib/canvas-course-import.mjs'
+import { getSavedCanvasAccessToken, promptForLocalCanvasImport, saveCanvasAccessTokenFromClipboard } from '../lib/local-canvas-prompts.mjs'
 
 const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
 const apiKey = process.env.WICKER_STUDY_API_KEY || ''
@@ -174,6 +174,39 @@ async function importCanvasCourseAndMaybeSync(args) {
   }
 }
 
+async function localCanvasAccessToken(canvasUrl, accessTokenEnv) {
+  const environmentName = localEnvironmentName(accessTokenEnv)
+  if (environmentName) {
+    const token = String(process.env[environmentName] || '').trim()
+    if (!token) throw new Error(`${environmentName} is not set in this local MCP process.`)
+    return token
+  }
+  return getSavedCanvasAccessToken(canvasUrl)
+}
+
+async function listLocalCanvasCourses({ canvasUrl, accessTokenEnv, query }) {
+  const result = await listCanvasCourses({ canvasUrl, accessToken: await localCanvasAccessToken(canvasUrl, accessTokenEnv) })
+  const courses = filterCanvasCourses(result.courses, query)
+  return { ...result, total: result.courses.length, query: query || null, matched: courses.length, courses }
+}
+
+async function importLocalCanvasCourseSet(args) {
+  const catalog = await listLocalCanvasCourses(args)
+  if (!catalog.courses.length) throw new Error(`No Canvas courses matched ${JSON.stringify(args.query || '')}. Use admin_list_canvas_courses first to inspect the available names, terms, and course codes.`)
+  const maximum = Math.min(args.maxCourses, catalog.courses.length)
+  const selected = catalog.courses.slice(0, maximum)
+  const root = resolve(args.outputFolder)
+  await mkdir(root, { recursive: true })
+  const accessToken = await localCanvasAccessToken(args.canvasUrl, args.accessTokenEnv)
+  const imports = []
+  for (const course of selected) {
+    const outputFolder = join(root, canvasCourseFolderName(course))
+    const imported = await importCanvasCourse({ courseUrl: course.courseUrl, accessToken, outputFolder, maxResources: args.maxResources, maxFileBytes: args.maxFileBytes })
+    imports.push({ course, imported })
+  }
+  return { root, query: args.query || null, matched: catalog.matched, imported: imports.length, omittedByMaxCourses: catalog.matched - imports.length, imports }
+}
+
 // ── Read ─────────────────────────────────────────────────────────────────
 server.tool('whoami', 'Who this key acts as, its scopes, programme memberships, and whether it is an administrator.', {}, run(() => api('/api/me')))
 server.tool('join_programme', 'Join a maintained programme (organisation). Only programmes whose institution domains match the student’s email can be joined.', { programmeId: z.string() }, run(({ programmeId }) => api('/api/account/programme', { method: 'POST', body: { programmeId } })))
@@ -253,6 +286,12 @@ server.tool('admin_save_canvas_token_from_clipboard', 'Store a Canvas Personal A
   const saved = await saveCanvasAccessTokenFromClipboard(courseUrl)
   return { saved: true, host: saved.host, next: 'Use admin_import_canvas_course with the course URL and an output folder. Future local MCP sessions on this Mac reuse this host-scoped Keychain token.' }
 }))
+server.tool('admin_list_canvas_courses', 'List every Canvas course available to this account, including concluded and prior-year enrolments. Query matches course name, code, term, and title initials (for example “IUI” matches Intelligent User Interfaces). Uses the host-scoped local Keychain token and returns no credential.', {
+  canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().max(240).optional(), accessTokenEnv: z.string().optional()
+}, run(listLocalCanvasCourses))
+server.tool('admin_import_canvas_course_set', 'Find every Canvas course matching a name, code, term, or title initials and import each into its own deterministic local folder. This is for requests such as “scrape all IUI courses across the years”. It is local-only and sequential; use admin_list_canvas_courses first when the requested match is ambiguous. Never pass Canvas credentials.', {
+  canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().min(1).max(240), outputFolder: z.string().min(1), accessTokenEnv: z.string().optional(), maxCourses: z.number().int().min(1).max(100).default(25), maxResources: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxResources).default(CANVAS_IMPORT_LIMITS.maxResources), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes)
+}, run(importLocalCanvasCourseSet))
 server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. Provide courseUrl and outputFolder; on the same Mac it reuses the host-scoped token in the user Keychain. Use admin_save_canvas_token_from_clipboard to provision or replace that local credential without exposing it to the agent. A denied course-wide Files index is recorded as skipped while accessible Module material continues. Large files stream directly to disk, with a 1 GB per-file limit. Never pass a Canvas password, OTP, cookie, or token here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
   courseUrl: z.string().url().optional(), outputFolder: z.string().optional(), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(250).default(250), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
 }, run(importCanvasCourseAndMaybeSync))
