@@ -22,12 +22,17 @@ if (args.help) {
   console.error('Usage: npm run canvas:sync (opens local prompts), or npm run canvas:sync -- --course-url https://canvas.example.edu/courses/123/modules --output /absolute/path/to/course-folder [--token-env CANVAS_ACCESS_TOKEN] [--max-resources 250]')
 } else {
   const tokenEnv = args['token-env'] ? String(args['token-env']) : null
+  const suppliedToken = tokenEnv ? process.env[tokenEnv] : undefined
   try {
+    if (!args['course-url'] || !args.output || !suppliedToken) {
+      console.log('Opening the secure local Canvas import panel…')
+    }
     const input = await promptForLocalCanvasImport({
       courseUrl: args['course-url'],
       outputFolder: args.output,
-      accessToken: tokenEnv ? process.env[tokenEnv] : undefined
+      accessToken: suppliedToken
     })
+    console.log('Reading the course and downloading accessible materials locally…')
     const result = await importCanvasCourse({
       courseUrl: input.courseUrl,
       outputFolder: input.outputFolder,

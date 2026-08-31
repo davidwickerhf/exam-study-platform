@@ -179,7 +179,7 @@ final class ImportForm: NSObject {
     window.center()
     window.makeKeyAndOrderFront(nil)
     window.orderFrontRegardless()
-    NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+    application.activate(ignoringOtherApps: true)
     while true {
       let response = alert.runModal()
       if response != .alertFirstButtonReturn {
