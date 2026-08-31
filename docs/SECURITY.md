@@ -9,7 +9,8 @@
   explicit scopes (`read` / `write` / `admin`), expire (30 days, 90 days, or 1
   year), can be revoked, and cannot manage other keys, reset data, or delete
   the account. `admin` keys can only be minted by users listed in
-  `ADMIN_USER_IDS`; `/api/admin/*` requires that flag.
+  `ADMIN_USER_IDS` or assigned the Clerk private-metadata admin role;
+  `/api/admin/*` requires that flag.
 - Account deletion and data resets require a typed confirmation and a session.
 
 - Production runs on a Clerk *production* instance on the app's own domain

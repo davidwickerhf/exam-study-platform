@@ -14,7 +14,8 @@ it and carries scopes:
 | `write` | study mutations: answers, reviews, flashcards, mistakes, mocks, mastery, plan |
 | `admin` | editorial content and the programme catalogue (administrators only) |
 
-Administrators are the Clerk user ids listed in `ADMIN_USER_IDS` (comma-separated).
+Administrators are either the Clerk user ids listed in `ADMIN_USER_IDS` or
+users assigned the Clerk private-metadata role `wickerStudyRole: "admin"`.
 In local development without a database, `local-dev` is an administrator.
 
 Keys are stored as SHA-256 hashes (`api_keys`, db/008). They cannot manage other

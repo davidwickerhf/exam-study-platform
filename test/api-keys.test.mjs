@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { authenticateApiKey, createApiKey, listApiKeys, revokeApiKey } from '../lib/api-keys.mjs'
-import { authorise } from '../lib/auth.mjs'
+import { authorise, isClerkAdministrator } from '../lib/auth.mjs'
 import { deletePersonalData } from '../lib/account-data.mjs'
 import { withRequestContext } from '../lib/request-context.mjs'
 
@@ -40,4 +40,10 @@ test('authorise enforces scopes for key requests and admin routes', () => {
   assert.match(authorise({ mode: 'api-key', scopes: ['read', 'write'], admin: false }, { method: 'GET', pathname: '/api/account/api-keys' }), /Account page/)
   assert.equal(authorise({ mode: 'clerk', admin: true }, { method: 'PUT', pathname: '/api/admin/courses/x' }), null)
   assert.equal(authorise({ mode: 'clerk', admin: false }, { method: 'POST', pathname: '/api/sr/review' }), null)
+})
+
+test('Clerk private metadata grants only the explicit global administrator role', () => {
+  assert.equal(isClerkAdministrator({ wickerStudyRole: 'admin' }), true)
+  assert.equal(isClerkAdministrator({ wickerStudyRole: 'member' }), false)
+  assert.equal(isClerkAdministrator({ role: 'admin' }), false)
 })
