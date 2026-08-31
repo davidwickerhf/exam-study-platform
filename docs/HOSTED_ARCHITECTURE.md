@@ -74,12 +74,18 @@ coupling editorial content to personal progress.
 
 Students do not generate course banks, flashcards, paper parses, tutor hints,
 or grading responses. Those surfaces use reviewed editorial content and local
-reference-answer checks. Model access is limited at the server boundary to:
+reference-answer checks. Student model access is limited at the server boundary to:
 
 - retrieval-grounded tutor chat;
-- personal extra exercises explicitly requested from a chapter.
+- personal extra exercises explicitly requested from a chapter;
+- reviewed academic-document intake used to propose changes to the student's private plan.
 
-Before either call starts, the server reserves a per-user request and token
+Administrators have a separate staged editorial workflow for source extraction,
+evidence-grounded draft generation, review, and explicit publication. Generated
+drafts never become student-facing content without an administrator publication
+decision.
+
+Before a student call starts, the server reserves a per-user request and token
 allowance. It persists the completed input/output counts in `ai_usage_events`,
 uses provider counts when available, and records a conservative estimate for
 CLI providers. Failed calls release the token reservation but still count
@@ -129,7 +135,7 @@ the target reported by `vercel domains inspect study.wicker.life --scope wickerl
    the hosted runtime reads it from Neon.
 7. The image runs `next build` before pruning development dependencies and
    starting the combined Node/Next runtime.
-8. Verify `/api/health` reports `{ "ok": true, "mode": "neon" }`.
+8. Verify `/api/health` reports `ok: true`, `mode: "neon"`, and an `integrations.llm` object with the expected provider/model and `configured: true`. This is a configuration check; the release smoke test should also exercise one authenticated, retrieval-grounded model call.
 
 For local hosted-mode verification, put the same values in ignored
 `.env.local` (the Clerk CLI uses this filename) or `.env`.

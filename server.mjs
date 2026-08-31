@@ -25,6 +25,7 @@ import {
   getBrowserState, putBrowserState
 } from './lib/study-store.mjs'
 import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
+import { DEFAULT_OPENAI_MODEL, DEFAULT_OPENAI_REASONING_EFFORT, openAiReasoningEffort, publicLlmConfiguration } from './lib/llm-config.mjs'
 import { deletePersonalData, deleteStudyData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
 import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
@@ -117,8 +118,24 @@ const CLAUDE_BIN   = process.env.CLAUDE_BIN   || llmConfig.claudeBin   || 'claud
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || llmConfig.anthropicApiKey || ''
 const ANTHROPIC_MODEL   = process.env.ANTHROPIC_MODEL   || llmConfig.anthropicModel  || 'claude-sonnet-4-5'
 const OPENAI_API_KEY    = process.env.OPENAI_API_KEY    || llmConfig.openaiApiKey    || ''
-const OPENAI_MODEL      = process.env.OPENAI_MODEL      || llmConfig.openaiModel     || 'gpt-4.1'
+const OPENAI_MODEL      = process.env.OPENAI_MODEL      || llmConfig.openaiModel     || DEFAULT_OPENAI_MODEL
+const OPENAI_REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || llmConfig.openaiReasoningEffort || DEFAULT_OPENAI_REASONING_EFFORT
 const OPENAI_BASE_URL   = (process.env.OPENAI_BASE_URL  || llmConfig.openaiBaseUrl   || 'https://api.openai.com/v1').replace(/\/+$/, '')
+
+function llmConfiguration() {
+  return publicLlmConfiguration({
+    provider: LLM_PROVIDER,
+    codexModel: CODEX_MODEL,
+    claudeModel: '',
+    anthropicModel: ANTHROPIC_MODEL,
+    openAiModel: OPENAI_MODEL,
+    openAiReasoning: OPENAI_REASONING_EFFORT,
+    configured: LLM_PROVIDER === 'openai' ? Boolean(OPENAI_API_KEY)
+      : LLM_PROVIDER === 'api' || LLM_PROVIDER === 'anthropic' ? Boolean(ANTHROPIC_API_KEY)
+        : LLM_PROVIDER === 'codex' ? existsSync(CODEX_BIN)
+          : Boolean(CLAUDE_BIN)
+  })
+}
 
 // ─── Self-update config ─────────────────────────────────────────────────────
 // Read at boot — git HEAD + remote origin URL → parsed owner/repo for the
@@ -1084,6 +1101,9 @@ async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens =
     const body = {
       model: OPENAI_MODEL,
       max_completion_tokens: maxOutputTokens,
+      ...(openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT)
+        ? { reasoning_effort: openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) }
+        : {}),
       messages: [
         { role: 'system', content: schema ? 'You extract academic facts and answer only with JSON that conforms to the supplied schema. Never include prose outside the JSON.' : 'You are a precise academic study assistant.' },
         { role: 'user', content }
@@ -3086,7 +3106,7 @@ const server = createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/api/health' && req.method === 'GET') {
-      try { send(res, 200, JSON.stringify(await healthcheck())) }
+      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration() } })) }
       catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
       return
     }
@@ -5021,5 +5041,5 @@ server.listen(port, hostname, () => {
   if (LLM_PROVIDER === 'codex') console.log(`Codex bin: ${CODEX_BIN}${existsSync(CODEX_BIN) ? '' : ' (NOT FOUND)'}`)
   if (LLM_PROVIDER === 'claude') console.log(`Claude bin: ${CLAUDE_BIN}`)
   if (LLM_PROVIDER === 'api' || LLM_PROVIDER === 'anthropic') console.log(`Model: ${ANTHROPIC_MODEL} (API key ${ANTHROPIC_API_KEY ? 'set' : 'MISSING'})`)
-  if (LLM_PROVIDER === 'openai') console.log(`Model: ${OPENAI_MODEL} (OpenAI key ${OPENAI_API_KEY ? 'set' : 'MISSING'})`)
+  if (LLM_PROVIDER === 'openai') console.log(`Model: ${OPENAI_MODEL} (reasoning ${openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) || 'not applicable'}; OpenAI key ${OPENAI_API_KEY ? 'set' : 'MISSING'})`)
 })

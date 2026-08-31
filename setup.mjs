@@ -3,7 +3,7 @@
  * Guided first-run setup for the exam-study-platform.
  *
  *   • Verifies Node.js version
- *   • Detects available LLM providers (Codex CLI / Claude CLI / API key)
+ *   • Detects available LLM providers (Codex CLI / Claude CLI / API keys)
  *   • Prompts the user to pick one, walks through install hints if missing
  *   • Bootstraps data/study-state.json from the shipped template
  *   • Creates data/cache/ subfolders
@@ -67,33 +67,44 @@ function detectProviders() {
     ? '/Applications/Codex.app/Contents/Resources/codex'
     : which('codex')
   const claudePath  = which('claude')
-  const hasApiKey   = !!process.env.ANTHROPIC_API_KEY
+  const hasOpenAiKey = !!process.env.OPENAI_API_KEY
+  const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY
   if (codexPath)   ok(`Codex CLI (${codexPath})`); else miss('Codex CLI not found')
   if (claudePath)  ok(`Claude CLI (${claudePath})`); else miss('Claude CLI not found')
-  if (hasApiKey)   ok('ANTHROPIC_API_KEY env var is set'); else miss('ANTHROPIC_API_KEY not in env')
-  return { codexPath, claudePath, hasApiKey }
+  if (hasOpenAiKey) ok('OPENAI_API_KEY env var is set'); else miss('OPENAI_API_KEY not in env')
+  if (hasAnthropicKey) ok('ANTHROPIC_API_KEY env var is set'); else miss('ANTHROPIC_API_KEY not in env')
+  return { codexPath, claudePath, hasOpenAiKey, hasAnthropicKey }
 }
 
-async function pickProvider({ codexPath, claudePath, hasApiKey }) {
+async function pickProvider({ codexPath, claudePath, hasOpenAiKey, hasAnthropicKey }) {
   head('Choose your LLM provider')
   print(`  The platform uses an LLM to generate practice questions, grade your`)
   print(`  attempts, and provide hints. Pick whichever you have access to:`)
-  print(`    ${c.bold}1${c.reset}) Codex CLI    ${codexPath ? c.green + '(detected)' + c.reset : c.dim + '(install from https://www.anthropic.com/codex)' + c.reset}`)
+  print(`    ${c.bold}1${c.reset}) Codex CLI    ${codexPath ? c.green + '(detected)' + c.reset : c.dim + '(not detected)' + c.reset}`)
   print(`    ${c.bold}2${c.reset}) Claude CLI   ${claudePath ? c.green + '(detected)' + c.reset : c.dim + '(install: npm install -g @anthropic-ai/claude-code)' + c.reset}`)
-  print(`    ${c.bold}3${c.reset}) API key      ${hasApiKey ? c.green + '(detected in env)' + c.reset : c.dim + '(get one at https://console.anthropic.com/settings/keys)' + c.reset}`)
-  print(`    ${c.bold}4${c.reset}) Skip — set up later`)
+  print(`    ${c.bold}3${c.reset}) OpenAI API   ${hasOpenAiKey ? c.green + '(detected in env)' + c.reset : c.dim + '(create a project key at https://platform.openai.com/api-keys)' + c.reset}`)
+  print(`    ${c.bold}4${c.reset}) Anthropic API ${hasAnthropicKey ? c.green + '(detected in env)' + c.reset : c.dim + '(get one at https://console.anthropic.com/settings/keys)' + c.reset}`)
+  print(`    ${c.bold}5${c.reset}) Skip — set up later`)
   while (true) {
-    const a = (await ask('Pick 1, 2, 3, or 4:')).trim()
+    const a = (await ask('Pick 1, 2, 3, 4, or 5:')).trim()
     if (a === '1') return { provider: 'codex', codexBin: codexPath || undefined }
     if (a === '2') return { provider: 'claude', claudeBin: claudePath || 'claude' }
     if (a === '3') {
+      let key = process.env.OPENAI_API_KEY || ''
+      if (!key) key = await ask('Paste your OpenAI project API key (sk-proj-…):')
+      if (!key.startsWith('sk-')) warn(`That doesn't look like a normal OpenAI key — saving it anyway.`)
+      const model = (await ask('Model to use (press Enter for gpt-5-mini):')) || 'gpt-5-mini'
+      const reasoning = (await ask('Reasoning effort (press Enter for low):')) || 'low'
+      return { provider: 'openai', openaiApiKey: key, openaiModel: model, openaiReasoningEffort: reasoning }
+    }
+    if (a === '4') {
       let key = process.env.ANTHROPIC_API_KEY || ''
       if (!key) key = await ask('Paste your Anthropic API key (sk-ant-…):')
       if (!key.startsWith('sk-')) warn(`That doesn't look like a normal Anthropic key — saving it anyway.`)
       const model = (await ask('Model to use (press Enter for claude-sonnet-4-5):')) || 'claude-sonnet-4-5'
       return { provider: 'api', anthropicApiKey: key, anthropicModel: model }
     }
-    if (a === '4') return null
+    if (a === '5') return null
   }
 }
 
@@ -152,6 +163,7 @@ function summary(cfg) {
   if (cfg) {
     print(`  LLM provider: ${c.cyan}${cfg.provider}${c.reset}`)
     if (cfg.provider === 'api') print(`  Model: ${c.cyan}${cfg.anthropicModel}${c.reset}`)
+    if (cfg.provider === 'openai') print(`  Model: ${c.cyan}${cfg.openaiModel}${c.reset} (reasoning ${cfg.openaiReasoningEffort})`)
   } else {
     print(`  ${c.yellow}LLM not configured — you can read notes and use the pre-generated question bank,${c.reset}`)
     print(`  ${c.yellow}but generating new content or grading attempts will fail until you re-run setup.${c.reset}`)

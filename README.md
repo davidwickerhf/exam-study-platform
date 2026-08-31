@@ -52,8 +52,9 @@ npm start
   with [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) are
   set; otherwise grab a build from [nodejs.org](https://nodejs.org).
 - **One LLM provider** — pick at setup time:
-- **Codex CLI** — an installed Codex command-line client.
+  - **Codex CLI** — an installed Codex command-line client.
   - **Claude CLI** — `npm install -g @anthropic-ai/claude-code` then `claude login`.
+  - **OpenAI API key** — recommended for hosted deployments; create a project or service-account key at [platform.openai.com](https://platform.openai.com/api-keys).
   - **Anthropic API key** — Most universal option. Get one at
     [console.anthropic.com](https://console.anthropic.com/settings/keys);
     setup will prompt for it.
@@ -122,9 +123,12 @@ directly. Recognised fields:
 
 ```jsonc
 {
-  "provider": "codex" | "claude" | "api",
+  "provider": "codex" | "claude" | "openai" | "api",
   "codexBin": "/path/to/codex",                 // optional override
   "claudeBin": "claude",                        // optional override
+  "openaiApiKey": "sk-proj-…",                  // required if provider=openai
+  "openaiModel": "gpt-5-mini",                  // optional, defaults shown
+  "openaiReasoningEffort": "low",                // minimal | low | medium | high
   "anthropicApiKey": "sk-ant-…",                // required if provider=api
   "anthropicModel": "claude-sonnet-4-5"         // optional, defaults shown
 }
@@ -138,13 +142,16 @@ Every field above also has an env-var override:
 | `codexBin` | `CODEX_BIN` |
 | `codexModel` | `CODEX_MODEL` |
 | `claudeBin` | `CLAUDE_BIN` |
+| `openaiApiKey` | `OPENAI_API_KEY` |
+| `openaiModel` | `OPENAI_MODEL` |
+| `openaiReasoningEffort` | `OPENAI_REASONING_EFFORT` |
 | `anthropicApiKey` | `ANTHROPIC_API_KEY` |
 | `anthropicModel` | `ANTHROPIC_MODEL` |
 
 Env vars win over the config file. Useful for one-off testing:
 
 ```bash
-LLM_PROVIDER=api ANTHROPIC_API_KEY=sk-ant-xxx npm start
+LLM_PROVIDER=openai OPENAI_API_KEY=sk-proj-xxx npm start
 ```
 
 ## Pulling updates
