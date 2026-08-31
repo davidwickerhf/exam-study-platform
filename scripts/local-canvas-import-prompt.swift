@@ -80,24 +80,20 @@ final class ImportForm: NSObject {
     alert.addButton(withTitle: "Import locally")
     alert.addButton(withTitle: "Cancel")
 
-    let card = NSView()
+    // `NSAlert` sizes an accessory from its intrinsic content size. A plain NSView
+    // has none, which made the fields collapse to an invisible zero-height area on
+    // some macOS versions. Use the stack itself as the accessory so its content
+    // defines the alert's size.
+    let card = NSStackView()
+    card.orientation = .vertical
+    card.alignment = .leading
+    card.spacing = 8
+    card.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
     card.wantsLayer = true
     card.layer?.backgroundColor = wickerSoft.cgColor
     card.layer?.cornerRadius = 8
-
-    let content = NSStackView()
-    content.orientation = .vertical
-    content.alignment = .leading
-    content.spacing = 8
-    content.translatesAutoresizingMaskIntoConstraints = false
-    card.addSubview(content)
-    NSLayoutConstraint.activate([
-      content.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
-      content.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
-      content.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
-      content.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16),
-      card.widthAnchor.constraint(equalToConstant: 540)
-    ])
+    card.widthAnchor.constraint(equalToConstant: 540).isActive = true
+    let content = card
 
     let privacy = NSTextField(labelWithString: "PRIVATE LOCAL IMPORT")
     privacy.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .semibold)
