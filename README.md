@@ -154,6 +154,46 @@ Env vars win over the config file. Useful for one-off testing:
 LLM_PROVIDER=openai OPENAI_API_KEY=sk-proj-xxx npm start
 ```
 
+## Local test user
+
+By default the app runs from files and every request is `local-dev`. That is
+enough for study workflows, but the editorial pipeline, the admin area, and
+personal records only exist in the database — so those surfaces cannot be
+exercised locally without a way to be somebody against a real database.
+
+`WICKER_LOCAL_USER` is that way. Set it, point `DATABASE_URL` at a database,
+and leave the Clerk keys unset:
+
+```bash
+# .env — development only, never commit real credentials
+DATABASE_URL=postgresql://…            # a Neon branch, not production
+WICKER_LOCAL_USER=user_localtest       # every request acts as this user
+WICKER_LOCAL_USER_EMAIL=test@example.com   # optional; drives programme scoping
+ADMIN_USER_IDS=user_localtest          # optional; makes that user an admin
+```
+
+```bash
+npm run dev   # startup prints: Authentication: local-test-user
+```
+
+Then open <http://localhost:4177/app#/admin>.
+
+Notes:
+
+- **Use a database branch, not production.** In Neon, branch `main` and put the
+  branch's connection string in `DATABASE_URL`. The test user writes real rows;
+  a branch keeps them off your production data. Delete the branch afterwards.
+  Neon branches share the role password with their parent, so treat the
+  connection string as a production credential either way.
+- **Admin rights are explicit.** `ADMIN_USER_IDS` is the same mechanism used in
+  production, so name the test user there to reach `#/admin`.
+- **It refuses to start where it could matter.** Setting `WICKER_LOCAL_USER`
+  with `NODE_ENV=production`, on Vercel, or alongside Clerk keys is a startup
+  error, not a warning: it would let an unauthenticated caller act as a real
+  user.
+- **It replaces sign-in entirely.** There is no sign-in page in this mode and
+  no session; the browser simply is that user.
+
 ## Pulling updates
 
 When the maintainer adds new chapters or papers:
