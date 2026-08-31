@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-import { config } from 'dotenv'
 import { importCanvasCourse } from '../lib/canvas-course-import.mjs'
+import { promptForLocalCanvasImport } from '../lib/local-canvas-prompts.mjs'
 
-// Local convenience only. Existing shell variables always win; this never reads or
-// writes a deployed environment.
-config({ path: '.env.local', override: false, quiet: true })
-config({ path: '.env', override: false, quiet: true })
+// The normal interactive flow intentionally does not read .env files: a stale token
+// must never prevent the hidden prompt from appearing. Passing --token-env is an
+// explicit local-only shortcut for a shell environment variable.
 
 function options(argv) {
   const values = {}
@@ -19,27 +18,25 @@ function options(argv) {
 }
 
 const args = options(process.argv.slice(2))
-if (args.help || !args['course-url'] || !args.output) {
-  console.error('Usage: CANVAS_ACCESS_TOKEN=… node scripts/canvas-course-sync.mjs --course-url https://canvas.example.edu/courses/123/modules --output /absolute/path/to/course-folder [--token-env CANVAS_ACCESS_TOKEN] [--max-resources 250]')
-  process.exitCode = args.help ? 0 : 1
+if (args.help) {
+  console.error('Usage: npm run canvas:sync (opens local prompts), or npm run canvas:sync -- --course-url https://canvas.example.edu/courses/123/modules --output /absolute/path/to/course-folder [--token-env CANVAS_ACCESS_TOKEN] [--max-resources 250]')
 } else {
-  const tokenEnv = String(args['token-env'] || 'CANVAS_ACCESS_TOKEN')
-  const token = process.env[tokenEnv]
-  if (!token) {
-    console.error(`Set ${tokenEnv} locally after signing in to Canvas. Do not pass a password or OTP to this script.`)
+  const tokenEnv = args['token-env'] ? String(args['token-env']) : null
+  try {
+    const input = await promptForLocalCanvasImport({
+      courseUrl: args['course-url'],
+      outputFolder: args.output,
+      accessToken: tokenEnv ? process.env[tokenEnv] : undefined
+    })
+    const result = await importCanvasCourse({
+      courseUrl: input.courseUrl,
+      outputFolder: input.outputFolder,
+      accessToken: input.accessToken,
+      ...(args['max-resources'] ? { maxResources: Number(args['max-resources']) } : {})
+    })
+    console.log(JSON.stringify(result, null, 2))
+  } catch (error) {
+    console.error(error.message)
     process.exitCode = 1
-  } else {
-    try {
-      const result = await importCanvasCourse({
-        courseUrl: args['course-url'],
-        outputFolder: args.output,
-        accessToken: token,
-        ...(args['max-resources'] ? { maxResources: Number(args['max-resources']) } : {})
-      })
-      console.log(JSON.stringify(result, null, 2))
-    } catch (error) {
-      console.error(error.message)
-      process.exitCode = 1
-    }
   }
 }

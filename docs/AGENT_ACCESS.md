@@ -81,8 +81,7 @@ text. Public URLs pass DNS and redirect validation before fetching.
       "args": ["/path/to/exam-study-platform/mcp/server.mjs"],
       "env": {
         "WICKER_STUDY_URL": "https://study.wicker.life",
-        "WICKER_STUDY_API_KEY": "wsk_…",
-        "CANVAS_ACCESS_TOKEN": "local Canvas PAT only; optional"
+        "WICKER_STUDY_API_KEY": "wsk_…"
       }
     }
   }
@@ -134,15 +133,13 @@ the administrator can inspect the collection before Wicker receives any source.
 Canvas sign-in, Microsoft SAML, and OTP stay with Canvas. Do not put a password, OTP,
 browser cookie, or Canvas access token in Wicker Study, an agent prompt, or a source
 folder. After the administrator signs in to Canvas, they may create a short-lived
-Personal Access Token if their institution permits it and set it only in the local MCP
-environment as `CANVAS_ACCESS_TOKEN` (the standalone `npm run canvas:sync` command
-also loads an ignored local `.env.local` or `.env`).
+Personal Access Token if their institution permits it. Calling
+`admin_import_canvas_course` with no arguments on macOS opens local dialogs for the
+course URL, Finder output folder, and a hidden one-time token; it is not saved. An
+environment variable is used only when explicitly passed as `accessTokenEnv`.
 
 ```json
-{
-  "courseUrl": "https://canvas.maastrichtuniversity.nl/courses/25806/modules",
-  "outputFolder": "/absolute/path/to/BCS-course-canvas"
-}
+{}
 ```
 
 Only after confirming they are authorised to submit the materials should an
@@ -150,7 +147,8 @@ administrator set `syncToWicker:true`, `rightsConfirmed:true`, and eventually
 `dryRun:false`. This creates private **candidate** contributions. Rights acceptance,
 extraction, mapping, generation, and publication remain separate approvals. Re-run the
 importer into the same folder for weekly Canvas additions, then use the normal folder
-sync to transmit only new or changed files.
+sync to transmit only new or changed files. Paths that disappeared from Canvas are
+reported for review and never deleted automatically.
 
 ## Claude skill
 

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { CanvasCourseImportError, importCanvasCourse, parseCanvasCourseUrl } from '../lib/canvas-course-import.mjs'
@@ -66,4 +66,19 @@ test('Canvas course URLs require HTTPS and never carry credentials', () => {
   assert.throws(() => parseCanvasCourseUrl('http://canvas.example.edu/courses/1/modules'), CanvasCourseImportError)
   assert.throws(() => parseCanvasCourseUrl('https://name:password@canvas.example.edu/courses/1/modules'), CanvasCourseImportError)
   assert.deepEqual(parseCanvasCourseUrl('https://canvas.example.edu/courses/1/modules'), { origin: 'https://canvas.example.edu', courseId: '1', courseUrl: 'https://canvas.example.edu/courses/1/modules' })
+})
+
+test('Canvas importer refuses to overwrite a folder that was not created by it', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'wicker-canvas-import-'))
+  try {
+    await writeFile(join(root, 'my-notes.md'), '# Keep this')
+    await assert.rejects(() => importCanvasCourse({
+      courseUrl: 'https://canvas.example.edu/courses/1/modules',
+      accessToken: 'local-token-only',
+      outputFolder: root,
+      fetchImpl: async () => { throw new Error('The network must not be called') }
+    }), (error) => error instanceof CanvasCourseImportError && /new empty output folder/.test(error.message))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

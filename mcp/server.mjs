@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
 import { extname, relative, resolve, sep } from 'node:path'
 import { importCanvasCourse } from '../lib/canvas-course-import.mjs'
+import { promptForLocalCanvasImport } from '../lib/local-canvas-prompts.mjs'
 
 const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
 const apiKey = process.env.WICKER_STUDY_API_KEY || ''
@@ -136,20 +137,20 @@ async function syncCourseFolder(args) {
 }
 
 function localEnvironmentName(value) {
-  const name = String(value || 'CANVAS_ACCESS_TOKEN')
+  const name = String(value || '').trim()
+  if (!name) return null
   if (!/^[A-Z][A-Z0-9_]{0,127}$/.test(name)) throw new Error('accessTokenEnv must name a local environment variable, for example CANVAS_ACCESS_TOKEN.')
   return name
 }
 
 async function importCanvasCourseAndMaybeSync(args) {
-  const accessTokenEnv = localEnvironmentName(args.accessTokenEnv)
-  const accessToken = process.env[accessTokenEnv]
-  if (!accessToken) throw new Error(`Set ${accessTokenEnv} in the local MCP environment after signing in to Canvas. Wicker Study never receives Canvas passwords or OTP codes.`)
   if (args.syncToWicker === true && args.rightsConfirmed !== true) throw new Error('Set rightsConfirmed=true only after confirming that you are authorised to submit these Canvas materials for editorial review.')
+  const accessTokenEnv = localEnvironmentName(args.accessTokenEnv)
+  const input = await promptForLocalCanvasImport({ courseUrl: args.courseUrl, outputFolder: args.outputFolder, accessToken: accessTokenEnv ? process.env[accessTokenEnv] : undefined })
   const imported = await importCanvasCourse({
-    courseUrl: args.courseUrl,
-    accessToken,
-    outputFolder: args.outputFolder,
+    courseUrl: input.courseUrl,
+    accessToken: input.accessToken,
+    outputFolder: input.outputFolder,
     maxResources: args.maxResources
   })
   if (args.syncToWicker !== true) return {
@@ -245,8 +246,8 @@ server.tool('admin_register_course_urls', 'Register public web sources for an ex
 server.tool('admin_sync_course_folder', 'Create or update a versioned course edition from a local folder. Defaults to a dry run. Unchanged files are reused by hash; changed paths supersede older sources. Set replaceManifest only when the folder is the authoritative complete source set.', {
   folderPath: z.string(), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional(), dryRun: z.boolean().default(true), replaceManifest: z.boolean().default(false), rightsBasis: z.enum(['authorised-course-material', 'admin-supplied']).default('admin-supplied'), consentStatus: z.enum(['accepted', 'candidate']).default('accepted')
 }, run(syncCourseFolder))
-server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. Canvas access uses a local Personal Access Token environment variable after the administrator completes Canvas SAML/OTP; never pass a Canvas password or OTP here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
-  courseUrl: z.string().url(), outputFolder: z.string(), accessTokenEnv: z.string().default('CANVAS_ACCESS_TOKEN'), maxResources: z.number().int().min(1).max(250).default(250), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
+server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. With no arguments, the local macOS process opens dialogs for the URL, Finder folder selection, and a hidden one-time token prompt. accessTokenEnv is an explicit local shortcut only. Never pass a Canvas password or OTP here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
+  courseUrl: z.string().url().optional(), outputFolder: z.string().optional(), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(250).default(250), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
 }, run(importCanvasCourseAndMaybeSync))
 server.tool('admin_list_editorial_workspace', 'List compact course-edition summaries, or pass editionId for its sources, rights decisions, topics, jobs, artifacts, estimates, and releases.', { editionId: z.string().optional() }, run(({ editionId }) => api('/api/admin/editorial-workspace', { query: { editionId } })))
 server.tool('admin_prepare_content_request', 'Turn a student request into a candidate shared edition. Fails if the student kept sources private.', { requestId: z.string() }, run(({ requestId }) => api(`/api/admin/content-requests/${encodeURIComponent(requestId)}/prepare`, { method: 'POST', body: {} })))

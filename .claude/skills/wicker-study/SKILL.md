@@ -108,17 +108,19 @@ When an administrator gives a Canvas course Modules URL, use
 credentials. Canvas authentication stays with Canvas: never ask for, receive, store,
 or paste a Canvas password, MFA/OTP code, browser cookie, or session export.
 
-- The administrator completes Canvas SAML/OTP in Canvas, creates a short-lived Canvas
-  Personal Access Token if their institution permits it, and places it only in the
-  local MCP process environment as `CANVAS_ACCESS_TOKEN`.
-- First call `admin_import_canvas_course` with `courseUrl`, a dedicated absolute
-  `outputFolder`, and its default `syncToWicker:false`. It collects accessible module
-  files, pages, assignments, discussions, quizzes, and external-link references into
-  a stable, categorised folder with a hidden manifest. It does not fetch third-party
-  links.
+- The administrator completes Canvas SAML/OTP in Canvas and creates a short-lived
+  Personal Access Token if their institution permits it. On macOS, call
+  `admin_import_canvas_course` with no arguments: local native dialogs ask for the
+  Modules URL, select the output folder in Finder, and collect the token with a hidden,
+  one-time input. It is never saved. An existing local `CANVAS_ACCESS_TOKEN` is used
+  only when explicitly passed as the optional `accessTokenEnv` shortcut.
+- The importer collects accessible module files, pages, assignments, discussions,
+  quizzes, and external-link references into a stable, categorised folder with a hidden
+  manifest. It does not fetch third-party links.
 - Inspect the local `README.md`, manifest, and skipped items. Re-run into the same
   folder whenever Canvas publishes new weekly material; unchanged files are reused by
-  hash during the later folder sync.
+  hash during the later folder sync. Paths no longer returned by Canvas are flagged for
+  review and never deleted automatically.
 - Only if the administrator confirms they are authorised to submit the material, call
   the importer again with `syncToWicker:true`, `rightsConfirmed:true`, and first keep
   `dryRun:true`. Show the plan. On explicit confirmation, use `dryRun:false`.

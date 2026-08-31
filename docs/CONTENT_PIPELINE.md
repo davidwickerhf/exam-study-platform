@@ -44,15 +44,17 @@ flow is exposed through `/api/admin/editorial-*` and the MCP tools
 ### Canvas source snapshots
 
 For a Canvas course dashboard, run the local MCP tool
-`admin_import_canvas_course` with the Modules URL and a dedicated local output folder.
-It uses a Canvas Personal Access Token from the local MCP environment, keeps the token
-out of Wicker, and writes a categorised snapshot for every accessible module resource.
+`admin_import_canvas_course` with no arguments. On macOS it asks locally for the
+Modules URL, opens Finder to choose a dedicated output folder, and asks for a hidden,
+one-time Canvas Personal Access Token. An environment variable is only used when an
+administrator explicitly asks to use it as a local shortcut.
+The token stays out of Wicker and is not written to a source folder, log, or config file.
 Canvas passwords, SAML sessions, and OTP values are never collected or automated.
 Import locally first, inspect the manifest, then submit only authorised material with
 the tool's explicit rights confirmation. Canvas snapshots enter the editorial workspace
 as candidate contributions, so extraction, AI work, and publishing cannot happen until
 an administrator accepts them. Re-running the same folder is the update path when new
-weekly material appears.
+weekly material appears; paths no longer returned by Canvas are flagged, never deleted.
 
 ## Repository release path
 
