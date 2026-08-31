@@ -66,7 +66,7 @@ const COURSE_INGESTION_STAGE_FALLBACK = [
 let state = null
 // Route tables are declared before parseRoute runs on cold load.
 const PRACTICE_TABS = [['questions', 'Questions'], ['flashcards', 'Flashcards'], ['mistakes', 'Mistakes'], ['mocks', 'Mocks']]
-const ACCOUNT_TABS = [['profile', 'Profile'], ['usage', 'AI usage'], ['api', 'API access'], ['data', 'Data & privacy'], ['admin', 'Admin']]
+const ACCOUNT_TABS = [['profile', 'Profile'], ['connections', 'Connections'], ['usage', 'AI usage'], ['api', 'API access'], ['data', 'Data & privacy'], ['admin', 'Admin']]
 
 let route = parseRoute()
 let academicsData = null
@@ -863,7 +863,7 @@ function parseRoute() {
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
   if (parts[0] === 'settings' || parts[0] === 'account') {
-    const requested = ['usage', 'data', 'api', 'admin'].includes(parts[1]) ? parts[1] : parts[1] === 'account' ? 'data' : 'profile'
+    const requested = ['connections', 'usage', 'data', 'api', 'admin'].includes(parts[1]) ? parts[1] : parts[1] === 'account' ? 'data' : 'profile'
     return { page: 'account', tab: requested }
   }
   if (parts[0] === 'planning' && parts[1] === 'calendar') return { page: 'calendar', view: null }
@@ -2669,7 +2669,7 @@ function renderAccountPage() {
   const tabs = ACCOUNT_TABS.filter(([id]) => id !== 'admin' || isAdmin)
   const tab = tabs.some(([id]) => id === route.tab) ? route.tab : 'profile'
   const memberSince = longDate(user.createdAt || accountSummary?.account?.createdAt)
-  const body = tab === 'usage' ? renderAccountUsage() : tab === 'data' ? renderAccountData() : tab === 'api' ? renderAccountApi() : tab === 'admin' ? renderAccountAdmin() : renderAccountProfile(user)
+  const body = tab === 'connections' ? renderAccountConnections() : tab === 'usage' ? renderAccountUsage() : tab === 'data' ? renderAccountData() : tab === 'api' ? renderAccountApi() : tab === 'admin' ? renderAccountAdmin() : renderAccountProfile(user)
   return `<section class="page-wrap account-page">
     <header class="page-head">
       <div class="page-head-identity">${renderAvatar(user, 'lg')}<div><p class="page-eyebrow">Account</p><h1>${escapeHtml(user.name)}</h1><p class="page-sub">${escapeHtml(user.email || 'Signed in')}${memberSince ? ` · Member since ${escapeHtml(memberSince)}` : ''}${window.__clerk ? '' : ' · No sign-in configured'}</p></div></div>
@@ -2680,6 +2680,42 @@ function renderAccountPage() {
     <nav class="page-tabs" aria-label="Account sections"><div>${tabs.map(([id, label]) => `<a href="#/account/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>
     ${body}
   </section>`
+}
+
+// ----- Account connections: encrypted, account-scoped Canvas credentials ---
+let canvasConnections = null
+let canvasConnectionsError = null
+let canvasConnectionsLoading = false
+const canvasConnectionForm = { canvasUrl: 'https://canvas.maastrichtuniversity.nl', saving: false, error: null, removing: null }
+async function loadCanvasConnections(force = false) {
+  if ((canvasConnections && !force) || canvasConnectionsLoading) return canvasConnections
+  canvasConnectionsLoading = true
+  canvasConnectionsError = null
+  try { canvasConnections = await fetchJson('/api/account/integrations/canvas') }
+  catch (error) { canvasConnections = null; canvasConnectionsError = error.message || 'Canvas connections are temporarily unavailable.' }
+  finally { canvasConnectionsLoading = false }
+  return canvasConnections
+}
+
+function renderAccountConnections() {
+  if (!canvasConnections && !canvasConnectionsLoading && !canvasConnectionsError) loadCanvasConnections().then(() => render())
+  const connections = canvasConnections?.connections || []
+  return `<div class="account-stack account-connections">
+    <section class="panel">
+      <div class="panel-top"><div><h2>Canvas connection</h2><p>Save one Personal Access Token per Canvas host. It is encrypted for your account, never displayed again, and is used only when you choose to list or archive your courses.</p></div><a class="btn btn-secondary btn-sm" href="/canvas">Open course archive</a></div>
+      ${canvasConnectionsError ? `<div class="settings-error" role="alert"><strong>Canvas settings are unavailable.</strong><p>${escapeHtml(canvasConnectionsError)}</p></div>` : ''}
+      <form class="connection-form" data-canvas-connection-form>
+        <label class="adm-field"><span>Canvas address</span><input type="url" name="canvasUrl" value="${escapeHtml(canvasConnectionForm.canvasUrl)}" placeholder="https://canvas.example.edu" autocomplete="url" required ${canvasConnectionForm.saving ? 'disabled' : ''}></label>
+        <label class="adm-field"><span>Personal Access Token</span><input type="password" name="accessToken" placeholder="Paste token from Canvas" autocomplete="off" spellcheck="false" required ${canvasConnectionForm.saving ? 'disabled' : ''}></label>
+        <div class="connection-form-actions"><p><strong>Never paste a password, OTP, cookie, or session export.</strong> Create a Personal Access Token in Canvas after signing in there.</p><button type="submit" class="btn btn-primary" ${canvasConnectionForm.saving ? 'disabled' : ''}>${canvasConnectionForm.saving ? 'Securing connection…' : 'Connect Canvas'}</button></div>
+        ${canvasConnectionForm.error ? `<p class="account-delete-error" role="alert">${escapeHtml(canvasConnectionForm.error)}</p>` : ''}
+      </form>
+    </section>
+    <section class="panel">
+      <div class="panel-top"><div><h2>Saved Canvas hosts</h2><p>Removing a connection deletes its encrypted token from your account. It does not change anything in Canvas.</p></div></div>
+      ${canvasConnectionsLoading && !canvasConnections ? '<div class="settings-loading"><span></span><p>Checking your connections…</p></div>' : connections.length ? `<div class="connection-list">${connections.map((connection) => `<div class="connection-row"><span class="connection-row-mark">${uiIcon('check')}</span><span><strong>${escapeHtml(connection.origin)}</strong><small>Connected ${relativeTime(connection.createdAt)}${connection.lastUsedAt ? ` · last used ${relativeTime(connection.lastUsedAt)}` : ' · not used yet'}</small></span><button type="button" class="btn btn-danger-outline btn-sm" data-canvas-connection-remove="${escapeHtml(connection.origin)}" ${canvasConnectionForm.removing === connection.origin ? 'disabled' : ''}>${canvasConnectionForm.removing === connection.origin ? 'Removing…' : 'Remove'}</button></div>`).join('')}</div>` : '<div class="editorial-empty"><strong>No Canvas connection yet</strong><p>Connect your university Canvas account above, then return to the archive to choose courses and modules.</p></div>'}
+    </section>
+  </div>`
 }
 
 function renderAccountProfile(user) {
@@ -2789,7 +2825,7 @@ const adminPanel = {
   programmeId: '', calendarSource: 'file', calendarFiles: [], calendarUrl: '', calendarReplace: false, calendarBusy: false, calendarResult: null, calendarError: null,
   courseId: '', materials: null, materialFile: null, materialFolder: '', newFolder: '', materialName: '', asChapter: false, chapterId: '', chapterName: '', materialBusy: false, materialResult: null, materialError: null,
   requests: null, requestsLoading: false, requestsError: null, requestBusyId: null, requestSavedId: null,
-  editorial: null, editorialLoading: false, editorialError: null, selectedEditionId: '', editionCode: '', editionName: '', editionYear: '', editionPeriod: '', editionProgrammeId: '', editionInstitution: '', editionFolderFiles: [], editionUrls: '', editionReplaceManifest: false, editionBusy: false, editionProgress: '', editionResult: null, estimate: null, publishConfirmation: '', artifactBusyId: null, editingArtifactId: null, contributionBusyId: null
+  editorial: null, editorialLoading: false, editorialError: null, selectedEditionId: '', editionCode: '', editionName: '', editionYear: '', editionPeriod: '', editionProgrammeId: '', editionCanonicalCourseId: '', editionInstitution: '', editionFolderFiles: [], editionUrls: '', editionReplaceManifest: false, editionBusy: false, editionProgress: '', editionResult: null, estimate: null, publishConfirmation: '', artifactBusyId: null, editingArtifactId: null, contributionBusyId: null
 }
 async function loadAdminStatus(force = false) {
   if ((adminPanel.status && !force) || adminPanel.loading) return
@@ -2880,6 +2916,70 @@ function selectedEditorialEdition() {
   return (adminPanel.editorial?.editions || []).find((edition) => edition.id === adminPanel.selectedEditionId) || null
 }
 
+function curriculumCourseKey(course = {}) {
+  return String(course.id || course.code || '').trim().toLowerCase()
+}
+
+function editorialEditionsForCourse(course, editions = []) {
+  const code = String(course.code || '').trim().toUpperCase()
+  const canonical = curriculumCourseKey(course)
+  return editions.filter((edition) => {
+    const editionCode = String(edition.courseCode || '').trim().toUpperCase()
+    const editionCanonical = String(edition.canonicalCourseId || '').trim().toLowerCase()
+    return Boolean((code && editionCode === code) || (canonical && editionCanonical === canonical))
+  }).sort((a, b) => String(b.academicYear || '').localeCompare(String(a.academicYear || '')) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))
+}
+
+function curriculumCatalogue() {
+  const programmes = editorialProgrammesData?.programmes || []
+  const rows = []
+  for (const programme of programmes) {
+    const versions = [...(programme.versions || [])].sort((a, b) => String(b.id || '').localeCompare(String(a.id || '')))
+    const byCourse = new Map()
+    for (const version of versions) {
+      for (const course of version.courses || []) {
+        const key = curriculumCourseKey(course)
+        if (!key) continue
+        const existing = byCourse.get(key)
+        if (existing) existing.referenceVersions.push(version)
+        else byCourse.set(key, { programme, course, latestVersion: version, referenceVersions: [version] })
+      }
+    }
+    rows.push(...byCourse.values())
+  }
+  return rows
+}
+
+function renderEditorialCurriculumCatalogue(editions = []) {
+  if (editorialProgrammesLoading && !editorialProgrammesData) return '<section class="editorial-catalogue"><div class="settings-loading"><span></span><p>Loading the recognised curriculum…</p></div></section>'
+  const rows = curriculumCatalogue()
+  if (!rows.length) return `<section class="editorial-catalogue"><div class="editorial-empty"><strong>Curriculum catalogue unavailable</strong><p>${escapeHtml(editorialProgrammesError || 'Load a maintained programme reference before starting an edition.')}</p></div></section>`
+  const groups = new Map()
+  for (const row of rows) {
+    const key = row.course.yearLevel || 'Other curriculum requirements'
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(row)
+  }
+  const groupOrder = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+  const editionCount = editions.length
+  return `<section class="editorial-catalogue" aria-labelledby="editorial-catalogue-title">
+    <div class="editorial-catalogue-head"><div><h3 id="editorial-catalogue-title">Curriculum course catalogue</h3><p>Every recognised course is listed from the maintained programme reference. Open a course to create an edition or inspect its source, assessment, and release history.</p></div><span>${rows.length} recognised courses · ${editionCount} editorial edition${editionCount === 1 ? '' : 's'}</span></div>
+    <div class="editorial-catalogue-groups">${groupOrder.map(([year, courses]) => `<section><h4>${escapeHtml(year)}</h4><div>${courses.sort((a, b) => String(a.course.period || '').localeCompare(String(b.course.period || '')) || String(a.course.code || '').localeCompare(String(b.course.code || ''))).map(({ programme, course, latestVersion, referenceVersions }) => {
+      const history = editorialEditionsForCourse(course, editions)
+      const active = history.find((edition) => edition.status === 'active')
+      const summary = active ? `Published · ${active.academicYear || 'current'}` : history.length ? `${history.length} draft edition${history.length === 1 ? '' : 's'}` : 'No editorial edition'
+      return `<button type="button" class="editorial-catalogue-row" data-admin-curriculum-course="${escapeHtml(curriculumCourseKey(course))}"><span><strong>${escapeHtml(course.code || 'Course')} · ${escapeHtml(course.name || 'Untitled course')}</strong><small>${escapeHtml([course.period, `${course.ects || '—'} ECTS`, latestVersion.label || latestVersion.id].filter(Boolean).join(' · '))}</small></span><span class="editorial-catalogue-status ${active ? 'is-active' : history.length ? 'is-draft' : ''}"><b>${escapeHtml(summary)}</b><small>${referenceVersions.length > 1 ? `${referenceVersions.length} curriculum versions` : `Reference ${latestVersion.id || ''}`}</small></span>${uiIcon('chevronRight')}</button>`
+    }).join('')}</div></section>`).join('')}</div>
+  </section>`
+}
+
+function renderEditorialEditionHistory(edition, editions = []) {
+  const course = { code: edition.courseCode, id: edition.canonicalCourseId }
+  const history = editorialEditionsForCourse(course, editions)
+  if (history.length < 2) return '<section class="editorial-history"><div><h3>Edition history</h3><p>This is the first recorded editorial edition. Add a distinct year or period when the syllabus, assessment, or course structure changes.</p></div></section>'
+  return `<section class="editorial-history"><div><h3>Edition history</h3><p>Each edition keeps its own private source manifest and assessment evidence. Open one to compare its content and requirements before carrying anything forward.</p></div><nav aria-label="Edition history for ${escapeHtml(edition.courseCode || edition.courseName)}">${history.map((item) => `<button type="button" class="${item.id === edition.id ? 'is-active' : ''}" data-admin-edition-select="${escapeHtml(item.id)}"><span><strong>${escapeHtml([item.academicYear, item.period].filter(Boolean).join(' · ') || 'Undated edition')}</strong><small>${item.counts.sources} source${item.counts.sources === 1 ? '' : 's'} · ${item.counts.approvedArtifacts} approved artifact${item.counts.approvedArtifacts === 1 ? '' : 's'}</small></span><b>${escapeHtml(item.status)}</b></button>`).join('')}</nav></section>`
+}
+
 function renderAssessmentScheme(profile = {}) {
   const assessment = profile.assessment || {}
   const components = assessment.components || []
@@ -2911,6 +3011,7 @@ function renderAdminEditorialWorkspace() {
   return `<section class="panel editorial-workspace">
     <div class="panel-top"><div><h2>Course production</h2><p>Build and update shared courses in a private workspace. Sources are deduplicated, every draft keeps its evidence, and publication is a separate approval.</p></div><div class="editorial-head-actions"><button type="button" class="btn btn-secondary btn-sm" data-admin-editorial-refresh>${uiIcon('refresh')} Refresh</button><button type="button" class="btn btn-primary btn-sm" data-admin-new-edition>${uiIcon('plus')} New edition</button></div></div>
     ${adminPanel.editorialError ? `<div class="settings-error" role="alert"><strong>Editorial workspace could not be loaded.</strong><p>${escapeHtml(adminPanel.editorialError)}</p></div>` : adminPanel.editorialLoading && !data ? '<div class="settings-loading"><span></span><p>Loading editorial workspace…</p></div>' : `
+      ${renderEditorialCurriculumCatalogue(editions)}
       ${editions.length ? `<nav class="editorial-edition-strip" aria-label="Course editions">${editions.map((item) => `<button type="button" class="${item.id === edition?.id ? 'is-active' : ''}" data-admin-edition-select="${escapeHtml(item.id)}"><span><strong>${escapeHtml(item.courseCode || item.courseName)}</strong><small>${escapeHtml([item.academicYear, item.period].filter(Boolean).join(' · ') || 'Current edition')}</small></span><b>${item.counts.pendingJobs ? `${item.counts.pendingJobs} queued` : item.status}</b></button>`).join('')}</nav>` : ''}
       ${creating ? `<form class="editorial-intake" data-admin-edition-form>
         <div class="editorial-intake-copy"><h3>Create a private course edition</h3><p>Use a distinct academic year and period when the curriculum or assessment differs. Nothing here changes the student-facing course.</p></div>
@@ -2918,6 +3019,8 @@ function renderAdminEditorialWorkspace() {
         <div class="adm-field-row"><label class="adm-field"><span>Academic year</span><input type="text" name="academicYear" maxlength="80" value="${escapeHtml(adminPanel.editionYear)}" placeholder="2026–2027"></label><label class="adm-field"><span>Period</span><input type="text" name="period" maxlength="120" value="${escapeHtml(adminPanel.editionPeriod)}" placeholder="Period 1"></label><label class="adm-field"><span>Institution</span><input type="text" name="institution" maxlength="240" value="${escapeHtml(adminPanel.editionInstitution)}" placeholder="Maastricht University"></label></div>
         <div class="adm-foot"><span>Sources can be added now or after the edition is created.</span><button type="submit" class="btn btn-primary" ${adminPanel.editionBusy ? 'disabled' : ''}>${adminPanel.editionBusy ? 'Creating…' : 'Create edition'}</button></div>
       </form>` : edition ? `<div class="editorial-edition-head"><div><span class="pl-pill is-${edition.status === 'active' ? 'ok' : 'pending'}">${escapeHtml(edition.status)}</span><h3>${escapeHtml(edition.courseCode)} · ${escapeHtml(edition.courseName)}</h3><p>${escapeHtml([edition.institution, edition.academicYear, edition.period].filter(Boolean).join(' · ') || 'Edition context not set')}</p></div><dl><div><dt>Sources</dt><dd>${sources.length}</dd></div><div><dt>Topics</dt><dd>${topics.length}</dd></div><div><dt>Drafts</dt><dd>${artifacts.length}</dd></div><div><dt>Releases</dt><dd>${releases.length}</dd></div></dl></div>
+
+        ${renderEditorialEditionHistory(edition, editions)}
 
         ${adminPanel.editionResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${escapeHtml(adminPanel.editionResult)}</span><button type="button" class="pl-link pl-link-button" data-admin-editorial-dismiss>Done</button></div>` : ''}
         ${adminPanel.editionProgress ? `<div class="editorial-progress" role="status"><span></span><p>${escapeHtml(adminPanel.editionProgress)}</p></div>` : ''}
@@ -10154,6 +10257,61 @@ function bindEvents() {
     })
   })
 
+  document.querySelectorAll('[data-canvas-connection-form]').forEach((form) => {
+    form.addEventListener('input', () => {
+      const address = form.elements.canvasUrl?.value?.trim()
+      if (address) canvasConnectionForm.canvasUrl = address
+    })
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      if (canvasConnectionForm.saving) return
+      const data = new FormData(form)
+      const canvasUrl = String(data.get('canvasUrl') || '').trim()
+      const accessToken = String(data.get('accessToken') || '').trim()
+      if (!canvasUrl || !accessToken) return
+      canvasConnectionForm.canvasUrl = canvasUrl
+      canvasConnectionForm.saving = true
+      canvasConnectionForm.error = null
+      render()
+      try {
+        await fetchJson('/api/account/integrations/canvas', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ canvasUrl, accessToken })
+        })
+        await loadCanvasConnections(true)
+      } catch (error) {
+        canvasConnectionForm.error = error.message || 'Canvas could not be connected.'
+      } finally {
+        canvasConnectionForm.saving = false
+        render()
+      }
+    })
+  })
+  document.querySelectorAll('[data-canvas-connection-remove]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const canvasUrl = button.dataset.canvasConnectionRemove
+      if (!canvasUrl || canvasConnectionForm.removing) return
+      if (!(await showConfirm({ title: `Remove ${canvasUrl}?`, message: 'The encrypted Canvas token will be removed from your Wicker Study account. This does not change your Canvas account.', okLabel: 'Remove connection', danger: true }))) return
+      canvasConnectionForm.removing = canvasUrl
+      canvasConnectionForm.error = null
+      render()
+      try {
+        await fetchJson('/api/account/integrations/canvas', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ canvasUrl })
+        })
+        await loadCanvasConnections(true)
+      } catch (error) {
+        canvasConnectionForm.error = error.message || 'Canvas connection could not be removed.'
+      } finally {
+        canvasConnectionForm.removing = null
+        render()
+      }
+    })
+  })
+
   // ----- Admin tab -----
   document.querySelectorAll('[data-admin-requests-retry]').forEach((button) => button.addEventListener('click', () => loadAdminRequests(true)))
   document.querySelectorAll('[data-admin-request-form]').forEach((form) => form.addEventListener('submit', async (event) => {
@@ -10208,8 +10366,32 @@ function bindEvents() {
 
   document.querySelectorAll('[data-admin-editorial-refresh]').forEach((button) => button.addEventListener('click', () => loadAdminEditorial(true)))
   document.querySelectorAll('[data-admin-new-edition]').forEach((button) => button.addEventListener('click', () => {
-    Object.assign(adminPanel, { selectedEditionId: '__new__', editionCode: '', editionName: '', editionYear: '', editionPeriod: '', editionInstitution: '', editionFolderFiles: [], editionUrls: '', editionResult: null, editorialError: null, estimate: null, publishConfirmation: '' })
+    Object.assign(adminPanel, { selectedEditionId: '__new__', editionCode: '', editionName: '', editionYear: '', editionPeriod: '', editionProgrammeId: '', editionCanonicalCourseId: '', editionInstitution: '', editionFolderFiles: [], editionUrls: '', editionResult: null, editorialError: null, estimate: null, publishConfirmation: '' })
     render()
+  }))
+  document.querySelectorAll('[data-admin-curriculum-course]').forEach((button) => button.addEventListener('click', async () => {
+    const selected = curriculumCatalogue().find((item) => curriculumCourseKey(item.course) === button.dataset.adminCurriculumCourse)
+    if (!selected) return
+    const history = editorialEditionsForCourse(selected.course, adminPanel.editorial?.editions || [])
+    if (history.length) {
+      Object.assign(adminPanel, { selectedEditionId: history[0].id, editionFolderFiles: [], editionUrls: '', editionResult: null, editorialError: null, estimate: null, publishConfirmation: '' })
+      adminPanel.editorial = null
+      await loadAdminEditorial(true)
+    } else {
+      Object.assign(adminPanel, {
+        selectedEditionId: '__new__',
+        editionCode: selected.course.code || '',
+        editionName: selected.course.name || '',
+        editionYear: selected.latestVersion.id || '',
+        editionPeriod: selected.course.period || '',
+        editionProgrammeId: selected.programme.id || '',
+        editionCanonicalCourseId: selected.course.id || selected.course.code || '',
+        editionInstitution: selected.programme.institution?.name || '',
+        editionFolderFiles: [], editionUrls: '', editionResult: null, editorialError: null, estimate: null, publishConfirmation: ''
+      })
+      render()
+    }
+    queueMicrotask(() => document.querySelector('.editorial-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }))
   document.querySelectorAll('[data-admin-edition-select]').forEach((button) => button.addEventListener('click', async () => {
     Object.assign(adminPanel, { selectedEditionId: button.dataset.adminEditionSelect, editionFolderFiles: [], editionUrls: '', editionResult: null, editorialError: null, estimate: null, publishConfirmation: '' })
@@ -10222,7 +10404,8 @@ function bindEvents() {
     const formData = new FormData(form)
     const payload = {
       courseCode: String(formData.get('courseCode') || '').trim(), courseName: String(formData.get('courseName') || '').trim(),
-      academicYear: String(formData.get('academicYear') || '').trim(), period: String(formData.get('period') || '').trim(), institution: String(formData.get('institution') || '').trim()
+      academicYear: String(formData.get('academicYear') || '').trim(), period: String(formData.get('period') || '').trim(), institution: String(formData.get('institution') || '').trim(),
+      programmeId: adminPanel.editionProgrammeId || undefined, canonicalCourseId: adminPanel.editionCanonicalCourseId || undefined
     }
     Object.assign(adminPanel, { editionCode: payload.courseCode, editionName: payload.courseName, editionYear: payload.academicYear, editionPeriod: payload.period, editionInstitution: payload.institution, editionBusy: true, editorialError: null, editionProgress: 'Creating private edition…' })
     render()
@@ -10236,7 +10419,7 @@ function bindEvents() {
     finally { adminPanel.editionBusy = false; adminPanel.editionProgress = ''; render() }
   }))
   document.querySelectorAll('[data-admin-edition-folder]').forEach((input) => input.addEventListener('change', () => {
-    const allowed = /\.(pdf|ppt|pptx|doc|docx|txt|md|csv|tex|html?|png|jpe?g|webp)$/i
+    const allowed = /\.(pdf|ppt|pptx|doc|docx|txt|md|csv|tex|m|py|r|html?|png|jpe?g|webp)$/i
     const files = [...(input.files || [])].filter((file) => allowed.test(file.name) && file.size > 0 && file.size <= 100 * 1024 * 1024).slice(0, 250)
     adminPanel.editionFolderFiles = files
     if ((input.files?.length || 0) !== files.length) adminPanel.editorialError = 'Some files were skipped because their type is unsupported, they are empty, over 100 MB, or beyond the 250-file limit.'

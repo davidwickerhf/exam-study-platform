@@ -1,6 +1,5 @@
 'use client'
 
-import type { FormEvent } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import styles from './canvas-archive.module.css'
 
@@ -38,8 +37,6 @@ export function CanvasArchive() {
   const [canvasUrl, setCanvasUrl] = useState(DEFAULT_CANVAS)
   const [connections, setConnections] = useState<Connection[]>([])
   const [connectionLoading, setConnectionLoading] = useState(true)
-  const [token, setToken] = useState('')
-  const [savingConnection, setSavingConnection] = useState(false)
   const [local, setLocal] = useState<LocalStatus | null>(null)
   const [courses, setCourses] = useState<Course[]>([])
   const [coursesLoading, setCoursesLoading] = useState(false)
@@ -55,6 +52,14 @@ export function CanvasArchive() {
   const canvasOrigin = originFor(canvasUrl)
   const remoteConnection = connections.find((connection) => connection.origin === canvasOrigin) || null
   const usingRemoteCatalog = Boolean(remoteConnection)
+
+  // /app is still a compatibility surface that locks the document viewport.
+  // A direct route transition must release that lock so this independent page
+  // uses ordinary document scrolling on every browser.
+  useEffect(() => {
+    document.documentElement.classList.remove('app-mode')
+    document.body.classList.remove('app-mode')
+  }, [])
 
   const refreshConnections = useCallback(async () => {
     setConnectionLoading(true)
@@ -113,29 +118,6 @@ export function CanvasArchive() {
     if (!term) return courses
     return courses.filter((course) => [course.name, course.courseCode, course.term?.name].filter(Boolean).join(' ').toLocaleLowerCase().includes(term))
   }, [courses, query])
-
-  async function saveConnection(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!token.trim()) return
-    setSavingConnection(true)
-    setNotice(null)
-    try {
-      const response = await fetch('/api/account/integrations/canvas', {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ canvasUrl: canvasOrigin, accessToken: token.trim() })
-      })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || 'Canvas connection could not be saved.')
-      setToken('')
-      setNotice({ kind: 'success', text: 'Canvas is connected to this account. The token is encrypted and never shown again.' })
-      await refreshConnections()
-    } catch (error) {
-      setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'Canvas connection could not be saved.' })
-    } finally {
-      setSavingConnection(false)
-    }
-  }
 
   async function chooseCourse(course: Course) {
     setSelectedCourse(course)
@@ -227,14 +209,14 @@ export function CanvasArchive() {
   return <main className={styles.page}>
     <header className={styles.header}>
       <a href="/app" className={styles.back}>Workspace</a>
-      <div className={styles.brand}><span className={styles.brandMark}>W</span><span>Wicker Study</span></div>
+      <div className={styles.brand}><img className={styles.brandMark} src="/brand-mark.svg" width="23" height="23" alt="" /><span>Wicker Study</span></div>
       <span className={styles.headerMeta}>Private Canvas archive</span>
     </header>
 
     <section className={styles.intro}>
       <p className={styles.kicker}>Personal source collection</p>
-      <h1>Bring your Canvas course into your own workspace.</h1>
-      <p>Choose a current or prior course, select its modules, and create a ZIP directly on this device. Canvas pages are followed inside the course; linked files download when accessible; all URLs are kept as a reviewable index.</p>
+      <h1>Archive Canvas material without losing its structure.</h1>
+      <p>Choose a current or prior course, select the modules you need, and create a private ZIP on this device. Wicker follows Canvas pages within the course, saves accessible linked files, and keeps a reviewable index of every URL.</p>
     </section>
 
     {notice && <p className={`${styles.notice} ${styles[`notice${notice.kind[0].toUpperCase()}${notice.kind.slice(1)}`]}`} role="status">{notice.text}</p>}
@@ -243,7 +225,7 @@ export function CanvasArchive() {
       <section className={styles.connection} aria-labelledby="canvas-connection-title">
         <div className={styles.sectionHeading}><span className={styles.iconBox}><Icon name="lock" /></span><div><p className={styles.eyebrow}>1. Connection</p><h2 id="canvas-connection-title">Your Canvas account</h2></div></div>
         <label className={styles.field}><span>Canvas address</span><input value={canvasUrl} onChange={(event) => setCanvasUrl(event.target.value)} inputMode="url" autoComplete="url" /></label>
-        {connectionLoading ? <p className={styles.muted}>Checking your saved connection…</p> : remoteConnection ? <div className={styles.connectionState}><span className={styles.stateOk}><Icon name="check" /></span><div><strong>Connected to this Wicker account</strong><p>Encrypted at rest · last used {remoteConnection.lastUsedAt ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(remoteConnection.lastUsedAt)) : 'not yet'}.</p></div></div> : <form onSubmit={saveConnection} className={styles.tokenForm}><p className={styles.muted}>Paste a Canvas Personal Access Token to connect this Canvas host. Wicker Study encrypts it immediately, never displays it again, and never asks for your password, OTP, cookies, or session.</p><label className={styles.field}><span>Personal Access Token</span><input type="password" value={token} onChange={(event) => setToken(event.target.value)} autoComplete="off" spellCheck={false} placeholder="Paste token from Canvas" /></label><button className={styles.primaryButton} type="submit" disabled={savingConnection || !token.trim()}>{savingConnection ? 'Securing connection…' : 'Connect Canvas'}</button></form>}
+        {connectionLoading ? <p className={styles.muted}>Checking your saved connection…</p> : remoteConnection ? <div className={styles.connectionState}><span className={styles.stateOk}><Icon name="check" /></span><div><strong>Connected to this Wicker account</strong><p>Encrypted at rest · last used {remoteConnection.lastUsedAt ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(remoteConnection.lastUsedAt)) : 'not yet'}.</p><a className={styles.settingsLink} href="/app#/account/connections">Manage Canvas connection</a></div></div> : <div className={styles.connectionState}><span className={styles.statePending}>1</span><div><strong>Connect Canvas in Account settings</strong><p>Your Personal Access Token is managed once under your account, encrypted immediately, and never displayed again. This archive never asks for your password, OTP, cookies, or session.</p><a className={styles.settingsLink} href="/app#/account/connections">Open Canvas settings</a></div></div>}
       </section>
 
       <aside className={styles.local} aria-label="Local ZIP delivery">
