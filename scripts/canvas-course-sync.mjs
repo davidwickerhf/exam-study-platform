@@ -19,7 +19,7 @@ function options(argv) {
 
 const args = options(process.argv.slice(2))
 if (args.help) {
-  console.error('Usage: npm run canvas:sync (terminal prompts; saves a token in macOS Keychain), or npm run canvas:sync -- --course-url https://canvas.example.edu/courses/123/modules --output /absolute/path/to/course-folder [--token-env CANVAS_ACCESS_TOKEN] [--max-resources 250]. Remove a saved token with --forget-token --course-url https://canvas.example.edu/courses/123/modules.')
+  console.error('Usage: npm run canvas:sync (terminal prompts; copy a token to save it in macOS Keychain), or npm run canvas:sync -- --course-url https://canvas.example.edu/courses/123/modules --output /absolute/path/to/course-folder [--token-env CANVAS_ACCESS_TOKEN] [--max-resources 250]. Remove a saved token with --forget-token --course-url https://canvas.example.edu/courses/123/modules.')
 } else {
   const tokenEnv = args['token-env'] ? String(args['token-env']) : null
   const suppliedToken = tokenEnv ? process.env[tokenEnv] : undefined
@@ -30,7 +30,7 @@ if (args.help) {
       console.log('Removed the saved Canvas token from macOS Keychain.')
     } else {
       if (!args['course-url'] || !args.output || !suppliedToken) {
-        console.log('Canvas course import — values entered here stay on this machine; entered tokens are saved in macOS Keychain.')
+        console.log('Canvas course import — values entered here stay on this machine; copied tokens are saved in macOS Keychain.')
       }
       const input = await promptForLocalCanvasImport({
         courseUrl: args['course-url'],
