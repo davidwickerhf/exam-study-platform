@@ -12,7 +12,7 @@ import { z } from 'zod'
 import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
 import { extname, relative, resolve, sep } from 'node:path'
-import { importCanvasCourse } from '../lib/canvas-course-import.mjs'
+import { CANVAS_IMPORT_LIMITS, importCanvasCourse } from '../lib/canvas-course-import.mjs'
 import { promptForLocalCanvasImport, saveCanvasAccessTokenFromClipboard } from '../lib/local-canvas-prompts.mjs'
 
 const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
@@ -151,7 +151,8 @@ async function importCanvasCourseAndMaybeSync(args) {
     courseUrl: input.courseUrl,
     accessToken: input.accessToken,
     outputFolder: input.outputFolder,
-    maxResources: args.maxResources
+    maxResources: args.maxResources,
+    maxFileBytes: args.maxFileBytes
   })
   if (args.syncToWicker !== true) return {
     imported,
@@ -252,8 +253,8 @@ server.tool('admin_save_canvas_token_from_clipboard', 'Store a Canvas Personal A
   const saved = await saveCanvasAccessTokenFromClipboard(courseUrl)
   return { saved: true, host: saved.host, next: 'Use admin_import_canvas_course with the course URL and an output folder. Future local MCP sessions on this Mac reuse this host-scoped Keychain token.' }
 }))
-server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. Provide courseUrl and outputFolder; on the same Mac it reuses the host-scoped token in the user Keychain. Use admin_save_canvas_token_from_clipboard to provision or replace that local credential without exposing it to the agent. A denied course-wide Files index is recorded as skipped while accessible Module material continues. Never pass a Canvas password, OTP, cookie, or token here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
-  courseUrl: z.string().url().optional(), outputFolder: z.string().optional(), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(250).default(250), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
+server.tool('admin_import_canvas_course', 'Download every accessible Canvas module item, file, page, assignment, discussion, quiz, and external-link reference into a structured local course folder. Provide courseUrl and outputFolder; on the same Mac it reuses the host-scoped token in the user Keychain. Use admin_save_canvas_token_from_clipboard to provision or replace that local credential without exposing it to the agent. A denied course-wide Files index is recorded as skipped while accessible Module material continues. Large files stream directly to disk, with a 1 GB per-file limit. Never pass a Canvas password, OTP, cookie, or token here. The default only downloads locally. Optional Wicker sync is a separate rights-confirmed candidate review, never publication.', {
+  courseUrl: z.string().url().optional(), outputFolder: z.string().optional(), accessTokenEnv: z.string().optional(), maxResources: z.number().int().min(1).max(250).default(250), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes), syncToWicker: z.boolean().default(false), rightsConfirmed: z.boolean().default(false), dryRun: z.boolean().default(true), editionId: z.string().optional(), programmeId: z.string().optional(), canonicalCourseId: z.string().optional(), institution: z.string().optional(), courseCode: z.string().optional(), courseName: z.string().optional(), academicYear: z.string().optional(), period: z.string().optional()
 }, run(importCanvasCourseAndMaybeSync))
 server.tool('admin_list_editorial_workspace', 'List compact course-edition summaries, or pass editionId for its sources, rights decisions, topics, jobs, artifacts, estimates, and releases.', { editionId: z.string().optional() }, run(({ editionId }) => api('/api/admin/editorial-workspace', { query: { editionId } })))
 server.tool('admin_prepare_content_request', 'Turn a student request into a candidate shared edition. Fails if the student kept sources private.', { requestId: z.string() }, run(({ requestId }) => api(`/api/admin/content-requests/${encodeURIComponent(requestId)}/prepare`, { method: 'POST', body: {} })))
