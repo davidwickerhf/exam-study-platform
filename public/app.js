@@ -2888,6 +2888,7 @@ const adminPanel = {
   courseId: '', materials: null, materialFile: null, materialFolder: '', newFolder: '', materialName: '', asChapter: false, chapterId: '', chapterName: '', materialBusy: false, materialResult: null, materialError: null,
   courseFilter: 'all', courseQuery: '',
   requests: null, requestsLoading: false, requestsError: null, requestBusyId: null, requestSavedId: null,
+  openRecord: {},
   editorial: null, editorialLoading: false, editorialError: null, selectedEditionId: '', editionCode: '', editionName: '', editionYear: '', editionPeriod: '', editionProgrammeId: '', editionCanonicalCourseId: '', editionInstitution: '', editionFolderFiles: [], editionUrls: '', editionReplaceManifest: false, editionBusy: false, editionProgress: '', editionResult: null, estimate: null, publishConfirmation: '', artifactBusyId: null, editingArtifactId: null, contributionBusyId: null
 }
 async function loadAdminStatus(force = false) {
@@ -3441,7 +3442,7 @@ function renderAdminCourseProduction(entry) {
   return `<section class="panel editorial-workspace">
     <div class="panel-top"><div><h2>Course production</h2></div><div class="editorial-head-actions"><button type="button" class="btn btn-secondary btn-sm" data-admin-editorial-refresh>${uiIcon('refresh')} Refresh</button><button type="button" class="btn btn-primary btn-sm" ${newEditionAttrs}>${uiIcon('plus')} New edition</button></div></div>
     ${adminPanel.editorialError
-      ? `<div class="settings-error" role="alert"><strong>The editorial workspace could not be loaded.</strong><p>${escapeHtml(adminPanel.editorialError)}</p></div>`
+      ? `<div class="settings-error" role="alert"><strong>${data ? 'That did not finish.' : 'The editorial workspace could not be loaded.'}</strong><p>${escapeHtml(adminPanel.editorialError)}</p></div>`
       : adminPanel.editorialLoading && !data
         ? '<div class="settings-loading"><span></span><p>Loading editorial workspace…</p></div>'
         : `
@@ -3469,13 +3470,13 @@ function editionPipeline(edition, { sources, topics, artifacts, releases, jobs }
   const steps = [
     { id: 'sources', label: 'Sources', value: sources.length ? `${sources.length} added` : 'None yet', done: sources.length > 0 },
     { id: 'rights', label: 'Rights', value: candidates.length ? `${candidates.length} to decide` : accepted.length ? `${accepted.length} accepted` : '—', done: sources.length > 0 && candidates.length === 0 && accepted.length > 0 },
-    { id: 'extract', label: 'Extract', value: indexed.length ? `${indexed.length} indexed` : queued('extract') ? `${queued('extract')} queued` : '—', done: accepted.length > 0 && indexed.length === accepted.length, queued: queued('extract') },
-    { id: 'map', label: 'Course map', value: topics.length ? plural(topics.length, 'topic') : queued('map') ? `${queued('map')} queued` : '—', done: topics.length > 0, queued: queued('map') },
+    { id: 'extract', label: 'Extract', value: indexed.length ? `${indexed.length} indexed` : queued('extract') ? `${queued('extract')} queued` : '—', done: accepted.length > 0 && indexed.length === accepted.length && !queued('extract'), queued: queued('extract') },
+    { id: 'map', label: 'Course map', value: topics.length ? plural(topics.length, 'topic') : queued('map') ? `${queued('map')} queued` : '—', done: topics.length > 0 && !queued('map'), queued: queued('map') },
     {
       id: 'drafts',
       label: 'Drafts',
       value: artifacts.length ? `${approved.length}/${artifacts.length} approved` : '—',
-      done: artifacts.length > 0 && approved.length === artifacts.length,
+      done: artifacts.length > 0 && approved.length === artifacts.length && !queued(['study-pages', 'exercises', 'flashcards', 'quality']),
       queued: queued(['study-pages', 'exercises', 'flashcards', 'quality'])
     },
     { id: 'publish', label: 'Published', value: releases.length ? `v${releases[0].version}` : '—', done: edition.status === 'active' }
@@ -3531,7 +3532,7 @@ function editorialStagePanel({ step, title, lead, body = '', hint = '', action =
   return `<section class="editorial-stage">
     <div class="editorial-stage-head">${step ? `<span class="editorial-stage-step">${escapeHtml(step)}</span>` : ''}<h3>${escapeHtml(title)}</h3><p>${escapeHtml(lead)}</p></div>
     ${body}
-    ${action ? `<div class="editorial-stage-foot"><span>${escapeHtml(hint)}</span>${action}</div>` : ''}
+    ${action || hint ? `<div class="editorial-stage-foot"><span>${escapeHtml(hint)}</span>${action}</div>` : ''}
   </section>`
 }
 function renderEditorialEditionDetail(edition, data) {
@@ -3640,23 +3641,25 @@ function renderEditorialEditionDetail(edition, data) {
   // Everything already decided, kept for evidence rather than for action.
   const record = []
   if (sources.length && stage !== 'sources' && stage !== 'rights') {
-    record.push(`<details class="editorial-done"><summary>${uiIcon('check')}<span><strong>Sources</strong><small>${plural(sources.length, 'file')} · ${accepted.length} accepted · ${formatBytes(sources.reduce((sum, source) => sum + source.size, 0))}</small></span>${uiIcon('chevronDown')}</summary><div>${editorialSourceRows(sources)}<div class="editorial-done-add"><h4>Add more sources</h4>${editorialSourceForm()}<div class="editorial-stage-foot"><span>A weekly update supersedes changed paths only</span>${editorialSyncButton()}</div></div></div></details>`)
+    record.push(`<details class="editorial-done" data-admin-record="sources" ${adminPanel.openRecord.sources ? 'open' : ''}><summary>${uiIcon('check')}<span><strong>Sources</strong><small>${plural(sources.length, 'file')} · ${accepted.length} accepted · ${formatBytes(sources.reduce((sum, source) => sum + source.size, 0))}</small></span>${uiIcon('chevronDown')}</summary><div>${editorialSourceRows(sources)}<div class="editorial-done-add"><h4>Add more sources</h4>${editorialSourceForm()}<div class="editorial-stage-foot"><span>A weekly update supersedes changed paths only</span>${editorialSyncButton()}</div></div></div></details>`)
   }
   if (sources.length && stage === 'rights') {
     const decided = sources.filter((source) => source.contribution.consentStatus !== 'candidate')
-    if (decided.length) record.push(`<details class="editorial-done"><summary>${uiIcon('check')}<span><strong>Decided</strong><small>${plural(decided.length, 'source')}</small></span>${uiIcon('chevronDown')}</summary><div>${editorialSourceRows(decided)}</div></details>`)
+    if (decided.length) record.push(`<details class="editorial-done" data-admin-record="decided" ${adminPanel.openRecord.decided ? 'open' : ''}><summary>${uiIcon('check')}<span><strong>Decided</strong><small>${plural(decided.length, 'source')}</small></span>${uiIcon('chevronDown')}</summary><div>${editorialSourceRows(decided)}</div></details>`)
   }
   if (topics.length && stage !== 'map') {
     const assessmentStatus = edition?.courseProfile?.assessment?.status || 'not-found'
     const assessmentLabel = assessmentStatus === 'confirmed' ? 'assessment confirmed' : assessmentStatus === 'not-found' ? 'assessment not mapped yet' : `assessment ${assessmentStatus.replace(/-/g, ' ')}`
-    record.push(`<details class="editorial-done"><summary>${uiIcon('check')}<span><strong>Course map</strong><small>${plural(topics.length, 'topic')} · ${escapeHtml(assessmentLabel)}</small></span>${uiIcon('chevronDown')}</summary><div>${renderAssessmentScheme(edition.courseProfile)}${editorialTopicList(topics)}</div></details>`)
+    record.push(`<details class="editorial-done" data-admin-record="map" ${adminPanel.openRecord.map ? 'open' : ''}><summary>${uiIcon('check')}<span><strong>Course map</strong><small>${plural(topics.length, 'topic')} · ${escapeHtml(assessmentLabel)}</small></span>${uiIcon('chevronDown')}</summary><div>${renderAssessmentScheme(edition.courseProfile)}${editorialTopicList(topics)}</div></details>`)
   }
   if (artifacts.length && stage !== 'drafts') {
-    record.push(`<details class="editorial-done"><summary>${uiIcon('check')}<span><strong>Drafts</strong><small>${approved.length} of ${artifacts.length} approved</small></span>${uiIcon('chevronDown')}</summary><div>${editorialArtifactRows(artifacts)}</div></details>`)
+    record.push(`<details class="editorial-done" data-admin-record="drafts" ${adminPanel.openRecord.drafts ? 'open' : ''}><summary>${uiIcon('check')}<span><strong>Drafts</strong><small>${approved.length} of ${artifacts.length} approved</small></span>${uiIcon('chevronDown')}</summary><div>${editorialArtifactRows(artifacts)}</div></details>`)
   }
 
+  const unfinished = sources.filter((source) => source.contribution.consentStatus === 'accepted' && !source.complete)
   return `${renderEditionPipeline(pipeline)}
 
+    ${unfinished.length ? `<div class="settings-error" role="alert"><strong>${plural(unfinished.length, 'source')} did not finish uploading.</strong><p>${unfinished.map((source) => escapeHtml(source.contribution.sourcePath || source.name)).join(', ')} — until the upload completes ${unfinished.length === 1 ? 'it is' : 'they are'} skipped by extraction and cannot be cited. Choose the same folder again to resume; stored chunks are reused.</p></div>` : ''}
     ${adminPanel.editionResult ? `<div class="doc-applied" role="status">${uiIcon('check')}<span>${escapeHtml(adminPanel.editionResult)}</span><button type="button" class="pl-link pl-link-button" data-admin-editorial-dismiss>Done</button></div>` : ''}
     ${adminPanel.editionProgress ? `<div class="editorial-progress" role="status"><span></span><p>${escapeHtml(adminPanel.editionProgress)}</p></div>` : ''}
     ${failures.length ? `<div class="settings-error" role="alert"><strong>${plural(failures.length, 'job')} failed.</strong><ul class="editorial-failures">${failures.slice(0, 5).map((job) => `<li><strong>${escapeHtml(job.type)}</strong><span>${escapeHtml(job.error || 'Unknown failure')}</span></li>`).join('')}</ul></div>` : ''}
@@ -3784,19 +3787,36 @@ async function uploadCourseRequestFile(requestId, file, fileNumber, fileTotal) {
   }
 }
 
+// A multi-megabyte source is dozens of chunks; one slow upstream response used
+// to discard the whole upload and make the administrator start again. Chunks
+// are idempotent server-side (the row is keyed by asset and index), so a failed
+// one is simply retried.
+const EDITORIAL_CHUNK_ATTEMPTS = 4
+
 async function uploadEditorialSourceFile(editionId, assetId, file, fileNumber, fileTotal) {
   const totalChunks = Math.ceil(file.size / COURSE_REQUEST_UPLOAD_CHUNK_BYTES)
   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
-    adminPanel.editionProgress = `Uploading ${fileNumber} of ${fileTotal} · ${file.name} · ${Math.round((chunkIndex / totalChunks) * 100)}%`
-    render()
+    const percent = Math.round((chunkIndex / totalChunks) * 100)
     const start = chunkIndex * COURSE_REQUEST_UPLOAD_CHUNK_BYTES
     const base64 = bufferAsBase64(await file.slice(start, Math.min(start + COURSE_REQUEST_UPLOAD_CHUNK_BYTES, file.size)).arrayBuffer())
-    await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/sources/${encodeURIComponent(assetId)}/chunks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      timeoutMs: 90_000,
-      body: JSON.stringify({ chunkIndex, base64 })
-    })
+    for (let attempt = 1; ; attempt += 1) {
+      adminPanel.editionProgress = `Uploading ${fileNumber} of ${fileTotal} · ${file.name} · ${percent}%${attempt > 1 ? ` · retry ${attempt - 1} of ${EDITORIAL_CHUNK_ATTEMPTS - 1}` : ''}`
+      render()
+      try {
+        await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(editionId)}/sources/${encodeURIComponent(assetId)}/chunks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          timeoutMs: 60_000,
+          body: JSON.stringify({ chunkIndex, base64 })
+        })
+        break
+      } catch (error) {
+        if (attempt >= EDITORIAL_CHUNK_ATTEMPTS) {
+          throw new Error(`${file.name} stopped at ${percent}% (chunk ${chunkIndex + 1} of ${totalChunks}): ${error.message} Sync the folder again — chunks already stored are reused.`)
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
+      }
+    }
   }
 }
 
@@ -10986,6 +11006,10 @@ function bindEvents() {
 
   document.querySelectorAll('[data-admin-editorial-refresh]').forEach((button) => button.addEventListener('click', () => loadAdminEditorial(true)))
   document.querySelectorAll('[data-admin-status-refresh]').forEach((button) => button.addEventListener('click', () => loadAdminStatus(true)))
+  // Record state only; re-rendering here would fight the browser's own toggle.
+  document.querySelectorAll('[data-admin-record]').forEach((details) => details.addEventListener('toggle', () => {
+    adminPanel.openRecord[details.dataset.adminRecord] = details.open
+  }))
   document.querySelectorAll('[data-admin-course-filter]').forEach((button) => button.addEventListener('click', () => {
     adminPanel.courseFilter = button.dataset.adminCourseFilter
     if (button.hasAttribute('data-clear-query')) adminPanel.courseQuery = ''
@@ -11118,12 +11142,34 @@ function bindEvents() {
     const useAi = mode !== 'extract'
     adminPanel.editionBusy = true
     adminPanel.editorialError = null
-    adminPanel.editionProgress = mode === 'extract' ? 'Extracting and indexing sources…' : mode === 'map' ? 'Mapping course topics and assessment rules from evidence…' : 'Generating the next evidence-grounded drafts…'
+    const label = mode === 'extract' ? 'Extracting and indexing sources' : mode === 'map' ? 'Mapping course topics and assessment rules from evidence' : 'Generating the next evidence-grounded drafts'
+    adminPanel.editionProgress = `${label}…`
     render()
     try {
-      const result = await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/process`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 180_000, body: JSON.stringify({ types, useAi, limit: mode === 'extract' ? 10 : mode === 'map' ? 1 : 3 }) })
-      const failed = result.jobs.filter((job) => job.status === 'failed')
-      adminPanel.editionResult = failed.length ? `${result.processed} jobs processed; ${failed.length} failed. Review the job ledger before continuing.` : `${result.processed} jobs processed. ${result.remaining} matching jobs remain.`
+      // The button offers to run every queued job of this kind, so keep going
+      // until they are done. Each job is still its own bounded request, so a
+      // failure stops the run instead of silently spending more tokens — and a
+      // single AI job can take minutes, well past any ordinary request timeout.
+      let processed = 0
+      let failed = 0
+      let remaining = 0
+      for (let round = 1; ; round += 1) {
+        const result = await fetchJson(`/api/admin/editorial-editions/${encodeURIComponent(edition.id)}/process`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          timeoutMs: useAi ? 15 * 60_000 : 5 * 60_000,
+          body: JSON.stringify({ types, useAi, limit: mode === 'extract' ? 10 : 1 })
+        })
+        processed += result.processed
+        failed += result.jobs.filter((job) => job.status === 'failed').length
+        remaining = result.remaining
+        if (failed || !result.processed || !remaining) break
+        adminPanel.editionProgress = `${label} · ${processed} done, ${remaining} to go…`
+        render()
+      }
+      adminPanel.editionResult = failed
+        ? `${processed} job${processed === 1 ? '' : 's'} processed; ${failed} failed. Review the failures before continuing.`
+        : `${processed} job${processed === 1 ? '' : 's'} processed.${remaining ? ` ${remaining} still queued.` : ''}`
       adminPanel.editorial = null
       await loadAdminEditorial(true)
     } catch (error) { adminPanel.editorialError = error.message }
