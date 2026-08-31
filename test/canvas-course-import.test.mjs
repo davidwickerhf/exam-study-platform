@@ -15,6 +15,7 @@ test('Canvas importer downloads and categorises accessible course material witho
   const fetchImpl = async (input, init = {}) => {
     const url = new URL(String(input))
     calls.push({ url: url.toString(), authorization: init.headers?.authorization || null })
+    if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1, name: 'Canvas learner' })
     if (url.pathname === '/api/v1/courses/25806') return json({ id: 25806, name: 'Algorithms', course_code: 'CS101' })
     if (url.pathname === '/api/v1/courses/25806/modules') return json([{ id: 5, name: 'Week 1', position: 1, items: [
       { id: 49, type: 'SubHeader', title: 'Orientation', position: 1, indent: 0 },
@@ -66,6 +67,24 @@ test('Canvas course URLs require HTTPS and never carry credentials', () => {
   assert.throws(() => parseCanvasCourseUrl('http://canvas.example.edu/courses/1/modules'), CanvasCourseImportError)
   assert.throws(() => parseCanvasCourseUrl('https://name:password@canvas.example.edu/courses/1/modules'), CanvasCourseImportError)
   assert.deepEqual(parseCanvasCourseUrl('https://canvas.example.edu/courses/1/modules'), { origin: 'https://canvas.example.edu', courseId: '1', courseUrl: 'https://canvas.example.edu/courses/1/modules' })
+})
+
+test('Canvas importer distinguishes PAT verification from course access denial', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'wicker-canvas-import-'))
+  try {
+    await assert.rejects(() => importCanvasCourse({
+      courseUrl: 'https://canvas.example.edu/courses/1/modules',
+      accessToken: 'local-token-only',
+      outputFolder: root,
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1, name: 'Canvas learner' })
+        return new Response('', { status: 403 })
+      }
+    }), (error) => error instanceof CanvasCourseImportError && /HTTP 403.*\/api\/v1\/courses\/1/.test(error.message) && /does not by itself mean the PAT is incorrect/.test(error.message))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 test('Canvas importer refuses to overwrite a folder that was not created by it', async () => {
