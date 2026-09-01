@@ -2422,6 +2422,56 @@ function renderDocumentResult(result, docs, selectedCount) {
   </section>`
 }
 
+// Getting a Maastricht timetable URL takes four non-obvious steps in a separate
+// app. These are drawings of that app, not screenshots: a real screenshot of the
+// final screen would show the student's own subscription token, which is a
+// credential — anyone holding it can read their timetable.
+const TIMETABLE_PORTAL = 'https://timetable.maastrichtuniversity.nl/m/#loggedin'
+function renderTimetableConnectGuide({ open = false } = {}) {
+  const mock = (title, body, { back = false } = {}) => `<div class="tt-mock" aria-hidden="true">
+    <div class="tt-mock-bar">${back ? '<span class="tt-mock-back">‹</span>' : '<span class="tt-mock-burger"><i></i><i></i><i></i></span>'}<strong>${title}</strong>${back ? '' : '<span class="tt-mock-date">31</span>'}</div>
+    <div class="tt-mock-body">${body}</div>
+  </div>`
+
+  const listing = mock('Timetable', `
+    <div class="tt-mock-day"><span>Tuesday 1 September</span><span>week 36</span></div>
+    ${[['8:30', '10:30', 'Lecture — Example course', 'DUB30 0.050', 'lecture'],
+       ['11:00', '13:00', 'Lecture — Example course', 'PHS1 C0.016', 'lecture'],
+       ['16:00', '18:00', 'Tutorial — Example course', 'PHS1 C0.016', 'tutorial']]
+      .map(([from, to, title, room, kind]) => `<div class="tt-mock-row is-${kind}"><span class="tt-mock-time"><b>${from}</b><i>${to}</i></span><span class="tt-mock-copy"><b>${title}</b><i>${room}</i></span></div>`).join('')}
+    <div class="tt-mock-day"><span>Wednesday 2 September</span><span>week 36</span></div>
+    <div class="tt-mock-row is-lecture"><span class="tt-mock-time"><b>11:00</b><i>13:00</i></span><span class="tt-mock-copy"><b>Lecture — Example course</b><i>PHS1 C0.020</i></span></div>`)
+
+  const menu = mock('Menu', `
+    <p class="tt-mock-group">Timetables</p>
+    <div class="tt-mock-item">Show your timetables</div>
+    <div class="tt-mock-item">View single timetable</div>
+    <div class="tt-mock-item">Choose own timetables</div>
+    <p class="tt-mock-group">Connect calendar</p>
+    <div class="tt-mock-item is-target">Connect to calendar app<span class="tt-mock-point">Tap this</span></div>
+    <p class="tt-mock-group">Messages</p>
+    <div class="tt-mock-item">Messages</div>`, { back: true })
+
+  const connect = mock('Connect to calendar app', `
+    <div class="tt-mock-ok">All of your timetables are shown in your connected calendars</div>
+    <p class="tt-mock-heading">Other devices</p>
+    <p class="tt-mock-note">The URL required to connect your timetable can be obtained by clicking the copy button next to the text box:</p>
+    <div class="tt-mock-url is-target"><code>https://timetable.maastrichtuniversity.nl/ical?eu=••••••••&amp;h=••••••••••••••••</code><span class="tt-mock-copy-btn">${uiIcon('file')}</span><span class="tt-mock-point">Copy</span></div>`, { back: true })
+
+  return `<details class="tt-guide" ${open ? 'open' : ''}>
+    <summary>${uiIcon('calendar')}<span><strong>Where do I find my timetable URL?</strong><small>Four steps in the university's own timetable app</small></span>${uiIcon('chevronDown')}</summary>
+    <div class="tt-guide-body">
+      <ol class="tt-steps">
+        <li><span class="tt-step-n">1</span><div><strong>Open the timetable app and sign in</strong><p><a href="${TIMETABLE_PORTAL}" target="_blank" rel="noopener noreferrer">${TIMETABLE_PORTAL}</a> — use your normal university account.</p></div></li>
+        <li><span class="tt-step-n">2</span><div><strong>Open the menu</strong><p>The ≡ button, top left of your week.</p>${listing}</div></li>
+        <li><span class="tt-step-n">3</span><div><strong>Choose “Connect to calendar app”</strong><p>Under <em>Connect calendar</em>.</p>${menu}</div></li>
+        <li><span class="tt-step-n">4</span><div><strong>Copy the URL and paste it below</strong><p>It starts <code>…/ical?</code> and is a personal key to your timetable: treat it like a password, and do not post or screenshot it.</p>${connect}</div></li>
+      </ol>
+      <p class="tt-guide-foot">${uiIcon('shield')} Wicker Study reads this feed to show your lectures, tutorials, and labs. It never writes to your timetable, and the URL is stored only on your account.</p>
+    </div>
+  </details>`
+}
+
 function renderPlanningDocuments() {
   const workspace = academicsData.workspace
   const docs = planningDocuments
@@ -2456,6 +2506,7 @@ function renderPlanningDocuments() {
           <div class="panel-top"><div><h2>Calendar connections</h2><p>Subscribe to a timetable or exam-schedule feed. Wicker checks for updates every 15 minutes while you use Calendar.</p></div></div>
           ${docs.calendarNotice ? `<div class="calendar-feed-notice is-${escapeHtml(docs.calendarNotice.type || 'success')}" role="status">${uiIcon(docs.calendarNotice.type === 'error' ? 'alert' : 'check')}<span>${escapeHtml(docs.calendarNotice.message)}</span></div>` : ''}
           ${calendars.length ? `<ul class="doc-calendars">${calendars.map((link) => `<li><span class="nav-icon">${uiIcon('calendar')}</span><span><strong>${escapeHtml(link.label)}</strong><small>${link.eventCount} appointment${link.eventCount === 1 ? '' : 's'} · ${link.unselectedCourseCount ? `${link.unselectedCourseCount} outside your plan · ` : ''}${link.lastSyncedAt ? `checked ${relativeTime(link.lastSyncedAt)}` : 'not checked yet'}</small></span><button type="button" class="btn btn-sm btn-secondary" data-cal-sync="${escapeHtml(link.id)}" ${docs.calendarBusy ? 'disabled' : ''}>Sync now</button><button type="button" class="pl-danger-link" data-cal-remove="${escapeHtml(link.id)}">Remove</button></li>`).join('')}</ul>` : '<p class="panel-note">No calendar feeds connected yet.</p>'}
+          ${renderTimetableConnectGuide({ open: !calendars.length })}
           <form class="doc-calendar-form" data-cal-form>
             <label><span>Feed URL</span><input name="url" type="url" placeholder="https://… or webcal://…" value="${escapeHtml(docs.calendarUrl)}" ${docs.calendarBusy ? 'disabled' : ''} required></label>
             <label><span>Name</span><input name="label" maxlength="120" placeholder="University timetable" value="${escapeHtml(docs.calendarLabel)}" ${docs.calendarBusy ? 'disabled' : ''}></label>

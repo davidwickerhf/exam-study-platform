@@ -1621,3 +1621,137 @@
   .upd-row-link { grid-area: link; justify-self: start; }
   .upd-row-link.is-empty { display: none; }
 }
+
+/* ── Timetable connect guide ───────────────────────────────────────────────
+ * Drawings of the university's timetable app, not screenshots. The real final
+ * screen shows a personal subscription token, so a screenshot of it would ship
+ * a credential; these mocks carry a masked example instead.
+ */
+.tt-guide { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.tt-guide > summary {
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  list-style: none;
+}
+.tt-guide > summary::-webkit-details-marker { display: none; }
+.tt-guide > summary > span { flex: 1 1 auto; min-width: 0; display: grid; gap: 1px; }
+.tt-guide > summary strong { font: 600 13.5px/1.35 var(--font-ui); }
+.tt-guide > summary small { color: var(--color-ink-secondary); font: 400 12px/1.4 var(--font-ui); }
+.tt-guide > summary > .ui-icon:last-child { transition: transform .15s ease; color: var(--color-ink-tertiary); }
+.tt-guide[open] > summary > .ui-icon:last-child { transform: rotate(180deg); }
+.tt-guide-body { padding: 0 var(--space-4) var(--space-4); }
+
+.tt-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-4); }
+.tt-steps > li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: var(--space-3); }
+.tt-step-n {
+  width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--color-brand); color: #fff;
+  font: 600 12px/1 var(--font-data);
+}
+.tt-steps strong { display: block; font: 600 13px/1.4 var(--font-ui); }
+.tt-steps p { margin: 2px 0 var(--space-3); color: var(--color-ink-secondary); font: 400 12.5px/1.55 var(--font-ui); }
+.tt-steps p:last-child { margin-bottom: 0; }
+.tt-steps code { padding: 1px 4px; border-radius: 3px; background: var(--color-surface); font: 500 11.5px/1.4 var(--font-data); }
+.tt-steps a { color: var(--color-brand); overflow-wrap: anywhere; }
+
+/* The mock device. Colours follow the university app so the screen is
+   recognisable at a glance without reproducing anything from it. */
+.tt-mock {
+  max-width: 420px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: #fff;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+}
+.tt-mock-bar {
+  padding: 0 10px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0b1338;
+  color: #fff;
+  font: 600 12px/1 var(--font-ui);
+}
+.tt-mock-bar strong { flex: 1 1 auto; font-weight: 600; }
+.tt-mock-burger { display: grid; gap: 3px; }
+.tt-mock-burger i { display: block; width: 13px; height: 1.5px; background: currentColor; }
+.tt-mock-back { font-size: 17px; line-height: 1; }
+.tt-mock-date { width: 15px; height: 15px; border: 1.5px solid currentColor; border-radius: 2px; font: 600 8px/12px var(--font-data); text-align: center; }
+.tt-mock-body { padding-bottom: 4px; }
+.tt-mock-day {
+  padding: 4px 10px;
+  display: flex;
+  justify-content: space-between;
+  background: #f4f5f8;
+  color: #4a5268;
+  font: 600 10px/1.5 var(--font-ui);
+  border-bottom: 1px solid var(--color-border);
+}
+.tt-mock-row { padding: 6px 10px; display: flex; gap: 10px; border-bottom: 1px solid #eef0f4; border-left: 3px solid #2f7d46; }
+.tt-mock-row.is-tutorial { border-left-color: #2f4fd6; }
+.tt-mock-time { display: grid; color: #20263a; font: 500 10px/1.45 var(--font-data); }
+.tt-mock-time i { color: #7d859b; font-style: normal; }
+.tt-mock-copy { display: grid; gap: 1px; min-width: 0; }
+.tt-mock-copy b { font: 500 10.5px/1.4 var(--font-ui); }
+.tt-mock-copy i { color: #7d859b; font: 400 10px/1.4 var(--font-ui); font-style: normal; }
+.tt-mock-group { margin: 8px 10px 4px; color: #7d859b; font: 600 8.5px/1.4 var(--font-ui); letter-spacing: .08em; text-transform: uppercase; }
+.tt-mock-item {
+  position: relative;
+  margin: 0 10px 3px;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: #f1f2f6;
+  font: 600 10.5px/1.3 var(--font-ui);
+}
+.tt-mock-ok { margin: 8px 10px; padding: 7px 9px; border-radius: 3px; background: #e4f3ec; color: #146c46; font: 500 10px/1.45 var(--font-ui); }
+.tt-mock-heading { margin: 10px 10px 2px; font: 600 13px/1.3 var(--font-ui); }
+.tt-mock-note { margin: 0 10px 6px; color: #7d859b; font: 400 10px/1.45 var(--font-ui); }
+.tt-mock-url {
+  position: relative;
+  margin: 0 10px 8px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 3px;
+}
+.tt-mock-url code { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 9.5px/1.4 var(--font-data); color: #20263a; }
+.tt-mock-copy-btn { flex: 0 0 auto; padding: 2px; border: 1px solid var(--color-border); border-radius: 2px; color: #59627b; }
+.tt-mock-copy-btn .ui-icon { width: 11px; height: 11px; display: block; }
+
+/* What to press, called out rather than left to a red circle on a screenshot.
+   The badge sits inside the target: the mock clips its own overflow, and a
+   badge hanging off the right edge was cut in half. */
+.tt-mock .is-target { border-color: var(--color-brand); box-shadow: inset 0 0 0 1px var(--color-brand); }
+.tt-mock-item.is-target { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.tt-mock-point {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: #fff;
+  font: 600 9px/1.7 var(--font-ui);
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.tt-guide-foot {
+  margin: var(--space-4) 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--color-ink-secondary);
+  font: 400 12px/1.55 var(--font-ui);
+}
+.tt-guide-foot .ui-icon { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 2px; color: var(--color-success); }
+
+
