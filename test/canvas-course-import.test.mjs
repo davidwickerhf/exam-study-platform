@@ -61,6 +61,10 @@ test('Canvas importer downloads and categorises accessible course material witho
     assert.doesNotMatch(welcomeHtml, /alert\(1\)/)
     assert.ok(calls.filter((call) => call.url.startsWith('https://canvas.test/api/')).every((call) => call.authorization === 'Bearer local-token-only'))
     assert.ok(calls.filter((call) => call.url.startsWith('https://files.canvas.test/')).every((call) => call.authorization === null))
+    assert.ok(calls.some((call) => {
+      const url = new URL(call.url)
+      return url.pathname === '/api/v1/courses/25806' && url.searchParams.getAll('include[]').includes('syllabus_body')
+    }))
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -220,7 +224,7 @@ test('Canvas importer keeps accessible module material when the optional Files i
         if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1, name: 'Canvas learner' })
         if (url.pathname === '/api/v1/courses/1') return json({ id: 1, name: 'Accessible course', course_code: 'CS101' })
         if (url.pathname === '/api/v1/courses/1/modules') return json([{ id: 10, name: 'Week 1', position: 1, items: [{ id: 11, type: 'Page', title: 'Welcome', position: 1, page_url: 'welcome' }] }])
-        if (url.pathname === '/api/v1/courses/1/files') return new Response('', { status: 403 })
+        if (url.pathname === '/api/v1/courses/1/files') throw new Error('GET /api/integrations/canvas/proxy → 400: Canvas denied access to /api/v1/courses/1/files. Check that this account can open the course.')
         if (url.pathname === '/api/v1/courses/1/assignments') return json([])
         if (url.pathname === '/api/v1/courses/1/quizzes') return json([])
         if (url.pathname === '/api/v1/courses/1/discussion_topics') return json([])
@@ -229,7 +233,7 @@ test('Canvas importer keeps accessible module material when the optional Files i
       }
     })
     assert.equal(result.resources, 2)
-    assert.ok(result.skipped.some((item) => item.label === 'Course-wide Files listing' && /HTTP 403/.test(item.reason)))
+    assert.ok(result.skipped.some((item) => item.label === 'Course-wide Files listing' && /Canvas denied access/.test(item.reason)))
     const manifest = JSON.parse(await readFile(join(root, '.wicker-canvas-import.json'), 'utf8'))
     assert.equal(manifest.resources.filter((item) => item.kind === 'page').length, 1)
     assert.equal(manifest.resources.filter((item) => item.kind === 'course-overview').length, 1)
