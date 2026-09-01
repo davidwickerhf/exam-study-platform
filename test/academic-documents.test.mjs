@@ -292,3 +292,67 @@ test('an uploaded academic calendar keeps structured period context out of perso
   assert.equal(applied.planning.academicPeriods.length, 1)
   assert.deepEqual({ kind: applied.planning.academicPeriods[0].kind, period: applied.planning.academicPeriods[0].period, academicYear: applied.planning.academicPeriods[0].academicYear }, { kind: 'period', period: 1, academicYear: '2026-2027' })
 })
+
+test('timed ICS events are converted out of UTC into the calendar’s own timezone', () => {
+  // The shape Maastricht's timetable actually publishes: UTC instants with the
+  // zone declared once at the top. 06:30Z is an 08:30 lecture in Maastricht.
+  const feed = [
+    'BEGIN:VCALENDAR',
+    'X-WR-TIMEZONE:Europe/Brussels',
+    'BEGIN:VTIMEZONE',
+    'TZID:Europe/Brussels',
+    'BEGIN:DAYLIGHT',
+    'DTSTART:19700329T020000',
+    'END:DAYLIGHT',
+    'END:VTIMEZONE',
+    'BEGIN:VEVENT',
+    'UID:summer',
+    'SUMMARY:BCS2120/2026-100/Lecture Tue/01 - Introduction to Artificial Intelligence',
+    'DTSTART:20260901T063000Z',
+    'DTEND:20260901T083000Z',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'UID:winter',
+    'SUMMARY:Winter lecture',
+    'DTSTART:20261201T083000Z',
+    'DTEND:20261201T103000Z',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'UID:late',
+    'SUMMARY:Late evening seminar',
+    'DTSTART:20260901T230000Z',
+    'DTEND:20260901T233000Z',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'UID:allday',
+    'SUMMARY:Holiday',
+    'DTSTART;VALUE=DATE:20261225',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'UID:floating',
+    'SUMMARY:Already local',
+    'DTSTART;TZID=Europe/Brussels:20260901T093000',
+    'DTEND;TZID=Europe/Brussels:20260901T113000',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n')
+
+  const events = parseIcs(feed)
+  const byId = new Map(events.map((event) => [event.id.replace('ics-', ''), event]))
+
+  assert.match(byId.get('summer').notes, /^08:30–10:30/, 'CEST is UTC+2')
+  assert.match(byId.get('winter').notes, /^09:30–11:30/, 'CET is UTC+1, so the same offset must not be assumed year-round')
+  // 23:00Z on 1 September is 01:00 on 2 September in Maastricht: the date moves.
+  assert.equal(byId.get('late').date, '2026-09-02')
+  assert.match(byId.get('late').notes, /^01:00/)
+  // A date-only value has no instant to convert.
+  assert.equal(byId.get('allday').date, '2026-12-25')
+  assert.equal(byId.get('allday').notes, '')
+  // A value already expressed in a named zone is wall-clock and stays put.
+  assert.match(byId.get('floating').notes, /^09:30–11:30/)
+})
+
+test('an ICS feed with no declared timezone is read literally rather than guessed at', () => {
+  const feed = 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:x\r\nSUMMARY:Seminar\r\nDTSTART:20260901T063000Z\r\nEND:VEVENT\r\nEND:VCALENDAR'
+  assert.match(parseIcs(feed)[0].notes, /^06:30/)
+})
