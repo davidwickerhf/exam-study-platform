@@ -1,0 +1,79 @@
+# Publishes wicker-study-mcp when its version changes on main.
+#
+# No npm token and no one-time password. It uses npm trusted publishing: npm
+# verifies a short-lived OIDC identity issued by GitHub for this exact
+# repository and workflow, so there is no long-lived credential to store,
+# leak, or rotate — and every release carries a provenance attestation
+# pointing back at the commit that produced it.
+#
+# One-time setup on npmjs.com → wicker-study-mcp → Settings → Trusted publisher:
+#   Publisher      GitHub Actions
+#   Organization   davidwickerhf
+#   Repository     exam-study-platform
+#   Workflow       publish-mcp.yml
+#
+# After that, publishing is: bump `version` in mcp/package.json, merge to main.
+# A push that does not change the version is a no-op, so ordinary edits to the
+# vendored modules never republish anything.
+
+name: Publish MCP
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mcp/**'
+      - 'lib/canvas-course-import.mjs'
+      - 'lib/canvas-course-export.mjs'
+      - 'lib/local-canvas-prompts.mjs'
+      - 'scripts/macos-keychain.swift'
+      - '.github/workflows/publish-mcp.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-mcp
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      # Trusted publishing needs npm 11.5.1 or newer.
+      - run: npm install -g npm@latest
+
+      - run: npm ci
+
+      # The suite includes the check that mcp/vendor is byte-identical to lib/,
+      # so a package can never be published carrying a stale copy.
+      - run: npm test
+
+      - name: Is this version already on the registry?
+        id: version
+        run: |
+          version="$(node -p "require('./mcp/package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if npm view "wicker-study-mcp@$version" version --loglevel=error >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "wicker-study-mcp@$version is already published — nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: steps.version.outputs.published == 'false'
+        run: npm publish ./mcp --access public
+
+      - name: Summary
+        if: steps.version.outputs.published == 'false'
+        run: echo "Published wicker-study-mcp@${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"

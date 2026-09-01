@@ -130,7 +130,22 @@ timestamps, never the token — but creating or removing one stays browser-only.
 the four modules it shares with the application are copied into `mcp/vendor/` and
 `mcp/scripts/` by `npm run mcp:sync` and committed. `npm test` asserts the copies are
 byte-identical, so the two cannot drift silently. `npm run mcp:pack` builds the
-tarball.
+tarball locally.
+
+Releases go out through `.github/workflows/publish-mcp.yml`: **bump `version` in
+`mcp/package.json` and merge to main.** A push that does not change the version is a
+no-op, so ordinary edits to the vendored modules never republish anything.
+
+It uses npm trusted publishing, so there is no npm token in the repository and no
+one-time password in the loop. npm verifies a short-lived OIDC identity GitHub issues
+for this exact repository and workflow; nothing long-lived is stored, and each release
+carries a provenance attestation pointing back at the commit that produced it.
+
+Configure it once on npmjs.com → `wicker-study-mcp` → **Settings → Trusted publisher**:
+GitHub Actions, organization `davidwickerhf`, repository `exam-study-platform`,
+workflow `publish-mcp.yml`. The package has to exist first, so the very first release
+is published by hand (`npm publish ./mcp --access public`, which will ask for a 2FA
+code); every one after that is automatic.
 
 Tools: `wicker_status`, `wicker_authorize`, `wicker_sign_out`, `canvas_connect`,
 `list_courses`, `get_course`, `get_chapter`, `search_course`,
