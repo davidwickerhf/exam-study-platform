@@ -38,6 +38,8 @@ import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
 import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
 import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
+import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
+import { applySecureValue, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
@@ -3885,6 +3887,45 @@ const server = createServer(async (req, res) => {
       }
       const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
       send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), canvas: { connected: canvasConnected }, problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    // Conversational setup. The model chooses when to act; every tool that
+    // changes the account is ordinary code, and no credential passes through
+    // the conversation — a secure value is applied here and only its outcome is
+    // written into the transcript.
+    if (url.pathname === '/api/onboarding' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ available: onboardingAvailable(), ...await onboardingView() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/onboarding' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 32 * 1024)
+        const message = String(body?.message || '').trim().slice(0, 2000)
+        if (!message) { send(res, 400, JSON.stringify({ error: 'Say something to continue.' })); return }
+        const { view, usage } = await sendOnboardingMessage(message)
+        send(res, 200, JSON.stringify({ available: true, ...view, usage }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That could not be sent.' }))
+      }
+      return
+    }
+    // A credential arrives here and nowhere else. It is applied, then discarded;
+    // the conversation is told what happened, never what was submitted.
+    if (url.pathname === '/api/onboarding/secure' && req.method === 'POST') {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Setup credentials can only be submitted from a signed-in browser session.' })); return }
+        const body = await readBody(req, 8 * 1024)
+        const view = await applySecureValue(String(body?.kind || ''), String(body?.value || '').trim())
+        send(res, 200, JSON.stringify({ available: true, ...view }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That value could not be applied.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/onboarding' && req.method === 'DELETE') {
+      await resetConversation()
+      send(res, 200, JSON.stringify({ available: onboardingAvailable(), ...await onboardingView() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
 

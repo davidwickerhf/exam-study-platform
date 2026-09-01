@@ -1483,12 +1483,11 @@
   display: grid;
   gap: var(--space-2);
   border: 1px solid var(--color-border);
-  border-left: 3px solid var(--accent, var(--color-brand));
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--dash-shadow);
 }
-.upd-card.is-new { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, var(--color-surface)) 0 120px, var(--color-surface) 320px); }
+.upd-card.is-new { border-color: var(--color-brand-soft); }
 .upd-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .upd-course-chip {
   display: inline-flex;
@@ -1522,7 +1521,7 @@
 .upd-body ul, .upd-body ol { padding-left: var(--space-5); }
 .upd-body li { margin: 0 0 var(--space-1); }
 .upd-body a { color: var(--color-brand); }
-.upd-body blockquote { padding-left: var(--space-3); border-left: 2px solid var(--color-border); color: var(--color-ink-secondary); }
+.upd-body blockquote { padding-left: var(--space-3); border-left: 1px solid var(--color-border-strong); color: var(--color-ink-secondary); }
 .upd-body pre { padding: var(--space-3); overflow-x: auto; border-radius: var(--radius-sm); background: var(--color-surface-subtle); font: 500 12px/1.6 var(--font-data); }
 .upd-body code { padding: 1px 5px; border-radius: 3px; background: var(--color-surface-subtle); font: 500 12px/1.4 var(--font-data); }
 .upd-body pre code { padding: 0; background: none; }
@@ -1570,7 +1569,6 @@
   gap: var(--space-2);
   align-content: start;
   border: 1px solid var(--color-border);
-  border-top: 3px solid var(--accent, var(--color-brand));
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--dash-shadow);
@@ -1603,7 +1601,7 @@
   display: grid;
   gap: 2px;
   border-radius: var(--radius-sm);
-  border-left: 2px solid var(--accent, var(--color-brand));
+  border-left: 1px solid var(--accent, var(--color-brand));
   color: inherit;
   text-decoration: none;
 }
@@ -1695,6 +1693,9 @@
   font: 600 10px/1.5 var(--font-ui);
   border-bottom: 1px solid var(--color-border);
 }
+/* Reproduces the university timetable app's own activity bar — green lecture,
+   blue tutorial. This is a drawing of another product, not Wicker Study chrome,
+   so the side-tab rule does not apply to it. */
 .tt-mock-row { padding: 6px 10px; display: flex; gap: 10px; border-bottom: 1px solid #eef0f4; border-left: 3px solid #2f7d46; }
 .tt-mock-row.is-tutorial { border-left-color: #2f4fd6; }
 .tt-mock-time { display: grid; color: #20263a; font: 500 10px/1.45 var(--font-data); }
@@ -1765,7 +1766,6 @@
   display: grid;
   gap: var(--space-3);
   border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-brand);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--dash-shadow);
@@ -1810,7 +1810,7 @@
   grid-template-columns: 46px minmax(0, 1fr) 24px;
   align-items: center;
   gap: var(--space-3);
-  border-left: 2px solid var(--accent, var(--color-brand));
+  border-left: 1px solid var(--accent, var(--color-brand));
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--color-surface-subtle);
 }
@@ -2018,3 +2018,116 @@
   .mat-rail ul { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .mat-course { width: auto; box-shadow: inset 0 0 0 1px var(--color-border); }
 }
+
+/* ── Setup conversation ────────────────────────────────────────────────────
+ * A reading column, not a messaging app. The assistant speaks in plain prose
+ * on the working surface; the student's own words are the only tinted turn.
+ */
+/* The conversation owns the column: the thread scrolls, the composer stays put.
+   A composer stranded mid-page above dead canvas reads as a broken page. */
+.chat-page {
+  max-width: 760px;
+  height: calc(100dvh - var(--space-6) * 2);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-4);
+}
+.chat-thread { display: grid; gap: var(--space-4); align-content: start; overflow-y: auto; padding-bottom: var(--space-2); scrollbar-width: thin; }
+.chat-turn { display: flex; }
+.chat-turn.is-user { justify-content: flex-end; }
+.chat-bubble {
+  max-width: 46ch;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: 400 14.5px/1.6 var(--font-ui);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-turn.is-user .chat-bubble { border-color: transparent; background: var(--color-brand-soft); color: var(--color-ink); }
+
+/* Three dots, one authored moment: the only motion on the page. */
+.chat-bubble.is-thinking { display: inline-flex; gap: 5px; padding: var(--space-4); }
+.chat-bubble.is-thinking i { width: 5px; height: 5px; border-radius: 50%; background: var(--color-ink-tertiary); animation: chat-pulse 1.25s cubic-bezier(.22,1,.36,1) infinite; }
+.chat-bubble.is-thinking i:nth-child(2) { animation-delay: .16s; }
+.chat-bubble.is-thinking i:nth-child(3) { animation-delay: .32s; }
+@keyframes chat-pulse { 0%, 60%, 100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .chat-bubble.is-thinking i { animation: none; opacity: .5; } }
+
+/* What the server did, which the student did not say. */
+.chat-event {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--color-ink-secondary);
+  font: 500 12.5px/1.55 var(--font-ui);
+}
+.chat-event .ui-icon { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 2px; color: var(--color-success); }
+
+.chat-action {
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+.chat-action .setup-drop { background: var(--color-surface); }
+.chat-action-note { margin: 0; display: flex; align-items: flex-start; gap: var(--space-2); color: var(--color-ink-secondary); font: 400 12px/1.5 var(--font-ui); }
+.chat-action-note .ui-icon { width: 14px; height: 14px; flex: 0 0 14px; margin-top: 2px; color: var(--color-success); }
+.chat-secure { display: grid; gap: var(--space-3); }
+.chat-secure label { display: grid; gap: var(--space-2); }
+.chat-secure label > span { color: var(--color-ink-secondary); font: 600 12px/1.3 var(--font-ui); }
+.chat-secure input {
+  width: 100%;
+  min-height: var(--control-md);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font: 500 13.5px/1 var(--font-data);
+}
+.chat-secure input:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 1px; border-color: var(--color-brand); }
+.chat-secure-actions { display: flex; align-items: center; gap: var(--space-2); }
+.chat-done-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+.chat-composer {
+  padding: var(--space-3);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--dash-shadow);
+}
+.chat-composer textarea {
+  flex: 1 1 auto;
+  min-height: 24px;
+  max-height: 160px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: 400 14.5px/1.6 var(--font-ui);
+  resize: none;
+}
+/* One ring, on the element that actually has focus, using the same treatment as
+   every other field in the app. The composer deliberately does not also tint —
+   a blue box around a blue ring is two focus indicators for one focus. */
+.chat-composer textarea::placeholder { color: var(--color-ink-tertiary); }
+.chat-composer button { flex: 0 0 auto; width: 40px; padding: 0; }
+.chat-composer button .ui-icon { width: 17px; height: 17px; }
+
+/* On compact screens the shell puts a navigation bar at the foot of the
+   viewport, so a full-height chat column lands the composer underneath it.
+   Let the page scroll instead and stick the composer clear of the bar. */
+@media (max-width: 900px) {
+  .chat-page { height: auto; min-height: 0; }
+  .chat-thread { overflow: visible; }
+  .chat-composer { position: sticky; bottom: calc(68px + var(--space-3)); }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

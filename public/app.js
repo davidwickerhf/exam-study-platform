@@ -900,7 +900,7 @@ function parseRoute() {
     const tab = PRACTICE_TABS.some(([id]) => id === parts[1]) ? parts[1] : 'questions'
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
-  if (parts[0] === 'setup') return { page: 'setup' }
+  if (parts[0] === 'setup') return { page: 'setup', checklist: /(^|[?&])checklist=1/.test(hash) }
   if (parts[0] === 'updates') {
     const requested = decodeURIComponent(parts[1] || '')
     return { page: 'updates', tab: UPDATES_TABS.some(([id]) => id === requested) ? requested : 'announcements' }
@@ -1476,6 +1476,12 @@ function render() {
   autosizeAnswerTextareas()
   if (route.page === 'calendar') mountCalendar()
   if (route.page === 'updates') { mountUpdatesBodies(); if (updatesState.data?.connected) markUpdatesSeen() }
+  if (route.page === 'setup') {
+    const thread = document.querySelector('.chat-thread')
+    if (thread) thread.scrollTop = thread.scrollHeight
+    const input = document.querySelector('[data-onboarding-input]')
+    if (input && !onboarding.sending && document.activeElement === document.body) input.focus({ preventScroll: true })
+  }
   restoreScrollState(scrollSnap)
   // Restore focus to the search input across re-renders so arrow keys / Enter keep working.
   if (searchState.open && (activeSearchInput || _searchPendingFocus)) {
@@ -4685,7 +4691,155 @@ function renderSetupStepBody(step) {
   return ''
 }
 
+// ───── Setup conversation ─────────────────────────────────────────────────
+// The assistant asks; deterministic code acts. A credential never enters the
+// transcript: its field posts to its own endpoint and the conversation is told
+// only what happened.
+
+const onboarding = { data: null, loading: false, error: null, draft: '', sending: false, secret: '', secretBusy: false, secretError: null, uploading: false }
+
+async function loadOnboarding({ force = false } = {}) {
+  if (onboarding.loading || (onboarding.data && !force)) return
+  onboarding.loading = true
+  try { onboarding.data = await fetchJson('/api/onboarding'); onboarding.error = null }
+  catch (error) { onboarding.error = error.message }
+  finally { onboarding.loading = false; render() }
+}
+
+async function sendOnboarding(message) {
+  const said = String(message ?? onboarding.draft).trim()
+  if (!said || onboarding.sending) return
+  onboarding.sending = true
+  onboarding.error = null
+  onboarding.draft = ''
+  // Show what was said immediately; a reply can take a few seconds.
+  onboarding.data = { ...(onboarding.data || {}), messages: [...(onboarding.data?.messages || []), { role: 'user', content: said, at: new Date().toISOString() }] }
+  render()
+  try {
+    onboarding.data = await fetchJson('/api/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 90_000, body: JSON.stringify({ message: said }) })
+    await Promise.all([loadAcademics({ force: true }), loadCalendarEvents(true), loadAcademicWork({ force: true })])
+  } catch (error) {
+    onboarding.error = error.message
+  } finally {
+    onboarding.sending = false
+    render()
+  }
+}
+
+async function submitOnboardingSecret(kind) {
+  const value = onboarding.secret.trim()
+  if (!value || onboarding.secretBusy) return
+  onboarding.secretBusy = true
+  onboarding.secretError = null
+  render()
+  try {
+    onboarding.data = await fetchJson('/api/onboarding/secure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 90_000, body: JSON.stringify({ kind, value }) })
+    onboarding.secret = ''
+    await Promise.all([loadAcademics({ force: true }), loadCalendarEvents(true), loadUpdates({ force: true })])
+  } catch (error) {
+    onboarding.secretError = error.message
+  } finally {
+    onboarding.secretBusy = false
+    render()
+  }
+}
+
+async function uploadOnboardingRecord(file) {
+  if (!file || onboarding.uploading) return
+  onboarding.uploading = true
+  render()
+  await uploadAcademicWork(file)
+  const result = academicWork.result
+  onboarding.uploading = false
+  if (result && !academicWork.error) {
+    const summary = result.unchanged
+      ? 'I uploaded my Academic Work overview; nothing had changed since the last one.'
+      : `I uploaded my Academic Work overview: ${result.summary.earnedEcts} credits, ${result.summary.passedCourses} courses passed, ${result.summary.currentCourses} registered this period.`
+    await sendOnboarding(summary)
+  } else {
+    render()
+  }
+}
+
+function renderOnboardingPrompt(prompt) {
+  if (!prompt) return ''
+  if (prompt.kind === 'upload') {
+    return `<div class="chat-action">
+      <label class="setup-drop">
+        <input type="file" accept="application/pdf,.pdf,.txt" data-onboarding-file ${onboarding.uploading || academicWork.uploading ? 'disabled' : ''}>
+        <span>${uiIcon('upload')} ${onboarding.uploading || academicWork.uploading ? 'Reading your overview…' : 'Choose your Academic Work PDF'}</span>
+      </label>
+      <p class="chat-action-note">${uiIcon('shield')} Read for its results, then discarded. The file is never stored.</p>
+      ${academicWork.error ? `<p class="account-delete-error" role="alert">${escapeHtml(academicWork.error)}</p>` : ''}
+      <button type="button" class="btn btn-ghost btn-sm" data-onboarding-skip="the academic record">Skip this</button>
+    </div>`
+  }
+  const canvas = prompt.secure === 'canvas'
+  return `<div class="chat-action">
+    ${canvas ? `<ol class="tt-steps setup-portal-steps">
+      <li><span class="tt-step-n">1</span><div><strong>Open Canvas settings</strong><p><a href="https://canvas.maastrichtuniversity.nl/profile/settings" target="_blank" rel="noopener noreferrer">canvas.maastrichtuniversity.nl → Settings</a>, in a tab where you are already signed in.</p></div></li>
+      <li><span class="tt-step-n">2</span><div><strong>Create an access token</strong><p>Under <em>Approved integrations</em>, choose <em>+ New access token</em> and name it “Wicker Study”. Copy it once — Canvas will not show it again.</p></div></li>
+      <li><span class="tt-step-n">3</span><div><strong>Paste it below</strong><p>Only a Personal Access Token. Never a password, an MFA code, or a cookie.</p></div></li>
+    </ol>` : renderTimetableConnectGuide({ open: true })}
+    <form class="chat-secure" data-onboarding-secret="${canvas ? 'canvas' : 'timetable'}">
+      <label>
+        <span>${canvas ? 'Canvas access token' : 'Timetable URL'}</span>
+        <input
+          type="${canvas ? 'password' : 'url'}"
+          name="value"
+          value="${escapeHtml(onboarding.secret)}"
+          placeholder="${canvas ? '••••••••••••••••••••' : 'https://timetable.maastrichtuniversity.nl/ical?…'}"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          ${onboarding.secretBusy ? 'disabled' : ''} required>
+      </label>
+      <p class="chat-action-note">${uiIcon('shield')} This goes straight to your account, encrypted, and never appears in the conversation.</p>
+      ${onboarding.secretError ? `<p class="account-delete-error" role="alert">${escapeHtml(onboarding.secretError)}</p>` : ''}
+      <div class="chat-secure-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-onboarding-skip="${canvas ? 'Canvas' : 'the timetable'}">Skip this</button>
+        <span class="pl-spacer"></span>
+        <button type="submit" class="btn btn-primary btn-sm" ${onboarding.secretBusy ? 'disabled' : ''}>${onboarding.secretBusy ? 'Checking…' : canvas ? 'Connect Canvas' : 'Connect timetable'}</button>
+      </div>
+    </form>
+  </div>`
+}
+
+function renderSetupConversation() {
+  const data = onboarding.data
+  const messages = data?.messages || []
+  const thinking = onboarding.sending
+  return `<section class="page-wrap chat-page">
+    <header class="page-head">
+      <div><p class="page-eyebrow">Set up</p><h1>Let's get your workspace ready</h1><p class="page-sub">A few questions. Everything except your programme is optional, and anything you skip is waiting for you on the dashboard.</p></div>
+      <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/setup?checklist=1">Use the checklist instead</a></div>
+    </header>
+
+    <div class="chat-thread" role="log" aria-live="polite" aria-label="Setup conversation">
+      ${messages.length ? messages.map((message) => message.role === 'event'
+        ? `<p class="chat-event">${uiIcon('check')} <span>${escapeHtml(message.content.replace(/\s*Confirm this briefly and move on\.?$/, ''))}</span></p>`
+        : `<div class="chat-turn is-${message.role}"><div class="chat-bubble">${escapeHtml(message.content)}</div></div>`).join('')
+        : `<div class="chat-turn is-assistant"><div class="chat-bubble">Hello. I'm going to set up your workspace — it takes about two minutes. Say hello when you're ready.</div></div>`}
+      ${thinking ? `<div class="chat-turn is-assistant"><div class="chat-bubble is-thinking" aria-label="Thinking"><i></i><i></i><i></i></div></div>` : ''}
+      ${!thinking && data?.prompt ? renderOnboardingPrompt(data.prompt) : ''}
+      ${data?.finished ? `<div class="setup-result"><span>${uiIcon('check')}</span><div><strong>Setup finished</strong><p>${escapeHtml(data.summary || 'Your workspace is ready.')}</p></div></div>
+        <div class="chat-done-actions"><a class="btn btn-primary" href="#/">Open my dashboard</a><a class="btn btn-secondary" href="#/setup?checklist=1">Review what is connected</a></div>` : ''}
+    </div>
+
+    ${onboarding.error ? `<div class="settings-error" role="alert"><strong>That could not be sent.</strong><p>${escapeHtml(onboarding.error)}</p></div>` : ''}
+
+    ${data?.finished ? '' : `<form class="chat-composer" data-onboarding-form>
+      <label class="sr-only" for="chat-input">Your reply</label>
+      <textarea id="chat-input" rows="1" data-onboarding-input placeholder="${messages.length ? 'Type your reply…' : 'Say hello to begin'}" ${thinking ? 'disabled' : ''}>${escapeHtml(onboarding.draft)}</textarea>
+      <button type="submit" class="btn btn-primary" ${thinking || !onboarding.draft.trim() ? 'disabled' : ''} aria-label="Send">${uiIcon('chevronRight')}</button>
+    </form>`}
+  </section>`
+}
+
 function renderSetupPage() {
+  if (!onboarding.data && !onboarding.loading && !onboarding.error) queueMicrotask(() => loadOnboarding())
+  // The conversation needs a model. Without one, or when the student asks for
+  // it, the checklist does exactly the same work.
+  const wantsChecklist = route.checklist || onboarding.data?.available === false || onboarding.data?.finished === 'never'
+  if (!wantsChecklist && onboarding.data?.available !== false) return renderSetupConversation()
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (!updatesState.data && !updatesState.loading && !updatesState.error) queueMicrotask(() => loadUpdates())
   if (!academicWork.data && !academicWork.loading && !academicWork.error) queueMicrotask(() => loadAcademicWork())
@@ -11001,6 +11155,27 @@ function bindEvents() {
       render()
     }
   }))
+  document.querySelectorAll('[data-onboarding-form]').forEach((form) => form.addEventListener('submit', (event) => { event.preventDefault(); sendOnboarding() }))
+  document.querySelectorAll('[data-onboarding-input]').forEach((input) => {
+    input.addEventListener('input', () => {
+      onboarding.draft = input.value
+      // Grow with the reply rather than scrolling a one-line box.
+      input.style.height = 'auto'
+      input.style.height = `${Math.min(input.scrollHeight, 160)}px`
+      const send = input.closest('form')?.querySelector('button[type="submit"]')
+      if (send) send.disabled = !input.value.trim() || onboarding.sending
+    })
+    // Enter sends; Shift+Enter is a new line, as everywhere else.
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendOnboarding() }
+    })
+  })
+  document.querySelectorAll('[data-onboarding-secret]').forEach((form) => {
+    form.addEventListener('submit', (event) => { event.preventDefault(); submitOnboardingSecret(form.dataset.onboardingSecret) })
+    form.elements.value.addEventListener('input', () => { onboarding.secret = form.elements.value.value })
+  })
+  document.querySelectorAll('[data-onboarding-file]').forEach((input) => input.addEventListener('change', () => uploadOnboardingRecord(input.files?.[0])))
+  document.querySelectorAll('[data-onboarding-skip]').forEach((button) => button.addEventListener('click', () => sendOnboarding(`Skip ${button.dataset.onboardingSkip} for now.`)))
   document.querySelectorAll('[data-setup-open]').forEach((button) => button.addEventListener('click', () => { setupPage.open = setupPage.open === button.dataset.setupOpen ? null : button.dataset.setupOpen; render() }))
   document.querySelectorAll('[data-setup-timetable]').forEach((form) => {
     form.addEventListener('submit', (event) => { event.preventDefault(); setupPage.timetableUrl = form.elements.url.value; submitSetupTimetable() })
