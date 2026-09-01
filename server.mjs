@@ -41,6 +41,8 @@ import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapsho
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
 import { applySecureValue, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
+import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
+import { TutorStoreError, deleteConversation, forgetFact, listConversations, newConversation, readConversation, readTutorMemory, saveConversation, saveTutorPreferences, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
@@ -3888,6 +3890,65 @@ const server = createServer(async (req, res) => {
       }
       const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
       send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), canvas: { connected: canvasConnected }, problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    // The permanent tutor. Conversations, the facts it has been asked to
+    // remember, and how the student wants to be answered all persist; nothing
+    // said in one conversation reaches another unless it was remembered.
+    if (url.pathname === '/api/tutor' && req.method === 'GET') {
+      const id = url.searchParams.get('conversation')
+      const [conversations, memory] = await Promise.all([listConversations(), readTutorMemory()])
+      const conversation = id ? await readConversation(id) : null
+      send(res, 200, JSON.stringify({
+        available: tutorAvailable(),
+        conversations,
+        memory,
+        preferenceOptions: TUTOR_PREFERENCES,
+        conversation: conversation ? { ...conversation, messages: conversation.messages.filter((message) => ['user', 'assistant'].includes(message.role) && String(message.content || '').trim()).map(({ role, content, at }) => ({ role, content, at })) } : null
+      }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/tutor' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 32 * 1024)
+        const message = String(body?.message || '').trim().slice(0, 4000)
+        if (!message) { send(res, 400, JSON.stringify({ error: 'Ask something.' })); return }
+        const conversation = (body?.conversation && await readConversation(body.conversation)) || newConversation()
+        const turn = await runTutorTurn(conversation, { message })
+        conversation.messages = [...(conversation.messages || []), ...turn.added]
+        const saved = await saveConversation(conversation)
+        send(res, 200, JSON.stringify({
+          conversation: { id: saved.id, title: saved.title, updatedAt: saved.updatedAt, messages: saved.messages.filter((entry) => ['user', 'assistant'].includes(entry.role) && String(entry.content || '').trim()).map(({ role, content, at }) => ({ role, content, at })) },
+          conversations: await listConversations(),
+          memory: await readTutorMemory(),
+          remembered: turn.remembered,
+          usage: turn.usage
+        }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error?.status || 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That could not be sent.' }))
+      }
+      return
+    }
+    const tutorConversationMatch = url.pathname.match(/^\/api\/tutor\/conversations\/([A-Za-z0-9-]+)$/)
+    if (tutorConversationMatch && req.method === 'DELETE') {
+      const removed = await deleteConversation(tutorConversationMatch[1])
+      send(res, removed ? 200 : 404, JSON.stringify(removed ? { removed: true, conversations: await listConversations() } : { error: 'No such conversation.' }))
+      return
+    }
+    if (url.pathname === '/api/tutor/preferences' && req.method === 'PUT') {
+      try {
+        const body = await readBody(req, 4 * 1024)
+        send(res, 200, JSON.stringify({ preferences: await saveTutorPreferences(body || {}) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof TutorStoreError ? error.status : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+    const tutorMemoryMatch = url.pathname.match(/^\/api\/tutor\/memory\/([A-Za-z0-9-]+)$/)
+    if (tutorMemoryMatch && req.method === 'DELETE') {
+      const removed = await forgetFact(tutorMemoryMatch[1])
+      send(res, removed ? 200 : 404, JSON.stringify(removed ? { removed: true, memory: await readTutorMemory() } : { error: 'No such memory.' }))
       return
     }
 

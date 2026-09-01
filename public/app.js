@@ -900,6 +900,7 @@ function parseRoute() {
     const tab = PRACTICE_TABS.some(([id]) => id === parts[1]) ? parts[1] : 'questions'
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
+  if (parts[0] === 'tutor') return { page: 'tutor', conversationId: parts[1] ? decodeURIComponent(parts[1]) : null }
   if (parts[0] === 'setup') return { page: 'setup', checklist: /(^|[?&])checklist=1/.test(hash) }
   if (parts[0] === 'updates') {
     const requested = decodeURIComponent(parts[1] || '')
@@ -1476,6 +1477,12 @@ function render() {
   autosizeAnswerTextareas()
   if (route.page === 'calendar') mountCalendar()
   if (route.page === 'updates') { mountUpdatesBodies(); if (updatesState.data?.connected) markUpdatesSeen() }
+  if (route.page === 'tutor') {
+    const thread = document.querySelector('.chat-thread')
+    if (thread) thread.scrollTop = thread.scrollHeight
+    const input = document.querySelector('[data-tutor-input]')
+    if (input && !tutor.sending && document.activeElement === document.body) input.focus({ preventScroll: true })
+  }
   if (route.page === 'setup') {
     const thread = document.querySelector('.chat-thread')
     if (thread) thread.scrollTop = thread.scrollHeight
@@ -1568,6 +1575,7 @@ function routeView() {
   if (route.page === 'admin') return renderAdminPage()
   if (route.page === 'updates') return renderUpdatesPage()
   if (route.page === 'setup') return renderSetupPage()
+  if (route.page === 'tutor') return renderTutorPage()
   if (route.page === 'planning') return renderAcademicPlanningPage()
   if (route.page === 'course-request') return renderCourseRequestPage()
   if (route.page === 'course') return renderCourse(route.id)
@@ -4086,6 +4094,7 @@ function renderSidebar() {
         ${link('nav-courses', '#/courses', 'Courses', uiIcon('book'), ['courses', 'course', 'chapter', 'mock-exam', 'course-request'].includes(route.page), active || null)}
         ${link('nav-practice', '#/practice', 'Practice', uiIcon('target'), route.page === 'practice', due || null)}
         ${link('nav-updates', '#/updates', 'Updates', uiIcon('bell'), route.page === 'updates', updatesBadgeCount() || null)}
+        ${link('nav-tutor', '#/tutor', 'Tutor', uiIcon('sparkle'), route.page === 'tutor')}
         <span class="dash-nav-group">Plan</span>
         ${link('nav-planning', '#/planning', 'Planning', uiIcon('chart'), route.page === 'planning' && route.tab !== 'calendar')}
         ${link('nav-calendar', '#/calendar', 'Calendar', uiIcon('calendar'), route.page === 'calendar')}
@@ -4801,6 +4810,114 @@ function renderOnboardingPrompt(prompt) {
       </div>
     </form>
   </div>`
+}
+
+// ───── Tutor ──────────────────────────────────────────────────────────────
+// A permanent conversation with something that can see the student's actual
+// week. Conversations, remembered facts, and answering preferences persist;
+// nothing said in one conversation reaches another unless it was remembered.
+
+const tutor = { data: null, loading: false, error: null, draft: '', sending: false, conversationId: null, rail: false }
+
+async function loadTutor({ force = false, conversationId = null } = {}) {
+  if (tutor.loading || (tutor.data && !force && !conversationId)) return
+  tutor.loading = true
+  try {
+    const query = conversationId ? `?conversation=${encodeURIComponent(conversationId)}` : ''
+    tutor.data = await fetchJson(`/api/tutor${query}`)
+    tutor.conversationId = tutor.data.conversation?.id || conversationId || null
+    tutor.error = null
+  } catch (error) { tutor.error = error.message }
+  finally { tutor.loading = false; render() }
+}
+
+async function askTutor(message) {
+  const said = String(message ?? tutor.draft).trim()
+  if (!said || tutor.sending) return
+  tutor.sending = true
+  tutor.error = null
+  tutor.draft = ''
+  const existing = tutor.data?.conversation?.messages || []
+  tutor.data = { ...(tutor.data || {}), conversation: { ...(tutor.data?.conversation || {}), messages: [...existing, { role: 'user', content: said, at: new Date().toISOString() }] } }
+  render()
+  try {
+    const result = await fetchJson('/api/tutor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 120_000, body: JSON.stringify({ message: said, conversation: tutor.conversationId }) })
+    tutor.conversationId = result.conversation.id
+    tutor.data = { ...tutor.data, ...result }
+  } catch (error) { tutor.error = error.message }
+  finally { tutor.sending = false; render() }
+}
+
+const TUTOR_OPENERS = [
+  'What are my priorities this week?',
+  'What is due in the next few days?',
+  'When are my next lectures?',
+  'How am I doing on credits?'
+]
+
+function renderTutorRail() {
+  const data = tutor.data
+  const conversations = data?.conversations || []
+  const facts = data?.memory?.facts || []
+  const preferences = data?.memory?.preferences || {}
+  const options = data?.preferenceOptions || {}
+  return `<aside class="tutor-rail${tutor.rail ? ' is-open' : ''}" aria-label="Conversations and memory">
+    <button type="button" class="btn btn-primary btn-sm tutor-new" data-tutor-new>${uiIcon('plus')} New conversation</button>
+    <div class="tutor-rail-group">
+      <h3>Conversations</h3>
+      ${conversations.length ? `<ul class="tutor-list">${conversations.map((item) => `<li${item.id === tutor.conversationId ? ' class="is-on"' : ''}>
+        <button type="button" data-tutor-open="${escapeHtml(item.id)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(relativeTime(item.updatedAt) || '')} · ${item.messageCount} message${item.messageCount === 1 ? '' : 's'}</small></button>
+        <button type="button" class="icon-btn" data-tutor-delete="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.title)}">${uiIcon('trash')}</button>
+      </li>`).join('')}</ul>` : '<p class="panel-note">Nothing yet.</p>'}
+    </div>
+    <div class="tutor-rail-group">
+      <h3>Remembered</h3>
+      ${facts.length ? `<ul class="tutor-memory">${facts.map((fact) => `<li><span>${escapeHtml(fact.fact)}</span><button type="button" class="icon-btn" data-tutor-forget="${escapeHtml(fact.id)}" aria-label="Forget this">${uiIcon('close')}</button></li>`).join('')}</ul>`
+        : '<p class="panel-note">Ask the tutor to remember something and it appears here. Nothing is remembered unless you ask.</p>'}
+    </div>
+    <div class="tutor-rail-group">
+      <h3>How it answers</h3>
+      <div class="tutor-prefs">${Object.entries(options).map(([key, spec]) => `<label><span>${escapeHtml(spec.label)}</span><select data-tutor-pref="${escapeHtml(key)}">${spec.options.map((option) => `<option value="${escapeHtml(option)}" ${preferences[key] === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></label>`).join('')}</div>
+    </div>
+  </aside>`
+}
+
+function renderTutorPage() {
+  if (!tutor.data && !tutor.loading && !tutor.error) queueMicrotask(() => loadTutor())
+  const data = tutor.data
+  const messages = data?.conversation?.messages || []
+  const thinking = tutor.sending
+
+  if (data && data.available === false) {
+    return `<section class="page-wrap"><header class="page-head"><div><p class="page-eyebrow">Tutor</p><h1>Tutor</h1></div></header>
+      <div class="upd-empty panel">${uiIcon('alert')}<div><strong>The tutor needs a language model</strong><p>No model is configured for this deployment, so there is nothing to talk to. Your dashboard, calendar, and Updates all still work.</p></div></div></section>`
+  }
+
+  return `<section class="page-wrap tutor-page">
+    <header class="page-head">
+      <div><p class="page-eyebrow">Tutor</p><h1>Ask about your week</h1><p class="page-sub">It can see your timetable, your Canvas deadlines, your courses, and your record — and it says so when it cannot.</p></div>
+      <div class="page-head-actions"><button type="button" class="btn btn-secondary btn-sm tutor-rail-toggle" data-tutor-rail aria-expanded="${tutor.rail}">${uiIcon('list')} History</button></div>
+    </header>
+
+    <div class="tutor-layout">
+      ${renderTutorRail()}
+      <div class="tutor-main">
+        <div class="chat-thread" role="log" aria-live="polite" aria-label="Tutor conversation">
+          ${messages.length ? messages.map((message) => `<div class="chat-turn is-${message.role}"><div class="chat-bubble">${escapeHtml(message.content)}</div></div>`).join('') : `<div class="tutor-openers">
+            <p>Ask anything about your studies. It reads your own timetable, deadlines and record before answering.</p>
+            <div class="tutor-opener-row">${TUTOR_OPENERS.map((opener) => `<button type="button" class="tutor-opener" data-tutor-ask="${escapeHtml(opener)}">${escapeHtml(opener)}</button>`).join('')}</div>
+          </div>`}
+          ${thinking ? `<div class="chat-turn is-assistant"><div class="chat-bubble is-thinking" aria-label="Thinking"><i></i><i></i><i></i></div></div>` : ''}
+        </div>
+        ${tutor.error ? `<div class="settings-error" role="alert"><strong>That could not be sent.</strong><p>${escapeHtml(tutor.error)}</p></div>` : ''}
+        <form class="chat-composer" data-tutor-form>
+          <label class="sr-only" for="tutor-input">Your question</label>
+          <textarea id="tutor-input" rows="1" data-tutor-input placeholder="Ask about your week, a course, or your progress…" ${thinking ? 'disabled' : ''}>${escapeHtml(tutor.draft)}</textarea>
+          <button type="submit" class="btn btn-primary" ${thinking || !tutor.draft.trim() ? 'disabled' : ''} aria-label="Send">${uiIcon('chevronRight')}</button>
+        </form>
+      </div>
+    </div>
+  </section>`
 }
 
 function renderSetupConversation() {
@@ -11154,6 +11271,46 @@ function bindEvents() {
       materialsState.exporting = false
       render()
     }
+  }))
+  document.querySelectorAll('[data-tutor-form]').forEach((form) => form.addEventListener('submit', (event) => { event.preventDefault(); askTutor() }))
+  document.querySelectorAll('[data-tutor-input]').forEach((input) => {
+    input.addEventListener('input', () => {
+      tutor.draft = input.value
+      input.style.height = 'auto'
+      input.style.height = `${Math.min(input.scrollHeight, 160)}px`
+      const send = input.closest('form')?.querySelector('button[type="submit"]')
+      if (send) send.disabled = !input.value.trim() || tutor.sending
+    })
+    input.addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); askTutor() } })
+  })
+  document.querySelectorAll('[data-tutor-ask]').forEach((button) => button.addEventListener('click', () => askTutor(button.dataset.tutorAsk)))
+  document.querySelectorAll('[data-tutor-new]').forEach((button) => button.addEventListener('click', () => { tutor.conversationId = null; tutor.data = { ...tutor.data, conversation: null }; tutor.rail = false; render() }))
+  document.querySelectorAll('[data-tutor-open]').forEach((button) => button.addEventListener('click', () => { tutor.rail = false; loadTutor({ force: true, conversationId: button.dataset.tutorOpen }) }))
+  document.querySelectorAll('[data-tutor-rail]').forEach((button) => button.addEventListener('click', () => { tutor.rail = !tutor.rail; render() }))
+  document.querySelectorAll('[data-tutor-delete]').forEach((button) => button.addEventListener('click', async () => {
+    const id = button.dataset.tutorDelete
+    const ok = await showConfirm({ title: 'Delete this conversation?', message: 'The conversation is removed. Anything the tutor was asked to remember stays.', okLabel: 'Delete', danger: true })
+    if (!ok) return
+    try {
+      const result = await fetchJson(`/api/tutor/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' })
+      tutor.data = { ...tutor.data, conversations: result.conversations }
+      if (tutor.conversationId === id) { tutor.conversationId = null; tutor.data = { ...tutor.data, conversation: null } }
+    } catch (error) { tutor.error = error.message }
+    render()
+  }))
+  document.querySelectorAll('[data-tutor-forget]').forEach((button) => button.addEventListener('click', async () => {
+    try {
+      const result = await fetchJson(`/api/tutor/memory/${encodeURIComponent(button.dataset.tutorForget)}`, { method: 'DELETE' })
+      tutor.data = { ...tutor.data, memory: result.memory }
+    } catch (error) { tutor.error = error.message }
+    render()
+  }))
+  document.querySelectorAll('[data-tutor-pref]').forEach((select) => select.addEventListener('change', async () => {
+    try {
+      const result = await fetchJson('/api/tutor/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [select.dataset.tutorPref]: select.value }) })
+      tutor.data = { ...tutor.data, memory: { ...tutor.data.memory, preferences: result.preferences } }
+    } catch (error) { tutor.error = error.message }
+    render()
   }))
   document.querySelectorAll('[data-onboarding-form]').forEach((form) => form.addEventListener('submit', (event) => { event.preventDefault(); sendOnboarding() }))
   document.querySelectorAll('[data-onboarding-input]').forEach((input) => {
