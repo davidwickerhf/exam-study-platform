@@ -18,6 +18,464 @@
       "language": "English",
       "versions": [
         {
+          "id": "2026-2027",
+          "label": "2026–2027 reference curriculum",
+          "status": "reference",
+          "sources": [
+            {
+              "label": "Official course repository",
+              "url": "https://courserepository.maastrichtuniversity.nl/p/program/EN/9503"
+            },
+            {
+              "label": "Programme curriculum overview",
+              "url": "https://www.maastrichtuniversity.nl/education/bachelor/programmes/computer-science/courses-and-curriculum"
+            }
+          ],
+          "courses": [
+            {
+              "id": "bcs1110",
+              "code": "BCS1110",
+              "name": "Introduction to Computer Science",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1120",
+              "code": "BCS1120",
+              "name": "Procedural Programming",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1130",
+              "code": "BCS1130",
+              "name": "Discrete Mathematics",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1220",
+              "code": "BCS1220",
+              "name": "Objects in Programming",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1440",
+              "code": "BCS1440",
+              "name": "Calculus",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1530",
+              "code": "BCS1530",
+              "name": "Logic",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1300",
+              "code": "BCS1300",
+              "name": "Project 1-1",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1410",
+              "code": "BCS1410",
+              "name": "Linear Algebra",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1420",
+              "code": "BCS1420",
+              "name": "Data Structures and Algorithms",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1450",
+              "code": "BCS1450",
+              "name": "Computer Architecture",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1510",
+              "code": "BCS1510",
+              "name": "Databases",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1520",
+              "code": "BCS1520",
+              "name": "Statistics",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1540",
+              "code": "BCS1540",
+              "name": "Algorithmic Design",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1600",
+              "code": "BCS1600",
+              "name": "Project 1-2",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2120",
+              "code": "BCS2120",
+              "name": "Introduction to Artificial Intelligence",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2130",
+              "code": "BCS2130",
+              "name": "Intelligent User Interfaces",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2140",
+              "code": "BCS2140",
+              "name": "Operating Systems",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2110",
+              "code": "BCS2110",
+              "name": "Computer Networks",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2210",
+              "code": "BCS2210",
+              "name": "Software Engineering and Architectures",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2410",
+              "code": "BCS2410",
+              "name": "Embedded Programming",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2420",
+              "code": "BCS2420",
+              "name": "Computer Security",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2430",
+              "code": "BCS2430",
+              "name": "Parallel Programming",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2220",
+              "code": "BCS2220",
+              "name": "Principles of Programming Languages",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2540",
+              "code": "BCS2540",
+              "name": "Numerical Methods",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2710",
+              "code": "BCS2710",
+              "name": "M2-1: Intelligent Interaction",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs2720",
+              "code": "BCS2720",
+              "name": "M2-1: AI and Machine Learning",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs2730",
+              "code": "BCS2730",
+              "name": "M2-2: High Performance Computing",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs2740",
+              "code": "BCS2740",
+              "name": "M2-2: Cybersecurity",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3111",
+              "code": "BCS3111",
+              "name": "Digital Society",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3120",
+              "code": "BCS3120",
+              "name": "Ubiquitous Computing & Internet of Things",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3130",
+              "code": "BCS3130",
+              "name": "Game Theory",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3210",
+              "code": "BCS3210",
+              "name": "Block Chains",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3236",
+              "code": "BCS3236",
+              "name": "Robotics and Embedded Systems",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3241",
+              "code": "BCS3241",
+              "name": "Introduction to Quantum Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3150",
+              "code": "BCS3150",
+              "name": "Software and Systems Verification",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3220",
+              "code": "BCS3220",
+              "name": "Startup Engineering: Building Scalable Tech Ventures",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3230",
+              "code": "BCS3230",
+              "name": "Cryptography",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3239",
+              "code": "BCS3239",
+              "name": "Large Scale IT and Cloud Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3240",
+              "code": "BCS3240",
+              "name": "Event-based Vision",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3250",
+              "code": "BCS3250",
+              "name": "Functional Programming",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3440",
+              "code": "BCS3440",
+              "name": "Introduction to Bio-Informatics",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3300",
+              "code": "BCS3300",
+              "name": "Project 3-1",
+              "ects": 6,
+              "yearLevel": "Year 3",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs3310",
+              "code": "BCS3310",
+              "name": "DACS Honours Programme - CS@Work (3-1)",
+              "ects": 6,
+              "yearLevel": "Year 3",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3320",
+              "code": "KEN3320",
+              "name": "DACS Honours Programme - MaRBLe 2.0 (3-1)",
+              "ects": 6,
+              "yearLevel": "Year 3",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3600",
+              "code": "KEN3600",
+              "name": "Study Abroad",
+              "ects": 30,
+              "yearLevel": "Year 3",
+              "period": "Year",
+              "requirement": "elective"
+            },
+            {
+              "id": "bcs2510",
+              "code": "BCS2510",
+              "name": "IT Management & Privacy",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs3410",
+              "code": "BCS3410",
+              "name": "The History and Philosophy of Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs3430",
+              "code": "BCS3430",
+              "name": "Theory of Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs3500",
+              "code": "BCS3500",
+              "name": "Bachelor's thesis",
+              "ects": 18,
+              "yearLevel": "Year 3",
+              "period": "Year",
+              "requirement": "required"
+            }
+          ]
+        },
+        {
           "id": "2025-2026",
           "label": "2025–2026 reference curriculum",
           "status": "reference",
@@ -589,6 +1047,1030 @@
               "id": "thesis-entry",
               "label": "Bachelor's thesis entry",
               "description": "Meet the published progression requirements and have at least 138 ECTS before starting the thesis."
+            }
+          ]
+        }
+      ],
+      "calendar": [
+        {
+          "id": "cal-1",
+          "title": "Inkom Maastricht University",
+          "date": "2026-08-17",
+          "endDate": "2026-08-20",
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-2",
+          "title": "Bachelor DSAI",
+          "date": "2026-08-25",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelor"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-3",
+          "title": "Bachelor CS",
+          "date": "2026-08-26",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelor"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-4",
+          "title": "Masters",
+          "date": "2026-08-27",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Masters"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-5",
+          "title": "Mentor Event Bachelors DSAI & CS",
+          "date": "2026-08-28",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelors"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-6",
+          "title": "Period 1",
+          "date": "2026-08-31",
+          "endDate": "2026-10-09",
+          "type": "other",
+          "kind": "period",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-11",
+          "title": "Exam week · Period 1",
+          "date": "2026-10-12",
+          "endDate": "2026-10-16",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 1 - Exams all",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-14",
+          "title": "Study week · Period 1",
+          "date": "2026-10-19",
+          "endDate": "2026-10-23",
+          "type": "other",
+          "kind": "study-week",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-8",
+          "title": "Period 2",
+          "date": "2026-10-26",
+          "endDate": "2026-12-04",
+          "type": "other",
+          "kind": "period",
+          "period": 2,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 2",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-29",
+          "title": "BA Thesis Winter conference",
+          "date": "2026-12-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-12",
+          "title": "Exams and resits · Period 2 (BY2/3, MAP1)",
+          "date": "2026-12-07",
+          "endDate": "2026-12-11",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 2,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "BY2/3",
+            "MAP1"
+          ],
+          "notes": "Period 2 - Exams all + resits BY2/3 & MA P1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-25",
+          "title": "Christmas Holiday",
+          "date": "2026-12-14",
+          "endDate": "2027-01-01",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-22",
+          "title": "Final Presentations",
+          "date": "2027-01-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-19",
+          "title": "Project period · Period 3 (BAY1)",
+          "date": "2027-01-04",
+          "endDate": "2027-01-15",
+          "type": "other",
+          "kind": "project-week",
+          "period": 3,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "BAY1"
+          ],
+          "notes": "Period 3 - BAY1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-20",
+          "title": "Project period · Period 3",
+          "date": "2027-01-04",
+          "endDate": "2027-01-22",
+          "type": "other",
+          "kind": "project-week",
+          "period": 3,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 3 - all others",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-13",
+          "title": "Resits · Semester 1 (BY1)",
+          "date": "2027-01-18",
+          "endDate": "2027-01-22",
+          "type": "deadline",
+          "kind": "resit-week",
+          "period": null,
+          "semester": 1,
+          "resit": true,
+          "cohorts": [
+            "BY1"
+          ],
+          "notes": "Semester 1 - Resits BY1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-7",
+          "title": "Masters February intake",
+          "date": "2027-01-22",
+          "endDate": null,
+          "type": "registration",
+          "kind": "deadline",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Masters"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-9",
+          "title": "Period 4",
+          "date": "2027-01-25",
+          "endDate": "2027-03-12",
+          "type": "other",
+          "kind": "period",
+          "period": 4,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-27",
+          "title": "Carnival Break",
+          "date": "2027-02-08",
+          "endDate": "2027-02-12",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-15",
+          "title": "Exams and resits · Period 4 (BY2/3, MAP2)",
+          "date": "2027-03-15",
+          "endDate": "2027-03-19",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 4,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "BY2/3",
+            "MAP2"
+          ],
+          "notes": "Period 4 - Exams all + resits BY2/3 & MA P2",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-16",
+          "title": "Study week · Period 4",
+          "date": "2027-03-22",
+          "endDate": "2027-03-26",
+          "type": "other",
+          "kind": "study-week",
+          "period": 4,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-28",
+          "title": "Good Friday",
+          "date": "2027-03-26",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-10",
+          "title": "Period 5",
+          "date": "2027-03-29",
+          "endDate": "2027-05-14",
+          "type": "other",
+          "kind": "period",
+          "period": 5,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 5",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-30",
+          "title": "Easter Monday",
+          "date": "2027-03-29",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-32",
+          "title": "King's Day & Bridging Day",
+          "date": "2027-04-26",
+          "endDate": "2027-04-27",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-33",
+          "title": "Liberation Day",
+          "date": "2027-05-05",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-34",
+          "title": "Ascension Day & Bridging Day",
+          "date": "2027-05-06",
+          "endDate": "2027-05-07",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-35",
+          "title": "Whit Monday",
+          "date": "2027-05-17",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-17",
+          "title": "Exams and resits · Period 5 (MAP4)",
+          "date": "2027-05-18",
+          "endDate": "2027-05-21",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 5,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "MAP4"
+          ],
+          "notes": "Period 5 - Exams all + resits MA P4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-23",
+          "title": "Project period · Period 6",
+          "date": "2027-05-24",
+          "endDate": "2027-06-11",
+          "type": "other",
+          "kind": "project-week",
+          "period": 6,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 6",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-24",
+          "title": "Final presentations - BY1/2",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "BY1/2"
+          ],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-26",
+          "title": "Project seminar MY1",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "MY1"
+          ],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-31",
+          "title": "BA Thesis Summer Conference",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-18",
+          "title": "Resits · Semester 2 (BAP4&5, MAP5)",
+          "date": "2027-06-14",
+          "endDate": "2027-06-18",
+          "type": "deadline",
+          "kind": "resit-week",
+          "period": null,
+          "semester": 2,
+          "resit": true,
+          "cohorts": [
+            "BAP4&5",
+            "MAP5"
+          ],
+          "notes": "Semester 2 - Resits BA P4&5 + resits MA P5",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-21",
+          "title": "Graduation",
+          "date": "2027-11-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        }
+      ]
+    },
+    {
+      "id": "maastricht-university-bsc-data-science-and-artificial-intelligence",
+      "institution": {
+        "name": "Maastricht University",
+        "city": "Maastricht",
+        "country": "Netherlands",
+        "domains": [
+          "maastrichtuniversity.nl"
+        ]
+      },
+      "name": "Data Science and Artificial Intelligence",
+      "degree": "Bachelor of Science",
+      "durationYears": 3,
+      "totalEcts": 180,
+      "language": "English",
+      "versions": [
+        {
+          "id": "2026-2027",
+          "label": "2026–2027 reference curriculum",
+          "status": "reference",
+          "sources": [
+            {
+              "label": "Official course repository",
+              "url": "https://courserepository.maastrichtuniversity.nl/p/program/EN/50017317"
+            },
+            {
+              "label": "Programme curriculum overview",
+              "url": "https://www.maastrichtuniversity.nl/education/bachelor/programmes/data-science-and-artificial-intelligence/courses-and-curriculum"
+            }
+          ],
+          "courses": [
+            {
+              "id": "ken1110",
+              "code": "KEN1110",
+              "name": "Introduction to Data Science and Artificial Intelligence",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1120",
+              "code": "KEN1120",
+              "name": "Procedural Programming",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1130",
+              "code": "KEN1130",
+              "name": "Discrete Mathematics",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1220",
+              "code": "KEN1220",
+              "name": "Objects in Programming",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1440",
+              "code": "KEN1440",
+              "name": "Calculus",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1530",
+              "code": "KEN1530",
+              "name": "Logic",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1300",
+              "code": "KEN1300",
+              "name": "Project 1-1",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1410",
+              "code": "KEN1410",
+              "name": "Linear Algebra",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1420",
+              "code": "KEN1420",
+              "name": "Data Structures and Algorithms",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1435",
+              "code": "KEN1435",
+              "name": "Principles of Data Science",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1210",
+              "code": "KEN1210",
+              "name": "Computational and Cognitive Neuroscience",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1520",
+              "code": "KEN1520",
+              "name": "Software Engineering",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1540",
+              "code": "KEN1540",
+              "name": "Numerical Methods",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "ken1600",
+              "code": "KEN1600",
+              "name": "Project 1-2",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2110",
+              "code": "KEN2110",
+              "name": "Databases",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2130",
+              "code": "KEN2130",
+              "name": "Probability and Statistics",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2220",
+              "code": "KEN2220",
+              "name": "Graph Theory",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2230",
+              "code": "KEN2230",
+              "name": "Reasoning Techniques",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2240",
+              "code": "KEN2240",
+              "name": "Machine Learning",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2530",
+              "code": "KEN2530",
+              "name": "Simulation and Statistical Analysis",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2300",
+              "code": "KEN2300",
+              "name": "Project 2-1",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2410",
+              "code": "KEN2410",
+              "name": "Human Computer Interaction & Affective Computing",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2430",
+              "code": "KEN2430",
+              "name": "Mathematical Modelling",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2570",
+              "code": "KEN2570",
+              "name": "Natural Language Processing",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2120",
+              "code": "KEN2120",
+              "name": "Philosophy & Artificial Intelligence",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2520",
+              "code": "KEN2520",
+              "name": "Linear Programming",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2600",
+              "code": "KEN2600",
+              "name": "Project 2-2",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken2580",
+              "code": "KEN2580",
+              "name": "Game Theory",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3238",
+              "code": "KEN3238",
+              "name": "Introduction to Image & Video Processing",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken2310",
+              "code": "KEN2310",
+              "name": "DACS Honours Programme - KE@Work (2-1)",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken2320",
+              "code": "KEN2320",
+              "name": "DACS Honours Programme - MaRBLe 2.0 (2-1)",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken2610",
+              "code": "KEN2610",
+              "name": "DACS Honours Programme - KE@Work (2-2)",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken2620",
+              "code": "KEN2620",
+              "name": "DACS Honours Programme - MaRBLe 2.0 (2-2)",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3410",
+              "code": "KEN3410",
+              "name": "Operations Research",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken3430",
+              "code": "KEN3430",
+              "name": "Intelligent Systems",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken3450",
+              "code": "KEN3450",
+              "name": "Data Analysis",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken3500",
+              "code": "KEN3500",
+              "name": "Bachelor's thesis",
+              "ects": 18,
+              "yearLevel": "Year 3",
+              "period": "Year",
+              "requirement": "required"
+            },
+            {
+              "id": "ken3111",
+              "code": "KEN3111",
+              "name": "Digital Society",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3140",
+              "code": "KEN3140",
+              "name": "Semantic Web",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3170",
+              "code": "KEN3170",
+              "name": "Multi-scale modelling of biological systems",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3236",
+              "code": "KEN3236",
+              "name": "Robotics and Embedded Systems",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3241",
+              "code": "KEN3241",
+              "name": "Introduction to Quantum Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken2560",
+              "code": "KEN2560",
+              "name": "Computer Security",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3160",
+              "code": "KEN3160",
+              "name": "Recommender Systems",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3231",
+              "code": "KEN3231",
+              "name": "Logic for Artificial Intelligence",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3235",
+              "code": "KEN3235",
+              "name": "Parallel Programming",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3239",
+              "code": "KEN3239",
+              "name": "Large Scale IT and Cloud Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3242",
+              "code": "KEN3242",
+              "name": "Business Process & Knowledge Management",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3440",
+              "code": "KEN3440",
+              "name": "Introduction to Bio-Informatics",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3300",
+              "code": "KEN3300",
+              "name": "Project 3-1",
+              "ects": 6,
+              "yearLevel": "Year 3",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3310",
+              "code": "KEN3310",
+              "name": "DACS Honours Programme - KE@Work (3-1)",
+              "ects": 6,
+              "yearLevel": "Year 3",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken3600",
+              "code": "KEN3600",
+              "name": "Study Abroad",
+              "ects": 30,
+              "yearLevel": "Year 3",
+              "period": "Year",
+              "requirement": "elective"
             }
           ]
         }
