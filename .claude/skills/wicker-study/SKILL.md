@@ -237,8 +237,10 @@ paths Canvas no longer reports and never deletes local material automatically.
 
 #### Direct browser ZIP → Wicker Local (device hand-off)
 
-The Canvas archive screen lets a student choose a course and module subset, then make a
-ZIP directly on their own device. It uses **Wicker Local**, an opt-in loopback process
+**Updates → Materials** lets a student browse a course's modules and open its files
+through the account connection. Where **Wicker Local** is running — an opt-in loopback
+process on `127.0.0.1` — the same screen can also build a ZIP directly on their own
+device. It uses **Wicker Local**, an opt-in loopback process
 on `127.0.0.1`, and a host-scoped macOS Keychain token. The course bytes and Keychain
 token do not pass through the production server in this path. Start it with
 `npm run canvas:agent`; after copying a PAT in Canvas, use the UI’s **Use copied Canvas

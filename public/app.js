@@ -77,7 +77,7 @@ const ADMIN_SECTIONS = [['programmes', 'Programmes'], ['intake', 'Course intake'
 const ADMIN_COURSE_TABS = [['production', 'Production'], ['material', 'Published material'], ['requests', 'Requests']]
 // Live Canvas: what has been announced, what is due, and where each course
 // stands. Read-only — nothing here is written back to Canvas or to the plan.
-const UPDATES_TABS = [['announcements', 'Announcements'], ['assignments', 'Assignments'], ['courses', 'Courses']]
+const UPDATES_TABS = [['announcements', 'Announcements'], ['assignments', 'Assignments'], ['materials', 'Materials'], ['courses', 'Courses']]
 const UPDATES_SORTS = {
   announcements: [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['course', 'By course'], ['title', 'By title']],
   assignments: [['due', 'Due soonest'], ['due-desc', 'Due latest'], ['course', 'By course'], ['points', 'Most points'], ['status', 'By status']]
@@ -2475,6 +2475,7 @@ function renderTimetableConnectGuide({ open = false } = {}) {
 }
 
 function renderPlanningDocuments() {
+  if (!academicWork.data && !academicWork.loading && !academicWork.error) queueMicrotask(() => loadAcademicWork())
   const workspace = academicsData.workspace
   const docs = planningDocuments
   const files = docs.files
@@ -2504,6 +2505,10 @@ function renderPlanningDocuments() {
         <div class="pl-form-actions"><span class="panel-note">${aiAllowance('intake') === 'Usage allowance loads after sign-in.' ? '' : `${aiUsage?.remaining?.intakeToday ?? '—'} of ${aiUsage?.limits?.intake?.requestsPerDay ?? '—'} document reads left today`}</span><span class="pl-spacer"></span><button type="button" class="btn btn-primary" data-doc-analyse ${canAnalyse ? '' : 'disabled'}>${docs.analysing ? 'Reading…' : `${uiIcon('sparkle')} Read and propose updates`}</button></div>
       </section>
       <div class="account-stack">
+        <section class="panel">
+          <div class="panel-top"><div><h2>Academic record</h2><p>The Academic Work overview from the student portal. Read for its results, then discarded — upload a newer one any time and Wicker Study shows what changed.</p></div>${academicWork.data?.snapshots?.length ? `<span class="panel-stat"><strong>${academicWork.data.latest?.summary?.earnedEcts ?? 0}</strong><small>credits</small></span>` : ''}</div>
+          ${renderAcademicWorkUploader()}
+        </section>
         <section class="panel">
           <div class="panel-top"><div><h2>Calendar connections</h2><p>Subscribe to a timetable or exam-schedule feed. Wicker checks for updates every 15 minutes while you use Calendar.</p></div></div>
           ${docs.calendarNotice ? `<div class="calendar-feed-notice is-${escapeHtml(docs.calendarNotice.type || 'success')}" role="status">${uiIcon(docs.calendarNotice.type === 'error' ? 'alert' : 'check')}<span>${escapeHtml(docs.calendarNotice.message)}</span></div>` : ''}
@@ -2837,7 +2842,7 @@ function renderAccountConnections() {
   const connections = canvasConnections?.connections || []
   return `<div class="account-stack account-connections">
     <section class="panel canvas-connect-panel">
-      <div class="panel-top"><div><h2>Connect Canvas</h2><p>Bring your own course materials into your private workspace. Canvas remains responsible for your sign-in and OTP.</p></div><a class="btn btn-secondary btn-sm" href="/canvas">Open course archive</a></div>
+      <div class="panel-top"><div><h2>Connect Canvas</h2><p>Bring your own course materials into your private workspace. Canvas remains responsible for your sign-in and OTP.</p></div><a class="btn btn-secondary btn-sm" href="#/updates/materials">Open course material</a></div>
       ${canvasConnectionsError ? `<div class="settings-error" role="alert"><strong>Canvas settings are unavailable.</strong><p>${escapeHtml(canvasConnectionsError)}</p></div>` : ''}
       <form class="connection-form" data-canvas-connection-form>
         <ol class="canvas-connect-steps">
@@ -4721,6 +4726,31 @@ function renderSetupPage() {
   </section>`
 }
 
+// What the academic record says, and what has moved since the reading before
+// it. A single number is a fact; a number with a delta is progress.
+function renderAcademicRecordPanel() {
+  const data = academicWork.data
+  if (!data?.snapshots?.length) return ''
+  const latest = data.latest
+  const summary = latest?.summary || {}
+  const since = data.since
+  const series = data.series || []
+  const peak = Math.max(1, ...series.map((point) => point.earnedEcts || 0))
+  return `<section class="panel panel-aside record-panel">
+    <div class="panel-top"><h2>Academic record</h2><a class="pl-link" href="#/planning/progress">Progress</a></div>
+    <dl class="pl-facts">
+      <div><dt>Credits earned</dt><dd>${summary.earnedEcts ?? 0}</dd></div>
+      <div><dt>Courses passed</dt><dd>${summary.passedCourses ?? 0}</dd></div>
+      ${summary.weightedAverage != null ? `<div><dt>Weighted average</dt><dd>${summary.weightedAverage}</dd></div>` : ''}
+      ${summary.currentCourses ? `<div><dt>Registered now</dt><dd>${summary.currentCourses}</dd></div>` : ''}
+    </dl>
+    ${series.length > 1 ? `<div class="record-series" role="img" aria-label="Credits earned across ${series.length} readings">${series.map((point) => `<span style="--h:${Math.max(6, Math.round((point.earnedEcts / peak) * 100))}%" title="${escapeHtml(point.printedOn || updatesDay(point.at) || '')}: ${point.earnedEcts} credits"></span>`).join('')}</div>` : ''}
+    ${since && (since.ectsDelta || since.newlyPassed?.length)
+      ? `<p class="record-delta">${uiIcon('check')} <span><strong>+${since.ectsDelta} credit${since.ectsDelta === 1 ? '' : 's'}</strong> since the reading before${since.newlyPassed?.length ? ` · passed ${since.newlyPassed.map((course) => escapeHtml(course.code)).join(', ')}` : ''}</span></p>`
+      : `<p class="panel-note">Last read ${escapeHtml(relativeTime(latest?.createdAt) || 'just now')}${latest?.printedOn ? ` · printed ${escapeHtml(latest.printedOn)}` : ''}. Upload a newer overview to see what has moved.</p>`}
+  </section>`
+}
+
 function renderHomeCanvasPanel() {
   const data = updatesState.data
   if (!data?.connected) return ''
@@ -4823,6 +4853,7 @@ function renderHome() {
             ${item.editorial ? `<a class="pl-link" href="#/course/${item.editorial.id}">Study</a>` : `<a class="pl-link" href="#/course-request/${encodeURIComponent(item.course.id)}">Request</a>`}
           </li>`).join('')}</ol>` : examWindow && currentEntries.length ? `<div class="home-exam-window"><span class="home-exam-window-date"><strong>${academicDate(examWindow.start)}</strong><small>through ${academicDate(examWindow.end)}</small></span><p>Your ${currentEntries.length} current courses are associated with this upcoming exam period. Individual times appear when the timetable publishes them.</p><ul>${currentEntries.map(({ academic }) => `<li>${escapeHtml(academic.code || academic.name)}</li>`).join('')}</ul></div>` : `<div class="home-empty">${hasPlan ? '<p>No upcoming exam dates. Add one to a course attempt and it will appear here and on the course page.</p><a class="btn btn-secondary btn-sm" href="#/planning/courses">Add exam dates</a>' : academicsData ? '<p>Set up your academic plan to see exam countdowns, credits, and requirements alongside your study material.</p><a class="btn btn-primary btn-sm" href="#/planning">Set up plan</a>' : '<p>Loading your plan…</p>'}</div>`}
         </section>
+        ${renderAcademicRecordPanel()}
         ${renderHomeCanvasPanel()}
         <section class="panel panel-aside">
           <div class="panel-top"><h2>Quick start</h2></div>
@@ -5524,6 +5555,109 @@ function renderUpdatesCourses() {
   }).join('')}</div>`
 }
 
+// ───── Materials ──────────────────────────────────────────────────────────
+// Browsing a Canvas course's modules and opening its files, through the
+// account's own encrypted connection. This replaces the standalone /canvas
+// page, whose only action needed a loopback agent almost nobody runs.
+
+const materialsState = { courseId: null, data: null, loading: false, error: null, open: new Set(), local: null, localChecked: false, exporting: false, job: null }
+const WICKER_LOCAL = 'http://127.0.0.1:41917'
+
+async function loadMaterials(courseId) {
+  if (!courseId || materialsState.loading) return
+  materialsState.loading = true
+  materialsState.error = null
+  materialsState.courseId = courseId
+  render()
+  try {
+    materialsState.data = await fetchJson(`/api/integrations/canvas/courses/${encodeURIComponent(courseId)}/modules?canvasUrl=${encodeURIComponent(updatesState.data?.origin || '')}`, { timeoutMs: 45_000 })
+    materialsState.open = new Set((materialsState.data.modules || []).slice(0, 1).map((module) => module.id))
+  } catch (error) {
+    materialsState.data = null
+    materialsState.error = error.message || 'That course could not be read.'
+  } finally {
+    materialsState.loading = false
+    render()
+  }
+}
+
+// Wicker Local is an opt-in loopback process that builds a ZIP on this machine
+// without the course bytes passing through the server. It is a power-user
+// affordance: offered when it answers, never mentioned when it does not.
+async function detectWickerLocal() {
+  if (materialsState.localChecked) return
+  materialsState.localChecked = true
+  try {
+    const response = await fetch(`${WICKER_LOCAL}/v1/status?canvasUrl=${encodeURIComponent(updatesState.data?.origin || '')}`, { cache: 'no-store', signal: AbortSignal.timeout(1500) })
+    materialsState.local = response.ok ? await response.json() : null
+  } catch { materialsState.local = null }
+  if (materialsState.local) render()
+}
+
+function materialsIcon(type) {
+  if (type === 'File' || type === 'Attachment') return 'file'
+  if (type === 'Page') return 'book'
+  if (type === 'Assignment') return 'edit'
+  if (type === 'Quiz') return 'target'
+  if (type === 'Discussion') return 'bell'
+  if (type === 'ExternalUrl' || type === 'ExternalTool') return 'external'
+  return 'list'
+}
+
+function renderUpdatesMaterials() {
+  const courses = updatesScopeCourses()
+  if (!courses.length) return `<div class="upd-empty panel">${uiIcon('book')}<div><strong>No courses in scope</strong><p>Switch to all courses, or connect Canvas.</p></div></div>`
+  const courseId = materialsState.courseId && courses.some((course) => String(course.id) === materialsState.courseId) ? materialsState.courseId : String(courses[0].id)
+  if (materialsState.courseId !== courseId) queueMicrotask(() => loadMaterials(courseId))
+  queueMicrotask(() => detectWickerLocal())
+  const data = materialsState.data
+  const course = courses.find((entry) => String(entry.id) === courseId)
+  const origin = updatesState.data?.origin || ''
+
+  return `<div class="mat-layout">
+    <aside class="mat-rail" aria-label="Courses">
+      <h3>Course</h3>
+      <ul>${courses.map((entry) => `<li><button type="button" class="mat-course${String(entry.id) === courseId ? ' is-on' : ''}" data-mat-course="${escapeHtml(String(entry.id))}" style="--accent:${updatesCourseColour(entry.id)}"><i></i><span><strong>${escapeHtml(entry.courseCode || entry.displayName || entry.name)}</strong><small>${escapeHtml(entry.term?.name || '')}</small></span></button></li>`).join('')}</ul>
+    </aside>
+    <div class="mat-main">
+      ${materialsState.error ? `<div class="settings-error" role="alert"><strong>Canvas material could not be read.</strong><p>${escapeHtml(materialsState.error)}</p></div>` : ''}
+      ${!data && materialsState.loading ? `<div class="upd-empty panel" role="status">${uiIcon('refresh')}<div><strong>Reading ${escapeHtml(course?.courseCode || 'the course')}…</strong><p>Modules, pages, and files.</p></div></div>` : ''}
+      ${data ? `
+        <header class="mat-head">
+          <div><h2>${escapeHtml(course?.displayName || data.course?.name || 'Course')}</h2><p>${data.modules?.length || 0} module${data.modules?.length === 1 ? '' : 's'} · ${(data.modules || []).reduce((total, module) => total + (module.items?.length || 0), 0)} items</p></div>
+          <div class="mat-head-actions">
+            <a class="btn btn-secondary btn-sm" href="${escapeHtml(`${origin}/courses/${encodeURIComponent(courseId)}`)}" target="_blank" rel="noopener noreferrer">${uiIcon('external')} Canvas</a>
+            ${materialsState.local?.tokenAvailable ? `<button type="button" class="btn btn-ghost btn-sm" data-mat-zip title="Builds the archive on this machine; the files do not pass through Wicker Study">${uiIcon('download')} ZIP on this Mac</button>` : ''}
+          </div>
+        </header>
+        ${data.syllabus?.substantive || data.requirementItems?.length ? `<section class="mat-requirements">
+          <h3>${uiIcon('shield')} Course requirements</h3>
+          ${data.syllabus?.substantive
+            ? `<div class="upd-body" data-mat-syllabus></div>`
+            : `<p>${escapeHtml(data.syllabus?.note || '')}</p>`}
+          ${data.requirementItems?.length ? `<ul class="mat-req-list">${data.requirementItems.map((item) => `<li>${uiIcon(materialsIcon(item.type))}<span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.source === 'syllabus-page' ? 'Linked from the Syllabus page' : `Module · ${item.module || ''}`)}</small></span>${item.contentId ? `<a class="btn btn-secondary btn-sm" href="/api/integrations/canvas/courses/${encodeURIComponent(courseId)}/files/${encodeURIComponent(item.contentId)}/download?canvasUrl=${encodeURIComponent(origin)}" target="_blank" rel="noopener noreferrer">Open</a>` : `<a class="btn btn-secondary btn-sm" href="${escapeHtml(item.url || '#')}" target="_blank" rel="noopener noreferrer">Open</a>`}</li>`).join('')}</ul>` : ''}
+        </section>` : ''}
+        <ol class="mat-modules">${(data.modules || []).map((module) => {
+          const open = materialsState.open.has(module.id)
+          return `<li class="mat-module${open ? ' is-open' : ''}">
+            <button type="button" class="mat-module-head" data-mat-module="${escapeHtml(module.id)}" aria-expanded="${open}">
+              ${uiIcon('chevronDown')}<strong>${escapeHtml(module.name)}</strong><small>${module.items?.length || 0}</small>
+            </button>
+            ${open ? `<ul class="mat-items">${(module.items || []).map((item) => `<li class="mat-item is-${escapeHtml(String(item.type).toLowerCase())}" style="--indent:${Math.min(3, item.indent || 0)}">
+              ${uiIcon(materialsIcon(item.type))}
+              <span class="mat-item-copy"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small></span>
+              ${item.type === 'File' && item.contentId
+                ? `<a class="mat-item-go" href="/api/integrations/canvas/courses/${encodeURIComponent(courseId)}/files/${encodeURIComponent(item.contentId)}/download?canvasUrl=${encodeURIComponent(origin)}" target="_blank" rel="noopener noreferrer" title="Open this file">${uiIcon('download')}</a>`
+                : item.url ? `<a class="mat-item-go" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" title="Open in Canvas">${uiIcon('external')}</a>` : '<span class="mat-item-go is-empty"></span>'}
+            </li>`).join('')}</ul>` : ''}
+          </li>`
+        }).join('')}</ol>
+        ${materialsState.job ? `<p class="panel-note">${escapeHtml(materialsState.job)}</p>` : ''}
+      ` : ''}
+    </div>
+  </div>`
+}
+
 function renderUpdatesPage() {
   if (!updatesState.data && !updatesState.loading && !updatesState.error) loadUpdates()
   const tab = UPDATES_TABS.some(([id]) => id === route.tab) ? route.tab : 'announcements'
@@ -5532,22 +5666,24 @@ function renderUpdatesPage() {
   const counts = {
     announcements: (data?.announcements || []).length,
     assignments: (data?.assignments || []).length,
-    courses: (data?.selectedCourseIds || []).length
+    courses: (data?.selectedCourseIds || []).length,
+    materials: 0
   }
   const body = !data && updatesState.loading
     ? `<div class="upd-empty panel" role="status">${uiIcon('refresh')}<div><strong>Reading Canvas…</strong><p>Announcements, deadlines, and grades for the courses in scope.</p></div></div>`
     : data && data.connected === false
       ? `<div class="upd-empty panel">${uiIcon('layers')}<div><strong>Canvas is not connected</strong><p>Add a Canvas Personal Access Token in Account → Connections. It is stored encrypted, used only for reads, and never shown again.</p></div><a class="btn btn-primary btn-sm" href="#/account/connections">Connect Canvas</a></div>`
       : tab === 'assignments' ? renderUpdatesAssignments()
-        : tab === 'courses' ? renderUpdatesCourses()
-          : renderUpdatesAnnouncements()
-  const showToolbar = Boolean(data?.connected) && tab !== 'courses'
+        : tab === 'materials' ? renderUpdatesMaterials()
+          : tab === 'courses' ? renderUpdatesCourses()
+            : renderUpdatesAnnouncements()
+  const showToolbar = Boolean(data?.connected) && !['courses', 'materials'].includes(tab)
   return `<section class="page-wrap upd-page">
     <header class="page-head">
       <div><p class="page-eyebrow">Live from Canvas</p><h1>Updates</h1><p class="page-sub">${host ? `${escapeHtml(host)} · ` : ''}${data?.fetchedAt ? `refreshed ${escapeHtml(relativeTime(data.fetchedAt) || 'just now')}` : 'not loaded yet'}${data?.truncated ? ' · showing the 40 most recent courses' : ''}</p></div>
       <div class="page-head-actions">
         <button type="button" class="btn btn-secondary btn-sm" data-upd-refresh ${updatesState.loading ? 'disabled' : ''}>${uiIcon('refresh')} ${updatesState.refreshing ? 'Refreshing…' : 'Refresh'}</button>
-        <a class="btn btn-ghost btn-sm" href="/canvas">${uiIcon('download')} Course archive</a>
+        <a class="btn btn-ghost btn-sm" href="#/updates/materials">${uiIcon('download')} Course material</a>
       </div>
     </header>
     <nav class="page-tabs" aria-label="Canvas updates"><div>${UPDATES_TABS.map(([id, label]) => `<a href="#/updates/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}${counts[id] ? ` <small>${counts[id]}</small>` : ''}</a>`).join('')}</div></nav>
@@ -5566,6 +5702,8 @@ function mountUpdatesBodies() {
     const item = (updatesState.data?.announcements || []).find((entry) => entry.id === host.dataset.updHtml)
     host.innerHTML = item?.html ? sanitiseCanvasFragment(item.html) : '<p class="is-muted">This announcement has no text body.</p>'
   }
+  const syllabus = document.querySelector('[data-mat-syllabus]')
+  if (syllabus) syllabus.innerHTML = sanitiseCanvasFragment(materialsState.data?.syllabus?.html || '')
 }
 
 function renderCoursesPage() {
@@ -10835,6 +10973,34 @@ function bindEvents() {
 
   document.querySelectorAll('[data-planning-files]').forEach((input) => input.addEventListener('change', () => addPlanningSources(input.files)))
   // ----- Updates: the Canvas board -----
+  document.querySelectorAll('[data-mat-course]').forEach((button) => button.addEventListener('click', () => { materialsState.data = null; loadMaterials(button.dataset.matCourse) }))
+  document.querySelectorAll('[data-mat-module]').forEach((button) => button.addEventListener('click', () => {
+    const id = button.dataset.matModule
+    if (materialsState.open.has(id)) materialsState.open.delete(id); else materialsState.open.add(id)
+    render()
+  }))
+  document.querySelectorAll('[data-mat-zip]').forEach((button) => button.addEventListener('click', async () => {
+    if (materialsState.exporting) return
+    materialsState.exporting = true
+    materialsState.job = 'Building the archive on this machine…'
+    render()
+    try {
+      const response = await fetch(`${WICKER_LOCAL}/v1/exports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canvasUrl: updatesState.data?.origin, courseId: materialsState.courseId })
+      })
+      const body = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(body?.error || `Wicker Local returned ${response.status}.`)
+      materialsState.job = body?.downloadUrl ? 'Archive ready — the download has started.' : 'Wicker Local accepted the request.'
+      if (body?.downloadUrl) window.open(`${WICKER_LOCAL}${body.downloadUrl}`, '_blank', 'noopener')
+    } catch (error) {
+      materialsState.job = `Wicker Local could not build the archive: ${error.message}`
+    } finally {
+      materialsState.exporting = false
+      render()
+    }
+  }))
   document.querySelectorAll('[data-setup-open]').forEach((button) => button.addEventListener('click', () => { setupPage.open = setupPage.open === button.dataset.setupOpen ? null : button.dataset.setupOpen; render() }))
   document.querySelectorAll('[data-setup-timetable]').forEach((form) => {
     form.addEventListener('submit', (event) => { event.preventDefault(); setupPage.timetableUrl = form.elements.url.value; submitSetupTimetable() })
