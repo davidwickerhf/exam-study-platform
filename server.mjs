@@ -37,7 +37,7 @@ import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
-import { CanvasConnectionError, canvasAccessToken, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
+import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
@@ -3287,7 +3287,7 @@ const server = createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/api/health' && req.method === 'GET') {
-      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration() } })) }
+      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured() } })) }
       catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
       return
     }

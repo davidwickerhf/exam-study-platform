@@ -49,3 +49,20 @@ test('the CSP forbids inline scripts and framing', () => {
   assert.ok(!/script-src[^;]*unsafe-inline/.test(csp))
   assert.ok(!/script-src[^;]*unsafe-eval/.test(csp))
 })
+
+test('the healthcheck reports whether Canvas connections can be stored, without key material', async (t) => {
+  const { canvasStorageConfigured } = await import('../lib/canvas-connections.mjs')
+  const original = process.env.CANVAS_CONNECTION_ENCRYPTION_KEY
+  t.after(() => {
+    if (original === undefined) delete process.env.CANVAS_CONNECTION_ENCRYPTION_KEY
+    else process.env.CANVAS_CONNECTION_ENCRYPTION_KEY = original
+  })
+
+  delete process.env.CANVAS_CONNECTION_ENCRYPTION_KEY
+  assert.equal(canvasStorageConfigured(), false, 'no key means connecting Canvas fails closed')
+  process.env.CANVAS_CONNECTION_ENCRYPTION_KEY = 'too-short'
+  assert.equal(canvasStorageConfigured(), false, 'a key of the wrong length is not usable')
+  process.env.CANVAS_CONNECTION_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64')
+  assert.equal(canvasStorageConfigured(), true)
+  assert.equal(typeof canvasStorageConfigured(), 'boolean', 'the signal must never carry the key itself')
+})
