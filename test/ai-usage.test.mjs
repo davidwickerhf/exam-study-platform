@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { withRequestContext } from '../lib/request-context.mjs'
-import { deleteDocument } from '../lib/user-store.mjs'
+import { deleteAllDocuments } from '../lib/user-store.mjs'
 import {
   AI_LIMITS,
   AiLimitError,
@@ -36,6 +36,6 @@ test('AI usage is accounted per user and enforces the minute request limit', asy
       )
     })
   } finally {
-    await withRequestContext({ userId }, () => deleteDocument('ai', 'usage'))
+    await withRequestContext({ userId }, () => deleteAllDocuments())
   }
 })

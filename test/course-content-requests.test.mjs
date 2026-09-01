@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { createCourseContentRequest, deleteOwnCourseContentRequests, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from '../lib/course-content-requests.mjs'
 import { withRequestContext } from '../lib/request-context.mjs'
+import { deleteAllDocuments } from '../lib/user-store.mjs'
 
 test('course-content requests preserve private sources and advance through the ingestion workflow', async () => {
   const userId = `content-request-${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -48,6 +49,7 @@ test('course-content requests preserve private sources and advance through the i
     })
   } finally {
     await withRequestContext(context, () => deleteOwnCourseContentRequests())
+    await withRequestContext(context, () => deleteAllDocuments())
   }
 })
 
@@ -60,5 +62,6 @@ test('course-content requests reject unsafe or oversized source types', async ()
     ))
   } finally {
     await withRequestContext(context, () => deleteOwnCourseContentRequests())
+    await withRequestContext(context, () => deleteAllDocuments())
   }
 })

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { withRequestContext } from '../lib/request-context.mjs'
-import { deleteDocument, readDocument, writeDocument } from '../lib/user-store.mjs'
+import { deleteAllDocuments, readDocument, writeDocument } from '../lib/user-store.mjs'
 
 test('personal documents are isolated by authenticated user context', async () => {
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -14,6 +14,8 @@ test('personal documents are isolated by authenticated user context', async () =
   assert.deepEqual(await withRequestContext({ userId: alice }, () => readDocument('test', 'progress', {})), { score: 9 })
   assert.deepEqual(await withRequestContext({ userId: bob }, () => readDocument('test', 'progress', {})), { score: 2 })
 
-  await withRequestContext({ userId: alice }, () => deleteDocument('test', 'progress'))
-  await withRequestContext({ userId: bob }, () => deleteDocument('test', 'progress'))
+  // Leave nothing behind: a throwaway user that is only half-deleted still
+  // costs a directory per test run.
+  await withRequestContext({ userId: alice }, () => deleteAllDocuments())
+  await withRequestContext({ userId: bob }, () => deleteAllDocuments())
 })
