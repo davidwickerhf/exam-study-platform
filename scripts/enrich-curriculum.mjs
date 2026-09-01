@@ -16,8 +16,17 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const CATALOGUE = resolve(root, 'data/editorial-programmes.json')
 
+// A section the repository leaves empty makes the reader capture the *next*
+// heading as the value: eight courses came back with a description of
+// "Prerequisites" and an assessment of "Close". An empty section is null.
+const SECTION_LABEL = /^(Prerequisites|Recommended reading|Additional reading|Credits|Coordinator|Teaching methods|Assessment methods|Period \d|Close)\b/i
+
 function clean(value, max = 6000) {
   const text = String(value ?? '').replace(/\s+/g, ' ').trim()
+  if (!text) return null
+  // Short and starting with a heading is a mis-capture. Long text starting with
+  // one of these words is a genuine value that happens to begin that way.
+  if (SECTION_LABEL.test(text) && text.length < 60) return null
   // The repository prefixes some descriptions with a redundant label.
   return text.replace(/^Description:\s*/i, '').slice(0, max) || null
 }

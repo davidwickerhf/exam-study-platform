@@ -12,6 +12,19 @@
 // year with a browser, reviewed, committed, and then served to every student
 // instantly. This script is the "committed" half.
 //
+// The repository addresses a programme two different ways and they are not
+// interchangeable. The university website links /p/program/EN/50017317, but a
+// course inside it lives at /p/module/EN/9501/<code> — a short
+// programme-of-study code, not that id. Computer Science hides this, because
+// its website id *is* its short code (9503). Using the long id for the others
+// returns nothing at all, silently:
+//
+//     Computer Science 9503 → 9503     Data Science and AI  50017317 → 9501
+//     MSc AI          50017318 → 9603  MSc DSDM             50017319 → 9602
+//
+// The short code is found by opening the programme, clicking any course, and
+// reading the URL.
+//
 //   node scripts/import-curriculum.mjs <extract.json> [--write]
 //
 // The extract is { programmeId, name, courses: [[code, name, ects, periods[], year?, kind?], …] }

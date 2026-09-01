@@ -74,5 +74,25 @@ test('every maintained DACS curriculum reconciles to a full degree', async () =>
     // The period is what lines a catalogue course up with a Canvas term and an
     // Academic Work row, so every programme must have a readable Period 1.
     assert.ok(version.courses.filter((course) => course.period === 'Period 1').length >= 4, `${programme.name} has a Period 1`)
+
+    // A scrape that addressed the wrong programme code returned nothing at all
+    // rather than failing, so wholesale absence is the failure mode to test
+    // for. A handful of courses genuinely publish no description, which is why
+    // this is a proportion and not every course.
+    const described = version.courses.filter((course) => course.description && course.description.length > 40)
+    assert.ok(described.length / version.courses.length > 0.85, `${programme.name}: only ${described.length} of ${version.courses.length} courses have a description`)
+    assert.ok(version.courses.filter((course) => course.coordinator).length / version.courses.length > 0.85, `${programme.name} names coordinators`)
+
+    // No field may hold the name of the section after it. An empty section in
+    // the source made the reader capture the next heading as the value.
+    const LABEL = /^(Prerequisites|Recommended reading|Additional reading|Credits|Coordinator|Teaching methods|Assessment methods|Close)\b/i
+    for (const course of version.courses) {
+      for (const field of ['description', 'coordinator', 'prerequisites', 'reading', 'teachingMethods', 'assessmentMethods']) {
+        const value = course[field]
+        if (typeof value === 'string' && value.length < 60) {
+          assert.ok(!LABEL.test(value.trim()), `${course.code}.${field} is a section heading, not a value: ${JSON.stringify(value)}`)
+        }
+      }
+    }
   }
 })
