@@ -56,6 +56,32 @@ revoked under **Account → API access** in the web app.
 - Discover everything with `GET /api/agent/manifest` — it lists every endpoint,
   its scope, and body shapes. Read it first when unsure.
 
+## Answering a question about a current course
+
+Route the question to the source that actually holds the answer, and say when a
+source is empty rather than filling the gap with plausible-sounding rules.
+
+| The student asks | Use | If it is empty |
+| --- | --- | --- |
+| "What was announced?" / "Did I miss anything?" | `canvas_updates` (announcements) | Widen `days`, or `scope:"all"` for a course they are no longer enrolled in. |
+| "What's due?" / "What haven't I handed in?" | `canvas_updates` (assignments) | `status` distinguishes missing, overdue, upcoming, and `offline` — Canvas receives nothing for an in-class checkpoint or a project defence, so those are never "missing work". |
+| "When is my next lecture?" / "Where do I need to be?" | `get_calendar` | Canvas rarely carries lecture times. Timetable events come from a saved feed under **Planning → Documents**; if `feeds` is empty, say the timetable is not connected. Do not present Canvas deadlines as a timetable. |
+| "What do I need to pass?" / "Is attendance mandatory?" | `canvas_course_requirements` | Read the flagged item first. If nothing is published yet, say so. |
+| "What does the material say about X?" | `search_course`, `get_chapter`, `list_materials` | Only maintained courses have these. For an unmaintained current course, use `canvas_import_remote_course` and read the snapshot. |
+| "How am I doing?" | `canvas_updates` (grades), `get_progress`, `get_activity` | Many institutions hide Canvas grades; `currentScore` is then null. Say the institution does not publish them rather than reporting zero. |
+
+Two things are worth knowing before you answer:
+
+- **Canvas's syllabus field is usually not the syllabus.** On real courses it holds
+  a filename, a link, or an unfilled `[ Teacher : Embed the course syllabus ]`
+  placeholder. `canvas_course_requirements` returns `syllabus.substantive:false`
+  when that is the case and points at the module item that does carry the rules.
+  Fetch and read it. Never quote an assessment weight, a minimum grade, an
+  attendance rule, or a resit condition you have not read in a source.
+- **Early in a period, most of this genuinely does not exist yet.** A course in
+  week one may have no syllabus, no assignments, and one announcement. "Not
+  published yet" is the correct answer and is more useful than an inference.
+
 ## Ids
 
 Course ids are short slugs (`sec`, `alg`, `stats`); chapter ids are zero-padded

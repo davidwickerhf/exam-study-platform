@@ -65,8 +65,11 @@ they are how a key is obtained. Everything else needs one.
   `set_course_visibility`, `join_programme`
 - **Documents and calendars** — `analyze_documents`, `apply_changes`, `preview_calendar`,
   `save_calendar_link`, `sync_calendar_link`, `remove_calendar_link`
-- **Canvas** — `canvas_connect`, `canvas_list_remote_courses`, `canvas_list_remote_course_modules`,
-  `canvas_import_remote_course`, `canvas_import_remote_course_set`
+- **Canvas** — `canvas_connect`, `canvas_updates` (announcements, assignments with
+  submission state, events, grades), `canvas_course_requirements` (syllabus and the
+  module item carrying the assessment rules), `canvas_list_remote_courses`,
+  `canvas_list_remote_course_modules`, `canvas_import_remote_course`,
+  `canvas_import_remote_course_set`
 - **Editorial (admin key)** — the `admin_*` family: course editions, source folders, rights review,
   extraction, mapping, generation, artifact review, and publication.
 

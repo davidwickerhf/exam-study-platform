@@ -1,8 +1,15 @@
 {
   "name": "wicker-study-mcp",
-  "version": "2.0.0",
-  "description": "MCP server for Wicker Study: read course material and a student's academic record, study on their behalf, collect a private Canvas course snapshot, and — with an admin key — run the editorial workflow.",
-  "keywords": ["mcp", "model-context-protocol", "wicker-study", "canvas-lms", "study", "education"],
+  "version": "2.1.0",
+  "description": "MCP server for Wicker Study: read course material and a student's academic record, study on their behalf, collect a private Canvas course snapshot, and \u2014 with an admin key \u2014 run the editorial workflow.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "wicker-study",
+    "canvas-lms",
+    "study",
+    "education"
+  ],
   "license": "MIT",
   "author": "David Wicker",
   "homepage": "https://study.wicker.life",

@@ -36,6 +36,12 @@ function filename(value, fallback = 'material') {
   return raw || fallback
 }
 
+// The document that carries assessment rules, attendance requirements, and
+// deadlines. On real Maastricht courses it is a module item — a PDF or a Canvas
+// page — and almost never the Canvas syllabus field, which usually holds only
+// its filename or an unfilled teacher placeholder.
+export const COURSE_REQUIREMENTS_PATTERN = /(syllabus|course\s*manual|coursemanual|course\s*outline|course\s*information|study\s*guide|handbook|assessment)/i
+
 function fileCategory(value) {
   const name = text(value, 240).toLowerCase()
   if (/(syllabus|course manual|course outline|study guide|course information)/.test(name)) return 'course-information'
@@ -289,15 +295,46 @@ export async function listCanvasCourseModules({ courseUrl, accessToken, fetchImp
     api.getJson(`/api/v1/courses/${encodeURIComponent(canvas.courseId)}?include[]=syllabus_body`),
     api.getPaged(`/api/v1/courses/${encodeURIComponent(canvas.courseId)}/modules?include[]=items&per_page=100`)
   ])
+  const mapped = modules.sort((left, right) => number(left.position) - number(right.position)).map((module) => ({
+    id: String(module.id || ''),
+    name: text(module.name, 300) || 'Untitled module',
+    position: number(module.position),
+    items: Array.isArray(module.items) ? module.items.map((item) => ({
+      id: String(item.id || ''),
+      title: text(item.title, 300) || item.type || 'Untitled item',
+      type: text(item.type, 80) || 'Unknown',
+      indent: number(item.indent),
+      contentId: item.content_id ? String(item.content_id) : null,
+      pageSlug: item.page_url ? text(item.page_url, 200) : null,
+      url: item.html_url ? text(item.html_url, 500) : null
+    })) : []
+  })).filter((module) => module.id)
+
+  // The syllabus field was fetched above; hand it back rather than dropping it,
+  // and say plainly when it is only a pointer. A field this short is a filename
+  // or an unfilled placeholder, not the rules — the real document is the module
+  // item flagged below, and it still has to be read.
+  const syllabusHtml = sanitizeCanvasHtml(course.syllabus_body || '')
+  const syllabusText = text(String(syllabusHtml).replace(/<[^>]*>/g, ' '), 20_000)
+  const requirementItems = mapped.flatMap((module) => module.items
+    .filter((item) => COURSE_REQUIREMENTS_PATTERN.test(item.title) && ['File', 'Page', 'Attachment'].includes(item.type))
+    .map((item) => ({ ...item, module: module.name })))
+
   return {
     origin: canvas.origin,
     course: { id: String(course.id || canvas.courseId), name: text(course.name, 300) || `Canvas course ${canvas.courseId}`, courseCode: text(course.course_code, 160) || null, workflowState: text(course.workflow_state, 80) || null, courseUrl: canvas.courseUrl },
-    modules: modules.sort((left, right) => number(left.position) - number(right.position)).map((module) => ({
-      id: String(module.id || ''),
-      name: text(module.name, 300) || 'Untitled module',
-      position: number(module.position),
-      items: Array.isArray(module.items) ? module.items.map((item) => ({ id: String(item.id || ''), title: text(item.title, 300) || item.type || 'Untitled item', type: text(item.type, 80) || 'Unknown', indent: number(item.indent), contentId: item.content_id ? String(item.content_id) : null })) : []
-    })).filter((module) => module.id)
+    syllabus: {
+      html: syllabusHtml || null,
+      text: syllabusText || null,
+      // 200 characters of rich text is not a syllabus. Say so rather than
+      // letting a reader treat a filename as the course requirements.
+      substantive: syllabusText.length >= 200,
+      note: syllabusText.length >= 200 ? null : syllabusText
+        ? 'The Canvas syllabus field only points at a document; read the requirements item instead.'
+        : 'This course has no Canvas syllabus text. Read the requirements item, or ask the student for the course manual.'
+    },
+    requirementItems,
+    modules: mapped
   }
 }
 

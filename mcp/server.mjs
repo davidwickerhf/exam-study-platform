@@ -71,7 +71,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.0.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.1.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
@@ -475,7 +475,7 @@ server.tool('list_mock_sessions', 'Completed mock sessions.', {}, run(() => api(
 server.tool('get_mock_session', 'One mock session with every answer and correction.', { sessionId: z.string() }, run(({ sessionId }) => api(`/api/mocks/${encodeURIComponent(sessionId)}`)))
 server.tool('get_academic_plan', 'Active academic programme: courses, attempts, exam dates, events, gates, summary.', {}, run(() => api('/api/academics')))
 server.tool('list_known_programmes', 'The catalogue of known bachelor programmes.', {}, run(() => api('/api/editorial-programmes')))
-server.tool('get_calendar', 'Unified calendar: exams, deadlines, registration windows, institution dates, and timetable feed events.', { from: z.string().optional().describe('ISO date; omit for everything'), to: z.string().optional() },
+server.tool('get_calendar', 'Unified calendar in one call: exam attempts, personal events, registration windows, the institution calendar, saved timetable feeds (lectures, tutorials, labs), and — when Canvas is connected — Canvas assignment deadlines and Canvas course events. This is the tool for "when is my next lecture", "where do I need to be", and "what is due this week". Events carry `category`, `courseCode`, and for Canvas items a `canvasStatus`; `problems` names any source that could not be read, which is how you tell an empty week from a missing timetable feed.', { from: z.string().optional().describe('ISO date; omit for everything'), to: z.string().optional() },
   run(async ({ from, to }) => { const data = await api('/api/calendar/events'); const events = data.events.filter((e) => (!from || String(e.start) >= from) && (!to || String(e.start) <= to)); return { ...data, events } }))
 server.tool('get_activity', 'Study activity series, streak, weekly totals, recent events.', { days: z.number().int().min(7).max(120).optional() }, run(({ days }) => api('/api/activity', { query: { days } })))
 server.tool('get_account_summary', 'What is stored for the account, per record family.', {}, run(() => api('/api/account/summary')))
@@ -507,10 +507,48 @@ server.tool('set_course_visibility', 'Archive/unarchive or reorder a course for 
   run(({ courseId, archived, order }) => api(`/api/courses/${encodeURIComponent(courseId)}`, { method: 'PATCH', body: { archived, order } })))
 
 // ── Canvas through the account connection (no local PAT) ──────────────────
+server.tool('canvas_updates',
+  'What is happening in the student’s Canvas courses right now: announcements, assignments with their submission state, Canvas course events, and the grade Canvas shows. This is the tool for "what was announced", "what is due", "what have I not handed in", and "how am I doing". Answers are cached for ten minutes; pass refresh:true only when the student says something is missing. Never returns the Canvas token.',
+  {
+    scope: z.enum(['current', 'all']).optional().describe('"current" (default) is the courses being taught now, plus any the student starred on their Canvas dashboard and the standing faculty spaces. "all" includes concluded enrolments.'),
+    days: z.number().int().min(1).max(365).optional().describe('How far back to read announcements. Default 60.'),
+    courseIds: z.array(z.string()).optional().describe('Restrict to these Canvas course ids. Overrides scope.'),
+    parts: z.array(z.enum(['announcements', 'assignments', 'events', 'grades'])).optional().describe('Fetch only what is needed. Omitting this fetches all four.'),
+    refresh: z.boolean().optional()
+  },
+  run(({ scope, days, courseIds, parts, refresh }) => api('/api/integrations/canvas/hub', {
+    query: {
+      canvasUrl: DEFAULT_CANVAS_URL,
+      scope,
+      days,
+      courseIds: courseIds?.join(','),
+      parts: parts?.join(','),
+      refresh: refresh ? '1' : undefined
+    }
+  })))
+
+server.tool('canvas_course_requirements',
+  'The course syllabus and whichever module item carries the rules — assessment components and weights, minimum grades, attendance, deadlines, resit conditions. Use this for "what do I need to pass", "is attendance mandatory", "how is this graded". Canvas’s own syllabus field is usually only a filename or an unfilled placeholder, so when `syllabus.substantive` is false the answer is in `requirementItems`: fetch that File or Page and read it before answering. Never state a rule you have not read in a source — say it is not published yet instead.',
+  { courseUrl: z.string().describe('Canvas course URL, e.g. https://canvas.example.edu/courses/25806/modules. Use canvas_list_remote_courses to find it.') },
+  run(async ({ courseUrl }) => {
+    const result = await listRemoteCanvasCourseModules({ courseUrl })
+    return {
+      course: result.course,
+      syllabus: result.syllabus,
+      requirementItems: result.requirementItems,
+      next: result.syllabus?.substantive
+        ? 'The syllabus text below is the source. Cite it.'
+        : result.requirementItems?.length
+          ? 'Read these items before answering. canvas_import_remote_course with the containing module downloads them locally, where a File can be opened and a Page is saved as readable HTML.'
+          : 'Neither a syllabus nor a requirements document is published for this course yet. Say so; do not infer rules from convention or from another course.',
+      moduleCount: result.modules?.length ?? 0
+    }
+  }))
+
 server.tool('canvas_list_remote_courses', 'List current and concluded Canvas courses from the caller’s encrypted Wicker Study Canvas connection. Search title, course code, term, or title initials (for example “IUI”). The Canvas PAT is never returned to the agent.', {
   canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().max(240).optional()
 }, run(listRemoteCanvasCourses))
-server.tool('canvas_list_remote_course_modules', 'List modules for a Canvas course using the caller’s encrypted Wicker Study Canvas connection. Use this before importing a chosen subset.', {
+server.tool('canvas_list_remote_course_modules', 'List modules and their items for a Canvas course, plus its syllabus and any item that looks like the course manual. Use this before importing a chosen subset; for rules and assessment specifically, canvas_course_requirements returns the same data already narrowed down.', {
   courseUrl: z.string().url()
 }, run(listRemoteCanvasCourseModules))
 server.tool('canvas_import_remote_course', 'Download an entire Canvas course or selected modules into a private local folder through Wicker’s authenticated Canvas proxy. The destination is local to this MCP process, so Claude/Codex can analyse it using its own subscription; it never receives the Canvas PAT. Canvas pages are followed recursively within the course, linked files download when accessible, and URLs are compiled into link indexes.', {

@@ -140,13 +140,54 @@ test('Canvas module discovery returns compact module choices for the local archi
     fetchImpl: async (input) => {
       const url = new URL(String(input))
       if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1, name: 'Canvas learner' })
-      if (url.pathname === '/api/v1/courses/10') return json({ id: 10, name: 'Algorithms', course_code: 'CS101', workflow_state: 'available' })
-      if (url.pathname === '/api/v1/courses/10/modules') return json([{ id: 9, name: 'Week 1', position: 1, items: [{ id: 20, title: 'Slides', type: 'File', content_id: 30 }] }])
+      if (url.pathname === '/api/v1/courses/10') return json({ id: 10, name: 'Algorithms', course_code: 'CS101', workflow_state: 'available', syllabus_body: '<p>Course syllabus_CS101.pdf</p>' })
+      if (url.pathname === '/api/v1/courses/10/modules') return json([{ id: 9, name: 'Week 1', position: 1, items: [
+        { id: 20, title: 'Slides', type: 'File', content_id: 30 },
+        { id: 21, title: 'CS101 course manual 2026.pdf', type: 'File', content_id: 31 },
+        { id: 22, title: 'Syllabus discussion', type: 'Discussion', content_id: 32 }
+      ] }])
       throw new Error(`Unexpected Canvas request: ${url}`)
     }
   })
   assert.equal(result.course.courseCode, 'CS101')
-  assert.deepEqual(result.modules, [{ id: '9', name: 'Week 1', position: 1, items: [{ id: '20', title: 'Slides', type: 'File', indent: 0, contentId: '30' }] }])
+  assert.deepEqual(result.modules, [{ id: '9', name: 'Week 1', position: 1, items: [
+    { id: '20', title: 'Slides', type: 'File', indent: 0, contentId: '30', pageSlug: null, url: null },
+    { id: '21', title: 'CS101 course manual 2026.pdf', type: 'File', indent: 0, contentId: '31', pageSlug: null, url: null },
+    { id: '22', title: 'Syllabus discussion', type: 'Discussion', indent: 0, contentId: '32', pageSlug: null, url: null }
+  ] }])
+})
+
+test('a Canvas syllabus field that only names a file is reported as a pointer, not as the rules', async () => {
+  const course = (syllabus) => async (input) => {
+    const url = new URL(String(input))
+    if (url.pathname === '/api/v1/users/self/profile') return json({ id: 1 })
+    if (url.pathname === '/api/v1/courses/10') return json({ id: 10, name: 'Algorithms', course_code: 'CS101', workflow_state: 'available', syllabus_body: syllabus })
+    if (url.pathname === '/api/v1/courses/10/modules') return json([{ id: 9, name: 'Week 1', position: 1, items: [
+      { id: 21, title: 'CS101 course manual 2026.pdf', type: 'File', content_id: 31 },
+      { id: 22, title: 'Syllabus discussion', type: 'Discussion', content_id: 32 },
+      { id: 23, title: 'Lecture 1', type: 'File', content_id: 33 }
+    ] }])
+    throw new Error(`Unexpected Canvas request: ${url}`)
+  }
+  const opts = { courseUrl: 'https://canvas.example.edu/courses/10/modules', accessToken: 'local-token-only' }
+
+  // Real Maastricht courses put a filename here, or an unfilled placeholder.
+  const pointer = await listCanvasCourseModules({ ...opts, fetchImpl: course('<p>Course syllabus_CS101.pdf</p>') })
+  assert.equal(pointer.syllabus.substantive, false)
+  assert.match(pointer.syllabus.note, /only points at a document/)
+  // The module item that carries the rules is named, and unreadable item types
+  // are not: a discussion called "Syllabus" is not the course manual.
+  assert.deepEqual(pointer.requirementItems.map((item) => [item.title, item.module]), [['CS101 course manual 2026.pdf', 'Week 1']])
+
+  const empty = await listCanvasCourseModules({ ...opts, fetchImpl: course('') })
+  assert.equal(empty.syllabus.text, null)
+  assert.match(empty.syllabus.note, /no Canvas syllabus text/)
+
+  const real = await listCanvasCourseModules({ ...opts, fetchImpl: course(`<p>${'Assessment: 60% exam, 40% coursework. '.repeat(12)}</p><script>alert(1)</script>`) })
+  assert.equal(real.syllabus.substantive, true)
+  assert.equal(real.syllabus.note, null)
+  assert.ok(!/script/i.test(real.syllabus.html), 'the syllabus is institution HTML and must be sanitised')
+  assert.match(real.syllabus.text, /60% exam/)
 })
 
 test('Canvas importer follows linked Canvas pages and files while compiling every page URL', async () => {
