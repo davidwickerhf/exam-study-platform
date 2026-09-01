@@ -38,6 +38,7 @@ import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
+import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -3360,6 +3361,7 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, 8 * 1024)
         const connection = await saveCanvasConnection({ canvasUrl: body?.canvasUrl, accessToken: body?.accessToken })
+        clearCanvasHubCache()
         send(res, 200, JSON.stringify({ connection }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Could not save the Canvas connection.' }))
@@ -3370,6 +3372,7 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, 8 * 1024)
         const removed = await removeCanvasConnection({ canvasUrl: body?.canvasUrl })
+        clearCanvasHubCache()
         send(res, removed ? 200 : 404, JSON.stringify(removed ? { removed: true } : { error: 'Canvas connection not found.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Could not remove the Canvas connection.' }))
@@ -3407,6 +3410,34 @@ const server = createServer(async (req, res) => {
         await streamCanvasFile(req, res, { canvasUrl: canvasOrigin(), courseId: canvasFileMatch[1], fileId: canvasFileMatch[2] })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas file download unavailable.' }))
+      }
+      return
+    }
+    // The Canvas board: announcements, assignments, Canvas events, and grades
+    // for the courses in scope. Answers are cached per user for a few minutes,
+    // so a page that refreshes itself does not re-poll Canvas each time.
+    if (url.pathname === '/api/integrations/canvas/hub' && req.method === 'GET') {
+      try {
+        const origin = canvasOrigin()
+        const connection = (await listCanvasConnections()).find((entry) => entry.origin === origin) || null
+        if (!connection) {
+          send(res, 200, JSON.stringify({ connected: false, origin, courses: [], announcements: [], assignments: [], events: [], grades: [], problems: [] }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+          return
+        }
+        const { token } = await canvasAccessToken({ canvasUrl: origin })
+        const requestedParts = (url.searchParams.get('parts') || '').split(',').map((part) => part.trim()).filter(Boolean)
+        const hub = await fetchCanvasHub({
+          origin,
+          token,
+          scope: CANVAS_HUB_SCOPES.includes(url.searchParams.get('scope')) ? url.searchParams.get('scope') : 'current',
+          courseIds: (url.searchParams.get('courseIds') || '').split(',').map((id) => id.trim()).filter((id) => /^\d{1,12}$/.test(id)).slice(0, 60),
+          days: Number.parseInt(url.searchParams.get('days') || '60', 10) || 60,
+          parts: requestedParts.length ? requestedParts : CANVAS_HUB_PARTS,
+          force: url.searchParams.get('refresh') === '1'
+        })
+        send(res, 200, JSON.stringify({ connected: true, ...hub }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas updates are unavailable.' }))
       }
       return
     }
@@ -3799,8 +3830,27 @@ const server = createServer(async (req, res) => {
         try { feeds.push({ link, events: await feedEvents(link) }) }
         catch (error) { problems.push({ id: link.id, label: link.label, error: error.message }) }
       }
-      const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, date: url.searchParams.get('date') || undefined })
-      send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      // Canvas deadlines and Canvas course events join the same board. The hub
+      // caches per user, so a warm calendar costs nothing extra; a cold or
+      // broken Canvas must never stop the rest of the calendar from rendering.
+      const canvas = { assignments: [], events: [] }
+      let canvasConnected = false
+      if (url.searchParams.get('canvas') !== '0') {
+        for (const connection of await listCanvasConnections()) {
+          canvasConnected = true
+          try {
+            const { token } = await canvasAccessToken({ canvasUrl: connection.origin })
+            const hub = await fetchCanvasHub({ origin: connection.origin, token, scope: 'current', parts: ['assignments', 'events'], days: 30 })
+            canvas.assignments.push(...hub.assignments)
+            canvas.events.push(...hub.events)
+            for (const problem of hub.problems) problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: problem.error })
+          } catch (error) {
+            problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: error instanceof Error ? error.message : 'Canvas could not be reached.' })
+          }
+        }
+      }
+      const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
+      send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), canvas: { connected: canvasConnected }, problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
 

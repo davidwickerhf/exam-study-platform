@@ -75,6 +75,15 @@ const ACCOUNT_TABS = [['profile', 'Profile'], ['connections', 'Connections'], ['
 // inbox and the institution calendar.
 const ADMIN_SECTIONS = [['programmes', 'Programmes'], ['intake', 'Course intake'], ['calendar', 'Academic calendar']]
 const ADMIN_COURSE_TABS = [['production', 'Production'], ['material', 'Published material'], ['requests', 'Requests']]
+// Live Canvas: what has been announced, what is due, and where each course
+// stands. Read-only — nothing here is written back to Canvas or to the plan.
+const UPDATES_TABS = [['announcements', 'Announcements'], ['assignments', 'Assignments'], ['courses', 'Courses']]
+const UPDATES_SORTS = {
+  announcements: [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['course', 'By course'], ['title', 'By title']],
+  assignments: [['due', 'Due soonest'], ['due-desc', 'Due latest'], ['course', 'By course'], ['points', 'Most points'], ['status', 'By status']]
+}
+const UPDATES_WINDOWS = [['14', 'Last 14 days'], ['30', 'Last 30 days'], ['90', 'Last 3 months'], ['180', 'Last 6 months'], ['365', 'Last year']]
+const ASSIGNMENT_STATUS_ORDER = ['missing', 'overdue', 'upcoming', 'undated', 'submitted', 'graded', 'excused', 'offline']
 
 let route = parseRoute()
 let academicsData = null
@@ -243,6 +252,8 @@ function uiIcon(name) {
     ,clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'
     ,alert: '<path d="M12 4 2.5 20h19zM12 10v4M12 17.5v.5"/>'
     ,zap: '<path d="M13 3 4 14h6l-1 7 9-11h-6z"/>'
+    ,bell: '<path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6zM10 19a2 2 0 0 0 4 0"/>'
+    ,external: '<path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
   }
   return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`
 }
@@ -889,6 +900,10 @@ function parseRoute() {
     const tab = PRACTICE_TABS.some(([id]) => id === parts[1]) ? parts[1] : 'questions'
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
+  if (parts[0] === 'updates') {
+    const requested = decodeURIComponent(parts[1] || '')
+    return { page: 'updates', tab: UPDATES_TABS.some(([id]) => id === requested) ? requested : 'announcements' }
+  }
   if (parts[0] === 'admin') {
     if (parts[1] === 'programme' && parts[2]) return { page: 'admin', section: 'programme', programmeId: decodeURIComponent(parts[2]) }
     if (parts[1] === 'course' && parts[2]) {
@@ -1410,6 +1425,9 @@ function render() {
   // Capture search-input focus + caret so the popup survives re-renders without losing focus.
   const activeSearchInput = document.activeElement?.matches?.('[data-search-input]') ? document.activeElement : null
   const searchCaret = activeSearchInput ? { start: activeSearchInput.selectionStart, end: activeSearchInput.selectionEnd } : null
+  // Same idea for the Updates board search.
+  const activeUpdatesSearch = document.activeElement?.matches?.('[data-upd-search]') ? document.activeElement : null
+  const updatesSearchCaret = activeUpdatesSearch ? { start: activeUpdatesSearch.selectionStart, end: activeUpdatesSearch.selectionEnd } : null
   // Same idea for the in-course filter input.
   const activeCourseFilterInput = document.activeElement?.matches?.('[data-course-filter]') ? document.activeElement : null
   const courseFilterCaret = activeCourseFilterInput
@@ -1456,6 +1474,7 @@ function render() {
   }
   autosizeAnswerTextareas()
   if (route.page === 'calendar') mountCalendar()
+  if (route.page === 'updates') { mountUpdatesBodies(); if (updatesState.data?.connected) markUpdatesSeen() }
   restoreScrollState(scrollSnap)
   // Restore focus to the search input across re-renders so arrow keys / Enter keep working.
   if (searchState.open && (activeSearchInput || _searchPendingFocus)) {
@@ -1467,6 +1486,13 @@ function render() {
       } catch {}
     }
     _searchPendingFocus = false
+  }
+  if (updatesSearchCaret) {
+    const newSearch = document.querySelector('[data-upd-search]')
+    if (newSearch) {
+      newSearch.focus()
+      try { newSearch.setSelectionRange(updatesSearchCaret.start, updatesSearchCaret.end) } catch {}
+    }
   }
   // Restore focus to the in-course filter input so typing remains uninterrupted.
   if (courseFilterCaret) {
@@ -1533,6 +1559,7 @@ function routeView() {
   if (route.page === 'practice') return renderPracticeShell()
   if (route.page === 'account') return renderAccountPage()
   if (route.page === 'admin') return renderAdminPage()
+  if (route.page === 'updates') return renderUpdatesPage()
   if (route.page === 'planning') return renderAcademicPlanningPage()
   if (route.page === 'course-request') return renderCourseRequestPage()
   if (route.page === 'course') return renderCourse(route.id)
@@ -3994,6 +4021,7 @@ function renderSidebar() {
         ${link('nav-home', '#/', 'Home', uiIcon('home'), route.page === 'dashboard')}
         ${link('nav-courses', '#/courses', 'Courses', uiIcon('book'), ['courses', 'course', 'chapter', 'mock-exam', 'course-request'].includes(route.page), active || null)}
         ${link('nav-practice', '#/practice', 'Practice', uiIcon('target'), route.page === 'practice', due || null)}
+        ${link('nav-updates', '#/updates', 'Updates', uiIcon('bell'), route.page === 'updates', updatesBadgeCount() || null)}
         <span class="dash-nav-group">Plan</span>
         ${link('nav-planning', '#/planning', 'Planning', uiIcon('chart'), route.page === 'planning' && route.tab !== 'calendar')}
         ${link('nav-calendar', '#/calendar', 'Calendar', uiIcon('calendar'), route.page === 'calendar')}
@@ -4359,9 +4387,30 @@ function greeting() {
   return hour < 5 ? 'Late night' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 }
 
+// Home shows the Canvas headline only. The board itself lives at #/updates.
+function renderHomeCanvasPanel() {
+  const data = updatesState.data
+  if (!data?.connected) return ''
+  const announcements = (data.announcements || []).slice(0, 3)
+  const due = (data.assignments || [])
+    .filter((item) => item.dueAt && !DONE_STATUSES.has(item.status))
+    .slice(0, 3)
+  if (!announcements.length && !due.length) return ''
+  return `<section class="panel panel-aside home-canvas">
+    <div class="panel-top"><h2>From Canvas</h2><a class="pl-link" href="#/updates">Open</a></div>
+    ${announcements.length ? `<ol class="home-canvas-list">${announcements.map((item) => `<li style="--accent:${updatesCourseColour(item.courseId)}">
+      <a href="#/updates/announcements"><span class="upd-course-chip"><i></i>${escapeHtml(updatesCourseLabel(item))}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(relativeTime(item.postedAt) || updatesDay(item.postedAt) || 'Undated')}${isNewAnnouncement(item) ? ' · new' : ''}</small></a>
+    </li>`).join('')}</ol>` : '<p class="panel-note">No recent announcements.</p>'}
+    ${due.length ? `<div class="home-canvas-due"><h3>Next due</h3><ol class="home-canvas-list">${due.map((item) => `<li style="--accent:${updatesCourseColour(item.courseId)}">
+      <a href="#/updates/assignments"><span class="upd-course-chip"><i></i>${escapeHtml(updatesCourseLabel(item))}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(updatesDay(item.dueAt) || '')} · ${escapeHtml(dueRelative(item.dueAt) || '')}</small></a>
+    </li>`).join('')}</ol></div>` : ''}
+  </section>`
+}
+
 function renderHome() {
   ensureHomeData()
   if (!activityLoading && (!activityCache || Date.now() - activityLoadedAt > 60_000)) loadActivity().then(() => render())
+  if (!updatesState.data && !updatesState.loading && !updatesState.error) queueMicrotask(() => loadUpdates())
   const user = currentUser()
   const mistakeCount = mistakeCache?.items?.length ?? null
   const srDue = srDueCache?.dueCount ?? null
@@ -4436,6 +4485,7 @@ function renderHome() {
             ${item.editorial ? `<a class="pl-link" href="#/course/${item.editorial.id}">Study</a>` : `<a class="pl-link" href="#/course-request/${encodeURIComponent(item.course.id)}">Request</a>`}
           </li>`).join('')}</ol>` : examWindow && currentEntries.length ? `<div class="home-exam-window"><span class="home-exam-window-date"><strong>${academicDate(examWindow.start)}</strong><small>through ${academicDate(examWindow.end)}</small></span><p>Your ${currentEntries.length} current courses are associated with this upcoming exam period. Individual times appear when the timetable publishes them.</p><ul>${currentEntries.map(({ academic }) => `<li>${escapeHtml(academic.code || academic.name)}</li>`).join('')}</ul></div>` : `<div class="home-empty">${hasPlan ? '<p>No upcoming exam dates. Add one to a course attempt and it will appear here and on the course page.</p><a class="btn btn-secondary btn-sm" href="#/planning/courses">Add exam dates</a>' : academicsData ? '<p>Set up your academic plan to see exam countdowns, credits, and requirements alongside your study material.</p><a class="btn btn-primary btn-sm" href="#/planning">Set up plan</a>' : '<p>Loading your plan…</p>'}</div>`}
         </section>
+        ${renderHomeCanvasPanel()}
         <section class="panel panel-aside">
           <div class="panel-top"><h2>Quick start</h2></div>
           <nav class="quick-list" aria-label="Quick start">
@@ -4576,7 +4626,7 @@ function renderCourseRequestPage() {
 // ----- Calendar page (FullCalendar over the unified feed) ------------------
 const CALENDAR_LIB = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'
 const CALENDAR_VIEWS = [['dayGridMonth', 'Month'], ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['listMonth', 'Agenda']]
-const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', 'exam-week': '#c2410c', period: '#5b6b8c', 'study-week': '#0f766e', holiday: '#7c3aed', institution: '#59627b', timetable: '#2a7f9e', other: '#7d859b' }
+const CATEGORY_COLOURS = { exam: '#3f51d9', deadline: '#b4233d', registration: '#a56316', ceremony: '#147a55', 'exam-week': '#c2410c', period: '#5b6b8c', 'study-week': '#0f766e', holiday: '#7c3aed', institution: '#59627b', timetable: '#2a7f9e', 'canvas-deadline': '#b8480f', 'canvas-event': '#0f6d8c', other: '#7d859b' }
 const CALENDAR_AUTO_REFRESH_MS = 15 * 60_000 + 2_000
 const calendarState = { composer: false, periodEditor: false, data: null, error: null, loading: false, loadedAt: 0, view: 'dayGridMonth', date: null, search: '', hidden: new Set(), course: 'all', selected: null, instance: null, libReady: typeof window.FullCalendar !== 'undefined', libError: null }
 let calendarLibPromise = null
@@ -4703,7 +4753,7 @@ function renderCalendarPage() {
       ${miniMonth(calendarState.miniAnchor || anchor)}
       <div class="calx-group"><h3>My calendars</h3>${categories.length ? `<ul class="calx-toggles">${categories.map(([id, label]) => `<li><label><input type="checkbox" data-cal-category="${id}" ${calendarState.hidden.has(id) ? '' : 'checked'}><i style="--chip:${CATEGORY_COLOURS[id] || CATEGORY_COLOURS.other}"></i><span>${escapeHtml(label)}</span><small>${categoryCounts[id]}</small></label></li>`).join('')}</ul>` : `<p class="panel-note">${data ? 'No dates yet.' : 'Loading…'}</p>`}</div>
       ${courses.length ? `<div class="calx-group"><h3>Course</h3><select class="cal-course" data-cal-course aria-label="Filter by course"><option value="all">All courses</option>${courses.map((course) => `<option value="${escapeHtml(course.code)}" ${calendarState.course === course.code ? 'selected' : ''}>${escapeHtml(course.code)}</option>`).join('')}</select></div>` : ''}
-      <div class="calx-group"><h3>Sources</h3><ul class="calx-sources"><li>${uiIcon('calendar')}<span>Your plan</span></li>${categoryCounts.institution ? `<li>${uiIcon('book')}<span>Institution calendar</span></li>` : ''}${feeds.map((feed) => `<li>${uiIcon('layers')}<span>${escapeHtml(feed.label)}</span></li>`).join('')}</ul><a class="pl-link" href="#/planning/documents">Add timetable or schedule</a></div>
+      <div class="calx-group"><h3>Sources</h3><ul class="calx-sources"><li>${uiIcon('calendar')}<span>Your plan</span></li>${categoryCounts.institution ? `<li>${uiIcon('book')}<span>Institution calendar</span></li>` : ''}${feeds.map((feed) => `<li>${uiIcon('layers')}<span>${escapeHtml(feed.label)}</span></li>`).join('')}${data?.canvas?.connected ? `<li>${uiIcon('bell')}<span>Canvas</span></li>` : ''}</ul><a class="pl-link" href="#/planning/documents">Add timetable or schedule</a>${data?.canvas?.connected ? '<a class="pl-link" href="#/updates">Open Canvas updates</a>' : ''}</div>
       ${upcoming.length ? `<div class="calx-group"><h3>Coming up</h3><ol class="cal-upcoming">${upcoming.map((event) => `<li><button type="button" data-cal-select="${escapeHtml(event.id)}"><time datetime="${escapeHtml(String(event.start).slice(0, 10))}"><strong>${new Date(`${String(event.start).slice(0, 10)}T00:00:00`).getDate()}</strong><span>${new Intl.DateTimeFormat(undefined, { month: 'short' }).format(new Date(`${String(event.start).slice(0, 10)}T00:00:00`))}</span></time><span class="cal-upcoming-copy"><strong>${escapeHtml(event.title)}</strong><small><i style="background:${event.colour || CATEGORY_COLOURS[event.category]}"></i>${escapeHtml((data.categories || {})[event.category] || event.category)}${!event.allDay ? ` · ${String(event.start).slice(11, 16)}` : ''}</small></span></button></li>`).join('')}</ol></div>` : ''}
     </aside>
     <div class="calx-main">
@@ -4735,6 +4785,7 @@ function renderCalendarPage() {
           ${selected.kind && selected.kind !== 'other' && !(selected.period == null && selected.semester == null && !selected.cohorts?.length) ? `<p class="cal-detail-kind">${escapeHtml(({ period: 'Education period', 'exam-week': selected.resit ? 'Exams and resits' : 'Exam week', 'resit-week': 'Resit week', 'study-week': 'Study week', 'project-week': 'Project period', holiday: 'Holiday — no education', intro: 'Introduction', deadline: 'Deadline', ceremony: 'Ceremony' })[selected.kind] || selected.kind)}${selected.period ? ` · Period ${selected.period}` : selected.semester ? ` · Semester ${selected.semester}` : ''}${selected.cohorts?.length ? ` · ${escapeHtml(selected.cohorts.join(', '))}` : ''}</p>` : ''}
           <p class="cal-detail-when">${academicDate(String(selected.start).slice(0, 10))}${!selected.allDay ? ` · ${String(selected.start).slice(11, 16)}${selected.end ? `–${String(selected.end).slice(11, 16)}` : ''}` : selected.end ? ` → ${academicDate(prevDay(String(selected.end).slice(0, 10)))}` : ''}</p>
           ${selected.notes && !(selected.source === 'plan' && !selected.courseId) && !selected.feedLabel ? `<p class="cal-detail-notes">${escapeHtml(selected.notes)}</p>` : ''}
+          ${selected.canvasStatusLabel ? `<p class="cal-detail-source">Canvas · ${escapeHtml(selected.canvasStatusLabel)}${selected.canvasDone ? ' — nothing outstanding' : ''}</p>` : ''}
           ${selected.feedLabel ? `<p class="cal-detail-source">${escapeHtml(selected.activity || 'Timetable appointment')} · ${escapeHtml(selected.feedLabel)}</p>${selected.notes || selected.sourceTitle ? `<details class="cal-detail-raw"><summary>Timetable details</summary>${selected.notes ? `<p>${escapeHtml(selected.notes)}</p>` : ''}${selected.sourceTitle ? `<p>Source: ${escapeHtml(selected.sourceTitle)}</p>` : ''}</details>` : ''}` : ''}
           ${selected.source === 'plan' && !selected.courseId ? `<form class="pl-editor cal-editor" data-academic-event-edit="${escapeHtml(selected.id.slice(6))}">
             <div class="pl-fields pl-fields-event">
@@ -4745,7 +4796,7 @@ function renderCalendarPage() {
             </div>
             <div class="pl-form-actions"><button type="button" class="pl-danger-link" data-academic-event-remove="${escapeHtml(selected.id.slice(6))}">Remove</button><span class="pl-spacer"></span><button type="submit" class="btn btn-primary btn-sm" ${academicsLoading ? 'disabled' : ''}>Save</button></div>
           </form>` : ''}
-          <div class="cal-detail-actions">${selected.editorialCourseId ? `<a class="btn btn-primary btn-sm" href="#/course/${encodeURIComponent(selected.editorialCourseId)}">${uiIcon('book')} Study</a>` : ''}${selected.category === 'exam' && selected.href ? `<a class="btn btn-secondary btn-sm" href="${selected.href}">Edit attempt</a>` : ''}${selected.category === 'institution' ? `<button type="button" class="btn btn-secondary btn-sm" data-institution-event-import="${escapeHtml(selected.id.slice(12))}">Add to my plan</button>` : ''}${selected.feedLabel ? `<span class="panel-note">From ${escapeHtml(selected.feedLabel)}</span>` : ''}</div>
+          <div class="cal-detail-actions">${selected.editorialCourseId ? `<a class="btn btn-primary btn-sm" href="#/course/${encodeURIComponent(selected.editorialCourseId)}">${uiIcon('book')} Study</a>` : ''}${selected.externalHref ? `<a class="btn btn-secondary btn-sm" href="${escapeHtml(selected.externalHref)}" target="_blank" rel="noopener noreferrer">${uiIcon('external')} Open in Canvas</a>` : ''}${selected.category === 'exam' && selected.href ? `<a class="btn btn-secondary btn-sm" href="${selected.href}">Edit attempt</a>` : ''}${selected.category === 'institution' ? `<button type="button" class="btn btn-secondary btn-sm" data-institution-event-import="${escapeHtml(selected.id.slice(12))}">Add to my plan</button>` : ''}${selected.feedLabel ? `<span class="panel-note">From ${escapeHtml(selected.feedLabel)}</span>` : ''}</div>
         </section>` : ''}
       </div>
     </div>
@@ -4808,6 +4859,375 @@ function mountCalendar() {
   })
   calendar.render()
   calendarState.instance = calendar
+}
+
+// ───── Updates: the live Canvas board ─────────────────────────────────────
+// Read-only. It shows what has been announced, what is due, and where each
+// course stands. Nothing here writes back to Canvas, and nothing is copied
+// into the academic record without the learner asking for it elsewhere.
+
+const UPDATES_AUTO_REFRESH_MS = 10 * 60_000 + 2_000
+const UPDATES_COURSE_COLOURS = ['#3f51d9', '#0f766e', '#b8480f', '#7c3aed', '#b4233d', '#0f6d8c', '#a56316', '#147a55']
+let updatesAutoRefreshTimer = null
+const updatesState = {
+  data: null,
+  error: null,
+  loading: false,
+  loadedAt: 0,
+  refreshing: false,
+  scope: 'current',
+  days: '30',
+  search: '',
+  courses: new Set(),
+  statuses: new Set(),
+  sort: { announcements: 'newest', assignments: 'due' },
+  unreadOnly: false,
+  hideDone: false,
+  expanded: new Set()
+}
+
+function loadUpdatesPreferences() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('updates-prefs') || '{}')
+    if (stored.scope === 'current' || stored.scope === 'all') updatesState.scope = stored.scope
+    if (UPDATES_WINDOWS.some(([id]) => id === String(stored.days))) updatesState.days = String(stored.days)
+    if (UPDATES_SORTS.announcements.some(([id]) => id === stored.announcementSort)) updatesState.sort.announcements = stored.announcementSort
+    if (UPDATES_SORTS.assignments.some(([id]) => id === stored.assignmentSort)) updatesState.sort.assignments = stored.assignmentSort
+    updatesState.hideDone = Boolean(stored.hideDone)
+  } catch {}
+}
+function saveUpdatesPreferences() {
+  try {
+    localStorage.setItem('updates-prefs', JSON.stringify({
+      scope: updatesState.scope,
+      days: updatesState.days,
+      announcementSort: updatesState.sort.announcements,
+      assignmentSort: updatesState.sort.assignments,
+      hideDone: updatesState.hideDone
+    }))
+  } catch {}
+}
+loadUpdatesPreferences()
+
+// The badge counts what arrived since Updates was last opened. Canvas exposes a
+// per-user read flag on some hosts; where it is missing, "since you last
+// looked" is the honest substitute — and it stays at zero until the first visit
+// rather than opening with a year of history marked new.
+function readUpdatesSeenAt() { try { return localStorage.getItem('updates-seen-at') || '' } catch { return '' } }
+// Read once per page load. Opening Updates records a new watermark for the next
+// visit but leaves this one alone, so the "New" flags do not vanish from under
+// the reader while they are still reading them.
+const updatesSince = readUpdatesSeenAt()
+let updatesBadgeDismissed = false
+function markUpdatesSeen() {
+  updatesBadgeDismissed = true
+  try { localStorage.setItem('updates-seen-at', new Date().toISOString()) } catch {}
+}
+function isNewAnnouncement(announcement, since = updatesSince) {
+  if (announcement.read === false) return true
+  return announcement.read == null && Boolean(since) && String(announcement.postedAt || '') > since
+}
+function updatesBadgeCount() {
+  if (updatesBadgeDismissed) return 0
+  return (updatesState.data?.announcements || []).filter((item) => isNewAnnouncement(item)).length
+}
+
+function scheduleUpdatesRefresh() {
+  if (updatesAutoRefreshTimer) clearTimeout(updatesAutoRefreshTimer)
+  updatesAutoRefreshTimer = null
+  if (route.page !== 'updates') return
+  updatesAutoRefreshTimer = setTimeout(() => {
+    updatesAutoRefreshTimer = null
+    if (route.page === 'updates') loadUpdates({ force: true })
+  }, UPDATES_AUTO_REFRESH_MS)
+}
+
+async function loadUpdates({ force = false } = {}) {
+  if (updatesState.loading) return
+  if (updatesState.data && !force && Date.now() - updatesState.loadedAt < 60_000) return
+  updatesState.loading = true
+  updatesState.refreshing = force
+  updatesState.error = null
+  render()
+  const params = new URLSearchParams({ scope: updatesState.scope, days: updatesState.days })
+  if (force) params.set('refresh', '1')
+  try {
+    updatesState.data = await fetchJson(`/api/integrations/canvas/hub?${params}`, { timeoutMs: 90_000 })
+    updatesState.loadedAt = Date.now()
+  } catch (error) {
+    updatesState.error = error.message || 'Canvas updates could not be loaded.'
+  } finally {
+    updatesState.loading = false
+    updatesState.refreshing = false
+    scheduleUpdatesRefresh()
+    render()
+  }
+}
+
+// Canvas announcements are institution HTML. The server already strips the
+// obvious hazards, but this markup is injected into the application's own
+// origin, so it is re-checked here against an allow-list walked over a parsed
+// tree rather than by pattern. Anything unlisted is unwrapped, keeping its text.
+const CANVAS_HTML_TAGS = new Set(['P', 'BR', 'HR', 'STRONG', 'B', 'EM', 'I', 'U', 'S', 'SPAN', 'DIV', 'A', 'UL', 'OL', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'CODE', 'PRE', 'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'TR', 'TH', 'TD', 'SUB', 'SUP', 'SMALL'])
+function sanitiseCanvasFragment(html) {
+  const parsed = new DOMParser().parseFromString(String(html || ''), 'text/html')
+  const copy = (from, into) => {
+    for (const child of [...from.childNodes]) {
+      if (child.nodeType === Node.TEXT_NODE) { into.append(document.createTextNode(child.nodeValue)); continue }
+      if (child.nodeType !== Node.ELEMENT_NODE) continue
+      if (!CANVAS_HTML_TAGS.has(child.tagName)) { copy(child, into); continue }
+      const element = document.createElement(child.tagName.toLowerCase())
+      if (child.tagName === 'A') {
+        let href = null
+        try {
+          const url = new URL(child.getAttribute('href') || '', window.location.href)
+          if (['http:', 'https:', 'mailto:'].includes(url.protocol)) href = url.toString()
+        } catch {}
+        if (href) {
+          element.setAttribute('href', href)
+          element.setAttribute('target', '_blank')
+          element.setAttribute('rel', 'noopener noreferrer')
+        }
+      }
+      copy(child, element)
+      into.append(element)
+    }
+  }
+  const root = document.createElement('div')
+  copy(parsed.body, root)
+  return root.innerHTML
+}
+
+function updatesCourseColour(courseId) {
+  const index = (updatesState.data?.courses || []).findIndex((course) => String(course.id) === String(courseId))
+  return UPDATES_COURSE_COLOURS[(index < 0 ? 0 : index) % UPDATES_COURSE_COLOURS.length]
+}
+function updatesScopeCourses() {
+  const selected = new Set(updatesState.data?.selectedCourseIds || [])
+  return (updatesState.data?.courses || []).filter((course) => selected.has(String(course.id)))
+}
+function updatesCourseLabel(item) {
+  return item.courseCode || item.courseName || 'Canvas'
+}
+function updatesDateTime(iso) {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(date)
+}
+function updatesDay(iso) {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+}
+function dueRelative(iso) {
+  if (!iso) return null
+  const diff = new Date(iso).getTime() - Date.now()
+  if (Number.isNaN(diff)) return null
+  const magnitude = Math.abs(diff)
+  if (magnitude < 3_600_000) return diff >= 0 ? 'within the hour' : 'just passed'
+  if (magnitude < 86_400_000) { const hours = Math.round(magnitude / 3_600_000); return diff >= 0 ? `in ${hours}h` : `${hours}h ago` }
+  const days = Math.round(magnitude / 86_400_000)
+  return diff >= 0 ? `in ${days} day${days === 1 ? '' : 's'}` : `${days} day${days === 1 ? '' : 's'} ago`
+}
+
+function updatesMatchesCourse(item) {
+  return !updatesState.courses.size || updatesState.courses.has(String(item.courseId))
+}
+function updatesMatchesSearch(...values) {
+  const needle = updatesState.search.trim().toLowerCase()
+  return !needle || values.filter(Boolean).join(' ').toLowerCase().includes(needle)
+}
+function announcementReadStateKnown() {
+  return (updatesState.data?.announcements || []).some((item) => item.read != null)
+}
+function visibleAnnouncements() {
+  const items = (updatesState.data?.announcements || [])
+    .filter((item) => updatesMatchesCourse(item))
+    .filter((item) => !updatesState.unreadOnly || isNewAnnouncement(item))
+    .filter((item) => updatesMatchesSearch(item.title, item.excerpt, item.courseCode, item.courseName, item.author))
+  const sort = updatesState.sort.announcements
+  return items.sort((left, right) => {
+    if (sort === 'oldest') return String(left.postedAt || '').localeCompare(String(right.postedAt || ''))
+    if (sort === 'title') return left.title.localeCompare(right.title)
+    if (sort === 'course') return updatesCourseLabel(left).localeCompare(updatesCourseLabel(right)) || String(right.postedAt || '').localeCompare(String(left.postedAt || ''))
+    return String(right.postedAt || '').localeCompare(String(left.postedAt || ''))
+  })
+}
+const DONE_STATUSES = new Set(['graded', 'submitted', 'excused', 'offline'])
+function visibleAssignments() {
+  const items = (updatesState.data?.assignments || [])
+    .filter((item) => updatesMatchesCourse(item))
+    .filter((item) => !updatesState.statuses.size || updatesState.statuses.has(item.status))
+    .filter((item) => !updatesState.hideDone || !DONE_STATUSES.has(item.status))
+    .filter((item) => updatesMatchesSearch(item.title, item.courseCode, item.courseName, item.description))
+  const sort = updatesState.sort.assignments
+  const byDue = (left, right, direction = 1) => {
+    if (Boolean(left.dueAt) !== Boolean(right.dueAt)) return left.dueAt ? -1 : 1
+    return direction * String(left.dueAt || '').localeCompare(String(right.dueAt || ''))
+  }
+  return items.sort((left, right) => {
+    if (sort === 'due-desc') return byDue(left, right, -1)
+    if (sort === 'course') return updatesCourseLabel(left).localeCompare(updatesCourseLabel(right)) || byDue(left, right)
+    if (sort === 'points') return (right.pointsPossible ?? -1) - (left.pointsPossible ?? -1) || byDue(left, right)
+    if (sort === 'status') return ASSIGNMENT_STATUS_ORDER.indexOf(left.status) - ASSIGNMENT_STATUS_ORDER.indexOf(right.status) || byDue(left, right)
+    return byDue(left, right)
+  })
+}
+
+function renderUpdatesCoursePills() {
+  const courses = updatesScopeCourses()
+  if (!courses.length) return ''
+  return `<div class="upd-courses" role="group" aria-label="Filter by course">
+    <button type="button" class="upd-pill${updatesState.courses.size ? '' : ' is-on'}" data-upd-course="all" title="Clear the course filter">All <small>${courses.length}</small></button>
+    ${courses.map((course) => `<button type="button" class="upd-pill${updatesState.courses.has(String(course.id)) ? ' is-on' : ''}" data-upd-course="${escapeHtml(String(course.id))}" style="--accent:${updatesCourseColour(course.id)}" title="${escapeHtml(course.displayName || course.name)}"><i></i><span>${escapeHtml(course.courseCode || course.displayName || course.name)}</span></button>`).join('')}
+  </div>`
+}
+
+function renderUpdatesToolbar(tab) {
+  const sorts = UPDATES_SORTS[tab] || []
+  const statusCounts = {}
+  for (const item of updatesState.data?.assignments || []) statusCounts[item.status] = (statusCounts[item.status] || 0) + 1
+  const statuses = updatesState.data?.statuses || {}
+  return `<div class="upd-toolbar">
+    <div class="upd-toolbar-row">
+      <div class="upd-scope" role="group" aria-label="Which courses">
+        <button type="button" class="${updatesState.scope === 'current' ? 'is-on' : ''}" data-upd-scope="current" aria-pressed="${updatesState.scope === 'current'}">Current courses</button>
+        <button type="button" class="${updatesState.scope === 'all' ? 'is-on' : ''}" data-upd-scope="all" aria-pressed="${updatesState.scope === 'all'}">All courses</button>
+      </div>
+      <label class="cal-search upd-search"><span class="nav-icon">${uiIcon('search')}</span><input type="search" data-upd-search placeholder="Search ${tab === 'assignments' ? 'assignments' : 'announcements'}" value="${escapeHtml(updatesState.search)}" aria-label="Search Canvas updates"></label>
+      ${tab === 'announcements' ? `<label class="upd-select"><span>Period</span><select data-upd-days>${UPDATES_WINDOWS.map(([id, label]) => `<option value="${id}" ${updatesState.days === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}
+      ${sorts.length ? `<label class="upd-select"><span>Sort</span><select data-upd-sort="${tab}">${sorts.map(([id, label]) => `<option value="${id}" ${updatesState.sort[tab] === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}
+    </div>
+    ${renderUpdatesCoursePills()}
+    ${tab === 'announcements' && announcementReadStateKnown() ? `<div class="upd-toggles"><label><input type="checkbox" data-upd-unread ${updatesState.unreadOnly ? 'checked' : ''}><span>Unread only</span></label></div>` : ''}
+    ${tab === 'assignments' ? `<div class="upd-toggles">
+      <label><input type="checkbox" data-upd-hide-done ${updatesState.hideDone ? 'checked' : ''}><span>Hide submitted and graded</span></label>
+      <div class="upd-statuses" role="group" aria-label="Filter by status">${ASSIGNMENT_STATUS_ORDER.filter((id) => statusCounts[id]).map((id) => `<button type="button" class="upd-status-pill is-${id}${updatesState.statuses.has(id) ? ' is-on' : ''}" data-upd-status="${id}" aria-pressed="${updatesState.statuses.has(id)}">${escapeHtml(statuses[id] || id)} <small>${statusCounts[id]}</small></button>`).join('')}</div>
+    </div>` : ''}
+  </div>`
+}
+
+function renderUpdatesAnnouncements() {
+  const items = visibleAnnouncements()
+  const total = (updatesState.data?.announcements || []).length
+  if (!items.length) {
+    return `<div class="upd-empty panel">${uiIcon('bell')}<div><strong>${total ? 'Nothing matches these filters' : 'No announcements in this window'}</strong><p>${total ? `${total} announcement${total === 1 ? '' : 's'} ${total === 1 ? 'is' : 'are'} hidden by the current course, search, or unread filter.` : 'Widen the period, or switch to all courses to include ones you are no longer enrolled in.'}</p></div></div>`
+  }
+  return `<ol class="upd-list">${items.map((item) => {
+    const open = updatesState.expanded.has(item.id)
+    const fresh = isNewAnnouncement(item)
+    return `<li class="upd-card${open ? ' is-open' : ''}${fresh ? ' is-new' : ''}" style="--accent:${updatesCourseColour(item.courseId)}">
+      <header class="upd-card-head">
+        <span class="upd-course-chip"><i></i>${escapeHtml(updatesCourseLabel(item))}</span>
+        ${fresh ? '<span class="upd-new-flag">New</span>' : ''}
+        <span class="upd-when">${item.postedAt ? `<time datetime="${escapeHtml(item.postedAt)}" title="${escapeHtml(updatesDateTime(item.postedAt) || '')}">${escapeHtml(relativeTime(item.postedAt) || updatesDay(item.postedAt) || '')}</time>` : 'Undated'}</span>
+      </header>
+      <h3>${escapeHtml(item.title)}</h3>
+      ${item.author ? `<p class="upd-author">${escapeHtml(item.author)}${item.courseName && item.courseName !== updatesCourseLabel(item) ? ` · ${escapeHtml(item.courseName)}` : ''}</p>` : ''}
+      ${open ? `<div class="upd-body" data-upd-html="${escapeHtml(item.id)}"></div>` : item.excerpt ? `<p class="upd-excerpt">${escapeHtml(item.excerpt)}${item.excerpt.length >= 320 ? '…' : ''}</p>` : '<p class="upd-excerpt is-muted">This announcement has no text body.</p>'}
+      ${item.attachments.length ? `<p class="upd-attachments">${uiIcon('file')} ${item.attachments.map((file) => escapeHtml(file.name)).join(', ')} <small>— open in Canvas to download</small></p>` : ''}
+      <footer class="upd-card-foot">
+        <button type="button" class="btn btn-ghost btn-sm" data-upd-expand="${escapeHtml(item.id)}">${open ? 'Show less' : 'Read in full'}</button>
+        ${item.url ? `<a class="btn btn-secondary btn-sm" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${uiIcon('external')} Canvas</a>` : ''}
+      </footer>
+    </li>`
+  }).join('')}</ol>`
+}
+
+function renderUpdatesAssignments() {
+  const items = visibleAssignments()
+  const total = (updatesState.data?.assignments || []).length
+  const statuses = updatesState.data?.statuses || {}
+  if (!items.length) {
+    return `<div class="upd-empty panel">${uiIcon('check')}<div><strong>${total ? 'Nothing matches these filters' : 'No assignments in these courses'}</strong><p>${total ? `${total} assignment${total === 1 ? '' : 's'} ${total === 1 ? 'is' : 'are'} hidden by the current filters.` : 'Canvas returned no assignments for the courses in scope.'}</p></div></div>`
+  }
+  return `<ol class="upd-rows">${items.map((item) => `<li class="upd-row is-${escapeHtml(item.status)}" style="--accent:${updatesCourseColour(item.courseId)}">
+    <span class="upd-course-chip"><i></i>${escapeHtml(updatesCourseLabel(item))}</span>
+    <div class="upd-row-main">
+      <strong>${escapeHtml(item.title)}</strong>
+      <small>${item.dueAt ? `Due ${escapeHtml(updatesDateTime(item.dueAt) || '')} · ${escapeHtml(dueRelative(item.dueAt) || '')}` : 'No due date'}${item.pointsPossible != null ? ` · ${item.pointsPossible} point${item.pointsPossible === 1 ? '' : 's'}` : ''}${item.score != null ? ` · scored ${item.score}${item.pointsPossible != null ? `/${item.pointsPossible}` : ''}` : ''}${item.late ? ' · handed in late' : ''}</small>
+    </div>
+    <span class="upd-badge is-${escapeHtml(item.status)}">${escapeHtml(statuses[item.status] || item.status)}</span>
+    ${item.url ? `<a class="upd-row-link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(item.title)} in Canvas">${uiIcon('external')}</a>` : '<span class="upd-row-link is-empty"></span>'}
+  </li>`).join('')}</ol>`
+}
+
+function renderUpdatesCourses() {
+  const data = updatesState.data
+  const gradeByCourse = new Map((data?.grades || []).map((grade) => [grade.courseId, grade]))
+  const announcementCounts = {}
+  for (const item of data?.announcements || []) announcementCounts[item.courseId] = (announcementCounts[item.courseId] || 0) + 1
+  const openCounts = {}
+  for (const item of data?.assignments || []) if (!DONE_STATUSES.has(item.status)) openCounts[item.courseId] = (openCounts[item.courseId] || 0) + 1
+  // Some institutions keep Canvas grades hidden; an all-dashes column is noise,
+  // so the stat only appears where at least one score actually came back.
+  const showGrades = (data?.grades || []).some((grade) => grade.currentScore != null || grade.currentGrade)
+  const courses = (data?.courses || []).filter((course) => updatesState.scope === 'all' || course.current || course.upcoming || (data?.selectedCourseIds || []).includes(String(course.id)))
+  if (!courses.length) return `<div class="upd-empty panel">${uiIcon('book')}<div><strong>No Canvas courses in scope</strong><p>Switch to all courses to include concluded enrolments.</p></div></div>`
+  return `<div class="upd-course-grid">${courses.map((course) => {
+    const grade = gradeByCourse.get(String(course.id))
+    const state = course.current && course.concluded ? 'Starred' : course.current ? 'Current' : course.upcoming ? 'Not started' : course.concluded ? 'Concluded' : 'Available'
+    return `<article class="upd-course-card" style="--accent:${updatesCourseColour(course.id)}">
+      <header><span class="upd-course-chip"><i></i>${escapeHtml(course.courseCode || 'Canvas')}</span><span class="upd-course-state is-${course.current ? 'current' : 'past'}">${state}</span></header>
+      <h3>${escapeHtml(course.displayName || course.name)}</h3>
+      <p class="upd-course-meta">${escapeHtml(course.term?.name || 'No term')}</p>
+      <dl class="upd-course-stats">
+        <div><dt>Announcements</dt><dd>${announcementCounts[String(course.id)] || 0}</dd></div>
+        <div><dt>Open work</dt><dd>${openCounts[String(course.id)] || 0}</dd></div>
+        ${showGrades ? `<div><dt>Grade</dt><dd>${grade?.currentScore != null ? `${grade.currentScore}%` : grade?.currentGrade ? escapeHtml(grade.currentGrade) : '—'}</dd></div>` : ''}
+      </dl>
+      <footer>
+        <button type="button" class="btn btn-ghost btn-sm" data-upd-course-only="${escapeHtml(String(course.id))}">Show only this</button>
+        <a class="btn btn-secondary btn-sm" href="${escapeHtml(course.courseUrl)}" target="_blank" rel="noopener noreferrer">${uiIcon('external')} Canvas</a>
+      </footer>
+    </article>`
+  }).join('')}</div>`
+}
+
+function renderUpdatesPage() {
+  if (!updatesState.data && !updatesState.loading && !updatesState.error) loadUpdates()
+  const tab = UPDATES_TABS.some(([id]) => id === route.tab) ? route.tab : 'announcements'
+  const data = updatesState.data
+  const host = data?.origin ? new URL(data.origin).host : null
+  const counts = {
+    announcements: (data?.announcements || []).length,
+    assignments: (data?.assignments || []).length,
+    courses: (data?.selectedCourseIds || []).length
+  }
+  const body = !data && updatesState.loading
+    ? `<div class="upd-empty panel" role="status">${uiIcon('refresh')}<div><strong>Reading Canvas…</strong><p>Announcements, deadlines, and grades for the courses in scope.</p></div></div>`
+    : data && data.connected === false
+      ? `<div class="upd-empty panel">${uiIcon('layers')}<div><strong>Canvas is not connected</strong><p>Add a Canvas Personal Access Token in Account → Connections. It is stored encrypted, used only for reads, and never shown again.</p></div><a class="btn btn-primary btn-sm" href="#/account/connections">Connect Canvas</a></div>`
+      : tab === 'assignments' ? renderUpdatesAssignments()
+        : tab === 'courses' ? renderUpdatesCourses()
+          : renderUpdatesAnnouncements()
+  const showToolbar = Boolean(data?.connected) && tab !== 'courses'
+  return `<section class="page-wrap upd-page">
+    <header class="page-head">
+      <div><p class="page-eyebrow">Live from Canvas</p><h1>Updates</h1><p class="page-sub">${host ? `${escapeHtml(host)} · ` : ''}${data?.fetchedAt ? `refreshed ${escapeHtml(relativeTime(data.fetchedAt) || 'just now')}` : 'not loaded yet'}${data?.truncated ? ' · showing the 40 most recent courses' : ''}</p></div>
+      <div class="page-head-actions">
+        <button type="button" class="btn btn-secondary btn-sm" data-upd-refresh ${updatesState.loading ? 'disabled' : ''}>${uiIcon('refresh')} ${updatesState.refreshing ? 'Refreshing…' : 'Refresh'}</button>
+        <a class="btn btn-ghost btn-sm" href="/canvas">${uiIcon('download')} Course archive</a>
+      </div>
+    </header>
+    <nav class="page-tabs" aria-label="Canvas updates"><div>${UPDATES_TABS.map(([id, label]) => `<a href="#/updates/${id}" class="${tab === id ? 'active' : ''}"${tab === id ? ' aria-current="page"' : ''}>${label}${counts[id] ? ` <small>${counts[id]}</small>` : ''}</a>`).join('')}</div></nav>
+    ${updatesState.error ? `<div class="settings-error" role="alert"><strong>Canvas updates could not be loaded.</strong><p>${escapeHtml(updatesState.error)}</p></div>` : ''}
+    ${data?.problems?.length ? `<div class="settings-error is-warning" role="status"><strong>Some of Canvas did not answer.</strong><p>${data.problems.slice(0, 4).map((problem) => escapeHtml(`${problem.part}: ${problem.error}`)).join(' · ')}</p></div>` : ''}
+    ${data?.connected && !updatesScopeCourses().length ? `<div class="upd-empty panel">${uiIcon('alert')}<div><strong>No currently enrolled courses</strong><p>Canvas reports no live enrolment right now — usual between teaching periods. Switch to all courses to see past ones.</p></div><button type="button" class="btn btn-primary btn-sm" data-upd-scope="all">Show all courses</button></div>` : ''}
+    ${showToolbar ? renderUpdatesToolbar(tab) : ''}
+    ${body}
+  </section>`
+}
+
+// Announcement bodies are inserted after render so the allow-list sanitiser
+// runs against a parsed tree rather than being spliced into a template string.
+function mountUpdatesBodies() {
+  for (const host of document.querySelectorAll('[data-upd-html]')) {
+    const item = (updatesState.data?.announcements || []).find((entry) => entry.id === host.dataset.updHtml)
+    host.innerHTML = item?.html ? sanitiseCanvasFragment(item.html) : '<p class="is-muted">This announcement has no text body.</p>'
+  }
 }
 
 function renderCoursesPage() {
@@ -10076,6 +10496,53 @@ function bindEvents() {
   }))
 
   document.querySelectorAll('[data-planning-files]').forEach((input) => input.addEventListener('change', () => addPlanningSources(input.files)))
+  // ----- Updates: the Canvas board -----
+  document.querySelectorAll('[data-upd-refresh]').forEach((button) => button.addEventListener('click', () => loadUpdates({ force: true })))
+  document.querySelectorAll('[data-upd-scope]').forEach((button) => button.addEventListener('click', () => {
+    const next = button.dataset.updScope
+    if (next === updatesState.scope) return
+    updatesState.scope = next
+    // Course and status filters name the previous scope's courses; keep the
+    // board honest by clearing them rather than silently hiding everything.
+    updatesState.courses = new Set()
+    saveUpdatesPreferences()
+    loadUpdates({ force: true })
+  }))
+  document.querySelectorAll('[data-upd-days]').forEach((select) => select.addEventListener('change', () => {
+    updatesState.days = select.value
+    saveUpdatesPreferences()
+    loadUpdates({ force: true })
+  }))
+  document.querySelectorAll('[data-upd-sort]').forEach((select) => select.addEventListener('change', () => {
+    updatesState.sort[select.dataset.updSort] = select.value
+    saveUpdatesPreferences()
+    render()
+  }))
+  document.querySelectorAll('[data-upd-search]').forEach((input) => input.addEventListener('input', () => { updatesState.search = input.value; render() }))
+  document.querySelectorAll('[data-upd-course]').forEach((button) => button.addEventListener('click', () => {
+    const id = button.dataset.updCourse
+    if (id === 'all') updatesState.courses = new Set()
+    else if (updatesState.courses.has(id)) updatesState.courses.delete(id)
+    else updatesState.courses.add(id)
+    render()
+  }))
+  document.querySelectorAll('[data-upd-course-only]').forEach((button) => button.addEventListener('click', () => {
+    updatesState.courses = new Set([button.dataset.updCourseOnly])
+    location.hash = '#/updates/announcements'
+  }))
+  document.querySelectorAll('[data-upd-status]').forEach((button) => button.addEventListener('click', () => {
+    const id = button.dataset.updStatus
+    if (updatesState.statuses.has(id)) updatesState.statuses.delete(id); else updatesState.statuses.add(id)
+    render()
+  }))
+  document.querySelectorAll('[data-upd-unread]').forEach((input) => input.addEventListener('change', () => { updatesState.unreadOnly = input.checked; render() }))
+  document.querySelectorAll('[data-upd-hide-done]').forEach((input) => input.addEventListener('change', () => { updatesState.hideDone = input.checked; saveUpdatesPreferences(); render() }))
+  document.querySelectorAll('[data-upd-expand]').forEach((button) => button.addEventListener('click', () => {
+    const id = button.dataset.updExpand
+    if (updatesState.expanded.has(id)) updatesState.expanded.delete(id); else updatesState.expanded.add(id)
+    render()
+  }))
+
   // ----- Calendar page -----
   document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('input', () => { calendarState.search = input.value; calendarState.instance?.refetchEvents(); document.querySelectorAll('.cal-upcoming').forEach(() => {}) }))
   document.querySelectorAll('[data-cal-search]').forEach((input) => input.addEventListener('change', () => render()))

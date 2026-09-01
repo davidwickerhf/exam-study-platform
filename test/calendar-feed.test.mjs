@@ -123,3 +123,38 @@ test('academic context looks ahead before teaching starts', () => {
   assert.equal(context.daysUntil, 1)
   assert.equal(context.period, 'Period 1')
 })
+
+test('Canvas deadlines and Canvas events join the calendar and keep a link out to Canvas', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: {},
+    courses: [{ id: 'c1', code: 'BCS2130', name: 'Intelligent User Interfaces', attempts: [] }]
+  })
+  const result = aggregateCalendar({
+    workspace,
+    editorialCourses: [{ id: 'iui', code: 'BCS2130', accent: '#123456' }],
+    canvas: {
+      assignments: [
+        { id: '1:71', courseCode: 'BCS2130', courseName: 'Intelligent User Interfaces', title: 'Prototype hand-in', dueAt: '2026-09-10T15:00:00.000Z', pointsPossible: 20, status: 'upcoming', url: 'https://canvas.example.edu/courses/1/assignments/71' },
+        { id: '1:72', courseCode: 'BCS2130', courseName: 'Intelligent User Interfaces', title: 'Reading log', dueAt: null, status: 'graded', url: null }
+      ],
+      events: [
+        { id: '1:88', courseCode: 'BCS2130', courseName: 'Intelligent User Interfaces', title: 'Guest lecture', startAt: '2026-09-04T13:00:00.000Z', endAt: '2026-09-04T15:00:00.000Z', allDay: false, location: 'C1.05', url: 'https://canvas.example.edu/calendar?event_id=88' }
+      ]
+    }
+  })
+  const deadline = result.events.find((event) => event.category === 'canvas-deadline')
+  assert.equal(deadline.title, 'BCS2130 · Prototype hand-in')
+  assert.equal(deadline.editorialCourseId, 'iui')
+  assert.equal(deadline.colour, '#123456')
+  assert.equal(deadline.courseId, 'c1')
+  assert.equal(deadline.canvasDone, false)
+  assert.equal(deadline.externalHref, 'https://canvas.example.edu/courses/1/assignments/71')
+  assert.equal(deadline.href, null, 'a Canvas item is never presented as an internal plan record')
+  // An assignment with no due date has no place on a calendar.
+  assert.equal(result.events.filter((event) => event.category === 'canvas-deadline').length, 1)
+  const event = result.events.find((item) => item.category === 'canvas-event')
+  assert.equal(event.start, '2026-09-04T13:00:00.000Z')
+  assert.equal(event.end, '2026-09-04T15:00:00.000Z')
+  assert.equal(event.notes, 'C1.05')
+  assert.equal(result.categories['canvas-deadline'], 'Canvas deadlines')
+})
