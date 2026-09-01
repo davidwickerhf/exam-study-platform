@@ -71,7 +71,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.3.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.4.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
@@ -507,6 +507,11 @@ server.tool('set_course_visibility', 'Archive/unarchive or reorder a course for 
   run(({ courseId, archived, order }) => api(`/api/courses/${encodeURIComponent(courseId)}`, { method: 'PATCH', body: { archived, order } })))
 
 // ── Canvas through the account connection (no local PAT) ──────────────────
+server.tool('get_study_briefing',
+  'The student\u2019s whole situation in one call, ranked: work Canvas marks missing, overdue hand-ins, upcoming exams, what is due this week, the week\u2019s lectures and tutorials with rooms, recent announcements, and their credits so far. Call this first for "what should I focus on", "what is due", "what is my week like", or any question about priorities \u2014 it replaces orchestrating get_calendar, canvas_updates and get_academic_plan yourself. `notConnected` lists sources that could not be read: say a timetable is not connected rather than reporting a quiet week.',
+  { days: z.number().int().min(1).max(31).optional().describe('How far ahead to look. Default 7.') },
+  run(({ days }) => api('/api/briefing', { query: { days } })))
+
 server.tool('canvas_updates',
   'What is happening in the student’s Canvas courses right now: announcements, assignments with their submission state, Canvas course events, and the grade Canvas shows. This is the tool for "what was announced", "what is due", "what have I not handed in", and "how am I doing". Answers are cached for ten minutes; pass refresh:true only when the student says something is missing. Never returns the Canvas token.',
   {

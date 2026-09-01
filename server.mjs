@@ -40,6 +40,7 @@ import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
 import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
 import { applySecureValue, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
+import { studyBriefing } from './lib/study-briefing.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
@@ -3887,6 +3888,15 @@ const server = createServer(async (req, res) => {
       }
       const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
       send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), canvas: { connected: canvasConnected }, problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    // Everything a tutor needs to answer "what should I be doing this week" in
+    // one call, ranked, with the reasons attached — and with what it could not
+    // see named, so an unconnected source never reads as an empty week.
+    if (url.pathname === '/api/briefing' && req.method === 'GET') {
+      const days = Math.min(31, Math.max(1, Number.parseInt(url.searchParams.get('days') || '7', 10) || 7))
+      send(res, 200, JSON.stringify(await studyBriefing({ days })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
 
