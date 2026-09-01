@@ -1,0 +1,35 @@
+{
+  "name": "wicker-study-mcp",
+  "version": "2.0.0",
+  "description": "MCP server for Wicker Study: read course material and a student's academic record, study on their behalf, collect a private Canvas course snapshot, and — with an admin key — run the editorial workflow.",
+  "keywords": ["mcp", "model-context-protocol", "wicker-study", "canvas-lms", "study", "education"],
+  "license": "MIT",
+  "author": "David Wicker",
+  "homepage": "https://study.wicker.life",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidwickerhf/exam-study-platform.git",
+    "directory": "mcp"
+  },
+  "bugs": "https://github.com/davidwickerhf/exam-study-platform/issues",
+  "type": "module",
+  "bin": {
+    "wicker-study-mcp": "./server.mjs"
+  },
+  "main": "./server.mjs",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "files": [
+    "server.mjs",
+    "config.mjs",
+    "authorize.mjs",
+    "vendor/",
+    "scripts/",
+    "README.md"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.76"
+  }
+}

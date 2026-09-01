@@ -10,7 +10,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1)
 }
 const sql = neon(process.env.DATABASE_URL)
-const migrations = ['001_user_documents.sql', '002_editorial_content.sql', '003_editorial_retrieval.sql', '004_ai_usage.sql', '005_academic_intake_usage.sql', '006_activity_events.sql', '007_personal_tables.sql', '008_api_keys.sql', '009_editorial_admin.sql', '010_editorial_flashcards.sql', '011_calendars.sql', '012_api_key_expiry.sql', '013_programme_memberships.sql', '014_attempt_context.sql', '015_course_content_requests.sql', '016_editorial_workflow.sql', '017_canvas_connections.sql']
+const migrations = ['001_user_documents.sql', '002_editorial_content.sql', '003_editorial_retrieval.sql', '004_ai_usage.sql', '005_academic_intake_usage.sql', '006_activity_events.sql', '007_personal_tables.sql', '008_api_keys.sql', '009_editorial_admin.sql', '010_editorial_flashcards.sql', '011_calendars.sql', '012_api_key_expiry.sql', '013_programme_memberships.sql', '014_attempt_context.sql', '015_course_content_requests.sql', '016_editorial_workflow.sql', '017_canvas_connections.sql', '018_agent_authorizations.sql']
 const queries = [sql`SELECT pg_advisory_xact_lock(2026083001)`]
 for (const migration of migrations) {
   const source = await readFile(resolve('db', migration), 'utf8')

@@ -35,6 +35,7 @@ import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchC
 import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
+import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
@@ -3291,6 +3292,22 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // Step three of the agent authorization: an agent with no credential trades
+    // its single-use code and verifier for a freshly minted API key, once.
+    if (url.pathname === '/api/agent/authorize/exchange' && req.method === 'POST') {
+      const budget = consume(`agentexchange:${ip}`, RATE_POLICIES.agentExchange)
+      if (!budget.allowed) { sendRateLimited(res, budget, 'Too many authorization attempts.'); return }
+      try {
+        const body = await readBody(req, 4 * 1024)
+        const granted = await exchangeAgentAuthorization({ code: body?.code, verifier: body?.verifier })
+        send(res, 200, JSON.stringify(granted), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        consume(`authfail:${ip}`, RATE_POLICIES.authFailure)
+        send(res, error instanceof AgentAuthorizationError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'This authorization could not be completed.' }))
+      }
+      return
+    }
+
     if (url.pathname.startsWith('/api/') && !isPublicApi(url.pathname)) {
       const auth = await authenticate(req)
       if (!auth.authenticated) {
@@ -3348,6 +3365,21 @@ const server = createServer(async (req, res) => {
     if (apiKeyMatch && req.method === 'DELETE') {
       const ok = await revokeApiKey(decodeURIComponent(apiKeyMatch[1]))
       send(res, ok ? 200 : 404, JSON.stringify(ok ? { ok: true } : { error: 'Key not found or already revoked' }))
+      return
+    }
+
+    // Step two: the signed-in browser approves an agent's request. Deliberately
+    // unavailable to API keys — a key must not be able to mint another key.
+    if (url.pathname === '/api/agent/authorize' && req.method === 'POST') {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Authorising an agent requires a signed-in browser session.' })); return }
+        const body = await readBody(req, 8 * 1024)
+        const redirectUri = assertLoopbackRedirect(body?.redirectUri)
+        const approval = await approveAgentAuthorization({ name: body?.name, scopes: body?.scopes, challenge: body?.challenge })
+        send(res, 200, JSON.stringify({ ...approval, redirectUri }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof AgentAuthorizationError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'This agent could not be authorised.' }))
+      }
       return
     }
 

@@ -72,26 +72,68 @@ text. Public URLs pass DNS and redirect validation before fetching.
 
 ## MCP server
 
-`mcp/server.mjs` wraps the API as MCP tools over stdio.
+Published as [`wicker-study-mcp`](https://www.npmjs.com/package/wicker-study-mcp). It
+wraps the API as MCP tools over stdio and runs from anywhere — no checkout, and no
+environment variable to set up first.
 
 ```json
 {
   "mcpServers": {
     "wicker-study": {
-      "command": "node",
-      "args": ["/path/to/exam-study-platform/mcp/server.mjs"],
-      "env": {
-        "WICKER_STUDY_URL": "https://study.wicker.life",
-        "WICKER_STUDY_API_KEY": "wsk_…"
-      }
+      "command": "npx",
+      "args": ["-y", "wicker-study-mcp"]
     }
   }
 }
 ```
 
-Or from a checkout: `WICKER_STUDY_URL=… WICKER_STUDY_API_KEY=… npm run mcp`.
+`WICKER_STUDY_URL` chooses the server (default `https://study.wicker.life`; plain http
+is refused for anything but loopback). `WICKER_STUDY_API_KEY` overrides the saved key
+for one-off runs and CI.
 
-Tools: `list_courses`, `get_course`, `get_chapter`, `search_course`,
+### Getting a key without one in the transcript
+
+With no key the server still starts, so the agent can bootstrap instead of failing at
+launch. `wicker_status` reports what is missing; `wicker_authorize` returns a
+`/connect` URL for the user to approve in a browser.
+
+The shape is an OAuth authorization-code exchange with PKCE, minus what a
+single first-party client does not need:
+
+1. The MCP opens a listener bound to `127.0.0.1`, invents a verifier, and sends the
+   user to `/connect` with `sha256(verifier)`, a state value, and that listener's
+   address. `POST /api/agent/authorize` refuses any callback that is not loopback, so
+   a signed-in browser cannot be tricked into handing a key to a third party. API keys
+   are refused outright: a key cannot mint another key.
+2. The browser approves. The server records the approval against a hashed, ten-minute,
+   single-use code — **no secret is stored** — and the page redirects to the loopback
+   address with the code.
+3. `POST /api/agent/authorize/exchange` (necessarily unauthenticated) takes code +
+   verifier, consumes the row atomically, and mints the key then, returning it once.
+
+The key lands in `~/.config/wicker-study/config.json`, mode 0600 in a 0700 directory,
+keyed by server URL. A code seen in browser history is useless without the verifier,
+which never leaves the agent's machine, and useless twice regardless. An unknown,
+expired, spent, or wrong-verifier code all fail identically.
+
+`wicker_sign_out` forgets the local copy; **Account → API access** revokes the key.
+
+### Canvas
+
+`canvas_connect` reports whether the account has a Canvas connection and, if not,
+returns the settings page. API keys can read *that* a connection exists — origin and
+timestamps, never the token — but creating or removing one stays browser-only.
+
+### Publishing
+
+`mcp/` is its own npm package. npm cannot pack files from outside a package root, so
+the four modules it shares with the application are copied into `mcp/vendor/` and
+`mcp/scripts/` by `npm run mcp:sync` and committed. `npm test` asserts the copies are
+byte-identical, so the two cannot drift silently. `npm run mcp:pack` builds the
+tarball.
+
+Tools: `wicker_status`, `wicker_authorize`, `wicker_sign_out`, `canvas_connect`,
+`list_courses`, `get_course`, `get_chapter`, `search_course`,
 `list_questions`, `get_practice_queue`, `get_progress`, `list_flashcards`,
 `list_due_cards`, `list_mistakes`, `list_mock_sessions`, `get_mock_session`,
 `get_academic_plan`, `list_known_programmes`, `get_activity`, `get_account_summary`,

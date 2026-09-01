@@ -23,7 +23,9 @@
     "canvas:agent": "node scripts/wicker-local-agent.mjs",
     "mcp": "node mcp/server.mjs",
     "test": "node --test",
-    "verify": "npm run typecheck && npm test && npm run build"
+    "verify": "npm run typecheck && npm test && npm run build",
+    "mcp:sync": "node scripts/sync-mcp-vendor.mjs --write",
+    "mcp:pack": "npm run mcp:sync && npm pack ./mcp --pack-destination /tmp"
   },
   "dependencies": {
     "@clerk/backend": "^3.16.12",
@@ -42,5 +44,16 @@
     "@types/react-dom": "^19.2.5",
     "ajv": "^8.20.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "version": "1.0.0",
+  "description": "A hosted or local study platform for the Maastricht BCS June 2026 resit window. With editorial chapter notes, prepared mock exams, question banks, and flashcards for five courses:",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

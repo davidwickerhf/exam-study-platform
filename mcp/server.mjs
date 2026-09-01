@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 // Wicker Study MCP server — a thin stdio wrapper over the HTTP API so agents
-// (Claude Desktop, Claude Code, Cursor, …) can read course material and a
-// student's record, record study activity, and — with an admin key —
-// maintain editorial content.
+// (Claude Desktop, Claude Code, Codex, Cursor, …) can read course material and
+// a student's record, record study activity, collect a private Canvas course
+// snapshot, and — with an admin key — maintain editorial content.
 //
-//   WICKER_STUDY_URL=https://study.wicker.life WICKER_STUDY_API_KEY=wsk_… npm run mcp
+//   npx wicker-study-mcp                      uses the saved key, or asks for one
+//   WICKER_STUDY_URL=http://localhost:4177 npx wicker-study-mcp
+//   WICKER_STUDY_API_KEY=wsk_… npx wicker-study-mcp
+//
+// It runs from anywhere: nothing here needs the application checkout. When no
+// key is available the server still starts, so the agent can call
+// `wicker_authorize` and walk the user through a browser approval rather than
+// failing at launch with an environment variable the user has never heard of.
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
@@ -12,15 +19,24 @@ import { z } from 'zod'
 import { createHash } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath } from 'node:fs/promises'
 import { extname, join, relative, resolve, sep } from 'node:path'
-import { CANVAS_IMPORT_LIMITS, canvasCourseFolderName, filterCanvasCourses, importCanvasCourse, listCanvasCourseModules, listCanvasCourses, parseCanvasCourseUrl } from '../lib/canvas-course-import.mjs'
-import { exportCanvasCourseZip } from '../lib/canvas-course-export.mjs'
-import { getSavedCanvasAccessToken, promptForLocalCanvasImport, saveCanvasAccessTokenFromClipboard } from '../lib/local-canvas-prompts.mjs'
+import { CANVAS_IMPORT_LIMITS, canvasCourseFolderName, filterCanvasCourses, importCanvasCourse, listCanvasCourseModules, listCanvasCourses, parseCanvasCourseUrl } from './vendor/canvas-course-import.mjs'
+import { exportCanvasCourseZip } from './vendor/canvas-course-export.mjs'
+import { getSavedCanvasAccessToken, promptForLocalCanvasImport, saveCanvasAccessTokenFromClipboard } from './vendor/local-canvas-prompts.mjs'
+import { beginAuthorization } from './authorize.mjs'
+import { configPath, forgetApiKey, listSavedServers, normaliseServerUrl, resolveApiKey, saveApiKey } from './config.mjs'
 
-const baseUrl = (process.env.WICKER_STUDY_URL || 'http://localhost:4177').replace(/\/+$/, '')
-const apiKey = process.env.WICKER_STUDY_API_KEY || ''
-if (!apiKey) {
-  console.error('WICKER_STUDY_API_KEY is required (create one under Account → API access).')
-  process.exit(1)
+const baseUrl = normaliseServerUrl(process.env.WICKER_STUDY_URL || 'https://study.wicker.life')
+const DEFAULT_CANVAS_URL = process.env.WICKER_CANVAS_URL || 'https://canvas.maastrichtuniversity.nl'
+
+// Resolved once at startup and again after an authorization, so a key granted
+// mid-session takes effect without restarting the agent.
+let credential = await resolveApiKey(baseUrl)
+
+const NEEDS_AUTHORIZATION = `Not connected to ${baseUrl}. Call wicker_authorize to get a key: it opens a Wicker Study page the user approves in their browser, and the key is delivered straight to this machine — never through the conversation. Set WICKER_STUDY_URL first if this is the wrong server.`
+
+function requireKey() {
+  if (!credential.apiKey) throw new Error(NEEDS_AUTHORIZATION)
+  return credential.apiKey
 }
 
 async function apiResponse(path, { method = 'GET', body, query } = {}) {
@@ -28,13 +44,16 @@ async function apiResponse(path, { method = 'GET', body, query } = {}) {
   for (const [key, value] of Object.entries(query || {})) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value))
   const response = await fetch(url, {
     method,
-    headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+    headers: { authorization: `Bearer ${requireKey()}`, accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined
   })
   if (!response.ok) {
     const text = await response.text()
     let data
     try { data = text ? JSON.parse(text) : null } catch { data = { raw: text } }
+    // A revoked or expired key is the same dead end as no key at all, so say
+    // the same thing rather than leaving the agent to interpret a 401.
+    if (response.status === 401) throw new Error(`${baseUrl} rejected this API key. It may have been revoked or expired. Call wicker_authorize to replace it.`)
     throw new Error(`${method} ${path} → ${response.status}: ${data?.error || text.slice(0, 300)}`)
   }
   return response
@@ -52,7 +71,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '1.2.1' })
+const server = new McpServer({ name: 'wicker-study', version: '2.0.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
@@ -309,6 +328,130 @@ async function importRemoteCanvasCourseSet(args) {
 }
 
 // ── Read ─────────────────────────────────────────────────────────────────
+// ── Connecting ────────────────────────────────────────────────────────────
+// These four are the only tools that work without a key, because they are how
+// a key is obtained. Everything else answers with NEEDS_AUTHORIZATION until
+// one exists.
+
+let pendingAuthorization = null
+
+server.tool('wicker_status',
+  'Whether this agent is connected to Wicker Study, which account it acts as, and whether that account has Canvas connected. Call this first in a new session — it is the cheapest way to find out what still needs setting up. Never returns an API key or a Canvas token.',
+  {},
+  run(async () => {
+    const status = {
+      server: baseUrl,
+      connected: Boolean(credential.apiKey),
+      keySource: credential.source,
+      configFile: configPath(),
+      otherSavedServers: (await listSavedServers()).map((entry) => entry.server).filter((server) => server !== baseUrl)
+    }
+    if (pendingAuthorization) status.pendingAuthorization = { url: pendingAuthorization.url, startedAt: pendingAuthorization.startedAt, note: 'Waiting for the user to approve in their browser.' }
+    if (!status.connected) return { ...status, next: NEEDS_AUTHORIZATION }
+    try {
+      const me = await api('/api/me')
+      status.account = { userId: me.userId, email: me.email ?? null, scopes: me.scopes, admin: Boolean(me.admin) }
+    } catch (error) {
+      return { ...status, connected: false, problem: error.message }
+    }
+    try {
+      const canvas = await api('/api/account/integrations/canvas')
+      const connections = canvas.connections || []
+      status.canvas = connections.length
+        ? { connected: true, origins: connections.map((connection) => connection.origin) }
+        : { connected: false, next: 'Call canvas_connect for the page the student uses to add their Canvas Personal Access Token. Canvas material is unavailable until then.' }
+    } catch (error) {
+      status.canvas = { connected: false, problem: error.message }
+    }
+    return status
+  }))
+
+server.tool('wicker_authorize',
+  'Get an API key for this machine. Returns a Wicker Study URL: show it to the user and ask them to open it and approve. The key is delivered straight back to this computer over loopback and saved globally, so it never appears in the conversation and every later session on this machine reuses it. Poll wicker_status to see when it has landed. Requires a browser on this machine.',
+  {
+    scopes: z.array(z.enum(['read', 'write', 'admin'])).optional().describe('Default ["read","write"]. Ask for "admin" only when the user maintains course content; only administrators can approve it.'),
+    name: z.string().max(80).optional().describe('How this agent should appear in the approval screen and the key list, e.g. "Claude Code on David’s MacBook".')
+  },
+  run(async ({ scopes, name }) => {
+    if (credential.apiKey) {
+      return {
+        alreadyConnected: true,
+        server: baseUrl,
+        keySource: credential.source,
+        note: 'A key is already available. Call wicker_sign_out first if you need to replace it.'
+      }
+    }
+    if (pendingAuthorization) return { ...pendingAuthorization, note: 'An authorization is already waiting. Show this URL again, or call wicker_sign_out to abandon it.' }
+
+    const flow = beginAuthorization(baseUrl, { name: name || 'Agent (MCP)', scopes: scopes?.length ? scopes : ['read', 'write'] })
+    const { url } = await flow.ready
+    pendingAuthorization = { url, startedAt: new Date().toISOString() }
+    flow.completed
+      .then(async () => { credential = await resolveApiKey(baseUrl) })
+      .catch(() => {})
+      .finally(() => { pendingAuthorization = null })
+
+    return {
+      url,
+      server: baseUrl,
+      expiresInMinutes: 5,
+      instructions: [
+        `Ask the user to open ${url} and approve.`,
+        'They must be signed in to Wicker Study; the page will offer sign-in if not.',
+        'Then call wicker_status. Once it reports connected, every other tool works.',
+        'Do not ask the user to paste a key into the chat — this flow exists so that is never necessary.'
+      ]
+    }
+  }))
+
+server.tool('wicker_sign_out',
+  'Forget the API key saved on this machine for this server, and abandon any authorization waiting for approval. The key itself stays valid until revoked under Account → API access in the web app.',
+  {},
+  run(async () => {
+    pendingAuthorization = null
+    const removed = await forgetApiKey(baseUrl)
+    credential = await resolveApiKey(baseUrl)
+    return {
+      server: baseUrl,
+      removed,
+      stillConnected: Boolean(credential.apiKey),
+      note: credential.apiKey
+        ? 'WICKER_STUDY_API_KEY is set in this process’s environment and still applies; unset it to disconnect fully.'
+        : `Revoke the key itself at ${baseUrl}/app#/account/api if it should stop working everywhere.`
+    }
+  }))
+
+server.tool('canvas_connect',
+  'Check whether the connected Wicker Study account has a Canvas connection, and if not, return the page where the student adds one. Call this before any canvas_* tool. The Canvas Personal Access Token is entered in the browser and encrypted for the account — it is never given to an agent, and must never be requested in chat.',
+  { canvasUrl: z.string().optional().describe(`Canvas origin. Default ${DEFAULT_CANVAS_URL}.`) },
+  run(async ({ canvasUrl }) => {
+    const origin = new URL(canvasUrl || DEFAULT_CANVAS_URL).origin
+    const settings = `${baseUrl}/app#/account/connections`
+    const connections = (await api('/api/account/integrations/canvas')).connections || []
+    const match = connections.find((connection) => connection.origin === origin) || null
+    if (match) {
+      return {
+        connected: true,
+        origin: match.origin,
+        connectedAt: match.createdAt,
+        lastUsedAt: match.lastUsedAt,
+        next: 'Use canvas_list_remote_courses to see what is available, then canvas_import_remote_course.'
+      }
+    }
+    return {
+      connected: false,
+      origin,
+      otherConnections: connections.map((connection) => connection.origin),
+      authorizationUrl: settings,
+      instructions: [
+        `Ask the user to open ${settings}.`,
+        `They create a Personal Access Token in Canvas (${origin}/profile/settings), then paste it there — into Wicker Study, in their browser, not into this conversation.`,
+        'Wicker Study encrypts it for their account. Agents receive proxied course data and never the token.',
+        'Then call canvas_connect again to confirm.'
+      ]
+    }
+  }))
+
 server.tool('whoami', 'Who this key acts as, its scopes, programme memberships, and whether it is an administrator.', {}, run(() => api('/api/me')))
 server.tool('join_programme', 'Join a maintained programme (organisation). Only programmes whose institution domains match the student’s email can be joined.', { programmeId: z.string() }, run(({ programmeId }) => api('/api/account/programme', { method: 'POST', body: { programmeId } })))
 server.tool('list_courses', 'Courses with chapters and progress counts.', {}, run(() => api('/api/courses')))

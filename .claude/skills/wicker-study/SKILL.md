@@ -1,20 +1,60 @@
 ---
 name: wicker-study
-description: Study with or maintain a Wicker Study deployment. Read course material and progress, reconcile academic documents, collect a private Canvas course snapshot through an account connection without receiving its token, or—with an admin key—ingest authorised local material into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
+description: Study with or maintain a Wicker Study deployment. Connect from anywhere with the published MCP server, read course material and progress, see live Canvas announcements and deadlines, reconcile academic documents, collect a private Canvas course snapshot through an account connection without receiving its token, or—with an admin key—ingest authorised local material into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
 ---
 
 # Wicker Study
 
 Wicker Study exposes one HTTP API for the web app, agents, and administrators.
-Everything is scoped by a personal API key created under **Account → API access**.
+Everything is scoped by a personal API key. The MCP server wraps that API and
+runs from anywhere — it needs no checkout of the application.
+
+## Connect first
+
+Add the server to the client's MCP config, or run it directly:
+
+```jsonc
+{ "mcpServers": { "wicker-study": { "command": "npx", "args": ["-y", "wicker-study-mcp"] } } }
+```
+
+```sh
+npx -y wicker-study-mcp                                    # study.wicker.life
+WICKER_STUDY_URL=http://localhost:4177 npx -y wicker-study-mcp   # a dev server
+```
+
+Then, at the start of a session, in this order:
+
+1. **`wicker_status`** — the cheapest way to learn what is already set up. It
+   reports the server, whether a key is available, which account it acts as,
+   and whether that account has Canvas connected. Nothing else is needed if it
+   comes back connected.
+2. **`wicker_authorize`** if it is not connected. It returns a URL. Show the URL
+   to the user and ask them to open it and approve. The key is delivered
+   straight back to their machine over loopback and saved in
+   `~/.config/wicker-study/config.json` (mode 0600), so every later session on
+   that machine reuses it. Poll `wicker_status` until it reports connected.
+   Ask for `["read","write"]` unless the user maintains course content, in which
+   case ask for `admin` too — only administrators can approve it.
+3. **`canvas_connect`** before any `canvas_*` tool. It says whether the account
+   has a Canvas connection and, if not, returns the page where the student adds
+   one themselves.
+
+**Never ask the user to paste an API key, a Canvas token, a password, an MFA
+code, or a cookie into the conversation.** The authorization flow exists so that
+is never necessary. If a tool reports no key, run `wicker_authorize` — do not
+ask for credentials, and do not try to read them from the user's files.
+
+`wicker_sign_out` forgets the saved key on that machine; the key itself is
+revoked under **Account → API access** in the web app.
+
+### Without MCP
 
 - Base URL: `https://study.wicker.life` (production) or `http://localhost:4177` (dev).
 - Auth: `Authorization: Bearer wsk_…`. Scopes: `read` (GET), `write` (study
   mutations), `admin` (editorial content; only administrators can mint these).
+- Keys are created under **Account → API access** in the web app.
 - Discover everything with `GET /api/agent/manifest` — it lists every endpoint,
   its scope, and body shapes. Read it first when unsure.
-- Prefer the MCP server when available: `WICKER_STUDY_URL=… WICKER_STUDY_API_KEY=… npm run mcp`
-  from the repository (tools mirror the endpoints below).
 
 ## Ids
 
@@ -34,7 +74,9 @@ strings (`"02"`). Always resolve them with `GET /api/courses` before guessing.
 | Mistakes, mocks | `GET /api/mistakes?open=true`, `GET /api/mocks` |
 | Academic plan, exam dates | `GET /api/academics` |
 | Streak and recent activity | `GET /api/activity?days=28` |
-| Unified calendar (exams, deadlines, institution dates, timetable feeds) | `GET /api/calendar/events` |
+| Unified calendar (exams, deadlines, institution dates, timetable feeds, Canvas deadlines) | `GET /api/calendar/events` |
+| Live Canvas board (announcements, assignments with submission state, grades) | `GET /api/integrations/canvas/hub?scope=current\|all&days=` |
+| Whether Canvas is connected | `GET /api/account/integrations/canvas` (read-only for keys) |
 
 ## Studying on the student's behalf (scope: write)
 
@@ -130,12 +172,16 @@ folder.** There are two intentionally separate collection paths.
 
 #### Account connection → local Claude/Codex snapshot (normal user path)
 
-The student saves their PAT themselves in **Wicker Study → Canvas archive** while
-signed in to the website. Wicker encrypts it server-side at rest, scopes it to that
-account and Canvas origin, and never returns it in an API response, account export, or
-MCP result. API keys cannot create, read, or delete this credential. The service must
-have `CANVAS_CONNECTION_ENCRYPTION_KEY` configured; if it is not, fail closed and tell
-the student to contact the service administrator.
+Call **`canvas_connect`** first. If the account already has a connection it says so
+and you can proceed. If it does not, it returns the settings page URL — show that to
+the student and wait; do not attempt to collect the token yourself.
+
+The student saves their PAT themselves in **Account → Connections** while signed in to
+the website. Wicker encrypts it server-side at rest, scopes it to that account and
+Canvas origin, and never returns it in an API response, account export, or MCP result.
+API keys can see *that* a connection exists but can never create, read, or delete one.
+The service must have `CANVAS_CONNECTION_ENCRYPTION_KEY` configured; if it is not, fail
+closed and tell the student to contact the service administrator.
 
 A local Claude/Codex MCP process still needs its own Wicker `wsk_…` API key, but only
 to authenticate as that user. It must use the account-connection tools below instead
@@ -227,4 +273,6 @@ grant the admin role.
 - Send JSON bodies with `Content-Type: application/json`.
 - Errors return `{error}`: 401 bad key, 403 scope/admin, 404 unknown id, 409 stale
   revision, 501 editorial write without a hosted database.
-- Never store a key in the repository; read it from the environment.
+- Never store a key in the repository, a project file, or a chat message. The MCP
+  keeps it in `~/.config/wicker-study/config.json`; `WICKER_STUDY_API_KEY` overrides
+  it for one-off runs and CI.
