@@ -37,10 +37,39 @@ function filename(value, fallback = 'material') {
 }
 
 // The document that carries assessment rules, attendance requirements, and
-// deadlines. On real Maastricht courses it is a module item — a PDF or a Canvas
-// page — and almost never the Canvas syllabus field, which usually holds only
-// its filename or an unfilled teacher placeholder.
+// deadlines. Two places hold it, and the course usually uses only one: the
+// Canvas Syllabus page — which typically contains a link to a PDF rather than
+// the rules themselves — or a module item.
 export const COURSE_REQUIREMENTS_PATTERN = /(syllabus|course\s*manual|coursemanual|course\s*outline|course\s*information|study\s*guide|handbook|assessment)/i
+
+// Maastricht ships every course a Syllabus page pre-filled with a link to a
+// how-to guide. A course still carrying it has published nothing, and treating
+// that link as the syllabus would be worse than reporting none.
+const SYLLABUS_PLACEHOLDER = /scribehow\.com|embed\s+(?:your\s+)?(?:the\s+)?course\s+syllabus/i
+
+// Pull the documents a Canvas Syllabus page links to. Stylesheets and the
+// institution's placeholder are not documents.
+export function syllabusDocuments(html, { origin = '', courseId = '' } = {}) {
+  const documents = []
+  for (const match of String(html || '').matchAll(/<a\b[^>]*href\s*=\s*"([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+    const href = match[1]
+    const label = text(match[2].replace(/<[^>]*>/g, ' '), 200)
+    if (/\.css(\?|$)/i.test(href) || SYLLABUS_PLACEHOLDER.test(href) || SYLLABUS_PLACEHOLDER.test(label)) continue
+    const fileId = (href.match(/\/files\/(\d+)/) || [])[1] || null
+    const pageSlug = (href.match(new RegExp(`/courses/${courseId}/pages/([^/?#]+)`)) || [])[1] || null
+    documents.push({
+      title: label || 'Course syllabus',
+      type: fileId ? 'File' : pageSlug ? 'Page' : 'ExternalUrl',
+      contentId: fileId,
+      pageSlug: pageSlug ? decodeSegment(pageSlug) : null,
+      // A Canvas file link is fetchable through the account connection; an
+      // external one is recorded but never followed.
+      url: fileId && origin ? `${origin}/courses/${courseId}/files/${fileId}` : href,
+      source: 'syllabus-page'
+    })
+  }
+  return documents
+}
 
 function fileCategory(value) {
   const name = text(value, 240).toLowerCase()
@@ -314,11 +343,30 @@ export async function listCanvasCourseModules({ courseUrl, accessToken, fetchImp
   // and say plainly when it is only a pointer. A field this short is a filename
   // or an unfilled placeholder, not the rules — the real document is the module
   // item flagged below, and it still has to be read.
-  const syllabusHtml = sanitizeCanvasHtml(course.syllabus_body || '')
+  const rawSyllabus = String(course.syllabus_body || '')
+  const syllabusHtml = sanitizeCanvasHtml(rawSyllabus)
   const syllabusText = text(String(syllabusHtml).replace(/<[^>]*>/g, ' '), 20_000)
-  const requirementItems = mapped.flatMap((module) => module.items
-    .filter((item) => COURSE_REQUIREMENTS_PATTERN.test(item.title) && ['File', 'Page', 'Attachment'].includes(item.type))
-    .map((item) => ({ ...item, module: module.name })))
+  const placeholder = SYLLABUS_PLACEHOLDER.test(rawSyllabus)
+  // Both places, in the order a reader should try them: the Syllabus page is
+  // where a course is supposed to put this, and a module item is where it ends
+  // up when the page was left as the institution's template.
+  const seenDocuments = new Set()
+  const requirementItems = [
+    ...syllabusDocuments(rawSyllabus, { origin: canvas.origin, courseId: canvas.courseId }),
+    ...mapped.flatMap((module) => module.items
+      .filter((item) => COURSE_REQUIREMENTS_PATTERN.test(item.title) && ['File', 'Page', 'Attachment'].includes(item.type))
+      .map((item) => ({ ...item, module: module.name, source: 'module' })))
+  ].filter((item) => {
+    // A course often carries the same document twice — linked from the Syllabus
+    // page and uploaded again as a module item, sometimes under different file
+    // ids. One entry is what a reader needs, and the Syllabus-page one comes
+    // first, so match on the filename as well as the id.
+    const name = String(item.title || '').trim().toLowerCase()
+    const keys = [item.contentId ? `file:${item.contentId}` : item.pageSlug ? `page:${item.pageSlug}` : `url:${item.url}`, name ? `name:${name}` : null].filter(Boolean)
+    if (keys.some((key) => seenDocuments.has(key))) return false
+    for (const key of keys) seenDocuments.add(key)
+    return true
+  })
 
   return {
     origin: canvas.origin,
@@ -328,10 +376,13 @@ export async function listCanvasCourseModules({ courseUrl, accessToken, fetchImp
       text: syllabusText || null,
       // 200 characters of rich text is not a syllabus. Say so rather than
       // letting a reader treat a filename as the course requirements.
-      substantive: syllabusText.length >= 200,
-      note: syllabusText.length >= 200 ? null : syllabusText
-        ? 'The Canvas syllabus field only points at a document; read the requirements item instead.'
-        : 'This course has no Canvas syllabus text. Read the requirements item, or ask the student for the course manual.'
+      substantive: syllabusText.length >= 200 && !placeholder,
+      placeholder,
+      note: syllabusText.length >= 200 && !placeholder ? null
+        : placeholder ? 'This course still has the institution’s empty syllabus template. Nothing has been published on the Syllabus page.'
+          : requirementItems.some((item) => item.source === 'syllabus-page') ? 'The Canvas Syllabus page links to the document rather than containing it. Read the item in requirementItems.'
+            : requirementItems.length ? 'This course has no Canvas syllabus text; the requirements document is a module item. Read the item in requirementItems.'
+              : 'This course has published no syllabus text and links to no document.'
     },
     requirementItems,
     modules: mapped

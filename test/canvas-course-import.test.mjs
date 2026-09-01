@@ -171,17 +171,36 @@ test('a Canvas syllabus field that only names a file is reported as a pointer, n
   }
   const opts = { courseUrl: 'https://canvas.example.edu/courses/10/modules', accessToken: 'local-token-only' }
 
-  // Real Maastricht courses put a filename here, or an unfilled placeholder.
+  // A bare filename typed into the Syllabus page is text, not a link, so there
+  // is nothing to fetch from it — the readable copy is the module item.
   const pointer = await listCanvasCourseModules({ ...opts, fetchImpl: course('<p>Course syllabus_CS101.pdf</p>') })
   assert.equal(pointer.syllabus.substantive, false)
-  assert.match(pointer.syllabus.note, /only points at a document/)
+  assert.match(pointer.syllabus.note, /requirements document is a module item/)
   // The module item that carries the rules is named, and unreadable item types
   // are not: a discussion called "Syllabus" is not the course manual.
-  assert.deepEqual(pointer.requirementItems.map((item) => [item.title, item.module]), [['CS101 course manual 2026.pdf', 'Week 1']])
+  assert.deepEqual(pointer.requirementItems.map((item) => [item.title, item.source]), [['CS101 course manual 2026.pdf', 'module']])
+
+  // The document is usually linked from the Syllabus page rather than typed
+  // into it, which is the case on every real course checked.
+  const linked = await listCanvasCourseModules({ ...opts, fetchImpl: course('<p><a href="https://cdn.example/um.css">style</a><a href="/courses/10/files/6604139">Course syllabus_CS101.pdf</a></p>') })
+  assert.equal(linked.syllabus.substantive, false)
+  assert.match(linked.syllabus.note, /links to the document/)
+  assert.deepEqual(linked.requirementItems.map((item) => [item.title, item.type, item.contentId, item.source]),
+    [['Course syllabus_CS101.pdf', 'File', '6604139', 'syllabus-page'], ['CS101 course manual 2026.pdf', 'File', '31', 'module']],
+    'the Syllabus-page document comes first, and a stylesheet is not a document')
+
+  // Maastricht pre-fills every course with a link to a how-to guide. A course
+  // still carrying it has published nothing.
+  const template = await listCanvasCourseModules({ ...opts, fetchImpl: course('<p><a href="https://scribehow.com/viewer/How_to_Embed_Your_Course_Syllabus_in_Canvas__wY-vqD">Embed the course syllabus</a></p>') })
+  assert.equal(template.syllabus.placeholder, true)
+  assert.equal(template.syllabus.substantive, false)
+  assert.match(template.syllabus.note, /empty syllabus template/)
+  assert.deepEqual(template.requirementItems.map((item) => item.title), ['CS101 course manual 2026.pdf'], 'the placeholder link is never offered as the syllabus')
 
   const empty = await listCanvasCourseModules({ ...opts, fetchImpl: course('') })
   assert.equal(empty.syllabus.text, null)
-  assert.match(empty.syllabus.note, /no Canvas syllabus text/)
+  assert.match(empty.syllabus.note, /no Canvas syllabus text; the requirements document is a module item/)
+  assert.deepEqual(empty.requirementItems.map((item) => item.source), ['module'])
 
   const real = await listCanvasCourseModules({ ...opts, fetchImpl: course(`<p>${'Assessment: 60% exam, 40% coursework. '.repeat(12)}</p><script>alert(1)</script>`) })
   assert.equal(real.syllabus.substantive, true)
