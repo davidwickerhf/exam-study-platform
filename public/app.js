@@ -900,6 +900,7 @@ function parseRoute() {
     const tab = PRACTICE_TABS.some(([id]) => id === parts[1]) ? parts[1] : 'questions'
     return { page: 'practice', tab, sessionId: tab === 'mocks' && parts[2] ? decodeURIComponent(parts[2]) : null }
   }
+  if (parts[0] === 'setup') return { page: 'setup' }
   if (parts[0] === 'updates') {
     const requested = decodeURIComponent(parts[1] || '')
     return { page: 'updates', tab: UPDATES_TABS.some(([id]) => id === requested) ? requested : 'announcements' }
@@ -1560,6 +1561,7 @@ function routeView() {
   if (route.page === 'account') return renderAccountPage()
   if (route.page === 'admin') return renderAdminPage()
   if (route.page === 'updates') return renderUpdatesPage()
+  if (route.page === 'setup') return renderSetupPage()
   if (route.page === 'planning') return renderAcademicPlanningPage()
   if (route.page === 'course-request') return renderCourseRequestPage()
   if (route.page === 'course') return renderCourse(route.id)
@@ -4439,6 +4441,286 @@ function greeting() {
 }
 
 // Home shows the Canvas headline only. The board itself lives at #/updates.
+// ───── Setup state ────────────────────────────────────────────────────────
+// Wicker Study is only as good as what it has been connected to, and every
+// source is optional except the programme. Rather than showing empty panels,
+// each page asks for what it is missing — once, dismissably, and with the one
+// action that fixes it.
+
+const academicWork = { data: null, loading: false, error: null, loadedAt: 0, uploading: false, result: null }
+async function loadAcademicWork({ force = false } = {}) {
+  if (academicWork.loading || (academicWork.data && !force && Date.now() - academicWork.loadedAt < 60_000)) return
+  academicWork.loading = true
+  try { academicWork.data = await fetchJson('/api/academics/work'); academicWork.loadedAt = Date.now(); academicWork.error = null }
+  catch (error) { academicWork.error = error.message }
+  finally { academicWork.loading = false; render() }
+}
+
+const SETUP_STEPS = [
+  ['programme', 'Choose your programme', 'Which bachelor you are on, and the courses it contains.', '#/planning', 'Set up my plan'],
+  ['calendar', 'Confirm the academic calendar', 'Teaching periods, exam weeks, and holidays for your programme.', '#/calendar', 'Review the calendar'],
+  ['timetable', 'Connect your timetable', 'Lectures, tutorials, and labs, with times and rooms.', '#/planning/documents', 'Connect timetable'],
+  ['canvas', 'Connect Canvas', 'Announcements, assignment deadlines, and course material.', '#/account/connections', 'Connect Canvas'],
+  ['record', 'Add your academic record', 'Credits earned, courses passed, and what you are registered for.', '#/planning/documents', 'Upload Academic Work']
+]
+
+function setupDismissed(id) { try { return localStorage.getItem(`setup-dismissed:${id}`) === '1' } catch { return false } }
+function dismissSetup(id) { try { localStorage.setItem(`setup-dismissed:${id}`, '1') } catch {} }
+
+function setupState() {
+  const workspace = academicsData?.workspace || null
+  const done = {
+    programme: Boolean(workspace?.courses?.length),
+    calendar: (activeEditorialProgrammeReference()?.programme?.calendar || []).length > 0,
+    timetable: (workspace?.calendars || []).length > 0,
+    // `connected` is only meaningful once the board has answered; treat an
+    // unloaded board as unknown rather than as disconnected.
+    canvas: updatesState.data ? Boolean(updatesState.data.connected) : null,
+    record: academicWork.data ? Boolean(academicWork.data.snapshots?.length) : null
+  }
+  const steps = SETUP_STEPS.map(([id, title, detail, href, action]) => ({ id, title, detail, href, action, done: done[id], required: id === 'programme' }))
+  return {
+    steps,
+    known: steps.every((step) => step.done !== null),
+    missing: steps.filter((step) => step.done === false),
+    outstanding: steps.filter((step) => step.done === false && !setupDismissed(step.id)),
+    complete: steps.every((step) => step.done !== false)
+  }
+}
+
+function renderSetupChecklist() {
+  const setup = setupState()
+  if (!setup.outstanding.length) return ''
+  const total = setup.steps.length
+  const connected = setup.steps.filter((step) => step.done === true).length
+  return `<section class="setup-card" aria-labelledby="setup-title">
+    <div class="setup-head">
+      <div><p class="page-eyebrow">Set up</p><h2 id="setup-title">${connected} of ${total} sources connected</h2><p>Each one adds context to your dashboard. Everything except your programme is optional.</p></div>
+      <a class="btn btn-secondary btn-sm" href="#/setup">Open setup</a>
+    </div>
+    <ul class="setup-list">${setup.outstanding.map((step) => `<li>
+      <span class="setup-mark" aria-hidden="true">${uiIcon('plus')}</span>
+      <span class="setup-copy"><strong>${escapeHtml(step.title)}</strong><small>${escapeHtml(step.detail)}</small></span>
+      <a class="btn btn-primary btn-sm" href="${step.href}">${escapeHtml(step.action)}</a>
+      <button type="button" class="icon-btn setup-dismiss" data-setup-dismiss="${step.id}" aria-label="Dismiss ${escapeHtml(step.title)}" title="Not now">${uiIcon('close')}</button>
+    </li>`).join('')}</ul>
+  </section>`
+}
+
+// ───── This week ──────────────────────────────────────────────────────────
+// One agenda over every source that has something to say about the next seven
+// days: the timetable, Canvas deadlines, and exam attempts from the plan.
+
+const THIS_WEEK_CATEGORIES = ['timetable', 'canvas-deadline', 'exam', 'deadline']
+function thisWeekEntries(days = 7) {
+  const events = calendarState.data?.events || []
+  const today = localIsoDate(new Date())
+  const horizon = localIsoDate(new Date(Date.now() + days * 86_400_000))
+  const relevant = events
+    .filter((event) => THIS_WEEK_CATEGORIES.includes(event.category))
+    .filter((event) => { const day = String(event.start).slice(0, 10); return day >= today && day <= horizon })
+    .sort((left, right) => String(left.start).localeCompare(String(right.start)))
+  const byDay = new Map()
+  for (const event of relevant) {
+    const day = String(event.start).slice(0, 10)
+    if (!byDay.has(day)) byDay.set(day, [])
+    byDay.get(day).push(event)
+  }
+  return [...byDay.entries()].map(([day, items]) => ({ day, items }))
+}
+
+// A timetable note is "08:30–10:30 · DUB30 0.050 · Type: Lecture Location(s): …",
+// where the tail is staff names, a maps link, and a synchronisation stamp. Only
+// the room belongs in an agenda row.
+function timetableRoom(event) {
+  const segments = String(event.notes || '').split('·').map((part) => part.trim()).filter(Boolean)
+  const room = segments.find((segment, index) => index > 0 && !/^\d{2}:\d{2}/.test(segment) && !/^(type|location\(s\)|staff|this appointment|last synchronised)/i.test(segment))
+  return room && room.length <= 60 ? room : null
+}
+
+function weekdayLabel(iso) {
+  const today = localIsoDate(new Date())
+  const tomorrow = localIsoDate(new Date(Date.now() + 86_400_000))
+  if (iso === today) return 'Today'
+  if (iso === tomorrow) return 'Tomorrow'
+  return new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'short' }).format(new Date(`${iso}T12:00:00`))
+}
+
+function renderThisWeek() {
+  const data = calendarState.data
+  const setup = setupState()
+  const timetableConnected = setup.steps.find((step) => step.id === 'timetable').done
+  const canvasConnected = setup.steps.find((step) => step.id === 'canvas').done
+  const days = thisWeekEntries()
+
+  if (!data) return `<section class="panel week-panel"><div class="panel-top"><h2>This week</h2></div><p class="panel-note"><span class="boot-spinner"></span> Reading your calendar…</p></section>`
+  if (!days.length) {
+    // An empty week and a week with nothing connected look identical unless the
+    // difference is stated, and only one of them is worth acting on.
+    const missing = [!timetableConnected ? 'a timetable' : null, !canvasConnected ? 'Canvas' : null].filter(Boolean)
+    return `<section class="panel week-panel">
+      <div class="panel-top"><div><h2>This week</h2><p>${missing.length ? `Nothing to show yet — ${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} not connected.` : 'No lectures, deadlines, or exams in the next seven days.'}</p></div></div>
+      ${missing.length ? `<div class="week-empty">${uiIcon('calendar')}<p>Connect ${missing.join(' and ')} and your lectures, tutorials, labs, and hand-in dates appear here.</p><a class="btn btn-primary btn-sm" href="#/setup">Connect sources</a></div>` : ''}
+    </section>`
+  }
+
+  return `<section class="panel week-panel">
+    <div class="panel-top"><div><h2>This week</h2><p>${days.reduce((total, day) => total + day.items.length, 0)} across ${days.length} day${days.length === 1 ? '' : 's'}${timetableConnected ? '' : ' · timetable not connected'}</p></div><a class="pl-link" href="#/calendar">Calendar</a></div>
+    <ol class="week-days">${days.map(({ day, items }) => `<li>
+      <p class="week-day">${escapeHtml(weekdayLabel(day))}</p>
+      <ol class="week-items">${items.map((event) => {
+        const time = String(event.start).length > 10 ? String(event.start).slice(11, 16) : null
+        const end = event.end && String(event.end).length > 10 && String(event.end).slice(0, 10) === day ? String(event.end).slice(11, 16) : null
+        const colour = event.colour || CATEGORY_COLOURS[event.category] || CATEGORY_COLOURS.other
+        const label = event.category === 'timetable' ? (event.activity && event.activity !== 'Timetable' ? event.activity : 'Timetable')
+          : event.category === 'canvas-deadline' ? (event.canvasStatusLabel || 'Due')
+            : event.category === 'exam' ? 'Exam' : 'Deadline'
+        return `<li class="week-item is-${escapeHtml(event.category)}${event.canvasDone ? ' is-done' : ''}" style="--accent:${colour}">
+          <span class="week-time">${time ? escapeHtml(time) : '<i>all day</i>'}${end ? `<small>${escapeHtml(end)}</small>` : ''}</span>
+          <span class="week-copy"><strong>${escapeHtml(event.courseName || event.title)}</strong><small>${escapeHtml([event.courseCode, label, event.category === 'timetable' ? timetableRoom(event) : null].filter(Boolean).join(' · '))}</small></span>
+          ${event.editorialCourseId ? `<a class="week-go" href="#/course/${encodeURIComponent(event.editorialCourseId)}" title="Open study material">${uiIcon('book')}</a>` : event.externalHref ? `<a class="week-go" href="${escapeHtml(event.externalHref)}" target="_blank" rel="noopener noreferrer" title="Open in Canvas">${uiIcon('external')}</a>` : '<span class="week-go is-empty"></span>'}
+        </li>`
+      }).join('')}</ol>
+    </li>`).join('')}</ol>
+  </section>`
+}
+
+// ───── Setup page ─────────────────────────────────────────────────────────
+// One place that says what Wicker Study knows about you and what it is still
+// missing. Not a wizard: every source except the programme is optional, can be
+// added in any order, and can be added months later.
+
+const setupPage = { open: null, timetableUrl: '', timetableBusy: false, timetableError: null, timetableDone: null }
+
+async function submitSetupTimetable() {
+  const url = setupPage.timetableUrl.trim()
+  if (!url || setupPage.timetableBusy) return
+  setupPage.timetableBusy = true
+  setupPage.timetableError = null
+  render()
+  try {
+    const result = await fetchJson('/api/academics/calendars', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 45_000, body: JSON.stringify({ url, label: 'University timetable' }) })
+    setupPage.timetableDone = result.link?.eventCount ?? result.eventCount ?? 0
+    setupPage.timetableUrl = ''
+    await loadAcademics({ force: true })
+    await loadCalendarEvents(true)
+  } catch (error) {
+    setupPage.timetableError = error.message || 'That feed could not be read.'
+  } finally {
+    setupPage.timetableBusy = false
+    render()
+  }
+}
+
+async function uploadAcademicWork(file) {
+  if (!file || academicWork.uploading) return
+  academicWork.uploading = true
+  academicWork.error = null
+  academicWork.result = null
+  render()
+  try {
+    // The overview is a text PDF printed by the portal, so the reader that
+    // already serves Documents extracts it; nothing is uploaded but the text.
+    const payload = await planningSourcePayload(file)
+    if (!String(payload.text || '').trim()) throw new Error('No text could be read from that file. Print the overview from the student portal rather than photographing it.')
+    academicWork.result = await fetchJson('/api/academics/work', { method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 60_000, body: JSON.stringify({ documents: [{ name: file.name, text: payload.text }] }) })
+    await loadAcademicWork({ force: true })
+  } catch (error) {
+    academicWork.error = error.message || 'That file could not be read.'
+  } finally {
+    academicWork.uploading = false
+    render()
+  }
+}
+
+function renderAcademicWorkUploader() {
+  const result = academicWork.result
+  const history = academicWork.data
+  return `<div class="setup-upload">
+    <ol class="tt-steps setup-portal-steps">
+      <li><span class="tt-step-n">1</span><div><strong>Open My Study in the student portal</strong><p><a href="https://studentportal.maastrichtuniversity.nl/group/guest/my-study" target="_blank" rel="noopener noreferrer">studentportal.maastrichtuniversity.nl → My Study</a></p></div></li>
+      <li><span class="tt-step-n">2</span><div><strong>Print the Academic Work overview</strong><p>It lists your current courses, everything you have passed, and every failed attempt.</p></div></li>
+      <li><span class="tt-step-n">3</span><div><strong>Drop the PDF here</strong><p>It is read for the results and then discarded — the file is never stored. Upload a newer one any time and Wicker Study shows what changed.</p></div></li>
+    </ol>
+    <label class="setup-drop">
+      <input type="file" accept="application/pdf,.pdf,.txt" data-academic-work-file ${academicWork.uploading ? 'disabled' : ''}>
+      <span>${uiIcon('upload')} ${academicWork.uploading ? 'Reading…' : 'Choose your Academic Work PDF'}</span>
+    </label>
+    ${academicWork.error ? `<p class="account-delete-error" role="alert">${escapeHtml(academicWork.error)}</p>` : ''}
+    ${result ? (result.unchanged
+      ? `<div class="setup-result is-quiet">${uiIcon('check')}<div><strong>Nothing has changed since your last upload</strong><p>Your record already matches this overview, so no new snapshot was recorded.</p></div></div>`
+      : `<div class="setup-result">${uiIcon('check')}<div><strong>${result.summary.earnedEcts} credits · ${result.summary.passedCourses} course${result.summary.passedCourses === 1 ? '' : 's'} passed · ${result.summary.currentCourses} registered now</strong><p>${result.progress?.newlyPassed?.length ? `Newly passed: ${result.progress.newlyPassed.map((course) => escapeHtml(course.code)).join(', ')}.` : ''}${result.progress && result.progress.ectsDelta > 0 ? ` ${result.progress.ectsDelta} credits since your last upload.` : ''}${result.summary.weightedAverage != null ? ` Weighted average ${result.summary.weightedAverage}.` : ''}</p></div></div>`) : ''}
+    ${history?.snapshots?.length ? `<p class="panel-note">${history.snapshots.length} reading${history.snapshots.length === 1 ? '' : 's'} recorded · latest ${escapeHtml(relativeTime(history.snapshots[0].createdAt) || 'just now')}. Only the results are kept, never the document.</p>` : ''}
+  </div>`
+}
+
+function renderSetupStepBody(step) {
+  if (step.id === 'timetable') {
+    return `<div class="setup-step-body">
+      ${renderTimetableConnectGuide({ open: true })}
+      <form class="doc-calendar-form" data-setup-timetable>
+        <label><span>Timetable URL</span><input name="url" type="url" placeholder="https://timetable.maastrichtuniversity.nl/ical?…" value="${escapeHtml(setupPage.timetableUrl)}" ${setupPage.timetableBusy ? 'disabled' : ''} required></label>
+        ${setupPage.timetableError ? `<p class="account-delete-error" role="alert">${escapeHtml(setupPage.timetableError)}</p>` : ''}
+        ${setupPage.timetableDone != null ? `<div class="setup-result">${uiIcon('check')}<div><strong>${setupPage.timetableDone} appointments connected</strong><p>Your lectures, tutorials, and labs now appear on Home and Calendar.</p></div></div>` : ''}
+        <div class="pl-form-actions"><span class="pl-spacer"></span><button type="submit" class="btn btn-primary" ${setupPage.timetableBusy ? 'disabled' : ''}>${setupPage.timetableBusy ? 'Checking the feed…' : 'Connect timetable'}</button></div>
+      </form>
+    </div>`
+  }
+  if (step.id === 'record') return `<div class="setup-step-body">${renderAcademicWorkUploader()}</div>`
+  if (step.id === 'canvas') {
+    return `<div class="setup-step-body">
+      <ol class="tt-steps setup-portal-steps">
+        <li><span class="tt-step-n">1</span><div><strong>Open Canvas settings</strong><p><a href="https://canvas.maastrichtuniversity.nl/profile/settings" target="_blank" rel="noopener noreferrer">canvas.maastrichtuniversity.nl → Settings</a>, in a tab where you are already signed in.</p></div></li>
+        <li><span class="tt-step-n">2</span><div><strong>Create a new access token</strong><p>Under <em>Approved integrations</em>, choose <em>+ New access token</em>, name it “Wicker Study”, and leave the expiry blank. Copy it once — Canvas will not show it again.</p></div></li>
+        <li><span class="tt-step-n">3</span><div><strong>Paste it into Account → Connections</strong><p>It is encrypted for your account and never shown again. Only paste a Personal Access Token: never a password, an MFA code, or a cookie.</p></div></li>
+      </ol>
+      <div class="pl-form-actions"><span class="pl-spacer"></span><a class="btn btn-primary" href="#/account/connections">Open Connections</a></div>
+    </div>`
+  }
+  return ''
+}
+
+function renderSetupPage() {
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
+  if (!updatesState.data && !updatesState.loading && !updatesState.error) queueMicrotask(() => loadUpdates())
+  if (!academicWork.data && !academicWork.loading && !academicWork.error) queueMicrotask(() => loadAcademicWork())
+  if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
+  const setup = setupState()
+  const connected = setup.steps.filter((step) => step.done === true).length
+  const programme = activeEditorialProgrammeReference()?.programme || null
+  return `<section class="page-wrap setup-page">
+    <header class="page-head">
+      <div><p class="page-eyebrow">Set up</p><h1>What Wicker Study knows about you</h1><p class="page-sub">${connected} of ${setup.steps.length} sources connected. Only your programme is required — add the rest whenever you like, in any order.</p></div>
+      <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/">Back to Home</a></div>
+    </header>
+    <ol class="setup-steps">${setup.steps.map((step) => {
+      const state = step.done === true ? 'done' : step.done === null ? 'unknown' : 'todo'
+      const body = renderSetupStepBody(step)
+      const open = setupPage.open === step.id
+      const detail = step.id === 'calendar' && programme?.calendar?.length
+        ? `${programme.calendar.length} dates maintained for ${escapeHtml(programme.degree)} ${escapeHtml(programme.name)}`
+        : step.detail
+      return `<li class="setup-step is-${state}">
+        <div class="setup-step-head">
+          <span class="setup-step-mark">${step.done === true ? uiIcon('check') : step.done === null ? '…' : ''}</span>
+          <div class="setup-step-copy"><strong>${escapeHtml(step.title)}${step.required ? ' <em>required</em>' : ''}</strong><small>${escapeHtml(detail)}</small></div>
+          ${step.done === true
+            ? `<a class="pl-link" href="${step.href}">Review</a>`
+            : step.done === null
+              // Offering "Connect Canvas" to an account that already has it,
+              // for the second it takes to find out, is worse than waiting.
+              ? '<span class="panel-note">Checking…</span>'
+              : body
+                ? `<button type="button" class="btn ${open ? 'btn-secondary' : 'btn-primary'} btn-sm" data-setup-open="${step.id}">${open ? 'Close' : escapeHtml(step.action)}</button>`
+                : `<a class="btn btn-primary btn-sm" href="${step.href}">${escapeHtml(step.action)}</a>`}
+        </div>
+        ${open && body ? body : ''}
+      </li>`
+    }).join('')}</ol>
+    ${setup.complete ? `<div class="setup-result">${uiIcon('check')}<div><strong>Everything is connected</strong><p>Home now draws on your programme, the academic calendar, your timetable, Canvas, and your academic record.</p></div></div>` : ''}
+  </section>`
+}
+
 function renderHomeCanvasPanel() {
   const data = updatesState.data
   if (!data?.connected) return ''
@@ -4462,6 +4744,8 @@ function renderHome() {
   ensureHomeData()
   if (!activityLoading && (!activityCache || Date.now() - activityLoadedAt > 60_000)) loadActivity().then(() => render())
   if (!updatesState.data && !updatesState.loading && !updatesState.error) queueMicrotask(() => loadUpdates())
+  if (!academicWork.data && !academicWork.loading && !academicWork.error) queueMicrotask(() => loadAcademicWork())
+  if (!calendarState.data && !calendarState.loading && !calendarState.error) queueMicrotask(() => loadCalendarEvents())
   const user = currentUser()
   const mistakeCount = mistakeCache?.items?.length ?? null
   const srDue = srDueCache?.dueCount ?? null
@@ -4509,8 +4793,11 @@ function renderHome() {
       ${kpi('#/account/profile', streak ? 'is-flame' : 'is-neutral', 'flame', 'Study streak', streak == null ? '—' : `${streak}<small>${streak === 1 ? 'day' : 'days'}</small>`, week == null ? 'Loading…' : `${week} action${week === 1 ? '' : 's'} this week${delta ? ` · ${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)}` : ''}`)}
     </div>
 
+    ${renderSetupChecklist()}
+
     <div class="home-grid">
       <section class="home-main">
+        ${renderThisWeek()}
         ${resumeCourse && resumeChapter ? `<a class="resume-card" href="#/course/${resumeCourse.id}/chapter/${resumeChapter.id}">
           <span class="resume-label">${recentIsCurrent ? 'Continue where you left off' : 'Start reading'}</span>
           <span class="resume-title"><em>${escapeHtml(resumeCourse.code)} · Ch ${escapeHtml(resumeChapter.id)}</em><strong>${escapeHtml(resumeChapter.name)}</strong></span>
@@ -10548,6 +10835,13 @@ function bindEvents() {
 
   document.querySelectorAll('[data-planning-files]').forEach((input) => input.addEventListener('change', () => addPlanningSources(input.files)))
   // ----- Updates: the Canvas board -----
+  document.querySelectorAll('[data-setup-open]').forEach((button) => button.addEventListener('click', () => { setupPage.open = setupPage.open === button.dataset.setupOpen ? null : button.dataset.setupOpen; render() }))
+  document.querySelectorAll('[data-setup-timetable]').forEach((form) => {
+    form.addEventListener('submit', (event) => { event.preventDefault(); setupPage.timetableUrl = form.elements.url.value; submitSetupTimetable() })
+    form.elements.url.addEventListener('input', () => { setupPage.timetableUrl = form.elements.url.value })
+  })
+  document.querySelectorAll('[data-academic-work-file]').forEach((input) => input.addEventListener('change', () => uploadAcademicWork(input.files?.[0])))
+  document.querySelectorAll('[data-setup-dismiss]').forEach((button) => button.addEventListener('click', () => { dismissSetup(button.dataset.setupDismiss); render() }))
   document.querySelectorAll('[data-upd-refresh]').forEach((button) => button.addEventListener('click', () => loadUpdates({ force: true })))
   document.querySelectorAll('[data-upd-scope]').forEach((button) => button.addEventListener('click', () => {
     const next = button.dataset.updScope
