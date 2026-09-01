@@ -36,6 +36,8 @@ import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEv
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
+import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
+import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
@@ -3883,6 +3885,45 @@ const server = createServer(async (req, res) => {
       }
       const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
       send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), canvas: { connected: canvasConnected }, problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    // The Academic Work overview from the student portal. Rigidly tabular, so it
+    // is read by a parser rather than a model: free, instant, repeatable, and it
+    // cannot invent a grade. Each reading is kept as a snapshot of the derived
+    // record — never the document — so progress can be compared over time.
+    if (url.pathname === '/api/academics/work' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(await academicProgress()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/academics/work' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, MAX_ACADEMIC_INTAKE_BODY_BYTES)
+        const documents = Array.isArray(body?.documents) ? body.documents : []
+        const source = documents.find((document) => String(document?.text || '').trim()) || (String(body?.text || '').trim() ? { name: body?.name, text: body.text } : null)
+        if (!source) { send(res, 400, JSON.stringify({ error: 'Attach the Academic Work overview printed from the student portal. A scan or photograph has no text to read.' })); return }
+        const parsed = parseAcademicWork(source.text)
+        const result = await recordAcademicSnapshot({
+          kind: parsed.kind,
+          sourceLabel: source.name || 'Academic Work',
+          printedOn: parsed.printedOn,
+          courses: parsed.courses,
+          summary: parsed.summary
+        })
+        // The student's name and number are read to confirm the document is
+        // theirs; they are not stored and are not echoed back.
+        send(res, 200, JSON.stringify({
+          unchanged: result.unchanged,
+          snapshot: result.snapshot,
+          progress: result.progress,
+          programme: parsed.programme,
+          printedOn: parsed.printedOn,
+          courses: parsed.courses,
+          summary: parsed.summary
+        }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof AcademicWorkError ? 422 : /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
+      }
       return
     }
 
