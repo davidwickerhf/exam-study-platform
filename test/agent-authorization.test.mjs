@@ -1,14 +1,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from '../lib/agent-authorization.mjs'
 import { authorizationUrl, makeVerifier, startCallbackListener } from '../mcp/authorize.mjs'
 import { configPath, forgetApiKey, listSavedServers, normaliseServerUrl, resolveApiKey, saveApiKey } from '../mcp/config.mjs'
 import { checkMcpVendor } from '../scripts/sync-mcp-vendor.mjs'
+
+// Exchanging a code mints a real key into the local document store, and an
+// account is capped at twenty. A fixed user id therefore poisons the suite
+// after twenty runs, so each run gets its own throwaway account and deletes it.
+const dataRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'data/users')
+const scratchUsers = new Set()
+function scratchUser(prefix) {
+  const id = `${prefix}_${randomUUID().slice(0, 8)}`
+  scratchUsers.add(id)
+  return id
+}
+test.after(async () => {
+  for (const id of scratchUsers) await rm(join(dataRoot, id), { recursive: true, force: true })
+  await rm(join(dataRoot, '_agent-authorizations'), { recursive: true, force: true })
+})
 
 const asUser = (id, callback) => withRequestContext({ userId: id, mode: 'clerk' }, callback)
 
@@ -30,7 +46,8 @@ test('an agent key is only ever delivered to loopback', () => {
 
 test('a code is single use, verifier-bound, and mints a key only at exchange', async () => {
   const { verifier, challenge } = makeVerifier()
-  const approval = await asUser('user_alpha', () => approveAgentAuthorization({ name: 'Claude Code', scopes: ['read', 'write'], challenge }))
+  const owner = scratchUser('user_alpha')
+  const approval = await asUser(owner, () => approveAgentAuthorization({ name: 'Claude Code', scopes: ['read', 'write'], challenge }))
   assert.match(approval.code, /^[A-Za-z0-9_-]{20,}$/)
   assert.deepEqual(approval.scopes, ['read', 'write'])
 
@@ -40,7 +57,7 @@ test('a code is single use, verifier-bound, and mints a key only at exchange', a
 
   const granted = await exchangeAgentAuthorization({ code: approval.code, verifier })
   assert.match(granted.apiKey, /^wsk_/)
-  assert.equal(granted.userId, 'user_alpha')
+  assert.equal(granted.userId, owner)
   assert.deepEqual(granted.scopes, ['read', 'write'])
 
   // Spent codes stay spent, even with the right verifier.
@@ -48,11 +65,12 @@ test('a code is single use, verifier-bound, and mints a key only at exchange', a
 })
 
 test('the challenge must be a digest, and admin scope needs an administrator', async () => {
-  await assert.rejects(() => asUser('user_beta', () => approveAgentAuthorization({ name: 'x', scopes: ['read'], challenge: 'a-literal-secret' })), AgentAuthorizationError)
+  const owner = scratchUser('user_beta')
+  await assert.rejects(() => asUser(owner, () => approveAgentAuthorization({ name: 'x', scopes: ['read'], challenge: 'a-literal-secret' })), AgentAuthorizationError)
   const { challenge } = makeVerifier()
-  await assert.rejects(() => asUser('user_beta', () => approveAgentAuthorization({ name: 'x', scopes: ['admin'], challenge })),
+  await assert.rejects(() => asUser(owner, () => approveAgentAuthorization({ name: 'x', scopes: ['admin'], challenge })),
     (error) => error instanceof AgentAuthorizationError && error.status === 403)
-  await assert.rejects(() => asUser('user_beta', () => approveAgentAuthorization({ name: 'x', scopes: ['teleport'], challenge })), AgentAuthorizationError)
+  await assert.rejects(() => asUser(owner, () => approveAgentAuthorization({ name: 'x', scopes: ['teleport'], challenge })), AgentAuthorizationError)
 })
 
 test('an unknown code fails the same way as a spent one', async () => {
