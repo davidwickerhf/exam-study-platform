@@ -1,0 +1,35 @@
+name: Data Science for Decision Making
+catalogueId: maastricht-university-msc-data-science-for-decision-making
+versionId: 2026-2027
+versionLabel: 2026–2027 reference curriculum
+repository: https://courserepository.maastrichtuniversity.nl/p/program/EN/50017319
+KEN4113|Data Mining|6|1|MSc DSDM Year 1 Core Courses
+KEN4242|Model Identification and Data Fitting|6|2|MSc DSDM Year 1 Core Courses
+KEN4230|Research Project Data Science for Decision Making 1|6|1+2+3|MSc DSDM Year 1 Core Courses
+KEN4258|Computational Statistics|6|4|MSc DSDM Year 1 Core Courses
+KEN4254|Algorithms for Big Data|6|5|MSc DSDM Year 1 Core Courses
+KEN4231|Research Project Data Science for Decision Making 2|6|4+5+6|MSc DSDM Year 1 Core Courses
+KEN4211|Optimization|6|1|MSc DSDM Year 1 Electives
+KEN4222|Signal and Image Processing|6|1|MSc DSDM Year 1 Electives
+KEN4252|Control and Intelligent Systems|6|1|MSc DSDM Year 1 Electives
+KEN4154|Advanced Concepts in Machine Learning|6|2|MSc DSDM Year 1 Electives
+KEN4224|Data Visualization|6|2|MSc DSDM Year 1 Electives
+KEN4251|Algorithmic Game Theory|6|2|MSc DSDM Year 1 Electives
+KEN4255|Computer Vision|6|2|MSc DSDM Year 1 Electives
+KEN4259|Advanced Natural Language Processing|6|2|MSc DSDM Year 1 Electives
+KEN4223|Data Fusion|6|4|MSc DSDM Year 1 Electives
+KEN4225|Data Privacy and Security|6|4|MSc DSDM Year 1 Electives
+KEN4253|Planning and Scheduling|6|4|MSc DSDM Year 1 Electives
+KEN4256|Building and Mining Knowledge Graphs|6|4|MSc DSDM Year 1 Electives
+KEN4275|Network Science|6|4|MSc DSDM Year 1 Electives
+KEN4153|Agentic Conversational Search|6|5|MSc DSDM Year 1 Electives
+KEN4155|Introduction to Quantum Computing for AI and Data Science|6|5|MSc DSDM Year 1 Electives
+KEN4246|Explainable AI|6|5|MSc DSDM Year 1 Electives
+KEN4123|Intelligent Search & Games|6|1|MSc DSDM Year 2 Electives
+KEN4235|Quantum Algorithms|6|1|MSc DSDM Year 2 Electives
+KEN4236|Quantum AI|6|2|MSc DSDM Year 2 Electives
+KEN4237|Quantum Information and Security|6|2|MSc DSDM Year 2 Electives
+KEN4330|Research Project Quantum Computing|6|1+2+3|MSc DSDM Year 2 Electives
+KEN4111|Agents and Multi-Agent Systems|6|4|MSc DSDM Year 2 Electives
+KEN4114|Autonomous Robotic Systems|6|5|MSc DSDM Year 2 Electives
+KEN4260|Master's Thesis DSDM|30|1+2+3+4+5+6|MSc DSDM Year 2 Core Courses

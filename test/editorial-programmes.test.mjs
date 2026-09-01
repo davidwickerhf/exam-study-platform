@@ -30,26 +30,38 @@ test('editorial programme catalogue rejects duplicate identifiers', () => {
   assert.throws(() => normalizeEditorialProgrammeCatalogue(catalogue), /Duplicate programme id/)
 })
 
-test('the maintained DACS curricula reconcile to a full bachelor', async () => {
+test('every maintained DACS curriculum reconciles to a full degree', async () => {
   const { loadEditorialProgrammeCatalogue } = await import('../lib/editorial-programmes.mjs')
   const catalogue = loadEditorialProgrammeCatalogue()
-  const dacs = catalogue.programmes.filter((programme) => /computer science|data science and artificial intelligence/i.test(programme.name))
-  assert.equal(dacs.length, 2, 'both DACS bachelors are maintained')
+  // All four programmes the Department of Advanced Computing Sciences runs.
+  assert.deepEqual(catalogue.programmes.map((programme) => `${programme.degree} ${programme.name}`).sort(), [
+    'Bachelor of Science Computer Science',
+    'Bachelor of Science Data Science and Artificial Intelligence',
+    'Master of Science Artificial Intelligence',
+    'Master of Science Data Science for Decision Making'
+  ])
 
-  for (const programme of dacs) {
+  for (const programme of catalogue.programmes) {
     const version = programme.versions.find((entry) => entry.id === '2026-2027')
     assert.ok(version, `${programme.name} has a 2026-2027 curriculum`)
-    assert.equal(programme.totalEcts, 180)
+    assert.equal(programme.totalEcts, programme.durationYears * 60, `${programme.name} is ${programme.durationYears} full years`)
 
-    // A Maastricht bachelor year is exactly 60 ECTS of required teaching in
-    // year one; later years make the balance up with electives. Extraction that
-    // silently dropped a course would show here first.
+    // A year is 60 ECTS. A bachelor's first year is entirely core; every other
+    // year mixes core with electives, so core must fit inside a year without
+    // filling it. An extraction that silently dropped a course shows up here.
     const requiredEcts = (year) => version.courses
       .filter((course) => course.yearLevel === year && course.requirement !== 'elective')
       .reduce((total, course) => total + course.ects, 0)
-    assert.equal(requiredEcts('Year 1'), 60, `${programme.name} year 1 is a full year of core courses`)
-    assert.ok(requiredEcts('Year 2') > 0 && requiredEcts('Year 2') <= 60, `${programme.name} year 2 core load is within a year`)
-    assert.ok(requiredEcts('Year 3') > 0 && requiredEcts('Year 3') <= 60, `${programme.name} year 3 core load is within a year`)
+    if (programme.degree.startsWith('Bachelor')) {
+      assert.equal(requiredEcts('Year 1'), 60, `${programme.name} year 1 is a full year of core courses`)
+    }
+    for (let year = 1; year <= programme.durationYears; year++) {
+      const core = requiredEcts(`Year ${year}`)
+      assert.ok(core > 0 && core <= 60, `${programme.name} year ${year} core load is ${core} ECTS, which is not inside a year`)
+    }
+    // Every degree ends in a thesis worth half a year or more.
+    const thesis = version.courses.find((course) => /thesis/i.test(course.name))
+    assert.ok(thesis && thesis.ects >= 18, `${programme.name} has a thesis`)
 
     // Every course carries the identity the rest of the system joins on.
     for (const course of version.courses) {
@@ -61,6 +73,6 @@ test('the maintained DACS curricula reconcile to a full bachelor', async () => {
 
     // The period is what lines a catalogue course up with a Canvas term and an
     // Academic Work row, so every programme must have a readable Period 1.
-    assert.ok(version.courses.filter((course) => course.period === 'Period 1').length >= 8, `${programme.name} has a Period 1`)
+    assert.ok(version.courses.filter((course) => course.period === 'Period 1').length >= 4, `${programme.name} has a Period 1`)
   }
 })

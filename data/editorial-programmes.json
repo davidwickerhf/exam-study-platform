@@ -2596,6 +2596,1659 @@
           "academicYear": "2026-2027"
         }
       ]
+    },
+    {
+      "id": "maastricht-university-msc-artificial-intelligence",
+      "institution": {
+        "name": "Maastricht University",
+        "city": "Maastricht",
+        "country": "Netherlands",
+        "domains": [
+          "maastrichtuniversity.nl"
+        ]
+      },
+      "name": "Artificial Intelligence",
+      "degree": "Master of Science",
+      "durationYears": 2,
+      "totalEcts": 120,
+      "language": "English",
+      "versions": [
+        {
+          "id": "2026-2027",
+          "label": "2026–2027 reference curriculum",
+          "status": "reference",
+          "sources": [
+            {
+              "label": "Official course repository",
+              "url": "https://courserepository.maastrichtuniversity.nl/p/program/EN/50017318"
+            }
+          ],
+          "courses": [
+            {
+              "id": "ken4123",
+              "code": "KEN4123",
+              "name": "Intelligent Search & Games",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4154",
+              "code": "KEN4154",
+              "name": "Advanced Concepts in Machine Learning",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4130",
+              "code": "KEN4130",
+              "name": "Research Project Artificial Intelligence 1",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4111",
+              "code": "KEN4111",
+              "name": "Agents and Multi-Agent Systems",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4114",
+              "code": "KEN4114",
+              "name": "Autonomous Robotic Systems",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4131",
+              "code": "KEN4131",
+              "name": "Research Project Artificial Intelligence 2",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4113",
+              "code": "KEN4113",
+              "name": "Data Mining",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4211",
+              "code": "KEN4211",
+              "name": "Optimization",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4222",
+              "code": "KEN4222",
+              "name": "Signal and Image Processing",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4252",
+              "code": "KEN4252",
+              "name": "Control and Intelligent Systems",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4251",
+              "code": "KEN4251",
+              "name": "Algorithmic Game Theory",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4255",
+              "code": "KEN4255",
+              "name": "Computer Vision",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4259",
+              "code": "KEN4259",
+              "name": "Advanced Natural Language Processing",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4253",
+              "code": "KEN4253",
+              "name": "Planning and Scheduling",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4256",
+              "code": "KEN4256",
+              "name": "Building and Mining Knowledge Graphs",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4275",
+              "code": "KEN4275",
+              "name": "Network Science",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4153",
+              "code": "KEN4153",
+              "name": "Agentic Conversational Search",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4155",
+              "code": "KEN4155",
+              "name": "Introduction to Quantum Computing for AI and Data Science",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4157",
+              "code": "KEN4157",
+              "name": "Reinforcement Learning",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4158",
+              "code": "KEN4158",
+              "name": "Efficient Neural Computing",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4246",
+              "code": "KEN4246",
+              "name": "Explainable AI",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4235",
+              "code": "KEN4235",
+              "name": "Quantum Algorithms",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4224",
+              "code": "KEN4224",
+              "name": "Data Visualization",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4236",
+              "code": "KEN4236",
+              "name": "Quantum AI",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4237",
+              "code": "KEN4237",
+              "name": "Quantum Information and Security",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4242",
+              "code": "KEN4242",
+              "name": "Model Identification and Data Fitting",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4330",
+              "code": "KEN4330",
+              "name": "Research Project Quantum Computing",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4223",
+              "code": "KEN4223",
+              "name": "Data Fusion",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4225",
+              "code": "KEN4225",
+              "name": "Data Privacy and Security",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4258",
+              "code": "KEN4258",
+              "name": "Computational Statistics",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4160",
+              "code": "KEN4160",
+              "name": "Master's Thesis AI",
+              "ects": 30,
+              "yearLevel": "Year 2",
+              "period": "Year",
+              "requirement": "required"
+            }
+          ]
+        }
+      ],
+      "calendar": [
+        {
+          "id": "cal-1",
+          "title": "Inkom Maastricht University",
+          "date": "2026-08-17",
+          "endDate": "2026-08-20",
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-2",
+          "title": "Bachelor DSAI",
+          "date": "2026-08-25",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelor"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-3",
+          "title": "Bachelor CS",
+          "date": "2026-08-26",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelor"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-4",
+          "title": "Masters",
+          "date": "2026-08-27",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Masters"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-5",
+          "title": "Mentor Event Bachelors DSAI & CS",
+          "date": "2026-08-28",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelors"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-6",
+          "title": "Period 1",
+          "date": "2026-08-31",
+          "endDate": "2026-10-09",
+          "type": "other",
+          "kind": "period",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-11",
+          "title": "Exam week · Period 1",
+          "date": "2026-10-12",
+          "endDate": "2026-10-16",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 1 - Exams all",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-14",
+          "title": "Study week · Period 1",
+          "date": "2026-10-19",
+          "endDate": "2026-10-23",
+          "type": "other",
+          "kind": "study-week",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-8",
+          "title": "Period 2",
+          "date": "2026-10-26",
+          "endDate": "2026-12-04",
+          "type": "other",
+          "kind": "period",
+          "period": 2,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 2",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-29",
+          "title": "BA Thesis Winter conference",
+          "date": "2026-12-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-12",
+          "title": "Exams and resits · Period 2 (BY2/3, MAP1)",
+          "date": "2026-12-07",
+          "endDate": "2026-12-11",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 2,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "BY2/3",
+            "MAP1"
+          ],
+          "notes": "Period 2 - Exams all + resits BY2/3 & MA P1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-25",
+          "title": "Christmas Holiday",
+          "date": "2026-12-14",
+          "endDate": "2027-01-01",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-22",
+          "title": "Final Presentations",
+          "date": "2027-01-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-19",
+          "title": "Project period · Period 3 (BAY1)",
+          "date": "2027-01-04",
+          "endDate": "2027-01-15",
+          "type": "other",
+          "kind": "project-week",
+          "period": 3,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "BAY1"
+          ],
+          "notes": "Period 3 - BAY1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-20",
+          "title": "Project period · Period 3",
+          "date": "2027-01-04",
+          "endDate": "2027-01-22",
+          "type": "other",
+          "kind": "project-week",
+          "period": 3,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 3 - all others",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-13",
+          "title": "Resits · Semester 1 (BY1)",
+          "date": "2027-01-18",
+          "endDate": "2027-01-22",
+          "type": "deadline",
+          "kind": "resit-week",
+          "period": null,
+          "semester": 1,
+          "resit": true,
+          "cohorts": [
+            "BY1"
+          ],
+          "notes": "Semester 1 - Resits BY1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-7",
+          "title": "Masters February intake",
+          "date": "2027-01-22",
+          "endDate": null,
+          "type": "registration",
+          "kind": "deadline",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Masters"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-9",
+          "title": "Period 4",
+          "date": "2027-01-25",
+          "endDate": "2027-03-12",
+          "type": "other",
+          "kind": "period",
+          "period": 4,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-27",
+          "title": "Carnival Break",
+          "date": "2027-02-08",
+          "endDate": "2027-02-12",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-15",
+          "title": "Exams and resits · Period 4 (BY2/3, MAP2)",
+          "date": "2027-03-15",
+          "endDate": "2027-03-19",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 4,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "BY2/3",
+            "MAP2"
+          ],
+          "notes": "Period 4 - Exams all + resits BY2/3 & MA P2",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-16",
+          "title": "Study week · Period 4",
+          "date": "2027-03-22",
+          "endDate": "2027-03-26",
+          "type": "other",
+          "kind": "study-week",
+          "period": 4,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-28",
+          "title": "Good Friday",
+          "date": "2027-03-26",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-10",
+          "title": "Period 5",
+          "date": "2027-03-29",
+          "endDate": "2027-05-14",
+          "type": "other",
+          "kind": "period",
+          "period": 5,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 5",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-30",
+          "title": "Easter Monday",
+          "date": "2027-03-29",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-32",
+          "title": "King's Day & Bridging Day",
+          "date": "2027-04-26",
+          "endDate": "2027-04-27",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-33",
+          "title": "Liberation Day",
+          "date": "2027-05-05",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-34",
+          "title": "Ascension Day & Bridging Day",
+          "date": "2027-05-06",
+          "endDate": "2027-05-07",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-35",
+          "title": "Whit Monday",
+          "date": "2027-05-17",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-17",
+          "title": "Exams and resits · Period 5 (MAP4)",
+          "date": "2027-05-18",
+          "endDate": "2027-05-21",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 5,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "MAP4"
+          ],
+          "notes": "Period 5 - Exams all + resits MA P4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-23",
+          "title": "Project period · Period 6",
+          "date": "2027-05-24",
+          "endDate": "2027-06-11",
+          "type": "other",
+          "kind": "project-week",
+          "period": 6,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 6",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-24",
+          "title": "Final presentations - BY1/2",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "BY1/2"
+          ],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-26",
+          "title": "Project seminar MY1",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "MY1"
+          ],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-31",
+          "title": "BA Thesis Summer Conference",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-18",
+          "title": "Resits · Semester 2 (BAP4&5, MAP5)",
+          "date": "2027-06-14",
+          "endDate": "2027-06-18",
+          "type": "deadline",
+          "kind": "resit-week",
+          "period": null,
+          "semester": 2,
+          "resit": true,
+          "cohorts": [
+            "BAP4&5",
+            "MAP5"
+          ],
+          "notes": "Semester 2 - Resits BA P4&5 + resits MA P5",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-21",
+          "title": "Graduation",
+          "date": "2027-11-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        }
+      ]
+    },
+    {
+      "id": "maastricht-university-msc-data-science-for-decision-making",
+      "institution": {
+        "name": "Maastricht University",
+        "city": "Maastricht",
+        "country": "Netherlands",
+        "domains": [
+          "maastrichtuniversity.nl"
+        ]
+      },
+      "name": "Data Science for Decision Making",
+      "degree": "Master of Science",
+      "durationYears": 2,
+      "totalEcts": 120,
+      "language": "English",
+      "versions": [
+        {
+          "id": "2026-2027",
+          "label": "2026–2027 reference curriculum",
+          "status": "reference",
+          "sources": [
+            {
+              "label": "Official course repository",
+              "url": "https://courserepository.maastrichtuniversity.nl/p/program/EN/50017319"
+            }
+          ],
+          "courses": [
+            {
+              "id": "ken4113",
+              "code": "KEN4113",
+              "name": "Data Mining",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4242",
+              "code": "KEN4242",
+              "name": "Model Identification and Data Fitting",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4230",
+              "code": "KEN4230",
+              "name": "Research Project Data Science for Decision Making 1",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 1",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4258",
+              "code": "KEN4258",
+              "name": "Computational Statistics",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4254",
+              "code": "KEN4254",
+              "name": "Algorithms for Big Data",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4231",
+              "code": "KEN4231",
+              "name": "Research Project Data Science for Decision Making 2",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 2",
+              "requirement": "required"
+            },
+            {
+              "id": "ken4211",
+              "code": "KEN4211",
+              "name": "Optimization",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4222",
+              "code": "KEN4222",
+              "name": "Signal and Image Processing",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4252",
+              "code": "KEN4252",
+              "name": "Control and Intelligent Systems",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4154",
+              "code": "KEN4154",
+              "name": "Advanced Concepts in Machine Learning",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4224",
+              "code": "KEN4224",
+              "name": "Data Visualization",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4251",
+              "code": "KEN4251",
+              "name": "Algorithmic Game Theory",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4255",
+              "code": "KEN4255",
+              "name": "Computer Vision",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4259",
+              "code": "KEN4259",
+              "name": "Advanced Natural Language Processing",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4223",
+              "code": "KEN4223",
+              "name": "Data Fusion",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4225",
+              "code": "KEN4225",
+              "name": "Data Privacy and Security",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4253",
+              "code": "KEN4253",
+              "name": "Planning and Scheduling",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4256",
+              "code": "KEN4256",
+              "name": "Building and Mining Knowledge Graphs",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4275",
+              "code": "KEN4275",
+              "name": "Network Science",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4153",
+              "code": "KEN4153",
+              "name": "Agentic Conversational Search",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4155",
+              "code": "KEN4155",
+              "name": "Introduction to Quantum Computing for AI and Data Science",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4246",
+              "code": "KEN4246",
+              "name": "Explainable AI",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4123",
+              "code": "KEN4123",
+              "name": "Intelligent Search & Games",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4235",
+              "code": "KEN4235",
+              "name": "Quantum Algorithms",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4236",
+              "code": "KEN4236",
+              "name": "Quantum AI",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4237",
+              "code": "KEN4237",
+              "name": "Quantum Information and Security",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4330",
+              "code": "KEN4330",
+              "name": "Research Project Quantum Computing",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4111",
+              "code": "KEN4111",
+              "name": "Agents and Multi-Agent Systems",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4114",
+              "code": "KEN4114",
+              "name": "Autonomous Robotic Systems",
+              "ects": 6,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "elective"
+            },
+            {
+              "id": "ken4260",
+              "code": "KEN4260",
+              "name": "Master's Thesis DSDM",
+              "ects": 30,
+              "yearLevel": "Year 2",
+              "period": "Year",
+              "requirement": "required"
+            }
+          ]
+        }
+      ],
+      "calendar": [
+        {
+          "id": "cal-1",
+          "title": "Inkom Maastricht University",
+          "date": "2026-08-17",
+          "endDate": "2026-08-20",
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-2",
+          "title": "Bachelor DSAI",
+          "date": "2026-08-25",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelor"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-3",
+          "title": "Bachelor CS",
+          "date": "2026-08-26",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelor"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-4",
+          "title": "Masters",
+          "date": "2026-08-27",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Masters"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-5",
+          "title": "Mentor Event Bachelors DSAI & CS",
+          "date": "2026-08-28",
+          "endDate": null,
+          "type": "other",
+          "kind": "intro",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Bachelors"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-6",
+          "title": "Period 1",
+          "date": "2026-08-31",
+          "endDate": "2026-10-09",
+          "type": "other",
+          "kind": "period",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-11",
+          "title": "Exam week · Period 1",
+          "date": "2026-10-12",
+          "endDate": "2026-10-16",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 1 - Exams all",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-14",
+          "title": "Study week · Period 1",
+          "date": "2026-10-19",
+          "endDate": "2026-10-23",
+          "type": "other",
+          "kind": "study-week",
+          "period": 1,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-8",
+          "title": "Period 2",
+          "date": "2026-10-26",
+          "endDate": "2026-12-04",
+          "type": "other",
+          "kind": "period",
+          "period": 2,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 2",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-29",
+          "title": "BA Thesis Winter conference",
+          "date": "2026-12-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-12",
+          "title": "Exams and resits · Period 2 (BY2/3, MAP1)",
+          "date": "2026-12-07",
+          "endDate": "2026-12-11",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 2,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "BY2/3",
+            "MAP1"
+          ],
+          "notes": "Period 2 - Exams all + resits BY2/3 & MA P1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-25",
+          "title": "Christmas Holiday",
+          "date": "2026-12-14",
+          "endDate": "2027-01-01",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-22",
+          "title": "Final Presentations",
+          "date": "2027-01-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-19",
+          "title": "Project period · Period 3 (BAY1)",
+          "date": "2027-01-04",
+          "endDate": "2027-01-15",
+          "type": "other",
+          "kind": "project-week",
+          "period": 3,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "BAY1"
+          ],
+          "notes": "Period 3 - BAY1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-20",
+          "title": "Project period · Period 3",
+          "date": "2027-01-04",
+          "endDate": "2027-01-22",
+          "type": "other",
+          "kind": "project-week",
+          "period": 3,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 3 - all others",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-13",
+          "title": "Resits · Semester 1 (BY1)",
+          "date": "2027-01-18",
+          "endDate": "2027-01-22",
+          "type": "deadline",
+          "kind": "resit-week",
+          "period": null,
+          "semester": 1,
+          "resit": true,
+          "cohorts": [
+            "BY1"
+          ],
+          "notes": "Semester 1 - Resits BY1",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-7",
+          "title": "Masters February intake",
+          "date": "2027-01-22",
+          "endDate": null,
+          "type": "registration",
+          "kind": "deadline",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "Masters"
+          ],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-9",
+          "title": "Period 4",
+          "date": "2027-01-25",
+          "endDate": "2027-03-12",
+          "type": "other",
+          "kind": "period",
+          "period": 4,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-27",
+          "title": "Carnival Break",
+          "date": "2027-02-08",
+          "endDate": "2027-02-12",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-15",
+          "title": "Exams and resits · Period 4 (BY2/3, MAP2)",
+          "date": "2027-03-15",
+          "endDate": "2027-03-19",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 4,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "BY2/3",
+            "MAP2"
+          ],
+          "notes": "Period 4 - Exams all + resits BY2/3 & MA P2",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-16",
+          "title": "Study week · Period 4",
+          "date": "2027-03-22",
+          "endDate": "2027-03-26",
+          "type": "other",
+          "kind": "study-week",
+          "period": 4,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-28",
+          "title": "Good Friday",
+          "date": "2027-03-26",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-10",
+          "title": "Period 5",
+          "date": "2027-03-29",
+          "endDate": "2027-05-14",
+          "type": "other",
+          "kind": "period",
+          "period": 5,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "period 5",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-30",
+          "title": "Easter Monday",
+          "date": "2027-03-29",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-32",
+          "title": "King's Day & Bridging Day",
+          "date": "2027-04-26",
+          "endDate": "2027-04-27",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-33",
+          "title": "Liberation Day",
+          "date": "2027-05-05",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-34",
+          "title": "Ascension Day & Bridging Day",
+          "date": "2027-05-06",
+          "endDate": "2027-05-07",
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-35",
+          "title": "Whit Monday",
+          "date": "2027-05-17",
+          "endDate": null,
+          "type": "other",
+          "kind": "holiday",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-17",
+          "title": "Exams and resits · Period 5 (MAP4)",
+          "date": "2027-05-18",
+          "endDate": "2027-05-21",
+          "type": "deadline",
+          "kind": "exam-week",
+          "period": 5,
+          "semester": null,
+          "resit": true,
+          "cohorts": [
+            "MAP4"
+          ],
+          "notes": "Period 5 - Exams all + resits MA P4",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-23",
+          "title": "Project period · Period 6",
+          "date": "2027-05-24",
+          "endDate": "2027-06-11",
+          "type": "other",
+          "kind": "project-week",
+          "period": 6,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Period 6",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-24",
+          "title": "Final presentations - BY1/2",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "BY1/2"
+          ],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-26",
+          "title": "Project seminar MY1",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [
+            "MY1"
+          ],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-31",
+          "title": "BA Thesis Summer Conference",
+          "date": "2027-06-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-18",
+          "title": "Resits · Semester 2 (BAP4&5, MAP5)",
+          "date": "2027-06-14",
+          "endDate": "2027-06-18",
+          "type": "deadline",
+          "kind": "resit-week",
+          "period": null,
+          "semester": 2,
+          "resit": true,
+          "cohorts": [
+            "BAP4&5",
+            "MAP5"
+          ],
+          "notes": "Semester 2 - Resits BA P4&5 + resits MA P5",
+          "academicYear": "2026-2027"
+        },
+        {
+          "id": "cal-21",
+          "title": "Graduation",
+          "date": "2027-11-01",
+          "endDate": null,
+          "type": "ceremony",
+          "kind": "ceremony",
+          "period": null,
+          "semester": null,
+          "resit": false,
+          "cohorts": [],
+          "notes": "Month only — exact date not given",
+          "academicYear": "2026-2027"
+        }
+      ]
     }
   ]
 }
