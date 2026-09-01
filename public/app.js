@@ -3471,7 +3471,7 @@ function editionPipeline(edition, { sources, topics, artifacts, releases, jobs }
     { id: 'sources', label: 'Sources', value: sources.length ? `${sources.length} added` : 'None yet', done: sources.length > 0 },
     { id: 'rights', label: 'Rights', value: candidates.length ? `${candidates.length} to decide` : accepted.length ? `${accepted.length} accepted` : '—', done: sources.length > 0 && candidates.length === 0 && accepted.length > 0 },
     { id: 'extract', label: 'Extract', value: indexed.length ? `${indexed.length} indexed` : queued('extract') ? `${queued('extract')} queued` : '—', done: accepted.length > 0 && indexed.length === accepted.length && !queued('extract'), queued: queued('extract') },
-    { id: 'map', label: 'Course map', value: topics.length ? plural(topics.length, 'topic') : queued('map') ? `${queued('map')} queued` : '—', done: topics.length > 0 && !queued('map'), queued: queued('map') },
+    { id: 'map', label: 'Course map', value: topics.length ? plural(topics.length, 'chapter') : queued('map') ? `${queued('map')} queued` : '—', done: topics.length > 0 && !queued('map'), queued: queued('map') },
     {
       id: 'drafts',
       label: 'Drafts',
@@ -3521,8 +3521,12 @@ function editorialArtifactRows(artifacts) {
   return `<div class="editorial-artifact-list">${artifacts.map((artifact) => `<div class="editorial-artifact-row"><span><strong>${escapeHtml(artifact.title)}</strong><small>${escapeHtml(artifact.type.replace('-', ' '))} · ${escapeHtml(artifact.status)} · updated ${relativeTime(artifact.updatedAt)}</small></span><span class="editorial-row-actions"><button type="button" class="btn btn-ghost btn-sm" data-admin-artifact-edit="${escapeHtml(artifact.id)}">${adminPanel.editingArtifactId === artifact.id ? 'Close' : 'Edit'}</button>${artifact.status !== 'approved' ? `<button type="button" class="btn btn-secondary btn-sm" data-admin-artifact="${escapeHtml(artifact.id)}" data-status="approved" ${adminPanel.artifactBusyId === artifact.id ? 'disabled' : ''}>Approve</button>` : `<button type="button" class="btn btn-ghost btn-sm" data-admin-artifact="${escapeHtml(artifact.id)}" data-status="review">Reopen</button>`}<button type="button" class="btn btn-ghost btn-sm" data-admin-artifact="${escapeHtml(artifact.id)}" data-status="rejected">Reject</button></span>${adminPanel.editingArtifactId === artifact.id ? `<form class="editorial-artifact-editor" data-admin-artifact-editor="${escapeHtml(artifact.id)}"><label class="adm-field"><span>Title</span><input type="text" name="title" maxlength="240" value="${escapeHtml(artifact.title)}"></label><label class="adm-field"><span>Artifact JSON</span><textarea name="definition" rows="14" spellcheck="false">${escapeHtml(JSON.stringify(artifact.definition, null, 2))}</textarea></label><p>${artifact.type === 'course-outline' ? 'Editing the course profile also updates the assessment information shown to students. Evidence references are revalidated on save.' : 'Keep sourceChunkIds intact so the publication gate can verify evidence.'}</p><div class="adm-foot"><button type="button" class="btn btn-ghost btn-sm" data-admin-artifact-edit="${escapeHtml(artifact.id)}">Cancel</button><button type="submit" class="btn btn-primary btn-sm" ${adminPanel.artifactBusyId === artifact.id ? 'disabled' : ''}>Save draft</button></div></form>` : ''}</div>`).join('')}</div>`
 }
 
-function editorialTopicList(topics) {
-  return `<ol class="editorial-topic-list">${topics.map((topic, index) => `<li><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(topic.title)}</strong>${topic.summary ? `<small>${escapeHtml(topic.summary)}</small>` : ''}</div></li>`).join('')}</ol>`
+function editorialTopicList(topics, concepts = []) {
+  const under = (chapter) => concepts.filter((concept) => concept.metadata?.parentKey === chapter.stableKey)
+  return `<ol class="editorial-topic-list">${topics.map((topic, index) => {
+    const children = under(topic)
+    return `<li><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${escapeHtml(topic.title)}</strong>${topic.summary ? `<small>${escapeHtml(topic.summary)}</small>` : ''}${children.length ? `<small class="editorial-topic-concepts">${children.map((concept) => escapeHtml(concept.title)).join(' · ')}</small>` : ''}</div></li>`
+  }).join('')}</ol>`
 }
 
 // One panel, titled with the job it does. Nothing that cannot be acted on now
@@ -3537,7 +3541,10 @@ function editorialStagePanel({ step, title, lead, body = '', hint = '', action =
 }
 function renderEditorialEditionDetail(edition, data) {
   const sources = (data?.sources || []).filter((source) => source.contribution.editionId === edition.id)
-  const topics = (data?.topics || []).filter((topic) => topic.editionId === edition.id)
+  const allTopics = (data?.topics || []).filter((topic) => topic.editionId === edition.id)
+  const isChapter = (topic) => (topic.metadata?.kind || 'chapter') === 'chapter'
+  const topics = allTopics.filter(isChapter)
+  const concepts = allTopics.filter((topic) => !isChapter(topic))
   const jobs = (data?.jobs || []).filter((job) => job.editionId === edition.id)
   const artifacts = (data?.artifacts || []).filter((artifact) => artifact.editionId === edition.id)
   const releases = (data?.releases || []).filter((release) => release.editionId === edition.id)
@@ -3599,7 +3606,7 @@ function renderEditorialEditionDetail(edition, data) {
     panel = editorialStagePanel({
       step: stepLabel,
       title: 'Generate the drafts',
-      lead: `Study pages, exercises, flashcards, and a quality report are generated from ${plural(topics.length, 'topic')}, each keeping its source evidence. Estimate first — generation is the only step that spends real tokens.`,
+      lead: `Study pages, exercises, flashcards, and a quality report are generated per chapter — ${plural(topics.length, 'chapter')}${concepts.length ? ` covering ${plural(concepts.length, 'concept')}` : ''} — each keeping its source evidence. Estimate first: generation is the only step that spends real tokens.`,
       body: estimate
         ? `<div class="editorial-estimate"><strong>${formatUsageNumber(estimate.estimatedTokens.total)} estimated tokens</strong><span>${formatUsageNumber(estimate.acceptedCharacters)} accepted source characters · ${plural(estimate.topics, 'topic')}</span></div>`
         : '',
@@ -3650,7 +3657,7 @@ function renderEditorialEditionDetail(edition, data) {
   if (topics.length && stage !== 'map') {
     const assessmentStatus = edition?.courseProfile?.assessment?.status || 'not-found'
     const assessmentLabel = assessmentStatus === 'confirmed' ? 'assessment confirmed' : assessmentStatus === 'not-found' ? 'assessment not mapped yet' : `assessment ${assessmentStatus.replace(/-/g, ' ')}`
-    record.push(`<details class="editorial-done" data-admin-record="map" ${adminPanel.openRecord.map ? 'open' : ''}><summary>${uiIcon('check')}<span><strong>Course map</strong><small>${plural(topics.length, 'topic')} · ${escapeHtml(assessmentLabel)}</small></span>${uiIcon('chevronDown')}</summary><div>${renderAssessmentScheme(edition.courseProfile)}${editorialTopicList(topics)}</div></details>`)
+    record.push(`<details class="editorial-done" data-admin-record="map" ${adminPanel.openRecord.map ? 'open' : ''}><summary>${uiIcon('check')}<span><strong>Course map</strong><small>${plural(topics.length, 'chapter')}${concepts.length ? ` · ${plural(concepts.length, 'concept')}` : ''} · ${escapeHtml(assessmentLabel)}</small></span>${uiIcon('chevronDown')}</summary><div>${renderAssessmentScheme(edition.courseProfile)}${editorialTopicList(topics, concepts)}</div></details>`)
   }
   if (artifacts.length && stage !== 'drafts') {
     record.push(`<details class="editorial-done" data-admin-record="drafts" ${adminPanel.openRecord.drafts ? 'open' : ''}><summary>${uiIcon('check')}<span><strong>Drafts</strong><small>${approved.length} of ${artifacts.length} approved</small></span>${uiIcon('chevronDown')}</summary><div>${editorialArtifactRows(artifacts)}</div></details>`)
@@ -11158,7 +11165,7 @@ function bindEvents() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           timeoutMs: useAi ? 15 * 60_000 : 5 * 60_000,
-          body: JSON.stringify({ types, useAi, limit: mode === 'extract' ? 10 : 1 })
+          body: JSON.stringify({ types, useAi, limit: mode === 'extract' ? 10 : mode === 'map' ? 1 : 4 })
         })
         processed += result.processed
         failed += result.jobs.filter((job) => job.status === 'failed').length

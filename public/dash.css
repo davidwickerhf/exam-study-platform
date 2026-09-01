@@ -1389,3 +1389,5 @@
 .key-form-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
 .key-form-life { max-width: 180px; }
 .key-form-life select { min-height: var(--control-md); padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); font: 500 14px/1 var(--font-ui); background: var(--color-surface); }
+
+.editorial-topic-concepts { display: block; margin-top: 4px; color: var(--color-ink-tertiary); font-size: 11.5px; line-height: 1.5; }
