@@ -34,7 +34,7 @@ import { useSearchParams } from 'next/navigation'
 import {
   CheckIcon,
   ChevronRightIcon,
-  ExternalLinkIcon,
+  AlertTriangleIcon,
   MinusIcon,
   SendIcon,
   ShieldIcon,
@@ -417,55 +417,48 @@ const STATUS_WORD: Record<SetupStep['status'], string> = {
   blocked: 'Waiting'
 }
 
-function Checklist({ view, onRefresh, conversational }: { view: View | null; onRefresh: () => void; conversational: boolean }) {
+function Checklist({ view, onRefresh, onSend, onApplied }: { view: View | null; onRefresh: () => void; onSend: (message: string) => Promise<void>; onApplied: (view: View) => void }) {
   const params = useSearchParams()
   const requestedStep = params.get('step')
-  const [open, setOpen] = useState<string | null>(requestedStep === 'record' || requestedStep === 'timetable' ? requestedStep : null)
+  const [open, setOpen] = useState<string | null>(requestedStep)
+  const [instruction, setInstruction] = useState('')
   const [timetable, setTimetable] = useState('')
   const [timetableBusy, setTimetableBusy] = useState(false)
   const [timetableError, setTimetableError] = useState<string | null>(null)
   const steps = setupSteps({ state: view?.state ?? null, skipped: view?.skipped ?? [] })
   const connected = connectedCount(steps)
   const next = nextStep(steps)
+  const selected = steps.find((step) => step.id === open) ?? next ?? steps[0]
+  const issues = view?.state?.issues ?? []
+
+  useEffect(() => {
+    if (requestedStep) setOpen(requestedStep)
+  }, [requestedStep])
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex max-w-[62ch] flex-col gap-1">
-          <h1 className="font-heading text-5xl leading-none tracking-tight">What Wicker Study knows about you</h1>
-          <p className="text-muted-foreground text-sm">
+    <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-[1180px] content-center gap-10 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-16">
+      <aside className="self-stretch border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
+          <h1 className="text-sm font-semibold">Workspace setup</h1>
+          <p className="font-data mt-3 text-4xl leading-none font-semibold tabular-nums">{connected}<span className="text-muted-foreground text-lg">/{steps.length}</span></p>
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
             {view ? (
-              <>
-                <span className="font-data tabular-nums">{connected}</span> of <span className="font-data tabular-nums">{steps.length}</span> sources connected. Only your programme is
-                required — the rest can be added whenever you like, in any order.
-              </>
+              <>Open any source to review or change it. Only your programme is required.</>
             ) : (
               'Reading your account…'
             )}
           </p>
-        </div>
-        {conversational && (
-          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/app/setup" />}>
-            Set up by conversation
-          </Button>
-        )}
-      </header>
-
-      {!view ? (
-        <div className="flex flex-col gap-3">
+          {!view ? <div className="mt-7 flex flex-col gap-3">
           {[0, 1, 2, 3, 4, 5].map((row) => (
             <Skeleton key={row} className="h-16 w-full" />
           ))}
-        </div>
-      ) : (
-        <ol className="flex flex-col">
+          </div> : <ol className="mt-7 flex flex-col border-t" aria-label="Setup steps">
           {steps.map((step) => {
-            const expandable = step.status !== 'done' && step.status !== 'blocked' && (step.id === 'record' || step.id === 'timetable')
+            const stepIssues = issues.filter((issue) => issue.step === step.id || issue.relatedStep === step.id)
             return (
-              <li key={step.id} className="flex flex-col gap-4 border-b py-4 first:border-t">
-                <div className="flex flex-wrap items-center gap-4">
+              <li key={step.id} className="border-b">
+                <button type="button" disabled={step.status === 'blocked'} onClick={() => setOpen(step.id)} className="hover:bg-card focus-visible:ring-primary -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 px-2 py-3 text-left outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50">
                   <span className="flex size-5 shrink-0 items-center justify-center" aria-hidden="true">
-                    {MARKS[step.status]}
+                    {stepIssues.length ? <AlertTriangleIcon className="size-4 text-primary" /> : MARKS[step.status]}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <strong className="flex items-center gap-2 text-sm font-medium">
@@ -477,29 +470,36 @@ function Checklist({ view, onRefresh, conversational }: { view: View | null; onR
                       {step.detail}
                     </small>
                   </div>
-                  {step.status === 'done' ? (
-                    <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={step.href} />}>
-                      Review
-                    </Button>
-                  ) : step.status === 'blocked' ? null : expandable ? (
-                    <Button
-                      variant={open === step.id ? 'outline' : step.id === next?.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setOpen(open === step.id ? null : step.id)}
-                    >
-                      {open === step.id ? 'Close' : step.action}
-                    </Button>
-                  ) : (
-                    <Button variant={step.id === next?.id ? 'default' : 'outline'} size="sm" nativeButton={false} render={<Link href={step.href} />}>
-                      {step.action}
-                      <ExternalLinkIcon data-icon="inline-end" />
-                    </Button>
-                  )}
-                </div>
+                  <ChevronRightIcon className={`size-4 ${selected?.id === step.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                </button>
+              </li>
+            )
+          })}
+          </ol>}
+      </aside>
 
-                {open === step.id && step.id === 'record' && <UploadField onRead={() => onRefresh()} />}
+      <main className="flex min-w-0 max-w-[68ch] flex-col justify-center gap-5">
+        {selected && <>
+          <div className="border-primary border-t-2 pt-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="font-heading text-5xl leading-[0.98] font-semibold tracking-[-0.025em] md:text-6xl">{selected.title}</h2>
+                <p className="text-muted-foreground mt-4 max-w-[58ch] text-[15px] leading-relaxed">{selected.blurb}</p>
+              </div>
+              <span className="text-muted-foreground text-xs">{STATUS_WORD[selected.status]}</span>
+            </div>
+          </div>
 
-                {open === step.id && step.id === 'timetable' && (
+          {issues.filter((issue) => issue.step === selected.id || issue.relatedStep === selected.id).map((issue) => (
+            <div key={issue.id} role="alert" className="border-primary bg-card flex gap-3 rounded-sm border p-4">
+              <AlertTriangleIcon className="text-primary mt-0.5 size-4 shrink-0" />
+              <div><strong className="text-sm">{issue.title}</strong><p className="text-muted-foreground mt-1 text-sm">{issue.detail}</p><p className="mt-2 text-sm">{issue.recovery}</p></div>
+            </div>
+          ))}
+
+          {selected.id === 'record' && <UploadField onRead={() => onRefresh()} />}
+
+          {selected.id === 'timetable' && (
                   <form
                     className="flex flex-col gap-4 rounded-sm border p-4"
                     onSubmit={async (event) => {
@@ -511,7 +511,6 @@ function Checklist({ view, onRefresh, conversational }: { view: View | null; onR
                       try {
                         await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) })
                         setTimetable('')
-                        setOpen(null)
                         onRefresh()
                       } catch (cause) {
                         setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.')
@@ -545,19 +544,29 @@ function Checklist({ view, onRefresh, conversational }: { view: View | null; onR
                       {timetableBusy ? 'Checking the feed…' : 'Connect timetable'}
                     </Button>
                   </form>
-                )}
-              </li>
-            )
-          })}
-        </ol>
-      )}
+          )}
 
-      {view && isComplete(steps) && (
+          {selected.id === 'canvas' && <SecureField kind="canvas" onApplied={onApplied} onSkip={() => {}} />}
+
+          {(selected.id === 'programme' || selected.id === 'electives' || selected.id === 'calendar') && (
+            <form className="flex flex-col gap-3" onSubmit={async (event) => { event.preventDefault(); if (!instruction.trim()) return; await onSend(`I want to review and change ${selected.title.toLowerCase()}: ${instruction}`); setInstruction(''); onRefresh() }}>
+              <Field>
+                <FieldLabel htmlFor="setup-change">What should change?</FieldLabel>
+                <Textarea id="setup-change" value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder={selected.id === 'programme' ? 'For example: Computer Science, third year' : selected.id === 'electives' ? 'List the electives you are taking, or say none' : 'Paste the official calendar link, or describe what needs correcting'} />
+                <FieldDescription>Your change is checked against the maintained programme catalogue before it is applied.</FieldDescription>
+              </Field>
+              <Button type="submit" className="w-fit" disabled={!instruction.trim()}>Review change</Button>
+            </form>
+          )}
+        </>}
+
+      {view && isComplete(steps) && !issues.length && (
         <p className="flex items-start gap-2 text-sm">
           <CheckIcon className="text-primary mt-0.5 size-4 shrink-0" />
           <span>Everything is connected. Home now draws on your programme, the academic calendar, your timetable, Canvas and your academic record.</span>
         </p>
       )}
+      </main>
     </div>
   )
 }
@@ -627,7 +636,7 @@ function SetupSurface() {
   // The conversation needs a model. Without one the checklist does the same
   // work, and is the only thing offered rather than a broken composer.
   if (wantsChecklist || (view && !view.available)) {
-    return <Checklist view={view} onRefresh={load} conversational={Boolean(view?.available)} />
+    return <Checklist view={view} onRefresh={load} onSend={send} onApplied={setView} />
   }
 
   const messages = [...(view?.messages ?? []), ...said]

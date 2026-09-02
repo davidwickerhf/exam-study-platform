@@ -226,11 +226,11 @@ function HostedProfileActions() {
         Edit sign-in profile
       </Button>
       <Button
-        variant="ghost"
+        variant="destructive"
         size="sm"
         onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}
       >
-        Sign out
+        Sign out of Wicker Study
       </Button>
     </span>
   );

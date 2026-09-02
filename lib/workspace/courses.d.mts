@@ -24,7 +24,7 @@ export type StudyCourse = {
   mockExamSolutionsPdf?: string
 }
 
-export type AcademicCourse = { code: string; attempts?: { examDate?: string | null; type?: string | null }[] }
+export type AcademicCourse = { id?: string; code: string; name?: string; period?: string; yearLevel?: string; attempts?: { examDate?: string | null; type?: string | null; status?: string | null }[] }
 
 export type Progress = { total: number; done: number; percent: number; mastery: number | null }
 export type Exam = { date: string; days: number; type: string | null }

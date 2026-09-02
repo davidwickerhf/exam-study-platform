@@ -14,7 +14,10 @@ export type RecordSummary = {
   failedAttempts?: number
   currentCourses?: number
   weightedAverage: number | null
+  programme?: string | null
 }
+
+export type SetupIssue = { id: string; step: string; relatedStep?: string; severity: 'warning' | 'error'; title: string; detail: string; recovery: string }
 
 export type SetupSourceState = {
   programme: boolean
@@ -30,6 +33,7 @@ export type SetupSourceState = {
   electives: boolean
   electivesPending: number
   electivesChosen: number
+  issues?: SetupIssue[]
 }
 
 export type SetupStepId = 'programme' | 'electives' | 'record' | 'calendar' | 'timetable' | 'canvas'

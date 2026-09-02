@@ -21,7 +21,10 @@ import {
   LayersIcon,
   SparklesIcon,
   TargetIcon,
-  UserRoundIcon
+  UserRoundIcon,
+  LogOutIcon,
+  SettingsIcon,
+  PlugIcon
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -42,7 +45,8 @@ import {
 } from '@/components/ui/sidebar'
 import { WorkspaceSearch } from '@/components/workspace/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
-import { useUser } from '@clerk/nextjs'
+import { useClerk, useUser } from '@clerk/nextjs'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const SECTIONS = [
   {
@@ -78,6 +82,7 @@ const MOBILE_ITEMS = [
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const clerk = useClerk()
   const { user: clerkUser } = useUser()
   const [sidebarWidth, setSidebarWidth] = useState(236)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -118,7 +123,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-1">
-          <SidebarMenu className="min-w-0 flex-1">
+          <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<Link href="/app" />}>
                 <BrandMark className="size-8 shrink-0" />
@@ -129,7 +134,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-          <SidebarTrigger className="shrink-0 group-data-[collapsible=icon]:hidden" />
+          <SidebarTrigger className="shrink-0" />
           </div>
         </SidebarHeader>
 
@@ -158,20 +163,24 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           ))}
         </SidebarContent>
 
-        {/* The account block the vanilla shell kept at the foot of the rail. */}
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" render={<Link href="/app/account" />}>
-                <Avatar className="size-8 rounded-sm">
-                  <AvatarFallback className="rounded-sm">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                  <span className="truncate font-medium">{name}</span>
-                  <span className="text-muted-foreground truncate text-xs">{email ?? 'Signed in'}</span>
-                </div>
-                <ChevronRightIcon className="ml-auto" />
-              </SidebarMenuButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip="Account menu" />}>
+                  <Avatar className="size-8 rounded-sm"><AvatarFallback className="rounded-sm">{initials}</AvatarFallback></Avatar>
+                  <div className="flex min-w-0 flex-col gap-0.5 leading-none"><span className="truncate font-medium">{name}</span><span className="text-muted-foreground truncate text-xs">{email ?? 'Signed in'}</span></div>
+                  <ChevronRightIcon className="ml-auto" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="start" className="min-w-56">
+                  <DropdownMenuLabel><span className="block truncate">{name}</span><span className="block truncate font-normal">{email}</span></DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem render={<Link href="/app/account" />}><SettingsIcon />Account settings</DropdownMenuItem>
+                  <DropdownMenuItem render={<Link href="/app/account?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={() => void clerk.signOut({ redirectUrl: '/sign-in' })}><LogOutIcon />Sign out</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

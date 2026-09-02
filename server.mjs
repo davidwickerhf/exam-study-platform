@@ -4182,7 +4182,7 @@ const server = createServer(async (req, res) => {
           sourceLabel: source.name || 'Academic Work',
           printedOn: parsed.printedOn,
           courses: parsed.courses,
-          summary: parsed.summary
+          summary: { ...parsed.summary, programme: parsed.programme }
         })
         // The student's name and number are read to confirm the document is
         // theirs; they are not stored and are not echoed back.
@@ -4193,7 +4193,7 @@ const server = createServer(async (req, res) => {
           programme: parsed.programme,
           printedOn: parsed.printedOn,
           courses: parsed.courses,
-          summary: parsed.summary
+          summary: { ...parsed.summary, programme: parsed.programme }
         }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error instanceof AcademicWorkError ? 422 : /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
