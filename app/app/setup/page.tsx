@@ -47,6 +47,8 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { tutorMarkdown } from '@/lib/workspace/markdown.mjs'
 import {
   type SetupSourceState,
@@ -71,6 +73,8 @@ const PROSE =
 type Message = { role: 'user' | 'assistant' | 'event'; content: string; at: string | null }
 type Prompt = { kind: 'upload' } | { kind: 'secure'; secure: 'timetable' | 'canvas' }
 type Opening = { step: string; heading: string; body: string; placeholder: string }
+type ProgrammeOption = { id: string; degree: string; name: string; durationYears: number; versions: { id: string; label: string; status: string }[] }
+type ElectiveGroup = { id: string; label: string; chosen: string[]; courses: { id: string; code: string; name: string; ects: number }[] }
 
 type View = {
   available: boolean
@@ -403,6 +407,49 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
 
 // ── The checklist ─────────────────────────────────────────────────────────
 
+function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved: () => void }) {
+  const [programmes, setProgrammes] = useState<ProgrammeOption[]>([])
+  const [programmeId, setProgrammeId] = useState('')
+  const [versionId, setVersionId] = useState('')
+  const [studyYear, setStudyYear] = useState('1')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    json<{ programmes: ProgrammeOption[] }>('/api/editorial-programmes').then((data) => {
+      setProgrammes(data.programmes ?? [])
+      const selected = data.programmes?.find((programme) => `${programme.degree} ${programme.name}` === current) ?? data.programmes?.[0]
+      if (selected) { setProgrammeId(selected.id); setVersionId(selected.versions?.[0]?.id ?? '') }
+    }).catch((cause: Error) => setError(cause.message))
+  }, [current])
+  const programme = programmes.find((entry) => entry.id === programmeId)
+  return <form className="flex flex-col gap-4" onSubmit={async (event) => {
+    event.preventDefault(); if (!programmeId || busy) return; setBusy(true); setError(null)
+    try { await json('/api/onboarding/programme', { method: 'PUT', body: JSON.stringify({ programmeId, versionId, studyYear }) }); onSaved() }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'The programme could not be saved.') }
+    finally { setBusy(false) }
+  }}>
+    <Field><FieldLabel>Programme</FieldLabel><Select value={programmeId} onValueChange={(value) => { const id = String(value); setProgrammeId(id); setVersionId(programmes.find((entry) => entry.id === id)?.versions?.[0]?.id ?? '') }}><SelectTrigger className="w-full"><SelectValue placeholder="Choose your programme" /></SelectTrigger><SelectContent><SelectGroup>{programmes.map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.degree} {entry.name}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field><FieldLabel>Curriculum</FieldLabel><Select value={versionId} onValueChange={(value) => setVersionId(String(value))}><SelectTrigger className="w-full"><SelectValue placeholder="Curriculum year" /></SelectTrigger><SelectContent>{(programme?.versions ?? []).map((version) => <SelectItem key={version.id} value={version.id}>{version.label || version.id}{version.status === 'current' ? ' · current' : ''}</SelectItem>)}</SelectContent></Select></Field>
+      <Field><FieldLabel>Current study year</FieldLabel><Select value={studyYear} onValueChange={(value) => setStudyYear(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>Year {index + 1}</SelectItem>)}</SelectContent></Select></Field>
+    </div>
+    <FieldDescription>Changing programme preserves attempts already in your personal academic record.</FieldDescription>
+    {error && <FieldError>{error}</FieldError>}
+    <Button type="submit" className="w-fit" disabled={busy || !programmeId || !versionId}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving…' : 'Save programme'}</Button>
+  </form>
+}
+
+function ElectivesEditor({ onSaved }: { onSaved: () => void }) {
+  const [groups, setGroups] = useState<ElectiveGroup[] | null>(null)
+  const [chosen, setChosen] = useState<Record<string, string[]>>({})
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { json<{ groups: ElectiveGroup[] }>('/api/onboarding/electives').then((data) => { setGroups(data.groups); setChosen(Object.fromEntries(data.groups.map((group) => [group.id, group.chosen]))) }).catch((cause: Error) => setError(cause.message)) }, [])
+  if (!groups) return error ? <FieldError>{error}</FieldError> : <Skeleton className="h-32 w-full" />
+  if (!groups.length) return <p className="text-muted-foreground border-y py-5 text-sm">There are no elective choices for your study year in the active teaching period.</p>
+  return <div className="flex flex-col gap-6">{groups.map((group) => <section key={group.id} className="border-y py-4"><div className="mb-3 flex items-center justify-between gap-3"><h3 className="font-semibold">{group.label}</h3><span className="text-muted-foreground text-xs">{chosen[group.id]?.length ?? 0} selected</span></div><div className="flex flex-col">{group.courses.map((course) => <label key={course.id} className="hover:bg-card flex cursor-pointer items-start gap-3 border-t py-3"><Checkbox checked={chosen[group.id]?.includes(course.id)} onCheckedChange={(checked) => setChosen((held) => ({ ...held, [group.id]: checked ? [...new Set([...(held[group.id] ?? []), course.id])] : (held[group.id] ?? []).filter((id) => id !== course.id) }))} /><span className="flex min-w-0 flex-1 justify-between gap-4 text-sm"><span><strong className="font-data mr-2">{course.code}</strong>{course.name}</span><span className="text-muted-foreground font-data shrink-0">{course.ects} ECTS</span></span></label>)}</div><Button size="sm" className="mt-4" disabled={busy === group.id} onClick={async () => { setBusy(group.id); setError(null); try { await json('/api/onboarding/electives', { method: 'PUT', body: JSON.stringify({ groupId: group.id, courseIds: chosen[group.id] ?? [] }) }); onSaved() } catch (cause) { setError(cause instanceof Error ? cause.message : 'The electives could not be saved.') } finally { setBusy(null) } }}>{busy === group.id ? 'Saving…' : 'Save electives'}</Button></section>)}{error && <FieldError>{error}</FieldError>}</div>
+}
+
 const MARKS: Record<SetupStep['status'], React.ReactNode> = {
   done: <CheckIcon className="text-primary size-4" />,
   todo: <span className="border-muted-foreground/60 size-2.5 rounded-xs border" />,
@@ -417,11 +464,10 @@ const STATUS_WORD: Record<SetupStep['status'], string> = {
   blocked: 'Waiting'
 }
 
-function Checklist({ view, onRefresh, onSend, onApplied }: { view: View | null; onRefresh: () => void; onSend: (message: string) => Promise<void>; onApplied: (view: View) => void }) {
+function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefresh: () => void; onApplied: (view: View) => void }) {
   const params = useSearchParams()
   const requestedStep = params.get('step')
   const [open, setOpen] = useState<string | null>(requestedStep)
-  const [instruction, setInstruction] = useState('')
   const [timetable, setTimetable] = useState('')
   const [timetableBusy, setTimetableBusy] = useState(false)
   const [timetableError, setTimetableError] = useState<string | null>(null)
@@ -548,16 +594,9 @@ function Checklist({ view, onRefresh, onSend, onApplied }: { view: View | null; 
 
           {selected.id === 'canvas' && <SecureField kind="canvas" onApplied={onApplied} onSkip={() => {}} />}
 
-          {(selected.id === 'programme' || selected.id === 'electives' || selected.id === 'calendar') && (
-            <form className="flex flex-col gap-3" onSubmit={async (event) => { event.preventDefault(); if (!instruction.trim()) return; await onSend(`I want to review and change ${selected.title.toLowerCase()}: ${instruction}`); setInstruction(''); onRefresh() }}>
-              <Field>
-                <FieldLabel htmlFor="setup-change">What should change?</FieldLabel>
-                <Textarea id="setup-change" value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder={selected.id === 'programme' ? 'For example: Computer Science, third year' : selected.id === 'electives' ? 'List the electives you are taking, or say none' : 'Paste the official calendar link, or describe what needs correcting'} />
-                <FieldDescription>Your change is checked against the maintained programme catalogue before it is applied.</FieldDescription>
-              </Field>
-              <Button type="submit" className="w-fit" disabled={!instruction.trim()}>Review change</Button>
-            </form>
-          )}
+          {selected.id === 'programme' && <ProgrammeEditor current={view?.state?.programmeName ?? null} onSaved={onRefresh} />}
+          {selected.id === 'electives' && <ElectivesEditor onSaved={onRefresh} />}
+          {selected.id === 'calendar' && <div className="flex flex-col gap-3 border-y py-5"><strong className="font-data text-2xl tabular-nums">{view?.state?.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground text-sm">Teaching periods, exam weeks and holidays come from the selected programme’s maintained calendar. Changing the programme updates this source automatically.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/calendar" />}>Open calendar</Button></div>}
         </>}
 
       {view && isComplete(steps) && !issues.length && (
@@ -636,7 +675,7 @@ function SetupSurface() {
   // The conversation needs a model. Without one the checklist does the same
   // work, and is the only thing offered rather than a broken composer.
   if (wantsChecklist || (view && !view.available)) {
-    return <Checklist view={view} onRefresh={load} onSend={send} onApplied={setView} />
+    return <Checklist view={view} onRefresh={load} onApplied={setView} />
   }
 
   const messages = [...(view?.messages ?? []), ...said]

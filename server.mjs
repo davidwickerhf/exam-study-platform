@@ -39,7 +39,7 @@ import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedir
 import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
 import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
-import { applySecureValue, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
+import { applyProgramme, applySecureValue, chooseElectives, electiveChoices, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
 import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
 import { TutorStoreError, deleteConversation, forgetFact, listConversations, newConversation, readConversation, readTutorMemory, saveConversation, saveTutorPreferences, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
@@ -4154,6 +4154,32 @@ const server = createServer(async (req, res) => {
       } catch (error) {
         send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That value could not be applied.' }))
       }
+      return
+    }
+    if (url.pathname === '/api/onboarding/programme' && req.method === 'PUT') {
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const result = await applyProgramme({
+          programmeId: String(body?.programmeId || ''),
+          versionId: body?.versionId ? String(body.versionId) : null,
+          studyYear: body?.studyYear ? String(body.studyYear) : null
+        })
+        send(res, 200, JSON.stringify({ result }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The programme could not be applied.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/onboarding/electives' && req.method === 'GET') {
+      try { send(res, 200, JSON.stringify(await electiveChoices({ scope: url.searchParams.get('scope') === 'all' ? 'all' : 'current' })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
+      catch (error) { send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Electives could not be read.' })) }
+      return
+    }
+    if (url.pathname === '/api/onboarding/electives' && req.method === 'PUT') {
+      try {
+        const body = await readBody(req, 16 * 1024)
+        send(res, 200, JSON.stringify(await chooseElectives({ groupId: body?.groupId, courseIds: body?.courseIds })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Electives could not be saved.' })) }
       return
     }
     if (url.pathname === '/api/onboarding' && req.method === 'DELETE') {
