@@ -15,6 +15,7 @@ import { ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { OnboardingResume } from '@/components/v2/onboarding-resume'
 import {
   type AcademicSummary,
   type CalendarEvent,
@@ -106,12 +107,12 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-8">
       {/* The ruling axis: where the student is in the year. */}
-      <header className="flex flex-col gap-3">
+      <header className="flex flex-col gap-2">
         {calendar ? (
           <>
-            <h1 className="font-heading max-w-4xl text-5xl leading-[0.95] font-semibold tracking-[-0.035em] sm:text-6xl">{context?.period ?? 'Your study week'}</h1>
+            <h1 className="font-heading text-6xl leading-none tracking-tighter">{context?.period ?? 'No period set'}</h1>
             <p className={`text-muted-foreground text-sm ${NUMERALS}`}>
               {[context?.academicYear, week && weeks ? `week ${week} of ${weeks}` : null].filter(Boolean).join(' · ')}
             </p>
@@ -137,9 +138,9 @@ export default function HomePage() {
         )}
       </header>
 
-      <div className="grid overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgb(20_24_34/0.04),0_18px_48px_rgb(20_24_34/0.06)] lg:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.8fr)]">
+      <div className="grid gap-8 border-t pt-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         {/* Lead: what is running, or next. */}
-        <div className="flex min-h-72 min-w-0 flex-col p-6 sm:p-8">
+        <div className="flex min-w-0 flex-col">
           {!calendar ? (
             <div className="flex flex-col gap-3"><Skeleton className="h-16 w-56" /><Skeleton className="h-6 w-72" /></div>
           ) : lead ? (
@@ -173,7 +174,7 @@ export default function HomePage() {
               <p className="mt-5 max-w-md text-2xl leading-snug font-medium tracking-tight">
                 {entries.length ? 'Nothing left today.' : 'Nothing scheduled today.'}
               </p>
-              <p className="text-muted-foreground mt-2 max-w-md text-sm leading-relaxed">Use the quiet block to choose a course, review due work, or plan the next focused session.</p>
+              {!entries.length && <OnboardingResume />}
             </>
           )}
 
@@ -195,7 +196,7 @@ export default function HomePage() {
         </div>
 
         {/* The aside the vanilla Home carried, in the board world. */}
-        <aside className="bg-muted/45 flex min-w-0 flex-col gap-7 border-t p-6 sm:p-8 lg:border-t-0 lg:border-l">
+        <aside className="flex min-w-0 flex-col gap-6 lg:border-l lg:pl-6">
           <section className="flex flex-col gap-1">
             <SectionHead title="Due" meta="All" href="/v2/updates" />
             {!calendar ? <Skeleton className="mt-2 h-24 w-full" /> : due.length ? (
@@ -263,7 +264,7 @@ export default function HomePage() {
       </div>
 
       {summary && (
-        <section className="flex flex-col gap-5 rounded-xl border bg-card p-6 sm:p-8">
+        <section className="flex flex-col gap-4 border-t pt-6">
           <SectionHead title="Progress" meta="Plan" href="/v2/planning" />
           <div className="flex max-w-[640px] items-center gap-5">
             <Progress value={requiredEcts ? Math.min(100, (summary.earnedEcts / requiredEcts) * 100) : 0} className="h-1.5" />

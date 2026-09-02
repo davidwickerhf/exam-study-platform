@@ -75,27 +75,27 @@ export function WorkspaceShell({ children, user }: { children: ReactNode; user?:
     .toUpperCase()
 
   return (
-    <SidebarProvider style={{ '--sidebar-width': '15rem' } as React.CSSProperties}>
+    <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="border-sidebar-border border-b px-3 py-4">
+        <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" className="h-12 px-1 hover:bg-transparent active:bg-transparent" render={<Link href="/v2" />}>
-                <BrandMark className="size-9 shrink-0 rounded-md shadow-[0_8px_24px_rgb(49_84_232/0.24)]" />
+              <SidebarMenuButton size="lg" render={<Link href="/v2" />}>
+                <BrandMark className="size-8 shrink-0" />
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="text-sidebar-accent-foreground font-semibold tracking-tight">Wicker Study</span>
-                  <span className="text-sidebar-foreground/70 text-xs">Academic workspace</span>
+                  <span className="font-semibold">Wicker Study</span>
+                  <span className="text-muted-foreground text-xs">Academic workspace</span>
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent className="px-2 py-4">
-          <div className="px-1 pb-3"><WorkspaceSearch /></div>
+        <SidebarContent>
+          <div className="px-2"><WorkspaceSearch /></div>
           {SECTIONS.map((section) => (
             <SidebarGroup key={section.label}>
-              <SidebarGroupLabel className="text-sidebar-foreground/55 px-2 text-[11px] font-semibold tracking-[0.12em] uppercase">{section.label}</SidebarGroupLabel>
+              <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {section.items.map((item) => (
@@ -103,7 +103,6 @@ export function WorkspaceShell({ children, user }: { children: ReactNode; user?:
                       <SidebarMenuButton
                         isActive={pathname === item.href}
                         tooltip={item.label}
-                        className="h-9 rounded-md px-2.5 font-medium transition-colors data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-[inset_2px_0_0_var(--sidebar-primary)]"
                         render={<Link href={item.href} />}
                       >
                         <item.icon />
@@ -118,10 +117,10 @@ export function WorkspaceShell({ children, user }: { children: ReactNode; user?:
         </SidebarContent>
 
         {/* The account block the vanilla shell kept at the foot of the rail. */}
-        <SidebarFooter className="border-sidebar-border border-t p-3">
+        <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" className="h-12 rounded-md" render={<Link href="/v2/account" />}>
+              <SidebarMenuButton size="lg" render={<Link href="/v2/account" />}>
                 <Avatar className="size-8 rounded-sm">
                   <AvatarFallback className="rounded-sm">{initials}</AvatarFallback>
                 </Avatar>

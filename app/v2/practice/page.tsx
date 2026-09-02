@@ -24,6 +24,7 @@
 import "katex/dist/katex.min.css";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Markdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
@@ -35,6 +36,7 @@ import {
   ChevronRightIcon,
   PlusIcon,
   SearchIcon,
+  ShuffleIcon,
   Trash2Icon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +66,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { OnboardingResume } from "@/components/v2/onboarding-resume";
 import {
   type Mistake,
   type MockSession,
@@ -224,12 +227,14 @@ function QuestionRow({
   inDeck,
   onDeckChange,
   onMistake,
+  onAnswered,
 }: {
   question: PracticeQuestion;
   position: number;
   inDeck: boolean;
   onDeckChange: (id: string) => void;
   onMistake: () => void;
+  onAnswered: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [attempt, setAttempt] = useState("");
@@ -261,6 +266,7 @@ function QuestionRow({
         ),
       });
       setResult(data);
+      onAnswered();
       if (data.savedAsMistake) onMistake();
       onDeckChange(question.id);
     } catch (cause) {
@@ -305,7 +311,7 @@ function QuestionRow({
             aria-label="Your answer"
             disabled={busy}
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 border-t pt-4">
             <Button
               size="sm"
               onClick={() => void grade()}
@@ -325,6 +331,19 @@ function QuestionRow({
                 <PlusIcon data-icon="inline-start" />
               )}
               {inDeck ? "In flashcards" : "Add to flashcards"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto"
+              onClick={() => {
+                setAttempt("");
+                setResult(null);
+                setFailure(null);
+              }}
+              disabled={!attempt && !result}
+            >
+              Clear answer
             </Button>
           </div>
         </div>
@@ -382,6 +401,7 @@ function QuestionsTab({
   const [type, setType] = useState("all");
   const [query, setQuery] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [answered, setAnswered] = useState(0);
 
   const all = payload?.questions ?? [];
   const courses = useMemo(() => courseFacets(all), [all]);
@@ -420,6 +440,17 @@ function QuestionsTab({
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="grid gap-8 border-b pb-8 lg:grid-cols-[minmax(0,1fr)_12rem] lg:items-end">
+        <div>
+          <h2 className="font-heading text-5xl leading-none tracking-tighter sm:text-6xl">One queue. Every active course.</h2>
+          <p className="text-muted-foreground mt-3 max-w-[72ch] text-sm leading-relaxed">Choose a course or work through the complete question bank. Your filters stay in place as you move through the queue.</p>
+        </div>
+        <div className="border-l pl-6">
+          <strong className={`block text-3xl ${NUMERALS}`}>{answered}</strong>
+          <span className="text-muted-foreground text-sm">answered this session</span>
+          <span className={`text-muted-foreground mt-2 block text-sm ${NUMERALS}`}>{visible.length} available</span>
+        </div>
+      </div>
       <div className="flex flex-col gap-3 border-b pb-4">
         <div className="flex flex-wrap items-center gap-3">
           <ToggleGroup
@@ -446,6 +477,7 @@ function QuestionsTab({
                 className="gap-1.5"
                 aria-label={course.name}
               >
+                <span className="size-2 rounded-full bg-primary/70" aria-hidden="true" />
                 <span className={NUMERALS}>{course.code}</span>
                 <span className={`text-muted-foreground ${NUMERALS}`}>
                   {course.count}
@@ -531,7 +563,7 @@ function QuestionsTab({
         </Empty>
       ) : (
         current && (
-          <section className="mx-auto flex w-full max-w-[900px] flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+          <section className="mx-auto flex w-full max-w-[980px] flex-col overflow-hidden rounded-sm border bg-card">
             <div className="flex flex-col gap-3 border-b bg-muted/35 px-5 py-4 sm:px-7">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -542,6 +574,9 @@ function QuestionsTab({
                     {current.chapterName}
                   </p>
                 </div>
+                <Button variant="ghost" size="sm" render={<Link href={`/v2/courses/${encodeURIComponent(current.courseId)}/${encodeURIComponent(String(current.chapterId))}`} />}>
+                  Open chapter
+                </Button>
                 <span className={`text-sm font-semibold ${NUMERALS}`}>
                   {currentIndex + 1} / {visible.length}
                 </span>
@@ -557,6 +592,7 @@ function QuestionsTab({
                 inDeck={deck.has(current.id)}
                 onDeckChange={onDeckChange}
                 onMistake={onMistake}
+                onAnswered={() => setAnswered((count) => count + 1)}
               />
             </ol>
 
@@ -569,9 +605,13 @@ function QuestionsTab({
                 <ChevronLeftIcon data-icon="inline-start" />
                 Previous
               </Button>
-              <span className={`text-muted-foreground hidden text-sm sm:inline ${NUMERALS}`}>
-                {visible.length} questions in this selection
-              </span>
+              <div className="flex items-center gap-3">
+                <span className={`text-muted-foreground hidden text-sm sm:inline ${NUMERALS}`}>{currentIndex + 1} / {visible.length}</span>
+                <Button variant="outline" onClick={() => setCurrentIndex(Math.floor(Math.random() * visible.length))}>
+                  <ShuffleIcon data-icon="inline-start" />
+                  Shuffle
+                </Button>
+              </div>
               <Button
                 onClick={() => setCurrentIndex((index) => Math.min(visible.length - 1, index + 1))}
                 disabled={currentIndex === visible.length - 1}
@@ -689,6 +729,7 @@ function FlashcardsTab({
             answer for grading. Graded questions join the deck automatically.
           </EmptyDescription>
         </EmptyHeader>
+        <OnboardingResume />
       </Empty>
     );
   }

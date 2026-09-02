@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { OnboardingResume } from '@/components/v2/onboarding-resume'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { type AcademicCourse, type StudyCourse, byNextExam, courseProgress, nextExam, readChapters } from '@/lib/v2/courses.mjs'
@@ -110,7 +111,7 @@ export default function CoursesPage() {
       {!courses ? (
         <div className="flex flex-col gap-3">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}</div>
       ) : !active.length && !archived.length ? (
-        <Empty><EmptyHeader><EmptyTitle>No courses yet</EmptyTitle><EmptyDescription>Published course material appears here.</EmptyDescription></EmptyHeader></Empty>
+        <Empty><EmptyHeader><EmptyTitle>No courses yet</EmptyTitle><EmptyDescription>Finish setup to connect your programme and choose the courses you are taking.</EmptyDescription></EmptyHeader><OnboardingResume /></Empty>
       ) : (
         <>
           <ul className="flex flex-col border-t">{active.map(row)}</ul>
