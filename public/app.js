@@ -85,6 +85,115 @@ const UPDATES_SORTS = {
 const UPDATES_WINDOWS = [['14', 'Last 14 days'], ['30', 'Last 30 days'], ['90', 'Last 3 months'], ['180', 'Last 6 months'], ['365', 'Last year']]
 const ASSIGNMENT_STATUS_ORDER = ['missing', 'overdue', 'upcoming', 'undated', 'submitted', 'graded', 'excused', 'offline']
 
+/* ── Controls ───────────────────────────────────────────────────────────────
+ * A native <select> renders the operating system's own menu — light, glassy,
+ * rounded, and entirely outside this world. There are thirty-eight of them in
+ * this file, so the fix is one control used everywhere rather than a patch per
+ * page. Same reasoning for the segmented control and the checkbox.
+ *
+ * These are the shadcn primitives in this codebase's own terms: the workspace
+ * is fourteen thousand lines of template-string rendering, not React, so the
+ * library itself cannot be dropped in — but the parts that matter (a listbox
+ * that looks like the product, keyboard support, one focus ring) can.
+ */
+
+let openSelect = null
+
+function wSelectOption(id, option, value) {
+  const on = String(option.value) === String(value)
+  return `<button type="button" role="option" aria-selected="${on}" class="w-select-opt${on ? ' is-on' : ''}" data-w-select-pick="${escapeHtml(id)}" data-w-select-value="${escapeHtml(String(option.value))}">
+    <span>${escapeHtml(option.label)}</span>${option.meta ? `<small>${escapeHtml(String(option.meta))}</small>` : ''}
+  </button>`
+}
+
+/**
+ * `groups` is either a flat list of { value, label, meta } or a list of
+ * { label, options: [...] }. Open state lives outside the render because the
+ * whole app re-renders on every state change.
+ */
+function wSelect({ id, value, groups, placeholder = 'Select', label, align = 'start' }) {
+  const flat = groups.flatMap((entry) => entry.options || [entry])
+  const current = flat.find((option) => String(option.value) === String(value))
+  const open = openSelect === id
+  return `<div class="w-select${open ? ' is-open' : ''}" data-w-select="${escapeHtml(id)}">
+    <button type="button" class="w-select-btn" data-w-select-toggle="${escapeHtml(id)}"
+      aria-haspopup="listbox" aria-expanded="${open}"${label ? ` aria-label="${escapeHtml(label)}"` : ''}>
+      <span>${escapeHtml(current ? current.label : placeholder)}</span>
+      ${uiIcon('chevronDown')}
+    </button>
+    ${open ? `<div class="w-select-menu is-${align}" role="listbox"${label ? ` aria-label="${escapeHtml(label)}"` : ''}>
+      ${groups.map((entry) => entry.options
+        ? `<p class="w-select-group">${escapeHtml(entry.label)}</p>${entry.options.map((option) => wSelectOption(id, option, value)).join('')}`
+        : wSelectOption(id, entry, value)).join('')}
+    </div>` : ''}
+  </div>`
+}
+
+function wSegmented({ name, value, options, label }) {
+  return `<div class="w-seg" role="group"${label ? ` aria-label="${escapeHtml(label)}"` : ''}>
+    ${options.map((option) => `<button type="button" class="${String(option.value) === String(value) ? 'is-on' : ''}"
+      data-w-seg="${escapeHtml(name)}" data-w-seg-value="${escapeHtml(String(option.value))}"
+      aria-pressed="${String(option.value) === String(value)}">${escapeHtml(option.label)}${option.meta != null ? `<small>${escapeHtml(String(option.meta))}</small>` : ''}</button>`).join('')}
+  </div>`
+}
+
+function wCheck({ name, checked, label }) {
+  return `<label class="w-check">
+    <input type="checkbox" data-w-check="${escapeHtml(name)}" ${checked ? 'checked' : ''}>
+    <span class="w-check-box">${uiIcon('check')}</span>
+    <span>${escapeHtml(label)}</span>
+  </label>`
+}
+
+function bindWorldControls(handlers = {}) {
+  document.querySelectorAll('[data-w-select-toggle]').forEach((button) => button.addEventListener('click', (event) => {
+    event.stopPropagation()
+    const id = button.dataset.wSelectToggle
+    openSelect = openSelect === id ? null : id
+    render()
+  }))
+  document.querySelectorAll('[data-w-select-pick]').forEach((button) => button.addEventListener('click', (event) => {
+    event.stopPropagation()
+    const id = button.dataset.wSelectPick
+    openSelect = null
+    handlers.onSelect?.(id, button.dataset.wSelectValue)
+  }))
+  document.querySelectorAll('[data-w-seg]').forEach((button) => button.addEventListener('click', () => {
+    handlers.onSegment?.(button.dataset.wSeg, button.dataset.wSegValue)
+  }))
+  document.querySelectorAll('[data-w-check]').forEach((input) => input.addEventListener('change', () => {
+    handlers.onCheck?.(input.dataset.wCheck, input.checked)
+  }))
+}
+
+// A menu left open across a re-render, or after a click anywhere else, is a
+// menu the student cannot dismiss.
+document.addEventListener('click', () => { if (openSelect) { openSelect = null; render() } })
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && openSelect) { openSelect = null; render() } })
+
+// What a student opens this tab to answer is "what do I still have to do".
+// It used to answer "here are all forty-eight things Canvas knows about",
+// behind six overlapping controls — a current/all scope toggle, thirteen
+// coloured course chips, a search field, a sort select, a hide-done checkbox,
+// and a row of status pills — spread over three rows.
+//
+// One row of controls now, and each one asks a different question: which
+// state, which course, which words, what order.
+
+const ASSIGNMENT_STATES = [
+  ['todo', 'To do', new Set(['missing', 'overdue', 'upcoming', 'undated'])],
+  // Canvas marks coursework with no online submission this way. It is not
+  // done — it is graded in the room — so it was wrong to hide it under
+  // "submitted and graded", which is what the old checkbox did to twenty items.
+  ['offline', 'No hand-in', new Set(['offline'])],
+  ['done', 'Done', new Set(['submitted', 'graded', 'excused'])],
+  ['all', 'All', null]
+]
+
+function assignmentStateOf(status) {
+  return (ASSIGNMENT_STATES.find(([id, , set]) => id !== 'all' && set.has(status)) || [])[0] || 'todo'
+}
+
 let route = parseRoute()
 let academicsData = null
 let academicsLoading = false
@@ -5027,6 +5136,14 @@ function tutorMarkdown(source) {
   return out.join('')
 }
 
+async function saveTutorPreference(key, value) {
+  try {
+    const result = await fetchJson('/api/tutor/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [key]: value }) })
+    tutor.data = { ...tutor.data, memory: { ...tutor.data.memory, preferences: result.preferences } }
+  } catch (error) { tutor.error = error.message }
+  render()
+}
+
 function renderTutorDrawer() {
   const data = tutor.data
   const conversations = data?.conversations || []
@@ -5054,7 +5171,12 @@ function renderTutorDrawer() {
         </div>
         <div class="tutor-rail-group">
           <h3>How it answers</h3>
-          <div class="tutor-prefs">${Object.entries(options).map(([key, spec]) => `<label><span>${escapeHtml(spec.label)}</span><select data-tutor-pref="${escapeHtml(key)}">${spec.options.map((option) => `<option value="${escapeHtml(option)}" ${preferences[key] === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></label>`).join('')}</div>
+          <div class="tutor-prefs">${Object.entries(options).map(([key, spec]) => `<label><span>${escapeHtml(spec.label)}</span>${wSelect({
+        id: `tutor-pref-${key}`,
+        value: preferences[key] || spec.fallback,
+        label: spec.label,
+        groups: spec.options.map((option) => ({ value: option, label: option }))
+      })}</label>`).join('')}</div>
         </div>
       </div>
     </aside>
@@ -5940,6 +6062,7 @@ const updatesState = {
   search: '',
   courses: new Set(),
   statuses: new Set(),
+  assignmentState: 'todo',
   sort: { announcements: 'newest', assignments: 'due' },
   unreadOnly: false,
   hideDone: false,
@@ -5953,7 +6076,7 @@ function loadUpdatesPreferences() {
     if (UPDATES_WINDOWS.some(([id]) => id === String(stored.days))) updatesState.days = String(stored.days)
     if (UPDATES_SORTS.announcements.some(([id]) => id === stored.announcementSort)) updatesState.sort.announcements = stored.announcementSort
     if (UPDATES_SORTS.assignments.some(([id]) => id === stored.assignmentSort)) updatesState.sort.assignments = stored.assignmentSort
-    updatesState.hideDone = Boolean(stored.hideDone)
+    if (ASSIGNMENT_STATES.some(([id]) => id === stored.assignmentState)) updatesState.assignmentState = stored.assignmentState
   } catch {}
 }
 function saveUpdatesPreferences() {
@@ -5963,7 +6086,7 @@ function saveUpdatesPreferences() {
       days: updatesState.days,
       announcementSort: updatesState.sort.announcements,
       assignmentSort: updatesState.sort.assignments,
-      hideDone: updatesState.hideDone
+      assignmentState: updatesState.assignmentState
     }))
   } catch {}
 }
@@ -6119,8 +6242,10 @@ const DONE_STATUSES = new Set(['graded', 'submitted', 'excused', 'offline'])
 function visibleAssignments() {
   const items = (updatesState.data?.assignments || [])
     .filter((item) => updatesMatchesCourse(item))
-    .filter((item) => !updatesState.statuses.size || updatesState.statuses.has(item.status))
-    .filter((item) => !updatesState.hideDone || !DONE_STATUSES.has(item.status))
+    .filter((item) => {
+      const state = ASSIGNMENT_STATES.find(([id]) => id === updatesState.assignmentState)
+      return !state || !state[2] || state[2].has(item.status)
+    })
     .filter((item) => updatesMatchesSearch(item.title, item.courseCode, item.courseName, item.description))
   const sort = updatesState.sort.assignments
   const byDue = (left, right, direction = 1) => {
@@ -6136,36 +6261,47 @@ function visibleAssignments() {
   })
 }
 
-function renderUpdatesCoursePills() {
-  const courses = updatesScopeCourses()
-  if (!courses.length) return ''
-  return `<div class="upd-courses" role="group" aria-label="Filter by course">
-    <button type="button" class="upd-pill${updatesState.courses.size ? '' : ' is-on'}" data-upd-course="all" title="Clear the course filter">All <small>${courses.length}</small></button>
-    ${courses.map((course) => `<button type="button" class="upd-pill${updatesState.courses.has(String(course.id)) ? ' is-on' : ''}" data-upd-course="${escapeHtml(String(course.id))}" style="--accent:${updatesCourseColour(course.id)}" title="${escapeHtml(course.displayName || course.name)}"><i></i><span>${escapeHtml(course.courseCode || course.displayName || course.name)}</span></button>`).join('')}
-  </div>`
+
+function renderUpdatesCourseSelect() {
+  const all = updatesState.data?.courses || []
+  const current = new Set(updatesScopeCourses().map((course) => String(course.id)))
+  const entry = (course) => ({ value: String(course.id), label: course.courseCode || course.displayName || course.name })
+  const mine = all.filter((course) => current.has(String(course.id))).map(entry)
+  const rest = all.filter((course) => !current.has(String(course.id))).map(entry)
+  return wSelect({
+    id: 'upd-course',
+    value: [...updatesState.courses][0] || '',
+    label: 'Course',
+    placeholder: 'All courses',
+    groups: [
+      { value: '', label: 'All courses' },
+      ...(mine.length ? [{ label: 'This period', options: mine }] : []),
+      ...(rest.length ? [{ label: 'Other courses', options: rest }] : [])
+    ]
+  })
 }
 
 function renderUpdatesToolbar(tab) {
   const sorts = UPDATES_SORTS[tab] || []
-  const statusCounts = {}
-  for (const item of updatesState.data?.assignments || []) statusCounts[item.status] = (statusCounts[item.status] || 0) + 1
-  const statuses = updatesState.data?.statuses || {}
+  const counts = {}
+  for (const item of updatesState.data?.assignments || []) {
+    const state = assignmentStateOf(item.status)
+    counts[state] = (counts[state] || 0) + 1
+    counts.all = (counts.all || 0) + 1
+  }
   return `<div class="upd-toolbar">
-    <div class="upd-toolbar-row">
-      <div class="upd-scope" role="group" aria-label="Which courses">
-        <button type="button" class="${updatesState.scope === 'current' ? 'is-on' : ''}" data-upd-scope="current" aria-pressed="${updatesState.scope === 'current'}">Current courses</button>
-        <button type="button" class="${updatesState.scope === 'all' ? 'is-on' : ''}" data-upd-scope="all" aria-pressed="${updatesState.scope === 'all'}">All courses</button>
-      </div>
-      <label class="cal-search upd-search"><span class="nav-icon">${uiIcon('search')}</span><input type="search" data-upd-search placeholder="Search ${tab === 'assignments' ? 'assignments' : 'announcements'}" value="${escapeHtml(updatesState.search)}" aria-label="Search Canvas updates"></label>
-      ${tab === 'announcements' ? `<label class="upd-select"><span>Period</span><select data-upd-days>${UPDATES_WINDOWS.map(([id, label]) => `<option value="${id}" ${updatesState.days === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}
-      ${sorts.length ? `<label class="upd-select"><span>Sort</span><select data-upd-sort="${tab}">${sorts.map(([id, label]) => `<option value="${id}" ${updatesState.sort[tab] === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}
-    </div>
-    ${renderUpdatesCoursePills()}
-    ${tab === 'announcements' && announcementReadStateKnown() ? `<div class="upd-toggles"><label><input type="checkbox" data-upd-unread ${updatesState.unreadOnly ? 'checked' : ''}><span>Unread only</span></label></div>` : ''}
-    ${tab === 'assignments' ? `<div class="upd-toggles">
-      <label><input type="checkbox" data-upd-hide-done ${updatesState.hideDone ? 'checked' : ''}><span>Hide submitted and graded</span></label>
-      <div class="upd-statuses" role="group" aria-label="Filter by status">${ASSIGNMENT_STATUS_ORDER.filter((id) => statusCounts[id]).map((id) => `<button type="button" class="upd-status-pill is-${id}${updatesState.statuses.has(id) ? ' is-on' : ''}" data-upd-status="${id}" aria-pressed="${updatesState.statuses.has(id)}">${escapeHtml(statuses[id] || id)} <small>${statusCounts[id]}</small></button>`).join('')}</div>
-    </div>` : ''}
+    ${tab === 'assignments'
+      ? wSegmented({ name: 'upd-state', value: updatesState.assignmentState, label: 'Which assignments',
+          options: ASSIGNMENT_STATES.filter(([id]) => id === 'all' || counts[id]).map(([id, label]) => ({ value: id, label, meta: counts[id] || 0 })) })
+      : wSegmented({ name: 'upd-scope', value: updatesState.scope, label: 'Which courses',
+          options: [{ value: 'current', label: 'This period' }, { value: 'all', label: 'All' }] })}
+    ${renderUpdatesCourseSelect()}
+    <label class="cal-search upd-search"><span class="nav-icon">${uiIcon('search')}</span><input type="search" data-upd-search placeholder="Search ${tab === 'assignments' ? 'assignments' : 'announcements'}" value="${escapeHtml(updatesState.search)}" aria-label="Search Canvas updates"></label>
+    ${tab === 'announcements' ? wSelect({ id: 'upd-days', value: updatesState.days, label: 'Period',
+      groups: UPDATES_WINDOWS.map(([id, label]) => ({ value: id, label })) }) : ''}
+    ${sorts.length ? wSelect({ id: `upd-sort-${tab}`, value: updatesState.sort[tab], label: 'Sort',
+      groups: sorts.map(([id, label]) => ({ value: id, label })), align: 'end' }) : ''}
+    ${tab === 'announcements' && announcementReadStateKnown() ? wCheck({ name: 'upd-unread', checked: updatesState.unreadOnly, label: 'Unread only' }) : ''}
   </div>`
 }
 
@@ -6196,22 +6332,54 @@ function renderUpdatesAnnouncements() {
   }).join('')}</ol>`
 }
 
+// Forty-eight rows in one flat list is a wall. Grouped by how soon they are
+// due, the same list answers "what is urgent" without reading it.
+function assignmentBucket(item) {
+  if (['submitted', 'graded', 'excused'].includes(item.status)) return 'done'
+  if (item.status === 'missing' || item.status === 'overdue') return 'overdue'
+  if (!item.dueAt) return 'undated'
+  const days = daysUntil(String(item.dueAt).slice(0, 10))
+  if (days <= 7) return 'week'
+  return 'later'
+}
+
+const ASSIGNMENT_BUCKETS = [
+  ['overdue', 'Overdue'],
+  ['week', 'Next seven days'],
+  ['later', 'Later'],
+  ['undated', 'No due date'],
+  ['done', 'Done']
+]
+
 function renderUpdatesAssignments() {
   const items = visibleAssignments()
   const total = (updatesState.data?.assignments || []).length
   const statuses = updatesState.data?.statuses || {}
   if (!items.length) {
-    return `<div class="upd-empty panel">${uiIcon('check')}<div><strong>${total ? 'Nothing matches these filters' : 'No assignments in these courses'}</strong><p>${total ? `${total} assignment${total === 1 ? '' : 's'} ${total === 1 ? 'is' : 'are'} hidden by the current filters.` : 'Canvas returned no assignments for the courses in scope.'}</p></div></div>`
+    return `<div class="upd-empty">${uiIcon('check')}<div><strong>${total ? 'Nothing here' : 'No assignments in these courses'}</strong><p>${total ? `${total} assignment${total === 1 ? '' : 's'} ${total === 1 ? 'is' : 'are'} outside the current filter.` : 'Canvas returned no assignments for the courses in scope.'}</p></div></div>`
   }
-  return `<ol class="upd-rows">${items.map((item) => `<li class="upd-row is-${escapeHtml(item.status)}" style="--accent:${updatesCourseColour(item.courseId)}">
-    <span class="upd-course-chip"><i></i>${escapeHtml(updatesCourseLabel(item))}</span>
-    <div class="upd-row-main">
-      <strong>${escapeHtml(item.title)}</strong>
-      <small>${item.dueAt ? `Due ${escapeHtml(updatesDateTime(item.dueAt) || '')} · ${escapeHtml(dueRelative(item.dueAt) || '')}` : 'No due date'}${item.pointsPossible != null ? ` · ${item.pointsPossible} point${item.pointsPossible === 1 ? '' : 's'}` : ''}${item.score != null ? ` · scored ${item.score}${item.pointsPossible != null ? `/${item.pointsPossible}` : ''}` : ''}${item.late ? ' · handed in late' : ''}</small>
-    </div>
-    <span class="upd-badge is-${escapeHtml(item.status)}">${escapeHtml(statuses[item.status] || item.status)}</span>
-    ${item.url ? `<a class="upd-row-link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(item.title)} in Canvas">${uiIcon('external')}</a>` : '<span class="upd-row-link is-empty"></span>'}
-  </li>`).join('')}</ol>`
+
+  const grouped = new Map()
+  for (const item of items) {
+    const bucket = assignmentBucket(item)
+    grouped.set(bucket, [...(grouped.get(bucket) || []), item])
+  }
+
+  return ASSIGNMENT_BUCKETS.filter(([id]) => grouped.has(id)).map(([id, label]) => {
+    const rows = grouped.get(id)
+    return `<section class="upd-group">
+      <div class="w-sec-head"><h2>${label}</h2><span class="w-sec-meta">${rows.length}</span></div>
+      <ol class="upd-rows">${rows.map((item) => `<li class="upd-row is-${escapeHtml(item.status)}">
+        <span class="upd-code">${escapeHtml(updatesCourseLabel(item))}</span>
+        <div class="upd-row-main">
+          <strong>${escapeHtml(item.title)}</strong>
+          <small>${item.dueAt ? `${escapeHtml(updatesDateTime(item.dueAt) || '')} · ${escapeHtml(dueRelative(item.dueAt) || '')}` : 'No due date'}${item.pointsPossible != null ? ` · ${item.pointsPossible} point${item.pointsPossible === 1 ? '' : 's'}` : ''}${item.score != null ? ` · scored ${item.score}${item.pointsPossible != null ? `/${item.pointsPossible}` : ''}` : ''}${item.late ? ' · handed in late' : ''}</small>
+        </div>
+        <span class="upd-badge is-${escapeHtml(item.status)}">${escapeHtml(['upcoming', 'undated'].includes(item.status) ? '' : statuses[item.status] || item.status)}</span>
+        ${item.url ? `<a class="upd-row-link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(item.title)} in Canvas">${uiIcon('external')}</a>` : '<span class="upd-row-link is-empty"></span>'}
+      </li>`).join('')}</ol>
+    </section>`
+  }).join('')
 }
 
 function renderUpdatesCourses() {
@@ -11800,6 +11968,44 @@ function bindEvents() {
   document.querySelectorAll('[data-upd-course-only]').forEach((button) => button.addEventListener('click', () => {
     updatesState.courses = new Set([button.dataset.updCourseOnly])
     location.hash = '#/updates/announcements'
+  }))
+  bindWorldControls({
+    onSelect(id, value) {
+      if (id === 'upd-course') {
+        updatesState.courses = value ? new Set([value]) : new Set()
+        const current = new Set(updatesScopeCourses().map((course) => String(course.id)))
+        if (value && !current.has(value)) updatesState.scope = 'all'
+      } else if (id === 'upd-days') updatesState.days = value
+      else if (id.startsWith('upd-sort-')) updatesState.sort[id.slice('upd-sort-'.length)] = value
+      else if (id.startsWith('tutor-pref-')) { saveTutorPreference(id.slice('tutor-pref-'.length), value); return }
+      saveUpdatesPreferences()
+      render()
+    },
+    onSegment(name, value) {
+      if (name === 'upd-state') updatesState.assignmentState = value
+      if (name === 'upd-scope') { updatesState.scope = value; updatesState.courses = new Set() }
+      saveUpdatesPreferences()
+      render()
+    },
+    onCheck(name, checked) {
+      if (name === 'upd-unread') updatesState.unreadOnly = checked
+      saveUpdatesPreferences()
+      render()
+    }
+  })
+  document.querySelectorAll('[data-upd-state]').forEach((button) => button.addEventListener('click', () => {
+    updatesState.assignmentState = button.dataset.updState
+    saveUpdatesPreferences()
+    render()
+  }))
+  document.querySelectorAll('[data-upd-course-select]').forEach((select) => select.addEventListener('change', () => {
+    updatesState.courses = select.value ? new Set([select.value]) : new Set()
+    // Choosing a course the student is no longer enrolled in has to widen the
+    // scope, or the filter selects a course the list has already excluded.
+    const current = new Set(updatesScopeCourses().map((course) => String(course.id)))
+    if (select.value && !current.has(select.value)) updatesState.scope = 'all'
+    saveUpdatesPreferences()
+    render()
   }))
   document.querySelectorAll('[data-upd-status]').forEach((button) => button.addEventListener('click', () => {
     const id = button.dataset.updStatus

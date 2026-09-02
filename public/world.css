@@ -752,3 +752,215 @@ body:has(#app) :where(button, a, input, textarea, select, [tabindex]):focus-visi
    the section inside it, drawing two lines above an empty column. */
 .w-grid.is-single { border-top: 0; padding-top: 0; }
 .w-grid.is-single > .w-panel:first-child { padding-top: var(--space-5); border-top: 1px solid var(--w-rule-strong); }
+
+/* ── Updates ──────────────────────────────────────────────────────────── */
+/* One row of controls, each asking a different question. The thirteen
+   coloured course chips are a select; the hide-done checkbox and the status
+   pills are one segmented control that also states its counts. */
+.upd-toolbar {
+  padding: var(--space-3) 0 var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  border: 0;
+  border-bottom: 1px solid var(--w-rule-strong);
+  border-radius: 0;
+  background: transparent;
+}
+.upd-group { padding-top: var(--space-5); }
+.upd-rows { margin: 0; padding: 0; list-style: none; }
+/* Course identity is the code, in the data face. Thirteen coloured dots is a
+   palette this world does not have. */
+#app .upd-row {
+  padding: var(--space-2) 0;
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto 1.5rem;
+  align-items: baseline;
+  gap: var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--w-rule);
+  border-radius: 0;
+  background: transparent;
+}
+/* dash.css tints these rows per status, which on an ink ground read as
+   arbitrary stripes down the list. */
+#app .upd-row, #app .upd-row.is-upcoming, #app .upd-row.is-undated,
+#app .upd-row.is-offline, #app .upd-row.is-graded, #app .upd-row.is-submitted { background: transparent !important; }
+#app .upd-row:hover { background: var(--w-board) !important; }
+.upd-code {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--w-type-2);
+}
+.upd-row-main { min-width: 0; display: grid; gap: 2px; }
+.upd-row-main strong { font: 500 15px/1.35 var(--font-ui); color: var(--w-type); overflow-wrap: anywhere; }
+.upd-row-main small { color: var(--w-type-3); font: 400 12px/1.4 var(--font-ui); font-variant-numeric: tabular-nums; }
+/* State is a mark. Only what is late carries the colour. */
+#app .upd-badge {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--w-type-3) !important;
+  font: 500 12px/1.4 var(--font-ui) !important;
+  white-space: nowrap;
+}
+#app .upd-row.is-missing .upd-badge, #app .upd-row.is-overdue .upd-badge { color: var(--w-signal-text) !important; }
+.upd-row-link { color: var(--w-type-3); }
+.upd-row-link:hover { color: var(--w-signal-text); }
+#app .upd-empty { padding: var(--space-6) 0; border: 0; background: transparent; }
+
+@media (max-width: 700px) {
+  #app .upd-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .upd-code { grid-column: 1 / -1; }
+  .upd-row-link { display: none; }
+}
+
+/* ── Shared controls ──────────────────────────────────────────────────── */
+/* Squared off, one focus ring, and drawn by us — a native <select> opens the
+   operating system's own light, rounded menu, which belongs to no design
+   system at all. */
+#app .w-select { position: relative; display: inline-block; }
+#app .w-select-btn {
+  min-height: var(--control-sm);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--w-rule-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--w-type);
+  font: 500 12px/1 var(--font-ui);
+  white-space: nowrap;
+  cursor: pointer;
+}
+#app .w-select-btn:hover { border-color: var(--w-type-3); background: var(--w-board); }
+#app .w-select.is-open .w-select-btn { border-color: var(--w-signal); }
+#app .w-select-btn .ui-icon { width: 14px; height: 14px; color: var(--w-type-3); }
+#app .w-select-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 40;
+  min-width: 100%;
+  max-width: 320px;
+  max-height: 320px;
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: 1px solid var(--w-rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--w-board);
+  box-shadow: var(--w-cast-panel);
+}
+#app .w-select-menu.is-start { left: 0; }
+#app .w-select-menu.is-end { right: 0; }
+#app .w-select-group {
+  margin: var(--space-2) 0 2px;
+  padding: 0 var(--space-2);
+  color: var(--w-type-3);
+  font: 600 10.5px/1.4 var(--font-ui);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+#app .w-select-opt {
+  width: 100%;
+  min-height: 30px;
+  padding: 0 var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--w-type-2);
+  font: 500 13px/1.3 var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+#app .w-select-opt:hover { background: var(--w-board-raised); color: var(--w-type); }
+#app .w-select-opt.is-on { color: var(--w-type); }
+/* The chosen row is marked, not filled: one colour, spent on a rule. */
+#app .w-select-opt.is-on::after { content: ""; width: 2px; align-self: stretch; background: var(--w-signal); }
+#app .w-select-opt small {
+  color: var(--w-type-3);
+  font: 500 11px/1 "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Segmented control. The buttons carry no radius of their own — the group
+   owns the corners, or the selected pill overhangs its own container. */
+#app .w-seg {
+  display: inline-flex;
+  border: 1px solid var(--w-rule-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+#app .w-seg button {
+  min-height: var(--control-sm);
+  padding: 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-right: 1px solid var(--w-rule-strong);
+  border-radius: 0 !important;
+  background: transparent;
+  color: var(--w-type-2);
+  font: 600 12px/1 var(--font-ui);
+  cursor: pointer;
+}
+#app .w-seg button:last-child { border-right: 0; }
+#app .w-seg button:hover { background: var(--w-board); color: var(--w-type); }
+#app .w-seg button.is-on { background: var(--w-signal); color: var(--w-on-signal); }
+#app .w-seg small {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  opacity: .72;
+}
+
+/* Checkbox: the browser's own is the one control that never matched anything. */
+#app .w-check { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--w-type-2); font: 500 12px/1 var(--font-ui); cursor: pointer; }
+#app .w-check input { position: absolute; opacity: 0; width: 0; height: 0; }
+#app .w-check-box {
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--w-rule-strong);
+  border-radius: var(--radius-xs);
+  color: transparent;
+}
+#app .w-check-box .ui-icon { width: 11px; height: 11px; }
+#app .w-check input:checked + .w-check-box { border-color: var(--w-signal); background: var(--w-signal); color: var(--w-on-signal); }
+#app .w-check input:focus-visible + .w-check-box { outline: 2px solid var(--w-signal); outline-offset: 2px; }
+#app .w-check:hover .w-check-box { border-color: var(--w-type-3); }
+
+/* The search field wraps its input, so the global outline drew a second
+   rectangle inside the container — the same fault the composer had. */
+#app .upd-search, #app .cal-search {
+  min-height: var(--control-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--w-rule-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+#app .upd-search:focus-within, #app .cal-search:focus-within { border-color: var(--w-signal); box-shadow: var(--focus-ring); }
+#app .upd-search input, #app .cal-search input {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: 400 13px/1 var(--font-ui);
+}
+#app .upd-search input:focus-visible, #app .cal-search input:focus-visible { outline: 0 !important; box-shadow: none !important; }
+#app .upd-search .nav-icon { width: 15px; height: 15px; color: var(--w-type-3); }
