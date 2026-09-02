@@ -115,9 +115,30 @@
   [data-v2] :is(h1, h2, h3, h4, p, figure, blockquote) {
     @apply m-0;
     }
-  [data-v2] :is(button, input, select, textarea) {
+  /* Form controls are where skipping preflight actually bites: a <button>
+     keeps the platform's own `buttonface` background, so every inactive tab
+     and toggle rendered as a near-white block on the board. These are the
+     parts of preflight the components genuinely depend on. */
+  [data-v2] :is(button, input, select, textarea, optgroup) {
     font: inherit;
+    letter-spacing: inherit;
     color: inherit;
+    background-color: transparent;
+    background-image: none;
+    border: 0 solid;
+    margin: 0;
+    padding: 0;
+    }
+  [data-v2] :is(button, [role="button"]) {
+    cursor: pointer;
+    -webkit-appearance: button;
+    }
+  [data-v2] :is(button, input, select, textarea):disabled {
+    cursor: default;
+    }
+  [data-v2] table {
+    border-collapse: collapse;
+    text-indent: 0;
     }
   [data-v2] :is(img, svg, video) {
     @apply block max-w-full;
