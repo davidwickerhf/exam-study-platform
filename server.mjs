@@ -47,13 +47,15 @@ import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
+import { canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
+import { startCanvasCorpusWorker } from './lib/canvas-corpus-worker.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
 import { editorialMode, editorialShellFromState, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialShell, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
-import { formatRetrievalContext, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
+import { formatRetrievalContext, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 import { CONTRIBUTION_LICENSES, COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
 import { estimateEditorialGeneration, listEditorialWorkspace, prepareCourseContentRequest, processEditorialJobs, publishEditorialEdition, queueEditorialGeneration, registerEditorialSources, reviewEditorialContribution, updateEditorialArtifact, uploadEditorialSourceChunk, upsertEditorialEdition, withdrawCourseContentRequestContribution } from './lib/editorial-workflow.mjs'
 
@@ -2582,9 +2584,15 @@ async function chat({ courseId, chapterId, messages, userMessage }) {
   if (!course) throw new Error('Unknown course')
   const chapter = course.chapters?.find((c) => c.id === chapterId)
 
-  const retrieved = editorialMode() === 'neon'
-    ? await retrieveCourseContent({ query: cleanMessage, courseId: course.id, limit: 10 })
-    : []
+  const [published, canvas] = editorialMode() === 'neon'
+    ? await Promise.all([
+        retrieveCourseContent({ query: cleanMessage, courseId: course.id, limit: 10 }),
+        retrieveCanvasCorpus({ query: cleanMessage, courseCode: course.code, includeHistorical: true, limit: 10 })
+      ])
+    : [[], []]
+  const retrieved = [...published, ...canvas]
+    .sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
+    .slice(0, 10)
   const context = retrieved.length
     ? formatRetrievalContext(retrieved)
     : await loadCourseContext(state, course, chapter)
@@ -3403,7 +3411,12 @@ const server = createServer(async (req, res) => {
     // Canvas credentials are account data, not agent input. A signed-in browser
     // may store or remove one; API keys can only use an existing connection.
     if (url.pathname === '/api/account/integrations/canvas' && req.method === 'GET') {
-      send(res, 200, JSON.stringify({ connections: await listCanvasConnections() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      const connections = await listCanvasConnections()
+      const withCorpus = await Promise.all(connections.map(async (connection) => ({
+        ...connection,
+        corpus: await canvasCorpusPermission({ accountId: currentAuth().userId, origin: connection.origin })
+      })))
+      send(res, 200, JSON.stringify({ connections: withCorpus }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
     if (url.pathname === '/api/account/integrations/canvas' && req.method === 'PUT') {
@@ -3411,9 +3424,49 @@ const server = createServer(async (req, res) => {
         const body = await readBody(req, 8 * 1024)
         const connection = await saveCanvasConnection({ canvasUrl: body?.canvasUrl, accessToken: body?.accessToken })
         clearCanvasHubCache()
-        send(res, 200, JSON.stringify({ connection }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const corpus = await canvasCorpusPermission({ accountId: currentAuth().userId, origin: connection.origin })
+        send(res, 200, JSON.stringify({ connection: { ...connection, corpus }, consentRequired: !corpus.collectionEnabled }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Could not save the Canvas connection.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/account/integrations/canvas/corpus' && req.method === 'GET') {
+      const origin = parseCanvasOrigin(url.searchParams.get('canvasUrl') || 'https://canvas.maastrichtuniversity.nl').origin
+      send(res, 200, JSON.stringify({
+        permission: await canvasCorpusPermission({ accountId: currentAuth().userId, origin }),
+        status: await canvasCorpusStatus({ accountId: currentAuth().userId })
+      }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/account/integrations/canvas/corpus' && req.method === 'PUT') {
+      if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Canvas material consent can only be changed in a signed-in browser session.' })); return }
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
+        const connected = (await listCanvasConnections()).some((connection) => connection.origin === origin)
+        if (!connected) { send(res, 409, JSON.stringify({ error: 'Connect this Canvas account before enabling material collection.' })); return }
+        const permission = await setCanvasCorpusPermission({
+          accountId: currentAuth().userId,
+          origin,
+          collectionEnabled: body?.collectionEnabled === true,
+          sharingMode: body?.sharingMode === 'community' ? 'community' : 'private'
+        })
+        send(res, 200, JSON.stringify({ permission }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas material preference could not be saved.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/corpus/sync' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
+        const permission = await canvasCorpusPermission({ accountId: currentAuth().userId, origin })
+        if (!permission.collectionEnabled) { send(res, 409, JSON.stringify({ error: 'Enable Canvas material collection first.' })); return }
+        send(res, 202, JSON.stringify(await enqueueCanvasCatalogSync({ accountId: currentAuth().userId, origin, force: body?.force === true })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas material sync could not be queued.' }))
       }
       return
     }
@@ -3998,7 +4051,10 @@ const server = createServer(async (req, res) => {
       try {
         if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Setup credentials can only be submitted from a signed-in browser session.' })); return }
         const body = await readBody(req, 8 * 1024)
-        const view = await applySecureValue(String(body?.kind || ''), String(body?.value || '').trim())
+        const view = await applySecureValue(String(body?.kind || ''), String(body?.value || '').trim(), {
+          collectionEnabled: body?.collectionEnabled === true,
+          sharingMode: body?.sharingMode === 'community' ? 'community' : 'private'
+        })
         send(res, 200, JSON.stringify({ available: true, ...view }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That value could not be applied.' }))
@@ -4238,15 +4294,36 @@ const server = createServer(async (req, res) => {
     // Results include stable source paths and PDF page numbers for citations.
     if (url.pathname === '/api/retrieve' && req.method === 'POST') {
       const body = await readBody(req)
-      if (!body?.courseId || !String(body?.query || '').trim()) {
-        send(res, 400, JSON.stringify({ error: 'courseId and query are required' }))
+      if ((!body?.courseId && !body?.courseCode && !body?.canonicalCourseId) || !String(body?.query || '').trim()) {
+        send(res, 400, JSON.stringify({ error: 'query and one of courseId, courseCode, or canonicalCourseId are required' }))
         return
       }
       const state = await readState()
-      const course = state.courses.find((candidate) => candidate.id === body.courseId)
-      if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
-      const chunks = await retrieveCourseContent({ query: body.query, courseId: course.id, sourcePath: body.sourcePath || null, limit: body.limit })
-      send(res, 200, JSON.stringify({ query: body.query, course: { id: course.id, code: course.code, name: course.name }, retrieval: retrievalMode(), chunks }))
+      const course = body.courseId
+        ? state.courses.find((candidate) => candidate.id === body.courseId)
+        : state.courses.find((candidate) => String(candidate.code || '').toUpperCase() === String(body.courseCode || '').toUpperCase())
+      if (body.courseId && !course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      const count = Math.max(1, Math.min(Number(body.limit) || 8, 20))
+      const [published, canvas] = await Promise.all([
+        course ? retrieveCourseContent({ query: body.query, courseId: course.id, sourcePath: body.sourcePath || null, limit: count }) : [],
+        retrieveCanvasCorpus({
+          query: body.query,
+          courseCode: body.courseCode || course?.code || '',
+          canonicalCourseId: body.canonicalCourseId || '',
+          academicYear: body.academicYear || '',
+          sourceType: body.sourceType || '',
+          includeHistorical: body.includeHistorical !== false,
+          limit: count
+        })
+      ])
+      const chunks = [...published.map((chunk) => ({ ...chunk, corpus: 'published' })), ...canvas]
+        .sort((left, right) => Number(right.score || 0) - Number(left.score || 0)).slice(0, count)
+      send(res, 200, JSON.stringify({
+        query: body.query,
+        course: course ? { id: course.id, code: course.code, name: course.name } : { id: null, code: body.courseCode || null, name: null },
+        scope: { academicYear: body.academicYear || null, sourceType: body.sourceType || null, includeHistorical: body.includeHistorical !== false },
+        retrieval: `${retrievalMode()}+canvas-hybrid`, chunks
+      }))
       return
     }
 
@@ -5570,4 +5647,5 @@ server.listen(port, hostname, () => {
   if (LLM_PROVIDER === 'claude') console.log(`Claude bin: ${CLAUDE_BIN}`)
   if (LLM_PROVIDER === 'api' || LLM_PROVIDER === 'anthropic') console.log(`Model: ${ANTHROPIC_MODEL} (API key ${ANTHROPIC_API_KEY ? 'set' : 'MISSING'})`)
   if (LLM_PROVIDER === 'openai') console.log(`Model: ${OPENAI_MODEL} (reasoning ${openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) || 'not applicable'}; OpenAI key ${OPENAI_API_KEY ? 'set' : 'MISSING'})`)
+  if (startCanvasCorpusWorker()) console.log('Canvas corpus worker: running')
 })

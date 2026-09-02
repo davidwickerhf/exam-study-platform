@@ -9,6 +9,7 @@ The application deliberately separates two kinds of data:
 | Course/chapter definitions, Markdown, PDFs and diagrams | Editorial | Reviewed local/Git sources, published as an active relational Neon release |
 | Shipped questions and parsed exams | Editorial | Git (`data/cache/`) pending the same release-table migration |
 | Mastery, notes, review log, course ordering/archive preferences | Individual user | `item_progress` and `course_settings` in Neon |
+| Canvas lesson-material corpus | Globally content-addressed; account or community scoped by explicit consent | `canvas_*`, `editorial_source_assets`, and `editorial_source_retrieval_chunks` in Neon |
 | Custom/generated flashcards and spaced-repetition scheduling | Individual user | `flashcards` and `sr_cards` in Neon |
 | Mistakes and mock sessions | Individual user | `mistakes`, `mock_sessions`, `mock_session_answers` in Neon |
 | Browser attempts, chapter-read flags and UI preferences | Individual user | Browser `localStorage`, synchronized to `browser_state` |

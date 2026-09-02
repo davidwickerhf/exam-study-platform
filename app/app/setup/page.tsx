@@ -264,6 +264,8 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
   const [value, setValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [collectMaterials, setCollectMaterials] = useState(false)
+  const [sharingMode, setSharingMode] = useState<'private' | 'community'>('private')
 
   return (
     <form
@@ -275,7 +277,10 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
         setBusy(true)
         setError(null)
         try {
-          const view = await json<View>('/api/onboarding/secure', { method: 'POST', body: JSON.stringify({ kind, value: secret }) })
+          const view = await json<View>('/api/onboarding/secure', {
+            method: 'POST',
+            body: JSON.stringify({ kind, value: secret, collectionEnabled: canvas && collectMaterials, sharingMode })
+          })
           setValue('')
           onApplied(view)
         } catch (cause) {
@@ -307,6 +312,37 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
         </FieldDescription>
         {error && <FieldError>{error}</FieldError>}
       </Field>
+      {canvas && (
+        <fieldset className="flex flex-col gap-3 border-t pt-4">
+          <legend className="text-sm font-semibold">Lesson materials</legend>
+          <label className="flex cursor-pointer items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="accent-primary mt-0.5 size-4"
+              checked={collectMaterials}
+              onChange={(event) => setCollectMaterials(event.target.checked)}
+            />
+            <span>
+              <strong className="block font-medium">Collect and index my accessible course materials</strong>
+              <span className="text-muted-foreground mt-0.5 block">Runs as a background server job after Canvas is connected. You can change or revoke this later.</span>
+            </span>
+          </label>
+          {collectMaterials && (
+            <div className="grid gap-2 pl-7 sm:grid-cols-2" role="radiogroup" aria-label="Who may use collected materials">
+              {([
+                ['private', 'Private', 'Only your Tutor and authorised MCP clients can retrieve them.'],
+                ['community', 'Share with the community', 'Other enrolled students may reuse this edition after rights review.']
+              ] as const).map(([value, title, detail]) => (
+                <label key={value} className={`cursor-pointer rounded-sm border p-3 ${sharingMode === value ? 'border-primary bg-primary/5' : 'hover:bg-card'}`}>
+                  <input type="radio" name="canvas-sharing" value={value} checked={sharingMode === value} onChange={() => setSharingMode(value)} className="accent-primary mr-2" />
+                  <strong className="text-sm font-medium">{title}</strong>
+                  <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">{detail}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
+      )}
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={busy || !value.trim()}>
           {busy && <Spinner data-icon="inline-start" />}

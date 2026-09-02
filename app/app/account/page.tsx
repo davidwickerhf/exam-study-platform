@@ -340,6 +340,11 @@ type CanvasConnection = {
   createdAt: string;
   updatedAt: string;
   lastUsedAt: string | null;
+  corpus?: {
+    collectionEnabled: boolean;
+    sharingMode: "private" | "community";
+    consentedAt?: string | null;
+  };
 };
 
 function ConnectionsTab() {
@@ -354,6 +359,7 @@ function ConnectionsTab() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<CanvasConnection | null>(null);
+  const [materialMode, setMaterialMode] = useState<"none" | "private" | "community">("none");
 
   async function connect(event: React.FormEvent) {
     event.preventDefault();
@@ -372,6 +378,10 @@ function ConnectionsTab() {
       await readJson("/api/account/integrations/canvas", {
         method: "PUT",
         body: JSON.stringify({ canvasUrl: origin, accessToken: token }),
+      });
+      await readJson("/api/account/integrations/canvas/corpus", {
+        method: "PUT",
+        body: JSON.stringify({ canvasUrl: origin, collectionEnabled: materialMode !== "none", sharingMode: materialMode === "community" ? "community" : "private" }),
       });
       setToken("");
       connections.reload();
@@ -460,6 +470,23 @@ function ConnectionsTab() {
               {custom ? "Use Maastricht Canvas" : "Use another institution"}
             </button>
           </label>
+          <fieldset className="flex flex-col gap-2 border-t pt-4 sm:col-span-2">
+            <legend className="text-sm font-semibold">Course-material collection</legend>
+            <p className="text-muted-foreground text-xs">Choose explicitly whether the server may gather and index lesson materials after connecting.</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {([
+                ["none", "Do not collect", "Canvas still supplies deadlines and announcements."],
+                ["private", "Collect privately", "Only your Tutor and authorised MCP clients can retrieve it."],
+                ["community", "Share with students", "Eligible students may reuse the edition after rights review."],
+              ] as const).map(([value, title, detail]) => (
+                <label key={value} className={`cursor-pointer rounded-sm border p-3 ${materialMode === value ? "border-primary bg-primary/5" : "hover:bg-background"}`}>
+                  <input type="radio" name="material-mode" value={value} checked={materialMode === value} onChange={() => setMaterialMode(value)} className="accent-primary mr-2" />
+                  <strong className="text-sm font-medium">{title}</strong>
+                  <small className="text-muted-foreground mt-1 block text-xs leading-relaxed">{detail}</small>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">Personal Access Token</span>
             <Input
@@ -532,15 +559,41 @@ function ConnectionsTab() {
                       ? ` · last used ${relative(connection.lastUsedAt)}`
                       : " · not used yet"}
                   </small>
+                  <small className="text-muted-foreground">
+                    {connection.corpus?.collectionEnabled
+                      ? connection.corpus.sharingMode === "community" ? "Materials: community sharing enabled" : "Materials: private collection enabled"
+                      : "Materials: collection disabled"}
+                  </small>
                 </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setRemoving(connection)}
-                >
-                  Remove
-                </Button>
+                <div className="flex items-center gap-2">
+                  {connection.corpus?.collectionEnabled && (
+                    <Button type="button" variant="outline" size="sm" onClick={async () => {
+                      setBusy(true); setError(null);
+                      try {
+                        await readJson("/api/account/integrations/canvas/corpus", {
+                          method: "PUT",
+                          body: JSON.stringify({ canvasUrl: connection.origin, collectionEnabled: true, sharingMode: connection.corpus?.sharingMode === "community" ? "private" : "community" }),
+                        });
+                        connections.reload();
+                      } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
+                    }} disabled={busy}>
+                      {connection.corpus.sharingMode === "community" ? "Make private" : "Share with students"}
+                    </Button>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={async () => {
+                    setBusy(true); setError(null);
+                    try {
+                      await readJson("/api/account/integrations/canvas/corpus", {
+                        method: "PUT",
+                        body: JSON.stringify({ canvasUrl: connection.origin, collectionEnabled: !connection.corpus?.collectionEnabled, sharingMode: connection.corpus?.sharingMode || "private" }),
+                      });
+                      connections.reload();
+                    } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
+                  }} disabled={busy}>
+                    {connection.corpus?.collectionEnabled ? "Stop collecting" : "Collect privately"}
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setRemoving(connection)}>Remove</Button>
+                </div>
               </li>
             ))}
           </ul>

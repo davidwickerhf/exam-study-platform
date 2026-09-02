@@ -71,7 +71,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.5.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.6.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
@@ -460,8 +460,23 @@ server.tool('get_chapter', 'Chapter markdown content. relPath opens a linked fil
   run(({ courseId, chapterId, relPath }) => api(`/api/chapter/${encodeURIComponent(courseId)}/${encodeURIComponent(chapterId)}${relPath ? '/' + relPath.split('/').map(encodeURIComponent).join('/') : ''}`)))
 server.tool('get_course_outline', 'Heading outline of every chapter in a course.', { courseId }, run(({ courseId }) => api(`/api/course-toc/${encodeURIComponent(courseId)}`)))
 server.tool('list_materials', 'Files in a course knowledge base (markdown, PDFs, images, code).', { courseId }, run(({ courseId }) => api('/api/materials', { query: { courseId } })))
-server.tool('search_course', 'Full-text retrieval over course material (hosted deployments).', { courseId, query: z.string(), limit: z.number().int().min(1).max(20).optional() },
-  run(({ courseId, query, limit }) => api('/api/retrieve', { method: 'POST', body: { courseId, query, limit } })))
+server.tool('search_course', 'Hybrid full-text and embedding retrieval across published material and authorised Canvas snapshots. Results identify the exact academic-year edition and source path. Specify academicYear for a strict edition query; otherwise current and historical editions may be searched, with newer editions preferred.', {
+  courseId: courseId.optional(),
+  courseCode: z.string().optional().describe('Stable course code, for example BCS1540. Use this when querying Canvas editions.'),
+  canonicalCourseId: z.string().optional().describe('Stable corpus course identity returned by an earlier search.'),
+  academicYear: z.string().optional().describe('Exact edition such as 2025-2026.'),
+  sourceType: z.enum(['syllabus', 'requirements', 'slides', 'assessments', 'activities', 'readings', 'materials']).optional(),
+  includeHistorical: z.boolean().optional().describe('Search older editions when no exact year is requested; defaults to true.'),
+  query: z.string(),
+  limit: z.number().int().min(1).max(20).optional()
+}, run((args) => api('/api/retrieve', { method: 'POST', body: args })))
+server.tool('canvas_corpus_status', 'Material collection consent, background sync jobs, versioned course editions, source counts, and last/next scrape times for the connected account.', {
+  canvasUrl: z.string().url().optional()
+}, run(({ canvasUrl }) => api('/api/account/integrations/canvas/corpus', { query: { canvasUrl: canvasUrl || DEFAULT_CANVAS_URL } })))
+server.tool('canvas_corpus_sync', 'Queue a server-side refresh of authorised Canvas material. Collection must first be enabled by the user in the signed-in Wicker Study browser; an MCP key cannot grant or expand consent.', {
+  canvasUrl: z.string().url().optional(),
+  force: z.boolean().optional()
+}, run(({ canvasUrl, force }) => api('/api/integrations/canvas/corpus/sync', { method: 'POST', body: { canvasUrl: canvasUrl || DEFAULT_CANVAS_URL, force } })))
 server.tool('list_questions', 'Published questions for a chapter plus the student’s personal extra exercises.', { courseId, chapterId },
   run(({ courseId, chapterId }) => api(`/api/questions/${encodeURIComponent(courseId)}/${encodeURIComponent(chapterId)}`)))
 server.tool('get_practice_queue', 'Every published question across active courses (optionally one course).', { courseId: courseId.optional(), limit: z.number().int().min(1).max(500).optional() },
