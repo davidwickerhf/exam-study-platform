@@ -2192,23 +2192,43 @@ function renderPlanningStructure(workspace) {
   if (!template) return ''
   if (!reference) return `<section class="pl-structure"><div class="pl-empty"><div><strong>Programme reference unavailable</strong><p>${editorialProgrammesLoading ? 'Loading the programme reference…' : `The saved programme reference could not be loaded${editorialProgrammesError ? `: ${escapeHtml(editorialProgrammesError)}` : '.'}`}</p></div>${editorialProgrammesError ? '<button type="button" class="btn btn-secondary btn-sm" data-editorial-programmes-retry>Try again</button>' : ''}</div></section>`
   const { programme, version } = reference
-  const moduleGroups = version.choiceGroups.filter((group) => !group.pathwayId)
-  const electiveGroup = version.choiceGroups.find((group) => group.id === 'year-3-electives')
-  const selectedElectives = template.selectedChoices?.[electiveGroup?.id] || []
+
+  // A curated curriculum says "choose one of these two"; a curriculum read off
+  // the university's repository only says which electives exist in which
+  // period, and a student takes several. So one control per shape: a dropdown
+  // where exactly one is allowed, checkboxes where more than one is.
+  const openGroups = version.choiceGroups.filter((group) => !group.pathwayId)
+  const moduleGroups = openGroups.filter((group) => group.maxSelections === 1)
+  const electiveGroups = openGroups.filter((group) => group.maxSelections !== 1)
+  const hasPathways = (version.pathways || []).length > 0
+  const pathwayElectives = version.choiceGroups.find((group) => group.pathwayId && group.maxSelections !== 1)
+  const selectedPathwayElectives = template.selectedChoices?.[pathwayElectives?.id] || []
   const courseBased = template.pathwayId === 'course-based'
+
+  const chosen = (group) => template.selectedChoices?.[group.id] || []
+  const answered = openGroups.filter((group) => chosen(group).length).length + (hasPathways && template.pathwayId ? 1 : 0)
+  const total = openGroups.length + (hasPathways ? 1 : 0)
   const open = planningStructureOpen
+
+  const courseOf = (courseId) => version.courses.find((item) => item.id === courseId)
+  const optionLabel = (course) => course.name.replace(/^M2-\d:\s*/, '')
+
   return `<section class="pl-structure${open ? ' is-open' : ''}" aria-labelledby="pl-structure-title">
     <button type="button" class="pl-structure-toggle" data-planning-structure-toggle aria-expanded="${open}">
       <div><h2 id="pl-structure-title">Programme structure</h2><p>${escapeHtml(programme.degree)} ${escapeHtml(programme.name)} · ${escapeHtml(version.label)} · verified ${escapeHtml(academicDate(version.lastVerified))}</p></div>
-      <span>${moduleGroups.filter((group) => (template.selectedChoices?.[group.id] || []).length).length + (template.pathwayId ? 1 : 0)} of ${moduleGroups.length + 1} choices made ${uiIcon('chevronDown')}</span>
+      <span>${answered} of ${total} choice${total === 1 ? '' : 's'} made ${uiIcon('chevronDown')}</span>
     </button>
     ${open ? `<form data-academic-programme-structure>
-      <p class="pl-note">Reference only — check the official curriculum against your cohort rules. Changing a choice updates your curriculum and keeps recorded attempts. <a href="${escapeHtml(version.sources?.[0]?.url || '#')}" target="_blank" rel="noreferrer">Official source</a></p>
-      <div class="pl-fields pl-fields-structure">
-        ${moduleGroups.map((group) => `<label><span>${escapeHtml(group.label)}</span><select name="choice-${escapeHtml(group.id)}"><option value="">Decide later</option>${group.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<option value="${escapeHtml(courseId)}" ${(template.selectedChoices?.[group.id] || []).includes(courseId) ? 'selected' : ''}>${escapeHtml(course.name.replace(/^M2-\d:\s*/, ''))}</option>` }).join('')}</select><small>${escapeHtml(group.description)}</small></label>`).join('')}
-        <label><span>Year 3 · Semester 1 pathway</span><select name="pathwayId" data-programme-structure-pathway><option value="">Decide later</option>${version.pathways.map((pathway) => `<option value="${escapeHtml(pathway.id)}" ${template.pathwayId === pathway.id ? 'selected' : ''}>${escapeHtml(pathway.label)}</option>`).join('')}</select><small>The selected route determines the remaining 30 ECTS.</small></label>
-      </div>
-      ${electiveGroup ? `<details class="pl-electives" data-programme-electives ${courseBased ? '' : 'hidden'} ${courseBased && !compactPlanningMedia.matches ? 'open' : ''}><summary><strong>${escapeHtml(electiveGroup.label)}</strong><span><b data-programme-elective-count>${selectedElectives.length}</b> of ${electiveGroup.maxSelections} selected</span></summary><div>${electiveGroup.courseIds.map((courseId) => { const course = version.courses.find((item) => item.id === courseId); return `<label><input type="checkbox" name="choice-${escapeHtml(electiveGroup.id)}" value="${escapeHtml(courseId)}" ${selectedElectives.includes(courseId) ? 'checked' : ''} ${courseBased ? '' : 'disabled'}><span><strong>${escapeHtml(course.name)}</strong><small>${escapeHtml(course.period)} · ${course.ects} ECTS</small></span></label>` }).join('')}</div></details>` : ''}
+      <p class="pl-note">Reference only — check the official curriculum against your cohort rules. Saving rebuilds your curriculum from every required course in the degree plus the electives you tick, and keeps recorded attempts. <a href="${escapeHtml(version.sources?.[0]?.url || '#')}" target="_blank" rel="noreferrer">Official source</a></p>
+      ${moduleGroups.length || hasPathways ? `<div class="pl-fields pl-fields-structure">
+        ${moduleGroups.map((group) => `<label><span>${escapeHtml(group.label)}</span><select name="choice-${escapeHtml(group.id)}"><option value="">Decide later</option>${group.courseIds.map((courseId) => { const course = courseOf(courseId); return course ? `<option value="${escapeHtml(courseId)}" ${chosen(group).includes(courseId) ? 'selected' : ''}>${escapeHtml(optionLabel(course))}</option>` : '' }).join('')}</select><small>${escapeHtml(group.description)}</small></label>`).join('')}
+        ${hasPathways ? `<label><span>Year 3 · Semester 1 pathway</span><select name="pathwayId" data-programme-structure-pathway><option value="">Decide later</option>${version.pathways.map((pathway) => `<option value="${escapeHtml(pathway.id)}" ${template.pathwayId === pathway.id ? 'selected' : ''}>${escapeHtml(pathway.label)}</option>`).join('')}</select><small>The selected route determines the remaining 30 ECTS.</small></label>` : ''}
+      </div>` : ''}
+
+      ${electiveGroups.map((group) => `<details class="pl-electives" ${chosen(group).length ? 'open' : ''}><summary><strong>${escapeHtml(group.label)} electives</strong><span><b>${chosen(group).length}</b> selected</span></summary><div>${group.courseIds.map((courseId) => { const course = courseOf(courseId); return course ? `<label><input type="checkbox" name="choice-${escapeHtml(group.id)}" value="${escapeHtml(courseId)}" ${chosen(group).includes(courseId) ? 'checked' : ''}><span><strong>${escapeHtml(course.code)} · ${escapeHtml(course.name)}</strong><small>${course.ects} ECTS${course.coordinator ? ` · ${escapeHtml(course.coordinator)}` : ''}</small></span></label>` : '' }).join('')}</div></details>`).join('')}
+
+      ${pathwayElectives ? `<details class="pl-electives" data-programme-electives ${courseBased ? '' : 'hidden'} ${courseBased && !compactPlanningMedia.matches ? 'open' : ''}><summary><strong>${escapeHtml(pathwayElectives.label)}</strong><span><b data-programme-elective-count>${selectedPathwayElectives.length}</b> of ${pathwayElectives.maxSelections} selected</span></summary><div>${pathwayElectives.courseIds.map((courseId) => { const course = courseOf(courseId); return course ? `<label><input type="checkbox" name="choice-${escapeHtml(pathwayElectives.id)}" value="${escapeHtml(courseId)}" ${selectedPathwayElectives.includes(courseId) ? 'checked' : ''} ${courseBased ? '' : 'disabled'}><span><strong>${escapeHtml(course.name)}</strong><small>${escapeHtml(course.period)} · ${course.ects} ECTS</small></span></label>` : '' }).join('')}</div></details>` : ''}
+
       <div class="pl-form-actions"><span>Unselected requirements stay open; nothing is guessed.</span><button class="btn btn-primary" type="submit" ${academicsLoading ? 'disabled' : ''}>Save choices</button></div>
     </form>` : ''}
   </section>`
@@ -4491,6 +4511,9 @@ async function loadAcademicWork({ force = false } = {}) {
 
 const SETUP_STEPS = [
   ['programme', 'Choose your programme', 'Which bachelor you are on, and the courses it contains.', '#/planning', 'Set up my plan'],
+  // Setting a programme adds only the required courses, so an unanswered
+  // elective group leaves a hole that reads like a complete plan.
+  ['electives', 'Pick this period\'s electives', 'The optional courses you are taking, which nobody can fill in for you.', '#/planning/courses', 'Choose electives'],
   ['calendar', 'Confirm the academic calendar', 'Teaching periods, exam weeks, and holidays for your programme.', '#/calendar', 'Review the calendar'],
   ['timetable', 'Connect your timetable', 'Lectures, tutorials, and labs, with times and rooms.', '#/planning/documents', 'Connect timetable'],
   ['canvas', 'Connect Canvas', 'Announcements, assignment deadlines, and course material.', '#/account/connections', 'Connect Canvas'],
@@ -4500,10 +4523,35 @@ const SETUP_STEPS = [
 function setupDismissed(id) { try { return localStorage.getItem(`setup-dismissed:${id}`) === '1' } catch { return false } }
 function dismissSetup(id) { try { localStorage.setItem(`setup-dismissed:${id}`, '1') } catch {} }
 
+// Which elective groups the student should have been asked about: their study
+// year, and the period the academic calendar says they are in — plus the
+// semester and year-long slots that overlap it. Mirrors the same rule the setup
+// assistant uses on the server.
+function outstandingElectiveGroups() {
+  const workspace = academicsData?.workspace || null
+  const template = workspace?.programmeTemplate
+  const reference = activeEditorialProgrammeReference()
+  if (!template || !reference) return null
+  const today = localIsoDate(new Date())
+  const active = (reference.programme.calendar || [])
+    .filter((event) => event.kind === 'period' && event.date <= today && (event.endDate || event.date) >= today)[0]
+  const period = active ? `Period ${active.period}` : null
+  const studyYear = (String(template.currentStudyYear || '').match(/(\d+)/) || [])[1]
+  const semester = period && /^Period [1-3]$/.test(period) ? 'Semester 1' : period ? 'Semester 2' : null
+  return reference.version.choiceGroups
+    .filter((group) => group.derived)
+    .filter((group) => !studyYear || group.yearLevel === `Year ${studyYear}`)
+    .filter((group) => !period || group.period === period || group.period === 'Year' || group.period === semester)
+    .filter((group) => !Array.isArray(template.selectedChoices?.[group.id]))
+}
+
 function setupState() {
   const workspace = academicsData?.workspace || null
+  const pendingElectives = outstandingElectiveGroups()
   const done = {
     programme: Boolean(workspace?.courses?.length),
+    // Unknown until the workspace and the catalogue have both loaded.
+    electives: pendingElectives === null ? null : pendingElectives.length === 0,
     calendar: (activeEditorialProgrammeReference()?.programme?.calendar || []).length > 0,
     timetable: (workspace?.calendars || []).length > 0,
     // `connected` is only meaningful once the board has answered; treat an
