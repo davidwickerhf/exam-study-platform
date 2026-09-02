@@ -37,9 +37,9 @@ test('activity is recorded per user and study reset keeps plan and AI ledger', a
   const userId = `test-activity-${Date.now()}-${Math.random().toString(16).slice(2)}`
   try {
     await withRequestContext({ userId }, async () => {
+      await createAcademicProgramme({ programme: 'Kept programme' })
       await recordActivity('answer', { courseId: 'sec', chapterId: '01', score: 9, label: 'What is a nonce?' })
       await recordActivity('review', {})
-      await createAcademicProgramme({ programme: 'Kept programme' })
       await writeDocument('ai', 'usage', { events: [] })
       const events = await readActivity()
       assert.equal(events.length, 2)
