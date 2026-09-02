@@ -48,7 +48,7 @@ import {
 import { WorkspaceSearch } from '@/components/workspace/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { useClerk, useUser } from '@clerk/nextjs'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const SECTIONS = [
   {
@@ -178,18 +178,26 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                   <ChevronRightIcon className="ml-auto" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="min-w-56">
-                  <DropdownMenuLabel><span className="block truncate">{name}</span><span className="block truncate font-normal">{email}</span></DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel><span className="block truncate">{name}</span><span className="block truncate font-normal">{email}</span></DropdownMenuLabel>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   {programmeIndex && <>
-                    <DropdownMenuLabel>Study workspace</DropdownMenuLabel>
-                    {programmeIndex.programmes.map((programme) => <DropdownMenuItem key={programme.id} onClick={async () => { if (programme.id === programmeIndex.activeProgrammeId) return; await fetch('/api/academics/active', { method: 'PUT', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ id: programme.id }) }); window.location.reload() }}>{programme.id === programmeIndex.activeProgrammeId ? <CheckIcon /> : <span className="size-4" />}{programme.programme || 'Untitled programme'}{programme.academicYear && <span className="text-muted-foreground ml-auto text-xs">{programme.academicYear}</span>}</DropdownMenuItem>)}
-                    <DropdownMenuItem render={<Link href="/app/setup?checklist=1&step=programme&new=1" />}><PlusIcon />Add another programme</DropdownMenuItem>
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Study workspace</DropdownMenuLabel>
+                      {programmeIndex.programmes.map((programme) => <DropdownMenuItem key={programme.id} onClick={async () => { if (programme.id === programmeIndex.activeProgrammeId) return; await fetch('/api/academics/active', { method: 'PUT', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ id: programme.id }) }); window.location.reload() }}>{programme.id === programmeIndex.activeProgrammeId ? <CheckIcon /> : <span className="size-4" />}{programme.programme || 'Untitled programme'}{programme.academicYear && <span className="text-muted-foreground ml-auto text-xs">{programme.academicYear}</span>}</DropdownMenuItem>)}
+                      <DropdownMenuItem render={<Link href="/app/setup?checklist=1&step=programme&new=1" />}><PlusIcon />Add another programme</DropdownMenuItem>
+                    </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                   </>}
-                  <DropdownMenuItem render={<Link href="/app/account" />}><SettingsIcon />Account settings</DropdownMenuItem>
-                  <DropdownMenuItem render={<Link href="/app/account?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem render={<Link href="/app/account" />}><SettingsIcon />Account settings</DropdownMenuItem>
+                    <DropdownMenuItem render={<Link href="/app/account?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onClick={() => void clerk.signOut({ redirectUrl: '/sign-in' })}><LogOutIcon />Sign out</DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem variant="destructive" onClick={() => void clerk.signOut({ redirectUrl: '/sign-in' })}><LogOutIcon />Sign out</DropdownMenuItem>
+                  </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
