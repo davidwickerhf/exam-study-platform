@@ -5,7 +5,7 @@ import { access, readFile } from 'node:fs/promises'
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
 const server = await readFile(new URL('../server.mjs', import.meta.url), 'utf8')
 const layout = await readFile(new URL('../app/layout.tsx', import.meta.url), 'utf8')
-const workspaceRedirect = await readFile(new URL('../app/app/page.tsx', import.meta.url), 'utf8')
+const migration = await readFile(new URL('../lib/workspace/migration.mjs', import.meta.url), 'utf8')
 const nextCss = await readFile(new URL('../app/next.css', import.meta.url), 'utf8')
 const publicSiteCss = await readFile(new URL('../public/public-site.css', import.meta.url), 'utf8')
 
@@ -18,12 +18,12 @@ test('Next.js App Router owns the document and route runtime', async () => {
   assert.match(server, /await nextHandler\(req, res\)/)
   await access(new URL('../app/(public)/page.tsx', import.meta.url))
   await access(new URL('../app/(auth)/sign-in/page.tsx', import.meta.url))
-  await access(new URL('../app/v2/page.tsx', import.meta.url))
+  await access(new URL('../app/app/page.tsx', import.meta.url))
 })
 
 test('historical workspace links translate into the React application', () => {
-  assert.match(workspaceRedirect, /legacyHashTarget\(window\.location\.hash\)/)
-  assert.match(workspaceRedirect, /\|\| '\/v2'/)
+  assert.match(migration, /export function legacyHashTarget/)
+  assert.match(migration, /return `\/app/)
   assert.doesNotMatch(server, /\/index\.html/)
 })
 

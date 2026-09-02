@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { coursePapers, paperAssetHref, paperPdfHref, pastExamGradeRequest } from '../lib/v2/past-exam.mjs'
+import { coursePapers, paperAssetHref, paperPdfHref, pastExamGradeRequest } from '../lib/workspace/past-exam.mjs'
 
 test('paper arrays win and legacy single papers remain usable', () => {
   assert.equal(coursePapers({ mockExams: [{ id: 'x' }], mockExamPdf: 'old.pdf' })[0].id, 'x')

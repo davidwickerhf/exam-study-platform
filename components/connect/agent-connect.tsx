@@ -118,7 +118,7 @@ export function AgentConnect() {
         <section className={styles.card}>
           <h1>This connection link cannot be used</h1>
           <p className={styles.lead}>{problem || 'Start the connection again from your agent.'}</p>
-          <a className={styles.secondary} href="/v2">Go to Wicker Study</a>
+          <a className={styles.secondary} href="/app">Go to Wicker Study</a>
         </section>
       </main>
     )
@@ -149,7 +149,7 @@ export function AgentConnect() {
         <p className={styles.note}>
           Your Canvas Personal Access Token is not part of this. It stays encrypted in your account
           and is never given to an agent. The key expires in a year and you can revoke it at any
-          time under <a href="/v2/account?tab=api">Account → API access</a>.
+          time under <a href="/app/account?tab=api">Account → API access</a>.
         </p>
 
         {error ? <p className={styles.error} role="alert">{error}</p> : null}

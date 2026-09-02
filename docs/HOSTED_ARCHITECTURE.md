@@ -45,7 +45,7 @@ therefore appear without overwriting progress or notes.
 
 Public product and legal pages (`/`, `/about`, `/courses`, `/privacy`, and
 `/terms`) do not initialize Clerk or load the study-workspace dependencies.
-`/sign-in` is the dedicated Clerk surface and `/v2` is the authenticated
+`/sign-in` is the dedicated Clerk surface and `/app` is the authenticated
 workspace entrypoint. `/app` translates historical hash links into React
 routes.
 

@@ -6,7 +6,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { attemptRecord, byYear, courseRecord, courseStatus, earnedEcts, eventRecord, gateRecord, planningTab, weightedGpa } from '../lib/v2/academics.mjs'
+import { attemptRecord, byYear, courseRecord, courseStatus, earnedEcts, eventRecord, gateRecord, planningTab, weightedGpa } from '../lib/workspace/academics.mjs'
 
 const course = (code, ects, attempts = [], extra = {}) => ({
   id: code.toLowerCase(), code, name: code, ects, yearLevel: 'Year 1', period: 'Period 1',

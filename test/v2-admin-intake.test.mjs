@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { canPrepareRequest, intakeCounts, intakeDraft, intakePayload, replaceRequest } from '../lib/v2/admin-intake.mjs'
+import { canPrepareRequest, intakeCounts, intakeDraft, intakePayload, replaceRequest } from '../lib/workspace/admin-intake.mjs'
 
 const stages = [{ id: 'triage' }, { id: 'rights' }]
 

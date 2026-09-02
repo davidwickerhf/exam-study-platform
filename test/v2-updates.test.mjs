@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assignmentState, connectionOrigin, courseRows, filterAnnouncements, filterAssignments, isNewAnnouncement, normalisePreferences, parsePreferences } from '../lib/v2/updates.mjs'
+import { assignmentState, connectionOrigin, courseRows, filterAnnouncements, filterAssignments, isNewAnnouncement, normalisePreferences, parsePreferences } from '../lib/workspace/updates.mjs'
 
 test('stored update preferences are validated', () => {
   assert.deepEqual(normalisePreferences({ scope: 'all', days: '90', assignmentState: 'done' }).scope, 'all')

@@ -104,11 +104,11 @@
 }
 
 @layer components {
-  [data-v2] :is(h1, h2, h3) {
+  [data-workspace] :is(h1, h2, h3) {
     text-wrap: balance;
   }
 
-  [data-v2] a {
+  [data-workspace] a {
     text-underline-offset: 3px;
   }
 }
@@ -180,5 +180,5 @@
 [data-fc] .fc-day-today { background: color-mix(in oklab, var(--primary) 10%, transparent) !important; }
 [data-fc] .fc-daygrid-day.fc-day-today { background: color-mix(in oklab, var(--primary) 8%, transparent) !important; }
 /* react-day-picker's own grid was clipping its first weekday label. */
-[data-v2] [data-slot="calendar"] { width: 100%; }
-[data-v2] [data-slot="calendar"] table { width: 100%; }
+[data-workspace] [data-slot="calendar"] { width: 100%; }
+[data-workspace] [data-slot="calendar"] table { width: 100%; }

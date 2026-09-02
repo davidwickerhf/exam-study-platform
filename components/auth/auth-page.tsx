@@ -46,7 +46,7 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
       const response = await fetch('/api/auth/local-session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
       const body = await response.json().catch(() => null)
       if (!response.ok) throw new Error(body?.error || 'Test sign-in failed.')
-      window.location.assign('/v2')
+      window.location.assign('/app')
     } catch (cause) {
       setLocalError((cause as Error).message)
       setLocalBusy(false)
@@ -72,8 +72,8 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
           <div id="clerk-sign-in">
             {enabled ? (
               signUp
-                ? <SignUp routing="hash" signInUrl="/sign-in" fallbackRedirectUrl="/v2" appearance={appearance} />
-                : <SignIn routing="hash" signUpUrl="/sign-up" fallbackRedirectUrl="/v2" appearance={appearance} />
+                ? <SignUp routing="hash" signInUrl="/sign-in" fallbackRedirectUrl="/app" appearance={appearance} />
+                : <SignIn routing="hash" signUpUrl="/sign-up" fallbackRedirectUrl="/app" appearance={appearance} />
             ) : localAccounts.length ? (
               <div className="next-local-access">
                 <p>Development test accounts</p>
@@ -81,7 +81,7 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
                 {localError && <p role="alert">{localError}</p>}
               </div>
             ) : (
-              <div className="next-local-access"><p>Authentication is disabled in this local environment.</p><a className="site-button site-button-primary" href="/v2">Open local workspace <SiteIcon name="arrow" /></a></div>
+              <div className="next-local-access"><p>Authentication is disabled in this local environment.</p><a className="site-button site-button-primary" href="/app">Open local workspace <SiteIcon name="arrow" /></a></div>
             )}
           </div>
           <p className="auth-switch">{signUp ? <>Already have an account? <a href="/sign-in">Sign in</a></> : <>New here? <a href="/sign-up">Create an account</a></>}</p>

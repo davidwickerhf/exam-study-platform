@@ -29,7 +29,7 @@ export default function HomePage() {
         <div className="site-hero-copy">
           <h1>Your course material, organised for the exam ahead.</h1>
           <p>Wicker Study brings maintained notes, source PDFs, focused practice, flashcards, mock papers, and a grounded course tutor into one private study record.</p>
-          <div className="site-actions"><a className="site-button site-button-primary" href="/v2">Open your workspace <SiteIcon name="arrow" /></a><a className="site-button site-button-secondary" href="/courses">View available courses</a></div>
+          <div className="site-actions"><a className="site-button site-button-primary" href="/app">Open your workspace <SiteIcon name="arrow" /></a><a className="site-button site-button-secondary" href="/courses">View available courses</a></div>
           <ul className="site-assurances"><li><SiteIcon name="shield" /> Private progress by account</li><li><SiteIcon name="book" /> Editorial course sources</li><li><SiteIcon name="message" /> Source-grounded tutor chat</li></ul>
         </div>
         <ProductPreview />
@@ -54,7 +54,7 @@ export default function HomePage() {
         <div><h2>Mobile is for the next useful action.</h2><p>The phone experience does not compress every desktop panel into a long column. It leads with resume, review, mistakes, and timed practice, then opens focused reading and exercise views.</p><ul><li>Resume the exact chapter you left</li><li>Clear a short flashcard queue</li><li>Review open mistakes before an exam</li></ul></div>
       </section>
 
-      <section className="site-close"><h2>Start with the course. Leave with a clearer next step.</h2><p>Your study history remains private and portable, and can be deleted with your account at any time.</p><div className="site-actions"><a className="site-button site-button-primary" href="/v2">Open Wicker Study <SiteIcon name="arrow" /></a><a href="/privacy">Read the privacy notice</a></div></section>
+      <section className="site-close"><h2>Start with the course. Leave with a clearer next step.</h2><p>Your study history remains private and portable, and can be deleted with your account at any time.</p><div className="site-actions"><a className="site-button site-button-primary" href="/app">Open Wicker Study <SiteIcon name="arrow" /></a><a href="/privacy">Read the privacy notice</a></div></section>
     </main>
   )
 }

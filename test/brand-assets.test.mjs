@@ -10,7 +10,7 @@ test('the shared brand mark drives the interface and browser metadata', async ()
     read('public/favicon.svg'),
     read('app/layout.tsx'),
     read('components/site/public-chrome.tsx'),
-    read('components/v2/workspace-shell.tsx'),
+    read('components/workspace/workspace-shell.tsx'),
     read('components/brand/brand-mark.tsx')
   ])
 

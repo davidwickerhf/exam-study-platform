@@ -6,7 +6,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { academicCourseFor, byNextExam, canvasCourseQuery, chaptersRead, courseProgress, masteryPercent, nextExam, readChapters, readKey } from '../lib/v2/courses.mjs'
+import { academicCourseFor, byNextExam, canvasCourseQuery, chaptersRead, courseProgress, masteryPercent, nextExam, readChapters, readKey } from '../lib/workspace/courses.mjs'
 
 const course = (id, code, chapters = [], items = []) => ({
   id, code, name: code, chapters: chapters.map((c) => ({ id: c, name: c })), items

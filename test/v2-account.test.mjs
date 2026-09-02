@@ -24,7 +24,7 @@ import {
   normalizeScopes,
   requestTokens,
   weekTrend
-} from '../lib/v2/account.mjs'
+} from '../lib/workspace/account.mjs'
 
 test('bytes read at the scale they are, and an unmeasured family is a dash', () => {
   assert.equal(formatBytes(0), '0 B')

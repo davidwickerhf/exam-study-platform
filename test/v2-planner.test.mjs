@@ -8,7 +8,7 @@ import {
   planningInsights,
   resetObjectives,
   withObjective
-} from '../lib/v2/planner.mjs'
+} from '../lib/workspace/planner.mjs'
 
 const course = (id, patch = {}) => ({
   id, code: id.toUpperCase(), name: `Course ${id}`, ects: 6, yearLevel: 'Year 1', period: 'Period 1', attempts: [], ...patch

@@ -42,7 +42,7 @@ The product name is Wicker Study. Its voice is precise, calm, serious, and acade
 
 - Five real courses and their maintained source corpus under `content/`.
 - 140 PDFs with extracted page text in Neon.
-- React progress, practice, tutor, flashcard, mistake, mock-session, and search workflows under `app/v2`.
+- React progress, practice, tutor, flashcard, mistake, mock-session, and search workflows under `app/app`.
 - Current production screenshots supplied by the user demonstrate excessive nesting, duplicated navigation, inconsistent density, and wasted space.
 
 ## Product Principles

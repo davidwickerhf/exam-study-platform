@@ -2,7 +2,7 @@
 
 The workspace runs on Next.js App Router, React, and shadcn/ui. `/app` exists
 only as a translator for historical hash links; product surfaces live at
-`/v2/*`. This is what a workspace surface has to look like.
+`/app/*`. This is what a workspace surface has to look like.
 
 ## The world — Dienstregeling
 
@@ -31,8 +31,8 @@ per course.
 
 ## Conventions
 
-- Route files live at `app/v2/<surface>/page.tsx`, `'use client'` at the top.
-- **Domain rules go in `lib/v2/<name>.mjs` with a `<name>.d.mts` beside it** —
+- Route files live at `app/app/<surface>/page.tsx`, `'use client'` at the top.
+- **Domain rules go in `lib/workspace/<name>.mjs` with a `<name>.d.mts` beside it** —
   plain ESM, not `.ts`. This project's TypeScript is the native 7.x build with
   no `transpileModule`, so `node:test` must import the module the page uses.
   A second hand-maintained copy is how rules drift.
@@ -53,7 +53,7 @@ per course.
 ## Data
 
 Every `/api/*` route is served by `server.mjs` and is already authenticated —
-`app/v2/layout.tsx` attaches the Clerk bearer token, so a page calls plain
+`app/app/layout.tsx` attaches the Clerk bearer token, so a page calls plain
 `fetch('/api/…', { headers: { accept: 'application/json' } })`.
 
 Fetch in a `useEffect` with a `live` flag so a unmounted component does not set
@@ -79,7 +79,7 @@ These matter more than the visuals.
 
 Chapter read-state lives in `localStorage` under
 `chapter-read:<courseId>/<chapterId>` — use `readKey` from
-`lib/v2/courses.mjs`. Hosted sessions back this state up through the browser-state API.
+`lib/workspace/courses.mjs`. Hosted sessions back this state up through the browser-state API.
 
 ## Before you are done
 

@@ -9,7 +9,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { tutorMarkdown } from '../lib/v2/markdown.mjs'
+import { tutorMarkdown } from '../lib/workspace/markdown.mjs'
 
 test('a numbered answer keeps its own numbering across blank lines', () => {
   // Blank lines between steps are how the tutor spaces a plan out; they must

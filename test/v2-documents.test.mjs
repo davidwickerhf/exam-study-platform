@@ -21,7 +21,7 @@ import {
   selectedChanges,
   selectionSummary,
   toggleChange
-} from '../lib/v2/documents.mjs'
+} from '../lib/workspace/documents.mjs'
 
 const change = (id, kind, extra = {}) => ({ id, kind, label: id, detail: '', payload: { id }, ...extra })
 

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { courseMatchSummary, exportEnvelope, exportFilename, importCandidate, programmeLabel } from '../lib/v2/planning-settings.mjs'
+import { courseMatchSummary, exportEnvelope, exportFilename, importCandidate, programmeLabel } from '../lib/workspace/planning-settings.mjs'
 
 test('blank programme titles remain explicitly untitled', () => {
   assert.equal(programmeLabel({ programme: ' MSc Data Science ' }), 'MSc Data Science')

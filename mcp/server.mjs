@@ -417,7 +417,7 @@ server.tool('wicker_sign_out',
       stillConnected: Boolean(credential.apiKey),
       note: credential.apiKey
         ? 'WICKER_STUDY_API_KEY is set in this process’s environment and still applies; unset it to disconnect fully.'
-        : `Revoke the key itself at ${baseUrl}/v2/account?tab=api if it should stop working everywhere.`
+        : `Revoke the key itself at ${baseUrl}/app/account?tab=api if it should stop working everywhere.`
     }
   }))
 
@@ -426,7 +426,7 @@ server.tool('canvas_connect',
   { canvasUrl: z.string().optional().describe(`Canvas origin. Default ${DEFAULT_CANVAS_URL}.`) },
   run(async ({ canvasUrl }) => {
     const origin = new URL(canvasUrl || DEFAULT_CANVAS_URL).origin
-    const settings = `${baseUrl}/v2/account?tab=connections`
+    const settings = `${baseUrl}/app/account?tab=connections`
     const connections = (await api('/api/account/integrations/canvas')).connections || []
     const match = connections.find((connection) => connection.origin === origin) || null
     if (match) {

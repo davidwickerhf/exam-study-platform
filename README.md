@@ -106,7 +106,7 @@ exam-study-platform/
 ```
 
 The product, legal, authentication, and signed-in study surfaces are React-owned.
-Historical `/app#/…` links are translated to their corresponding `/v2/*` route.
+Historical `/app#/…` links are translated to their corresponding `/app/*` route.
 
 Run the complete framework verification before deploying:
 
@@ -174,7 +174,7 @@ ADMIN_USER_IDS=user_localtest          # optional; makes that user an admin
 npm run dev   # startup prints: Authentication: local-test-user
 ```
 
-Then open <http://localhost:4177/v2/admin>.
+Then open <http://localhost:4177/app/admin>.
 
 Notes:
 

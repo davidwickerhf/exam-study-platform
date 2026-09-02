@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { calendarPayload, calendarResultLine } from '../lib/v2/admin-calendar.mjs'
+import { calendarPayload, calendarResultLine } from '../lib/workspace/admin-calendar.mjs'
 
 test('a feed URL is normalized and keeps the selected mode', () => {
   assert.deepEqual(calendarPayload({ source: 'url', url: ' https://example.test/calendar.ics ', replace: false }), [{ url: 'https://example.test/calendar.ics', replace: false }])

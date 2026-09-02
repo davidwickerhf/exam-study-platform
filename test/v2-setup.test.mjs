@@ -19,7 +19,7 @@ import {
   setupSteps,
   stepDetail,
   stepStatus
-} from '../lib/v2/setup.mjs'
+} from '../lib/workspace/setup.mjs'
 
 // What GET /api/onboarding returns for an account that has done nothing. Note
 // `electives: true` — see the header.

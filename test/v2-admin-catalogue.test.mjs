@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { programmeCounts, programmeEditPayload } from '../lib/v2/admin-catalogue.mjs'
+import { programmeCounts, programmeEditPayload } from '../lib/workspace/admin-catalogue.mjs'
 
 test('programme editor preserves nested curriculum and locks the route id', () => {
   const result = programmeEditPayload('real-id', JSON.stringify({ id: 'changed', name: 'Computer Science', versions: [{ id: '2026', courses: [{ id: 'a' }] }], calendar: [{ id: 'd' }] }))

@@ -2,7 +2,7 @@
   "name": "Wicker Study",
   "short_name": "Wicker",
   "description": "A private, source-grounded academic workspace for university study and exam preparation.",
-  "start_url": "/v2",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#f7f7f4",
   "theme_color": "#3f51d9",

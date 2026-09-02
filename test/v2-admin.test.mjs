@@ -13,7 +13,7 @@ import {
   isOpenRequest,
   openRequests,
   releaseCounters
-} from '../lib/v2/admin.mjs'
+} from '../lib/workspace/admin.mjs'
 
 const edition = (id, counts = {}, extra = {}) => ({
   id,
@@ -61,7 +61,7 @@ test('the queue holds only what still needs a decision, most urgent first', () =
   })
   assert.deepEqual(queue.map((item) => item.id), ['requests', 'edition:mat', 'edition:law', 'edition:bio'])
   assert.equal(queue.every((item) => item.detail), true)
-  assert.equal(queue[1].href, '/v2/admin?tab=production&edition=mat')
+  assert.equal(queue[1].href, '/app/admin?tab=production&edition=mat')
   // Each source may be absent without the other becoming wrong.
   assert.deepEqual(attentionQueue({}), [])
   assert.equal(attentionQueue({ requests: [{ status: 'submitted' }] }).length, 1)

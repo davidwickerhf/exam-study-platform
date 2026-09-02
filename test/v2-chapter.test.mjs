@@ -7,7 +7,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { neighbours, outlineOf, readingMinutes, slugOf } from '../lib/v2/chapter.mjs'
+import { neighbours, outlineOf, readingMinutes, slugOf } from '../lib/workspace/chapter.mjs'
 
 test('slugs match the shape rehype-slug produces', () => {
   assert.equal(slugOf('What the Exam Asks'), 'what-the-exam-asks')

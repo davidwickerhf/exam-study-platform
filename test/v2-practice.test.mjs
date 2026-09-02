@@ -25,9 +25,9 @@ import {
   typeFacets,
   typeLabel,
   usableOptions
-} from '../lib/v2/practice.mjs'
-import { buildMockSession, gradeRequest, mockRemaining, mockTimeLabel, sampleQuestions } from '../lib/v2/practice.mjs'
-import { practiceLocation } from '../lib/v2/practice.mjs'
+} from '../lib/workspace/practice.mjs'
+import { buildMockSession, gradeRequest, mockRemaining, mockTimeLabel, sampleQuestions } from '../lib/workspace/practice.mjs'
+import { practiceLocation } from '../lib/workspace/practice.mjs'
 
 const question = (overrides = {}) => ({
   id: 'gen-01-0',

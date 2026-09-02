@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { currentRequest, requestPayload, stageState, validateRequestFiles } from '../lib/v2/course-request.mjs'
+import { currentRequest, requestPayload, stageState, validateRequestFiles } from '../lib/workspace/course-request.mjs'
 
 test('request files enforce type, per-file, count, total and duplicate rules', () => {
   assert.equal(validateRequestFiles([], [{ name: 'notes.pdf', size: 10 }]).length, 1)

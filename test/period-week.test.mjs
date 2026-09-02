@@ -6,7 +6,7 @@
 //
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { periodWeek } from '../lib/v2/home.mjs'
+import { periodWeek } from '../lib/workspace/home.mjs'
 
 // Maastricht Period 1, 2026–2027: Monday 31 August through Friday 23 October.
 const START = '2026-08-31'

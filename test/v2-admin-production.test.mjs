@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { artifactEditPayload, canPublish, contributionReviewPayload, pipelineSteps, productionStage } from '../lib/v2/admin-production.mjs'
+import { artifactEditPayload, canPublish, contributionReviewPayload, pipelineSteps, productionStage } from '../lib/workspace/admin-production.mjs'
 
 const edition = { id: 'ed-1', status: 'draft', courseCode: 'BCS1001' }
 const source = (status, extractedAt = null) => ({ contribution: { editionId: 'ed-1', consentStatus: status }, extractedAt })

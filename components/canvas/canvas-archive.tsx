@@ -208,7 +208,7 @@ export function CanvasArchive() {
 
   return <main className={styles.page}>
     <header className={styles.header}>
-      <a href="/v2" className={styles.back}>Workspace</a>
+      <a href="/app" className={styles.back}>Workspace</a>
       <div className={styles.brand}><img className={styles.brandMark} src="/brand-mark.svg" width="23" height="23" alt="" /><span>Wicker Study</span></div>
       <span className={styles.headerMeta}>Private Canvas archive</span>
     </header>
@@ -225,7 +225,7 @@ export function CanvasArchive() {
       <section className={styles.connection} aria-labelledby="canvas-connection-title">
         <div className={styles.sectionHeading}><span className={styles.iconBox}><Icon name="lock" /></span><div><p className={styles.eyebrow}>1. Connection</p><h2 id="canvas-connection-title">Your Canvas account</h2></div></div>
         <label className={styles.field}><span>Canvas address</span><input value={canvasUrl} onChange={(event) => setCanvasUrl(event.target.value)} inputMode="url" autoComplete="url" /></label>
-        {connectionLoading ? <p className={styles.muted}>Checking your saved connection…</p> : remoteConnection ? <div className={styles.connectionState}><span className={styles.stateOk}><Icon name="check" /></span><div><strong>Connected to this Wicker account</strong><p>Encrypted at rest · last used {remoteConnection.lastUsedAt ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(remoteConnection.lastUsedAt)) : 'not yet'}.</p><a className={styles.settingsLink} href="/v2/account?tab=connections">Manage Canvas connection</a></div></div> : <div className={styles.connectionState}><span className={styles.statePending}>1</span><div><strong>Connect Canvas in Account settings</strong><p>Your Personal Access Token is managed once under your account, encrypted immediately, and never displayed again. This archive never asks for your password, OTP, cookies, or session.</p><a className={styles.settingsLink} href="/v2/account?tab=connections">Open Canvas settings</a></div></div>}
+        {connectionLoading ? <p className={styles.muted}>Checking your saved connection…</p> : remoteConnection ? <div className={styles.connectionState}><span className={styles.stateOk}><Icon name="check" /></span><div><strong>Connected to this Wicker account</strong><p>Encrypted at rest · last used {remoteConnection.lastUsedAt ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(remoteConnection.lastUsedAt)) : 'not yet'}.</p><a className={styles.settingsLink} href="/app/account?tab=connections">Manage Canvas connection</a></div></div> : <div className={styles.connectionState}><span className={styles.statePending}>1</span><div><strong>Connect Canvas in Account settings</strong><p>Your Personal Access Token is managed once under your account, encrypted immediately, and never displayed again. This archive never asks for your password, OTP, cookies, or session.</p><a className={styles.settingsLink} href="/app/account?tab=connections">Open Canvas settings</a></div></div>}
       </section>
 
       <aside className={styles.local} aria-label="Local ZIP delivery">
