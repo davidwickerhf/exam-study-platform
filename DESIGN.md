@@ -1,66 +1,64 @@
 ---
 name: Wicker Study
-description: A calm, compact academic workspace for university course study and exam preparation.
+description: An academic departure board — Dutch public information design applied to a university degree.
 colors:
-  canvas: "#f7f7f4"
-  surface: "#ffffff"
-  surface-subtle: "#f1f2f6"
-  surface-accent: "#eceefe"
-  ink: "#20263a"
-  ink-secondary: "#59627b"
-  ink-tertiary: "#7d859b"
-  border: "#dfe2ea"
-  border-strong: "#c8cdd9"
-  brand: "#3f51d9"
-  brand-hover: "#3344c1"
-  brand-soft: "#e8eafe"
-  selection: "#d9ddff"
-  auth-muted: "#cbd1df"
-  success: "#147a55"
-  warning: "#a56316"
-  danger: "#b4233d"
-  preview-rail: "#8991aa"
-  on-dark-secondary: "#cbd1df"
-  on-dark-tertiary: "#aeb6c8"
-  on-dark-accent: "#9ba8ff"
+  canvas: "#0d0f13"
+  surface: "#131720"
+  surface-subtle: "#191e29"
+  surface-accent: "#1b2547"
+  ink: "#eceef1"
+  ink-secondary: "#98a0af"
+  ink-tertiary: "#767e8d"
+  border: "#262c39"
+  border-strong: "#39414f"
+  signal: "#2b54ff"
+  signal-text: "#8ba0ff"
+  paper: "#f4f3ef"
+  paper-subtle: "#e8e7e1"
+  paper-ink: "#14171d"
+  paper-ink-secondary: "#545a66"
+  paper-rule: "#d5d3cb"
+  paper-link: "#1f3ad6"
+  on-signal: "#ffffff"
 typography:
   display:
-    fontFamily: "Manrope, system-ui, sans-serif"
-    fontSize: "44px"
+    fontFamily: "Archivo Narrow, system-ui, sans-serif"
+    fontSize: "60px"
     fontWeight: 600
     lineHeight: 1.08
     letterSpacing: "-0.035em"
   heading:
-    fontFamily: "Manrope, system-ui, sans-serif"
+    fontFamily: "Archivo Narrow, system-ui, sans-serif"
     fontSize: "32px"
     fontWeight: 600
     lineHeight: 1.1
     letterSpacing: "-0.03em"
   title:
-    fontFamily: "Manrope, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "24px"
     fontWeight: 600
     lineHeight: 1.25
   body:
-    fontFamily: "Manrope, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "16px"
     fontWeight: 400
     lineHeight: 1.63
   body-small:
-    fontFamily: "Manrope, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "Manrope, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 600
     lineHeight: 1.4
   data:
-    fontFamily: "IBM Plex Mono, monospace"
+    fontFamily: "Archivo Narrow, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 500
     lineHeight: 1.4
+  scale: ["10.5px", "11px", "12px", "12.5px", "13.5px", "14px", "14.5px", "15px", "16px", "21px", "24px", "32px", "42px", "60px"]
 rounded:
   control: "4px"
   card: "8px"
@@ -81,11 +79,37 @@ spacing:
 
 # Wicker Study design system
 
-## North star
+## North star — Dienstregeling
 
-Wicker Study is a modern academic instrument: calm enough for long reading sessions, compact enough for exam work, and consistent enough that students always understand where they are. It combines Quizlet's efficient educational information architecture with Syllabus's crisp editorial geometry, translated into an original, more official university-course product language.
+A degree is a timetable, not a dashboard. Wicker Study refuses the study-app
+arrangement of same-size metric cards over an off-white ground and takes the
+form the student's own country uses for dense public truth: the departure
+board — the NS platform display, Crouwel's grid, Total Design's public
+information work. Rank comes from scale and position on a grid, never from a
+box.
 
-The application uses one sans-serif voice throughout. Manrope carries interface and authored course content; IBM Plex Mono is reserved for measurements, identifiers, scores, dates, and progress values. Serif type is prohibited across all product surfaces.
+Three rules govern every surface.
+
+1. **One colour.** A saturated signal blue marks what is live, and is never
+   spent on decoration. Nothing else on the surface is tinted — there is no
+   success green, no warning amber, no danger red.
+2. **State is a mark, not a hue.** Recorded, missing, overdue and done are
+   carried by marks, weight and position, so every status survives greyscale
+   and adds no second colour.
+3. **One ruling axis.** The teaching period governs the product. It heads the
+   home board with the academic year drawn as a measure, and every screen sits
+   somewhere on it.
+
+The ground is ink. Anything read at length — a tutor's answer, the setup
+assistant's question, a chapter — is laid on the board as a **punched paper
+window**: true paper, dark ink, and the only element on the surface that casts
+a shadow.
+
+Archivo carries interface and authored content. **Archivo Narrow carries every
+numeral, course code, date and countdown, always tabular**, so columns line up
+at any size. Serif type is prohibited across all product surfaces, and
+monospace is not used as a costume for "technical" — the narrow cut is the
+data voice.
 
 ## Brand identity
 
@@ -96,10 +120,10 @@ The application uses one sans-serif voice throughout. Manrope carries interface 
 
 ## Layout
 
-- The application is a dashboard shell: a 236px white sidebar on desktop (brand, search field, grouped navigation — Study: Home, Courses, Practice; Plan: Planning, Calendar — and an account block with avatar initials at the foot) beside a scrolling canvas column capped at 1180px. On compact screens the sidebar becomes a five-item bottom bar (Home, Courses, Practice, Planning, Account) and search moves into page headers. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.
-- Every destination opens with the same page header: a mono uppercase eyebrow, a 26px title, one line of secondary copy, and right-aligned actions above a single hairline. Local tabs (Practice, Planning, Account) sit directly under that header as a flat row with one rule. Section titles inside a destination are 18px and carry no rule of their own, so two dividers never stack.
-- Content blocks are white bordered panels (`.panel`) with a small heading row; asides use the same panel with a mono uppercase heading. Panels never open with a top rule.
-- Home is action-led and numeric: a greeting header with the next-exam line, four KPI tiles that double as queue links (next exam, flashcards due, open mistakes, study streak), a "continue where you left off" block, the activity ledger (28-day bar chart, weekly totals, recent events), the course ledger ordered by exam proximity, and an aside with upcoming exams, quick-start actions, and programme facts. Courses is the ledger with archive and reorder controls.
+- The application is a board shell: a 236px ink sidebar on desktop (brand, search field, grouped navigation — Study: Home, Courses, Practice; Plan: Planning, Calendar — and an account block with avatar initials at the foot) beside a scrolling canvas column capped at 1180px. On compact screens the sidebar becomes a five-item bottom bar (Home, Courses, Practice, Planning, Account) and search moves into page headers. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.
+- Every destination opens with a title in the narrow cut and one line of secondary copy above a single rule. There are no eyebrows: a small tracked-caps label is a column header on a table or a section label in navigation, never a kicker stacked above a heading. Local tabs (Practice, Planning, Account) sit directly under that header as a flat row with one rule. Section titles inside a destination are 18px and carry no rule of their own, so two dividers never stack.
+- Regions are bounded by a rule and separated by space, never by a card. A box inside a box is the pattern this world exists to refuse; the punched paper window is the only element with an edge and a shadow.
+- Home is the board. It opens with the teaching period set large in the narrow cut, the academic year drawn beneath it as a measure of blocks with the current one carrying the signal, then what is next in date order — date, what, course, days away — with one signal rule under the live row. A greeting is not information and no longer heads the page. Queue figures (cards due, open mistakes, streak, week) are a single line of measures, not four cards. Below that sit a "continue where you left off" block, the activity ledger (28-day bar chart, weekly totals, recent events), the course ledger ordered by exam proximity, and an aside with upcoming exams, quick-start actions, and programme facts. Courses is the ledger with archive and reorder controls.
 - Practice is one destination with local tabs under its page header: Questions, Flashcards, Mistakes, Mocks. Tab labels carry a count pill when there is due or open work; the header line summarises what is waiting.
 - Study activity is recorded server-side (answers, flashcard reviews, mocks, resolved mistakes, chapters read) and powers the streak, weekly totals, and the feed on Home and in Account. Nothing in the ledger derives from editorial material.
 - Calendar (`#/calendar`) is a first-class destination built on FullCalendar: month, week, day, and agenda views over one unified feed (exam attempts, personal events, the institution calendar, saved timetable feeds). A search field, category chips, and a course filter narrow every view and the "Coming up" aside together; selecting a date opens a detail panel with study, edit/remove, and import actions; personal events are added from the page header. Calendar is never nested under Planning.

@@ -1,0 +1,599 @@
+/* =========================================================================
+ * Wicker Study — Dienstregeling
+ *
+ * Loaded last. This file owns appearance; every earlier stylesheet keeps its
+ * behaviour and layout and inherits the world through the tokens below.
+ *
+ * THESIS. A degree is a timetable, not a dashboard. This surface refuses the
+ * study-app arrangement of same-size metric cards over an off-white ground,
+ * and takes the form the student's own country uses for dense public truth:
+ * the departure board. Rank comes from scale and position on a grid, never
+ * from a box.
+ *
+ * OWN-WORLD. Ink ground, paper-white type, and exactly one colour — a
+ * saturated signal blue — which marks what is live and is never spent on
+ * decoration. Long reading sits in punched paper windows laid on the board.
+ * Rules, never cards. Archivo throughout, Archivo Narrow for every numeral,
+ * code and time, always tabular. Orthogonal: 2px radii, no soft shadows on
+ * the board.
+ *
+ * STORY. The student opens it at 01:35 to learn what is true tomorrow, reads
+ * the live row first because it is the only thing carrying colour, and acts
+ * on it.
+ *
+ * FIRST VIEWPORT. A board header ruling the top — period, week, and the
+ * year's eight blocks as a measure. Beneath it the next rows in date order,
+ * set large and tabular. One signal rule under the live row. The tutor and
+ * every long answer open in a punched paper window.
+ *
+ * FORM. Dutch public information design (NS board, Crouwel, Total Design);
+ * candidate 4 of seven; seed key wicker1.
+ *
+ * RAISE (Kraftwerk, declined): one colour carries every accent, and nothing
+ * else on the surface is ever tinted.
+ * RAISE (cutting bench, declined): state is a mark, not a hue — overdue,
+ * missing and done survive greyscale.
+ * RAISE (mesophotic, declined): one ruling axis — the period timeline
+ * governs every screen.
+ *
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the
+ * finish review, the verdict, DESIGN.md, and every shipping raster carrying
+ * its provenance.
+ * ========================================================================= */
+
+:root {
+  /* ── The board ───────────────────────────────────────────────────────── */
+  --w-ink: #0d0f13;
+  --w-board: #131720;
+  --w-board-raised: #191e29;
+  --w-rule: #262c39;
+  --w-rule-strong: #39414f;
+
+  --w-type: #eceef1;
+  --w-type-2: #98a0af;
+  --w-type-3: #767e8d;
+
+  /* The only colour on the surface. Graphic weight on the board; the lighter
+     tint is the same signal where it has to survive as text. */
+  --w-signal: #2b54ff;
+  --w-signal-text: #8ba0ff;
+  --w-signal-dim: #1b2547;
+
+  /* Punched window: where running copy and anything foreign is read. */
+  --w-paper: #f4f3ef;
+  --w-paper-2: #e8e7e1;
+  --w-paper-ink: #14171d;
+  --w-paper-ink-2: #545a66;
+  --w-paper-rule: #d5d3cb;
+  --w-paper-link: #1f3ad6;
+  --w-on-signal: #ffffff;
+
+  /* The punched window is the only element that casts. Two shadows: the hard
+     edge where the paper meets the board, and the soft fall beneath it. */
+  --w-cast: 0 1px 0 rgb(0 0 0 / .6), 0 20px 44px -26px rgb(0 0 0 / .95);
+  --w-cast-panel: 0 24px 60px -30px rgb(0 0 0 / .9);
+
+  color-scheme: dark;
+
+  /* ── Mapped onto the existing token names ────────────────────────────── */
+  --font-ui: var(--next-font-ui, "Archivo"), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--next-font-data, "Archivo Narrow"), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: var(--w-ink);
+  --color-surface: var(--w-board);
+  --color-surface-subtle: var(--w-board-raised);
+  --color-surface-accent: var(--w-signal-dim);
+  --color-ink: var(--w-type);
+  --color-ink-secondary: var(--w-type-2);
+  --color-ink-tertiary: var(--w-type-3);
+  --color-border: var(--w-rule);
+  --color-border-strong: var(--w-rule-strong);
+  --color-brand: var(--w-signal);
+  --color-brand-hover: #4468ff;
+  --color-brand-soft: var(--w-signal-dim);
+
+  /* One colour means one colour: status is carried by marks and weight, so
+     these resolve to type values rather than a second and third hue. */
+  --color-success: var(--w-type);
+  --color-warning: var(--w-type);
+  --color-danger: var(--w-type);
+
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+
+  /* Depth on the board is value, not blur. Only a punched window casts. */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --dash-shadow: none;
+  --focus-ring: 0 0 0 2px var(--w-signal);
+
+  --ink: var(--w-type);
+  --navy: var(--w-type);
+  --muted: var(--w-type-2);
+  --line: var(--w-rule);
+  --line-strong: var(--w-rule-strong);
+  --paper: var(--w-ink);
+  --panel: var(--w-board);
+  --panel-2: var(--w-board-raised);
+  --accent: var(--w-signal);
+  --danger: var(--w-type);
+  --success: var(--w-type);
+  --shadow: none;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+html, body { background: var(--w-ink) !important; }
+body {
+  background-image: none !important;
+  color: var(--w-type);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Every numeral in the product is data: a credit total, a course code, a
+   date, a countdown. They line up in columns, so they are always tabular. */
+:where(.w-data, .pl-table, .w-board-strip, time, .w-num) {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+::selection { background: var(--w-signal); color: var(--w-on-signal); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--w-ink); }
+::-webkit-scrollbar-thumb { background: var(--w-rule); border: 3px solid var(--w-ink); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--w-rule-strong); }
+* { scrollbar-color: var(--w-rule) var(--w-ink); }
+
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--w-signal) !important;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* ── Type scale, actually used ────────────────────────────────────────── */
+
+.page-head h1, .page-hero h1, h1 {
+  font-family: var(--font-data);
+  font-weight: 600;
+  font-size: clamp(32px, 4.4vw, 60px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+h2 { font: 600 24px/1.2 var(--font-ui); letter-spacing: -0.015em; }
+h3 { font: 600 15px/1.3 var(--font-ui); letter-spacing: -0.005em; }
+
+/* Small tracked caps are the board's column headers. They label a structure;
+   they never sit above a heading as a kicker. */
+.w-label {
+  display: block;
+  color: var(--w-type-3);
+  font: 600 10.5px/1.4 var(--font-ui);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+/* The eyebrows the old build stacked above every heading. */
+.page-eyebrow, .pl-eyebrow, .setup-eyebrow { display: none !important; }
+
+/* ── Controls: one signal, so one primary ─────────────────────────────── */
+
+.btn, .tb-btn, .load-q-btn, .q-nav-btn {
+  border-radius: var(--radius-sm);
+  border-color: var(--w-rule-strong);
+  background: transparent;
+  color: var(--w-type);
+  font-weight: 600;
+  letter-spacing: .005em;
+}
+.btn:hover, .tb-btn:hover { background: var(--w-board-raised); border-color: var(--w-type-3); }
+.btn.btn-primary, .tb-btn.tb-btn-primary, .q-nav-btn.primary, .load-q-btn, .chat-send {
+  background: var(--w-signal);
+  border-color: var(--w-signal);
+  color: var(--w-on-signal);
+}
+.btn.btn-primary:hover { background: var(--color-brand-hover); border-color: var(--color-brand-hover); }
+.btn.btn-secondary { background: transparent; border-color: var(--w-rule-strong); color: var(--w-type); }
+.btn.btn-ghost { border-color: transparent; color: var(--w-type-2); }
+.btn.btn-ghost:hover { background: var(--w-board-raised); color: var(--w-type); }
+.btn.btn-danger { color: var(--w-type); border-color: var(--w-rule-strong); background: transparent; }
+.btn.btn-danger:hover { background: var(--w-board-raised); border-color: var(--w-type); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .38; }
+
+.icon-btn { color: var(--w-type-3); border-radius: var(--radius-sm); }
+.icon-btn:hover { color: var(--w-type); background: var(--w-board-raised); }
+
+input, textarea, select {
+  border-radius: var(--radius-sm);
+  background: var(--w-board);
+  border-color: var(--w-rule-strong);
+  color: var(--w-type);
+}
+input::placeholder, textarea::placeholder { color: var(--w-type-3); }
+
+/* ── Rules, not cards ─────────────────────────────────────────────────── */
+/* The old build nested boxes three deep. On a board, a region is bounded by a
+   rule and separated by space; only a punched window has an edge. */
+.panel, .card, .pl-structure, .pl-group, .upd-empty, .setup-result,
+.dash-card, .week-panel, .quick-start, .pl-empty {
+  border-radius: var(--radius-sm);
+  border-color: var(--w-rule);
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ── Shell ────────────────────────────────────────────────────────────── */
+
+.shell > .sidebar, .sidebar {
+  background: var(--w-ink) !important;
+  border-right: 1px solid var(--w-rule) !important;
+  backdrop-filter: none !important;
+}
+.dash-nav-group, .nav-section, .sidebar h2 {
+  color: var(--w-type-3);
+  font: 600 10.5px/1.4 var(--font-ui);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+.sidebar a, .sidebar .nav-tool, .sidebar button {
+  border-radius: var(--radius-sm);
+  color: var(--w-type-2);
+  font-weight: 500;
+}
+.sidebar a:hover, .sidebar .nav-tool:hover { background: var(--w-board); color: var(--w-type); }
+/* The current place is marked by the signal rule, not a tinted pill. */
+.sidebar a.is-active, .sidebar a[aria-current="page"], .sidebar .is-on {
+  position: relative;
+  background: transparent !important;
+  color: var(--w-type) !important;
+  font-weight: 600;
+}
+.sidebar a.is-active::before, .sidebar a[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--w-signal);
+}
+
+/* ── The punched window ───────────────────────────────────────────────── */
+/* Running copy, a tutor's answer, a chapter: laid on the board as paper, and
+   the only element that casts a shadow. */
+.w-window {
+  background: var(--w-paper);
+  color: var(--w-paper-ink);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--w-cast);
+}
+.w-window a { color: var(--w-paper-link); }
+.w-window .w-label, .w-window small { color: var(--w-paper-ink-2); }
+
+/* ── The board ────────────────────────────────────────────────────────── */
+
+.w-head { padding: var(--space-2) 0 var(--space-5); }
+.w-head h1 {
+  margin: 0;
+  font-family: var(--font-data);
+  font-weight: 600;
+  font-size: clamp(32px, 5vw, 60px);
+  line-height: .98;
+  letter-spacing: -0.025em;
+}
+.w-head-meta {
+  margin: var(--space-2) 0 0;
+  color: var(--w-type-2);
+  font: 400 14px/1.5 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The year as a measure: eight blocks, the one you are in carrying the
+   signal. This is the ruling axis, not an ornament. */
+.w-year { margin: var(--space-4) 0 0; padding: 0; list-style: none; display: flex; gap: 3px; }
+.w-year li { flex: 1 1 0; display: grid; gap: 5px; }
+.w-year li span { display: block; height: 3px; background: var(--w-rule); }
+.w-year li b {
+  font: 500 10px/1 var(--font-data);
+  font-variant-numeric: tabular-nums;
+  color: var(--w-type-3);
+}
+.w-year li.is-past span { background: var(--w-rule-strong); }
+.w-year li.is-now span { background: var(--w-signal); }
+.w-year li.is-now b { color: var(--w-type); }
+
+.w-board { margin: 0 0 var(--space-6); border-top: 1px solid var(--w-rule-strong); }
+.w-board ol { margin: 0; padding: 0; list-style: none; }
+.w-row { border-bottom: 1px solid var(--w-rule); }
+.w-row a {
+  padding: var(--space-3) 0;
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) 7rem 4rem;
+  align-items: baseline;
+  gap: var(--space-4);
+  color: inherit;
+  text-decoration: none;
+}
+.w-row a:hover { background: var(--w-board); }
+.w-row-when {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: .01em;
+  color: var(--w-type);
+}
+.w-row-when small { margin-left: .5ch; font-size: 14px; font-weight: 500; color: var(--w-type-2); }
+.w-row-what { font: 500 16px/1.35 var(--font-ui); color: var(--w-type); overflow-wrap: anywhere; }
+.w-row-code, .w-row-away {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--w-type-2);
+}
+.w-row-away { text-align: right; }
+/* The only colour on the page: the row you act on next. */
+.w-row.is-live { border-bottom-color: var(--w-signal); }
+.w-row.is-live .w-row-when, .w-row.is-live .w-row-away { color: var(--w-signal-text); }
+.w-board.is-empty { padding: var(--space-5) 0 var(--space-6); border-bottom: 1px solid var(--w-rule); }
+.w-board.is-empty p { margin: 0; max-width: 60ch; color: var(--w-type-2); font: 400 14.5px/1.6 var(--font-ui); }
+
+.w-strip {
+  margin: 0 0 var(--space-6);
+  padding-bottom: var(--space-5);
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  border-bottom: 1px solid var(--w-rule);
+}
+.w-strip-actions { display: flex; align-items: center; gap: var(--space-2); }
+.w-measures { display: flex; gap: var(--space-7); }
+.w-measure { display: grid; gap: 4px; color: inherit; text-decoration: none; }
+.w-measure strong {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.w-measure small { margin-left: .3ch; font-size: 14px; font-weight: 500; color: var(--w-type-3); }
+.w-measure:hover strong { color: var(--w-signal-text); }
+
+/* ── Undoing the re-skin's inheritance ────────────────────────────────── */
+
+/* Section labels are caps; navigation items are not. */
+.dash-nav-link .nav-label { text-transform: none; letter-spacing: 0; font: 500 14px/1.4 var(--font-ui); }
+
+/* Tinted status tiles became near-white blocks once success and warning
+   resolved to type colour. On a one-colour board they carry no fill. */
+.kpi-icon, .quick-icon, .week-icon, .setup-step-mark {
+  background: transparent !important;
+  border: 1px solid var(--w-rule);
+  color: var(--w-type-2) !important;
+}
+.icon-btn { background: transparent !important; border-color: transparent !important; }
+
+/* The setup list was boxes inside a box, each with a primary button. It is a
+   list of what is missing: ruled rows, and the action is a link. */
+.setup-panel, .setup-steps { border: 0; background: transparent; }
+.setup-step { border: 0; border-bottom: 1px solid var(--w-rule); border-radius: 0; background: transparent; }
+.setup-step .btn { border-color: transparent; background: transparent; color: var(--w-signal-text); padding: 0; min-height: 0; }
+.setup-step .btn:hover { background: transparent; text-decoration: underline; text-underline-offset: 3px; }
+
+/* One primary action per screen. A resume block is a row, not a colour field. */
+.resume-card {
+  background: transparent !important;
+  color: var(--w-type) !important;
+  border: 1px solid var(--w-rule);
+  border-radius: var(--radius-sm);
+}
+.resume-card:hover { border-color: var(--w-signal); }
+.resume-label, .resume-title em { color: var(--w-type-2) !important; }
+.resume-cta { color: var(--w-signal-text) !important; }
+
+/* Four legacy stylesheets set headings; the world sheet loads last and says
+   the final word on which face carries a title. */
+#app .w-head h1, #app .page-head h1, #app .page-hero h1, #app .pl-page h1, #app h1 {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", ui-sans-serif, system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Navigation ───────────────────────────────────────────────────────── */
+.dash-nav-link { border-radius: var(--radius-sm); color: var(--w-type-2); }
+.dash-nav-link:hover { background: var(--w-board); color: var(--w-type); }
+.dash-nav-link.active, .dash-nav-link[aria-current="page"] {
+  position: relative;
+  background: transparent !important;
+  color: var(--w-type) !important;
+}
+.dash-nav-link.active .nav-label { font-weight: 600; }
+.dash-nav-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  background: var(--w-signal);
+}
+.dash-nav-link .nav-icon { color: inherit; }
+.app-search-trigger, .dash-search {
+  border: 1px solid var(--w-rule);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--w-type-3);
+}
+.app-search-trigger:hover { border-color: var(--w-rule-strong); color: var(--w-type-2); }
+
+/* ── What is missing: a ruled list, not four boxed calls to action ────── */
+.setup-card {
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--w-rule-strong);
+  border-radius: 0;
+  background: transparent;
+}
+.setup-head { padding: var(--space-4) 0 var(--space-3); border: 0; background: transparent; }
+.setup-head h2 { font: 600 15px/1.3 var(--font-ui); }
+.setup-list { border: 0; background: transparent; }
+.setup-list > li, .setup-card li {
+  padding: var(--space-3) 0;
+  border: 0;
+  border-bottom: 1px solid var(--w-rule);
+  border-radius: 0;
+  background: transparent !important;
+}
+.setup-mark { border: 1px solid var(--w-rule); background: transparent !important; color: var(--w-type-3) !important; }
+/* One primary action per screen, and this is not it: these are links. */
+.setup-card .btn, .setup-list .btn {
+  min-height: 0;
+  padding: 0;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--w-signal-text) !important;
+  font-weight: 600;
+}
+.setup-card .btn:hover, .setup-list .btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+.setup-dismiss { border: 0 !important; }
+
+/* ── Regions are ruled, not boxed ─────────────────────────────────────── */
+.panel, .week-panel, .panel-aside, .ledger, .pl-empty, .upd-empty {
+  padding-left: 0;
+  padding-right: 0;
+  border: 0;
+  border-top: 1px solid var(--w-rule-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.panel-top, .section-head { padding-left: 0; padding-right: 0; border: 0; background: transparent; }
+.panel-top h2, .section-head h2 { font: 600 15px/1.3 var(--font-ui); letter-spacing: 0; }
+.home-grid { gap: var(--space-7); }
+/* A nested box inside a region is the pattern this world exists to refuse. */
+.week-empty, .panel .panel, .quick-start li, .week-panel .week-empty {
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* The narrow cut is the world's voice for anything countable. Named
+   explicitly: the token indirection was being lost somewhere in four
+   stylesheets of inherited cascade. */
+/* polish.css carries `#app :where(h1, ...) { font-family: ... !important }`,
+   an id selector with !important, so a class rule can never win here however
+   late it loads. The world sheet answers at the same weight. */
+#app .w-head h1,
+#app .w-row-when,
+#app .w-row-code,
+#app .w-row-away,
+#app .w-measure strong,
+#app .w-year li b,
+#app .pl-table td,
+#app .pl-table th {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", ui-sans-serif, system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The search trigger inherited sidebar layout and collapsed into an 88px box
+   with its label on top of its shortcut. In the strip it is a control. */
+.w-strip .app-search-trigger {
+  min-height: var(--control-md);
+  padding: 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+.w-strip .app-search-trigger .nav-label { font: 500 13px/1 var(--font-ui); }
+.w-strip .app-search-trigger kbd, .w-strip .app-search-trigger .app-search-hint {
+  margin-left: var(--space-3);
+  color: var(--w-type-3);
+  font: 500 11px/1 var(--font-data);
+}
+.w-strip .app-search-trigger .nav-icon { width: 16px; height: 16px; }
+
+/* ── Chat surfaces: the punched paper window ──────────────────────────── */
+/* Everything the student reads at length — a tutor's answer, the setup
+   assistant's question — is laid on the board as paper. It is the only
+   element that casts, and the one place the ink inverts. */
+#app .tutor-answer,
+#app .chat-page .chat-turn.is-assistant .chat-bubble,
+#app .chat-open-body {
+  padding: var(--space-4) var(--space-5);
+  background: var(--w-paper);
+  color: var(--w-paper-ink);
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--w-cast);
+}
+#app .tutor-answer a,
+#app .chat-page .chat-turn.is-assistant .chat-bubble a,
+#app .chat-open-body a { color: var(--w-paper-link); }
+#app .tutor-answer code { background: var(--w-paper-2); color: var(--w-paper-ink); }
+#app .tutor-answer li::marker { color: var(--w-paper-ink-2); }
+#app .tutor-answer li > ul li { color: var(--w-paper-ink-2); }
+#app .tutor-answer strong { color: var(--w-paper-ink); }
+
+/* The student's own words stay on the board: their turn is not a document. */
+#app .chat-turn.is-user .chat-bubble {
+  background: transparent;
+  border: 1px solid var(--w-rule-strong);
+  color: var(--w-type);
+}
+
+.tutor-bar { border-bottom-color: var(--w-rule-strong); }
+#app .tutor-bar h1 { font-size: 24px; letter-spacing: -0.01em; }
+.tutor-answer-tools { margin-top: var(--space-3); }
+.tutor-tool { color: var(--w-type-3); }
+.tutor-tool:hover { border-color: var(--w-rule-strong); color: var(--w-type); }
+.tutor-opener { border-color: var(--w-rule-strong); background: transparent; color: var(--w-type-2); }
+.tutor-opener:hover { border-color: var(--w-signal); color: var(--w-type); }
+#app .tutor-openers h2 { font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif; font-size: 32px; letter-spacing: -0.02em; }
+#app .chat-open h1 { font-size: clamp(24px, 3.4vw, 32px); }
+.chat-composer { background: var(--w-board); border-color: var(--w-rule-strong); }
+.tutor-drawer-panel { background: var(--w-board); border-color: var(--w-rule-strong); box-shadow: var(--w-cast-panel); }
+.tutor-memory li { background: var(--w-board-raised); }
+.chat-event { color: var(--w-type-2); }
+.chat-event .ui-icon { color: var(--w-signal-text); }
+.chat-page .tutor-bar, .tutor-page .tutor-bar { max-width: 72ch; width: 100%; margin-inline: auto; }
+
+/* ── The ledger ───────────────────────────────────────────────────────── */
+.pl-table-wrap { border: 0; border-radius: 0; background: transparent; }
+.pl-table { border: 0; background: transparent; }
+.pl-table thead th {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--w-rule-strong);
+  background: transparent;
+  color: var(--w-type-3);
+  font: 600 10.5px/1.4 var(--font-ui);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+.pl-table tbody td { border-bottom: 1px solid var(--w-rule); background: transparent; }
+.pl-table tbody tr:hover td { background: var(--w-board); }
+.pl-table .col-code, .pl-table .col-num, .pl-table .col-period { font-variant-numeric: tabular-nums; }
+
+/* State is a mark, not a filled chip: a rule for recorded, a hollow dash for
+   not, so the column survives greyscale and adds no second colour. */
+.pl-status, .pl-status-chip, [class*="status-pill"] {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--w-type-3) !important;
+  font: 500 12px/1.4 var(--font-data) !important;
+  font-variant-numeric: tabular-nums;
+}
+.pl-status.is-pass::before, .pl-status.is-passed::before { content: "✓ "; color: var(--w-type); }
+.pl-status.is-fail::before, .pl-status.is-failed::before { content: "✕ "; color: var(--w-type); }
+.pl-structure { border: 0; border-top: 1px solid var(--w-rule-strong); border-radius: 0; }
+.pl-structure-toggle { background: transparent; }
+.pl-electives { border: 0; border-bottom: 1px solid var(--w-rule); border-radius: 0; background: transparent; }
+.pl-electives label { border: 1px solid var(--w-rule); border-radius: var(--radius-sm); background: transparent; }
+.pl-electives label:hover { border-color: var(--w-rule-strong); }

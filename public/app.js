@@ -5261,6 +5261,108 @@ function renderHomeCanvasPanel() {
   </section>`
 }
 
+// The ruling axis: where the student is in the academic year, and how far
+// through the current teaching period. Every screen sits somewhere on it, so
+// it heads the board rather than a greeting — a greeting is not information.
+function renderBoardHead() {
+  const context = calendarState.data?.academicContext || null
+  const calendar = activeEditorialProgrammeReference()?.programme?.calendar || []
+  const periods = calendar.filter((event) => event.kind === 'period').sort((a, b) => a.date.localeCompare(b.date))
+  const today = localIsoDate(new Date())
+
+  const spanWeeks = (from, to) => Math.max(1, Math.round((new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 604800000))
+  const weekOf = context?.start && context?.end
+    ? Math.min(spanWeeks(context.start, context.end), Math.max(1, spanWeeks(context.start, today) + 1))
+    : null
+  const weeks = context?.start && context?.end ? spanWeeks(context.start, context.end) : null
+
+  const measure = periods.length ? `<ol class="w-year" aria-label="Teaching periods this year">${periods.map((period) => {
+    const state = today > (period.endDate || period.date) ? 'is-past' : today >= period.date ? 'is-now' : ''
+    return `<li class="${state}"><span></span><b>${escapeHtml(String(period.period ?? ''))}</b></li>`
+  }).join('')}</ol>` : ''
+
+  return `<header class="w-head">
+    <h1>${escapeHtml(context?.period || (academicsData ? 'No period set' : 'Loading'))}</h1>
+    <p class="w-head-meta">${[
+      context?.academicYear ? escapeHtml(context.academicYear) : null,
+      weekOf && weeks ? `week ${weekOf} of ${weeks}` : null,
+      context?.phase && context.phase !== 'teaching' ? escapeHtml(context.phase) : null
+    ].filter(Boolean).join(' · ') || 'Connect your programme to see the teaching calendar.'}</p>
+    ${measure}
+  </header>`
+}
+
+// The board: what is true next, in date order, at the scale of the thing that
+// matters. One signal rule under the first row — the only colour on the page.
+function renderBoard() {
+  const days = thisWeekEntries(14)
+  const rows = []
+  for (const { day, items } of days) {
+    for (const event of items) rows.push({ day, event })
+  }
+  for (const exam of upcomingExams().slice(0, 3)) {
+    if (exam.attempt?.examDate) rows.push({ day: String(exam.attempt.examDate).slice(0, 10), exam })
+  }
+  rows.sort((left, right) => left.day.localeCompare(right.day))
+
+  if (!rows.length) {
+    const missing = setupState().missing.filter((step) => ['timetable', 'canvas'].includes(step.id)).map((step) => step.id)
+    return `<section class="w-board is-empty">
+      <p>${missing.length
+        ? `Nothing on the board — ${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} not connected, so there may be more than this.`
+        : 'Nothing due in the next two weeks.'}</p>
+    </section>`
+  }
+
+  const label = (row) => {
+    if (row.exam) return { what: 'Exam', code: row.exam.course.code || row.exam.course.name, href: '#/calendar' }
+    const event = row.event
+    return {
+      what: event.title || event.courseName || 'Appointment',
+      code: event.courseCode || '',
+      href: event.url || '#/calendar',
+      external: Boolean(event.url)
+    }
+  }
+
+  return `<section class="w-board" aria-label="What is next">
+    <ol>${rows.slice(0, 8).map((row, index) => {
+      const { what, code, href, external } = label(row)
+      const away = daysUntil(row.day)
+      const time = row.event?.start && String(row.event.start).length > 10 ? String(row.event.start).slice(11, 16) : null
+      return `<li class="w-row${index === 0 ? ' is-live' : ''}">
+        <a href="${escapeHtml(href)}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>
+          <time class="w-row-when" datetime="${escapeHtml(row.day)}">${escapeHtml(boardDate(row.day))}${time ? `<small>${escapeHtml(time)}</small>` : ''}</time>
+          <span class="w-row-what">${escapeHtml(what)}</span>
+          <span class="w-row-code">${escapeHtml(code)}</span>
+          <span class="w-row-away">${away <= 0 ? 'today' : `${away}d`}</span>
+        </a>
+      </li>`
+    }).join('')}</ol>
+  </section>`
+}
+
+function boardDate(iso) {
+  const date = new Date(`${iso}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return iso
+  return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(date).toUpperCase()
+}
+
+// The figures that were four identical cards. They are measures, not headlines:
+// one line, tabular, no boxes, no icons.
+function renderMeasures({ srDue, srTotal, mistakeCount, streak, week }) {
+  const cell = (href, label, value, unit) => `<a class="w-measure" href="${href}">
+    <span class="w-label">${label}</span>
+    <strong>${value}${unit ? `<small>${unit}</small>` : ''}</strong>
+  </a>`
+  return `<div class="w-measures">
+    ${cell('#/practice/flashcards', 'Cards due', srDue == null ? '—' : srDue, srTotal ? `/ ${srTotal}` : '')}
+    ${cell('#/practice/mistakes', 'Open mistakes', mistakeCount == null ? '—' : mistakeCount, '')}
+    ${cell('#/account/profile', 'Streak', streak == null ? '—' : streak, 'd')}
+    ${cell('#/account/profile', 'This week', week == null ? '—' : week, '')}
+  </div>`
+}
+
 function renderHome() {
   ensureHomeData()
   if (!activityLoading && (!activityCache || Date.now() - activityLoadedAt > 60_000)) loadActivity().then(() => render())
@@ -5300,18 +5402,12 @@ function renderHome() {
   const kpi = (href, cls, icon, label, value, detail) => `<a class="kpi ${cls}" href="${href}"><span class="kpi-icon">${uiIcon(icon)}</span><span class="kpi-label">${label}</span><span class="kpi-value">${value}</span><span class="kpi-detail">${detail}</span></a>`
 
   return `
-    <header class="page-head home-head">
-      <div><p class="page-eyebrow">${escapeHtml(today)}</p><h1>${greeting()}${user.firstName ? `, ${escapeHtml(user.firstName)}` : ''}</h1><p class="page-sub">${nextLine} ${todayLine}</p></div>
-      <div class="page-head-actions">${renderSearchTrigger()}<a class="btn btn-primary" href="#/practice">${uiIcon('play')} Practise</a></div>
-    </header>
+    ${renderBoardHead()}
+    ${renderBoard()}
 
-    <div class="kpi-strip">
-      ${kpi('#/calendar', soonest && soonest.days !== null && soonest.days <= 7 ? 'is-danger' : 'is-brand', 'calendar', 'Next exam',
-        soonest ? (soonest.days === null ? '—' : soonest.days < 0 ? 'Today' : `${soonest.days}<small>${soonest.days === 1 ? 'day' : 'days'}</small>`) : examWindow ? `${Math.max(0, daysUntil(examWindow.start))}<small>days</small>` : '—',
-        soonest ? `${escapeHtml(soonest.course.code || soonest.course.name)} · ${academicDate(soonest.attempt.examDate)}` : examWindow ? `${escapeHtml(examWindow.title)} · ${currentEntries.length} courses` : hasPlan ? 'No dates recorded' : 'No plan yet')}
-      ${kpi('#/practice/flashcards', 'is-brand', 'layers', 'Flashcards due', srDue == null ? '—' : srDue, srTotal == null ? 'Loading…' : srTotal ? `${srTotal} card${srTotal === 1 ? '' : 's'} in your deck` : 'Add cards from any question')}
-      ${kpi('#/practice/mistakes', mistakeCount ? 'is-warning' : 'is-success', 'alert', 'Open mistakes', mistakeCount == null ? '—' : mistakeCount, mistakeCount == null ? 'Loading…' : mistakeCount ? 'Scored below 7/10, unresolved' : 'Nothing to fix right now')}
-      ${kpi('#/account/profile', streak ? 'is-flame' : 'is-neutral', 'flame', 'Study streak', streak == null ? '—' : `${streak}<small>${streak === 1 ? 'day' : 'days'}</small>`, week == null ? 'Loading…' : `${week} action${week === 1 ? '' : 's'} this week${delta ? ` · ${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)}` : ''}`)}
+    <div class="w-strip">
+      ${renderMeasures({ srDue, srTotal, mistakeCount, streak, week })}
+      <div class="w-strip-actions">${renderSearchTrigger()}<a class="btn btn-secondary" href="#/practice">${uiIcon('play')} Practise</a></div>
     </div>
 
     ${renderSetupChecklist()}
