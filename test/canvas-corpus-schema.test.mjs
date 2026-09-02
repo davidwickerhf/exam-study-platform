@@ -5,6 +5,8 @@ import test from 'node:test'
 const migration = await readFile(new URL('../db/020_canvas_corpus.sql', import.meta.url), 'utf8')
 const retrieval = await readFile(new URL('../lib/retrieval-store.mjs', import.meta.url), 'utf8')
 const worker = await readFile(new URL('../lib/canvas-corpus-worker.mjs', import.meta.url), 'utf8')
+const corpus = await readFile(new URL('../lib/course-corpus.mjs', import.meta.url), 'utf8')
+const server = await readFile(new URL('../server.mjs', import.meta.url), 'utf8')
 
 test('Canvas connection and material collection are separate explicit permissions', () => {
   assert.match(migration, /canvas_corpus_permissions/)
@@ -31,4 +33,18 @@ test('retrieval supports embeddings and explicit academic-year editions', () => 
   assert.match(retrieval, /academicYear/)
   assert.match(retrieval, /courseCode/)
   assert.match(retrieval, /canvasUpdatedAt/)
+})
+
+test('original documents and local media retain the same account authorization boundary', () => {
+  assert.match(corpus, /canvasCorpusAsset/)
+  assert.match(corpus, /s\.sharing_mode='community' OR s\.contributor_user_id=\$\{accountId\}/)
+  assert.match(worker, /localObjectKey/)
+  assert.match(server, /Accept-Ranges/)
+  assert.match(server, /\/api\\\/corpus\\\/assets/)
+})
+
+test('accounts can force a refresh or explicitly archive an out-of-period course', () => {
+  assert.match(worker, /job\.payload\?\.force/)
+  assert.match(corpus, /explicit \? courses : selectCanvasCorpusCourses/)
+  assert.match(corpus, /enqueueCanvasCourseSync/)
 })

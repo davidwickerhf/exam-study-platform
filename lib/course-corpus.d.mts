@@ -19,5 +19,9 @@ export declare function retrievalEditionOrder<T extends { academicYear?: string 
 export declare function enqueueCanvasCatalogSync(input: { accountId: string; origin: string; force?: boolean }): Promise<Record<string, unknown>>
 export declare function canvasCorpusPermission(input: { accountId: string; origin: string }): Promise<Record<string, unknown>>
 export declare function setCanvasCorpusPermission(input: { accountId: string; origin: string; collectionEnabled: boolean; sharingMode?: 'private' | 'community' }): Promise<Record<string, unknown>>
+export declare function listCanvasCorpusMaterials(input: { accountId: string; courseCode?: string; academicYear?: string }): Promise<Array<Record<string, unknown>>>
+export declare function canvasCorpusAsset(input: { accountId: string; assetId: string }): Promise<Record<string, unknown> | null>
+export declare function canvasCorpusAssetChunks(input: { assetId: string; first?: number; last?: number }): Promise<Array<{ chunk_index: number; data: Uint8Array }>>
+export declare function enqueueCanvasCourseSync(input: { accountId: string; origin: string; course: Record<string, unknown>; force?: boolean }): Promise<Record<string, unknown>>
 export declare function observeCanvasCorpusCourses(input: { accountId: string; origin: string; courses: CanvasCorpusCourse[] }): Promise<{ observed: number; queued: number; mode?: string }>
 export declare function canvasCorpusStatus(input: { accountId: string }): Promise<Record<string, unknown>>

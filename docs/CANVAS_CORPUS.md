@@ -58,6 +58,26 @@ Canvas chunks and retain corpus and edition provenance.
 `canvas_corpus_status` exposes consent, jobs, edition source counts, and
 freshness. `canvas_corpus_sync` queues a refresh but cannot bypass consent.
 
+## Original documents and media
+
+The worker preserves original PDF, Word, PowerPoint, spreadsheet, image, audio,
+and other Canvas file bytes. Authenticated users list these through
+`GET /api/corpus/materials` and open them from the first-party
+`/api/corpus/assets/:assetId` route without returning to Canvas. The route uses
+the same private/community access checks as retrieval.
+
+Accessible Canvas-hosted video and audio files are copied to the server's local
+content-addressed media directory (`CANVAS_CORPUS_ASSET_DIR`, default
+`data/corpus-assets`). HTTP byte ranges allow playback and seeking without
+loading the entire recording. Production must mount this directory on a
+persistent encrypted volume. Canvas Studio, Kaltura, or other external-tool
+videos can only be archived when Canvas exposes an authenticated downloadable
+file; the worker does not bypass provider access controls or DRM.
+
+Settings exposes both a forced full refresh and a manual course-edition picker.
+The picker can queue any course visible to the connected Canvas account,
+including old or out-of-period shells.
+
 ## Editorial boundary
 
 Private contributions never qualify for editorial mapping or generation.

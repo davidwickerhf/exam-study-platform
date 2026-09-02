@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { readFile, writeFile, readdir, stat, mkdir, unlink } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { createReadStream } from 'node:fs'
-import { extname, join, resolve, relative, dirname, posix as posixPath } from 'node:path'
+import { extname, join, resolve, relative, dirname, sep, posix as posixPath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -47,8 +47,7 @@ import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
-import { canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
-import { startCanvasCorpusWorker } from './lib/canvas-corpus-worker.mjs'
+import { canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -72,6 +71,20 @@ const MAX_CANVAS_API_RESPONSE_BYTES = 4 * 1024 * 1024
 const MAX_CANVAS_FILE_BYTES = 1024 * 1024 * 1024
 const CANVAS_API_TIMEOUT_MS = 30_000
 const CANVAS_FILE_TIMEOUT_MS = 10 * 60_000
+const CORPUS_ASSET_CHUNK_BYTES = 512 * 1024
+
+let canvasCorpusWorkerProcess = null
+function startCanvasCorpusWorkerProcess() {
+  if (canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
+  canvasCorpusWorkerProcess = spawn(process.execPath, [join(__dirname, 'scripts/canvas-corpus-worker.mjs')], { cwd: __dirname, env: process.env, stdio: 'inherit' })
+  canvasCorpusWorkerProcess.on('exit', () => { canvasCorpusWorkerProcess = null })
+  canvasCorpusWorkerProcess.on('error', (error) => console.error('Canvas corpus worker process could not start:', error))
+  const stop = () => { if (canvasCorpusWorkerProcess && !canvasCorpusWorkerProcess.killed) canvasCorpusWorkerProcess.kill('SIGTERM') }
+  process.once('SIGINT', stop)
+  process.once('SIGTERM', stop)
+  process.once('exit', stop)
+  return true
+}
 
 function canvasProxyError(response, path) {
   if (response.status === 401) return new CanvasConnectionError(`Canvas rejected the saved connection while requesting ${path}. Reconnect Canvas in Settings.`)
@@ -494,6 +507,56 @@ function send(res, status, body, type = 'application/json; charset=utf-8', heade
   }
   res.writeHead(status, responseHeaders)
   res.end(payload)
+}
+
+async function sendCorpusAsset(req, res, asset, { download = false } = {}) {
+  const size = Number(asset.byteSize)
+  const rawRange = String(req.headers.range || '')
+  const match = /^bytes=(\d*)-(\d*)$/.exec(rawRange)
+  let start = 0
+  let end = Math.max(0, size - 1)
+  if (rawRange && !match) {
+    send(res, 416, '', 'text/plain; charset=utf-8', { 'Content-Range': `bytes */${size}` })
+    return
+  }
+  if (match) {
+    if (!match[1] && match[2]) {
+      const suffix = Math.min(size, Number(match[2]))
+      start = size - suffix
+    } else {
+      start = Number(match[1] || 0)
+      end = match[2] ? Math.min(size - 1, Number(match[2])) : size - 1
+    }
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start >= size || end < start) {
+      send(res, 416, '', 'text/plain; charset=utf-8', { 'Content-Range': `bytes */${size}` })
+      return
+    }
+  }
+  const filename = safeAttachmentName(asset.filename || 'course-material')
+  const headers = {
+    ...securityHeaders({ page: false }),
+    'Content-Type': asset.mediaType || 'application/octet-stream',
+    'Content-Length': String(end - start + 1),
+    'Accept-Ranges': 'bytes',
+    'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    'Cache-Control': 'private, max-age=3600',
+    ETag: `"${asset.sha256}"`
+  }
+  if (match) headers['Content-Range'] = `bytes ${start}-${end}/${size}`
+  res.writeHead(match ? 206 : 200, headers)
+  if (asset.localObjectKey) {
+    const objectPath = resolve(process.env.CANVAS_CORPUS_ASSET_DIR || join(__dirname, 'data/corpus-assets'), asset.localObjectKey)
+    const root = resolve(process.env.CANVAS_CORPUS_ASSET_DIR || join(__dirname, 'data/corpus-assets'))
+    if (!objectPath.startsWith(`${root}${sep}`)) { res.destroy(); return }
+    createReadStream(objectPath, { start, end }).pipe(res)
+    return
+  }
+  const firstChunk = Math.floor(start / CORPUS_ASSET_CHUNK_BYTES)
+  const lastChunk = Math.floor(end / CORPUS_ASSET_CHUNK_BYTES)
+  const rows = await canvasCorpusAssetChunks({ assetId: asset.id, first: firstChunk, last: lastChunk })
+  const joined = Buffer.concat(rows.map((row) => Buffer.from(row.data)))
+  const body = joined.subarray(start - firstChunk * CORPUS_ASSET_CHUNK_BYTES, end - firstChunk * CORPUS_ASSET_CHUNK_BYTES + 1)
+  res.end(body)
 }
 
 function sendAiError(res, error) {
@@ -3470,6 +3533,38 @@ const server = createServer(async (req, res) => {
       }
       return
     }
+    if (url.pathname === '/api/integrations/canvas/corpus/course' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 12 * 1024)
+        const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
+        const permission = await canvasCorpusPermission({ accountId: currentAuth().userId, origin })
+        if (!permission.collectionEnabled) { send(res, 409, JSON.stringify({ error: 'Choose a Canvas material authorization in Settings first.' })); return }
+        const { token } = await canvasAccessToken({ canvasUrl: origin })
+        const catalog = await listCanvasCourses({ canvasUrl: origin, accessToken: token })
+        const course = catalog.courses.find((candidate) => String(candidate.id) === String(body?.canvasCourseId || ''))
+        if (!course) { send(res, 404, JSON.stringify({ error: 'That Canvas course is not available to this account.' })); return }
+        send(res, 202, JSON.stringify(await enqueueCanvasCourseSync({ accountId: currentAuth().userId, origin, course, force: body?.force !== false })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The selected Canvas course could not be queued.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/corpus/materials' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ materials: await listCanvasCorpusMaterials({
+        accountId: currentAuth().userId,
+        courseCode: url.searchParams.get('courseCode') || '',
+        academicYear: url.searchParams.get('academicYear') || ''
+      }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
+    }
+    const corpusAssetMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)$/)
+    if (corpusAssetMatch && req.method === 'GET') {
+      const asset = await canvasCorpusAsset({ accountId: currentAuth().userId, assetId: decodeURIComponent(corpusAssetMatch[1]) })
+      if (!asset) { send(res, 404, JSON.stringify({ error: 'Course material not found or not available to this account.' })); return }
+      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1' }) }
+      catch (error) { if (!res.headersSent) send(res, 404, JSON.stringify({ error: 'The stored original is unavailable.' })); else res.destroy(error) }
+      return
+    }
     if (url.pathname === '/api/account/integrations/canvas' && req.method === 'DELETE') {
       try {
         const body = await readBody(req, 8 * 1024)
@@ -5647,5 +5742,5 @@ server.listen(port, hostname, () => {
   if (LLM_PROVIDER === 'claude') console.log(`Claude bin: ${CLAUDE_BIN}`)
   if (LLM_PROVIDER === 'api' || LLM_PROVIDER === 'anthropic') console.log(`Model: ${ANTHROPIC_MODEL} (API key ${ANTHROPIC_API_KEY ? 'set' : 'MISSING'})`)
   if (LLM_PROVIDER === 'openai') console.log(`Model: ${OPENAI_MODEL} (reasoning ${openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) || 'not applicable'}; OpenAI key ${OPENAI_API_KEY ? 'set' : 'MISSING'})`)
-  if (startCanvasCorpusWorker()) console.log('Canvas corpus worker: running')
+  if (startCanvasCorpusWorkerProcess()) console.log('Canvas corpus worker: separate process running')
 })

@@ -346,6 +346,7 @@ type CanvasConnection = {
     consentedAt?: string | null;
   };
 };
+type CanvasCourseOption = { id: string | number; displayName?: string; name?: string; courseCode?: string; term?: { name?: string } };
 
 function ConnectionsTab() {
   const connections = useJson<{ connections: CanvasConnection[] }>(
@@ -360,6 +361,48 @@ function ConnectionsTab() {
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<CanvasConnection | null>(null);
   const [materialMode, setMaterialMode] = useState<"none" | "private" | "community">("none");
+  const [courseCatalog, setCourseCatalog] = useState<Record<string, CanvasCourseOption[]>>({});
+  const [selectedCourse, setSelectedCourse] = useState<Record<string, string>>({});
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function saveMaterialMode(connection: CanvasConnection, mode: "none" | "private" | "community") {
+    setBusy(true); setError(null); setNotice(null);
+    try {
+      await readJson("/api/account/integrations/canvas/corpus", {
+        method: "PUT",
+        body: JSON.stringify({ canvasUrl: connection.origin, collectionEnabled: mode !== "none", sharingMode: mode === "community" ? "community" : "private" }),
+      });
+      setNotice(mode === "none" ? "Material collection stopped." : `Material collection authorised for ${mode === "community" ? "community sharing" : "private use"}.`);
+      connections.reload();
+    } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
+  }
+
+  async function refreshMaterials(connection: CanvasConnection) {
+    setBusy(true); setError(null); setNotice(null);
+    try {
+      await readJson("/api/integrations/canvas/corpus/sync", { method: "POST", body: JSON.stringify({ canvasUrl: connection.origin, force: true }) });
+      setNotice("A complete Canvas material refresh is queued in the background.");
+    } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
+  }
+
+  async function loadCourseArchive(connection: CanvasConnection) {
+    setBusy(true); setError(null); setNotice(null);
+    try {
+      const catalog = await readJson<{ courses: CanvasCourseOption[] }>(`/api/integrations/canvas/courses?canvasUrl=${encodeURIComponent(connection.origin)}`);
+      setCourseCatalog((held) => ({ ...held, [connection.origin]: catalog.courses || [] }));
+      setNotice("Choose any accessible course edition to archive, including previous years.");
+    } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
+  }
+
+  async function archiveCourse(connection: CanvasConnection) {
+    const canvasCourseId = selectedCourse[connection.origin];
+    if (!canvasCourseId) return;
+    setBusy(true); setError(null); setNotice(null);
+    try {
+      await readJson("/api/integrations/canvas/corpus/course", { method: "POST", body: JSON.stringify({ canvasUrl: connection.origin, canvasCourseId, force: true }) });
+      setNotice("That course edition is queued for a full local archive.");
+    } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
+  }
 
   async function connect(event: React.FormEvent) {
     event.preventDefault();
@@ -549,7 +592,7 @@ function ConnectionsTab() {
             {connections.data.connections.map((connection) => (
               <li
                 key={connection.origin}
-                className="flex flex-wrap items-center justify-between gap-3 border-b py-3"
+                className="grid gap-3 border-b py-4 lg:grid-cols-[minmax(15rem,1fr)_minmax(28rem,2fr)]"
               >
                 <span className="flex flex-col gap-0.5">
                   <strong className={NUMERALS}>{connection.origin}</strong>
@@ -565,39 +608,38 @@ function ConnectionsTab() {
                       : "Materials: collection disabled"}
                   </small>
                 </span>
-                <div className="flex items-center gap-2">
-                  {connection.corpus?.collectionEnabled && (
-                    <Button type="button" variant="outline" size="sm" onClick={async () => {
-                      setBusy(true); setError(null);
-                      try {
-                        await readJson("/api/account/integrations/canvas/corpus", {
-                          method: "PUT",
-                          body: JSON.stringify({ canvasUrl: connection.origin, collectionEnabled: true, sharingMode: connection.corpus?.sharingMode === "community" ? "private" : "community" }),
-                        });
-                        connections.reload();
-                      } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
-                    }} disabled={busy}>
-                      {connection.corpus.sharingMode === "community" ? "Make private" : "Share with students"}
-                    </Button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={!connection.corpus?.collectionEnabled ? "none" : connection.corpus.sharingMode} onValueChange={(value) => void saveMaterialMode(connection, value as "none" | "private" | "community")} disabled={busy}>
+                      <SelectTrigger className="w-52"><SelectValue aria-label="Material authorization" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Do not collect material</SelectItem>
+                        <SelectItem value="private">Private material library</SelectItem>
+                        <SelectItem value="community">Share with community</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" size="sm" onClick={() => void refreshMaterials(connection)} disabled={busy || !connection.corpus?.collectionEnabled}>Force full refresh</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => void loadCourseArchive(connection)} disabled={busy || !connection.corpus?.collectionEnabled}>Choose older course</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setRemoving(connection)}>Remove</Button>
+                  </div>
+                  {courseCatalog[connection.origin] && (
+                    <div className="flex flex-wrap items-center gap-2 rounded-sm bg-background p-2">
+                      <Select value={selectedCourse[connection.origin] || ""} onValueChange={(value) => setSelectedCourse((held) => ({ ...held, [connection.origin]: value || "" }))}>
+                        <SelectTrigger className="min-w-72 flex-1"><SelectValue placeholder="Select any Canvas course edition" /></SelectTrigger>
+                        <SelectContent>
+                          {courseCatalog[connection.origin].map((course) => <SelectItem key={String(course.id)} value={String(course.id)}>{[course.courseCode, course.displayName || course.name, course.term?.name].filter(Boolean).join(" · ")}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" size="sm" onClick={() => void archiveCourse(connection)} disabled={busy || !selectedCourse[connection.origin]}>Archive this course</Button>
+                    </div>
                   )}
-                  <Button type="button" variant="outline" size="sm" onClick={async () => {
-                    setBusy(true); setError(null);
-                    try {
-                      await readJson("/api/account/integrations/canvas/corpus", {
-                        method: "PUT",
-                        body: JSON.stringify({ canvasUrl: connection.origin, collectionEnabled: !connection.corpus?.collectionEnabled, sharingMode: connection.corpus?.sharingMode || "private" }),
-                      });
-                      connections.reload();
-                    } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); }
-                  }} disabled={busy}>
-                    {connection.corpus?.collectionEnabled ? "Stop collecting" : "Collect privately"}
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRemoving(connection)}>Remove</Button>
                 </div>
               </li>
             ))}
           </ul>
         )}
+        {notice && <p role="status" className="text-primary text-sm font-medium">{notice}</p>}
+        {error && <p role="alert" className="text-sm font-medium">{error}</p>}
       </Section>
       <Confirm
         open={Boolean(removing)}

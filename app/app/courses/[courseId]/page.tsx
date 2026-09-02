@@ -17,6 +17,7 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { academicCourseFor, type AcademicCourse, type StudyCourse, canvasCourseQuery, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
 import { localIsoDate } from '@/lib/workspace/home.mjs'
+import { CourseMaterialLibrary } from '@/components/workspace/course-material-library'
 
 const NUMERALS = 'font-data tabular-nums'
 
@@ -135,6 +136,8 @@ export default function CoursePage() {
       </section>
 
       {(course.mockExams?.length || course.mockExamPdf) && <section className="flex items-center justify-between gap-4 border-b pb-4"><div><h2 className="text-sm font-semibold">Past-paper practice</h2><p className="text-muted-foreground mt-1 text-sm">Work through stored exam papers with question guidance and answer grading.</p></div><Link href={`/app/courses/${course.id}/mock-exam`} className="text-primary shrink-0 text-sm font-semibold">Open papers</Link></section>}
+
+      <CourseMaterialLibrary courseCode={course.code} />
 
       {profile && (profile.description || profile.learningOutcomes?.length || profile.assessment?.components?.length) && <section className="flex max-w-[80ch] flex-col gap-4"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-lg font-semibold">Course information</h2>{profile.assessment?.status && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold">{profile.assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span>}</div>{profile.description && <p className="text-muted-foreground leading-relaxed">{profile.description}</p>}{profile.assessment?.components?.length && <div className="flex flex-col">{profile.assessment.components.map((component, index) => <div key={`${component.name}-${index}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-b py-3"><strong className={`text-xl ${NUMERALS}`}>{component.weightPercent == null ? '—' : `${component.weightPercent}%`}</strong><div><h3 className="font-semibold">{component.name}</h3><p className="text-muted-foreground text-sm">{[component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : null, component.deadline || component.deadlineText].filter(Boolean).join(' · ')}</p></div></div>)}</div>}{profile.learningOutcomes?.length && <details><summary className="cursor-pointer text-sm font-semibold">Learning outcomes ({profile.learningOutcomes.length})</summary><ul className="mt-3 list-disc pl-5 text-sm leading-relaxed">{profile.learningOutcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul></details>}</section>}
 

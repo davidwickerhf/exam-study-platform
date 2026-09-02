@@ -8,6 +8,7 @@ data/sr-state.json
 data/mistakes/
 data/mocks/
 data/users/
+data/corpus-assets/
 
 # Per-user LLM config (provider choice, API key)
 data/llm-config.json
