@@ -58,36 +58,33 @@
  * canonical product tokens.
  * ------------------------------------------------------------------------ */
 :root {
-    --background: #0d0f13;
-    --foreground: #eceef1;
-    --card: #131720;
-    --card-foreground: #eceef1;
-    --popover: #131720;
-    --popover-foreground: #eceef1;
-    --primary: #2b54ff;
+    --background: #efeee8;
+    --foreground: #151822;
+    --card: #ffffff;
+    --card-foreground: #151822;
+    --popover: #ffffff;
+    --popover-foreground: #151822;
+    --primary: #3154e8;
     --primary-foreground: #ffffff;
-    --secondary: #191e29;
-    --secondary-foreground: #eceef1;
-    --muted: #191e29;
-    --muted-foreground: #98a0af;
-    --accent: #191e29;
-    --accent-foreground: #eceef1;
-    /* One colour on the surface: state is a mark, not a hue, so destructive
-       is type weight rather than a red. */
-    --destructive: #eceef1;
-    --border: #262c39;
-    --input: #39414f;
-    --ring: #2b54ff;
-    /* Orthogonal. The board has corners. */
-    --radius: 2px;
-    --sidebar: #0d0f13;
-    --sidebar-foreground: #98a0af;
-    --sidebar-primary: #2b54ff;
+    --secondary: #ebeae5;
+    --secondary-foreground: #252a36;
+    --muted: #ebeae5;
+    --muted-foreground: #555d6c;
+    --accent: #e6e9f5;
+    --accent-foreground: #1d347f;
+    --destructive: #b42318;
+    --border: #ccc9c0;
+    --input: #bbb8ae;
+    --ring: #3154e8;
+    --radius: 6px;
+    --sidebar: #11141c;
+    --sidebar-foreground: #aeb5c4;
+    --sidebar-primary: #3154e8;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #131720;
-    --sidebar-accent-foreground: #eceef1;
-    --sidebar-border: #262c39;
-    --sidebar-ring: #2b54ff;
+    --sidebar-accent: #1c2130;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #292f3d;
+    --sidebar-ring: #7890ff;
 
     /* The punched paper window — anything read at length is laid on the board
        as paper, and it is the only place the ink inverts. */
@@ -100,7 +97,25 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground font-sans; }
+  html { background: var(--background); }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+  ::selection { background: color-mix(in oklab, var(--primary) 22%, transparent); color: var(--foreground); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  * { scrollbar-color: var(--input) transparent; scrollbar-width: thin; }
+}
+
+@layer components {
+  [data-v2] :is(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
+  [data-v2] [data-slot="card"] {
+    box-shadow: 0 1px 2px rgb(20 24 34 / 0.04), 0 12px 32px rgb(20 24 34 / 0.04);
+  }
+
+  [data-v2] a {
+    text-underline-offset: 3px;
+  }
 }
 /* ── FullCalendar ─────────────────────────────────────────────────────────
  * The grid is FullCalendar's; the appearance is this product's. Its own
@@ -145,7 +160,7 @@
 [data-fc] .fc-event {
   border-radius: 0;
   border: 0;
-  border-left: 2px solid var(--border);
+  border-left: 1px solid var(--border);
   background: var(--card);
   padding: 2px 4px;
   font-size: 0.72rem;

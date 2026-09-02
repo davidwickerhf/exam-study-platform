@@ -33,17 +33,16 @@ const archivoNarrow = Archivo_Narrow({
 // survives the production build and can be audited against the render.
 const DIRECTION_CONTRACT = `<!--
 THESIS: a degree is a timetable, not a dashboard; this refuses the study-app
-grid of same-size metric cards on off-white for the form the student's own
-country uses for dense public truth — the departure board.
-OWN-WORLD: ink ground, paper-white type, exactly one colour (signal blue)
-marking what is live and never spent on decoration; long reading in punched
-paper windows; rules never cards; Archivo, Archivo Narrow for all numerals,
-always tabular; orthogonal, 2px radii, no soft shadow on the board.
+grid of interchangeable metrics for an academic register built around what
+the student needs to do next.
+OWN-WORLD: warm paper canvas, white working planes, an ink navigation rail,
+and one signal indigo for action; quiet rules, compact controls, Archivo, and
+Archivo Narrow for numerals and course codes, always tabular.
 STORY: opened at 01:35 to learn what is true tomorrow; the live row is the
 only thing carrying colour, so it is read first, and acted on.
-FIRST VIEWPORT: a board header ruling the top — period, week, the year's
-eight blocks as a measure — then the next rows in date order, large and
-tabular, one signal rule under the live row.
+FIRST VIEWPORT: the current study week above one composed working plane: the
+next commitment owns the broad left field, due work is scanned at right, and
+degree progress follows without pushing the operational view away.
 FORM: Dutch public information design (NS board, Crouwel, Total Design);
 candidate 4 of seven; seed key wicker1.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the

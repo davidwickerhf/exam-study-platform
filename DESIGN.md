@@ -1,18 +1,18 @@
 ---
 name: Wicker Study
-description: An academic departure board — Dutch public information design applied to a university degree.
+description: A calm academic register — public-information clarity applied to a private university workspace.
 colors:
-  canvas: "#0d0f13"
-  surface: "#131720"
-  surface-subtle: "#191e29"
-  surface-accent: "#1b2547"
-  ink: "#eceef1"
-  ink-secondary: "#98a0af"
-  ink-tertiary: "#767e8d"
-  border: "#262c39"
-  border-strong: "#39414f"
-  signal: "#2b54ff"
-  signal-text: "#8ba0ff"
+  canvas: "#efeee8"
+  surface: "#ffffff"
+  surface-subtle: "#ebeae5"
+  surface-accent: "#e6e9f5"
+  ink: "#151822"
+  ink-secondary: "#555d6c"
+  ink-tertiary: "#7b8190"
+  border: "#ccc9c0"
+  border-strong: "#bbb8ae"
+  signal: "#3154e8"
+  signal-text: "#1d347f"
   paper: "#f4f3ef"
   paper-subtle: "#e8e7e1"
   paper-ink: "#14171d"
@@ -85,20 +85,18 @@ spacing:
 
 # Wicker Study design system
 
-## North star — Dienstregeling
+## North star — The academic register
 
-A degree is a timetable, not a dashboard. Wicker Study refuses the study-app
-arrangement of same-size metric cards over an off-white ground and takes the
-form the student's own country uses for dense public truth: the departure
-board — the NS platform display, Crouwel's grid, Total Design's public
-information work. Rank comes from scale and position on a grid, never from a
-box.
+A degree is a timetable, not a dashboard. Wicker Study borrows the clarity of
+Dutch public information systems without turning long study sessions into a
+dark control room. The working ground is warm paper, active work sits on crisp
+white planes, and the navigation rail retains the concentrated ink of a
+departure board. Rank comes from scale, position, and rules before containers.
 
 Three rules govern every surface.
 
-1. **One colour.** A saturated signal blue marks what is live, and is never
-   spent on decoration. Nothing else on the surface is tinted — there is no
-   success green, no warning amber, no danger red.
+1. **One signal.** Indigo marks action, selection, and live progress. Neutral
+   warm surfaces carry structure without competing with course material.
 2. **State is a mark, not a hue.** Recorded, missing, overdue and done are
    carried by marks, weight and position, so every status survives greyscale
    and adds no second colour.
@@ -106,10 +104,9 @@ Three rules govern every surface.
    home board with the academic year drawn as a measure, and every screen sits
    somewhere on it.
 
-The ground is ink. Anything read at length — a tutor's answer, the setup
-assistant's question, a chapter — is laid on the board as a **punched paper
-window**: true paper, dark ink, and the only element on the surface that casts
-a shadow.
+The ground is warm paper. Operational groups use white working planes with a
+hairline edge and restrained depth; repeated records remain ruled rows. Long
+reading uses the same paper vocabulary at a narrower measure.
 
 Archivo carries interface and authored content. **Archivo Narrow carries every
 numeral, course code, date and countdown, always tabular**, so columns line up

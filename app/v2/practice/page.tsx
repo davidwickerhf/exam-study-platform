@@ -24,7 +24,6 @@
 import "katex/dist/katex.min.css";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import Markdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
@@ -32,6 +31,8 @@ import remarkMath from "remark-math";
 import {
   CheckIcon,
   ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   PlusIcon,
   SearchIcon,
   Trash2Icon,
@@ -50,6 +51,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -78,13 +80,11 @@ import {
   difficultyLabel,
   filterQuestions,
   gradeRequest,
-  groupByChapter,
   groupMistakes,
   mockMinutes,
   mockPercent,
   mockRemaining,
   mockTimeLabel,
-  queueLine,
   questionKey,
   practiceLocation,
   sampleQuestions,
@@ -95,8 +95,6 @@ import {
 import type { StudyCourse } from "@/lib/v2/courses.mjs";
 
 const NUMERALS = "font-data tabular-nums";
-
-const PAGE = 24;
 
 async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
@@ -383,7 +381,7 @@ function QuestionsTab({
   const [chapterKey, setChapterKey] = useState("all");
   const [type, setType] = useState("all");
   const [query, setQuery] = useState("");
-  const [limit, setLimit] = useState(PAGE);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const all = payload?.questions ?? [];
   const courses = useMemo(() => courseFacets(all), [all]);
@@ -393,26 +391,10 @@ function QuestionsTab({
     () => filterQuestions(all, { courseId, chapterKey, type, query }),
     [all, courseId, chapterKey, type, query],
   );
-  // Sections are cut to the page budget, but each one still states how many
-  // questions the filter actually found in that chapter, so a truncated
-  // section never reads as a short one.
-  const groups = useMemo(() => {
-    let budget = limit;
-    const sections = [];
-    for (const group of groupByChapter(visible)) {
-      if (budget <= 0) break;
-      sections.push({
-        ...group,
-        total: group.questions.length,
-        questions: group.questions.slice(0, budget),
-      });
-      budget -= group.questions.length;
-    }
-    return sections;
-  }, [visible, limit]);
+  const current = visible[currentIndex] ?? null;
 
   useEffect(() => {
-    setLimit(PAGE);
+    setCurrentIndex(0);
   }, [courseId, chapterKey, type, query]);
 
   if (error) {
@@ -548,46 +530,58 @@ function QuestionsTab({
           </EmptyHeader>
         </Empty>
       ) : (
-        <>
-          {groups.map((group) => (
-            <section key={group.key} className="flex flex-col gap-1">
-              <SectionHead
-                title={`${group.courseCode} · Ch ${group.chapterId} · ${group.chapterName}`}
-                meta={
-                  group.questions.length < group.total
-                    ? `${group.questions.length} of ${group.total}`
-                    : `${group.total}`
-                }
+        current && (
+          <section className="mx-auto flex w-full max-w-[900px] flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+            <div className="flex flex-col gap-3 border-b bg-muted/35 px-5 py-4 sm:px-7">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-data text-sm font-semibold tabular-nums">
+                    {current.courseCode} · Chapter {current.chapterId}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5 text-sm">
+                    {current.chapterName}
+                  </p>
+                </div>
+                <span className={`text-sm font-semibold ${NUMERALS}`}>
+                  {currentIndex + 1} / {visible.length}
+                </span>
+              </div>
+              <Progress value={((currentIndex + 1) / visible.length) * 100} className="h-1" />
+            </div>
+
+            <ol className="px-5 sm:px-7 [&>li]:border-b-0 [&>li]:py-7">
+              <QuestionRow
+                key={questionKey(current)}
+                question={current}
+                position={currentIndex + 1}
+                inDeck={deck.has(current.id)}
+                onDeckChange={onDeckChange}
+                onMistake={onMistake}
               />
-              <ol className="flex flex-col">
-                {group.questions.map((question) => (
-                  <QuestionRow
-                    key={questionKey(question)}
-                    question={question}
-                    position={(question.chapterQuestionIndex ?? 0) + 1}
-                    inDeck={deck.has(question.id)}
-                    onDeckChange={onDeckChange}
-                    onMistake={onMistake}
-                  />
-                ))}
-              </ol>
-            </section>
-          ))}
-          <div className="flex items-center gap-4">
-            {limit < visible.length && (
+            </ol>
+
+            <div className="flex items-center justify-between gap-3 border-t bg-muted/35 px-5 py-4 sm:px-7">
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => setLimit((current) => current + PAGE)}
+                onClick={() => setCurrentIndex((index) => Math.max(0, index - 1))}
+                disabled={currentIndex === 0}
               >
-                Show more
+                <ChevronLeftIcon data-icon="inline-start" />
+                Previous
               </Button>
-            )}
-            <span className={`text-muted-foreground text-sm ${NUMERALS}`}>
-              {Math.min(limit, visible.length)} of {visible.length} shown
-            </span>
-          </div>
-        </>
+              <span className={`text-muted-foreground hidden text-sm sm:inline ${NUMERALS}`}>
+                {visible.length} questions in this selection
+              </span>
+              <Button
+                onClick={() => setCurrentIndex((index) => Math.min(visible.length - 1, index + 1))}
+                disabled={currentIndex === visible.length - 1}
+              >
+                Next
+                <ChevronRightIcon data-icon="inline-end" />
+              </Button>
+            </div>
+          </section>
+        )
       )}
     </div>
   );
@@ -1604,7 +1598,6 @@ export default function PracticePage() {
 
   const codeOf = (courseId: string) =>
     courses.find((entry) => entry.id === courseId)?.code ?? courseId;
-  const loaded = Boolean((sr || srError) && (mistakes || mistakesError));
   const openMistakes = mistakes?.length ?? 0;
 
   return (
@@ -1613,9 +1606,7 @@ export default function PracticePage() {
         <h1 className="font-heading text-5xl leading-none tracking-tight">
           Practice
         </h1>
-        <p className="text-muted-foreground text-sm">
-          {queueLine({ dueCount, mistakeCount: openMistakes, loaded })}
-        </p>
+        <p className="text-muted-foreground text-sm">Choose a question, answer it, then move on.</p>
       </header>
 
       <Tabs
@@ -1713,15 +1704,6 @@ export default function PracticePage() {
           />
         </TabsContent>
       </Tabs>
-
-      <p className="text-muted-foreground border-t pt-4 text-xs">
-        Nothing on this page is generated when you open it. Every question shown
-        is one already published to your workspace —{" "}
-        <Link href="/v2/courses" className="text-primary font-semibold">
-          browse them by chapter
-        </Link>{" "}
-        to read the material behind one.
-      </p>
     </div>
   );
 }

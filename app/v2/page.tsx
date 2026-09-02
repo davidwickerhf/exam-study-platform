@@ -37,8 +37,8 @@ const NUMERALS = 'font-data tabular-nums'
 
 function SectionHead({ title, meta, href }: { title: string; meta?: string; href?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b pb-2">
-      <h2 className="text-sm font-semibold">{title}</h2>
+    <div className="flex items-baseline justify-between gap-4 border-b pb-3">
+      <h2 className="text-base font-semibold tracking-tight">{title}</h2>
       {href ? (
         <a href={href} className="text-primary text-xs font-semibold">{meta}</a>
       ) : meta ? (
@@ -106,12 +106,12 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-8">
+    <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
       {/* The ruling axis: where the student is in the year. */}
-      <header className="flex flex-col gap-2">
+      <header className="flex flex-col gap-3">
         {calendar ? (
           <>
-            <h1 className="font-heading text-6xl leading-none tracking-tighter">{context?.period ?? 'No period set'}</h1>
+            <h1 className="font-heading max-w-4xl text-5xl leading-[0.95] font-semibold tracking-[-0.035em] sm:text-6xl">{context?.period ?? 'Your study week'}</h1>
             <p className={`text-muted-foreground text-sm ${NUMERALS}`}>
               {[context?.academicYear, week && weeks ? `week ${week} of ${weeks}` : null].filter(Boolean).join(' · ')}
             </p>
@@ -137,14 +137,14 @@ export default function HomePage() {
         )}
       </header>
 
-      <div className="grid gap-8 border-t pt-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <div className="grid overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgb(20_24_34/0.04),0_18px_48px_rgb(20_24_34/0.06)] lg:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.8fr)]">
         {/* Lead: what is running, or next. */}
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-h-72 min-w-0 flex-col p-6 sm:p-8">
           {!calendar ? (
             <div className="flex flex-col gap-3"><Skeleton className="h-16 w-56" /><Skeleton className="h-6 w-72" /></div>
           ) : lead ? (
             <>
-              <p className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">
                 {lead.startsAt <= Date.now() ? 'On now' : lead.kind === 'due' ? 'Due today' : 'Next up'}
               </p>
               <p className="mt-2 flex items-baseline gap-3">
@@ -169,10 +169,11 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              <p className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Right now</p>
-              <p className="text-muted-foreground mt-2 text-base">
+              <p className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Right now</p>
+              <p className="mt-5 max-w-md text-2xl leading-snug font-medium tracking-tight">
                 {entries.length ? 'Nothing left today.' : 'Nothing scheduled today.'}
               </p>
+              <p className="text-muted-foreground mt-2 max-w-md text-sm leading-relaxed">Use the quiet block to choose a course, review due work, or plan the next focused session.</p>
             </>
           )}
 
@@ -194,7 +195,7 @@ export default function HomePage() {
         </div>
 
         {/* The aside the vanilla Home carried, in the board world. */}
-        <aside className="flex min-w-0 flex-col gap-6 lg:border-l lg:pl-6">
+        <aside className="bg-muted/45 flex min-w-0 flex-col gap-7 border-t p-6 sm:p-8 lg:border-t-0 lg:border-l">
           <section className="flex flex-col gap-1">
             <SectionHead title="Due" meta="All" href="/v2/updates" />
             {!calendar ? <Skeleton className="mt-2 h-24 w-full" /> : due.length ? (
@@ -262,7 +263,7 @@ export default function HomePage() {
       </div>
 
       {summary && (
-        <section className="flex flex-col gap-4 border-t pt-6">
+        <section className="flex flex-col gap-5 rounded-xl border bg-card p-6 sm:p-8">
           <SectionHead title="Progress" meta="Plan" href="/v2/planning" />
           <div className="flex max-w-[640px] items-center gap-5">
             <Progress value={requiredEcts ? Math.min(100, (summary.earnedEcts / requiredEcts) * 100) : 0} className="h-1.5" />
@@ -273,20 +274,20 @@ export default function HomePage() {
           </div>
           <div className="flex flex-wrap gap-10">
             <span className="flex flex-col gap-1">
-              <span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Courses passed</span>
+              <span className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Courses passed</span>
               <strong className={`text-2xl font-semibold tracking-tight ${NUMERALS}`}>
                 {summary.passedCourses}<small className="text-muted-foreground ml-1 text-sm font-medium">/ {summary.totalCourses}</small>
               </strong>
             </span>
             {summary.gpa !== null && (
               <span className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Weighted GPA</span>
+                <span className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Weighted GPA</span>
                 <strong className={`text-2xl font-semibold tracking-tight ${NUMERALS}`}>{summary.gpa}</strong>
               </span>
             )}
             {calendar?.examWindow && (
               <span className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Exam week in</span>
+                <span className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Exam week in</span>
                 <strong className={`text-2xl font-semibold tracking-tight ${NUMERALS}`}>
                   {Math.max(0, daysUntil(calendar.examWindow.start) ?? 0)}<small className="text-muted-foreground ml-1 text-sm font-medium">d</small>
                 </strong>
