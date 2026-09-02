@@ -3,16 +3,14 @@
 /**
  * A course: its chapter register, and what is left to read.
  *
- * The reader itself is not migrated — it carries the markdown pipeline, KaTeX,
- * wikilinks, the retrieval-backed tutor drawer and per-topic progress — so a
- * chapter still opens in the vanilla workspace. Read-state is shared through
- * localStorage, so marking a chapter read there is reflected here.
+ * Read-state is shared with the vanilla workspace through localStorage, so a
+ * chapter marked read in either half shows as read in both.
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowUpRightIcon, CheckIcon } from 'lucide-react'
+import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -119,18 +117,17 @@ export default function CoursePage() {
               const done = read.has(`${course.id}/${chapter.id}`)
               return (
                 <li key={chapter.id}>
-                  {/* The reader is still the vanilla one, so this leaves the app. */}
-                  <a
-                    href={`/app#/course/${course.id}/chapter/${chapter.id}`}
+                  <Link
+                    href={`/v2/courses/${course.id}/${chapter.id}`}
                     className="hover:bg-card grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-4 border-b py-3"
                   >
                     <span className={`text-muted-foreground text-sm font-semibold ${NUMERALS}`}>{chapter.id}</span>
                     <span className="text-[15px] font-medium">{chapter.name}</span>
                     <span className="text-muted-foreground flex items-center gap-3 text-xs">
                       {done && <span className="text-foreground inline-flex items-center gap-1"><CheckIcon className="size-3.5" /> Read</span>}
-                      <ArrowUpRightIcon className="size-4" />
+                      <ChevronRightIcon className="size-4" />
                     </span>
-                  </a>
+                  </Link>
                 </li>
               )
             })}
