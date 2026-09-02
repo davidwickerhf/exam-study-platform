@@ -465,7 +465,7 @@ server.tool('search_course', 'Hybrid full-text and embedding retrieval across pu
   courseCode: z.string().optional().describe('Stable course code, for example BCS1540. Use this when querying Canvas editions.'),
   canonicalCourseId: z.string().optional().describe('Stable corpus course identity returned by an earlier search.'),
   academicYear: z.string().optional().describe('Exact edition such as 2025-2026.'),
-  sourceType: z.enum(['syllabus', 'requirements', 'slides', 'assessments', 'activities', 'readings', 'materials']).optional(),
+  sourceType: z.enum(['syllabus', 'requirements', 'slides', 'pages', 'assessments', 'activities', 'readings', 'materials']).optional(),
   includeHistorical: z.boolean().optional().describe('Search older editions when no exact year is requested; defaults to true.'),
   query: z.string(),
   limit: z.number().int().min(1).max(20).optional()

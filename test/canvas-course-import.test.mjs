@@ -31,7 +31,12 @@ test('Canvas importer downloads and categorises accessible course material witho
     if (url.pathname === '/api/v1/courses/25806/assignments') return json([{ id: 20 }])
     if (url.pathname === '/api/v1/courses/25806/quizzes') return json([])
     if (url.pathname === '/api/v1/courses/25806/discussion_topics') return json([])
+    if (url.pathname === '/api/v1/courses/25806/pages') return json([
+      { url: 'welcome', title: 'Welcome' },
+      { url: 'reading-guide', title: 'Standalone reading guide' }
+    ])
     if (url.pathname === '/api/v1/courses/25806/pages/welcome') return json({ title: 'Welcome', body: '<script>alert(1)</script><p>Read this first.</p>', published: true })
+    if (url.pathname === '/api/v1/courses/25806/pages/reading-guide') return json({ title: 'Standalone reading guide', body: '<p>This page is published outside Modules.</p>', published: true })
     if (url.pathname === '/api/v1/courses/25806/assignments/20') return json({ name: 'Problem set 1', description: '<p>Work individually.</p>', due_at: '2026-09-10', points_possible: 10, submission_types: ['online_upload'], html_url: 'https://canvas.test/courses/25806/assignments/20' })
     if (url.pathname === '/api/v1/courses/25806/files/10') return json({ id: 10, display_name: 'Lecture 1 slides.pdf', url: 'https://files.canvas.test/10' })
     if (url.pathname === '/api/v1/courses/25806/files/11') return json({ id: 11, display_name: 'Syllabus.pdf', url: 'https://files.canvas.test/11' })
@@ -49,9 +54,9 @@ test('Canvas importer downloads and categorises accessible course material witho
     assert.equal(result.course.code, 'CS101')
     assert.equal(result.modules, 1)
     assert.equal(result.downloadedFiles, 2)
-    assert.equal(result.resources, 6)
+    assert.equal(result.resources, 7)
     const manifest = JSON.parse(await readFile(join(root, '.wicker-canvas-import.json'), 'utf8'))
-    assert.equal(manifest.resources.length, 6)
+    assert.equal(manifest.resources.length, 7)
     assert.equal(manifest.skipped.length, 0)
     const written = await readdir(join(root, 'modules', '001 Week 1--module-5', '001 Orientation', 'slides'))
     assert.equal(written.length, 1)
@@ -59,6 +64,8 @@ test('Canvas importer downloads and categorises accessible course material witho
     const welcomeHtml = await readFile(join(root, welcome.path), 'utf8')
     assert.match(welcomeHtml, /Read this first/)
     assert.doesNotMatch(welcomeHtml, /alert\(1\)/)
+    const standalone = manifest.resources.find((item) => item.kind === 'page' && item.id === 'reading-guide')
+    assert.match(await readFile(join(root, standalone.path), 'utf8'), /published outside Modules/)
     assert.ok(calls.filter((call) => call.url.startsWith('https://canvas.test/api/')).every((call) => call.authorization === 'Bearer local-token-only'))
     assert.ok(calls.filter((call) => call.url.startsWith('https://files.canvas.test/')).every((call) => call.authorization === null))
     assert.ok(calls.some((call) => {

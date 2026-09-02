@@ -35,8 +35,9 @@ and scrape timestamps. Supplying `academicYear` is a strict edition filter.
 
 1. Explicit consent enqueues one durable `catalog` job.
 2. The catalog records account access and enqueues deduplicated `course` jobs.
-3. A server-side worker imports syllabus text, modules, pages, linked files,
-   assignments, quizzes, discussions, and accessible question banks.
+3. A server-side worker imports syllabus text, module-linked pages, standalone
+   course Pages, linked files, assignments, quizzes, discussions, and
+   accessible question banks.
 4. Every file is SHA-256 content-addressed. Unchanged bytes reuse the global
    asset; changed bytes create a new source snapshot and retire the prior one.
 5. Text and PDFs are extracted and chunked. FTS is always indexed; embeddings
