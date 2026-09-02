@@ -687,6 +687,16 @@ async function readWorkspaceShell() {
   return mergeEditorialRows(template, settings, [])
 }
 
+async function scopeStateToActiveProgramme(state) {
+  const academic = await readAcademicState()
+  const selected = new Set((academic.workspace?.courses || []).map((course) => String(course.code || '').trim().toUpperCase()).filter(Boolean))
+  return {
+    ...state,
+    courses: (state.courses || []).filter((course) => selected.has(String(course.code || '').trim().toUpperCase())),
+    meta: { ...state.meta, activeProgrammeId: academic.index?.activeProgrammeId || academic.workspace?.id || null, programme: academic.workspace?.profile?.programme || null }
+  }
+}
+
 // Personal rows (course settings, item progress) laid over the editorial template.
 function mergeEditorialRows(editorial, settings, progress) {
   const settingsById = new Map(settings.map((row) => [row.courseId, row]))
@@ -4175,6 +4185,10 @@ const server = createServer(async (req, res) => {
       catch (error) { send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Electives could not be read.' })) }
       return
     }
+    if (url.pathname === '/api/onboarding/programmes' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(loadEditorialProgrammeCatalogue()), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
+    }
     if (url.pathname === '/api/onboarding/electives' && req.method === 'PUT') {
       try {
         const body = await readBody(req, 16 * 1024)
@@ -4514,12 +4528,12 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/state' && req.method === 'GET') {
-      send(res, 200, JSON.stringify(await readState()))
+      send(res, 200, JSON.stringify(await scopeStateToActiveProgramme(await readState())))
       return
     }
 
     if (url.pathname === '/api/workspace-shell' && req.method === 'GET') {
-      send(res, 200, JSON.stringify(await readWorkspaceShell()))
+      send(res, 200, JSON.stringify(await scopeStateToActiveProgramme(await readWorkspaceShell())))
       return
     }
 

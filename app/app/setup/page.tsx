@@ -408,18 +408,19 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
 // ── The checklist ─────────────────────────────────────────────────────────
 
 function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved: () => void }) {
+  const params = useSearchParams()
   const [programmes, setProgrammes] = useState<ProgrammeOption[]>([])
   const [programmeId, setProgrammeId] = useState('')
   const [versionId, setVersionId] = useState('')
   const [studyYear, setStudyYear] = useState('1')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [custom, setCustom] = useState(false)
+  const [custom, setCustom] = useState(params.get('new') === '1')
   const [institution, setInstitution] = useState('Maastricht University')
   const [degree, setDegree] = useState('Bachelor of Science')
   const [customName, setCustomName] = useState('')
   useEffect(() => {
-    json<{ programmes: ProgrammeOption[] }>('/api/editorial-programmes?scope=setup').then((data) => {
+    json<{ programmes: ProgrammeOption[] }>('/api/onboarding/programmes').then((data) => {
       setProgrammes(data.programmes ?? [])
       const selected = data.programmes?.find((programme) => `${programme.degree} ${programme.name}` === current) ?? data.programmes?.[0]
       if (selected) { setProgrammeId(selected.id); setVersionId(selected.versions?.[0]?.id ?? '') }

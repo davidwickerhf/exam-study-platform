@@ -25,6 +25,8 @@ import {
   LogOutIcon,
   SettingsIcon,
   PlugIcon
+  ,PlusIcon
+  ,CheckIcon
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -86,6 +88,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { user: clerkUser } = useUser()
   const [sidebarWidth, setSidebarWidth] = useState(236)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [programmeIndex, setProgrammeIndex] = useState<{ activeProgrammeId: string; programmes: { id: string; programme: string; academicYear: string }[] } | null>(null)
   const name = clerkUser?.fullName || clerkUser?.firstName || 'Student'
   const email = clerkUser?.primaryEmailAddress?.emailAddress || null
   const initials = name
@@ -99,7 +102,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     const stored = Number(window.localStorage.getItem('wicker-sidebar-width'))
     if (Number.isFinite(stored)) setSidebarWidth(Math.min(320, Math.max(208, stored)))
     fetch('/api/auth/session').then((response) => response.ok ? response.json() : null).then((session) => setIsAdmin(Boolean(session?.admin))).catch(() => undefined)
+    fetch('/api/academics', { headers: { accept: 'application/json' } }).then((response) => response.ok ? response.json() : null).then((data) => setProgrammeIndex(data?.index ?? null)).catch(() => undefined)
   }, [])
+  const activeProgramme = programmeIndex?.programmes.find((programme) => programme.id === programmeIndex.activeProgrammeId)
 
   const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return
@@ -169,12 +174,18 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <DropdownMenu>
                 <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip="Account menu" />}>
                   <Avatar className="size-8 rounded-sm"><AvatarFallback className="rounded-sm">{initials}</AvatarFallback></Avatar>
-                  <div className="flex min-w-0 flex-col gap-0.5 leading-none"><span className="truncate font-medium">{name}</span><span className="text-muted-foreground truncate text-xs">{email ?? 'Signed in'}</span></div>
+                  <div className="flex min-w-0 flex-col gap-0.5 leading-none"><span className="truncate font-medium">{name}</span><span className="text-muted-foreground truncate text-xs">{activeProgramme?.programme || email || 'Signed in'}</span></div>
                   <ChevronRightIcon className="ml-auto" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="min-w-56">
                   <DropdownMenuLabel><span className="block truncate">{name}</span><span className="block truncate font-normal">{email}</span></DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {programmeIndex && <>
+                    <DropdownMenuLabel>Study workspace</DropdownMenuLabel>
+                    {programmeIndex.programmes.map((programme) => <DropdownMenuItem key={programme.id} onClick={async () => { if (programme.id === programmeIndex.activeProgrammeId) return; await fetch('/api/academics/active', { method: 'PUT', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ id: programme.id }) }); window.location.reload() }}>{programme.id === programmeIndex.activeProgrammeId ? <CheckIcon /> : <span className="size-4" />}{programme.programme || 'Untitled programme'}{programme.academicYear && <span className="text-muted-foreground ml-auto text-xs">{programme.academicYear}</span>}</DropdownMenuItem>)}
+                    <DropdownMenuItem render={<Link href="/app/setup?checklist=1&step=programme&new=1" />}><PlusIcon />Add another programme</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>}
                   <DropdownMenuItem render={<Link href="/app/account" />}><SettingsIcon />Account settings</DropdownMenuItem>
                   <DropdownMenuItem render={<Link href="/app/account?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
                   <DropdownMenuSeparator />
