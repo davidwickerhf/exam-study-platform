@@ -7,8 +7,12 @@ import '../public/polish.css'
 import '../public/system.css'
 import '../public/dash.css'
 import '../public/public-site.css'
+import './tailwind.css'
 import './next.css'
 import '../public/world.css'
+import { cn } from "@/lib/utils";
+
+
 
 // Archivo is a grotesque drawn for high-performance print and signage, and
 // Archivo Narrow is its condensed companion: the register of a departure
@@ -17,6 +21,9 @@ import '../public/world.css'
 const archivo = Archivo({
   subsets: ['latin'],
   variable: '--next-font-ui',
+  // shadcn components resolve type through --font-sans; the world's UI face
+  // is Archivo, so it answers to both names rather than pulling in a second.
+  fallback: ['ui-sans-serif', 'system-ui', 'sans-serif'],
   display: 'swap'
 })
 
@@ -74,7 +81,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   await connection()
 
   return (
-    <html lang="en" className={`${archivo.variable} ${archivoNarrow.variable}`} suppressHydrationWarning>
+    <html lang="en" className={cn(archivo.variable, archivoNarrow.variable, "font-sans")} suppressHydrationWarning>
       <body>
         {/* eslint-disable-next-line react/no-danger */}
         <div dangerouslySetInnerHTML={{ __html: DIRECTION_CONTRACT }} />

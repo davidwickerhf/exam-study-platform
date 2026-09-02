@@ -1,0 +1,125 @@
+/* Tailwind, deliberately without preflight.
+ *
+ * The workspace is still fourteen thousand lines of vanilla rendering over
+ * sixteen thousand lines of hand-written CSS. Preflight resets every element,
+ * which would flatten all of it in one import, so the theme and utility layers
+ * come in on their own and the reset stays out until the migration is done.
+ * Restore the single `@import "tailwindcss"` on the day public/app.js goes. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--next-font-data), ui-sans-serif, system-ui, sans-serif;
+    --font-sans: var(--next-font-ui), ui-sans-serif, system-ui, sans-serif;
+    --font-data: var(--next-font-data), ui-sans-serif, system-ui, sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ── Dienstregeling ──────────────────────────────────────────────────────
+ * shadcn's semantic names, resolved to the world documented in DESIGN.md, so
+ * every component it generates is already this product's. Values are the same
+ * ones public/world.css uses; when that file finally goes, these stay.
+ * ------------------------------------------------------------------------ */
+:root {
+    --background: #0d0f13;
+    --foreground: #eceef1;
+    --card: #131720;
+    --card-foreground: #eceef1;
+    --popover: #131720;
+    --popover-foreground: #eceef1;
+    --primary: #2b54ff;
+    --primary-foreground: #ffffff;
+    --secondary: #191e29;
+    --secondary-foreground: #eceef1;
+    --muted: #191e29;
+    --muted-foreground: #98a0af;
+    --accent: #191e29;
+    --accent-foreground: #eceef1;
+    /* One colour on the surface: state is a mark, not a hue, so destructive
+       is type weight rather than a red. */
+    --destructive: #eceef1;
+    --border: #262c39;
+    --input: #39414f;
+    --ring: #2b54ff;
+    /* Orthogonal. The board has corners. */
+    --radius: 2px;
+    --sidebar: #0d0f13;
+    --sidebar-foreground: #98a0af;
+    --sidebar-primary: #2b54ff;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #131720;
+    --sidebar-accent-foreground: #eceef1;
+    --sidebar-border: #262c39;
+    --sidebar-ring: #2b54ff;
+}
+
+
+@layer base {
+  /* Scoped to migrated surfaces: the legacy shell sets its own body
+     background and face, and a global rule here would fight it. */
+  [data-v2] * {
+    @apply border-border outline-ring/50;
+    }
+  [data-v2] {
+    @apply bg-background text-foreground font-sans;
+    }
+  /* Preflight is off for the legacy surfaces' sake, so the handful of element
+     defaults it would have cleared are cleared here instead, scoped to the
+     migrated tree. This block is deleted along with the last vanilla page,
+     when the single `@import "tailwindcss"` comes back. */
+  [data-v2] :is(ul, ol) {
+    @apply m-0 list-none p-0;
+    }
+  [data-v2] :is(h1, h2, h3, h4, p, figure, blockquote) {
+    @apply m-0;
+    }
+  [data-v2] :is(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    }
+  [data-v2] :is(img, svg, video) {
+    @apply block max-w-full;
+    }
+}

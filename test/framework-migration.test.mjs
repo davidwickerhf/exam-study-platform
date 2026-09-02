@@ -33,9 +33,11 @@ test('framework font variables are rooted and long authentication addresses can 
   // the typeface is a design decision and not a test failure.
   const fonts = [...layout.matchAll(/const (\w+) = \w+\(\{[^}]*variable: '(--next-font-(?:ui|data))'/gs)]
   assert.equal(fonts.length, 2, 'a UI face and a data face are declared')
-  const rooted = layout.match(/<html[^>]+className=\{`([^`]+)`\}/)
+  // The className may be a template literal or a cn(...) call; what matters
+  // is that both variables reach <html>.
+  const rooted = layout.match(/<html[^>]+className=\{([^}]+)\}/)
   assert.ok(rooted, '<html> carries the font variable classes')
-  for (const [, name] of fonts) assert.ok(rooted[1].includes(`\${${name}.variable}`), `${name} is rooted on <html>`)
+  for (const [, name] of fonts) assert.ok(rooted[1].includes(`${name}.variable`), `${name} is rooted on <html>`)
   assert.match(nextCss, /:root\s*\{[^}]*--font-ui:\s*var\(--next-font-ui\)/s)
   assert.match(publicSiteCss, /\.auth-eligibility code\s*\{[^}]*overflow-wrap:\s*anywhere;[^}]*white-space:\s*normal;/s)
 })
