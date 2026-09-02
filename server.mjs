@@ -80,8 +80,8 @@ function startCanvasCorpusWorkerProcess() {
   canvasCorpusWorkerProcess.on('exit', () => { canvasCorpusWorkerProcess = null })
   canvasCorpusWorkerProcess.on('error', (error) => console.error('Canvas corpus worker process could not start:', error))
   const stop = () => { if (canvasCorpusWorkerProcess && !canvasCorpusWorkerProcess.killed) canvasCorpusWorkerProcess.kill('SIGTERM') }
-  process.once('SIGINT', stop)
-  process.once('SIGTERM', stop)
+  process.once('SIGINT', () => { stop(); process.exit(0) })
+  process.once('SIGTERM', () => { stop(); process.exit(0) })
   process.once('exit', stop)
   return true
 }
