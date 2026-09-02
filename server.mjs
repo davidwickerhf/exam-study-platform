@@ -3527,7 +3527,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/account/summary' && req.method === 'GET') {
-      const identity = await getAuthUser(currentAuth().userId)
+      const identity = await getAuthUser(currentAuth().clerkUserId || currentAuth().userId)
       const summary = await summarisePersonalData()
       const session = await sessionPayload(currentAuth())
       send(res, 200, JSON.stringify({ account: { ...identity, mode: currentAuth().mode, storage: storageMode() }, programmes: session.programmes, ...summary }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
@@ -3547,7 +3547,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/account/export' && req.method === 'GET') {
-      const identity = await getAuthUser(currentAuth().userId)
+      const identity = await getAuthUser(currentAuth().clerkUserId || currentAuth().userId)
       const payload = await exportPersonalData(identity)
       const date = new Date().toISOString().slice(0, 10)
       send(res, 200, JSON.stringify(payload, null, 2), 'application/json; charset=utf-8', {
@@ -3632,8 +3632,9 @@ const server = createServer(async (req, res) => {
         return
       }
       const userId = currentAuth().userId
+      const clerkUserId = currentAuth().clerkUserId || userId
       const removed = await deletePersonalData()
-      const identity = await deleteAuthUser(userId)
+      const identity = await deleteAuthUser(clerkUserId)
       send(res, 200, JSON.stringify({ ok: true, removed, identity }), 'application/json; charset=utf-8', {
         'Cache-Control': 'no-store'
       })

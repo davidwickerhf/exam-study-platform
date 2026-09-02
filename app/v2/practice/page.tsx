@@ -574,7 +574,7 @@ function QuestionsTab({
                     {current.chapterName}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" render={<Link href={`/v2/courses/${encodeURIComponent(current.courseId)}/${encodeURIComponent(String(current.chapterId))}`} />}>
+                <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/v2/courses/${encodeURIComponent(current.courseId)}/${encodeURIComponent(String(current.chapterId))}`} />}>
                   Open chapter
                 </Button>
                 <span className={`text-sm font-semibold ${NUMERALS}`}>

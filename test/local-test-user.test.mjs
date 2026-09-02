@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveLocalAccounts, resolveLocalTestUser } from '../lib/auth.mjs'
+import { resolveDevelopmentDataUsers, resolveLocalAccounts, resolveLocalTestUser } from '../lib/auth.mjs'
 
 test('unset means no local test user', () => {
   assert.equal(resolveLocalTestUser({}), null)
@@ -40,4 +40,12 @@ test('development login accounts are explicit email to user mappings', () => {
   ])
   assert.throws(() => resolveLocalAccounts({ WICKER_LOCAL_ACCOUNTS: 'test@example.com=user_test', NODE_ENV: 'production' }), /development-only/)
   assert.throws(() => resolveLocalAccounts({ WICKER_LOCAL_ACCOUNTS: 'not-a-mapping' }), /email=user_id/)
+})
+
+test('development data users are explicit email mappings and never run in production', () => {
+  assert.deepEqual(resolveDevelopmentDataUsers({ WICKER_DEV_DATA_USERS: 'student@example.com=user_production' }), [
+    { email: 'student@example.com', userId: 'user_production' }
+  ])
+  assert.throws(() => resolveDevelopmentDataUsers({ WICKER_DEV_DATA_USERS: 'student@example.com=user_production', NODE_ENV: 'production' }), /development-only/)
+  assert.throws(() => resolveDevelopmentDataUsers({ WICKER_DEV_DATA_USERS: 'not-a-mapping' }), /email=user_id/)
 })

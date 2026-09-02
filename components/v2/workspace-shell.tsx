@@ -8,7 +8,7 @@
  * shortcut.
  */
 
-import type { ReactNode } from 'react'
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -36,10 +36,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarRail,
   SidebarTrigger
 } from '@/components/ui/sidebar'
 import { WorkspaceSearch } from '@/components/v2/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
+import { useUser } from '@clerk/nextjs'
 
 const SECTIONS = [
   {
@@ -65,20 +67,49 @@ const SECTIONS = [
   }
 ] as const
 
-export function WorkspaceShell({ children, user }: { children: ReactNode; user?: { name: string; email: string } }) {
+export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const initials = (user?.name ?? 'Student')
+  const { user: clerkUser } = useUser()
+  const [sidebarWidth, setSidebarWidth] = useState(236)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const name = clerkUser?.fullName || clerkUser?.firstName || 'Student'
+  const email = clerkUser?.primaryEmailAddress?.emailAddress || null
+  const initials = name
     .split(' ')
     .map((part) => part[0])
     .slice(0, 2)
     .join('')
     .toUpperCase()
 
+  useEffect(() => {
+    const stored = Number(window.localStorage.getItem('wicker-sidebar-width'))
+    if (Number.isFinite(stored)) setSidebarWidth(Math.min(320, Math.max(208, stored)))
+    fetch('/api/auth/session').then((response) => response.ok ? response.json() : null).then((session) => setIsAdmin(Boolean(session?.admin))).catch(() => undefined)
+  }, [])
+
+  const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = sidebarWidth
+    const move = (pointer: PointerEvent) => setSidebarWidth(Math.min(320, Math.max(208, startWidth + pointer.clientX - startX)))
+    const finish = (pointer: PointerEvent) => {
+      const width = Math.min(320, Math.max(208, startWidth + pointer.clientX - startX))
+      setSidebarWidth(width)
+      window.localStorage.setItem('wicker-sidebar-width', String(width))
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', finish)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', finish)
+  }
+
   return (
-    <SidebarProvider>
+    <SidebarProvider style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <SidebarMenu>
+          <div className="flex items-center gap-1">
+          <SidebarMenu className="min-w-0 flex-1">
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<Link href="/v2" />}>
                 <BrandMark className="size-8 shrink-0" />
@@ -89,11 +120,13 @@ export function WorkspaceShell({ children, user }: { children: ReactNode; user?:
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
+          <SidebarTrigger className="shrink-0 group-data-[collapsible=icon]:hidden" />
+          </div>
         </SidebarHeader>
 
         <SidebarContent>
           <div className="px-2"><WorkspaceSearch /></div>
-          {SECTIONS.map((section) => (
+          {SECTIONS.filter((section) => section.label !== 'Manage' || isAdmin).map((section) => (
             <SidebarGroup key={section.label}>
               <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -125,14 +158,15 @@ export function WorkspaceShell({ children, user }: { children: ReactNode; user?:
                   <AvatarFallback className="rounded-sm">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                  <span className="truncate font-medium">{user?.name ?? 'Student'}</span>
-                  <span className="text-muted-foreground truncate text-xs">{user?.email ?? 'Not signed in'}</span>
+                  <span className="truncate font-medium">{name}</span>
+                  <span className="text-muted-foreground truncate text-xs">{email ?? 'Signed in'}</span>
                 </div>
                 <ChevronRightIcon className="ml-auto" />
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
+        <SidebarRail aria-label="Resize sidebar" title="Drag to resize sidebar" onClick={(event) => event.preventDefault()} onPointerDown={beginResize} className="cursor-col-resize after:bg-sidebar-border/70" />
       </Sidebar>
 
       <SidebarInset className="min-w-0 bg-background">

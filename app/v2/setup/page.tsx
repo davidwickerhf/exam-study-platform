@@ -407,7 +407,7 @@ function Checklist({ view, onRefresh, conversational }: { view: View | null; onR
           </p>
         </div>
         {conversational && (
-          <Button variant="outline" size="sm" render={<Link href="/v2/setup" />}>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/v2/setup" />}>
             Set up by conversation
           </Button>
         )}
@@ -440,7 +440,7 @@ function Checklist({ view, onRefresh, conversational }: { view: View | null; onR
                     </small>
                   </div>
                   {step.status === 'done' ? (
-                    <Button variant="ghost" size="sm" render={<Link href={step.href} />}>
+                    <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={step.href} />}>
                       Review
                     </Button>
                   ) : step.status === 'blocked' ? null : expandable ? (
@@ -452,7 +452,7 @@ function Checklist({ view, onRefresh, conversational }: { view: View | null; onR
                       {open === step.id ? 'Close' : step.action}
                     </Button>
                   ) : (
-                    <Button variant={step.id === next?.id ? 'default' : 'outline'} size="sm" render={<Link href={step.href} />}>
+                    <Button variant={step.id === next?.id ? 'default' : 'outline'} size="sm" nativeButton={false} render={<Link href={step.href} />}>
                       {step.action}
                       <ExternalLinkIcon data-icon="inline-end" />
                     </Button>
@@ -659,7 +659,7 @@ function SetupSurface() {
     <div className="mx-auto flex h-dvh w-full max-w-[1180px] flex-col gap-4 p-6">
       <div className="mx-auto flex w-full max-w-[72ch] items-center gap-4 border-b pb-3">
         <h1 className="min-w-0 flex-1 truncate text-base font-semibold">Setting up your workspace</h1>
-        <Button variant="ghost" size="sm" render={<Link href="/v2/setup?checklist=1" />}>
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/v2/setup?checklist=1" />}>
           Use the checklist
         </Button>
       </div>
@@ -716,11 +716,11 @@ function SetupSurface() {
               <span>{view.summary || 'Setup is finished.'}</span>
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" render={<Link href="/v2" />}>
+              <Button size="sm" nativeButton={false} render={<Link href="/v2" />}>
                 Open my dashboard
                 <ChevronRightIcon data-icon="inline-end" />
               </Button>
-              <Button variant="outline" size="sm" render={<Link href="/v2/setup?checklist=1" />}>
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/v2/setup?checklist=1" />}>
                 Review what is connected
               </Button>
             </div>

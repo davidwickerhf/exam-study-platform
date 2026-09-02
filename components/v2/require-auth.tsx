@@ -114,6 +114,16 @@ function Gate({ children }: { children: ReactNode }) {
           throw new Error(
             session.error || "Your session could not be verified.",
           );
+        const onboardingResponse = await window.fetch("/api/onboarding");
+        const onboarding = await onboardingResponse.json().catch(() => ({}));
+        if (!onboardingResponse.ok)
+          throw new Error(
+            onboarding.error || "Your setup status could not be checked.",
+          );
+        if (!onboarding.finished && window.location.pathname !== "/v2/setup") {
+          window.location.replace("/v2/setup");
+          return;
+        }
         if (session.needsProgramme && (session.eligible?.length || 0) > 1)
           setAccess({
             kind: "programme",
