@@ -4333,7 +4333,12 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/editorial-programmes' && req.method === 'GET') {
       const auth = currentAuth()
-      const catalogue = auth.admin ? loadEditorialProgrammeCatalogue() : scopeCatalogue(loadEditorialProgrammeCatalogue(), { memberships: auth.memberships ?? null, email: auth.email, trusted: auth.trusted })
+      // Setup is where a student changes programme, so filtering it to the
+      // programme they already belong to turns the selector into a tautology.
+      // Editorial/admin consumers retain membership scoping.
+      const catalogue = auth.admin || url.searchParams.get('scope') === 'setup'
+        ? loadEditorialProgrammeCatalogue()
+        : scopeCatalogue(loadEditorialProgrammeCatalogue(), { memberships: auth.memberships ?? null, email: auth.email, trusted: auth.trusted })
       send(res, 200, JSON.stringify(catalogue), 'application/json; charset=utf-8', { 'Cache-Control': 'private, max-age=300' })
       return
     }
