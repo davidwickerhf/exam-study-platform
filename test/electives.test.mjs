@@ -85,6 +85,33 @@ test('setup records a choice, and changing it later does not duplicate the cours
   })
 })
 
+test('a choice can be recorded by course code, without naming the group', async () => {
+  await asNewStudent(async () => {
+    await applyProgramme({ programmeId: CS, studyYear: 3 })
+    const offered = await electiveChoices({ scope: 'current' })
+    const group = offered.groups.find((entry) => entry.period === 'Period 1')
+    // The assistant reads codes out to the student; requiring ids and a group
+    // forced a lookup it kept skipping, and then nothing was recorded at all.
+    const result = await chooseElectives({ courseIds: [group.courses[0].code, group.courses[1].code.toLowerCase()] })
+    assert.equal(result.group, group.label)
+    const { workspace } = await readAcademicState()
+    assert.deepEqual(workspace.programmeTemplate.selectedChoices[group.id], [group.courses[0].id, group.courses[1].id])
+  })
+})
+
+test('courses spanning two groups are refused rather than guessed', async () => {
+  await asNewStudent(async () => {
+    await applyProgramme({ programmeId: CS, studyYear: 3 })
+    const offered = await electiveChoices({ scope: 'current' })
+    const first = offered.groups.find((entry) => entry.period === 'Period 1')
+    const second = offered.groups.find((entry) => entry.period !== 'Period 1' && entry.courses.length)
+    await assert.rejects(
+      () => chooseElectives({ courseIds: [first.courses[0].code, second.courses[0].code] }),
+      /not all in one elective group/
+    )
+  })
+})
+
 test('a course cannot be chosen from a group that does not offer it', async () => {
   await asNewStudent(async () => {
     await applyProgramme({ programmeId: CS, studyYear: 3 })

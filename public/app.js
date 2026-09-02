@@ -5116,18 +5116,46 @@ function renderSetupConversation() {
   const data = onboarding.data
   const messages = data?.messages || []
   const thinking = onboarding.sending
+  // Until they have replied this is not a transcript, it is an invitation —
+  // shown as one it was a lone bubble above nine hundred pixels of nothing,
+  // with the composer parked at the foot of the window. So the opening is its
+  // own screen: the question, and the field that answers it, together. The
+  // question is whichever thing is actually missing, not a greeting.
+  const started = messages.some((message) => message.role === 'user')
+  const opening = data?.opening
+
+  if (!started && !thinking && opening) {
+    return `<section class="page-wrap chat-page is-opening">
+      <div class="chat-open">
+        <h1>${escapeHtml(opening.heading)}</h1>
+        <div class="chat-open-body">${tutorMarkdown(opening.body)}</div>
+        ${onboarding.error ? `<div class="settings-error" role="alert"><strong>That could not be sent.</strong><p>${escapeHtml(onboarding.error)}</p></div>` : ''}
+        <form class="chat-composer" data-onboarding-form>
+          <label class="sr-only" for="chat-input">Your reply</label>
+          <textarea id="chat-input" rows="1" data-onboarding-input placeholder="${escapeHtml(opening.placeholder)}">${escapeHtml(onboarding.draft)}</textarea>
+          <button type="submit" class="btn btn-primary" ${!onboarding.draft.trim() ? 'disabled' : ''} aria-label="Send">${uiIcon('chevronRight')}</button>
+        </form>
+        <p class="chat-open-alt">Prefer to fill it in yourself? <a href="#/setup?checklist=1">Use the checklist</a>.</p>
+      </div>
+    </section>`
+  }
+
   return `<section class="page-wrap chat-page">
-    <header class="page-head">
-      <div><p class="page-eyebrow">Set up</p><h1>Let's get your workspace ready</h1><p class="page-sub">A few questions. Everything except your programme is optional, and anything you skip is waiting for you on the dashboard.</p></div>
-      <div class="page-head-actions"><a class="btn btn-secondary btn-sm" href="#/setup?checklist=1">Use the checklist instead</a></div>
-    </header>
+    <div class="tutor-bar">
+      <h1>Setting up your workspace</h1>
+      <div class="tutor-bar-actions"><a class="btn btn-ghost btn-sm" href="#/setup?checklist=1">Use the checklist</a></div>
+    </div>
 
     <div class="chat-thread" role="log" aria-live="polite" aria-label="Setup conversation">
-      ${messages.length ? messages.map((message) => message.role === 'event'
+      ${messages.map((message) => message.role === 'event'
         ? `<p class="chat-event">${uiIcon('check')} <span>${escapeHtml(message.content.replace(/\s*Confirm this briefly and move on\.?$/, ''))}</span></p>`
-        : `<div class="chat-turn is-${message.role}"><div class="chat-bubble">${message.role === 'assistant' ? tutorMarkdown(message.content) : escapeHtml(message.content)}</div></div>`).join('')
-        : `<div class="chat-turn is-assistant"><div class="chat-bubble">Hello. I'm going to set up your workspace — it takes about two minutes. Say hello when you're ready.</div></div>`}
-      ${thinking ? `<div class="chat-turn is-assistant"><div class="chat-bubble is-thinking" aria-label="Thinking"><i></i><i></i><i></i></div></div>` : ''}
+        : message.role === 'user'
+          ? `<div class="chat-turn is-user"><div class="chat-bubble">${escapeHtml(message.content)}</div></div>`
+          : `<div class="chat-turn is-assistant"><div class="tutor-answer">${tutorMarkdown(message.content)}</div></div>`).join('')}
+      ${thinking ? `<div class="chat-turn is-assistant"><div class="tutor-thinking" aria-label="Working">
+        <span class="tutor-thinking-mark"><i></i><i></i><i></i></span>
+        <span class="tutor-thinking-said">Working on that…</span>
+      </div></div>` : ''}
       ${!thinking && data?.prompt ? renderOnboardingPrompt(data.prompt) : ''}
       ${data?.finished ? `<div class="setup-result"><span>${uiIcon('check')}</span><div><strong>Setup finished</strong><p>${escapeHtml(data.summary || 'Your workspace is ready.')}</p></div></div>
         <div class="chat-done-actions"><a class="btn btn-primary" href="#/">Open my dashboard</a><a class="btn btn-secondary" href="#/setup?checklist=1">Review what is connected</a></div>` : ''}
@@ -5137,7 +5165,7 @@ function renderSetupConversation() {
 
     ${data?.finished ? '' : `<form class="chat-composer" data-onboarding-form>
       <label class="sr-only" for="chat-input">Your reply</label>
-      <textarea id="chat-input" rows="1" data-onboarding-input placeholder="${messages.length ? 'Type your reply…' : 'Say hello to begin'}" ${thinking ? 'disabled' : ''}>${escapeHtml(onboarding.draft)}</textarea>
+      <textarea id="chat-input" rows="1" data-onboarding-input placeholder="Type your reply…" ${thinking ? 'disabled' : ''}>${escapeHtml(onboarding.draft)}</textarea>
       <button type="submit" class="btn btn-primary" ${thinking || !onboarding.draft.trim() ? 'disabled' : ''} aria-label="Send">${uiIcon('chevronRight')}</button>
     </form>`}
   </section>`

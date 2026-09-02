@@ -2026,13 +2026,42 @@
 /* The conversation owns the column: the thread scrolls, the composer stays put.
    A composer stranded mid-page above dead canvas reads as a broken page. */
 .chat-page {
-  max-width: 760px;
+  max-width: none;
   height: calc(100dvh - var(--space-6) * 2);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space-4);
 }
-.chat-thread { display: grid; gap: var(--space-4); align-content: start; overflow-y: auto; padding-bottom: var(--space-2); scrollbar-width: thin; }
+/* One reading column, centred, so setup does not run the width of a desktop
+   display and the composer sits under the words it answers. */
+.chat-page .chat-turn,
+.chat-page .chat-event,
+.chat-page .chat-composer,
+.chat-page .chat-action,
+.chat-page .setup-result,
+.chat-page .chat-done-actions { max-width: 72ch; width: 100%; margin-left: auto; margin-right: auto; }
+.chat-page .chat-turn.is-assistant { display: block; }
+.chat-page .chat-turn.is-user { justify-content: flex-end; }
+
+/* Before the first reply there is no transcript to show, so the opening is the
+   ask and the field to answer it, together and centred — not one bubble at the
+   top of an empty page with the composer at the foot of the window. */
+/* No explicit row: an implicit auto row shrink-wraps, so the block centres
+   instead of being stretched over the full height (which grew the composer
+   into a 270px box). */
+.chat-page.is-opening { grid-template-rows: none; place-content: center; }
+.chat-open { display: grid; gap: var(--space-4); align-content: start; width: min(56ch, 100%); margin: 0 auto; }
+.chat-open h1 { margin: 0; font: 600 30px/1.2 var(--font-ui); letter-spacing: -0.025em; text-wrap: balance; }
+.chat-open-body { color: var(--color-ink-secondary); font: 400 15px/1.65 var(--font-ui); }
+.chat-open-body > * { margin: 0 0 var(--space-3); }
+.chat-open-body > *:last-child { margin-bottom: 0; }
+.chat-open-body ul { padding-left: 1.2em; display: grid; gap: 4px; }
+.chat-open-body strong { color: var(--color-ink); font-weight: 600; }
+.chat-open .chat-composer { margin-top: var(--space-1); }
+.chat-open-alt { margin: 0; color: var(--color-ink-tertiary); font: 400 13px/1.5 var(--font-ui); }
+.chat-open-alt a { color: var(--color-ink-secondary); text-decoration: underline; text-underline-offset: 2px; }
+.chat-open-alt a:hover { color: var(--color-brand); }
+.chat-thread { display: grid; gap: var(--space-4); align-content: end; overflow-y: auto; padding-bottom: var(--space-2); scrollbar-width: thin; }
 .chat-turn { display: flex; }
 .chat-turn.is-user { justify-content: flex-end; }
 .chat-bubble {
@@ -2122,6 +2151,12 @@
   font: 400 14.5px/1.6 var(--font-ui);
   resize: none;
 }
+/* The composer is the control the student sees; the textarea fills it edge to
+   edge, so the global focus outline drew a second rectangle just inside the
+   composer's own border — two indicators for one focus. The ring moves to the
+   wrapper, and the override needs the same weight as the global rule it beats. */
+.chat-composer:focus-within { border-color: var(--color-brand); box-shadow: var(--dash-shadow), var(--focus-ring); }
+.chat-composer textarea:focus-visible { outline: 0 !important; box-shadow: none !important; }
 /* One ring, on the element that actually has focus, using the same treatment as
    every other field in the app. The composer deliberately does not also tint —
    a blue box around a blue ring is two focus indicators for one focus. */
@@ -2133,9 +2168,8 @@
    viewport, so a full-height chat column lands the composer underneath it.
    Let the page scroll instead and stick the composer clear of the bar. */
 @media (max-width: 900px) {
-  .chat-page { height: auto; min-height: 0; }
-  .chat-thread { overflow: visible; }
-  .chat-composer { position: sticky; bottom: calc(68px + var(--space-3)); }
+  .chat-page { height: calc(100dvh - 68px - var(--space-5)); }
+  .chat-page .chat-composer { position: static; }
 }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
