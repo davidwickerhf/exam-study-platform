@@ -98,17 +98,15 @@ exam-study-platform/
 │   └── cache/                      # ← committed: generated content (questions, etc.)
 ├── app/                     # Next.js App Router pages and layouts
 ├── components/              # React site, auth, and workspace boundaries
-├── public/                  # static assets, shared CSS, legacy study engine
+├── public/                  # static assets and public-site stylesheet
 ├── lib/                     # typed/shared data plus backend services
 ├── server.mjs               # Node API and Next.js custom-server integration
 ├── setup.mjs                # interactive first-run setup
 └── package.json
 ```
 
-The product and legal pages, metadata, fonts, and Clerk access surfaces are
-React-owned. The signed-in study engine remains temporarily isolated in
-`components/workspace/legacy-workspace.tsx`; its API contract stays stable
-while individual workspace destinations move from `public/app.js` into React.
+The product, legal, authentication, and signed-in study surfaces are React-owned.
+Historical `/app#/…` links are translated to their corresponding `/v2/*` route.
 
 Run the complete framework verification before deploying:
 
@@ -176,7 +174,7 @@ ADMIN_USER_IDS=user_localtest          # optional; makes that user an admin
 npm run dev   # startup prints: Authentication: local-test-user
 ```
 
-Then open <http://localhost:4177/app#/admin>.
+Then open <http://localhost:4177/v2/admin>.
 
 Notes:
 

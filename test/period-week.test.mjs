@@ -4,23 +4,9 @@
 // week count at one and then added one, so a period read "week 2 of 8" on the
 // Monday morning it began.
 //
-// Lifted from the browser bundle by name for the same reason as the tutor's
-// Markdown parser: public/app.js stays the single definition.
-
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
-
-const source = await readFile(new URL('../public/app.js', import.meta.url), 'utf8')
-const start = source.indexOf('function periodWeek(')
-assert.ok(start !== -1, 'public/app.js still defines periodWeek')
-let depth = 0
-let body = ''
-for (let index = source.indexOf('{', start); index < source.length; index++) {
-  if (source[index] === '{') depth++
-  else if (source[index] === '}' && --depth === 0) { body = source.slice(start, index + 1); break }
-}
-const { periodWeek } = new Function(`${body}; return { periodWeek }`)()
+import { periodWeek } from '../lib/v2/home.mjs'
 
 // Maastricht Period 1, 2026–2027: Monday 31 August through Friday 23 October.
 const START = '2026-08-31'

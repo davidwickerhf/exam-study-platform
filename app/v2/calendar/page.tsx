@@ -30,8 +30,10 @@ const VIEWS = [
   { id: 'dayGridMonth', label: 'Month' },
   { id: 'timeGridWeek', label: 'Week' },
   { id: 'timeGridDay', label: 'Day' },
-  { id: 'listWeek', label: 'Agenda' }
+  { id: 'listMonth', label: 'Agenda' }
 ] as const
+
+const calendarView = (requested: string | null) => VIEWS.some(({ id }) => id === requested) ? requested! : 'timeGridWeek'
 
 const NUMERALS = 'font-data tabular-nums'
 
@@ -39,7 +41,7 @@ export default function CalendarPage() {
   const calendarRef = useRef<FullCalendar>(null)
   const [payload, setPayload] = useState<(CalendarPayload & { categories: Record<string, string> }) | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [view, setView] = useState<string>('timeGridWeek')
+  const [view, setView] = useState<string>(() => calendarView(typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('view')))
   const [date, setDate] = useState<Date>(new Date())
   const [title, setTitle] = useState('')
   const [hidden, setHidden] = useState<Set<string>>(new Set())
@@ -114,6 +116,9 @@ export default function CalendarPage() {
             const next = value.at(-1)
             if (!next) return
             setView(next)
+            const url = new URL(window.location.href)
+            url.searchParams.set('view', next)
+            window.history.replaceState(null, '', url)
             const api = calendarRef.current?.getApi()
             api?.changeView(next)
             if (api) setTitle(api.view.title)

@@ -6,11 +6,10 @@ const siteContent = await readFile(new URL('../lib/site-content.ts', import.meta
 const about = await readFile(new URL('../app/(public)/about/page.tsx', import.meta.url), 'utf8')
 const privacy = await readFile(new URL('../app/(public)/privacy/page.tsx', import.meta.url), 'utf8')
 const terms = await readFile(new URL('../app/(public)/terms/page.tsx', import.meta.url), 'utf8')
-const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8')
 const security = await readFile(new URL('../lib/security.mjs', import.meta.url), 'utf8')
 const securityDocs = await readFile(new URL('../docs/SECURITY.md', import.meta.url), 'utf8')
 const publicSite = [siteContent, about, privacy, terms].join('\n')
-const reviewedSources = [publicSite, app, security, securityDocs].join('\n')
+const reviewedSources = [publicSite, security, securityDocs].join('\n')
 
 test('public contact addresses use the study hostname', () => {
   for (const mailbox of ['info', 'support', 'privacy', 'security', 'legal']) {

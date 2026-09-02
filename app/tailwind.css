@@ -1,13 +1,4 @@
-/* Tailwind, deliberately without preflight.
- *
- * The workspace is still fourteen thousand lines of vanilla rendering over
- * sixteen thousand lines of hand-written CSS. Preflight resets every element,
- * which would flatten all of it in one import, so the theme and utility layers
- * come in on their own and the reset stays out until the migration is done.
- * Restore the single `@import "tailwindcss"` on the day public/app.js goes. */
-@layer legacy, theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -64,7 +55,7 @@
 /* ── Dienstregeling ──────────────────────────────────────────────────────
  * shadcn's semantic names, resolved to the world documented in DESIGN.md, so
  * every component it generates is already this product's. Values are the same
- * ones public/world.css uses; when that file finally goes, these stay.
+ * canonical product tokens.
  * ------------------------------------------------------------------------ */
 :root {
     --background: #0d0f13;
@@ -108,59 +99,8 @@
 
 
 @layer base {
-  /* Scoped to migrated surfaces: the legacy shell sets its own body
-     background and face, and a global rule here would fight it. */
-  [data-v2] * {
-    @apply border-border outline-ring/50;
-    }
-  [data-v2] {
-    @apply bg-background text-foreground font-sans;
-    }
-  /* Preflight is off for the legacy surfaces' sake, so the handful of element
-     defaults it would have cleared are cleared here instead, scoped to the
-     migrated tree. This block is deleted along with the last vanilla page,
-     when the single `@import "tailwindcss"` comes back. */
-  [data-v2] :is(ul, ol) {
-    @apply m-0 list-none p-0;
-    }
-  /* Preflight also unsets heading size and weight so utilities own them.
-     Without it the legacy stylesheets' h1 rules leaked in and a calendar
-     toolbar's date range rendered at display scale. */
-  [data-v2] :is(h1, h2, h3, h4, h5, h6) {
-    font-size: inherit;
-    font-weight: inherit;
-    }
-  [data-v2] :is(h1, h2, h3, h4, p, figure, blockquote, dl, dd) {
-    @apply m-0;
-    }
-  /* Form controls are where skipping preflight actually bites: a <button>
-     keeps the platform's own `buttonface` background, so every inactive tab
-     and toggle rendered as a near-white block on the board. These are the
-     parts of preflight the components genuinely depend on. */
-  [data-v2] :is(button, input, select, textarea, optgroup) {
-    font: inherit;
-    letter-spacing: inherit;
-    color: inherit;
-    background-color: transparent;
-    background-image: none;
-    border: 0 solid;
-    margin: 0;
-    padding: 0;
-    }
-  [data-v2] :is(button, [role="button"]) {
-    cursor: pointer;
-    -webkit-appearance: button;
-    }
-  [data-v2] :is(button, input, select, textarea):disabled {
-    cursor: default;
-    }
-  [data-v2] table {
-    border-collapse: collapse;
-    text-indent: 0;
-    }
-  [data-v2] :is(img, svg, video) {
-    @apply block max-w-full;
-    }
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground font-sans; }
 }
 /* ── FullCalendar ─────────────────────────────────────────────────────────
  * The grid is FullCalendar's; the appearance is this product's. Its own

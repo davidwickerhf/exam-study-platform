@@ -6,7 +6,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { byNextExam, chaptersRead, courseProgress, masteryPercent, nextExam, readChapters, readKey } from '../lib/v2/courses.mjs'
+import { academicCourseFor, byNextExam, canvasCourseQuery, chaptersRead, courseProgress, masteryPercent, nextExam, readChapters, readKey } from '../lib/v2/courses.mjs'
 
 const course = (id, code, chapters = [], items = []) => ({
   id, code, name: code, chapters: chapters.map((c) => ({ id: c, name: c })), items
@@ -76,4 +76,15 @@ test('courses order by the exam that comes first, undated ones last', () => {
     '2026-09-02'
   )
   assert.deepEqual(ordered.map((entry) => entry.code), ['C', 'B', 'A'])
+})
+
+test('course context joins private planning by normalized course code', () => {
+  const academic = [{ code: ' bcs1540 ', attempts: [] }]
+  assert.equal(academicCourseFor(course('alg', 'BCS1540'), academic), academic[0])
+  assert.equal(academicCourseFor(course('x', ''), academic), null)
+})
+
+test('Canvas archive search prefers the stable course code', () => {
+  assert.equal(canvasCourseQuery({ code: ' BCS1540 ', name: 'Algorithms' }), 'BCS1540')
+  assert.equal(canvasCourseQuery({ code: '', name: ' Algorithms ' }), 'Algorithms')
 })

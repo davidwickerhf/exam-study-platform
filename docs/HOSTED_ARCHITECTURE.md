@@ -45,15 +45,12 @@ therefore appear without overwriting progress or notes.
 
 Public product and legal pages (`/`, `/about`, `/courses`, `/privacy`, and
 `/terms`) do not initialize Clerk or load the study-workspace dependencies.
-`/sign-in` is the dedicated Clerk surface and `/app` is the authenticated
-workspace entrypoint.
+`/sign-in` is the dedicated Clerk surface and `/v2` is the authenticated
+workspace entrypoint. `/app` translates historical hash links into React
+routes.
 
-The public, legal, and authentication layer is fully React and TypeScript. The
-large existing study engine is loaded only inside `LegacyWorkspace`, an
-explicit compatibility boundary. This preserves the API and personal-data
-behavior while workspace destinations are migrated incrementally; the legacy
-engine no longer owns the HTML document, page routing, Clerk lifecycle, or
-public site.
+The public, legal, authentication, and study-workspace layers are fully React
+and TypeScript. The server API and personal-data contracts remain unchanged.
 
 ## Database
 

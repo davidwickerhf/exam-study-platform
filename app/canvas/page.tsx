@@ -6,5 +6,5 @@ import { redirect } from 'next/navigation'
 // so for most people the page listed courses and offered a disabled button.
 // Existing links and bookmarks land on the tab that replaced it.
 export default function CanvasArchivePage() {
-  redirect('/app#/updates/materials')
+  redirect('/v2/updates?tab=materials')
 }

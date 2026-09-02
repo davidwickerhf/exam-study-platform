@@ -3,11 +3,9 @@
 /**
  * The workspace shell, in React.
  *
- * This is the piece every other route waits on: the legacy shell is rendered
- * by public/app.js, so a migrated route could not previously appear inside the
- * product's own navigation. Built on shadcn's Sidebar, which already carries
- * the collapse behaviour, the mobile sheet, and the keyboard shortcut that the
- * vanilla version hand-rolled.
+ * The shared navigation frame for every authenticated route. Built on
+ * shadcn's Sidebar for collapse behaviour, the mobile sheet, and the keyboard
+ * shortcut.
  */
 
 import type { ReactNode } from 'react'
@@ -39,6 +37,8 @@ import {
   SidebarMenuItem,
   SidebarProvider
 } from '@/components/ui/sidebar'
+import { WorkspaceSearch } from '@/components/v2/workspace-search'
+import { BrandMark } from '@/components/brand/brand-mark'
 
 const SECTIONS = [
   {
@@ -80,9 +80,7 @@ export function WorkspaceShell({ children, user }: { children: ReactNode; user?:
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" render={<Link href="/v2" />}>
-                <div className="bg-primary text-primary-foreground font-heading flex aspect-square size-8 items-center justify-center rounded-sm text-lg font-semibold">
-                  W
-                </div>
+                <BrandMark className="size-8 shrink-0" />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Wicker Study</span>
                   <span className="text-muted-foreground text-xs">Academic workspace</span>
@@ -93,6 +91,7 @@ export function WorkspaceShell({ children, user }: { children: ReactNode; user?:
         </SidebarHeader>
 
         <SidebarContent>
+          <div className="px-2"><WorkspaceSearch /></div>
           {SECTIONS.map((section) => (
             <SidebarGroup key={section.label}>
               <SidebarGroupLabel>{section.label}</SidebarGroupLabel>

@@ -6,7 +6,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { byYear, courseStatus, earnedEcts, weightedGpa } from '../lib/v2/academics.mjs'
+import { attemptRecord, byYear, courseRecord, courseStatus, earnedEcts, eventRecord, gateRecord, planningTab, weightedGpa } from '../lib/v2/academics.mjs'
 
 const course = (code, ects, attempts = [], extra = {}) => ({
   id: code.toLowerCase(), code, name: code, ects, yearLevel: 'Year 1', period: 'Period 1',
@@ -58,4 +58,23 @@ test('years group in order and periods sort by teaching order, not name', () => 
   // Semester 1 teaches after Period 1, and sorts that way rather than alphabetically.
   assert.deepEqual(groups[0].courses.map((entry) => entry.code), ['C', 'A'])
   assert.equal(groups[0].ects, 10)
+})
+
+test('course composers normalize identity and numeric fields', () => {
+  const record = courseRecord({ code: ' bcs1000 ', name: ' Intro ', ects: '6.5', passMark: '5.5' }, 'c1')
+  assert.equal(record.code, 'BCS1000'); assert.equal(record.name, 'Intro'); assert.equal(record.ects, 6.5); assert.deepEqual(record.attempts, [])
+})
+
+test('attempt and requirement composers preserve absence', () => {
+  assert.equal(attemptRecord({ grade: '', examDate: '' }, 'a1').grade, null)
+  assert.equal(attemptRecord({ grade: '7.5' }, 'a2').grade, 7.5)
+  assert.deepEqual(gateRecord({ label: ' Propedeuse ', target: '60' }, 'g1'), { id: 'g1', label: 'Propedeuse', section: 'progression', type: 'total-credits', courseId: null, level: null, target: 60 })
+})
+
+test('event composers trim text and keep an absent end date absent', () => {
+  assert.deepEqual(eventRecord({ title: ' Registration ', date: '2026-09-12', endDate: '', type: 'deadline' }, 'e1'), { id: 'e1', title: 'Registration', date: '2026-09-12', endDate: null, type: 'deadline', notes: '' })
+})
+
+test('legacy planning tab aliases resolve to migrated tabs', () => {
+  assert.equal(planningTab('curriculum'), 'courses'); assert.equal(planningTab('credits'), 'progress'); assert.equal(planningTab('requirements'), 'progress'); assert.equal(planningTab('unknown'), 'overview')
 })

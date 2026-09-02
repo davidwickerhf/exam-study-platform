@@ -1,9 +1,8 @@
-# Migrating a surface to `/v2`
+# React workspace conventions
 
-The workspace is moving off `public/app.js` (a 14k-line vanilla template
-renderer) onto Next.js App Router + React + shadcn/ui. Both halves run at once:
-`/app` still serves every unmigrated route, `/v2/*` serves the migrated ones.
-This is what a migrated surface has to look like.
+The workspace runs on Next.js App Router, React, and shadcn/ui. `/app` exists
+only as a translator for historical hash links; product surfaces live at
+`/v2/*`. This is what a workspace surface has to look like.
 
 ## The world — Dienstregeling
 
@@ -73,15 +72,14 @@ These matter more than the visuals.
   list that reads as "nothing due".
 - **Absent is not zero.** A course with no topics set up has unknown mastery,
   not 0%.
-- If a sub-feature is too complex to migrate faithfully in this pass, render an
-  `Empty` that says plainly it has not moved yet and links to
-  `/app#/<vanilla-route>`. Do not half-build it.
+- If a sub-feature cannot be implemented faithfully, keep it unavailable and
+  say exactly why. Do not publish a partial write path or imply it works.
 
-## Shared state with the vanilla app
+## Browser study state
 
 Chapter read-state lives in `localStorage` under
 `chapter-read:<courseId>/<chapterId>` — use `readKey` from
-`lib/v2/courses.mjs`. Both halves must agree while both are live.
+`lib/v2/courses.mjs`. Hosted sessions back this state up through the browser-state API.
 
 ## Before you are done
 

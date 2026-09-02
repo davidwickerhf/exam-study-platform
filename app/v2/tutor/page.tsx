@@ -4,9 +4,9 @@
  * The tutor, migrated.
  *
  * Answers are Markdown and the most useful line in one is usually a Canvas
- * link, so they are parsed by lib/v2/markdown.mjs — the same escape-first
- * parser the vanilla tutor uses, tested against both copies for agreement and
- * for injection. That is what makes it safe to set as HTML.
+ * link, so they are parsed by the escape-first lib/v2/markdown.mjs parser,
+ * tested for stable rendering and injection. That makes it safe to set as
+ * HTML.
  *
  * Two states, as before: with no conversation this is an invitation and the
  * field that answers it, together — not a transcript of one message stranded
@@ -76,7 +76,15 @@ export default function TutorPage() {
   const [error, setError] = useState<string | null>(null)
   const threadRef = useRef<HTMLDivElement>(null)
 
+  const setConversationLocation = (id?: string | null) => {
+    const url = new URL(window.location.href)
+    if (id) url.searchParams.set('conversation', id)
+    else url.searchParams.delete('conversation')
+    window.history.replaceState(null, '', url)
+  }
+
   const load = (id?: string) => {
+    setConversationLocation(id)
     fetch(`/api/tutor${id ? `?conversation=${encodeURIComponent(id)}` : ''}`, { headers: { accept: 'application/json' } })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`The tutor returned ${response.status}`))))
       .then((data: Hub) => {
@@ -87,7 +95,9 @@ export default function TutorPage() {
       .catch((cause: Error) => setError(cause.message))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load(new URLSearchParams(window.location.search).get('conversation') ?? undefined)
+  }, [])
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight }) }, [messages, sending])
 
   const ask = async (text: string) => {
@@ -106,6 +116,7 @@ export default function TutorPage() {
       if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? `The tutor returned ${response.status}`)
       const result = await response.json()
       setConversationId(result.conversation.id)
+      setConversationLocation(result.conversation.id)
       setMessages(result.conversation.messages)
       setHub((previous) => previous && { ...previous, conversations: result.conversations, memory: result.memory })
     } catch (cause) {
@@ -273,7 +284,7 @@ export default function TutorPage() {
         <h1 className="min-w-0 flex-1 truncate text-base font-semibold">
           {hub?.conversation?.title ?? messages.find((message) => message.role === 'user')?.content ?? 'Tutor'}
         </h1>
-        <Button variant="ghost" size="sm" onClick={() => { setMessages([]); setConversationId(null); setDraft('') }}>
+        <Button variant="ghost" size="sm" onClick={() => { setMessages([]); setConversationId(null); setConversationLocation(null); setDraft('') }}>
           <PlusIcon data-icon="inline-start" />New
         </Button>
         {drawer}

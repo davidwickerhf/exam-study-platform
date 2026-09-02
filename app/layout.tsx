@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { Archivo, Archivo_Narrow } from 'next/font/google'
 import { connection } from 'next/server'
 import type { ReactNode } from 'react'
-import './legacy.css'
 import './tailwind.css'
+import './public.css'
 import './next.css'
 import { cn } from "@/lib/utils";
 

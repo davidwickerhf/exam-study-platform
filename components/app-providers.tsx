@@ -11,8 +11,8 @@ export function AppProviders({ publishableKey, children }: { publishableKey: str
       publishableKey={publishableKey}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
-      signInFallbackRedirectUrl="/app"
-      signUpFallbackRedirectUrl="/app"
+      signInFallbackRedirectUrl="/v2"
+      signUpFallbackRedirectUrl="/v2"
     >
       {children}
     </ClerkProvider>

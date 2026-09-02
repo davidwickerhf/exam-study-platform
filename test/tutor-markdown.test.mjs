@@ -5,44 +5,11 @@
 // before this test existed (steps restarting at 1, sub-bullets detaching from
 // their step, and hard line breaks folded into one run-on sentence).
 //
-// Two implementations exist during the migration: lib/v2/markdown.mjs, which
-// the React tutor imports, and the copy inside public/app.js, which is a
-// classic script and cannot import a module. Every case below runs against
-// both, so the copies cannot drift while both halves of the product are live.
+// The React tutor and setup assistant import this same ESM implementation.
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
-import { tutorMarkdown as migrated } from '../lib/v2/markdown.mjs'
-
-const source = await readFile(new URL('../public/app.js', import.meta.url), 'utf8')
-
-function lift(name) {
-  const start = source.indexOf(`function ${name}(`)
-  assert.ok(start !== -1, `public/app.js still defines ${name}`)
-  let depth = 0
-  for (let index = source.indexOf('{', start); index < source.length; index++) {
-    if (source[index] === '{') depth++
-    else if (source[index] === '}' && --depth === 0) return source.slice(start, index + 1)
-  }
-  throw new Error(`${name} is not balanced`)
-}
-
-const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-const { tutorMarkdown: vanilla } = new Function('escapeHtml', `
-  ${lift('tutorLinkLabel')}
-  ${lift('tutorInline')}
-  ${lift('tutorMarkdown')}
-  return { tutorMarkdown }
-`)(escapeHtml)
-
-/** Runs every case against both copies, and asserts they agree. */
-const tutorMarkdown = (input) => {
-  const a = migrated(input)
-  const b = vanilla(input)
-  assert.equal(a, b, `the two copies disagree on: ${JSON.stringify(input)}`)
-  return a
-}
+import { tutorMarkdown } from '../lib/v2/markdown.mjs'
 
 test('a numbered answer keeps its own numbering across blank lines', () => {
   // Blank lines between steps are how the tutor spaces a plan out; they must

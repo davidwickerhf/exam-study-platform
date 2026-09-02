@@ -56,10 +56,10 @@ export function AuthPage({ mode, enabled, allowedDomains }: { mode: 'sign-in' | 
           <div id="clerk-sign-in">
             {enabled ? (
               signUp
-                ? <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/app" appearance={appearance} />
-                : <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl="/app" appearance={appearance} />
+                ? <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/v2" appearance={appearance} />
+                : <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl="/v2" appearance={appearance} />
             ) : (
-              <div className="next-local-access"><p>Authentication is disabled in this local environment.</p><a className="site-button site-button-primary" href="/app">Open local workspace <SiteIcon name="arrow" /></a></div>
+              <div className="next-local-access"><p>Authentication is disabled in this local environment.</p><a className="site-button site-button-primary" href="/v2">Open local workspace <SiteIcon name="arrow" /></a></div>
             )}
           </div>
           <p className="auth-switch">{signUp ? <>Already have an account? <a href="/sign-in">Sign in</a></> : <>New here? <a href="/sign-up">Create an account</a></>}</p>

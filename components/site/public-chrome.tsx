@@ -53,7 +53,7 @@ export function PublicChrome({ children }: { children: ReactNode }) {
           <nav className="site-nav" aria-label="Primary navigation">
             {links.map(([href, label]) => <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}>{label}</Link>)}
             <Link className="site-nav-signin" href="/sign-in">Sign in</Link>
-            <a className="site-button site-button-primary" href="/app">Open workspace <SiteIcon name="arrow" /></a>
+            <a className="site-button site-button-primary" href="/v2">Open workspace <SiteIcon name="arrow" /></a>
           </nav>
         </header>
         {children}

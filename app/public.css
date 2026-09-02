@@ -1,0 +1,40 @@
+@import "../public/public-site.css";
+
+/* Public and authentication surfaces retain their light editorial sheet after
+ * the workspace bundle is removed. These are the tokens that sheet consumes;
+ * they are scoped so the signed-in departure board keeps its ink palette. */
+body.public-mode,
+#public-site,
+.auth-gate {
+  --color-canvas: #f7f7f4;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f1f2f6;
+  --color-surface-accent: #eceefe;
+  --color-ink: #20263a;
+  --color-ink-secondary: #59627b;
+  --color-ink-tertiary: #7d859b;
+  --color-border: #dfe2ea;
+  --color-border-strong: #c8cdd9;
+  --color-brand: #3f51d9;
+  --color-brand-hover: #3344c1;
+  --color-brand-soft: #e8eafe;
+  --color-success: #147a55;
+  --color-warning: #a56316;
+  --color-danger: #b4233d;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(32, 38, 58, .06);
+  --shadow-md: 0 8px 24px rgba(32, 38, 58, .08);
+}

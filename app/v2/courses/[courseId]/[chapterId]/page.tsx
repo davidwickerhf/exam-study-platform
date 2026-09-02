@@ -27,12 +27,14 @@ import rehypeKatex from 'rehype-katex'
 import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ListIcon } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ListIcon, MessageCircleIcon, PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import { neighbours, outlineOf, readingMinutes } from '@/lib/v2/chapter.mjs'
 import { type StudyCourse, readKey } from '@/lib/v2/courses.mjs'
+import { type PracticeQuestion, gradeRequest, usableOptions } from '@/lib/v2/practice.mjs'
 
 type Payload = { title: string; content: string; examples?: string | null }
 
@@ -64,12 +66,20 @@ const PROSE = [
 ].join(' ')
 
 export default function ChapterPage() {
-  const params = useParams<{ courseId: string; chapterId: string }>()
+  const params = useParams<{ courseId: string; chapterId: string; relPath?: string[] }>()
   const [payload, setPayload] = useState<Payload | null>(null)
   const [course, setCourse] = useState<StudyCourse | null>(null)
   const [read, setRead] = useState(false)
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [questions, setQuestions] = useState<PracticeQuestion[] | null>(null)
+  const [questionIndex, setQuestionIndex] = useState(0)
+  const [attempt, setAttempt] = useState('')
+  const [grade, setGrade] = useState<{ correction: string; score: number | null } | null>(null)
+  const [showReference, setShowReference] = useState(false)
+  const [practiceBusy, setPracticeBusy] = useState(false)
+  const [practiceError, setPracticeError] = useState<string | null>(null)
+  const [deck, setDeck] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let live = true
@@ -79,17 +89,20 @@ export default function ChapterPage() {
       fetch(path, { headers: { accept: 'application/json' } })
         .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${path} returned ${response.status}`))))
 
-    json(`/api/chapter/${encodeURIComponent(params.courseId)}/${encodeURIComponent(params.chapterId)}`)
+    const suffix = params.relPath?.length ? `/${params.relPath.map(encodeURIComponent).join('/')}` : ''
+    json(`/api/chapter/${encodeURIComponent(params.courseId)}/${encodeURIComponent(params.chapterId)}${suffix}`)
       .then((data: Payload) => { if (live) setPayload(data) })
       .catch((cause: Error) => { if (live) setError(cause.message) })
     json('/api/state')
       .then((data) => { if (live) setCourse((data.courses ?? []).find((entry: StudyCourse) => entry.id === params.courseId) ?? null) })
       .catch(() => {})
+    json('/api/practice').then((data: { questions?: PracticeQuestion[] }) => { if (live) setQuestions((data.questions ?? []).filter((question) => question.courseId === params.courseId && question.chapterId === params.chapterId)) }).catch((cause: Error) => { if (live) setPracticeError(cause.message) })
+    json('/api/sr/due').then((data: { allIds?: string[] }) => { if (live) setDeck(new Set(data.allIds ?? [])) }).catch(() => {})
 
     try { setRead(Boolean(window.localStorage.getItem(readKey(params.courseId, params.chapterId)))) } catch { /* private mode */ }
     window.scrollTo({ top: 0 })
     return () => { live = false }
-  }, [params.courseId, params.chapterId])
+  }, [params.courseId, params.chapterId, params.relPath])
 
   const outline = useMemo(() => outlineOf(payload?.content ?? ''), [payload])
   const { previous, next } = useMemo(
@@ -105,6 +118,31 @@ export default function ChapterPage() {
     } catch { /* private mode */ }
     setRead(!read)
   }
+
+  const currentQuestion = questions?.[questionIndex] ?? null
+  const checkAnswer = async () => {
+    if (!currentQuestion || !attempt.trim() || practiceBusy) return
+    setPracticeBusy(true); setPracticeError(null)
+    try {
+      const response = await fetch('/api/grade', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(gradeRequest(currentQuestion, attempt, course?.code ?? params.courseId, payload?.title ?? 'Practice')) })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error || `Grading returned ${response.status}`)
+      setGrade(data); setDeck((current) => new Set(current).add(currentQuestion.id))
+    } catch (cause) { setPracticeError((cause as Error).message) } finally { setPracticeBusy(false) }
+  }
+
+  const addCard = async () => {
+    if (!currentQuestion || practiceBusy) return
+    setPracticeBusy(true); setPracticeError(null)
+    try {
+      const response = await fetch('/api/sr/add', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ questionId: currentQuestion.id }) })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error || `Flashcards returned ${response.status}`)
+      setDeck((current) => new Set(current).add(currentQuestion.id))
+    } catch (cause) { setPracticeError((cause as Error).message) } finally { setPracticeBusy(false) }
+  }
+
+  const moveQuestion = (nextIndex: number) => { setQuestionIndex(nextIndex); setAttempt(''); setGrade(null); setShowReference(false); setPracticeError(null) }
 
   if (error) {
     return (
@@ -188,6 +226,11 @@ export default function ChapterPage() {
                 </div>
               </section>
             )}
+
+            <section className="mt-12 flex flex-col gap-4 border-t pt-8" aria-labelledby="chapter-practice-title">
+              <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-3"><div><h2 id="chapter-practice-title" className="text-lg font-semibold">Practice questions</h2><p className="text-muted-foreground mt-1 text-sm">Published questions for this chapter. Checking an answer records study activity and adds it to your flashcard deck.</p></div>{questions && <span className={`text-muted-foreground text-sm ${NUMERALS}`}>{questions.length}</span>}</div>
+              {questions === null ? <Skeleton className="h-48 w-full" /> : !questions.length ? <Empty><EmptyHeader><EmptyTitle>No published questions</EmptyTitle><EmptyDescription>This chapter does not have a published question bank yet.</EmptyDescription></EmptyHeader></Empty> : currentQuestion && <div className="flex flex-col gap-4"><div className="flex items-center justify-between"><strong className={NUMERALS}>Question {questionIndex + 1} / {questions.length}</strong><span className="text-muted-foreground text-xs">{currentQuestion.type}</span></div><div className={PROSE}><Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}>{currentQuestion.question}</Markdown></div>{usableOptions(currentQuestion).length > 0 && <ol className="list-[lower-alpha] pl-5 text-sm">{usableOptions(currentQuestion).map((option) => <li key={option}>{option}</li>)}</ol>}<Textarea value={attempt} onChange={(event) => setAttempt(event.target.value)} placeholder="Write your answer…" disabled={practiceBusy} /><div className="flex flex-wrap gap-2"><Button onClick={() => void checkAnswer()} disabled={!attempt.trim() || practiceBusy}>{practiceBusy ? 'Checking…' : 'Check answer'}</Button><Button variant="outline" onClick={() => void addCard()} disabled={practiceBusy || deck.has(currentQuestion.id)}>{deck.has(currentQuestion.id) ? <CheckIcon data-icon="inline-start" /> : <PlusIcon data-icon="inline-start" />}{deck.has(currentQuestion.id) ? 'In flashcards' : 'Add to flashcards'}</Button>{currentQuestion.expected && <Button variant="ghost" onClick={() => setShowReference((shown) => !shown)}>{showReference ? 'Hide reference' : 'Reference answer'}</Button>}<Link href="/v2/tutor" className="inline-flex h-9 items-center gap-2 rounded-sm border px-3 text-sm font-medium"><MessageCircleIcon className="size-4" />Ask the tutor</Link></div>{showReference && currentQuestion.expected && <div className="bg-paper text-paper-ink rounded-sm p-5 text-sm leading-relaxed shadow-lg"><Markdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}>{currentQuestion.expected}</Markdown></div>}{grade && <div className="bg-paper text-paper-ink rounded-sm p-5 shadow-lg"><strong className={NUMERALS}>{grade.score ?? '—'}/10</strong><div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{grade.correction}</div></div>}{practiceError && <p role="alert" className="text-destructive text-sm">{practiceError}</p>}<div className="flex justify-between border-t pt-3"><Button variant="ghost" disabled={questionIndex === 0} onClick={() => moveQuestion(questionIndex - 1)}>Previous</Button><Button variant="ghost" disabled={questionIndex === questions.length - 1} onClick={() => moveQuestion(questionIndex + 1)}>Next</Button></div></div>}
+            </section>
           </>
         )}
 

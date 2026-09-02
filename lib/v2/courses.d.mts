@@ -1,7 +1,12 @@
 /** Types for lib/v2/courses.mjs. */
 
 export type Chapter = { id: string; name: string; file?: string }
-export type Item = { id: string; title: string; mastery: number; chapterIds?: string[] }
+export type Item = { id: string; title: string; mastery: number; chapterIds?: string[]; notes?: string; masteryUpdatedAt?: string | null }
+export type CourseProfile = {
+  description?: string
+  learningOutcomes?: string[]
+  assessment?: { status?: string; components?: { name: string; type?: string; weightPercent?: number | null; minimumPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }[]; overallPassRules?: string[]; resitRules?: string[]; attendanceRules?: string[] }
+}
 
 export type StudyCourse = {
   id: string
@@ -12,6 +17,11 @@ export type StudyCourse = {
   archived?: boolean
   chapters?: Chapter[]
   items?: Item[]
+  role?: string
+  courseProfile?: CourseProfile | null
+  mockExams?: { id: string; label: string; pdf?: string; solutionsPdf?: string }[]
+  mockExamPdf?: string
+  mockExamSolutionsPdf?: string
 }
 
 export type AcademicCourse = { code: string; attempts?: { examDate?: string | null; type?: string | null }[] }
@@ -28,3 +38,5 @@ export declare function masteryPercent(course: StudyCourse): number | null
 export declare function courseProgress(course: StudyCourse, read: Set<string>): Progress
 export declare function nextExam(course: StudyCourse, academicCourses: AcademicCourse[], today: string): Exam | null
 export declare function byNextExam(courses: StudyCourse[], academicCourses: AcademicCourse[], today: string): StudyCourse[]
+export declare function academicCourseFor(course: StudyCourse, academicCourses: AcademicCourse[]): AcademicCourse | null
+export declare function canvasCourseQuery(course: StudyCourse): string
