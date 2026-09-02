@@ -8,10 +8,11 @@ import { WorkspaceShell } from '@/components/v2/workspace-shell'
 export default function V2Layout({ children }: { children: ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY || null
   const authEnabled = Boolean(publishableKey && process.env.CLERK_SECRET_KEY)
+  const localLoginEnabled = !authEnabled && process.env.NODE_ENV !== 'production' && Boolean(process.env.WICKER_LOCAL_ACCOUNTS)
   return (
     <div data-v2 className="bg-background text-foreground min-h-dvh">
       <AppProviders publishableKey={publishableKey}>
-        <RequireAuth authEnabled={authEnabled}>
+        <RequireAuth authEnabled={authEnabled} localLoginEnabled={localLoginEnabled}>
           <TooltipProvider>
             <WorkspaceShell>{children}</WorkspaceShell>
           </TooltipProvider>

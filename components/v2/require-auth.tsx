@@ -283,13 +283,43 @@ function CloudBrowserState() {
   return null;
 }
 
+function LocalGate({ children }: { children: ReactNode }) {
+  const [access, setAccess] = useState<'checking' | 'allowed' | 'error'>('checking')
+
+  useEffect(() => {
+    let live = true
+    fetch('/api/auth/session', { cache: 'no-store' }).then(async (response) => {
+      if (response.status === 401) {
+        window.location.replace(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+        return
+      }
+      if (!response.ok) throw new Error('Your test session could not be verified.')
+      if (live) setAccess('allowed')
+    }).catch(() => { if (live) setAccess('error') })
+    return () => { live = false }
+  }, [])
+
+  if (access === 'checking') return <Waiting />
+  if (access === 'error') return <Empty><EmptyHeader><EmptyTitle>Unable to verify your session</EmptyTitle><EmptyDescription>Return to sign in and try again.</EmptyDescription></EmptyHeader><Button render={<a href="/sign-in" />}>Go to sign in</Button></Empty>
+  return <>{children}</>
+}
+
 export function RequireAuth({
   authEnabled,
+  localLoginEnabled,
   children,
 }: {
   authEnabled: boolean;
+  localLoginEnabled: boolean;
   children: ReactNode;
 }) {
+  if (localLoginEnabled)
+    return (
+      <LocalGate>
+        <CloudBrowserState />
+        {children}
+      </LocalGate>
+    );
   if (!authEnabled)
     return (
       <>
