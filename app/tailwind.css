@@ -30,6 +30,10 @@
     --color-chart-3: var(--chart-3);
     --color-chart-2: var(--chart-2);
     --color-chart-1: var(--chart-1);
+    --color-paper: var(--paper);
+    --color-paper-subtle: var(--paper-subtle);
+    --color-paper-ink: var(--paper-ink);
+    --color-paper-link: var(--paper-link);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -93,6 +97,13 @@
     --sidebar-accent-foreground: #eceef1;
     --sidebar-border: #262c39;
     --sidebar-ring: #2b54ff;
+
+    /* The punched paper window — anything read at length is laid on the board
+       as paper, and it is the only place the ink inverts. */
+    --paper: #f4f3ef;
+    --paper-subtle: #e8e7e1;
+    --paper-ink: #14171d;
+    --paper-link: #1f3ad6;
 }
 
 

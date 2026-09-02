@@ -5,13 +5,15 @@
 // before this test existed (steps restarting at 1, sub-bullets detaching from
 // their step, and hard line breaks folded into one run-on sentence).
 //
-// The renderer lives in the browser bundle, which is a script rather than a
-// module, so the three functions are lifted out of the source by name. That
-// keeps public/app.js the single definition instead of a copy that can drift.
+// Two implementations exist during the migration: lib/v2/markdown.mjs, which
+// the React tutor imports, and the copy inside public/app.js, which is a
+// classic script and cannot import a module. Every case below runs against
+// both, so the copies cannot drift while both halves of the product are live.
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
+import { tutorMarkdown as migrated } from '../lib/v2/markdown.mjs'
 
 const source = await readFile(new URL('../public/app.js', import.meta.url), 'utf8')
 
@@ -27,12 +29,20 @@ function lift(name) {
 }
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-const { tutorMarkdown } = new Function('escapeHtml', `
+const { tutorMarkdown: vanilla } = new Function('escapeHtml', `
   ${lift('tutorLinkLabel')}
   ${lift('tutorInline')}
   ${lift('tutorMarkdown')}
   return { tutorMarkdown }
 `)(escapeHtml)
+
+/** Runs every case against both copies, and asserts they agree. */
+const tutorMarkdown = (input) => {
+  const a = migrated(input)
+  const b = vanilla(input)
+  assert.equal(a, b, `the two copies disagree on: ${JSON.stringify(input)}`)
+  return a
+}
 
 test('a numbered answer keeps its own numbering across blank lines', () => {
   // Blank lines between steps are how the tutor spaces a plan out; they must
