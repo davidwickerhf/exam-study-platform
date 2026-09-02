@@ -382,7 +382,9 @@ const STATUS_WORD: Record<SetupStep['status'], string> = {
 }
 
 function Checklist({ view, onRefresh, conversational }: { view: View | null; onRefresh: () => void; conversational: boolean }) {
-  const [open, setOpen] = useState<string | null>(null)
+  const params = useSearchParams()
+  const requestedStep = params.get('step')
+  const [open, setOpen] = useState<string | null>(requestedStep === 'record' || requestedStep === 'timetable' ? requestedStep : null)
   const [timetable, setTimetable] = useState('')
   const [timetableBusy, setTimetableBusy] = useState(false)
   const [timetableError, setTimetableError] = useState<string | null>(null)
@@ -634,6 +636,9 @@ function SetupSurface() {
   if (view && opening && !started && !sending) {
     const steps = setupSteps({ state: view.state ?? null, skipped: view.skipped ?? [] })
     const connected = connectedCount(steps)
+    const openingBody = opening.step === 'record'
+      ? 'Your Academic Work PDF lists every course attempt you have made. Upload it below so the dashboard can calculate your earned credits, passed courses, and current registrations.'
+      : opening.body
     return (
       <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-[1180px] content-center gap-10 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-16">
         <aside className="self-stretch border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
@@ -642,13 +647,19 @@ function SetupSurface() {
             {connected}<span className="text-muted-foreground text-lg">/{steps.length}</span>
           </p>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">Connect the sources that turn the workspace into your own study record.</p>
-          <ol className="mt-7 hidden flex-col border-t lg:flex">
+          <ol className="mt-7 hidden flex-col border-t lg:flex" aria-label="Setup steps">
             {steps.map((step, index) => (
-              <li key={step.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-3 border-b py-3">
-                <span className={`font-data text-xs tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {step.status === 'done' ? '✓' : String(index + 1).padStart(2, '0')}
-                </span>
-                <span className={`text-sm ${step.id === opening.step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{step.title}</span>
+              <li key={step.id} className="border-b">
+                <Link
+                  href={`/app/setup?checklist=1&step=${step.id}`}
+                  aria-current={step.id === opening.step ? 'step' : undefined}
+                  className="hover:bg-card focus-visible:ring-primary -mx-2 grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-3 px-2 py-3 outline-none focus-visible:ring-2"
+                >
+                  <span className={`font-data text-xs tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {step.status === 'done' ? '✓' : String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className={`text-sm ${step.id === opening.step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{step.title}</span>
+                </Link>
               </li>
             ))}
           </ol>
@@ -660,11 +671,20 @@ function SetupSurface() {
             {/* Safe to set: the parser escapes first and emits only its own rules. */}
             <div
               className={`text-muted-foreground mt-5 max-w-[60ch] text-[15px] leading-relaxed ${PROSE}`}
-              dangerouslySetInnerHTML={{ __html: tutorMarkdown(opening.body) }}
+              dangerouslySetInnerHTML={{ __html: tutorMarkdown(openingBody) }}
             />
           </div>
           {error && <p className="text-sm">{error}</p>}
-          {composer(opening.placeholder)}
+          {opening.step === 'record' ? (
+            <UploadField
+              onRead={async (result) => {
+                await send(workSummaryLine(result))
+              }}
+              onSkip={() => void send('Skip the academic record for now.')}
+            />
+          ) : (
+            composer(opening.placeholder)
+          )}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
             <p className="text-muted-foreground text-xs">Only your programme is required. Everything else can be connected later.</p>
             <Link href="/app/setup?checklist=1" className="text-primary text-sm font-semibold hover:underline">
