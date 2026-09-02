@@ -5264,17 +5264,32 @@ function renderHomeCanvasPanel() {
 // The ruling axis: where the student is in the academic year, and how far
 // through the current teaching period. Every screen sits somewhere on it, so
 // it heads the board rather than a greeting — a greeting is not information.
+/**
+ * Which week of the teaching period today falls in, and how many the period
+ * has. The first day of a period is week 1: an earlier version floored the
+ * elapsed-week count at one and then added one, so a period read "week 2 of 8"
+ * on the morning it began.
+ */
+function periodWeek(start, end, today) {
+  if (!start || !end || !today) return { week: null, weeks: null }
+  const day = (value) => new Date(`${String(value).slice(0, 10)}T00:00:00Z`).getTime()
+  const days = (from, to) => Math.floor((day(to) - day(from)) / 86_400_000)
+  const total = days(start, end)
+  if (!Number.isFinite(total) || total < 0) return { week: null, weeks: null }
+  // The period's last day belongs to the last week, so the span is inclusive.
+  const weeks = Math.max(1, Math.ceil((total + 1) / 7))
+  const elapsed = days(start, today)
+  if (!Number.isFinite(elapsed)) return { week: null, weeks }
+  return { week: Math.min(weeks, Math.max(1, Math.floor(elapsed / 7) + 1)), weeks }
+}
+
 function renderBoardHead() {
   const context = calendarState.data?.academicContext || null
   const calendar = activeEditorialProgrammeReference()?.programme?.calendar || []
   const periods = calendar.filter((event) => event.kind === 'period').sort((a, b) => a.date.localeCompare(b.date))
   const today = localIsoDate(new Date())
 
-  const spanWeeks = (from, to) => Math.max(1, Math.round((new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 604800000))
-  const weekOf = context?.start && context?.end
-    ? Math.min(spanWeeks(context.start, context.end), Math.max(1, spanWeeks(context.start, today) + 1))
-    : null
-  const weeks = context?.start && context?.end ? spanWeeks(context.start, context.end) : null
+  const { week: weekOf, weeks } = periodWeek(context?.start, context?.end, today)
 
   const measure = periods.length ? `<ol class="w-year" aria-label="Teaching periods this year">${periods.map((period) => {
     const state = today > (period.endDate || period.date) ? 'is-past' : today >= period.date ? 'is-now' : ''
@@ -5292,175 +5307,158 @@ function renderBoardHead() {
   </header>`
 }
 
-// The board: what is true next, in date order, at the scale of the thing that
-// matters. One signal rule under the first row — the only colour on the page.
-function renderBoard() {
-  const days = thisWeekEntries(14)
-  const rows = []
-  for (const { day, items } of days) {
-    for (const event of items) rows.push({ day, event })
-  }
-  for (const exam of upcomingExams().slice(0, 3)) {
-    if (exam.attempt?.examDate) rows.push({ day: String(exam.attempt.examDate).slice(0, 10), exam })
-  }
-  rows.sort((left, right) => left.day.localeCompare(right.day))
-
-  if (!rows.length) {
-    const missing = setupState().missing.filter((step) => ['timetable', 'canvas'].includes(step.id)).map((step) => step.id)
-    return `<section class="w-board is-empty">
-      <p>${missing.length
-        ? `Nothing on the board — ${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} not connected, so there may be more than this.`
-        : 'Nothing due in the next two weeks.'}</p>
-    </section>`
-  }
-
-  const label = (row) => {
-    if (row.exam) return { what: 'Exam', code: row.exam.course.code || row.exam.course.name, href: '#/calendar' }
-    const event = row.event
-    return {
-      what: event.title || event.courseName || 'Appointment',
-      code: event.courseCode || '',
-      href: event.url || '#/calendar',
-      external: Boolean(event.url)
-    }
-  }
-
-  return `<section class="w-board" aria-label="What is next">
-    <ol>${rows.slice(0, 8).map((row, index) => {
-      const { what, code, href, external } = label(row)
-      const away = daysUntil(row.day)
-      const time = row.event?.start && String(row.event.start).length > 10 ? String(row.event.start).slice(11, 16) : null
-      return `<li class="w-row${index === 0 ? ' is-live' : ''}">
-        <a href="${escapeHtml(href)}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>
-          <time class="w-row-when" datetime="${escapeHtml(row.day)}">${escapeHtml(boardDate(row.day))}${time ? `<small>${escapeHtml(time)}</small>` : ''}</time>
-          <span class="w-row-what">${escapeHtml(what)}</span>
-          <span class="w-row-code">${escapeHtml(code)}</span>
-          <span class="w-row-away">${away <= 0 ? 'today' : `${away}d`}</span>
-        </a>
-      </li>`
-    }).join('')}</ol>
-  </section>`
-}
-
 function boardDate(iso) {
   const date = new Date(`${iso}T12:00:00`)
   if (Number.isNaN(date.getTime())) return iso
   return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(date).toUpperCase()
 }
 
-// The figures that were four identical cards. They are measures, not headlines:
-// one line, tabular, no boxes, no icons.
-function renderMeasures({ srDue, srTotal, mistakeCount, streak, week }) {
-  const cell = (href, label, value, unit) => `<a class="w-measure" href="${href}">
+// Home answers four questions and nothing else: what is on today, what is due
+// next, where the degree stands, and what needs a decision. Everything it used
+// to also carry — the full week's agenda, the course ledger, the activity
+// chart, quick links, institution dates — is the whole content of Calendar,
+// Courses, Practice and Planning, repeated here at the cost of burying the
+// three Canvas deadlines that were the only actionable thing on the page.
+
+function homeEventsOn(iso) {
+  return (calendarState.data?.events || [])
+    .filter((event) => event.category === 'timetable' && String(event.start).slice(0, 10) === iso)
+    .sort((left, right) => String(left.start).localeCompare(String(right.start)))
+}
+
+function homeDueItems(limit = 6) {
+  const today = localIsoDate(new Date())
+  return (calendarState.data?.events || [])
+    .filter((event) => ['canvas-deadline', 'deadline'].includes(event.category))
+    .filter((event) => String(event.start).slice(0, 10) >= today)
+    .sort((left, right) => String(left.start).localeCompare(String(right.start)))
+    .slice(0, limit)
+}
+
+// Canvas titles a deadline "BCS3120 · Quiz 1", and the row already has a
+// course column, so the code was printed twice on every line.
+function homeDeadlineTitle(event) {
+  const title = String(event.title || 'Hand-in')
+  const code = String(event.courseCode || '')
+  if (!code) return title
+  return title.replace(new RegExp(`^\\s*${code.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s*[·:\\-–]\\s*`, 'i'), '') || title
+}
+
+function renderHomeToday() {
+  const iso = localIsoDate(new Date())
+  const teaching = homeEventsOn(iso)
+  const dueToday = homeDueItems(20).filter((event) => String(event.start).slice(0, 10) === iso)
+  const stamp = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+
+  if (!teaching.length && !dueToday.length) {
+    const missing = setupState().missing.some((step) => step.id === 'timetable')
+    return `<section class="w-sec">
+      <div class="w-sec-head"><h2>Today</h2><span class="w-sec-meta">${escapeHtml(stamp)}</span></div>
+      <p class="w-quiet">${missing ? 'No timetable connected, so teaching is not shown.' : 'Nothing scheduled.'}</p>
+    </section>`
+  }
+
+  const time = (event) => String(event.start).length > 10 ? String(event.start).slice(11, 16) : null
+  const end = (event) => event.end && String(event.end).length > 10 ? String(event.end).slice(11, 16) : null
+
+  return `<section class="w-sec">
+    <div class="w-sec-head"><h2>Today</h2><span class="w-sec-meta">${escapeHtml(stamp)}</span></div>
+    <ol class="w-today">
+      ${dueToday.map((event) => `<li class="w-today-row is-due">
+        <span class="w-t">${escapeHtml(time(event) || '')}</span>
+        <span class="w-n"><strong>${escapeHtml(homeDeadlineTitle(event))}</strong><small>Due · ${escapeHtml(event.courseCode || '')}</small></span>
+        ${event.url ? `<a class="w-go" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">Open</a>` : '<span></span>'}
+      </li>`).join('')}
+      ${teaching.map((event) => `<li class="w-today-row">
+        <span class="w-t">${escapeHtml(time(event) || '')}${end(event) ? `<small>${escapeHtml(end(event))}</small>` : ''}</span>
+        <span class="w-n"><strong>${escapeHtml(event.courseName || event.title || '')}</strong><small>${[event.courseCode, event.activity, timetableRoom(event)].filter(Boolean).map(escapeHtml).join(' · ')}</small></span>
+        <span></span>
+      </li>`).join('')}
+    </ol>
+  </section>`
+}
+
+function renderHomeDue() {
+  const items = homeDueItems(6)
+  const today = localIsoDate(new Date())
+  const later = items.filter((event) => String(event.start).slice(0, 10) > today)
+  const canvasMissing = setupState().missing.some((step) => step.id === 'canvas')
+
+  return `<section class="w-sec">
+    <div class="w-sec-head"><h2>Due next</h2>${later.length ? '<a class="pl-link" href="#/updates">All hand-ins</a>' : ''}</div>
+    ${later.length ? `<ol class="w-due">${later.map((event) => {
+      const away = daysUntil(String(event.start).slice(0, 10))
+      return `<li class="w-due-row${away <= 2 ? ' is-soon' : ''}">
+        <time class="w-due-when" datetime="${escapeHtml(String(event.start).slice(0, 10))}">${escapeHtml(boardDate(String(event.start).slice(0, 10)))}</time>
+        <span class="w-n"><strong>${escapeHtml(homeDeadlineTitle(event))}</strong><small>${escapeHtml(event.courseCode || '')}</small></span>
+        <span class="w-due-away">${away <= 0 ? 'today' : `${away}d`}</span>
+        ${event.url ? `<a class="w-go" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">Open</a>` : '<span></span>'}
+      </li>`
+    }).join('')}</ol>`
+      : `<p class="w-quiet">${canvasMissing ? 'Canvas is not connected, so hand-ins are not shown.' : 'Nothing due in the next two weeks.'}</p>`}
+  </section>`
+}
+
+function renderHomeProgress() {
+  const summary = academicsData?.summary
+  const examWindow = calendarState.data?.examWindow || null
+  if (!summary) return ''
+  const required = academicsData?.workspace?.courses?.reduce((sum, course) => sum + (course.ects || 0), 0) || null
+  const figure = (label, value, unit, href) => `<a class="w-fig" href="${href}">
     <span class="w-label">${label}</span>
     <strong>${value}${unit ? `<small>${unit}</small>` : ''}</strong>
   </a>`
-  return `<div class="w-measures">
-    ${cell('#/practice/flashcards', 'Cards due', srDue == null ? '—' : srDue, srTotal ? `/ ${srTotal}` : '')}
-    ${cell('#/practice/mistakes', 'Open mistakes', mistakeCount == null ? '—' : mistakeCount, '')}
-    ${cell('#/account/profile', 'Streak', streak == null ? '—' : streak, 'd')}
-    ${cell('#/account/profile', 'This week', week == null ? '—' : week, '')}
-  </div>`
+
+  return `<section class="w-sec">
+    <div class="w-sec-head"><h2>Progress</h2><a class="pl-link" href="#/planning/progress">Plan</a></div>
+    <div class="w-figs">
+      ${figure('Credits earned', summary.earnedEcts, required ? `/ ${required}` : '', '#/planning/progress')}
+      ${figure('Courses passed', summary.passedCourses, `/ ${summary.totalCourses}`, '#/planning/courses')}
+      ${summary.gpa != null ? figure('Weighted GPA', summary.gpa, '', '#/planning/progress') : ''}
+      ${examWindow ? figure('Exam week in', Math.max(0, daysUntil(examWindow.start)), 'd', '#/calendar') : ''}
+    </div>
+  </section>`
+}
+
+// Only what needs a decision: an announcement that names a deadline, and the
+// sources that are still missing. Never a list of things that are fine.
+function renderHomeAttention() {
+  const setup = setupState()
+  const outstanding = setup.outstanding || []
+  const announcements = (updatesState.data?.announcements || [])
+    .filter((item) => item.unread || /deadline|due|submit|register|sign up|before/i.test(`${item.title} ${item.excerpt || ''}`))
+    .slice(0, 3)
+  if (!outstanding.length && !announcements.length) return ''
+
+  return `<section class="w-sec">
+    <div class="w-sec-head"><h2>Needs a decision</h2>${announcements.length ? '<a class="pl-link" href="#/updates">Updates</a>' : ''}</div>
+    <ul class="w-attn">
+      ${announcements.map((item) => `<li>
+        <span class="w-n"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.courseCode || '')}${item.postedAt ? ` · ${escapeHtml(relativeTime(item.postedAt) || '')}` : ''}</small></span>
+        <a class="w-go" href="#/updates">Read</a>
+      </li>`).join('')}
+      ${outstanding.map((step) => `<li>
+        <span class="w-n"><strong>${escapeHtml(step.title)}</strong><small>${escapeHtml(step.detail)}</small></span>
+        <a class="w-go" href="${escapeHtml(step.href)}">${escapeHtml(step.action)}</a>
+      </li>`).join('')}
+    </ul>
+  </section>`
 }
 
 function renderHome() {
   ensureHomeData()
-  if (!activityLoading && (!activityCache || Date.now() - activityLoadedAt > 60_000)) loadActivity().then(() => render())
   if (!updatesState.data && !updatesState.loading && !updatesState.error) queueMicrotask(() => loadUpdates())
   if (!academicWork.data && !academicWork.loading && !academicWork.error) queueMicrotask(() => loadAcademicWork())
   if (!calendarState.data && !calendarState.loading && !calendarState.error) queueMicrotask(() => loadCalendarEvents())
-  const user = currentUser()
-  const mistakeCount = mistakeCache?.items?.length ?? null
-  const srDue = srDueCache?.dueCount ?? null
-  const srTotal = srDueCache?.totalCards ?? null
-  const exams = upcomingExams().slice(0, 4)
-  const currentEntries = currentAcademicCourseEntries()
-  const examWindow = calendarState.data?.examWindow || null
-  const recent = recentChapter()
-  const courses = activeCourses()
-  const currentEditorial = currentEntries.map((entry) => entry.editorial).filter(Boolean)
-  // Do not fall back to an unrelated catalogue course while the current
-  // timetable is known but its course materials have not been published.
-  const fallback = currentEditorial[0] || (currentEntries.length ? null : courses[0])
-  const recentIsCurrent = recent && (!currentEntries.length || currentEditorial.some((course) => course.id === recent.course.id))
-  const resumeCourse = recentIsCurrent ? recent.course : fallback
-  const resumeChapter = recentIsCurrent ? recent.chapter : fallback?.chapters?.find((ch) => ch.file?.endsWith('.md'))
-  const today = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
-  const hasPlan = Boolean(academicsData?.workspace?.courses?.length)
-  const soonest = exams[0]
-  const activity = activityCache
-  const week = activity?.week?.total ?? null
-  const streak = activity?.streak ?? null
-  const delta = activity ? week - (activity.previousWeek || 0) : null
-  const dueTotal = (srDue || 0) + (mistakeCount || 0)
-  const nextLine = soonest
-    ? `Next exam ${countdownLabel(soonest.days).toLowerCase()} — ${escapeHtml(soonest.course.code || '')} ${escapeHtml(soonest.course.name)}.`
-    : examWindow && currentEntries.length ? `${currentEntries.length} current course${currentEntries.length === 1 ? '' : 's'} lead into ${escapeHtml(examWindow.title.toLowerCase())}, ${academicDate(examWindow.start)}–${academicDate(examWindow.end)}.`
-    : hasPlan ? 'No exam dates recorded yet — add them in Planning and they appear here.' : academicsData ? 'Set up your academic plan to see exam countdowns here.' : 'Loading your plan…'
-  const todayLine = dueTotal ? `${dueTotal} item${dueTotal === 1 ? '' : 's'} waiting in your queues.` : srDueCache && mistakeCache ? 'Your queues are clear.' : ''
-
-  const kpi = (href, cls, icon, label, value, detail) => `<a class="kpi ${cls}" href="${href}"><span class="kpi-icon">${uiIcon(icon)}</span><span class="kpi-label">${label}</span><span class="kpi-value">${value}</span><span class="kpi-detail">${detail}</span></a>`
+  if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
+  if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
 
   return `
     ${renderBoardHead()}
-    ${renderBoard()}
-
-    <div class="w-strip">
-      ${renderMeasures({ srDue, srTotal, mistakeCount, streak, week })}
-      <div class="w-strip-actions">${renderSearchTrigger()}<a class="btn btn-secondary" href="#/practice">${uiIcon('play')} Practise</a></div>
-    </div>
-
-    ${renderSetupChecklist()}
-
-    <div class="home-grid">
-      <section class="home-main">
-        ${renderThisWeek()}
-        ${resumeCourse && resumeChapter ? `<a class="resume-card" href="#/course/${resumeCourse.id}/chapter/${resumeChapter.id}">
-          <span class="resume-label">${recentIsCurrent ? 'Continue where you left off' : 'Start reading'}</span>
-          <span class="resume-title"><em>${escapeHtml(resumeCourse.code)} · Ch ${escapeHtml(resumeChapter.id)}</em><strong>${escapeHtml(resumeChapter.name)}</strong></span>
-          <span class="resume-cta">${uiIcon('play')} Open chapter</span>
-        </a>` : ''}
-
-        <section class="panel">
-          <div class="panel-top"><div><h2>Activity</h2><p>${activity ? `${activity.activeDays || 0} active day${activity.activeDays === 1 ? '' : 's'} in the last 28 · ${activity.week?.answer || 0} answered, ${activity.week?.review || 0} reviewed, ${activity.week?.mock || 0} mock${activity.week?.mock === 1 ? '' : 's'} this week` : 'Loading your study ledger…'}</p></div>${activity?.averageScore != null ? `<span class="panel-stat"><strong>${activity.averageScore}<small>/10</small></strong><small>avg. score</small></span>` : ''}</div>
-          ${activity ? renderActivityChart(activity) : '<div class="activity-chart is-loading"></div>'}
-          ${activity ? renderActivityFeed(activity) : ''}
-        </section>
-
-        <div class="section-head"><div><h2>${calendarState.data?.academicContext?.period || 'Current courses'}</h2>${currentEntries.length ? `<p>${currentEntries.length} active course${currentEntries.length === 1 ? '' : 's'} · ${currentEntries[0].source === 'timetable' ? 'identified from teaching appointments in your timetable' : currentEntries[0].source === 'cross-referenced' ? 'cross-referenced from your academic record and timetable' : currentEntries[0].source === 'manual' ? 'set for this period' : 'from your academic record'}</p>` : ''}</div><a class="pl-link" href="#/planning/courses">Manage</a></div>
-        ${renderCurrentCourseLedger(currentEntries, examWindow)}
-      </section>
-
-      <aside class="home-aside">
-        <section class="panel panel-aside">
-          <div class="panel-top"><h2>Upcoming exams</h2><a class="pl-link" href="#/calendar">Calendar</a></div>
-          ${exams.length ? `<ol class="exam-list">${exams.map((item) => `<li>
-            <span class="exam-days${item.days !== null && item.days <= 7 ? ' is-soon' : ''}"><strong>${item.days === null ? '—' : item.days < 0 ? '0' : item.days}</strong><small>${item.days === 1 ? 'day' : 'days'}</small></span>
-            <span class="exam-copy"><strong>${escapeHtml(item.course.code || item.course.name)}</strong><small>${escapeHtml(item.course.name)} · ${academicDate(item.attempt.examDate)}</small></span>
-            ${item.editorial ? `<a class="pl-link" href="#/course/${item.editorial.id}">Study</a>` : `<a class="pl-link" href="#/course-request/${encodeURIComponent(item.course.id)}">Request</a>`}
-          </li>`).join('')}</ol>` : examWindow && currentEntries.length ? `<div class="home-exam-window"><span class="home-exam-window-date"><strong>${academicDate(examWindow.start)}</strong><small>through ${academicDate(examWindow.end)}</small></span><p>Your ${currentEntries.length} current courses are associated with this upcoming exam period. Individual times appear when the timetable publishes them.</p><ul>${currentEntries.map(({ academic }) => `<li>${escapeHtml(academic.code || academic.name)}</li>`).join('')}</ul></div>` : `<div class="home-empty">${hasPlan ? '<p>No upcoming exam dates. Add one to a course attempt and it will appear here and on the course page.</p><a class="btn btn-secondary btn-sm" href="#/planning/courses">Add exam dates</a>' : academicsData ? '<p>Set up your academic plan to see exam countdowns, credits, and requirements alongside your study material.</p><a class="btn btn-primary btn-sm" href="#/planning">Set up plan</a>' : '<p>Loading your plan…</p>'}</div>`}
-        </section>
-        ${renderAcademicRecordPanel()}
-        ${renderHomeCanvasPanel()}
-        <section class="panel panel-aside">
-          <div class="panel-top"><h2>Quick start</h2></div>
-          <nav class="quick-list" aria-label="Quick start">
-            <a href="#/practice"><span class="nav-icon">${uiIcon('target')}</span><span><strong>Mixed practice</strong><small>Across maintained course material</small></span>${uiIcon('chevronRight')}</a>
-            <a href="#/practice/mocks"><span class="nav-icon">${uiIcon('timer')}</span><span><strong>Timed mock</strong><small>A chapter under exam conditions</small></span>${uiIcon('chevronRight')}</a>
-            <a href="#/practice/flashcards"><span class="nav-icon">${uiIcon('layers')}</span><span><strong>Flashcards</strong><small>${srTotal ? `${srTotal} in your deck` : 'Build your deck'}</small></span>${uiIcon('chevronRight')}</a>
-            ${hasPlan ? `<a href="#/planning/documents"><span class="nav-icon">${uiIcon('upload')}</span><span><strong>Upload a document</strong><small>Transcript, exam schedule, timetable</small></span>${uiIcon('chevronRight')}</a>` : ''}
-          </nav>
-        </section>
-        ${(() => { if (!hasPlan) return ''; if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes()); const todayIso = new Date().toISOString().slice(0, 10); const dates = (activeEditorialProgrammeReference()?.programme?.calendar || []).filter((event) => event.date >= todayIso && ['exam-week', 'resit-week', 'holiday', 'period', 'study-week', 'project-week'].includes(event.kind)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4); return dates.length ? `<section class="panel panel-aside">
-          <div class="panel-top"><h2>At your institution</h2><a class="pl-link" href="#/calendar">Calendar</a></div>
-          <ol class="exam-list">${dates.map((event) => { const days = daysUntil(event.date); return `<li><span class="exam-days${event.kind === 'exam-week' || event.kind === 'resit-week' ? ' is-soon' : ''}"><strong>${days <= 0 ? 'now' : days}</strong><small>${days <= 0 ? '' : days === 1 ? 'day' : 'days'}</small></span><span class="exam-copy"><strong>${escapeHtml(event.title)}</strong><small>${academicDate(event.date)}${event.endDate ? ` – ${academicDate(event.endDate)}` : ''}</small></span></li>` }).join('')}</ol>
-        </section>` : '' })()}
-        ${academicsData?.summary && hasPlan ? `<section class="panel panel-aside">
-          <div class="panel-top"><h2>Programme</h2><a class="pl-link" href="#/planning">Plan</a></div>
-          <dl class="pl-facts"><div><dt>Earned credits</dt><dd>${academicsData.summary.earnedEcts}</dd></div><div><dt>Courses passed</dt><dd>${academicsData.summary.passedCourses} / ${academicsData.summary.totalCourses}</dd></div>${academicsData.summary.gpa != null ? `<div><dt>Weighted GPA</dt><dd>${academicsData.summary.gpa}</dd></div>` : ''}</dl>
-        </section>` : ''}
-      </aside>
-    </div>
+    ${renderHomeToday()}
+    ${renderHomeDue()}
+    ${renderHomeProgress()}
+    ${renderHomeAttention()}
   `
 }
 

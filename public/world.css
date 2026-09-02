@@ -97,6 +97,13 @@
   --color-success: var(--w-type);
   --color-warning: var(--w-type);
   --color-danger: var(--w-type);
+  /* The soft variants were only ever chip fills. Left undefined they kept the
+     old pale greens and pinks, which under near-white type rendered as blank
+     white blocks down the ledger's status column. */
+  --color-success-soft: transparent;
+  --color-warning-soft: transparent;
+  --color-danger-soft: transparent;
+  --color-brand-softer: transparent;
 
   --radius-xs: 1px;
   --radius-sm: 2px;
@@ -304,66 +311,6 @@ input::placeholder, textarea::placeholder { color: var(--w-type-3); }
 .w-year li.is-past span { background: var(--w-rule-strong); }
 .w-year li.is-now span { background: var(--w-signal); }
 .w-year li.is-now b { color: var(--w-type); }
-
-.w-board { margin: 0 0 var(--space-6); border-top: 1px solid var(--w-rule-strong); }
-.w-board ol { margin: 0; padding: 0; list-style: none; }
-.w-row { border-bottom: 1px solid var(--w-rule); }
-.w-row a {
-  padding: var(--space-3) 0;
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr) 7rem 4rem;
-  align-items: baseline;
-  gap: var(--space-4);
-  color: inherit;
-  text-decoration: none;
-}
-.w-row a:hover { background: var(--w-board); }
-.w-row-when {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  font-size: 24px;
-  letter-spacing: .01em;
-  color: var(--w-type);
-}
-.w-row-when small { margin-left: .5ch; font-size: 14px; font-weight: 500; color: var(--w-type-2); }
-.w-row-what { font: 500 16px/1.35 var(--font-ui); color: var(--w-type); overflow-wrap: anywhere; }
-.w-row-code, .w-row-away {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--w-type-2);
-}
-.w-row-away { text-align: right; }
-/* The only colour on the page: the row you act on next. */
-.w-row.is-live { border-bottom-color: var(--w-signal); }
-.w-row.is-live .w-row-when, .w-row.is-live .w-row-away { color: var(--w-signal-text); }
-.w-board.is-empty { padding: var(--space-5) 0 var(--space-6); border-bottom: 1px solid var(--w-rule); }
-.w-board.is-empty p { margin: 0; max-width: 60ch; color: var(--w-type-2); font: 400 14.5px/1.6 var(--font-ui); }
-
-.w-strip {
-  margin: 0 0 var(--space-6);
-  padding-bottom: var(--space-5);
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: var(--space-5);
-  border-bottom: 1px solid var(--w-rule);
-}
-.w-strip-actions { display: flex; align-items: center; gap: var(--space-2); }
-.w-measures { display: flex; gap: var(--space-7); }
-.w-measure { display: grid; gap: 4px; color: inherit; text-decoration: none; }
-.w-measure strong {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  font-size: 32px;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-.w-measure small { margin-left: .3ch; font-size: 14px; font-weight: 500; color: var(--w-type-3); }
-.w-measure:hover strong { color: var(--w-signal-text); }
 
 /* ── Undoing the re-skin's inheritance ────────────────────────────────── */
 
@@ -597,3 +544,106 @@ input::placeholder, textarea::placeholder { color: var(--w-type-3); }
 .pl-electives { border: 0; border-bottom: 1px solid var(--w-rule); border-radius: 0; background: transparent; }
 .pl-electives label { border: 1px solid var(--w-rule); border-radius: var(--radius-sm); background: transparent; }
 .pl-electives label:hover { border-color: var(--w-rule-strong); }
+
+/* A pill is a chip; this world marks state instead, so the column reads in
+   greyscale and spends no colour. */
+#app .pl-pill {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--w-type-2) !important;
+  font: 500 12.5px/1.4 "Archivo Narrow", "Archivo Narrow Fallback", sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
+#app .pl-pill.is-ok::before { content: "✓ "; color: var(--w-type); }
+#app .pl-pill.is-bad::before { content: "✕ "; color: var(--w-type); }
+#app .pl-pill.is-pending::before { content: "· "; }
+/* Institution swatches were solid colour blocks; a rule carries the same
+   distinction without inventing a palette. */
+#app .cal-swatch, #app .upd-dot, #app [class*="-swatch"] {
+  width: 2px !important;
+  min-width: 2px;
+  height: 100%;
+  min-height: 18px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--w-rule-strong) !important;
+}
+
+/* ── Home: four questions, four sections ──────────────────────────────── */
+.w-sec { padding: var(--space-5) 0; border-top: 1px solid var(--w-rule-strong); }
+.w-sec:first-of-type { border-top: 0; }
+.w-sec-head {
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.w-sec-head h2 { margin: 0; font: 600 15px/1.3 var(--font-ui); letter-spacing: 0; }
+.w-sec-meta {
+  color: var(--w-type-3);
+  font: 500 13px/1.3 "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.w-quiet { margin: 0; max-width: 62ch; color: var(--w-type-2); font: 400 14px/1.6 var(--font-ui); }
+
+.w-today, .w-due, .w-attn { margin: 0; padding: 0; list-style: none; }
+.w-today-row, .w-due-row, .w-attn > li {
+  padding: var(--space-3) 0;
+  display: grid;
+  align-items: baseline;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--w-rule);
+}
+.w-today-row { grid-template-columns: 5.5rem minmax(0, 1fr) 4rem; }
+.w-due-row { grid-template-columns: 5.5rem minmax(0, 1fr) 3.5rem 4rem; }
+.w-attn > li { grid-template-columns: minmax(0, 1fr) 4rem; }
+
+.w-t, .w-due-when, .w-due-away {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--w-type);
+}
+.w-t small { display: block; margin-top: 1px; font-size: 12px; font-weight: 500; color: var(--w-type-3); }
+.w-due-away { font-size: 14px; font-weight: 500; color: var(--w-type-2); text-align: right; }
+.w-n { min-width: 0; display: grid; gap: 2px; }
+.w-n strong { font: 500 15px/1.35 var(--font-ui); color: var(--w-type); overflow-wrap: anywhere; }
+.w-n small { color: var(--w-type-3); font: 400 13px/1.4 var(--font-ui); }
+.w-go {
+  justify-self: end;
+  color: var(--w-signal-text);
+  font: 600 13px/1.4 var(--font-ui);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.w-go:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* The one thing on the page carrying colour: what is due soonest, and a
+   hand-in that lands today. */
+.w-due-row.is-soon .w-due-when, .w-due-row.is-soon .w-due-away { color: var(--w-signal-text); }
+.w-today-row.is-due { border-bottom-color: var(--w-signal); }
+.w-today-row.is-due .w-t { color: var(--w-signal-text); }
+
+.w-figs { display: flex; flex-wrap: wrap; gap: var(--space-7); }
+.w-fig { display: grid; gap: 4px; color: inherit; text-decoration: none; }
+.w-fig strong {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.w-fig small { margin-left: .35ch; font-size: 14px; font-weight: 500; color: var(--w-type-3); }
+.w-fig:hover strong { color: var(--w-signal-text); }
+
+@media (max-width: 700px) {
+  .w-today-row { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .w-due-row { grid-template-columns: 4.5rem minmax(0, 1fr) 3rem; }
+  .w-today-row .w-go, .w-due-row .w-go { grid-column: 2 / -1; justify-self: start; }
+  .w-figs { gap: var(--space-5); }
+}
