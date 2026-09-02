@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 import next from 'next'
 import './lib/env.mjs'
-import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localTestUserId } from './lib/auth.mjs'
+import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
@@ -3291,6 +3291,16 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/auth/config' && req.method === 'GET') {
       send(res, 200, JSON.stringify(authConfig()))
+      return
+    }
+    if (url.pathname === '/api/auth/local-session' && req.method === 'POST') {
+      const account = localAccountForEmail((await readBody(req, 4 * 1024))?.email)
+      if (!account) { send(res, 401, JSON.stringify({ error: 'This test account is not available.' })); return }
+      send(res, 200, JSON.stringify({ ok: true, email: account.email }), 'application/json; charset=utf-8', { 'Set-Cookie': localSessionCookie(account.userId), 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/auth/local-session' && req.method === 'DELETE') {
+      send(res, 200, JSON.stringify({ ok: true }), 'application/json; charset=utf-8', { 'Set-Cookie': localSessionCookie('', { clear: true }), 'Cache-Control': 'no-store' })
       return
     }
     if (url.pathname === '/api/health' && req.method === 'GET') {

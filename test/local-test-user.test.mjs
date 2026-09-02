@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveLocalTestUser } from '../lib/auth.mjs'
+import { resolveLocalAccounts, resolveLocalTestUser } from '../lib/auth.mjs'
 
 test('unset means no local test user', () => {
   assert.equal(resolveLocalTestUser({}), null)
@@ -31,4 +31,13 @@ test('malformed identifiers are rejected rather than silently used', () => {
   for (const id of ['ab', 'user localtest', 'user_local;drop', 'a'.repeat(121)]) {
     assert.throws(() => resolveLocalTestUser({ WICKER_LOCAL_USER: id }), /plain identifier/, id)
   }
+})
+
+test('development login accounts are explicit email to user mappings', () => {
+  assert.deepEqual(resolveLocalAccounts({ WICKER_LOCAL_ACCOUNTS: 'test@example.com=user_test, second@example.com=user_second' }), [
+    { email: 'test@example.com', userId: 'user_test' },
+    { email: 'second@example.com', userId: 'user_second' }
+  ])
+  assert.throws(() => resolveLocalAccounts({ WICKER_LOCAL_ACCOUNTS: 'test@example.com=user_test', NODE_ENV: 'production' }), /development-only/)
+  assert.throws(() => resolveLocalAccounts({ WICKER_LOCAL_ACCOUNTS: 'not-a-mapping' }), /email=user_id/)
 })

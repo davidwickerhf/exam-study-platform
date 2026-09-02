@@ -1,7 +1,7 @@
 'use client'
 
 import { SignIn, SignUp } from '@clerk/nextjs'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { contacts } from '@/lib/site-content'
 import { SiteIcon } from '@/components/site/icon'
@@ -34,8 +34,24 @@ function formatDomains(domains: string[]) {
   return domains.map((domain) => `@${domain}`).join(domains.length > 1 ? ' or ' : '')
 }
 
-export function AuthPage({ mode, enabled, allowedDomains }: { mode: 'sign-in' | 'sign-up'; enabled: boolean; allowedDomains: string[] }) {
+export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: { mode: 'sign-in' | 'sign-up'; enabled: boolean; allowedDomains: string[]; localAccounts?: string[] }) {
   const signUp = mode === 'sign-up'
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [localBusy, setLocalBusy] = useState(false)
+
+  async function localSignIn(email: string) {
+    setLocalBusy(true)
+    setLocalError(null)
+    try {
+      const response = await fetch('/api/auth/local-session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
+      const body = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(body?.error || 'Test sign-in failed.')
+      window.location.assign('/v2')
+    } catch (cause) {
+      setLocalError((cause as Error).message)
+      setLocalBusy(false)
+    }
+  }
 
   useEffect(() => {
     document.documentElement.classList.remove('public-mode', 'app-mode')
@@ -58,6 +74,12 @@ export function AuthPage({ mode, enabled, allowedDomains }: { mode: 'sign-in' | 
               signUp
                 ? <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/v2" appearance={appearance} />
                 : <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl="/v2" appearance={appearance} />
+            ) : localAccounts.length ? (
+              <div className="next-local-access">
+                <p>Development test accounts</p>
+                {localAccounts.map((email) => <button key={email} type="button" className="site-button site-button-primary" disabled={localBusy} onClick={() => void localSignIn(email)}>Continue as {email} <SiteIcon name="arrow" /></button>)}
+                {localError && <p role="alert">{localError}</p>}
+              </div>
             ) : (
               <div className="next-local-access"><p>Authentication is disabled in this local environment.</p><a className="site-button site-button-primary" href="/v2">Open local workspace <SiteIcon name="arrow" /></a></div>
             )}
