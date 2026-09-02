@@ -44,6 +44,7 @@ npm-debug.log*
 
 # ── Misc ────────────────────────────────────────────────────────────────────
 *.log
+screenlog.*
 .env
 .env.local
 /.claude/*

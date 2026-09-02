@@ -632,25 +632,46 @@ function SetupSurface() {
   // that answers it, on one screen. The question is whichever thing is
   // actually missing — the server picked it.
   if (view && opening && !started && !sending) {
+    const steps = setupSteps({ state: view.state ?? null, skipped: view.skipped ?? [] })
+    const connected = connectedCount(steps)
     return (
-      <div className="mx-auto flex h-dvh w-full max-w-[1180px] flex-col justify-center p-8">
-        <div className="mx-auto flex w-full max-w-[64ch] flex-col gap-4">
-          <h1 className="font-heading text-4xl leading-tight tracking-tight">{opening.heading}</h1>
-          {/* Safe to set: the parser escapes first and emits only its own rules. */}
-          <div
-            className={`text-muted-foreground text-[15px] leading-relaxed ${PROSE}`}
-            dangerouslySetInnerHTML={{ __html: tutorMarkdown(opening.body) }}
-          />
+      <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-[1180px] content-center gap-10 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-16">
+        <aside className="self-stretch border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
+          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
+          <p className="font-data mt-3 text-4xl leading-none font-semibold tabular-nums">
+            {connected}<span className="text-muted-foreground text-lg">/{steps.length}</span>
+          </p>
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">Connect the sources that turn the workspace into your own study record.</p>
+          <ol className="mt-7 hidden flex-col border-t lg:flex">
+            {steps.map((step, index) => (
+              <li key={step.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-3 border-b py-3">
+                <span className={`font-data text-xs tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {step.status === 'done' ? '✓' : String(index + 1).padStart(2, '0')}
+                </span>
+                <span className={`text-sm ${step.id === opening.step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{step.title}</span>
+              </li>
+            ))}
+          </ol>
+        </aside>
+
+        <main className="flex min-w-0 max-w-[68ch] flex-col justify-center gap-5">
+          <div className="border-primary border-t-2 pt-6">
+            <h1 className="font-heading text-5xl leading-[0.98] font-semibold tracking-[-0.025em] md:text-6xl">{opening.heading}</h1>
+            {/* Safe to set: the parser escapes first and emits only its own rules. */}
+            <div
+              className={`text-muted-foreground mt-5 max-w-[60ch] text-[15px] leading-relaxed ${PROSE}`}
+              dangerouslySetInnerHTML={{ __html: tutorMarkdown(opening.body) }}
+            />
+          </div>
           {error && <p className="text-sm">{error}</p>}
           {composer(opening.placeholder)}
-          <p className="text-muted-foreground text-sm">
-            Prefer to fill it in yourself?{' '}
-            <Link href="/v2/setup?checklist=1" className="text-primary underline underline-offset-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <p className="text-muted-foreground text-xs">Only your programme is required. Everything else can be connected later.</p>
+            <Link href="/v2/setup?checklist=1" className="text-primary text-sm font-semibold hover:underline">
               Use the checklist
             </Link>
-            .
-          </p>
-        </div>
+          </div>
+        </main>
       </div>
     )
   }
