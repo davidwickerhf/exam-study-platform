@@ -23,6 +23,24 @@ body.public-mode {
   overflow: visible;
   background: var(--color-canvas);
 }
+.skip-link {
+  position: fixed;
+  z-index: 200;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(calc(-100% - var(--space-5)));
+  transition: transform 140ms ease-out;
+}
+.skip-link:focus-visible { transform: translateY(0); outline: 2px solid var(--color-brand); outline-offset: 2px; }
 body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 #public-site { min-height: 100dvh; overflow-x: clip; color: var(--color-ink); background: var(--color-canvas); }
 #public-site *, #auth-gate * { box-sizing: border-box; }
@@ -202,7 +220,7 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 .legal-table span { color: var(--color-ink-secondary); font-size: 14px; }.legal-table em { grid-column: 2; color: var(--color-ink-tertiary); font-size: 12px; font-style: normal; }
 
 /* Authentication is a dedicated access page, not the public home page. */
-.auth-gate { width: 100%; min-height: 100dvh; padding: 0; display: block; overflow-y: auto; background: var(--color-canvas); }
+.auth-gate { width: 100%; min-height: 100dvh; padding: 0; display: block; overflow-y: auto; color: var(--color-ink); background: var(--color-canvas); }
 .auth-page { width: 100%; min-height: 100dvh; display: grid; grid-template-columns: minmax(480px, 42%) minmax(0, 58%); }
 .auth-back { display: block; margin-bottom: var(--space-7); color: var(--color-ink-secondary) !important; font-size: 12px; text-decoration: none; }
 .auth-form-column { min-width: 0; padding: clamp(80px, 9vh, 104px) clamp(var(--space-6), 6vw, 88px) var(--space-7); display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--color-border); background: var(--color-surface); }
@@ -222,10 +240,22 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 .auth-course-sheet header strong { grid-column: 3; color: white; }.auth-course-sheet > div b { color: var(--color-on-dark-tertiary); font: 500 10px/1.4 var(--font-data); text-transform: uppercase; }.auth-course-sheet > div span { font-size: 14px; font-weight: 600; }.auth-course-sheet > div em { color: var(--color-on-dark-secondary); font: 500 10px/1.4 var(--font-data); font-style: normal; }
 .auth-privacy-note { margin: var(--space-7) 0 0; display: flex; align-items: center; gap: var(--space-2); color: var(--color-on-dark-secondary); font-size: 11px; }.auth-privacy-note svg { color: var(--color-on-dark-accent); }
 .auth-form-column .cl-rootBox, .auth-form-column .cl-cardBox, .auth-form-column .cl-card { width: 100% !important; }
-.auth-form-column .cl-cardBox { overflow: visible !important; }
+.auth-form-column .cl-cardBox { overflow: visible !important; box-shadow: none !important; }
 .auth-form-column .cl-card { margin: 0 !important; }
 .auth-form-column .cl-card { padding: 0 !important; background: transparent !important; box-shadow: none !important; }
 .auth-form-column .cl-header, .auth-form-column .cl-footer { display: none !important; }
+.auth-form-column .cl-main { gap: var(--space-4); }
+.auth-form-column .cl-socialButtonsBlockButton,
+.auth-form-column .cl-formFieldInput,
+.auth-form-column .cl-formButtonPrimary { min-height: var(--control-lg); border-radius: var(--radius-sm); }
+.auth-form-column .cl-socialButtonsBlockButton { border-color: var(--color-border-strong); color: var(--color-ink); background: var(--color-surface); box-shadow: none; }
+.auth-form-column .cl-formFieldLabel { color: var(--color-ink); font-size: 13px; font-weight: 600; }
+.auth-form-column .cl-formFieldInput { border-color: var(--color-border-strong); color: var(--color-ink); background: var(--color-surface); box-shadow: none; }
+.auth-form-column .cl-formFieldInput:focus { border-color: var(--color-brand); box-shadow: 0 0 0 2px var(--color-brand-soft); }
+.auth-form-column .cl-formButtonPrimary { color: white; background: var(--color-brand); box-shadow: none; }
+.auth-form-column .cl-dividerLine { background: var(--color-border); }
+.auth-form-column .cl-dividerText { color: var(--color-ink-tertiary); }
+.auth-form-column .cl-formFieldInputShowPasswordButton { color: var(--color-ink-secondary); }
 
 @media (max-width: 1050px) {
   .site-hero { grid-template-columns: 1fr; min-height: auto; }

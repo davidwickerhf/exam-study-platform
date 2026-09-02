@@ -72,8 +72,8 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
           <div id="clerk-sign-in">
             {enabled ? (
               signUp
-                ? <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/v2" appearance={appearance} />
-                : <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl="/v2" appearance={appearance} />
+                ? <SignUp routing="hash" signInUrl="/sign-in" fallbackRedirectUrl="/v2" appearance={appearance} />
+                : <SignIn routing="hash" signUpUrl="/sign-up" fallbackRedirectUrl="/v2" appearance={appearance} />
             ) : localAccounts.length ? (
               <div className="next-local-access">
                 <p>Development test accounts</p>
