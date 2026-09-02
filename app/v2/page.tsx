@@ -14,7 +14,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   type AcademicSummary,
@@ -297,7 +296,6 @@ export default function HomePage() {
         </section>
       )}
 
-      <Separator className="sr-only" />
     </div>
   )
 }

@@ -41,7 +41,11 @@
  * its provenance.
  * ========================================================================= */
 
-:root:has(#app) {
+/* The workspace, legacy or migrated. A migrated route has no #app, so without
+   [data-v2] here every legacy --color-* token on those pages resolved to the
+   old light palette — which is how dash.css's `.fc { --fc-border-color: ... }`
+   painted the new calendar's grid in light grey. */
+:root:has(#app), :root:has([data-v2]) {
   /* ── The board ───────────────────────────────────────────────────────── */
   --w-ink: #0d0f13;
   --w-board: #131720;
@@ -132,8 +136,8 @@
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
 
-html:has(#app), body:has(#app) { background: var(--w-ink) !important; }
-body:has(#app) {
+html:has(#app), html:has([data-v2]), body:has(#app), body:has([data-v2]) { background: var(--w-ink) !important; }
+body:has(#app), body:has([data-v2]) {
   background-image: none !important;
   color: var(--w-type);
   font-family: var(--font-ui);

@@ -2,14 +2,9 @@ import type { Metadata } from 'next'
 import { Archivo, Archivo_Narrow } from 'next/font/google'
 import { connection } from 'next/server'
 import type { ReactNode } from 'react'
-import '../public/styles.css'
-import '../public/polish.css'
-import '../public/system.css'
-import '../public/dash.css'
-import '../public/public-site.css'
+import './legacy.css'
 import './tailwind.css'
 import './next.css'
-import '../public/world.css'
 import { cn } from "@/lib/utils";
 
 

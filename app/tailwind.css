@@ -5,7 +5,7 @@
  * which would flatten all of it in one import, so the theme and utility layers
  * come in on their own and the reset stays out until the migration is done.
  * Restore the single `@import "tailwindcss"` on the day public/app.js goes. */
-@layer theme, base, components, utilities;
+@layer legacy, theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "tw-animate-css";
@@ -112,7 +112,14 @@
   [data-v2] :is(ul, ol) {
     @apply m-0 list-none p-0;
     }
-  [data-v2] :is(h1, h2, h3, h4, p, figure, blockquote) {
+  /* Preflight also unsets heading size and weight so utilities own them.
+     Without it the legacy stylesheets' h1 rules leaked in and a calendar
+     toolbar's date range rendered at display scale. */
+  [data-v2] :is(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+    }
+  [data-v2] :is(h1, h2, h3, h4, p, figure, blockquote, dl, dd) {
     @apply m-0;
     }
   /* Form controls are where skipping preflight actually bites: a <button>
@@ -144,3 +151,73 @@
     @apply block max-w-full;
     }
 }
+/* ── FullCalendar ─────────────────────────────────────────────────────────
+ * The grid is FullCalendar's; the appearance is this product's. Its own
+ * stylesheet ships light borders, blue links and rounded event chips, none of
+ * which belong to the board — so its variables are answered here rather than
+ * fought selector by selector.
+ * ------------------------------------------------------------------------ */
+[data-fc], [data-fc] .fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--card);
+  --fc-today-bg-color: color-mix(in oklab, var(--primary) 8%, transparent);
+  --fc-now-indicator-color: var(--primary);
+  --fc-event-bg-color: var(--card);
+  --fc-event-border-color: var(--border);
+  --fc-event-text-color: var(--foreground);
+  --fc-list-event-hover-bg-color: var(--card);
+  --fc-small-font-size: 0.75rem;
+  height: 100%;
+}
+[data-fc] .fc { height: 100%; }
+[data-fc] .fc a { color: inherit; text-decoration: none; }
+
+/* Times, dates and day numbers are data, and line up in columns. */
+[data-fc] :is(.fc-col-header-cell-cushion, .fc-daygrid-day-number, .fc-timegrid-slot-label-cushion, .fc-list-day-text, .fc-list-day-side-text, .fc-event-time) {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+[data-fc] .fc-col-header-cell-cushion {
+  padding: 0.5rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+[data-fc] .fc-timegrid-slot-label-cushion { font-size: 0.7rem; color: var(--muted-foreground); }
+[data-fc] .fc-daygrid-day-number { font-size: 0.75rem; color: var(--muted-foreground); padding: 0.25rem 0.35rem; }
+[data-fc] .fc-day-today .fc-daygrid-day-number { color: var(--foreground); font-weight: 600; }
+
+/* An event is a ruled block with a signal edge, not a rounded pill. */
+[data-fc] .fc-event {
+  border-radius: 0;
+  border: 0;
+  border-left: 2px solid var(--border);
+  background: var(--card);
+  padding: 2px 4px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+[data-fc] .fc-event:hover { background: var(--muted); }
+[data-fc] .fc-event-main { color: var(--foreground); }
+[data-fc] .fc-event-title { font-weight: 500; }
+[data-fc] .fc-event-time { color: var(--muted-foreground); font-weight: 500; }
+/* The one colour, spent on what is happening now. */
+[data-fc] .fc-timegrid-now-indicator-line { border-color: var(--primary); border-width: 1px; }
+[data-fc] .fc-timegrid-now-indicator-arrow { border-color: var(--primary); color: var(--primary); }
+
+[data-fc] .fc-list { border-color: var(--border); }
+[data-fc] .fc-list-day-cushion { background: var(--card); }
+[data-fc] .fc-list-event:hover td { background: var(--card); }
+[data-fc] .fc-list-empty { background: transparent; color: var(--muted-foreground); }
+[data-fc] .fc-scrollgrid { border-color: var(--border); }
+[data-fc] .fc-timegrid-axis-cushion { color: var(--muted-foreground); font-size: 0.7rem; }
+/* The day column headers sit on the board, not on a raised bar. */
+[data-fc] :is(.fc-col-header-cell, .fc-timegrid-axis, .fc-scrollgrid-section-header > *) { background: transparent; }
+[data-fc] .fc-day-today { background: color-mix(in oklab, var(--primary) 10%, transparent) !important; }
+[data-fc] .fc-daygrid-day.fc-day-today { background: color-mix(in oklab, var(--primary) 8%, transparent) !important; }
+/* react-day-picker's own grid was clipping its first weekday label. */
+[data-v2] [data-slot="calendar"] { width: 100%; }
+[data-v2] [data-slot="calendar"] table { width: 100%; }
