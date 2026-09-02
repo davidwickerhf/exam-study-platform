@@ -22,6 +22,7 @@ export type SetupIssue = { id: string; step: string; relatedStep?: string; sever
 export type SetupSourceState = {
   programme: boolean
   programmeName: string | null
+  customProgramme?: boolean
   courseCount: number
   record: boolean
   recordSummary: RecordSummary | null

@@ -414,6 +414,10 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
   const [studyYear, setStudyYear] = useState('1')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [custom, setCustom] = useState(false)
+  const [institution, setInstitution] = useState('Maastricht University')
+  const [degree, setDegree] = useState('Bachelor of Science')
+  const [customName, setCustomName] = useState('')
   useEffect(() => {
     json<{ programmes: ProgrammeOption[] }>('/api/editorial-programmes?scope=setup').then((data) => {
       setProgrammes(data.programmes ?? [])
@@ -422,6 +426,19 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
     }).catch((cause: Error) => setError(cause.message))
   }, [current])
   const programme = programmes.find((entry) => entry.id === programmeId)
+  if (custom) return <form className="flex flex-col gap-4" onSubmit={async (event) => {
+    event.preventDefault(); if (!customName.trim() || busy) return; setBusy(true); setError(null)
+    const now = new Date(); const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1
+    try { await json('/api/academics/programmes', { method: 'POST', body: JSON.stringify({ profile: { university: institution.trim(), programme: `${degree} ${customName.trim()}`, academicYear: `${start}-${start + 1}`, currentYearKey: `${start}-${start + 1}` } }) }); onSaved() }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'The programme could not be created.') }
+    finally { setBusy(false) }
+  }}>
+    <div className="border-y py-4"><h3 className="font-semibold">Add a personal programme</h3><p className="text-muted-foreground mt-1 text-sm">This creates your private study record immediately. Courses and dates remain empty until you add or import them; it is not presented as a maintained curriculum.</p></div>
+    <Field><FieldLabel htmlFor="custom-institution">Institution</FieldLabel><Input id="custom-institution" value={institution} onChange={(event) => setInstitution(event.target.value)} required /></Field>
+    <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Degree</FieldLabel><Select value={degree} onValueChange={(value) => setDegree(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Bachelor of Science">Bachelor of Science</SelectItem><SelectItem value="Bachelor of Arts">Bachelor of Arts</SelectItem><SelectItem value="Master of Science">Master of Science</SelectItem><SelectItem value="Master of Arts">Master of Arts</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select></Field><Field><FieldLabel htmlFor="custom-programme">Programme name</FieldLabel><Input id="custom-programme" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Econometrics and Operations Research" required /></Field></div>
+    {error && <FieldError>{error}</FieldError>}
+    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy || !customName.trim()}>{busy ? 'Creating…' : 'Create personal programme'}</Button><Button type="button" variant="ghost" onClick={() => setCustom(false)}>Back to maintained programmes</Button></div>
+  </form>
   return <form className="flex flex-col gap-4" onSubmit={async (event) => {
     event.preventDefault(); if (!programmeId || busy) return; setBusy(true); setError(null)
     try { await json('/api/onboarding/programme', { method: 'PUT', body: JSON.stringify({ programmeId, versionId, studyYear }) }); onSaved() }
@@ -435,7 +452,7 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
     </div>
     <FieldDescription>Changing programme preserves attempts already in your personal academic record.</FieldDescription>
     {error && <FieldError>{error}</FieldError>}
-    <Button type="submit" className="w-fit" disabled={busy || !programmeId || !versionId}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving…' : 'Save programme'}</Button>
+    <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={busy || !programmeId || !versionId}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving…' : 'Save programme'}</Button><Button type="button" variant="ghost" onClick={() => setCustom(true)}>My programme isn’t listed</Button></div>
   </form>
 }
 
@@ -595,7 +612,7 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
           {selected.id === 'canvas' && <SecureField kind="canvas" onApplied={onApplied} onSkip={() => {}} />}
 
           {selected.id === 'programme' && <ProgrammeEditor current={view?.state?.programmeName ?? null} onSaved={onRefresh} />}
-          {selected.id === 'electives' && <ElectivesEditor onSaved={onRefresh} />}
+          {selected.id === 'electives' && (view?.state?.customProgramme ? <div className="flex flex-col gap-3 border-y py-5"><p className="text-muted-foreground text-sm">This is a personal programme without a maintained curriculum, so there are no predefined elective groups. Add the courses you take directly to your personal plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={onRefresh} />)}
           {selected.id === 'calendar' && <div className="flex flex-col gap-3 border-y py-5"><strong className="font-data text-2xl tabular-nums">{view?.state?.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground text-sm">Teaching periods, exam weeks and holidays come from the selected programme’s maintained calendar. Changing the programme updates this source automatically.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/calendar" />}>Open calendar</Button></div>}
         </>}
 
