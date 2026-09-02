@@ -237,6 +237,7 @@ function uiIcon(name) {
     ,upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>'
     ,file: '<path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/>'
     ,check: '<path d="m5 12 4 4L19 6"/>'
+    ,copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/>'
     ,arrowLeft: '<path d="m15 5-7 7 7 7"/>'
     ,user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>'
     ,home: '<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/>'
@@ -813,6 +814,11 @@ async function init() {
       return
     }
     if (event.key === 'Escape') {
+      if (tutor.rail) {
+        tutor.rail = false
+        render()
+        return
+      }
       if (mobileStudyPanel) {
         mobileStudyPanel = null
         render()
@@ -1480,8 +1486,15 @@ function render() {
   if (route.page === 'tutor') {
     const thread = document.querySelector('.chat-thread')
     if (thread) thread.scrollTop = thread.scrollHeight
-    const input = document.querySelector('[data-tutor-input]')
-    if (input && !tutor.sending && document.activeElement === document.body) input.focus({ preventScroll: true })
+    if (tutor.rail && !tutorRailWasOpen) {
+      document.querySelector('.tutor-drawer-head .icon-btn')?.focus({ preventScroll: true })
+    } else if (!tutor.rail && tutorRailWasOpen) {
+      document.querySelector('.tutor-bar-actions [data-tutor-rail]')?.focus({ preventScroll: true })
+    } else {
+      const input = document.querySelector('[data-tutor-input]')
+      if (input && !tutor.sending && document.activeElement === document.body) input.focus({ preventScroll: true })
+    }
+    tutorRailWasOpen = tutor.rail
   }
   if (route.page === 'setup') {
     const thread = document.querySelector('.chat-thread')
@@ -4818,6 +4831,7 @@ function renderOnboardingPrompt(prompt) {
 // nothing said in one conversation reaches another unless it was remembered.
 
 const tutor = { data: null, loading: false, error: null, draft: '', sending: false, conversationId: null, rail: false }
+let tutorRailWasOpen = false
 
 async function loadTutor({ force = false, conversationId = null } = {}) {
   if (tutor.loading || (tutor.data && !force && !conversationId)) return
@@ -4855,68 +4869,198 @@ const TUTOR_OPENERS = [
   'How am I doing on credits?'
 ]
 
-function renderTutorRail() {
+// The tutor answers in Markdown — numbered steps, bold course codes, and the
+// Canvas link that is usually the whole point of the answer. Rendered as plain
+// text, the one line the student needs to act on becomes an unclickable string,
+// so it is parsed here.
+//
+// Deliberately small and escape-first. This is model output, so nothing reaches
+// the DOM that was not produced by one of the rules below: links are lifted out
+// before escaping and put back after, which is also what stops a labelled link
+// from being auto-linked a second time.
+function tutorLinkLabel(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '')
+    return host.includes('canvas') ? 'Open in Canvas' : host
+  } catch { return url }
+}
+
+function tutorInline(text) {
+  const links = []
+  const hold = (url, label) => `@@wsL${links.push({ url, label }) - 1}@@`
+  let out = String(text || '')
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => hold(url, label))
+    // Trailing punctuation belongs to the sentence, not to the address.
+    .replace(/(https?:\/\/[^\s<>()]*[^\s<>().,;:!?])/g, (url) => hold(url, null))
+  out = escapeHtml(out)
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*\w])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+  out = out.replace(/\n/g, '<br>')
+  return out.replace(/@@wsL(\d+)@@/g, (_, index) => {
+    const { url, label } = links[Number(index)]
+    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label || tutorLinkLabel(url))}</a>`
+  })
+}
+
+function tutorMarkdown(source) {
+  const out = []
+  let list = null
+  let para = ''
+  let blank = true
+  // Markdown's hard break: a line ending in two spaces continues the same
+  // block on a new line rather than flowing into it.
+  let hardBreak = false
+  const join = (existing, addition) => existing + (hardBreak ? '\n' : ' ') + addition
+  const flushPara = () => { if (para) { out.push(`<p>${tutorInline(para)}</p>`); para = '' } }
+  const flushList = () => {
+    if (!list) return
+    const items = list.items.map((item) => `<li>${tutorInline(item.text)}${item.sub.length
+      ? `<ul>${item.sub.map((entry) => `<li>${tutorInline(entry)}</li>`).join('')}</ul>` : ''}</li>`).join('')
+    // A blank line between steps ends the list element but not the sequence:
+    // without the source's own start number, step 3 renders as a second step 1.
+    const open = list.type === 'ol' && list.start > 1 ? `<ol start="${list.start}">` : `<${list.type}>`
+    out.push(`${open}${items}</${list.type}>`)
+    list = null
+  }
+
+  for (const raw of String(source || '').replace(/\r/g, '').split('\n')) {
+    if (!raw.trim()) { flushPara(); blank = true; continue }
+    const indent = raw.match(/^\s*/)[0].length
+    const heading = raw.match(/^\s*#{1,6}\s+(.*)$/)
+    const ordered = raw.match(/^\s*(\d+)[.)]\s+(.*)$/)
+    const bullet = raw.match(/^\s*[-*•]\s+(.*)$/)
+
+    if (heading) { flushPara(); flushList(); out.push(`<h4>${tutorInline(heading[1].trim())}</h4>`); blank = false; continue }
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(raw)) { flushPara(); flushList(); continue }
+
+    if (ordered) {
+      flushPara()
+      if (list && list.type !== 'ol') flushList()
+      if (!list) list = { type: 'ol', items: [], start: Number(ordered[1]) || 1 }
+      list.items.push({ text: ordered[2].trim(), sub: [] })
+      blank = false
+      hardBreak = / {2,}$/.test(raw)
+      continue
+    }
+    if (bullet) {
+      flushPara()
+      // A bullet under a numbered step is that step's detail — either indented,
+      // or simply on the next line, which is how the tutor writes out a day's
+      // sessions. A blank line in between makes it a list of its own.
+      if (list && list.items.length && (indent >= 2 || (list.type === 'ol' && !blank))) {
+        list.items[list.items.length - 1].sub.push(bullet[1].trim())
+        blank = false
+        hardBreak = / {2,}$/.test(raw)
+        continue
+      }
+      if (list && list.type !== 'ul') flushList()
+      if (!list) list = { type: 'ul', items: [] }
+      list.items.push({ text: bullet[1].trim(), sub: [] })
+      blank = false
+      hardBreak = / {2,}$/.test(raw)
+      continue
+    }
+    if (list && indent >= 2 && list.items.length && !blank) {
+      const item = list.items[list.items.length - 1]
+      if (item.sub.length) item.sub[item.sub.length - 1] = join(item.sub[item.sub.length - 1], raw.trim())
+      else item.text = join(item.text, raw.trim())
+      blank = false
+      hardBreak = / {2,}$/.test(raw)
+      continue
+    }
+    flushList()
+    para = para ? join(para, raw.trim()) : raw.trim()
+    blank = false
+    hardBreak = / {2,}$/.test(raw)
+  }
+  flushPara()
+  flushList()
+  return out.join('')
+}
+
+function renderTutorDrawer() {
   const data = tutor.data
   const conversations = data?.conversations || []
   const facts = data?.memory?.facts || []
   const preferences = data?.memory?.preferences || {}
   const options = data?.preferenceOptions || {}
-  return `<aside class="tutor-rail${tutor.rail ? ' is-open' : ''}" aria-label="Conversations and memory">
-    <button type="button" class="btn btn-primary btn-sm tutor-new" data-tutor-new>${uiIcon('plus')} New conversation</button>
-    <div class="tutor-rail-group">
-      <h3>Conversations</h3>
-      ${conversations.length ? `<ul class="tutor-list">${conversations.map((item) => `<li${item.id === tutor.conversationId ? ' class="is-on"' : ''}>
-        <button type="button" data-tutor-open="${escapeHtml(item.id)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(relativeTime(item.updatedAt) || '')} · ${item.messageCount} message${item.messageCount === 1 ? '' : 's'}</small></button>
-        <button type="button" class="icon-btn" data-tutor-delete="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.title)}">${uiIcon('trash')}</button>
-      </li>`).join('')}</ul>` : '<p class="panel-note">Nothing yet.</p>'}
-    </div>
-    <div class="tutor-rail-group">
-      <h3>Remembered</h3>
-      ${facts.length ? `<ul class="tutor-memory">${facts.map((fact) => `<li><span>${escapeHtml(fact.fact)}</span><button type="button" class="icon-btn" data-tutor-forget="${escapeHtml(fact.id)}" aria-label="Forget this">${uiIcon('close')}</button></li>`).join('')}</ul>`
-        : '<p class="panel-note">Ask the tutor to remember something and it appears here. Nothing is remembered unless you ask.</p>'}
-    </div>
-    <div class="tutor-rail-group">
-      <h3>How it answers</h3>
-      <div class="tutor-prefs">${Object.entries(options).map(([key, spec]) => `<label><span>${escapeHtml(spec.label)}</span><select data-tutor-pref="${escapeHtml(key)}">${spec.options.map((option) => `<option value="${escapeHtml(option)}" ${preferences[key] === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></label>`).join('')}</div>
-    </div>
-  </aside>`
+  return `<div class="tutor-drawer${tutor.rail ? ' is-open' : ''}">
+    <button type="button" class="tutor-drawer-scrim" data-tutor-rail tabindex="-1" aria-hidden="true"></button>
+    <aside class="tutor-drawer-panel" role="dialog" aria-label="History, memory and answering preferences" aria-modal="false">
+      <header class="tutor-drawer-head">
+        <h2>History</h2>
+        <button type="button" class="icon-btn" data-tutor-rail aria-label="Close">${uiIcon('close')}</button>
+      </header>
+      <div class="tutor-drawer-body">
+        <div class="tutor-rail-group">
+          ${conversations.length ? `<ul class="tutor-list">${conversations.map((item) => `<li${item.id === tutor.conversationId ? ' class="is-on"' : ''}>
+            <button type="button" data-tutor-open="${escapeHtml(item.id)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(relativeTime(item.updatedAt) || '')} · ${item.messageCount} message${item.messageCount === 1 ? '' : 's'}</small></button>
+            <button type="button" class="icon-btn" data-tutor-delete="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.title)}">${uiIcon('trash')}</button>
+          </li>`).join('')}</ul>` : '<p class="panel-note">Nothing yet. Your conversations are listed here once you have asked something.</p>'}
+        </div>
+        <div class="tutor-rail-group">
+          <h3>Remembered</h3>
+          ${facts.length ? `<ul class="tutor-memory">${facts.map((fact) => `<li><span>${escapeHtml(fact.fact)}</span><button type="button" class="icon-btn" data-tutor-forget="${escapeHtml(fact.id)}" aria-label="Forget this">${uiIcon('close')}</button></li>`).join('')}</ul>`
+            : '<p class="panel-note">Ask the tutor to remember something and it appears here. Nothing is remembered unless you ask.</p>'}
+        </div>
+        <div class="tutor-rail-group">
+          <h3>How it answers</h3>
+          <div class="tutor-prefs">${Object.entries(options).map(([key, spec]) => `<label><span>${escapeHtml(spec.label)}</span><select data-tutor-pref="${escapeHtml(key)}">${spec.options.map((option) => `<option value="${escapeHtml(option)}" ${preferences[key] === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></label>`).join('')}</div>
+        </div>
+      </div>
+    </aside>
+  </div>`
 }
 
 function renderTutorPage() {
-  if (!tutor.data && !tutor.loading && !tutor.error) queueMicrotask(() => loadTutor())
+  if (!tutor.data && !tutor.loading && !tutor.error) queueMicrotask(() => loadTutor({ conversationId: route.conversationId }))
   const data = tutor.data
   const messages = data?.conversation?.messages || []
   const thinking = tutor.sending
 
   if (data && data.available === false) {
-    return `<section class="page-wrap"><header class="page-head"><div><p class="page-eyebrow">Tutor</p><h1>Tutor</h1></div></header>
+    return `<section class="page-wrap"><header class="page-head"><div><h1>Tutor</h1></div></header>
       <div class="upd-empty panel">${uiIcon('alert')}<div><strong>The tutor needs a language model</strong><p>No model is configured for this deployment, so there is nothing to talk to. Your dashboard, calendar, and Updates all still work.</p></div></div></section>`
   }
 
-  return `<section class="page-wrap tutor-page">
-    <header class="page-head">
-      <div><p class="page-eyebrow">Tutor</p><h1>Ask about your week</h1><p class="page-sub">It can see your timetable, your Canvas deadlines, your courses, and your record — and it says so when it cannot.</p></div>
-      <div class="page-head-actions"><button type="button" class="btn btn-secondary btn-sm tutor-rail-toggle" data-tutor-rail aria-expanded="${tutor.rail}">${uiIcon('list')} History</button></div>
-    </header>
+  const title = messages.length ? (data?.conversation?.title || messages.find((message) => message.role === 'user')?.content || 'Tutor') : 'Tutor'
 
-    <div class="tutor-layout">
-      ${renderTutorRail()}
-      <div class="tutor-main">
-        <div class="chat-thread" role="log" aria-live="polite" aria-label="Tutor conversation">
-          ${messages.length ? messages.map((message) => `<div class="chat-turn is-${message.role}"><div class="chat-bubble">${escapeHtml(message.content)}</div></div>`).join('') : `<div class="tutor-openers">
-            <p>Ask anything about your studies. It reads your own timetable, deadlines and record before answering.</p>
-            <div class="tutor-opener-row">${TUTOR_OPENERS.map((opener) => `<button type="button" class="tutor-opener" data-tutor-ask="${escapeHtml(opener)}">${escapeHtml(opener)}</button>`).join('')}</div>
-          </div>`}
-          ${thinking ? `<div class="chat-turn is-assistant"><div class="chat-bubble is-thinking" aria-label="Thinking"><i></i><i></i><i></i></div></div>` : ''}
-        </div>
-        ${tutor.error ? `<div class="settings-error" role="alert"><strong>That could not be sent.</strong><p>${escapeHtml(tutor.error)}</p></div>` : ''}
-        <form class="chat-composer" data-tutor-form>
-          <label class="sr-only" for="tutor-input">Your question</label>
-          <textarea id="tutor-input" rows="1" data-tutor-input placeholder="Ask about your week, a course, or your progress…" ${thinking ? 'disabled' : ''}>${escapeHtml(tutor.draft)}</textarea>
-          <button type="submit" class="btn btn-primary" ${thinking || !tutor.draft.trim() ? 'disabled' : ''} aria-label="Send">${uiIcon('chevronRight')}</button>
-        </form>
+  return `<section class="page-wrap tutor-page">
+    <div class="tutor-bar">
+      <h1 title="${escapeHtml(title)}">${escapeHtml(title)}</h1>
+      <div class="tutor-bar-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-tutor-new ${messages.length ? '' : 'disabled'}>${uiIcon('plus')} New</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-tutor-rail aria-expanded="${tutor.rail}">${uiIcon('list')} History</button>
       </div>
     </div>
+
+    <div class="chat-thread" role="log" aria-live="polite" aria-label="Tutor conversation" data-tutor-thread>
+      ${messages.length ? messages.map((message) => message.role === 'user'
+        ? `<div class="chat-turn is-user"><div class="chat-bubble">${escapeHtml(message.content)}</div></div>`
+        : `<div class="chat-turn is-assistant">
+            <div class="tutor-answer">${tutorMarkdown(message.content)}</div>
+            <div class="tutor-answer-tools"><button type="button" class="tutor-tool" data-tutor-copy="${escapeHtml(message.content)}">${uiIcon('copy')} Copy</button></div>
+          </div>`).join('') : `<div class="tutor-openers">
+        <h2>Ask about your week.</h2>
+        <p>It reads your timetable, your Canvas deadlines, your courses and your record before it answers — and it tells you which of those it could not reach.</p>
+        <div class="tutor-opener-row">${TUTOR_OPENERS.map((opener) => `<button type="button" class="tutor-opener" data-tutor-ask="${escapeHtml(opener)}">${escapeHtml(opener)}</button>`).join('')}</div>
+      </div>`}
+      ${thinking ? `<div class="chat-turn is-assistant"><div class="tutor-thinking" aria-label="Working">
+        <span class="tutor-thinking-mark"><i></i><i></i><i></i></span>
+        <span class="tutor-thinking-said">Reading your timetable, Canvas and record…</span>
+        <span class="tutor-thinking-late">Live sources can take up to a minute.</span>
+      </div></div>` : ''}
+    </div>
+
+    ${tutor.error ? `<div class="settings-error" role="alert"><strong>That could not be sent.</strong><p>${escapeHtml(tutor.error)}</p></div>` : ''}
+    <form class="chat-composer" data-tutor-form>
+      <label class="sr-only" for="tutor-input">Your question</label>
+      <textarea id="tutor-input" rows="1" data-tutor-input placeholder="Ask about your week, a course, or your progress…" ${thinking ? 'disabled' : ''}>${escapeHtml(tutor.draft)}</textarea>
+      <button type="submit" class="btn btn-primary" ${thinking || !tutor.draft.trim() ? 'disabled' : ''} aria-label="Send">${uiIcon('chevronRight')}</button>
+    </form>
+
+    ${renderTutorDrawer()}
   </section>`
 }
 
@@ -4933,7 +5077,7 @@ function renderSetupConversation() {
     <div class="chat-thread" role="log" aria-live="polite" aria-label="Setup conversation">
       ${messages.length ? messages.map((message) => message.role === 'event'
         ? `<p class="chat-event">${uiIcon('check')} <span>${escapeHtml(message.content.replace(/\s*Confirm this briefly and move on\.?$/, ''))}</span></p>`
-        : `<div class="chat-turn is-${message.role}"><div class="chat-bubble">${escapeHtml(message.content)}</div></div>`).join('')
+        : `<div class="chat-turn is-${message.role}"><div class="chat-bubble">${message.role === 'assistant' ? tutorMarkdown(message.content) : escapeHtml(message.content)}</div></div>`).join('')
         : `<div class="chat-turn is-assistant"><div class="chat-bubble">Hello. I'm going to set up your workspace — it takes about two minutes. Say hello when you're ready.</div></div>`}
       ${thinking ? `<div class="chat-turn is-assistant"><div class="chat-bubble is-thinking" aria-label="Thinking"><i></i><i></i><i></i></div></div>` : ''}
       ${!thinking && data?.prompt ? renderOnboardingPrompt(data.prompt) : ''}
@@ -11287,6 +11431,14 @@ function bindEvents() {
   document.querySelectorAll('[data-tutor-new]').forEach((button) => button.addEventListener('click', () => { tutor.conversationId = null; tutor.data = { ...tutor.data, conversation: null }; tutor.rail = false; render() }))
   document.querySelectorAll('[data-tutor-open]').forEach((button) => button.addEventListener('click', () => { tutor.rail = false; loadTutor({ force: true, conversationId: button.dataset.tutorOpen }) }))
   document.querySelectorAll('[data-tutor-rail]').forEach((button) => button.addEventListener('click', () => { tutor.rail = !tutor.rail; render() }))
+  document.querySelectorAll('[data-tutor-copy]').forEach((button) => button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(button.dataset.tutorCopy)
+      const held = button.innerHTML
+      button.innerHTML = `${uiIcon('check')} Copied`
+      setTimeout(() => { button.innerHTML = held }, 1600)
+    } catch { button.textContent = 'Press Cmd-C' }
+  }))
   document.querySelectorAll('[data-tutor-delete]').forEach((button) => button.addEventListener('click', async () => {
     const id = button.dataset.tutorDelete
     const ok = await showConfirm({ title: 'Delete this conversation?', message: 'The conversation is removed. Anything the tutor was asked to remember stays.', okLabel: 'Delete', danger: true })
