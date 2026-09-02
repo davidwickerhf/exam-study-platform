@@ -41,7 +41,7 @@
  * its provenance.
  * ========================================================================= */
 
-:root {
+:root:has(#app) {
   /* ── The board ───────────────────────────────────────────────────────── */
   --w-ink: #0d0f13;
   --w-board: #131720;
@@ -132,8 +132,8 @@
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
 
-html, body { background: var(--w-ink) !important; }
-body {
+html:has(#app), body:has(#app) { background: var(--w-ink) !important; }
+body:has(#app) {
   background-image: none !important;
   color: var(--w-type);
   font-family: var(--font-ui);
@@ -142,20 +142,20 @@ body {
 
 /* Every numeral in the product is data: a credit total, a course code, a
    date, a countdown. They line up in columns, so they are always tabular. */
-:where(.w-data, .pl-table, .w-board-strip, time, .w-num) {
+body:has(#app) :where(.w-data, .pl-table, time, .w-num) {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
-::selection { background: var(--w-signal); color: var(--w-on-signal); }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--w-ink); }
-::-webkit-scrollbar-thumb { background: var(--w-rule); border: 3px solid var(--w-ink); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: var(--w-rule-strong); }
-* { scrollbar-color: var(--w-rule) var(--w-ink); }
+body:has(#app) ::selection { background: var(--w-signal); color: var(--w-on-signal); }
+body:has(#app) ::-webkit-scrollbar { width: 10px; height: 10px; }
+body:has(#app) ::-webkit-scrollbar-track { background: var(--w-ink); }
+body:has(#app) ::-webkit-scrollbar-thumb { background: var(--w-rule); border: 3px solid var(--w-ink); border-radius: 999px; }
+body:has(#app) ::-webkit-scrollbar-thumb:hover { background: var(--w-rule-strong); }
+body:has(#app) * { scrollbar-color: var(--w-rule) var(--w-ink); }
 
-:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+body:has(#app) :where(button, a, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid var(--w-signal) !important;
   outline-offset: 2px;
   box-shadow: none;
@@ -163,7 +163,7 @@ body {
 
 /* ── Type scale, actually used ────────────────────────────────────────── */
 
-.page-head h1, .page-hero h1, h1 {
+#app .page-head h1, #app .page-hero h1, #app h1 {
   font-family: var(--font-data);
   font-weight: 600;
   font-size: clamp(32px, 4.4vw, 60px);
@@ -171,8 +171,8 @@ body {
   letter-spacing: -0.02em;
   text-transform: none;
 }
-h2 { font: 600 24px/1.2 var(--font-ui); letter-spacing: -0.015em; }
-h3 { font: 600 15px/1.3 var(--font-ui); letter-spacing: -0.005em; }
+#app h2 { font: 600 24px/1.2 var(--font-ui); letter-spacing: -0.015em; }
+#app h3 { font: 600 15px/1.3 var(--font-ui); letter-spacing: -0.005em; }
 
 /* Small tracked caps are the board's column headers. They label a structure;
    they never sit above a heading as a kicker. */
@@ -184,11 +184,11 @@ h3 { font: 600 15px/1.3 var(--font-ui); letter-spacing: -0.005em; }
   text-transform: uppercase;
 }
 /* The eyebrows the old build stacked above every heading. */
-.page-eyebrow, .pl-eyebrow, .setup-eyebrow { display: none !important; }
+#app .page-eyebrow, #app .pl-eyebrow, #app .setup-eyebrow { display: none !important; }
 
 /* ── Controls: one signal, so one primary ─────────────────────────────── */
 
-.btn, .tb-btn, .load-q-btn, .q-nav-btn {
+#app .btn, #app .tb-btn, #app .load-q-btn, #app .q-nav-btn {
   border-radius: var(--radius-sm);
   border-color: var(--w-rule-strong);
   background: transparent;
@@ -213,13 +213,13 @@ h3 { font: 600 15px/1.3 var(--font-ui); letter-spacing: -0.005em; }
 .icon-btn { color: var(--w-type-3); border-radius: var(--radius-sm); }
 .icon-btn:hover { color: var(--w-type); background: var(--w-board-raised); }
 
-input, textarea, select {
+#app input, #app textarea, #app select {
   border-radius: var(--radius-sm);
   background: var(--w-board);
   border-color: var(--w-rule-strong);
   color: var(--w-type);
 }
-input::placeholder, textarea::placeholder { color: var(--w-type-3); }
+#app input::placeholder, #app textarea::placeholder { color: var(--w-type-3); }
 
 /* ── Rules, not cards ─────────────────────────────────────────────────── */
 /* The old build nested boxes three deep. On a board, a region is bounded by a
@@ -571,9 +571,67 @@ input::placeholder, textarea::placeholder { color: var(--w-type-3); }
   background: var(--w-rule-strong) !important;
 }
 
-/* ── Home: four questions, four sections ──────────────────────────────── */
+/* ── Home ─────────────────────────────────────────────────────────────── */
+/* A dashboard ranks. The lead column carries what is happening now at the
+   scale of the answer; the panel beside it carries what is coming. */
+.w-grid {
+  padding: var(--space-5) 0 var(--space-6);
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--space-7);
+  border-top: 1px solid var(--w-rule-strong);
+}
+.w-grid-lead { min-width: 0; }
+
+.w-now { padding-bottom: var(--space-4); }
+.w-now-when {
+  margin: var(--space-2) 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.w-now-when time {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 60px;
+  line-height: .9;
+  letter-spacing: -0.03em;
+}
+.w-now-when span { color: var(--w-type-2); font: 500 16px/1.2 var(--font-ui); }
+#app .w-now-what { margin: var(--space-3) 0 0; font: 600 24px/1.2 var(--font-ui); letter-spacing: -0.015em; }
+.w-now-where { margin: 6px 0 0; color: var(--w-type-2); font: 400 14px/1.5 var(--font-ui); }
+.w-now-go {
+  margin-top: var(--space-4);
+  display: inline-block;
+  color: var(--w-signal-text);
+  font: 600 14px/1.4 var(--font-ui);
+  text-decoration: none;
+}
+.w-now-go:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* The one thing carrying colour: what is running, or next. */
+.w-now.is-running .w-now-when time, .w-now .w-now-when time { color: var(--w-signal-text); }
+.w-now.is-quiet .w-now-when time { color: var(--w-type-2); }
+.w-now-empty { margin: var(--space-2) 0 0; color: var(--w-type-2); font: 400 16px/1.5 var(--font-ui); }
+
+.w-rest { margin: var(--space-4) 0 0; padding: var(--space-4) 0 0; list-style: none; border-top: 1px solid var(--w-rule); }
+.w-rest li {
+  padding: var(--space-2) 0;
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: baseline;
+}
+.w-rest time {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--w-type);
+}
+
+.w-panel { min-width: 0; padding-left: var(--space-6); border-left: 1px solid var(--w-rule); }
 .w-sec { padding: var(--space-5) 0; border-top: 1px solid var(--w-rule-strong); }
-.w-sec:first-of-type { border-top: 0; }
 .w-sec-head {
   margin-bottom: var(--space-4);
   display: flex;
@@ -581,69 +639,116 @@ input::placeholder, textarea::placeholder { color: var(--w-type-3); }
   justify-content: space-between;
   gap: var(--space-4);
 }
-.w-sec-head h2 { margin: 0; font: 600 15px/1.3 var(--font-ui); letter-spacing: 0; }
-.w-sec-meta {
-  color: var(--w-type-3);
-  font: 500 13px/1.3 "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
-  font-variant-numeric: tabular-nums;
-}
-.w-quiet { margin: 0; max-width: 62ch; color: var(--w-type-2); font: 400 14px/1.6 var(--font-ui); }
+#app .w-sec-head h2 { margin: 0; font: 600 15px/1.3 var(--font-ui); letter-spacing: 0; }
+.w-quiet { margin: 0; max-width: 46ch; color: var(--w-type-2); font: 400 14px/1.6 var(--font-ui); }
 
-.w-today, .w-due, .w-attn { margin: 0; padding: 0; list-style: none; }
-.w-today-row, .w-due-row, .w-attn > li {
+.w-due, .w-attn { margin: 0; padding: 0; list-style: none; }
+.w-due-row, .w-attn > li {
   padding: var(--space-3) 0;
   display: grid;
   align-items: baseline;
   gap: var(--space-4);
   border-bottom: 1px solid var(--w-rule);
 }
-.w-today-row { grid-template-columns: 5.5rem minmax(0, 1fr) 4rem; }
-.w-due-row { grid-template-columns: 5.5rem minmax(0, 1fr) 3.5rem 4rem; }
-.w-attn > li { grid-template-columns: minmax(0, 1fr) 4rem; }
+.w-due-row { grid-template-columns: 3.2rem minmax(0, 1fr) auto; }
+.w-attn > li { grid-template-columns: minmax(0, 1fr) auto; }
+.w-due-row:last-child, .w-attn > li:last-child { border-bottom: 0; }
+.w-due-away {
+  font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--w-type-2);
+}
+.w-due-away strong { font-weight: 600; font-size: 24px; letter-spacing: -0.02em; }
+.w-due-away small { font-size: 14px; }
+.w-due-row.is-next .w-due-away { color: var(--w-signal-text); }
+.w-n { min-width: 0; display: grid; gap: 2px; }
+.w-n strong { font: 500 15px/1.35 var(--font-ui); color: var(--w-type); overflow-wrap: anywhere; }
+.w-n small { color: var(--w-type-3); font: 400 12px/1.4 var(--font-ui); }
+.w-go { color: var(--w-signal-text); font: 600 12px/1.4 var(--font-ui); text-decoration: none; white-space: nowrap; }
+.w-go:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-.w-t, .w-due-when, .w-due-away {
+.w-progress { display: flex; align-items: center; gap: var(--space-5); }
+.w-bar { flex: 1 1 auto; height: 6px; background: var(--w-rule); }
+.w-bar span { display: block; height: 100%; background: var(--w-signal); }
+.w-bar-read { margin: 0; white-space: nowrap; }
+.w-bar-read strong {
   font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  font-size: 16px;
-  color: var(--w-type);
+  font-size: 32px;
+  letter-spacing: -0.02em;
 }
-.w-t small { display: block; margin-top: 1px; font-size: 12px; font-weight: 500; color: var(--w-type-3); }
-.w-due-away { font-size: 14px; font-weight: 500; color: var(--w-type-2); text-align: right; }
-.w-n { min-width: 0; display: grid; gap: 2px; }
-.w-n strong { font: 500 15px/1.35 var(--font-ui); color: var(--w-type); overflow-wrap: anywhere; }
-.w-n small { color: var(--w-type-3); font: 400 13px/1.4 var(--font-ui); }
-.w-go {
-  justify-self: end;
-  color: var(--w-signal-text);
-  font: 600 13px/1.4 var(--font-ui);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.w-go:hover { text-decoration: underline; text-underline-offset: 3px; }
+.w-bar-read small { margin-left: .5ch; color: var(--w-type-3); font: 500 14px/1 var(--font-ui); }
 
-/* The one thing on the page carrying colour: what is due soonest, and a
-   hand-in that lands today. */
-.w-due-row.is-soon .w-due-when, .w-due-row.is-soon .w-due-away { color: var(--w-signal-text); }
-.w-today-row.is-due { border-bottom-color: var(--w-signal); }
-.w-today-row.is-due .w-t { color: var(--w-signal-text); }
-
-.w-figs { display: flex; flex-wrap: wrap; gap: var(--space-7); }
+.w-figs { margin-top: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-7); }
 .w-fig { display: grid; gap: 4px; color: inherit; text-decoration: none; }
 .w-fig strong {
   font-family: "Archivo Narrow", "Archivo Narrow Fallback", sans-serif;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  font-size: 32px;
+  font-size: 24px;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 .w-fig small { margin-left: .35ch; font-size: 14px; font-weight: 500; color: var(--w-type-3); }
 .w-fig:hover strong { color: var(--w-signal-text); }
 
-@media (max-width: 700px) {
-  .w-today-row { grid-template-columns: 4.5rem minmax(0, 1fr); }
-  .w-due-row { grid-template-columns: 4.5rem minmax(0, 1fr) 3rem; }
-  .w-today-row .w-go, .w-due-row .w-go { grid-column: 2 / -1; justify-self: start; }
+@media (max-width: 960px) {
+  .w-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+  .w-panel { padding-left: 0; padding-top: var(--space-5); border-left: 0; border-top: 1px solid var(--w-rule); }
+  .w-now-when time { font-size: 42px; }
   .w-figs { gap: var(--space-5); }
+  .w-progress { flex-wrap: wrap; gap: var(--space-3); }
 }
+.w-grid.is-single { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+.w-grid.is-single .w-panel { padding-left: 0; border-left: 0; }
+.w-grid.is-single .w-now { padding-top: var(--space-4); border-top: 1px solid var(--w-rule); }
+.w-progress { max-width: 640px; }
+/* The tutor's opening screen shares the setup opening's shape. */
+.tutor-page-open .chat-open { width: min(64ch, 100%); }
+#app .tutor-page-open .chat-open h1 { font-size: clamp(32px, 3.6vw, 42px); }
+/* The paper window is for an answer, not for the invitation to ask one. */
+#app .tutor-page-open .chat-open-body { padding: 0; background: transparent; color: var(--w-type-2); box-shadow: none; }
+.tutor-page-open .tutor-opener-row { margin-top: var(--space-1); }
+.pl-link-button { border: 0; padding: 0; background: transparent; color: var(--w-type-2); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.pl-link-button:hover { color: var(--w-signal-text); }
+
+/* ── Compact: the sidebar becomes the foot bar ───────────────────────── */
+/* On a phone the shell reuses .dash-side as a fixed bottom bar. It kept the
+   old near-white ground, and eight destinations with full labels collided
+   into one another at 390px. */
+#app .dash-side, .dash-side {
+  background: var(--w-ink) !important;
+  border-color: var(--w-rule) !important;
+  backdrop-filter: none !important;
+}
+@media (max-width: 900px) {
+  .dash-side { border-top: 1px solid var(--w-rule) !important; }
+  .dash-side .dash-nav-link {
+    min-width: 0;
+    padding-inline: 2px;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .dash-side .dash-nav-link.active::before { display: none; }
+  .dash-side .dash-nav-link.active .nav-icon { color: var(--w-signal-text); }
+  .dash-side .nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+}
+/* Below this the labels cannot be read anyway; the icons carry it, and each
+   link keeps its accessible name. */
+@media (max-width: 430px) {
+  .dash-side .nav-label, .dash-side .dash-nav-count { display: none; }
+  .dash-side .dash-nav-link { padding-block: var(--space-2); }
+}
+
+/* The collapsed home grid inherited a top rule from the grid and another from
+   the section inside it, drawing two lines above an empty column. */
+.w-grid.is-single { border-top: 0; padding-top: 0; }
+.w-grid.is-single > .w-panel:first-child { padding-top: var(--space-5); border-top: 1px solid var(--w-rule-strong); }

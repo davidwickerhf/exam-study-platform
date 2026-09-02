@@ -27,6 +27,12 @@ typography:
     fontWeight: 600
     lineHeight: 1.08
     letterSpacing: "-0.035em"
+  display-small:
+    fontFamily: "Archivo Narrow, system-ui, sans-serif"
+    fontSize: "42px"
+    fontWeight: 600
+    lineHeight: 1.1
+    letterSpacing: "-0.025em"
   heading:
     fontFamily: "Archivo Narrow, system-ui, sans-serif"
     fontSize: "32px"

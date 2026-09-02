@@ -5074,6 +5074,28 @@ function renderTutorPage() {
 
   const title = messages.length ? (data?.conversation?.title || messages.find((message) => message.role === 'user')?.content || 'Tutor') : 'Tutor'
 
+  // With no conversation there is no transcript to lay out, and the full-height
+  // column left the openers stranded above a screen of nothing with the
+  // composer pinned to the floor. The opening is the invitation and the field
+  // that answers it, together.
+  if (!messages.length && !thinking) {
+    return `<section class="page-wrap chat-page is-opening tutor-page-open">
+      <div class="chat-open">
+        <h1>Ask about your week.</h1>
+        <p class="chat-open-body">It reads your timetable, your Canvas deadlines, your courses and your record before it answers — and it tells you which of those it could not reach.</p>
+        <div class="tutor-opener-row">${TUTOR_OPENERS.map((opener) => `<button type="button" class="tutor-opener" data-tutor-ask="${escapeHtml(opener)}">${escapeHtml(opener)}</button>`).join('')}</div>
+        ${tutor.error ? `<div class="settings-error" role="alert"><strong>That could not be sent.</strong><p>${escapeHtml(tutor.error)}</p></div>` : ''}
+        <form class="chat-composer" data-tutor-form>
+          <label class="sr-only" for="tutor-input">Your question</label>
+          <textarea id="tutor-input" rows="1" data-tutor-input placeholder="Ask about your week, a course, or your progress…">${escapeHtml(tutor.draft)}</textarea>
+          <button type="submit" class="btn btn-primary" ${!tutor.draft.trim() ? 'disabled' : ''} aria-label="Send">${uiIcon('chevronRight')}</button>
+        </form>
+        <p class="chat-open-alt"><button type="button" class="pl-link-button" data-tutor-rail>Past conversations</button></p>
+      </div>
+      ${renderTutorDrawer()}
+    </section>`
+  }
+
   return `<section class="page-wrap tutor-page">
     <div class="tutor-bar">
       <h1 title="${escapeHtml(title)}">${escapeHtml(title)}</h1>
@@ -5313,12 +5335,13 @@ function boardDate(iso) {
   return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(date).toUpperCase()
 }
 
-// Home answers four questions and nothing else: what is on today, what is due
-// next, where the degree stands, and what needs a decision. Everything it used
-// to also carry — the full week's agenda, the course ledger, the activity
-// chart, quick links, institution dates — is the whole content of Calendar,
-// Courses, Practice and Planning, repeated here at the cost of burying the
-// three Canvas deadlines that were the only actionable thing on the page.
+// Home answers four questions, and it answers them in order of how urgently
+// the student needs them: what is happening right now, what else is on today,
+// what is due, and where the degree stands.
+//
+// The first version answered them as four stacked full-width lists, which read
+// as a shopping list — every row the same weight, nothing leading, and a wide
+// canvas spent on one narrow column. Rank is the point of a dashboard.
 
 function homeEventsOn(iso) {
   return (calendarState.data?.events || [])
@@ -5335,63 +5358,127 @@ function homeDueItems(limit = 6) {
     .slice(0, limit)
 }
 
-// Canvas titles a deadline "BCS3120 · Quiz 1", and the row already has a
-// course column, so the code was printed twice on every line.
+// Canvas titles a deadline "BCS3120 · Quiz 1", and every row already has a
+// course column, so the code was printed twice on each line.
 function homeDeadlineTitle(event) {
   const title = String(event.title || 'Hand-in')
   const code = String(event.courseCode || '')
   if (!code) return title
-  return title.replace(new RegExp(`^\\s*${code.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s*[·:\\-–]\\s*`, 'i'), '') || title
+  const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return title.replace(new RegExp(`^\\s*${escaped}\\s*[·:\\-–]\\s*`, 'i'), '') || title
 }
 
-function renderHomeToday() {
-  const iso = localIsoDate(new Date())
-  const teaching = homeEventsOn(iso)
-  const dueToday = homeDueItems(20).filter((event) => String(event.start).slice(0, 10) === iso)
-  const stamp = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+function homeClock(value) {
+  const text = String(value || '')
+  return text.length > 10 ? text.slice(11, 16) : null
+}
 
-  if (!teaching.length && !dueToday.length) {
-    const missing = setupState().missing.some((step) => step.id === 'timetable')
-    return `<section class="w-sec">
-      <div class="w-sec-head"><h2>Today</h2><span class="w-sec-meta">${escapeHtml(stamp)}</span></div>
-      <p class="w-quiet">${missing ? 'No timetable connected, so teaching is not shown.' : 'Nothing scheduled.'}</p>
+function homeMinutesUntil(value) {
+  const at = new Date(String(value).length > 10 ? value : `${value}T00:00:00`)
+  if (Number.isNaN(at.getTime())) return null
+  return Math.round((at.getTime() - Date.now()) / 60_000)
+}
+
+function homeAwayLabel(minutes) {
+  if (minutes == null) return ''
+  if (minutes <= 0) return 'now'
+  if (minutes < 60) return `in ${minutes} min`
+  if (minutes < 60 * 10) {
+    const hours = Math.floor(minutes / 60)
+    const rest = minutes % 60
+    return `in ${hours}h${rest ? ` ${rest}m` : ''}`
+  }
+  return `in ${Math.round(minutes / 1440)} days`
+}
+
+/**
+ * The one thing the student needs first: whatever is running now, or the next
+ * thing today. Set at the scale of the answer, because on a dashboard the most
+ * urgent item should not look like the fifth row of a list.
+ */
+function homeDayEntries() {
+  const iso = localIsoDate(new Date())
+  return [
+    ...homeEventsOn(iso).map((event) => ({ event, kind: 'teaching' })),
+    ...homeDueItems(20).filter((event) => String(event.start).slice(0, 10) === iso).map((event) => ({ event, kind: 'due' }))
+  ]
+    .map((entry) => ({
+      ...entry,
+      startsAt: new Date(String(entry.event.start).length > 10 ? entry.event.start : `${entry.event.start}T09:00:00`).getTime(),
+      endsAt: entry.event.end ? new Date(entry.event.end).getTime() : null
+    }))
+    .filter((entry) => Number.isFinite(entry.startsAt))
+    .sort((left, right) => left.startsAt - right.startsAt)
+}
+
+/**
+ * The entry the hero shows: whatever is running, otherwise the next one due.
+ * The rest of the day is everything after it, so both have to agree on which
+ * entry that is — computing them separately dropped the last class of the day
+ * whenever the hero was something already in progress.
+ */
+function homeLeadEntry(entries = homeDayEntries(), now = Date.now()) {
+  return entries.find((entry) => entry.startsAt <= now && entry.endsAt && entry.endsAt > now)
+    || entries.find((entry) => entry.startsAt > now)
+    || null
+}
+
+function renderHomeNow() {
+  const now = Date.now()
+  const candidates = homeDayEntries()
+  const next = homeLeadEntry(candidates, now)
+  const running = next && next.startsAt <= now
+
+  if (!next) {
+    const missing = setupState().missing.filter((step) => ['timetable', 'canvas'].includes(step.id))
+    return `<section class="w-now is-quiet">
+      <p class="w-label">${candidates.length ? 'Rest of today' : 'Right now'}</p>
+      <p class="w-now-empty">${candidates.length
+        ? 'Nothing left today.'
+        : missing.length ? `Nothing to show — ${missing.map((step) => step.id).join(' and ')} not connected.` : 'Nothing scheduled today.'}</p>
     </section>`
   }
 
-  const time = (event) => String(event.start).length > 10 ? String(event.start).slice(11, 16) : null
-  const end = (event) => event.end && String(event.end).length > 10 ? String(event.end).slice(11, 16) : null
-
-  return `<section class="w-sec">
-    <div class="w-sec-head"><h2>Today</h2><span class="w-sec-meta">${escapeHtml(stamp)}</span></div>
-    <ol class="w-today">
-      ${dueToday.map((event) => `<li class="w-today-row is-due">
-        <span class="w-t">${escapeHtml(time(event) || '')}</span>
-        <span class="w-n"><strong>${escapeHtml(homeDeadlineTitle(event))}</strong><small>Due · ${escapeHtml(event.courseCode || '')}</small></span>
-        ${event.url ? `<a class="w-go" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">Open</a>` : '<span></span>'}
-      </li>`).join('')}
-      ${teaching.map((event) => `<li class="w-today-row">
-        <span class="w-t">${escapeHtml(time(event) || '')}${end(event) ? `<small>${escapeHtml(end(event))}</small>` : ''}</span>
-        <span class="w-n"><strong>${escapeHtml(event.courseName || event.title || '')}</strong><small>${[event.courseCode, event.activity, timetableRoom(event)].filter(Boolean).map(escapeHtml).join(' · ')}</small></span>
-        <span></span>
-      </li>`).join('')}
-    </ol>
+  const { event, kind } = next
+  const room = kind === 'teaching' ? timetableRoom(event) : null
+  const minutes = homeMinutesUntil(event.start)
+  return `<section class="w-now${running ? ' is-running' : ''}">
+    <p class="w-label">${running ? 'On now' : kind === 'due' ? 'Due today' : 'Next up'}</p>
+    <p class="w-now-when"><time datetime="${escapeHtml(String(event.start))}">${escapeHtml(homeClock(event.start) || '')}</time><span>${escapeHtml(running ? 'in progress' : homeAwayLabel(minutes))}</span></p>
+    <h2 class="w-now-what">${escapeHtml(kind === 'due' ? homeDeadlineTitle(event) : (event.courseName || event.title || ''))}</h2>
+    <p class="w-now-where">${[event.courseCode, kind === 'due' ? 'hand-in' : event.activity, room].filter(Boolean).map(escapeHtml).join(' · ')}</p>
+    ${event.url ? `<a class="w-now-go" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">Open in Canvas</a>` : ''}
   </section>`
 }
 
+function renderHomeRestOfDay() {
+  const now = Date.now()
+  const entries = homeDayEntries()
+  const lead = homeLeadEntry(entries, now)
+  const later = entries
+    .filter((entry) => entry.kind === 'teaching' && entry.startsAt > now && entry.event !== lead?.event)
+    .map((entry) => entry.event)
+  if (!later.length) return ''
+  return `<ol class="w-rest">
+    ${later.map((event) => `<li>
+      <time datetime="${escapeHtml(String(event.start))}">${escapeHtml(homeClock(event.start) || '')}</time>
+      <span class="w-n"><strong>${escapeHtml(event.courseName || event.title || '')}</strong><small>${[event.courseCode, event.activity, timetableRoom(event)].filter(Boolean).map(escapeHtml).join(' · ')}</small></span>
+    </li>`).join('')}
+  </ol>`
+}
+
 function renderHomeDue() {
-  const items = homeDueItems(6)
   const today = localIsoDate(new Date())
-  const later = items.filter((event) => String(event.start).slice(0, 10) > today)
+  const items = homeDueItems(8).filter((event) => String(event.start).slice(0, 10) > today)
   const canvasMissing = setupState().missing.some((step) => step.id === 'canvas')
 
-  return `<section class="w-sec">
-    <div class="w-sec-head"><h2>Due next</h2>${later.length ? '<a class="pl-link" href="#/updates">All hand-ins</a>' : ''}</div>
-    ${later.length ? `<ol class="w-due">${later.map((event) => {
+  return `<section class="w-panel">
+    <div class="w-sec-head"><h2>Due</h2>${items.length ? '<a class="pl-link" href="#/updates">All</a>' : ''}</div>
+    ${items.length ? `<ol class="w-due">${items.slice(0, 5).map((event, index) => {
       const away = daysUntil(String(event.start).slice(0, 10))
-      return `<li class="w-due-row${away <= 2 ? ' is-soon' : ''}">
-        <time class="w-due-when" datetime="${escapeHtml(String(event.start).slice(0, 10))}">${escapeHtml(boardDate(String(event.start).slice(0, 10)))}</time>
-        <span class="w-n"><strong>${escapeHtml(homeDeadlineTitle(event))}</strong><small>${escapeHtml(event.courseCode || '')}</small></span>
-        <span class="w-due-away">${away <= 0 ? 'today' : `${away}d`}</span>
+      return `<li class="w-due-row${index === 0 ? ' is-next' : ''}">
+        <span class="w-due-away"><strong>${away <= 0 ? '0' : away}</strong><small>d</small></span>
+        <span class="w-n"><strong>${escapeHtml(homeDeadlineTitle(event))}</strong><small>${[event.courseCode, academicDate(String(event.start).slice(0, 10))].filter(Boolean).map(escapeHtml).join(' · ')}</small></span>
         ${event.url ? `<a class="w-go" href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer">Open</a>` : '<span></span>'}
       </li>`
     }).join('')}</ol>`
@@ -5399,32 +5486,38 @@ function renderHomeDue() {
   </section>`
 }
 
+/**
+ * Where the degree stands, as one measure rather than three loose figures: the
+ * bar is the answer, the numbers are its reading.
+ */
 function renderHomeProgress() {
   const summary = academicsData?.summary
-  const examWindow = calendarState.data?.examWindow || null
   if (!summary) return ''
-  const required = academicsData?.workspace?.courses?.reduce((sum, course) => sum + (course.ects || 0), 0) || null
-  const figure = (label, value, unit, href) => `<a class="w-fig" href="${href}">
-    <span class="w-label">${label}</span>
-    <strong>${value}${unit ? `<small>${unit}</small>` : ''}</strong>
-  </a>`
+  const examWindow = calendarState.data?.examWindow || null
+  const required = academicsData?.workspace?.courses?.reduce((sum, course) => sum + (course.ects || 0), 0) || 0
+  const earned = summary.earnedEcts || 0
+  const share = required ? Math.min(100, Math.round((earned / required) * 100)) : 0
 
   return `<section class="w-sec">
     <div class="w-sec-head"><h2>Progress</h2><a class="pl-link" href="#/planning/progress">Plan</a></div>
+    <div class="w-progress">
+      <div class="w-bar" role="img" aria-label="${earned} of ${required} credits earned">
+        <span style="width:${share}%"></span>
+      </div>
+      <p class="w-bar-read"><strong>${earned}</strong><small>of ${required} ECTS</small></p>
+    </div>
     <div class="w-figs">
-      ${figure('Credits earned', summary.earnedEcts, required ? `/ ${required}` : '', '#/planning/progress')}
-      ${figure('Courses passed', summary.passedCourses, `/ ${summary.totalCourses}`, '#/planning/courses')}
-      ${summary.gpa != null ? figure('Weighted GPA', summary.gpa, '', '#/planning/progress') : ''}
-      ${examWindow ? figure('Exam week in', Math.max(0, daysUntil(examWindow.start)), 'd', '#/calendar') : ''}
+      <a class="w-fig" href="#/planning/courses"><span class="w-label">Courses passed</span><strong>${summary.passedCourses}<small>/ ${summary.totalCourses}</small></strong></a>
+      ${summary.gpa != null ? `<a class="w-fig" href="#/planning/progress"><span class="w-label">Weighted GPA</span><strong>${summary.gpa}</strong></a>` : ''}
+      ${examWindow ? `<a class="w-fig" href="#/calendar"><span class="w-label">Exam week in</span><strong>${Math.max(0, daysUntil(examWindow.start))}<small>d</small></strong></a>` : ''}
     </div>
   </section>`
 }
 
 // Only what needs a decision: an announcement that names a deadline, and the
-// sources that are still missing. Never a list of things that are fine.
+// sources still missing. Never a list of things that are fine.
 function renderHomeAttention() {
-  const setup = setupState()
-  const outstanding = setup.outstanding || []
+  const outstanding = setupState().outstanding || []
   const announcements = (updatesState.data?.announcements || [])
     .filter((item) => item.unread || /deadline|due|submit|register|sign up|before/i.test(`${item.title} ${item.excerpt || ''}`))
     .slice(0, 3)
@@ -5434,7 +5527,7 @@ function renderHomeAttention() {
     <div class="w-sec-head"><h2>Needs a decision</h2>${announcements.length ? '<a class="pl-link" href="#/updates">Updates</a>' : ''}</div>
     <ul class="w-attn">
       ${announcements.map((item) => `<li>
-        <span class="w-n"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.courseCode || '')}${item.postedAt ? ` · ${escapeHtml(relativeTime(item.postedAt) || '')}` : ''}</small></span>
+        <span class="w-n"><strong>${escapeHtml(item.title)}</strong><small>${[item.courseCode, item.postedAt ? relativeTime(item.postedAt) : null].filter(Boolean).map(escapeHtml).join(' · ')}</small></span>
         <a class="w-go" href="#/updates">Read</a>
       </li>`).join('')}
       ${outstanding.map((step) => `<li>
@@ -5453,10 +5546,23 @@ function renderHome() {
   if (!academicsData && !academicsLoading && !academicsError) queueMicrotask(() => loadAcademics())
   if (!editorialProgrammesData && !editorialProgrammesLoading && !editorialProgrammesError) queueMicrotask(() => loadEditorialProgrammes())
 
+  // With no timetable there is nothing to lead with, and a two-column grid
+  // then reserves half the page for an empty column. Due takes the lead.
+  const iso = localIsoDate(new Date())
+  const hasDay = homeEventsOn(iso).length > 0 || homeDueItems(20).some((event) => String(event.start).slice(0, 10) === iso)
+
   return `
     ${renderBoardHead()}
-    ${renderHomeToday()}
-    ${renderHomeDue()}
+    ${hasDay ? `<div class="w-grid">
+      <div class="w-grid-lead">
+        ${renderHomeNow()}
+        ${renderHomeRestOfDay()}
+      </div>
+      ${renderHomeDue()}
+    </div>` : `<div class="w-grid is-single">
+      ${renderHomeDue()}
+      ${renderHomeNow()}
+    </div>`}
     ${renderHomeProgress()}
     ${renderHomeAttention()}
   `
