@@ -39,7 +39,7 @@ import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedir
 import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
 import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
-import { applyProgramme, applySecureValue, chooseElectives, electiveChoices, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
+import { applyProgramme, applySecureValue, chooseElectives, electiveChoices, finishSetup, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
 import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
 import { TutorStoreError, deleteConversation, forgetFact, listConversations, newConversation, readConversation, readTutorMemory, saveConversation, saveTutorPreferences, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
@@ -673,6 +673,25 @@ async function readState() {
 // The first signed-in response deliberately excludes the full learning
 // inventory. It lets Home paint its course list while detailed material and
 // per-item progress are fetched only when a learning surface needs them.
+//
+// GET /api/workspace-shell returns, after scoping to the active programme:
+//
+//   meta      { schemaVersion, doneThreshold, title, timezone, updatedAt,
+//               activeProgrammeId, programme }
+//   dailyBlocks  as published
+//   courses[] { id, code, name, shortName, exam, role, accent, knowledgeBase,
+//               visualStyle, examProfile, compact courseProfile.assessment,
+//               chapters: [{ id, name, file }],
+//               archived?, order?          — the student's own course settings
+//               items: [], mockExams: [], tutorials: []   — always empty here }
+//
+// Home reads exactly `courses[]`: code, name, id, `archived`, and the chapter
+// count that drives its progress bar — all of it present, so nothing had to be
+// added. Home's other three regions are not this endpoint's job and are not
+// duplicated into it: due queues and period context come from
+// /api/calendar/events, the ledger from /api/activity, and credits from
+// /api/academics. What is missing versus /api/state is per-item mastery and the
+// question, mock and tutorial inventory, none of which Home renders.
 async function readWorkspaceShell() {
   const [template, settings] = await Promise.all([
     loadEditorialShell(templatePath),
@@ -4032,11 +4051,18 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/calendar/events' && req.method === 'GET') {
       const [{ workspace }, state] = await Promise.all([readAcademicState(), readState()])
       const reference = academicReferenceFor(workspace)
-      const feeds = []
       const problems = []
-      for (const link of workspace.calendars || []) {
-        try { feeds.push({ link, events: await feedEvents(link) }) }
-        catch (error) { problems.push({ id: link.id, label: link.label, error: error.message }) }
+      // Every saved feed is a network round trip to a different university
+      // host. Fetched one after another, a student with four timetables waited
+      // for the sum of them; they are independent, so they run together and
+      // each failure is still reported against the feed that produced it.
+      const links = workspace.calendars || []
+      const feedResults = await Promise.allSettled(links.map((link) => feedEvents(link)))
+      const feeds = []
+      for (const [index, outcome] of feedResults.entries()) {
+        const link = links[index]
+        if (outcome.status === 'fulfilled') feeds.push({ link, events: outcome.value })
+        else problems.push({ id: link.id, label: link.label, error: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason) })
       }
       // Canvas deadlines and Canvas course events join the same board. The hub
       // caches per user, so a warm calendar costs nothing extra; a cold or
@@ -4044,17 +4070,21 @@ const server = createServer(async (req, res) => {
       const canvas = { assignments: [], events: [] }
       let canvasConnected = false
       if (url.searchParams.get('canvas') !== '0') {
-        for (const connection of await listCanvasConnections()) {
-          canvasConnected = true
-          try {
-            const { token } = await canvasAccessToken({ canvasUrl: connection.origin })
-            const hub = await fetchCanvasHub({ origin: connection.origin, token, scope: 'current', parts: ['assignments', 'events'], days: 30 })
-            canvas.assignments.push(...hub.assignments)
-            canvas.events.push(...hub.events)
-            for (const problem of hub.problems) problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: problem.error })
-          } catch (error) {
-            problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: error instanceof Error ? error.message : 'Canvas could not be reached.' })
+        const connections = await listCanvasConnections()
+        canvasConnected = connections.length > 0
+        const hubs = await Promise.allSettled(connections.map(async (connection) => {
+          const { token } = await canvasAccessToken({ canvasUrl: connection.origin })
+          return fetchCanvasHub({ origin: connection.origin, token, scope: 'current', parts: ['assignments', 'events'], days: 30 })
+        }))
+        for (const [index, outcome] of hubs.entries()) {
+          const connection = connections[index]
+          if (outcome.status === 'rejected') {
+            problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: outcome.reason instanceof Error ? outcome.reason.message : 'Canvas could not be reached.' })
+            continue
           }
+          canvas.assignments.push(...outcome.value.assignments)
+          canvas.events.push(...outcome.value.events)
+          for (const problem of outcome.value.problems) problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: problem.error })
         }
       }
       const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
@@ -4147,6 +4177,18 @@ const server = createServer(async (req, res) => {
         send(res, 200, JSON.stringify({ available: true, ...view, usage }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That could not be sent.' }))
+      }
+      return
+    }
+    // Setup done by hand. The conversation marks itself finished when the model
+    // calls `finish`; the checklist needs the same door, because the workspace
+    // gate reads `finished` and without one a student who completed every step
+    // manually is redirected straight back to setup.
+    if (url.pathname === '/api/onboarding/finish' && req.method === 'POST') {
+      try {
+        send(res, 200, JSON.stringify({ available: onboardingAvailable(), ...await finishSetup() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Setup could not be finished.' }))
       }
       return
     }

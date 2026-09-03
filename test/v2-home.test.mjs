@@ -11,7 +11,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { awayLabel, dayEntries, deadlineTitle, leadEntry, periodWeek, roomOf } from '../lib/workspace/home.mjs'
+import { awayLabel, dayEntries, deadlineTitle, homePriorities, leadEntry, periodWeek, roomOf } from '../lib/workspace/home.mjs'
 
 // Maastricht Period 1, 2026–2027: Monday 31 August through Friday 23 October.
 const START = '2026-08-31'
@@ -82,4 +82,83 @@ test('time remaining reads in the unit that suits it', () => {
   assert.equal(awayLabel(90), 'in 1h 30m')
   assert.equal(awayLabel(120), 'in 2h')
   assert.equal(awayLabel(2880), 'in 2 days')
+})
+
+test('home priorities surface only evidenced attendance, assignments, and project milestones', () => {
+  const now = new Date('2026-09-03T08:00:00Z').getTime()
+  const priorities = homePriorities({
+    now,
+    events: [
+      { id: 'lecture', category: 'timetable', start: '2026-09-03T10:00:00Z', title: 'Lecture', courseCode: 'BCS1540', courseName: 'Algorithmic Design', notes: '10:00–12:00 · C0.001' },
+      { id: 'tutorial', category: 'timetable', start: '2026-09-03T12:00:00Z', title: 'Tutorial', courseCode: 'BCS1540', courseName: 'Algorithmic Design', notes: '12:00–14:00 · C0.002' },
+      { id: 'optional', category: 'timetable', start: '2026-09-03T13:00:00Z', title: 'Tutorial', courseCode: 'BCS1520', courseName: 'Statistics', notes: null }
+    ],
+    assignments: [
+      { id: 'late', title: 'BCS1520 · Problem set', courseCode: 'BCS1520', courseName: 'Statistics', dueAt: '2026-09-02T23:59:00Z', status: 'overdue', url: null },
+      { id: 'done', title: 'Quiz', courseCode: 'BCS1520', dueAt: '2026-09-04T23:59:00Z', status: 'submitted', url: null }
+    ],
+    courses: [
+      { id: 'alg', code: 'BCS1540', courseProfile: { assessment: { status: 'confirmed', attendanceRules: ['Attendance at every lecture is mandatory.'], components: [{ name: 'Group project', type: 'Project', weightPercent: 30, deadline: '2026-09-20' }] } } }
+    ]
+  })
+
+  assert.deepEqual(priorities.map((item) => [item.kind, item.title, item.status]), [
+    ['assignment', 'Problem set', 'Overdue'],
+    ['attendance', 'Algorithmic Design', 'Required'],
+    ['project', 'Group project', 'Milestone']
+  ])
+  assert.equal(priorities.filter((item) => item.kind === 'attendance').length, 1, 'a lecture-only rule must not flag the tutorial')
+})
+
+test('unverified course rules do not become student obligations', () => {
+  const priorities = homePriorities({
+    now: new Date('2026-09-03T08:00:00Z').getTime(),
+    events: [{ id: 'lab', category: 'timetable', start: '2026-09-03T10:00:00Z', title: 'Lab', courseCode: 'BCS1540', courseName: 'Algorithmic Design', notes: null }],
+    courses: [{ id: 'alg', code: 'BCS1540', courseProfile: { assessment: { status: 'needs-review', attendanceRules: ['Labs are mandatory.'], components: [{ name: 'Group project', type: 'project', deadline: '2026-09-20' }] } } }]
+  })
+  assert.deepEqual(priorities, [])
+})
+
+test('optional and unscoped attendance wording never becomes a required appointment', () => {
+  const now = new Date('2026-09-03T08:00:00Z').getTime()
+  const events = [
+    { id: 'optional-lab', category: 'timetable', start: '2026-09-03T10:00:00Z', title: 'Optional lab', courseCode: 'BCS1540', courseName: 'Algorithmic Design', notes: 'Attendance recommended' },
+    { id: 'tutorial', category: 'timetable', start: '2026-09-03T12:00:00Z', title: 'Tutorial', courseCode: 'BCS1540', courseName: 'Algorithmic Design', notes: null }
+  ]
+  const courses = [{ id: 'alg', code: 'BCS1540', courseProfile: { assessment: { status: 'confirmed', attendanceRules: ['Attendance is mandatory.'] } } }]
+  assert.deepEqual(homePriorities({ now, events, courses }), [])
+})
+
+test('ambiguous project date text is evidence, not an invented dated priority', () => {
+  const priorities = homePriorities({
+    now: new Date('2026-09-03T08:00:00Z').getTime(),
+    courses: [{ id: 'alg', code: 'BCS1540', courseProfile: { assessment: { status: 'confirmed', components: [{ name: 'Group project', type: 'project', deadlineText: 'Date to be announced' }] } } }]
+  })
+  assert.deepEqual(priorities, [])
+})
+
+test('date-only exams and project deadlines remain priorities for their whole day', () => {
+  const priorities = homePriorities({
+    now: new Date('2026-09-17T18:00:00Z').getTime(),
+    events: [{ id: 'exam-1', category: 'exam', start: '2026-09-17', title: 'BCS1540 · Algorithmic Design', courseCode: 'BCS1540', courseName: 'Algorithmic Design', href: null }],
+    courses: [{ id: 'alg', code: 'BCS1540', courseProfile: { assessment: { status: 'confirmed', components: [{ name: 'Group project', type: 'project', deadline: '2026-09-17' }] } } }]
+  })
+  assert.deepEqual(priorities.map((item) => item.kind), ['exam', 'project'])
+})
+
+test('a dated course exam is a priority with academic-plan provenance', () => {
+  const [priority] = homePriorities({
+    now: new Date('2026-09-03T08:00:00Z').getTime(),
+    events: [{ id: 'exam-1', category: 'exam', start: '2026-09-17', title: 'BCS1540 · Algorithmic Design', courseCode: 'BCS1540', courseName: 'Algorithmic Design', href: '#/planning/courses/alg' }]
+  })
+  assert.deepEqual([priority.kind, priority.title, priority.source, priority.href], ['exam', 'Algorithmic Design', 'Academic plan', '/app/calendar'])
+})
+
+test('home priorities stay empty when no source records an obligation', () => {
+  assert.deepEqual(homePriorities({
+    now: new Date('2026-09-03T08:00:00Z').getTime(),
+    events: [{ id: 'optional', category: 'timetable', start: '2026-09-03T13:00:00Z', title: 'Tutorial', courseCode: 'BCS1520', courseName: 'Statistics', notes: null }],
+    assignments: [],
+    courses: []
+  }), [])
 })

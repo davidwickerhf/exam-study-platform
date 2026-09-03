@@ -15,7 +15,16 @@
  * development, where the server resolves every request to one account.
  */
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +39,31 @@ import {
   mergeBrowserState,
 } from "@/lib/workspace/migration.mjs";
 
+/**
+ * What the gate already knows about this visitor.
+ *
+ * The gate reads `/api/auth/session` before it will render anything, so the
+ * shell has no reason to ask for it a second time. `clerkEnabled` records
+ * whether a ClerkProvider is mounted above, because the local development
+ * modes have none and Clerk's hooks throw outside their provider.
+ */
+export type WorkspaceSession = {
+  userId?: string | null;
+  mode?: string;
+  email?: string | null;
+  admin?: boolean;
+  needsProgramme?: boolean;
+};
+
+const WorkspaceSessionContext = createContext<{
+  clerkEnabled: boolean;
+  session: WorkspaceSession | null;
+}>({ clerkEnabled: false, session: null });
+
+export function useWorkspaceSession() {
+  return useContext(WorkspaceSessionContext);
+}
+
 function Waiting() {
   return (
     <div
@@ -37,17 +71,32 @@ function Waiting() {
       aria-busy="true"
       aria-label="Checking your session"
     >
-      <Skeleton className="h-14 w-72" />
-      <Skeleton className="h-4 w-48" />
+      <Skeleton className="h-14 w-72 motion-reduce:animate-none" />
+      <Skeleton className="h-4 w-48 motion-reduce:animate-none" />
     </div>
   );
 }
 
-function Gate({ children }: { children: ReactNode }) {
+function Gate({
+  onSession,
+  children,
+}: {
+  onSession: (session: WorkspaceSession) => void;
+  children: ReactNode;
+}) {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
   const clerk = useClerk();
+  const router = useRouter();
+  const pathname = usePathname();
   const patched = useRef(false);
+  // The route the onboarding verdict below was established for. Setup is
+  // enforced per destination, so a later move to another route re-checks
+  // rather than trusting a stale answer.
+  const checkedPath = useRef<string | null>(null);
+  const [onboardingFinished, setOnboardingFinished] = useState<boolean | null>(
+    null,
+  );
   const [ready, setReady] = useState(false);
   const [access, setAccess] = useState<
     | { kind: "checking" }
@@ -70,7 +119,7 @@ function Gate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
-      window.location.replace("/sign-in");
+      router.replace("/sign-in");
       return;
     }
     if (patched.current) return;
@@ -141,10 +190,13 @@ function Gate({ children }: { children: ReactNode }) {
           throw new Error(
             onboarding.error || "Your setup status could not be checked.",
           );
-        if (!onboarding.finished && window.location.pathname !== "/app/setup") {
-          window.location.replace("/app/setup");
-          return;
-        }
+        onSession(session);
+        checkedPath.current = window.location.pathname;
+        setOnboardingFinished(Boolean(onboarding.finished));
+        // A client navigation, not a document load: an unfinished setup used
+        // to reload the whole application on every move inside the workspace.
+        if (!onboarding.finished && window.location.pathname !== "/app/setup")
+          router.replace("/app/setup");
         if (session.needsProgramme && (session.eligible?.length || 0) > 1)
           setAccess({
             kind: "programme",
@@ -159,9 +211,34 @@ function Gate({ children }: { children: ReactNode }) {
       }
     }
     void check();
-  }, [getToken, isLoaded, isSignedIn]);
+  }, [getToken, isLoaded, isSignedIn, onSession, router]);
+
+  // Setup stays compulsory: leaving it for another destination re-reads the
+  // status once instead of reloading the document, and setup remains reachable
+  // so the student can finish it.
+  const awaitingSetup = onboardingFinished === false && pathname !== "/app/setup";
+  useEffect(() => {
+    if (!awaitingSetup || checkedPath.current === pathname) return;
+    let live = true;
+    void window
+      .fetch("/api/onboarding")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((onboarding) => {
+        if (!live) return;
+        checkedPath.current = pathname;
+        if (onboarding?.finished) setOnboardingFinished(true);
+        else router.replace("/app/setup");
+      })
+      .catch(() => {
+        if (live) router.replace("/app/setup");
+      });
+    return () => {
+      live = false;
+    };
+  }, [awaitingSetup, pathname, router]);
 
   if (!isLoaded || !ready) return <Waiting />;
+  if (awaitingSetup) return <Waiting />;
   if (access.kind === "ineligible")
     return (
       <Empty className="min-h-dvh items-center border-0 text-center">
@@ -266,7 +343,9 @@ function CloudBrowserState() {
     let live = true;
     let last = "";
     let timer: number | null = null;
-    const push = async () => {
+    // The backup only has to survive the tab, so it writes on change at a
+    // resting cadence and flushes the moment the page is hidden or left.
+    const push = async ({ keepalive = false } = {}) => {
       const snapshot = browserStateSnapshot(localStorage);
       const serialized = JSON.stringify(snapshot);
       if (serialized === last) return;
@@ -274,6 +353,7 @@ function CloudBrowserState() {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: serialized,
+        keepalive,
       });
       if (response.ok) last = serialized;
     };
@@ -295,44 +375,71 @@ function CloudBrowserState() {
         if (live)
           timer = window.setInterval(
             () => void push().catch(() => undefined),
-            2500,
+            30_000,
           );
       }
     };
     void start();
+    const flush = () => void push({ keepalive: true }).catch(() => undefined);
     const hidden = () => {
-      if (document.visibilityState === "hidden")
-        void push().catch(() => undefined);
+      if (document.visibilityState === "hidden") flush();
     };
     document.addEventListener("visibilitychange", hidden);
+    window.addEventListener("pagehide", flush);
     return () => {
       live = false;
       if (timer != null) window.clearInterval(timer);
       document.removeEventListener("visibilitychange", hidden);
+      window.removeEventListener("pagehide", flush);
+      flush();
     };
   }, []);
   return null;
 }
 
-function LocalGate({ children }: { children: ReactNode }) {
+function LocalGate({ onSession, children }: { onSession: (session: WorkspaceSession) => void; children: ReactNode }) {
+  const router = useRouter()
   const [access, setAccess] = useState<'checking' | 'allowed' | 'error'>('checking')
 
   useEffect(() => {
     let live = true
     fetch('/api/auth/session', { cache: 'no-store' }).then(async (response) => {
       if (response.status === 401) {
-        window.location.replace(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+        router.replace(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`)
         return
       }
       if (!response.ok) throw new Error('Your test session could not be verified.')
-      if (live) setAccess('allowed')
+      const session = await response.json().catch(() => ({}))
+      if (!live) return
+      onSession(session)
+      setAccess('allowed')
     }).catch(() => { if (live) setAccess('error') })
     return () => { live = false }
-  }, [])
+  }, [onSession, router])
 
   if (access === 'checking') return <Waiting />
-  if (access === 'error') return <Empty className="min-h-dvh items-center border-0 text-center"><EmptyHeader className="items-center"><EmptyTitle>Unable to verify your session</EmptyTitle><EmptyDescription>Return to sign in and try again.</EmptyDescription></EmptyHeader><Button render={<a href="/sign-in" />}>Go to sign in</Button></Empty>
+  if (access === 'error') return <Empty className="min-h-dvh items-center border-0 text-center"><EmptyHeader className="items-center"><EmptyTitle>Unable to verify your session</EmptyTitle><EmptyDescription>Return to sign in and try again.</EmptyDescription></EmptyHeader><Button nativeButton={false} render={<a href="/sign-in" />}>Go to sign in</Button></Empty>
   return <>{children}</>
+}
+
+/**
+ * The open development modes have no gate to read the session, so one quiet
+ * read supplies the same facts the shell would otherwise fetch for itself.
+ */
+function OpenSession({ onSession }: { onSession: (session: WorkspaceSession) => void }) {
+  useEffect(() => {
+    let live = true;
+    void fetch("/api/auth/session", { headers: { accept: "application/json" } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((session) => {
+        if (live && session) onSession(session);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [onSession]);
+  return null;
 }
 
 export function RequireAuth({
@@ -344,24 +451,25 @@ export function RequireAuth({
   localLoginEnabled: boolean;
   children: ReactNode;
 }) {
+  const [session, setSession] = useState<WorkspaceSession | null>(null);
+  const value = useMemo(
+    () => ({ clerkEnabled: authEnabled, session }),
+    [authEnabled, session],
+  );
+  const workspace = (
+    <WorkspaceSessionContext.Provider value={value}>
+      <CloudBrowserState />
+      {children}
+    </WorkspaceSessionContext.Provider>
+  );
   if (localLoginEnabled)
-    return (
-      <LocalGate>
-        <CloudBrowserState />
-        {children}
-      </LocalGate>
-    );
+    return <LocalGate onSession={setSession}>{workspace}</LocalGate>;
   if (!authEnabled)
     return (
       <>
-        <CloudBrowserState />
-        {children}
+        <OpenSession onSession={setSession} />
+        {workspace}
       </>
     );
-  return (
-    <Gate>
-      <CloudBrowserState />
-      {children}
-    </Gate>
-  );
+  return <Gate onSession={setSession}>{workspace}</Gate>;
 }

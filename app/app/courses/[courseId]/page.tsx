@@ -1,7 +1,13 @@
 'use client'
 
 /**
- * A course: its chapter register, and what is left to read.
+ * A course: its chapter register first, then how well it is known.
+ *
+ * The chapters are the course; everything else on this page is about them, so
+ * the register leads and mastery, material and plan links follow it. Mastery
+ * is a heatmap — one ruled row per topic, five cells — rather than sixty
+ * segmented buttons, because a student reads this to find the weak topic, not
+ * to admire the control.
  *
  * Read-state is shared with the vanilla workspace through localStorage, so a
  * chapter marked read in either half shows as read in both.
@@ -10,23 +16,28 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArchiveIcon, CheckIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { CheckIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
-import { academicCourseFor, type AcademicCourse, type StudyCourse, canvasCourseQuery, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
+import { COURSE_RETURN_KEY, academicCourseFor, type AcademicCourse, type Item, type StudyCourse, canvasCourseQuery, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
 import { localIsoDate } from '@/lib/workspace/home.mjs'
 import { CourseMaterialLibrary } from '@/components/workspace/course-material-library'
 
 const NUMERALS = 'font-data tabular-nums'
+const LEVELS = [0, 1, 2, 3, 4]
+/** A rating the student has actually given, as opposed to an untouched zero. */
+const isRated = (item: Item) => Boolean(item.masteryUpdatedAt)
 
 export default function CoursePage() {
   const params = useParams<{ courseId: string; itemId?: string }>()
   const [courses, setCourses] = useState<StudyCourse[] | null>(null)
   const [academic, setAcademic] = useState<AcademicCourse[]>([])
   const [read, setRead] = useState<Set<string>>(new Set())
-  const [error, setError] = useState<string | null>(null)
+  // A failed save is not a failed page: the two are kept apart so a mastery
+  // click that loses the network does not replace the course with an error.
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
 
   useEffect(() => {
@@ -36,7 +47,7 @@ export default function CoursePage() {
       fetch(path, { headers: { accept: 'application/json' } })
         .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${path} returned ${response.status}`))))
     json('/api/state').then((data) => { if (live) setCourses(data.courses ?? []) })
-      .catch((cause: Error) => { if (live) setError(cause.message) })
+      .catch((cause: Error) => { if (live) setLoadError(cause.message) })
     json('/api/academics').then((data) => { if (live) setAcademic(data.workspace?.courses ?? []) }).catch(() => {})
     return () => { live = false }
   }, [])
@@ -53,13 +64,13 @@ export default function CoursePage() {
     if (item) requestAnimationFrame(() => document.querySelector(`[aria-label="Mastery for ${CSS.escape(item.title)}"]`)?.closest('li')?.scrollIntoView({ block: 'center' }))
   }, [course, params.itemId])
 
-  if (error || (courses && !course)) {
+  if (loadError || (courses && !course)) {
     return (
       <div className="mx-auto w-full max-w-[1180px] p-5 sm:p-8">
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>{error ? 'That course could not be read' : 'No such course'}</EmptyTitle>
-            <EmptyDescription>{error ?? 'It may have been archived or renamed.'}</EmptyDescription>
+            <EmptyTitle>{loadError ? 'That course could not be read' : 'No such course'}</EmptyTitle>
+            <EmptyDescription>{loadError ?? 'It may have been archived or renamed.'}</EmptyDescription>
           </EmptyHeader>
           <Link href="/app/courses" className="text-primary text-sm font-semibold">Back to courses</Link>
         </Empty>
@@ -70,7 +81,7 @@ export default function CoursePage() {
   if (!course) {
     return (
       <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4 p-5 sm:p-8">
-        <Skeleton className="h-12 w-96" /><Skeleton className="h-4 w-64" /><Skeleton className="h-64 w-full" />
+        <Skeleton className="h-10 w-96" /><Skeleton className="h-4 w-64" /><Skeleton className="h-64 w-full" />
       </div>
     )
   }
@@ -79,33 +90,71 @@ export default function CoursePage() {
   const exam = nextExam(course, academic, today)
   const academicCourse = academicCourseFor(course, academic)
   const profile = course.courseProfile
+  const items = course.items ?? []
+  const rated = items.filter(isRated).length
+  const confident = items.filter((item) => isRated(item) && (item.mastery ?? 0) >= 4).length
 
   const setMastery = async (itemId: string, mastery: number) => {
-    setSaving(itemId); setError(null)
+    setSaving(itemId); setSaveError(null)
     try {
       const response = await fetch(`/api/items/${encodeURIComponent(itemId)}`, { method: 'PATCH', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ mastery }) })
       const data = await response.json().catch(() => null)
       if (!response.ok) throw new Error(data?.error || `Mastery returned ${response.status}`)
       setCourses((current) => current?.map((entry) => entry.id === course.id ? { ...entry, items: entry.items?.map((item) => item.id === itemId ? { ...item, ...data.item } : item) } : entry) ?? null)
-    } catch (cause) { setError((cause as Error).message) } finally { setSaving(null) }
+    } catch (cause) { setSaveError((cause as Error).message) } finally { setSaving(null) }
   }
 
   const archive = async () => {
-    setSaving('archive'); setError(null)
+    setSaving('archive'); setSaveError(null)
     try {
       const response = await fetch(`/api/courses/${encodeURIComponent(course.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ archived: !course.archived }) })
       const data = await response.json().catch(() => null)
       if (!response.ok) throw new Error(data?.error || `Course update returned ${response.status}`)
       setCourses((current) => current?.map((entry) => entry.id === course.id ? { ...entry, archived: data.course.archived } : entry) ?? null)
-    } catch (cause) { setError((cause as Error).message) } finally { setSaving(null) }
+    } catch (cause) { setSaveError((cause as Error).message) } finally { setSaving(null) }
+  }
+
+  /** One 0–4 cell. The level a student has chosen carries the signal; an
+   *  untouched topic and an explicit zero are both neutral marks. */
+  const cell = (item: Item, level: number) => {
+    const set = isRated(item)
+    const value = item.mastery ?? 0
+    const state = !set ? 'unset' : level < value ? 'below' : level === value ? 'current' : 'above'
+    const tone =
+      state === 'current' && value > 0 ? 'bg-primary border-primary'
+        : state === 'current' ? 'bg-muted-foreground border-muted-foreground'
+          : state === 'below' ? 'bg-border border-border'
+            : 'border-border bg-transparent'
+    return (
+      <button
+        key={level}
+        type="button"
+        onClick={() => void setMastery(item.id, level)}
+        disabled={saving === item.id}
+        aria-pressed={set && level === value}
+        aria-label={`${item.title}: mastery ${level}${level === 0 ? ' (not started)' : level === 4 ? ' (confident)' : ''}`}
+        className={`size-4 rounded-[2px] border transition-colors hover:border-input disabled:cursor-not-allowed disabled:opacity-50 ${tone}`}
+      />
+    )
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 p-5 sm:p-8">
+      {/* Identity: what this is, how far in, when it is examined. */}
       <header className="flex flex-col gap-2">
-        <p className={`text-muted-foreground text-sm font-semibold ${NUMERALS}`}>{course.code}</p>
-        <h1 className="font-heading text-5xl leading-none tracking-tighter">{course.name}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-8">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <p className={`text-muted-foreground text-sm font-semibold ${NUMERALS}`}>{course.code}</p>
+          <button
+            type="button"
+            onClick={() => void archive()}
+            disabled={saving === 'archive'}
+            className="text-muted-foreground hover:text-foreground text-xs underline underline-offset-2 disabled:opacity-50"
+          >
+            {saving === 'archive' ? 'Saving…' : course.archived ? 'Unarchive course' : 'Archive course'}
+          </button>
+        </div>
+        <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">{course.name}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-x-8 gap-y-2">
           <span className="flex items-center gap-3">
             <Progress value={progress.percent} className="h-1 w-40" />
             <span className={`text-muted-foreground text-xs ${NUMERALS}`}>
@@ -114,7 +163,7 @@ export default function CoursePage() {
           </span>
           {progress.mastery !== null && (
             <span className={`text-muted-foreground text-xs ${NUMERALS}`}>
-              {progress.mastery}% mastery across {course.items?.length ?? 0} topics
+              {progress.mastery}% mastery · {rated} of {items.length} topics rated
             </span>
           )}
           {exam && (
@@ -127,26 +176,17 @@ export default function CoursePage() {
               </span>
             </span>
           )}
+          {course.archived && <span className="text-muted-foreground text-xs">Archived</span>}
         </div>
       </header>
 
-      <section className="grid gap-4 border-y py-4 md:grid-cols-2">
-        <div className="flex flex-col gap-1"><h2 className="text-sm font-semibold">Personal plan</h2>{academicCourse ? <p className="text-muted-foreground text-sm">Connected by course code. Exam dates and attempts are kept in your private programme record.</p> : <p className="text-muted-foreground text-sm">This course is not in your active programme. Add its course code to connect dates, credits, and attempts.</p>}<Link href="/app/planning" className="text-primary mt-1 text-sm font-semibold">Open Planning</Link></div>
-        <div className="flex flex-col gap-1"><h2 className="text-sm font-semibold">Private Canvas material</h2><p className="text-muted-foreground text-sm">Choose modules and download a private source archive for this class.</p><Link href={`/canvas?course=${encodeURIComponent(canvasCourseQuery(course))}`} className="text-primary mt-1 inline-flex items-center gap-1 text-sm font-semibold">Open Canvas archive <ExternalLinkIcon className="size-3.5" /></Link></div>
-      </section>
+      {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
 
-      {(course.mockExams?.length || course.mockExamPdf) && <section className="flex items-center justify-between gap-4 border-b pb-4"><div><h2 className="text-sm font-semibold">Past-paper practice</h2><p className="text-muted-foreground mt-1 text-sm">Work through stored exam papers with question guidance and answer grading.</p></div><Link href={`/app/courses/${course.id}/mock-exam`} className="text-primary shrink-0 text-sm font-semibold">Open papers</Link></section>}
-
-      <CourseMaterialLibrary courseCode={course.code} />
-
-      {profile && (profile.description || profile.learningOutcomes?.length || profile.assessment?.components?.length) && <section className="flex max-w-[80ch] flex-col gap-4"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-lg font-semibold">Course information</h2>{profile.assessment?.status && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold">{profile.assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span>}</div>{profile.description && <p className="text-muted-foreground leading-relaxed">{profile.description}</p>}{profile.assessment?.components?.length && <div className="flex flex-col">{profile.assessment.components.map((component, index) => <div key={`${component.name}-${index}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-b py-3"><strong className={`text-xl ${NUMERALS}`}>{component.weightPercent == null ? '—' : `${component.weightPercent}%`}</strong><div><h3 className="font-semibold">{component.name}</h3><p className="text-muted-foreground text-sm">{[component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : null, component.deadline || component.deadlineText].filter(Boolean).join(' · ')}</p></div></div>)}</div>}{profile.learningOutcomes?.length && <details><summary className="cursor-pointer text-sm font-semibold">Learning outcomes ({profile.learningOutcomes.length})</summary><ul className="mt-3 list-disc pl-5 text-sm leading-relaxed">{profile.learningOutcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul></details>}</section>}
-
-      {!!course.items?.length && <section className="flex flex-col gap-1"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-sm font-semibold">Topic mastery</h2><span className="text-muted-foreground text-xs">0 not started · 4 confident</span></div><ul className="grid md:grid-cols-2 md:gap-x-8">{course.items.map((item) => <li key={item.id} className="grid gap-2 border-b py-3"><span className="truncate text-sm font-medium" title={item.title}>{item.title}</span><div className="grid grid-cols-5 gap-1" role="group" aria-label={`Mastery for ${item.title}`}>{[0,1,2,3,4].map((level) => <Button key={level} size="sm" variant={item.mastery === level ? 'default' : 'outline'} disabled={saving === item.id} onClick={() => void setMastery(item.id, level)} className={NUMERALS} aria-label={`${item.title}: mastery ${level}`}>{level}</Button>)}</div></li>)}</ul></section>}
-
+      {/* The register. The course is its chapters, so they come first. */}
       <section className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between border-b pb-2">
-          <h2 className="text-sm font-semibold">Chapters</h2>
-          <span className={`text-muted-foreground text-sm ${NUMERALS}`}>{progress.total}</span>
+          <h2 className="text-base font-semibold">Chapters</h2>
+          <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{progress.done} read of {progress.total}</span>
         </div>
         {!course.chapters?.length ? (
           <Empty>
@@ -163,13 +203,16 @@ export default function CoursePage() {
                 <li key={chapter.id}>
                   <Link
                     href={`/app/courses/${course.id}/${chapter.id}`}
-                    className="hover:bg-card grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-4 border-b py-3"
+                    // So the reader's back link can be a real history step and
+                    // return the register to where it was left.
+                    onClick={() => { try { window.sessionStorage.setItem(COURSE_RETURN_KEY, `/app/courses/${course.id}`) } catch { /* private mode */ } }}
+                    className="hover:bg-card group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-4 border-b px-2 py-3"
                   >
                     <span className={`text-muted-foreground text-sm font-semibold ${NUMERALS}`}>{chapter.id}</span>
                     <span className="text-[15px] font-medium">{chapter.name}</span>
                     <span className="text-muted-foreground flex items-center gap-3 text-xs">
                       {done && <span className="text-foreground inline-flex items-center gap-1"><CheckIcon className="size-3.5" /> Read</span>}
-                      <ChevronRightIcon className="size-4" />
+                      <ChevronRightIcon className="group-hover:text-foreground size-4" />
                     </span>
                   </Link>
                 </li>
@@ -179,7 +222,79 @@ export default function CoursePage() {
         )}
       </section>
 
-      <div className="flex justify-end border-t pt-4"><Button variant="outline" onClick={() => void archive()} disabled={saving === 'archive'}><ArchiveIcon data-icon="inline-start" />{course.archived ? 'Unarchive course' : 'Archive course'}</Button></div>
+      {/* Mastery at a glance: a register of topics, not a wall of controls. */}
+      {!!items.length && (
+        <section className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b pb-2">
+            <h2 className="text-base font-semibold">Topic mastery</h2>
+            <span className={`text-muted-foreground text-xs ${NUMERALS}`}>
+              {rated} of {items.length} rated · {confident} confident · {progress.mastery ?? 0}% overall
+            </span>
+          </div>
+          <p className="text-muted-foreground text-xs">Five cells per topic: 0 not started, 4 confident. Select a cell to record where you are.</p>
+          <ul className="mt-1 grid md:grid-cols-2 md:gap-x-10">
+            {items.map((item) => (
+              <li key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b py-2">
+                <Link
+                  href={`/app/courses/${course.id}/item/${item.id}`}
+                  className="hover:text-foreground text-muted-foreground truncate text-[13.5px]"
+                  title={item.title}
+                >
+                  {item.title}
+                </Link>
+                <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1" role="group" aria-label={`Mastery for ${item.title}`} aria-busy={saving === item.id}>
+                    {LEVELS.map((level) => cell(item, level))}
+                  </span>
+                  <span className={`text-muted-foreground w-3 text-right text-xs ${NUMERALS}`}>
+                    {isRated(item) ? item.mastery ?? 0 : '–'}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <div id="course-material" className="scroll-mt-8">
+        <CourseMaterialLibrary courseCode={course.code} />
+      </div>
+
+      {profile && (profile.description || profile.learningOutcomes?.length || profile.assessment?.components?.length) && <section className="flex max-w-[74ch] flex-col gap-4"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-base font-semibold">Course information</h2>{profile.assessment?.status && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold">{profile.assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span>}</div>{profile.description && <p className="text-muted-foreground leading-relaxed">{profile.description}</p>}{profile.assessment?.components?.length && <div className="flex flex-col">{profile.assessment.components.map((component, index) => <div key={`${component.name}-${index}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-b py-3"><strong className={`text-[21px] ${NUMERALS}`}>{component.weightPercent == null ? '—' : `${component.weightPercent}%`}</strong><div><h3 className="font-semibold">{component.name}</h3><p className="text-muted-foreground text-sm">{[component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : null, component.deadline || component.deadlineText].filter(Boolean).join(' · ')}</p></div></div>)}</div>}{profile.learningOutcomes?.length && <details><summary className="cursor-pointer text-sm font-semibold">Learning outcomes ({profile.learningOutcomes.length})</summary><ul className="mt-3 list-disc pl-5 text-sm leading-relaxed">{profile.learningOutcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul></details>}</section>}
+
+      {/* Everything that leaves this course: one ruled row each, no boxes. */}
+      <section className="flex flex-col">
+        <h2 className="border-b pb-2 text-base font-semibold">Elsewhere</h2>
+        {(course.mockExams?.length || course.mockExamPdf) ? (
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b py-3">
+            <div>
+              <h3 className="text-sm font-medium">Past-paper practice</h3>
+              <p className="text-muted-foreground text-xs">Stored exam papers with question guidance and answer grading.</p>
+            </div>
+            <Link href={`/app/courses/${course.id}/mock-exam`} className="text-primary shrink-0 text-sm font-semibold">Open papers</Link>
+          </div>
+        ) : null}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b py-3">
+          <div>
+            <h3 className="text-sm font-medium">Personal plan</h3>
+            <p className="text-muted-foreground text-xs">
+              {academicCourse
+                ? 'Connected by course code. Exam dates and attempts stay in your private programme record.'
+                : 'Not in your active programme. Add this course code to connect dates, credits and attempts.'}
+            </p>
+          </div>
+          <Link href="/app/planning" className="text-primary shrink-0 text-sm font-semibold">Open Planning</Link>
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b py-3">
+          <div>
+            <h3 className="text-sm font-medium">Private Canvas archive</h3>
+            <p className="text-muted-foreground text-xs">Choose modules and download a private source archive for this class.</p>
+          </div>
+          <Link href={`/canvas?course=${encodeURIComponent(canvasCourseQuery(course))}`} className="text-primary inline-flex shrink-0 items-center gap-1 text-sm font-semibold">
+            Open archive <ExternalLinkIcon className="size-3.5" />
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }

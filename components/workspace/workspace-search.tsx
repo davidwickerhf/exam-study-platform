@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRightIcon, BookOpenIcon, SearchIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +16,30 @@ import { type SearchResult, searchable, searchHref, searchLabel } from '@/lib/wo
 type Course = { id: string; code: string; name: string }
 type SearchHit = SearchResult & { courseId: string; courseCode: string; score?: number }
 
-export function WorkspaceSearch() {
+/**
+ * The shortcut every search field in every tool answers to.
+ *
+ * The sidebar field opened this on click and nothing else, so the one gesture
+ * a student already has in their fingers did nothing at all. It is bound once,
+ * on the document, and it deliberately does not fire while a text field has
+ * focus with a modifier the browser owns — the browser's own ⌘K in the address
+ * bar is not ours to take.
+ */
+function useSearchShortcut(onOpen: () => void, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'k' && event.key !== 'K') return
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return
+      event.preventDefault()
+      onOpen()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [enabled, onOpen])
+}
+
+export function WorkspaceSearch({ shortcut = true }: { shortcut?: boolean }) {
   const [open, setOpen] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const [courseId, setCourseId] = useState('all')
@@ -24,6 +47,8 @@ export function WorkspaceSearch() {
   const [results, setResults] = useState<SearchHit[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useSearchShortcut(useCallback(() => setOpen(true), []), shortcut)
 
   useEffect(() => {
     let live = true
@@ -60,10 +85,17 @@ export function WorkspaceSearch() {
   }, [courseId, courses, query])
 
   return <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger render={<Button variant="outline" size="sm" className="w-full justify-start" />}><SearchIcon data-icon="inline-start" />Search material</DialogTrigger>
+    <DialogTrigger render={<Button variant="outline" size="sm" className="w-full justify-start gap-2" />}>
+      <SearchIcon data-icon="inline-start" />
+      Search material
+      {/* The shortcut is only a hint if it is written where the field is. */}
+      <kbd aria-hidden="true" className="text-muted-foreground border-input font-data ml-auto hidden rounded-xs border px-1.5 py-0.5 text-[10.5px] font-medium tabular-nums sm:inline-block">
+        ⌘K
+      </kbd>
+    </DialogTrigger>
     <DialogContent className="flex max-h-[min(760px,calc(100dvh-32px))] w-[min(820px,calc(100vw-32px))] max-w-none flex-col gap-0 overflow-hidden rounded-none border-t-2 border-t-primary p-0 sm:max-w-[820px]">
       <DialogHeader className="gap-1 px-7 pt-6 pb-5">
-        <DialogTitle className="text-xl">Search your study library</DialogTitle>
+        <DialogTitle className="text-[21px]">Search your study library</DialogTitle>
         <DialogDescription>One search across every maintained chapter, explanation, formula, example, and exam technique.</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4 px-7 pb-5">
@@ -97,7 +129,7 @@ export function WorkspaceSearch() {
         </div>
       </ScrollArea>
       <Separator />
-      <div className="text-muted-foreground flex items-center justify-between px-7 py-3 text-xs"><span>{results.length ? `${results.length} best matches` : `${courses.length} active courses · full-text search`}</span><span>Esc to close</span></div>
+      <div className="text-muted-foreground flex items-center justify-between px-7 py-3 text-xs"><span>{results.length ? `${results.length} best matches` : `${courses.length} active courses · full-text search`}</span><span className="font-data">⌘K to open · Esc to close</span></div>
     </DialogContent>
   </Dialog>
 }

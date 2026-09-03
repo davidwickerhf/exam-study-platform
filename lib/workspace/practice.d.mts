@@ -78,11 +78,61 @@ export type Quality = { value: number; label: string; hint: string }
 
 export type QuestionFilter = { courseId?: string; chapterKey?: string; type?: string; query?: string }
 
+export type SrQueueAction = 'rate' | 'skip' | 'remove'
+
+export type GradedMockQuestion = PracticeQuestion & { attempt: string; correction: string; score: number }
+export type GradeProgress = { completed: number; total: number }
+export type GradeMockOptions = { concurrency?: number; onProgress?: (progress: GradeProgress) => void }
+
+export type SessionEvent<TItem = unknown> = {
+  key: string
+  courseId: string | null
+  courseCode: string
+  correct: boolean
+  item?: TItem
+}
+export type SessionCourseRow = { courseId: string | null; code: string; answered: number; correct: number; missed: number }
+export type SessionSummary<TItem = unknown> = {
+  answered: number
+  correct: number
+  incorrect: number
+  courses: SessionCourseRow[]
+  missed: SessionEvent<TItem>[]
+}
+
+export type PracticeTab = 'questions' | 'flashcards' | 'mistakes' | 'mocks'
+export type PracticeHeadlineState = {
+  tab?: string
+  loaded?: boolean
+  questionCount?: number
+  courseCount?: number
+  dueCount?: number
+  totalCards?: number
+  mistakeCount?: number
+  mockCount?: number
+}
+
 export declare const QUESTION_TYPE_LABELS: Record<string, string>
 export declare const DIFFICULTIES: string[]
 export declare const CHOICE_TYPES: string[]
 export declare const SR_PASS: number
 export declare const SR_QUALITIES: Quality[]
+export declare const SR_QUEUE_ACTIONS: SrQueueAction[]
+export declare const MOCK_GRADE_CONCURRENCY: number
+export declare const ANSWER_PASS_SCORE: number
+
+export declare function advanceReviewQueue<T>(queue: T[] | null | undefined, action: SrQueueAction | string): T[]
+export declare function canSkip(queue: unknown[] | null | undefined): boolean
+export declare function gradeMockAnswers(
+  questions: PracticeQuestion[],
+  answers: Record<string, string> | null | undefined,
+  gradeFn: (question: PracticeQuestion, attempt: string) => Promise<{ correction?: string; score?: number | null }>,
+  options?: GradeMockOptions
+): Promise<GradedMockQuestion[]>
+export declare function answerWasCorrect(score: unknown): boolean
+export declare function summariseSession<TItem>(events: SessionEvent<TItem>[] | null | undefined): SessionSummary<TItem>
+export declare function practiceHeadline(state?: PracticeHeadlineState): string
+export declare function sessionMeter(state?: { tab?: string; answered?: number; reviewed?: number }): string | null
 
 export declare function typeLabel(type: unknown): string | null
 export declare function difficultyLabel(question: { difficulty?: unknown } | null | undefined): string | null

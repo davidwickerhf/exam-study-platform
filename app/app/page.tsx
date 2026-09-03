@@ -1,32 +1,54 @@
 'use client'
 
-/** Home answers what is happening now, what is due, and where the degree stands. */
+/**
+ * THESIS: Home is a study itinerary, not a collage of dashboard cards.
+ * OWN-WORLD: Warm canvas, white registers, navy ink, one indigo route, compact Archivo typography.
+ * STORY: Read what needs attention, act on the current leg, then understand the next academic milestones.
+ * FIRST VIEWPORT: Date and period measure above a two-column board; the route owns the left, evidenced priorities lead the right, and the primary action sits inside the dark NOW plane.
+ * FORM: Study Itinerary, fifth-ranked grounded structure, seed 29b43344.
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+ */
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLinkIcon } from 'lucide-react'
+import {
+  ArrowRightIcon,
+  BookOpenIcon,
+  CalendarDaysIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  CircleAlertIcon,
+  ListChecksIcon,
+  PlayIcon
+} from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { OnboardingResume } from '@/components/workspace/onboarding-resume'
+import { useWorkspaceData } from '@/hooks/use-workspace-data'
+import { cn } from '@/lib/utils'
+import type { Assignment } from '@/lib/workspace/canvas'
 import {
   type AcademicSummary,
   type CalendarEvent,
   type CalendarPayload,
+  type HomePriority,
   awayLabel,
   clockOf,
   dayEntries,
   daysUntil,
   deadlineTitle,
+  homePriorities,
   leadEntry,
   localIsoDate,
   periodWeek,
   roomOf,
   upcomingDeadlines
 } from '@/lib/workspace/home.mjs'
+import type { Mistake, SrPayload } from '@/lib/workspace/practice.mjs'
 import { type StudyCourse, courseProgress, readChapters } from '@/lib/workspace/courses.mjs'
 
-type Announcement = { id: string; title: string; courseCode: string | null; postedAt: string | null; url: string | null }
 type Activity = {
   days: number
   streak: number
@@ -35,324 +57,300 @@ type Activity = {
   week: { total: number }
   previousWeek: number
   series: { date: string; total: number }[]
-  recent: { type: string; at: string; courseId: string | null; chapterId: string | null; score: number | null; label: string | null }[]
+}
+type AcademicsPayload = { summary: AcademicSummary; workspace?: { courses?: { ects?: number }[]; calendars?: unknown[] } }
+type WorkspaceShell = { courses?: StudyCourse[] }
+type HubPayload = { connected?: boolean; assignments?: Assignment[] }
+
+const DESIGN_CONTRACT = 'study-itinerary-29b43344'
+const NUMERALS = 'font-data tabular-nums'
+const LABEL = 'text-muted-foreground text-[11px] font-semibold tracking-[0.09em] uppercase'
+const QUIET_LINK = 'text-primary font-medium underline decoration-border underline-offset-4 hover:decoration-current'
+
+function shortDate(value: string | null) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(value))
 }
 
-const NUMERALS = 'font-data tabular-nums'
+function fullDate(value: string) {
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${value}T12:00:00`)).replace(/^([^ ]+) /, '$1, ')
+}
+
+function distance(value: string | null) {
+  const days = daysUntil(value)
+  if (days === null) return 'Date not recorded'
+  if (days < 0) return `${Math.abs(days)}d overdue`
+  if (days === 0) return 'Today'
+  return `${days}d`
+}
 
 function SectionHead({ title, meta, href }: { title: string; meta?: string; href?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b pb-3">
+    <div className="flex items-baseline justify-between gap-4 border-b px-5 py-4">
       <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-      {href ? (
-        <a href={href} className="text-primary text-xs font-semibold">{meta}</a>
-      ) : meta ? (
-        <span className={`text-muted-foreground text-sm ${NUMERALS}`}>{meta}</span>
-      ) : null}
+      {href && meta ? <Link href={href} className="text-primary text-xs font-semibold">{meta}</Link> : meta ? <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{meta}</span> : null}
     </div>
   )
 }
 
+function ExternalOrInternalLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+  return href.startsWith('http')
+    ? <a href={href} target="_blank" rel="noopener noreferrer" className={className}>{children}</a>
+    : <Link href={href} className={className}>{children}</Link>
+}
+
+function PriorityRow({ item }: { item: HomePriority }) {
+  return (
+    <li className="border-b last:border-b-0">
+      <ExternalOrInternalLink href={item.href} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-5 py-3.5">
+        <span className={cn('mt-0.5 grid size-8 place-items-center rounded-md', item.rank === 0 ? 'bg-destructive/10 text-destructive' : 'bg-accent text-primary')}>
+          {item.kind === 'attendance' || item.kind === 'exam' ? <CalendarDaysIcon className="size-4" /> : item.kind === 'project' ? <ListChecksIcon className="size-4" /> : <CircleAlertIcon className="size-4" />}
+        </span>
+        <span className="min-w-0">
+          <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <strong className="text-sm leading-snug">{item.title}</strong>
+            <span className={cn('text-[10px] font-semibold tracking-[0.08em] uppercase', item.rank === 0 ? 'text-destructive' : 'text-primary')}>{item.status}</span>
+          </span>
+          <span className="text-muted-foreground mt-0.5 block text-xs leading-relaxed">{[item.courseCode, item.source, item.dueText ?? distance(item.dueAt)].filter(Boolean).join(' · ')}</span>
+          <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">{item.detail}</span>
+        </span>
+        <ChevronRightIcon className="text-muted-foreground mt-2 size-3.5 transition-transform group-hover:translate-x-0.5" />
+      </ExternalOrInternalLink>
+    </li>
+  )
+}
+
 export default function HomePage() {
-  const [calendar, setCalendar] = useState<CalendarPayload | null>(null)
-  const [summary, setSummary] = useState<AcademicSummary | null>(null)
-  const [requiredEcts, setRequiredEcts] = useState(0)
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [activity, setActivity] = useState<Activity | null>(null)
-  const [courses, setCourses] = useState<StudyCourse[]>([])
-  const [read, setRead] = useState<Set<string>>(new Set())
-  const [error, setError] = useState<string | null>(null)
+  const { data: calendar, error: calendarError } = useWorkspaceData<CalendarPayload>('/api/calendar/events')
+  const { data: academics, error: academicsError, loading: academicsLoading } = useWorkspaceData<AcademicsPayload>('/api/academics')
+  const { data: hub, error: hubError, loading: hubLoading } = useWorkspaceData<HubPayload>('/api/integrations/canvas/hub?scope=current&days=30')
+  const { data: activity, error: activityError } = useWorkspaceData<Activity>('/api/activity?days=28')
+  const { data: shell, error: shellError, loading: shellLoading } = useWorkspaceData<WorkspaceShell>('/api/workspace-shell')
+  const { data: sr, error: srError } = useWorkspaceData<SrPayload>('/api/sr/due')
+  const { data: mistakes, error: mistakesError } = useWorkspaceData<Mistake[]>('/api/mistakes?open=true')
+  const [read, setRead] = useState<Set<string>>(() => new Set())
 
-  useEffect(() => {
-    let live = true
-    setRead(readChapters(window.localStorage))
-    const json = (path: string) =>
-      fetch(path, { headers: { accept: 'application/json' } })
-        .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${path} returned ${response.status}`))))
+  useEffect(() => { setRead(readChapters(window.localStorage)) }, [])
 
-    json('/api/calendar/events').then((data) => { if (live) setCalendar(data) }).catch((cause: Error) => { if (live) setError(cause.message) })
-    json('/api/academics').then((data) => {
-      if (!live) return
-      setSummary(data.summary)
-      setRequiredEcts((data.workspace?.courses ?? []).reduce((total: number, course: { ects?: number }) => total + (course.ects ?? 0), 0))
-    }).catch(() => {})
-    json('/api/integrations/canvas/hub?scope=current&days=30')
-      .then((data) => { if (live) setAnnouncements((data.announcements ?? []).slice(0, 3)) })
-      .catch(() => {})
-    json('/api/activity?days=28').then((data) => { if (live) setActivity(data) }).catch(() => {})
-    json('/api/state').then((data) => { if (live) setCourses((data.courses ?? []).filter((course: StudyCourse) => !course.archived)) }).catch(() => {})
-    return () => { live = false }
-  }, [])
-
+  const summary = academics?.summary ?? null
+  const requiredEcts = useMemo(() => (academics?.workspace?.courses ?? []).reduce((total, course) => total + (course.ects ?? 0), 0), [academics])
+  const hasTimetable = (academics?.workspace?.calendars ?? []).length > 0
+  const courses = useMemo(() => (shell?.courses ?? []).filter((course) => !course.archived), [shell])
   const events = calendar?.events ?? []
   const context = calendar?.academicContext ?? null
   const today = localIsoDate()
   const { week, weeks } = periodWeek(context?.start, context?.end, today)
-
   const entries = useMemo(() => dayEntries(events, today), [events, today])
   const lead = useMemo(() => leadEntry(entries), [entries])
-  const rest = useMemo(
-    () => entries.filter((entry) => entry.kind === 'teaching' && entry.startsAt > Date.now() && entry.event !== lead?.event),
-    [entries, lead]
-  )
   const due = useMemo(() => upcomingDeadlines(events), [events])
-  const periods = useMemo(
-    () => events.filter((event) => event.category === 'period').sort((left, right) => left.start.localeCompare(right.start)),
-    [events]
-  )
-  const institution = useMemo(
-    () => events
-      .filter((event) => ['exam-week', 'study-week', 'holiday'].includes(event.category) && event.start.slice(0, 10) >= today)
-      .sort((left, right) => left.start.localeCompare(right.start))
-      .slice(0, 3),
-    [events, today]
-  )
+  const institution = useMemo(() => events.filter((event) => ['exam-week', 'study-week'].includes(event.category) && event.start.slice(0, 10) >= today).sort((left, right) => left.start.localeCompare(right.start)), [events, today])
+  const periodExam = useMemo(() => events.find((event) => event.category === 'exam-week' && (!context?.start || event.start.slice(0, 10) >= context.start) && (!context?.end || event.start.slice(0, 10) <= context.end)) ?? null, [events, context])
+  const nextCourseExam = useMemo(() => events.filter((event) => event.category === 'exam' && event.start.slice(0, 10) >= today).sort((left, right) => left.start.localeCompare(right.start))[0] ?? null, [events, today])
+  const examMarker = nextCourseExam ?? periodExam
+  const examWeek = useMemo(() => {
+    if (!examMarker || !context?.start || !weeks) return null
+    const offset = Math.floor((new Date(`${examMarker.start.slice(0, 10)}T00:00:00Z`).getTime() - new Date(`${context.start}T00:00:00Z`).getTime()) / 86_400_000 / 7) + 1
+    return offset >= 1 && offset <= weeks ? offset : null
+  }, [examMarker, context, weeks])
+  const routeStops = useMemo(() => {
+    const seen = new Set<string>()
+    return [...due, ...events.filter((event) => event.category === 'exam' && event.start.slice(0, 10) >= today), ...institution].sort((left, right) => left.start.localeCompare(right.start)).filter((event) => !seen.has(event.id) && Boolean(seen.add(event.id))).slice(0, 2)
+  }, [due, events, institution, today])
+  const priorities = useMemo(() => homePriorities({ events, assignments: hub?.assignments ?? [], courses, limit: 4 }), [events, hub, courses])
+  const verifiedRules = useMemo(() => courses.filter((course) => course.courseProfile?.assessment?.status === 'confirmed').length, [courses])
+  const prioritySources = [
+    { label: 'Timetable', ready: hasTimetable, detail: academicsError ? 'Unavailable' : academicsLoading ? 'Checking…' : hasTimetable ? 'Teaching events available' : 'Not connected', href: '/app/setup?checklist=1&step=timetable' },
+    { label: 'Canvas', ready: Boolean(hub?.connected), detail: hubError ? 'Unavailable' : hubLoading ? 'Checking…' : hub?.connected ? 'Submission states available' : 'Not connected', href: '/app/account?tab=connections' },
+    { label: 'Course rules', ready: verifiedRules > 0, detail: shellError ? 'Unavailable' : shellLoading ? 'Checking…' : verifiedRules ? `${verifiedRules} verified ${verifiedRules === 1 ? 'course' : 'courses'}` : 'No verified rules', href: '/app/courses' }
+  ]
+  const priorityLoading = academicsLoading || hubLoading || shellLoading
+  const priorityError = academicsError ?? hubError ?? shellError
+  const missingPrioritySources = prioritySources.filter((source) => source.detail !== 'Checking…' && !source.ready).length
+  const unavailablePrioritySources = prioritySources.filter((source) => source.detail === 'Unavailable').length
+  const peak = useMemo(() => Math.max(1, ...(activity?.series ?? []).map((item) => item.total)), [activity])
 
-  if (error) {
-    return (
-      <div className="mx-auto w-full max-w-[1180px] p-5 sm:p-8">
-        <Empty><EmptyHeader><EmptyTitle>Your week could not be read</EmptyTitle><EmptyDescription>{error}</EmptyDescription></EmptyHeader></Empty>
-      </div>
-    )
+  if (calendarError) {
+    return <div className="mx-auto w-full max-w-[1280px] p-5 sm:p-8"><Empty><EmptyHeader><EmptyTitle>Your week could not be read</EmptyTitle><EmptyDescription>{calendarError.message}</EmptyDescription></EmptyHeader></Empty></div>
   }
 
+  const primaryHref = lead?.kind === 'due' ? (lead.event.externalHref ?? '/app/updates?tab=assignments') : lead ? '/app/calendar' : '/app/practice?tab=questions'
+  const primaryLabel = lead?.kind === 'due' ? 'Open assignment' : lead ? 'Open today' : 'Start a practice set'
+
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
-      {/* The ruling axis: where the student is in the year. */}
-      <header className="flex flex-col gap-2">
-        {calendar ? (
-          <>
-            <h1 className="font-heading text-6xl leading-none tracking-tighter">{context?.period ?? 'No period set'}</h1>
-            <p className={`text-muted-foreground text-sm ${NUMERALS}`}>
-              {[context?.academicYear, week && weeks ? `week ${week} of ${weeks}` : null].filter(Boolean).join(' · ')}
-            </p>
-            {periods.length > 0 && (
-              <ol className="mt-2 flex gap-[3px]" aria-label="Teaching periods this year">
-                {periods.map((period) => {
-                  const past = today > (period.end ?? period.start).slice(0, 10)
-                  const now = !past && today >= period.start.slice(0, 10)
-                  return (
-                    <li key={period.id} className="flex flex-1 flex-col gap-1.5">
-                      <span className={`h-[3px] ${now ? 'bg-primary' : past ? 'bg-input' : 'bg-border'}`} />
-                      <b className={`text-[10px] font-medium ${NUMERALS} ${now ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {period.title.replace(/\D+/g, '')}
-                      </b>
-                    </li>
-                  )
-                })}
-              </ol>
-            )}
-          </>
-        ) : (
-          <><Skeleton className="h-14 w-72" /><Skeleton className="h-4 w-48" /></>
-        )}
-      </header>
-
-      <div className="grid gap-8 border-t pt-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        {/* Lead: what is running, or next. */}
-        <div className="flex min-w-0 flex-col">
-          {!calendar ? (
-            <div className="flex flex-col gap-3"><Skeleton className="h-16 w-56" /><Skeleton className="h-6 w-72" /></div>
-          ) : lead ? (
+    <div data-impeccable-contract={DESIGN_CONTRACT} className="w-full">
+      <header className="border-b">
+        <div className="mx-auto grid w-full max-w-[1280px] gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)] lg:items-end lg:px-8 lg:py-7">
+        <div className="min-w-0">
+          {calendar ? (
             <>
-              <p className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">
-                {lead.startsAt <= Date.now() ? 'On now' : lead.kind === 'due' ? 'Due today' : 'Next up'}
-              </p>
-              <p className="mt-2 flex items-baseline gap-3">
-                <time dateTime={lead.event.start} className={`text-primary text-6xl font-semibold ${NUMERALS} leading-none tracking-tighter`}>
-                  {clockOf(lead.event.start)}
-                </time>
-                <span className="text-muted-foreground text-base font-medium">
-                  {lead.startsAt <= Date.now() ? 'in progress' : awayLabel(Math.round((lead.startsAt - Date.now()) / 60_000))}
-                </span>
-              </p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-                {lead.kind === 'due' ? deadlineTitle(lead.event) : lead.event.courseName ?? lead.event.title}
-              </h2>
-              <p className="text-muted-foreground mt-1.5 text-sm">
-                {[lead.event.courseCode, lead.kind === 'due' ? 'hand-in' : null, roomOf(lead.event)].filter(Boolean).join(' · ')}
-              </p>
-              {lead.event.externalHref && (
-                <a href={lead.event.externalHref} target="_blank" rel="noopener noreferrer" className="text-primary mt-4 inline-block text-sm font-semibold">
-                  Open in Canvas
-                </a>
-              )}
+              <h1 className="font-heading text-[2rem] leading-none font-semibold tracking-[-0.035em]">{fullDate(today)}</h1>
+              <p className={`text-muted-foreground mt-2 text-sm ${NUMERALS}`}>{[context?.period ?? 'No period set', context?.academicYear, week && weeks ? `week ${week} of ${weeks}` : null].filter(Boolean).join(' · ')}</p>
             </>
-          ) : (
-            <>
-              <p className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Right now</p>
-              <p className="mt-5 max-w-md text-2xl leading-snug font-medium tracking-tight">
-                {entries.length ? 'Nothing left today.' : 'Nothing scheduled today.'}
-              </p>
-              {!entries.length && <OnboardingResume />}
-            </>
-          )}
-
-          {rest.length > 0 && (
-            <ol className="mt-4 flex flex-col border-t pt-4">
-              {rest.map((entry) => (
-                <li key={entry.event.id} className="grid grid-cols-[4rem_minmax(0,1fr)] items-baseline gap-4 py-2">
-                  <time dateTime={entry.event.start} className={`text-base font-semibold ${NUMERALS}`}>{clockOf(entry.event.start)}</time>
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <strong className="text-[15px] leading-snug font-medium">{entry.event.courseName ?? entry.event.title}</strong>
-                    <small className="text-muted-foreground text-xs">
-                      {[entry.event.courseCode, roomOf(entry.event)].filter(Boolean).join(' · ')}
-                    </small>
-                  </span>
-                </li>
+          ) : <div className="flex flex-col gap-2"><Skeleton className="h-10 w-72 max-w-full" /><Skeleton className="h-4 w-52" /></div>}
+        </div>
+        {weeks && week && (
+          <div className="min-w-0">
+            <div className="mb-2 flex items-center justify-between gap-4 text-[11px] font-semibold tracking-[0.08em] uppercase">
+              <span className="text-muted-foreground">{context?.period ?? 'Teaching period'} · {weeks} weeks</span>
+              {examMarker && <span className="text-foreground">{nextCourseExam ? `Next exam${nextCourseExam.courseCode ? ` · ${nextCourseExam.courseCode}` : ''}` : 'Exam week'} · {shortDate(examMarker.start)} · <span className={NUMERALS}>{distance(examMarker.start)}</span></span>}
+            </div>
+            <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))` }} aria-label={`${context?.period ?? 'Teaching period'}, week ${week} of ${weeks}${examWeek ? `, exam week begins in week ${examWeek}` : ''}`}>
+              {Array.from({ length: weeks }, (_, index) => index + 1).map((number) => (
+              <li key={number} className="flex min-w-0 flex-col gap-2">
+                <span className={cn('h-1', number === week ? 'bg-primary' : number < week ? 'bg-primary/35' : number === examWeek ? 'bg-foreground' : 'bg-border')} />
+                <span className={cn('flex items-center justify-between gap-1 text-[11px] font-semibold', NUMERALS, number === week ? 'text-primary' : number === examWeek ? 'text-foreground' : 'text-muted-foreground')}><span>W{number}</span>{number === examWeek && <span className="font-sans text-[10.5px] tracking-[0.08em] uppercase max-sm:sr-only">Exam</span>}</span>
+              </li>
               ))}
             </ol>
-          )}
+          </div>
+        )}
         </div>
+      </header>
 
-        <aside className="flex min-w-0 flex-col gap-6 lg:border-l lg:pl-6">
-          <section className="flex flex-col gap-1">
-            <SectionHead title="Due" meta="All" href="/app/updates" />
-            {!calendar ? <Skeleton className="mt-2 h-24 w-full" /> : due.length ? (
-              <ul className="flex flex-col">
-                {due.map((event, index) => {
-                  const away = daysUntil(event.start)
-                  return (
-                    <li key={event.id} className="grid grid-cols-[3.2rem_minmax(0,1fr)_auto] items-baseline gap-3 border-b py-2 last:border-b-0">
-                      <span className={`${NUMERALS} ${index === 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-                        <strong className="text-2xl font-semibold tracking-tight">{Math.max(0, away ?? 0)}</strong>
-                        <small className="text-sm">d</small>
-                      </span>
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <strong className="text-[15px] leading-snug font-medium break-words">{deadlineTitle(event)}</strong>
-                        <small className="text-muted-foreground text-xs">{event.courseCode}</small>
-                      </span>
-                      {event.externalHref && (
-                        <a href={event.externalHref} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary" aria-label={`Open ${event.title} in Canvas`}>
-                          <ExternalLinkIcon className="size-4" />
-                        </a>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : <p className="text-muted-foreground py-2 text-sm">Nothing due in the next two weeks.</p>}
+      <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-7 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1.58fr)_minmax(19rem,0.72fr)]">
+        <section className="min-w-0" aria-labelledby="route-heading">
+          <div className="flex items-baseline justify-between gap-4 border-b pb-3">
+            <h2 id="route-heading" className="text-lg font-semibold tracking-tight">Your study route</h2>
+            <Link href="/app/calendar" className="text-primary text-xs font-semibold">Full calendar</Link>
+          </div>
+
+          <div className="relative mt-5 pl-9 sm:pl-12">
+            {routeStops.length > 0 && <>
+              <span aria-hidden="true" className="bg-border absolute top-4 bottom-8 left-[11px] w-px sm:left-[15px]" />
+              <span aria-hidden="true" className="bg-primary absolute top-4 bottom-8 left-[11px] w-px origin-top motion-safe:animate-[route-reveal_650ms_cubic-bezier(0.16,1,0.3,1)_both] sm:left-[15px]" />
+            </>}
+
+            <div className="relative">
+              <span aria-hidden="true" className="border-background bg-primary ring-primary absolute top-5 -left-[34px] size-[18px] rounded-full border-4 ring-1 sm:-left-[43px] sm:size-5" />
+              <p className="text-primary mb-2 text-xs font-semibold tracking-[0.08em] uppercase">Now</p>
+              <div className="bg-foreground text-card overflow-hidden rounded-xl shadow-[var(--shadow-sheet)]">
+                <div className="p-5 sm:p-7 lg:p-8">
+                  {calendar ? (
+                  <div className="grid gap-5 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
+                    <span aria-hidden="true" className="grid size-10 place-items-center rounded-lg bg-white/8 text-white/80"><CalendarDaysIcon className="size-5" /></span>
+                    <div className="min-w-0">
+                      {lead?.event.start && <p className={`text-primary-foreground/65 mb-2 text-sm ${NUMERALS}`}>{[clockOf(lead.event.start), roomOf(lead.event)].filter(Boolean).join(' · ')}</p>}
+                      <h3 className="font-heading text-[clamp(1.65rem,3vw,2.3rem)] leading-[1.05] font-semibold tracking-[-0.03em]">
+                        {lead ? (lead.kind === 'due' ? deadlineTitle(lead.event) : lead.event.courseName ?? lead.event.title) : entries.length ? 'Nothing left today' : 'Nothing scheduled today'}
+                      </h3>
+                      <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-white/70">
+                        {lead ? [lead.event.courseCode, lead.kind === 'due' ? 'Hand-in deadline' : lead.startsAt <= Date.now() ? 'In progress' : awayLabel(Math.round((lead.startsAt - Date.now()) / 60_000))].filter(Boolean).join(' · ') : hasTimetable ? 'Your timetable has no more appointments today. Use the open space for the next useful study action.' : 'Connect your timetable to place lectures, tutorials, labs and rooms directly on this route.'}
+                      </p>
+                      <div className="mt-5 flex flex-wrap items-center gap-5">
+                        <ExternalOrInternalLink href={primaryHref} className={cn(buttonVariants({ size: 'lg' }), 'min-w-fit bg-primary text-primary-foreground hover:bg-primary/90')}>
+                          <PlayIcon data-icon="inline-start" />{primaryLabel}
+                        </ExternalOrInternalLink>
+                        {!lead && <Link href="/app/practice" className="text-sm font-semibold text-white/70 underline decoration-white/25 underline-offset-4 hover:text-white">Choose another activity</Link>}
+                      </div>
+                    </div>
+                  </div>
+                  ) : <div className="flex flex-col gap-3"><Skeleton className="h-8 w-64 bg-white/15" /><Skeleton className="h-4 w-80 max-w-full bg-white/10" /></div>}
+                </div>
+                {!hasTimetable && calendar && <p className="border-t border-white/15 px-5 py-4 text-sm text-white/70 sm:px-7 lg:px-8">Want classes on the route? <Link href="/app/setup?checklist=1&step=timetable" className="font-semibold text-white underline decoration-white/30 underline-offset-4">Connect your timetable</Link>.</p>}
+                <OnboardingResume className="mt-0 border-white/15 px-5 py-4 sm:px-7 lg:px-8 [&_span]:text-white/70" />
+              </div>
+            </div>
+
+            <ol className="mt-2 flex flex-col">
+              {routeStops.map((event, index) => (
+                <li key={event.id} className="relative border-b py-5 last:border-b-0">
+                  <span aria-hidden="true" className="border-background bg-card ring-primary absolute top-7 -left-[31px] size-3 rounded-full border-[3px] ring-1 sm:-left-[41px] sm:size-4" />
+                  <Link href="/app/calendar" className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-4 sm:gap-5">
+                    <span aria-hidden="true" className="bg-muted text-foreground grid size-10 place-items-center rounded-lg"><CalendarDaysIcon className="size-5" /></span>
+                    <span className="min-w-0">
+                      <span className="text-primary text-[11px] font-semibold tracking-[0.08em] uppercase">{index === 0 ? 'Next' : 'Later'}</span>
+                      <strong className="mt-1 block text-lg leading-snug tracking-tight">{['canvas-deadline', 'exam'].includes(event.category) ? deadlineTitle(event) : event.title}</strong>
+                      <span className="text-muted-foreground mt-1 block text-sm">{[event.courseCode, shortDate(event.start), event.category === 'canvas-deadline' ? 'Assignment' : event.category === 'exam' ? 'Exam plan' : 'Academic calendar'].filter(Boolean).join(' · ')}</span>
+                    </span>
+                    <span className={`flex items-center gap-3 ${NUMERALS}`}>
+                      <strong className="font-heading text-2xl tracking-tight">{Math.max(0, daysUntil(event.start) ?? 0)}<small className="ml-0.5 text-sm font-medium">d</small></strong>
+                      <ArrowRightIcon className="text-muted-foreground size-4 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+              {calendar && routeStops.length === 0 && <li className="text-muted-foreground py-6 text-sm">No upcoming deadlines or academic milestones are recorded.</li>}
+            </ol>
+          </div>
+
+          {summary && (
+            <dl className="mt-5 grid grid-cols-2 border-y sm:grid-cols-4">
+              {[
+                ['Credits', `${summary.earnedEcts}/${requiredEcts || '—'}`],
+                ['Courses passed', `${summary.passedCourses}/${summary.totalCourses}`],
+                ['Streak', activity ? `${activity.streak}d` : activityError ? 'Unavailable' : '—'],
+                ['This week', activity ? `${activity.week.total} sessions` : activityError ? 'Unavailable' : '—']
+              ].map(([label, value], index) => <div key={label} className={cn('border-r px-3 py-4 first:pl-0 last:border-r-0 sm:px-5', index % 2 === 1 && 'max-sm:border-r-0')}><dt className={LABEL}>{label}</dt><dd className={`mt-1 text-xl font-semibold tracking-tight ${NUMERALS}`}>{value}</dd></div>)}
+            </dl>
+          )}
+        </section>
+
+        <aside className="flex h-fit min-w-0 flex-col gap-4" aria-label="Study status">
+          <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
+            <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} active${missingPrioritySources || priorityError ? ' · partial' : ''}` : missingPrioritySources ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
+            {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs">Evidence coverage: {prioritySources.filter((source) => source.ready).length} of 3 sources connected.{unavailablePrioritySources ? ` ${unavailablePrioritySources} ${unavailablePrioritySources === 1 ? 'source is' : 'sources are'} temporarily unavailable.` : ''}</p></> : priorityLoading ? (
+              <div className="space-y-3 px-5 py-5"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-2/3" /></div>
+            ) : priorityError ? (
+              <div>
+                <div className="px-5 py-5"><p className="text-sm font-semibold">Some priority sources could not be read.</p><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Unavailable sources are not treated as disconnected or clear.</p></div>
+                <ul className="border-t">
+                  {prioritySources.map((source) => <li key={source.label} className="flex items-center gap-3 border-b px-5 py-3 text-xs last:border-b-0"><span className={cn('grid size-5 place-items-center rounded-full', source.ready ? 'bg-primary text-primary-foreground' : 'border bg-card text-muted-foreground')}>{source.ready ? <CheckIcon className="size-3" /> : <span aria-hidden="true">·</span>}</span><span className="font-semibold">{source.label}</span><Link href={source.href} className="text-muted-foreground ml-auto hover:text-foreground">{source.detail}</Link></li>)}
+                </ul>
+              </div>
+            ) : (
+              <div>
+                <div className="px-5 py-5">
+                <p className="text-sm font-semibold">Nothing flagged in the sources currently connected.</p>
+                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">This view only makes claims it can trace to a timetable, Canvas, or a verified course rule.</p>
+                </div>
+                <ul className="border-t">
+                  {prioritySources.map((source) => <li key={source.label} className="flex items-center gap-3 border-b px-5 py-3 text-xs last:border-b-0"><span className={cn('grid size-5 place-items-center rounded-full', source.ready ? 'bg-primary text-primary-foreground' : 'border bg-card text-muted-foreground')}>{source.ready ? <CheckIcon className="size-3" /> : <span aria-hidden="true">·</span>}</span><span className="font-semibold">{source.label}</span><Link href={source.href} className="text-muted-foreground ml-auto hover:text-foreground">{source.detail}</Link></li>)}
+                </ul>
+              </div>
+            )}
           </section>
 
-          {announcements.length > 0 && (
-            <section className="flex flex-col gap-1">
-              <SectionHead title="From Canvas" meta="Open" href="/app/updates" />
-              <ul className="flex flex-col">
-                {announcements.map((item) => (
-                  <li key={item.id} className="flex flex-col gap-0.5 border-b py-2 last:border-b-0">
-                    <strong className="text-[15px] leading-snug font-medium">{item.title}</strong>
-                    <small className="text-muted-foreground text-xs">{item.courseCode}</small>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <section className="bg-card overflow-hidden rounded-xl border">
+            <SectionHead title="Study queue" meta="Open practice" href="/app/practice" />
+            <ul>
+              {[
+                { label: 'Questions', detail: courses.length ? `${courses.length} active courses` : 'No active courses', value: courses.length ? 'Ready' : '—', href: '/app/practice?tab=questions', icon: BookOpenIcon },
+                { label: 'Flashcards', detail: srError ? 'temporarily unavailable' : 'due for review', value: sr ? String(sr.dueCount) : '—', href: '/app/practice?tab=flashcards', icon: ListChecksIcon },
+                { label: 'Mistakes', detail: mistakesError ? 'temporarily unavailable' : 'open to correct', value: mistakes ? String(mistakes.length) : '—', href: '/app/practice?tab=mistakes', icon: CircleAlertIcon }
+              ].map((item) => (
+                <li key={item.label} className="border-b last:border-b-0">
+                  <Link href={item.href} className="group grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 px-5 py-3.5">
+                    <span className="bg-accent text-primary grid size-8 place-items-center rounded-md"><item.icon className="size-4" /></span>
+                    <span className="min-w-0"><strong className="block text-sm">{item.label}</strong><small className="text-muted-foreground block text-xs">{item.detail}</small></span>
+                    <strong className={`text-sm ${NUMERALS}`}>{item.value}</strong>
+                    <ChevronRightIcon className="text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-          {institution.length > 0 && (
-            <section className="flex flex-col gap-1">
-              <SectionHead title="At your institution" meta="Calendar" href="/app/calendar" />
-              <ul className="flex flex-col">
-                {institution.map((event) => (
-                  <li key={event.id} className="grid grid-cols-[3.2rem_minmax(0,1fr)] items-baseline gap-3 border-b py-2 last:border-b-0">
-                    <span className={`text-muted-foreground ${NUMERALS}`}>
-                      <strong className="text-2xl font-semibold tracking-tight">{Math.max(0, daysUntil(event.start) ?? 0)}</strong>
-                      <small className="text-sm">d</small>
-                    </span>
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <strong className="text-[15px] leading-snug font-medium">{event.title}</strong>
-                      <small className="text-muted-foreground text-xs">
-                        {new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(event.start))}
-                      </small>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <section className="bg-card overflow-hidden rounded-xl border">
+            <SectionHead title="Course readiness" meta="All courses" href="/app/courses" />
+            {courses.length ? <ol>{courses.slice(0, 4).map((course) => {
+              const progress = courseProgress(course, read)
+              return (
+                <li key={course.id} className="border-b last:border-b-0">
+                  <Link href={`/app/courses/${course.id}`} className="group grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-5 py-4">
+                    <span className="min-w-0"><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{course.code}</span><strong className="mt-0.5 block truncate text-sm">{course.name}</strong><Progress value={progress.percent} className="mt-2 h-1" /></span>
+                    <span className={`flex items-center gap-2 self-center text-lg font-semibold ${NUMERALS}`}>{progress.percent}%<ChevronRightIcon className="text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5" /></span>
+                  </Link>
+                </li>
+              )
+            })}</ol> : <p className="text-muted-foreground px-5 py-5 text-sm">Set your programme to build the course route. <Link href="/app/setup" className={QUIET_LINK}>Open setup</Link></p>}
+          </section>
+
+          <section className="bg-card rounded-xl border p-5">
+            <div className="flex items-baseline justify-between gap-4"><h2 className="text-sm font-semibold">28-day activity</h2><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{activity ? `${activity.activeDays} active days` : activityError ? 'Unavailable' : 'Loading'}</span></div>
+            {activity ? <div className="mt-4 flex h-12 items-end gap-1" role="img" aria-label={`${activity.activeDays} active days in the last ${activity.days} days`}>{activity.series.map((day) => <span key={day.date} title={`${day.date}: ${day.total}`} className={`min-h-px flex-1 ${day.total ? 'bg-primary' : 'bg-border'}`} style={{ height: `${day.total ? Math.max(12, (day.total / peak) * 100) : 3}%` }} />)}</div> : activityError ? <p className="text-muted-foreground mt-4 text-xs">Activity is temporarily unavailable.</p> : <Skeleton className="mt-4 h-12 w-full" />}
+          </section>
         </aside>
       </div>
-
-      {summary && (
-        <section className="flex flex-col gap-4 border-t pt-6">
-          <SectionHead title="Progress" meta="Plan" href="/app/planning" />
-          <div className="flex max-w-[640px] items-center gap-5">
-            <Progress value={requiredEcts ? Math.min(100, (summary.earnedEcts / requiredEcts) * 100) : 0} className="h-1.5" />
-            <p className="whitespace-nowrap">
-              <strong className={`text-3xl font-semibold tracking-tight ${NUMERALS}`}>{summary.earnedEcts}</strong>
-              <small className="text-muted-foreground ml-1.5 text-sm font-medium">of {requiredEcts} ECTS</small>
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-10">
-            <span className="flex flex-col gap-1">
-              <span className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Courses passed</span>
-              <strong className={`text-2xl font-semibold tracking-tight ${NUMERALS}`}>
-                {summary.passedCourses}<small className="text-muted-foreground ml-1 text-sm font-medium">/ {summary.totalCourses}</small>
-              </strong>
-            </span>
-            {summary.gpa !== null && (
-              <span className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Weighted GPA</span>
-                <strong className={`text-2xl font-semibold tracking-tight ${NUMERALS}`}>{summary.gpa}</strong>
-              </span>
-            )}
-            {calendar?.examWindow && (
-              <span className="flex flex-col gap-1">
-                <span className="text-muted-foreground text-xs font-semibold tracking-[0.1em] uppercase">Exam week in</span>
-                <strong className={`text-2xl font-semibold tracking-tight ${NUMERALS}`}>
-                  {Math.max(0, daysUntil(calendar.examWindow.start) ?? 0)}<small className="text-muted-foreground ml-1 text-sm font-medium">d</small>
-                </strong>
-              </span>
-            )}
-          </div>
-        </section>
-      )}
-
-      <div className="grid gap-8 border-t pt-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
-        <section className="flex min-w-0 flex-col gap-4">
-          <SectionHead title="Active courses" meta="All courses" href="/app/courses" />
-          {courses.length ? (
-            <ol className="flex flex-col">
-              {courses.slice(0, 6).map((course) => {
-                const progress = courseProgress(course, read)
-                return (
-                  <li key={course.id}>
-                    <Link href={`/app/courses/${course.id}`} className="hover:bg-card grid grid-cols-[5.5rem_minmax(0,1fr)_8rem] items-center gap-4 border-b py-3">
-                      <strong className={`text-sm font-semibold ${NUMERALS}`}>{course.code}</strong>
-                      <span className="min-w-0 truncate text-[15px] font-medium">{course.name}</span>
-                      <span className="flex items-center gap-3">
-                        <Progress value={progress.percent} className="h-1 flex-1" />
-                        <small className={`text-muted-foreground w-8 text-right ${NUMERALS}`}>{progress.percent}%</small>
-                      </span>
-                    </Link>
-                  </li>
-                )
-              })}
-            </ol>
-          ) : (
-            <p className="text-muted-foreground py-3 text-sm">Your active courses will appear here after setup.</p>
-          )}
-        </section>
-
-        <section className="flex min-w-0 flex-col gap-4">
-          <SectionHead title="Study activity" meta={activity ? `${activity.week.total} this week` : 'Loading'} />
-          {activity ? (
-            <>
-              <div className="flex h-20 items-end gap-1" role="img" aria-label={`${activity.activeDays} active days in the last ${activity.days} days`}>
-                {activity.series.map((day) => {
-                  const peak = Math.max(1, ...activity.series.map((item) => item.total))
-                  return <span key={day.date} title={`${day.date}: ${day.total}`} className={`min-h-px flex-1 ${day.total ? 'bg-primary' : 'bg-border'}`} style={{ height: `${day.total ? Math.max(10, (day.total / peak) * 100) : 2}%` }} />
-                })}
-              </div>
-              <div className="grid grid-cols-3 gap-4 border-t pt-3">
-                <span><strong className={`block text-xl ${NUMERALS}`}>{activity.streak}d</strong><small className="text-muted-foreground">streak</small></span>
-                <span><strong className={`block text-xl ${NUMERALS}`}>{activity.activeDays}</strong><small className="text-muted-foreground">active days</small></span>
-                <span><strong className={`block text-xl ${NUMERALS}`}>{activity.averageScore ?? '—'}</strong><small className="text-muted-foreground">average score</small></span>
-              </div>
-            </>
-          ) : <Skeleton className="h-28 w-full" />}
-        </section>
-      </div>
-
     </div>
   )
 }

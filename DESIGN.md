@@ -2,23 +2,23 @@
 name: Wicker Study
 description: An academic departure board — Dutch public information design applied to a university degree.
 colors:
-  canvas: "#0d0f13"
-  surface: "#131720"
-  surface-subtle: "#191e29"
-  surface-accent: "#1b2547"
-  ink: "#eceef1"
-  ink-secondary: "#98a0af"
-  ink-tertiary: "#767e8d"
-  border: "#262c39"
-  border-strong: "#39414f"
-  signal: "#2b54ff"
-  signal-text: "#8ba0ff"
-  paper: "#f4f3ef"
-  paper-subtle: "#e8e7e1"
-  paper-ink: "#14171d"
-  paper-ink-secondary: "#545a66"
-  paper-rule: "#d5d3cb"
-  paper-link: "#1f3ad6"
+  canvas: "#f7f7f4"
+  surface: "#ffffff"
+  surface-subtle: "#f1f2f6"
+  surface-accent: "#eceefe"
+  ink: "#20263a"
+  ink-secondary: "#59627b"
+  ink-tertiary: "#7d859b"
+  border: "#e7e6e1"
+  border-strong: "#d5d7e0"
+  signal: "#3f51d9"
+  signal-text: "#3344c1"
+  paper: "#ffffff"
+  paper-subtle: "#f1f2f6"
+  paper-ink: "#20263a"
+  paper-ink-secondary: "#59627b"
+  paper-rule: "#e7e6e1"
+  paper-link: "#3f51d9"
   on-signal: "#ffffff"
 typography:
   display:
@@ -66,9 +66,9 @@ typography:
     lineHeight: 1.4
   scale: ["10.5px", "11px", "12px", "12.5px", "13.5px", "14px", "14.5px", "15px", "16px", "21px", "24px", "32px", "42px", "60px"]
 rounded:
-  control: "4px"
-  card: "8px"
-  major: "12px"
+  control: "6px"
+  card: "10px"
+  major: "14px"
   pill: "999px"
   device: "32px"
   device-screen: "23px"
@@ -103,9 +103,11 @@ Three rules govern every surface.
    home board with the academic year drawn as a measure, and every screen sits
    somewhere on it.
 
-The ground is ink. Anything read at length — a tutor answer, setup question,
-or chapter — uses a punched paper window: true paper, dark ink, and the only
-element on the surface that casts a shadow.
+The signed-in ground is a warm-neutral canvas. White working planes, quiet
+gray-violet groupings, near-black navy ink, and soft structural shadows keep
+long study sessions calm. The darkest ink is reserved for decisive emphasis,
+including the dashboard's current-action plane; indigo remains the live route
+through the work.
 
 Archivo carries interface and authored content. **Archivo Narrow carries every
 numeral, course code, date and countdown, always tabular**, so columns line up
@@ -122,10 +124,11 @@ data voice.
 
 ## Layout
 
-- The application is a board shell: a 236px ink sidebar on desktop (brand, search field, grouped navigation — Study: Home, Courses, Practice; Plan: Planning, Calendar — and an account block with avatar initials at the foot) beside a scrolling canvas column capped at 1180px. On compact screens the sidebar becomes a five-item bottom bar (Home, Courses, Practice, Planning, Account) and search moves into page headers. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.
+- The application is a warm board shell. Its desktop sidebar opens at 248px and restores a saved resized width within 224–320px. Expanded, it shows the brand, search, grouped navigation, and the account block; collapsed, it becomes a 48px icon rail with labels and search hidden and destination tooltips available. The header trigger or `Cmd/Ctrl+B` reopens it at the retained expanded width; a fresh mount starts expanded. Study holds Home, Courses, Practice, Updates, and Tutor; Plan holds Planning and Calendar; Manage exposes Admin only to administrators. On compact screens the same sidebar opens as a sheet, while a five-item bottom bar keeps Home, Courses, Practice, Planning, and Account available and search sits in the sticky top bar. Mistakes, mocks, and flashcards are local tabs inside Practice, never global items.
 - Every destination opens with a title in the narrow cut and one line of secondary copy above a single rule. There are no eyebrows: a small tracked-caps label is a column header on a table or a section label in navigation, never a kicker stacked above a heading. Local tabs (Practice, Planning, Account) sit directly under that header as a flat row with one rule. Section titles inside a destination are 18px and carry no rule of their own, so two dividers never stack.
-- Regions are bounded by a rule and separated by space, never by a card. A box inside a box is the pattern this world exists to refuse; the punched paper window is the only element with an edge and a shadow.
-- Home is the board. It opens with the teaching period set large in the narrow cut, the academic year drawn beneath it as a measure of blocks with the current one carrying the signal, then what is next in date order — date, what, course, days away — with one signal rule under the live row. A greeting is not information and no longer heads the page. Queue figures (cards due, open mistakes, streak, week) are a single line of measures, not four cards. Below that sit a "continue where you left off" block, the activity ledger (28-day bar chart, weekly totals, recent events), the course ledger ordered by exam proximity, and an aside with upcoming exams, quick-start actions, and programme facts. Courses is the ledger with archive and reorder controls.
+- Regions are structured by full-span rules and space before they become containers. Page dividers reach the edges of their page band; dividers inside a working plane reach that plane's edges while the content keeps its own padding. White supporting planes may use the shared soft depth, but rows remain flat and nested card stacks remain prohibited.
+- Home is the **Study Itinerary**. A compact date and period header ends in a W1–WN measure: the current week carries solid indigo, elapsed weeks carry a faded signal, future weeks carry the neutral rule, and an exam label appears only when the selected course exam or exam week falls inside the displayed period. The broad left column is a single route: a dark NOW plane followed by at most two deduplicated NEXT/LATER stops drawn from assignments, course exams, and maintained institution milestones. Its one-pixel indigo rail is centered through the circular stop markers; when there are no future stops, the connecting rail is omitted rather than decorative. The ruled summary beneath carries credits, courses passed, streak, and weekly sessions as measures rather than cards. The narrower right column holds evidenced priorities, the study queue, browser-read course progress, and the 28-day activity strip.
+- Home priorities may claim only what the timetable, connected Canvas submission state, or confirmed course assessment rules support. Each source reports loading, connected/verified, absent, or unavailable independently; unavailable data is never presented as clear, and empty priority copy is scoped to the sources currently connected. Priority rows expose source, state, due context, detail, and destination when available.
 - Practice is one destination with local tabs under its page header: Questions, Flashcards, Mistakes, Mocks. Tab labels carry a count pill when there is due or open work; the header line summarises what is waiting.
 - Study activity is recorded server-side (answers, flashcard reviews, mocks, resolved mistakes, chapters read) and powers the streak, weekly totals, and the feed on Home and in Account. Nothing in the ledger derives from editorial material.
 - Calendar (`#/calendar`) is a first-class destination built on FullCalendar: month, week, day, and agenda views over one unified feed (exam attempts, personal events, the institution calendar, saved timetable feeds). A search field, category chips, and a course filter narrow every view and the "Coming up" aside together; selecting a date opens a detail panel with study, edit/remove, and import actions; personal events are added from the page header. Calendar is never nested under Planning.
@@ -170,7 +173,7 @@ data voice.
   links. Creation forms are collapsed composers opened from the page header,
   sitting on the subtle grouped surface.
 - Every signed-in utility page (dashboard, practice, mistakes, flashcards,
-  mocks, settings, planning) opens with the same flat page header: a 28px
+  mocks, settings, planning) opens with the same flat page header: a 32px
   title, one line of secondary copy, an optional monospace meter at right, and
   a strong hairline beneath. Page titles never sit inside a bordered card.
 - Planning data is explicitly private and programme/cohort-specific. Keep the
@@ -188,15 +191,15 @@ data voice.
 - Canvas is warm-neutral `#f7f7f4`; white is the primary working surface; subtle gray-violet groups secondary tools and rails.
 - Ink is near-black navy. Brand indigo is reserved for primary actions, links, active navigation, focus, and meaningful progress—not decorative acreage.
 - Use only the 4/8/12/16/24/32/40/48px spacing scale. Controls are 32, 40, or 48px tall.
-- Inputs and buttons use 4px corners, ordinary cards use 8px, and major frames use 12px.
+- Inputs and buttons use 6px corners, ordinary cards use 10px, and major planes use 14px.
 - Use borders and tonal changes before shadows. Repeated rows are flat. No gradients, glass decoration, heavy shadows, or nested card stacks.
 - Every interaction has hover, disabled, loading/error where applicable, and visible keyboard focus. Browser selection and scrollbars use the system palette.
 - Phone layouts prioritize resume, due flashcards, open mistakes, timed practice, course access, and focused reading. Dense heatmaps, course management, and simultaneous tool panels progressively disclose rather than leading the flow.
-- Primary actions use brand indigo, white text, 4px radius, and 40px default height. Secondary actions use a white/transparent surface and strong hairline border.
+- Primary actions use brand indigo, white text, 6px radius, and 40px default height. Secondary actions use a white/transparent surface and strong hairline border.
 - Tables use subtle headers, 12px labels, 14px body, tabular numerals, and horizontal overflow on mobile.
 - Planning summaries use a ruled four-cell strip with IBM Plex Mono values;
   status and risk color communicate meaning only. Planning editors use the
-  established 40px fields, 4px control corners, visible indigo focus, 10–14px
+  established 40px fields, 6px control corners, visible indigo focus, 10–14px
   grid gaps, and hairline row divisions instead of nested panels.
 - **The Personal Ledger Rule.** Curriculum, attempts, events, requirements, and
   scenarios reflect the active programme record. Link study material by course
@@ -209,11 +212,11 @@ data voice.
   actual controls or reading content. Public display type may scale fluidly
   from 36–84px while retaining the same Manrope weight and tracking system.
 - The 23px/32px radii are reserved for the simulated phone device and screen.
-  Product panels and controls continue to use the 4px/8px/12px radius scale.
+  Product panels and controls continue to use the 6px/10px/14px radius scale.
 
 ## Do not
 
-- Do not reintroduce serif fonts, oversized dashboard heroes, permanent or resizable study rails, raw source paths, duplicate course navigation, gradients, glass, or decorative paper textures.
+- Do not reintroduce serif fonts, oversized dashboard heroes, permanent or resizable contextual study rails inside reading or practice, raw source paths, duplicate course navigation, gradients, glass, or decorative paper textures. The resizable workspace navigation sidebar is the intentional exception.
 - Do not use per-course accent colors for global UI. Course color may identify a course icon or local datum only.
 - Do not invent one-off spacing, radii, shadows, or colors outside the documented tokens.
 - Do not hide dense information inside nested containers when a ruled list or table is clearer.

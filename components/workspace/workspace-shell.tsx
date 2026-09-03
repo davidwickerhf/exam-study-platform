@@ -24,9 +24,9 @@ import {
   UserRoundIcon,
   LogOutIcon,
   SettingsIcon,
-  PlugIcon
-  ,PlusIcon
-  ,CheckIcon
+  PlugIcon,
+  PlusIcon,
+  CheckIcon
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -47,7 +47,9 @@ import {
 } from '@/components/ui/sidebar'
 import { WorkspaceSearch } from '@/components/workspace/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useClerk, useUser } from '@clerk/nextjs'
+import { useWorkspaceSession } from '@/components/workspace/require-auth'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const SECTIONS = [
@@ -82,38 +84,117 @@ const MOBILE_ITEMS = [
   { href: '/app/account', label: 'Account', icon: UserRoundIcon }
 ] as const
 
-export function WorkspaceShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname()
-  const clerk = useClerk()
-  const { user: clerkUser } = useUser()
-  const [sidebarWidth, setSidebarWidth] = useState(236)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [programmeIndex, setProgrammeIndex] = useState<{ activeProgrammeId: string; programmes: { id: string; programme: string; academicYear: string }[] } | null>(null)
-  const name = clerkUser?.fullName || clerkUser?.firstName || 'Student'
-  const email = clerkUser?.primaryEmailAddress?.emailAddress || null
+type ProgrammeIndex = { activeProgrammeId: string; programmes: { id: string; programme: string; academicYear: string }[] }
+type AccountIdentity = { name: string; email: string | null }
+
+/** The account block at the foot of the sidebar, independent of who signed in. */
+function AccountMenu({ identity, programmeIndex, onSignOut }: { identity: AccountIdentity; programmeIndex: ProgrammeIndex | null; onSignOut: () => void | Promise<void> }) {
+  const [signingOut, setSigningOut] = useState(false)
+  const { name, email } = identity
   const initials = name
     .split(' ')
     .map((part) => part[0])
     .slice(0, 2)
     .join('')
     .toUpperCase()
+  const secondary = programmeIndex?.programmes.find((programme) => programme.id === programmeIndex.activeProgrammeId)?.programme || email || 'Signed in'
+  const signOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    try {
+      await onSignOut()
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip="Account menu" className="h-auto min-h-16 rounded-none px-4 py-3 group-data-[collapsible=icon]:min-h-0 group-data-[collapsible=icon]:rounded-md" />}>
+        <Avatar className="size-9 shrink-0 rounded-full border border-sidebar-border"><AvatarFallback className="bg-foreground text-card rounded-full text-xs font-semibold">{initials}</AvatarFallback></Avatar>
+        <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+          <span className="truncate text-sm font-semibold" title={email ? `${name} · ${email}` : name}>{name}</span>
+          <span className="text-muted-foreground truncate text-xs" title={secondary}>{secondary}</span>
+        </div>
+        <ChevronRightIcon className="ml-auto shrink-0" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" className="min-w-56">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel><span className="block truncate">{name}</span><span className="block truncate font-normal">{email}</span></DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        {programmeIndex && <>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Study workspace</DropdownMenuLabel>
+            {programmeIndex.programmes.map((programme) => <DropdownMenuItem key={programme.id} onClick={async () => { if (programme.id === programmeIndex.activeProgrammeId) return; await fetch('/api/academics/active', { method: 'PUT', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ id: programme.id }) }); window.location.reload() }}>{programme.id === programmeIndex.activeProgrammeId ? <CheckIcon /> : <span className="size-4" />}{programme.programme || 'Untitled programme'}{programme.academicYear && <span className="text-muted-foreground ml-auto text-xs">{programme.academicYear}</span>}</DropdownMenuItem>)}
+            <DropdownMenuItem render={<Link href="/app/setup?checklist=1&step=programme&new=1" />}><PlusIcon />Add another programme</DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+        </>}
+        <DropdownMenuGroup>
+          <DropdownMenuItem render={<Link href="/app/account" />}><SettingsIcon />Account settings</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/app/account?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem variant="destructive" disabled={signingOut} closeOnClick={false} onClick={() => void signOut()}><LogOutIcon />{signingOut ? 'Signing out…' : 'Sign out'}</DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/** Clerk's hooks throw outside a ClerkProvider, so they live behind this. */
+function ClerkAccountMenu({ programmeIndex }: { programmeIndex: ProgrammeIndex | null }) {
+  const clerk = useClerk()
+  const { user } = useUser()
+  return (
+    <AccountMenu
+      identity={{ name: user?.fullName || user?.firstName || 'Student', email: user?.primaryEmailAddress?.emailAddress || null }}
+      programmeIndex={programmeIndex}
+      onSignOut={() => clerk.signOut({ redirectUrl: '/sign-in' })}
+    />
+  )
+}
+
+/** Local development: the session, not Clerk, names the account. */
+function LocalAccountMenu({ programmeIndex, email }: { programmeIndex: ProgrammeIndex | null; email: string | null }) {
+  return (
+    <AccountMenu
+      identity={{ name: 'Student', email }}
+      programmeIndex={programmeIndex}
+      onSignOut={async () => {
+        await fetch('/api/auth/local-session', { method: 'DELETE' }).catch(() => undefined)
+        window.location.assign('/sign-in')
+      }}
+    />
+  )
+}
+
+export function WorkspaceShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  const isMobile = useIsMobile()
+  // The gate already read /api/auth/session; asking again would double every
+  // workspace load, and Clerk is simply absent in the local modes.
+  const { clerkEnabled, session } = useWorkspaceSession()
+  const [sidebarWidth, setSidebarWidth] = useState(248)
+  const [programmeIndex, setProgrammeIndex] = useState<ProgrammeIndex | null>(null)
+  const isAdmin = Boolean(session?.admin)
 
   useEffect(() => {
     const stored = Number(window.localStorage.getItem('wicker-sidebar-width'))
-    if (Number.isFinite(stored)) setSidebarWidth(Math.min(320, Math.max(208, stored)))
-    fetch('/api/auth/session').then((response) => response.ok ? response.json() : null).then((session) => setIsAdmin(Boolean(session?.admin))).catch(() => undefined)
+    if (Number.isFinite(stored)) setSidebarWidth(Math.min(320, Math.max(224, stored)))
     fetch('/api/academics', { headers: { accept: 'application/json' } }).then((response) => response.ok ? response.json() : null).then((data) => setProgrammeIndex(data?.index ?? null)).catch(() => undefined)
   }, [])
-  const activeProgramme = programmeIndex?.programmes.find((programme) => programme.id === programmeIndex.activeProgrammeId)
 
   const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return
     event.preventDefault()
     const startX = event.clientX
     const startWidth = sidebarWidth
-    const move = (pointer: PointerEvent) => setSidebarWidth(Math.min(320, Math.max(208, startWidth + pointer.clientX - startX)))
+    const move = (pointer: PointerEvent) => setSidebarWidth(Math.min(320, Math.max(224, startWidth + pointer.clientX - startX)))
     const finish = (pointer: PointerEvent) => {
-      const width = Math.min(320, Math.max(208, startWidth + pointer.clientX - startX))
+      const width = Math.min(320, Math.max(224, startWidth + pointer.clientX - startX))
       setSidebarWidth(width)
       window.localStorage.setItem('wicker-sidebar-width', String(width))
       window.removeEventListener('pointermove', move)
@@ -125,81 +206,58 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <div className="flex items-center gap-1">
-          <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" render={<Link href="/app" />}>
-                <BrandMark className="size-8 shrink-0" />
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Wicker Study</span>
-                  <span className="text-muted-foreground text-xs">Academic workspace</span>
-                </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-          <SidebarTrigger className="shrink-0" />
+      <Sidebar collapsible="icon" className="bg-sidebar">
+        <SidebarHeader className="gap-0 p-0">
+          <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <Link href="/app" className="flex min-w-0 flex-1 items-center gap-3 group-data-[collapsible=icon]:hidden" aria-label="Wicker Study home">
+              <BrandMark className="size-9 shrink-0 rounded-lg" />
+              <span className="min-w-0 leading-none group-data-[collapsible=icon]:hidden">
+                <strong className="block truncate text-[15px] font-semibold tracking-tight">Wicker Study</strong>
+                <span className="text-muted-foreground mt-1 block text-[10px] font-semibold tracking-[0.1em] uppercase">Study desk</span>
+              </span>
+            </Link>
+            <SidebarTrigger className="text-muted-foreground shrink-0 group-data-[collapsible=icon]:mx-auto" />
           </div>
+          <div className="border-b border-sidebar-border px-3 py-3 group-data-[collapsible=icon]:hidden"><WorkspaceSearch shortcut={!isMobile} /></div>
         </SidebarHeader>
 
-        <SidebarContent>
-          <div className="px-2"><WorkspaceSearch /></div>
+        <SidebarContent className="py-2">
           {SECTIONS.filter((section) => section.label !== 'Manage' || isAdmin).map((section) => (
-            <SidebarGroup key={section.label}>
-              <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+            <SidebarGroup key={section.label} className="px-3 py-2.5">
+              <SidebarGroupLabel className="font-data h-7 px-2 text-[10px] font-semibold tracking-[0.1em] uppercase">{section.label}</SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu>
-                  {section.items.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        isActive={pathname === item.href}
-                        tooltip={item.label}
-                        render={<Link href={item.href} />}
-                      >
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                <SidebarMenu className="gap-0.5">
+                  {section.items.map((item) => {
+                    const active = item.href === '/app' ? pathname === item.href : pathname.startsWith(item.href)
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          isActive={active}
+                          tooltip={item.label}
+                          render={<Link href={item.href} />}
+                          // Three separable states: the live destination carries
+                          // the signal rule and a filled row, hover only tints,
+                          // and the keyboard ring sits above both.
+                          className={`relative h-9 gap-3 px-2.5 before:absolute before:inset-y-0 before:left-0 before:w-[3px] focus-visible:ring-2 focus-visible:ring-offset-0 [&_svg]:size-[17px] ${active ? 'before:bg-primary bg-sidebar-accent font-semibold text-sidebar-accent-foreground' : 'before:bg-transparent text-sidebar-foreground/80 hover:bg-sidebar-accent/55 hover:text-sidebar-accent-foreground'}`}
+                        >
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           ))}
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter className="border-t border-sidebar-border p-0 group-data-[collapsible=icon]:p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip="Account menu" />}>
-                  <Avatar className="size-8 rounded-sm"><AvatarFallback className="rounded-sm">{initials}</AvatarFallback></Avatar>
-                  <div className="flex min-w-0 flex-col gap-0.5 leading-none"><span className="truncate font-medium">{name}</span><span className="text-muted-foreground truncate text-xs">{activeProgramme?.programme || email || 'Signed in'}</span></div>
-                  <ChevronRightIcon className="ml-auto" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="top" align="start" className="min-w-56">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel><span className="block truncate">{name}</span><span className="block truncate font-normal">{email}</span></DropdownMenuLabel>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  {programmeIndex && <>
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Study workspace</DropdownMenuLabel>
-                      {programmeIndex.programmes.map((programme) => <DropdownMenuItem key={programme.id} onClick={async () => { if (programme.id === programmeIndex.activeProgrammeId) return; await fetch('/api/academics/active', { method: 'PUT', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ id: programme.id }) }); window.location.reload() }}>{programme.id === programmeIndex.activeProgrammeId ? <CheckIcon /> : <span className="size-4" />}{programme.programme || 'Untitled programme'}{programme.academicYear && <span className="text-muted-foreground ml-auto text-xs">{programme.academicYear}</span>}</DropdownMenuItem>)}
-                      <DropdownMenuItem render={<Link href="/app/setup?checklist=1&step=programme&new=1" />}><PlusIcon />Add another programme</DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                  </>}
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem render={<Link href="/app/account" />}><SettingsIcon />Account settings</DropdownMenuItem>
-                    <DropdownMenuItem render={<Link href="/app/account?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem variant="destructive" onClick={() => void clerk.signOut({ redirectUrl: '/sign-in' })}><LogOutIcon />Sign out</DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {clerkEnabled
+                ? <ClerkAccountMenu programmeIndex={programmeIndex} />
+                : <LocalAccountMenu programmeIndex={programmeIndex} email={session?.email ?? null} />}
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
@@ -210,8 +268,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <div className="border-border bg-background sticky top-0 z-20 flex h-14 items-center gap-3 border-b px-4 md:hidden">
           <SidebarTrigger className="-ml-1" />
           <BrandMark className="size-7 rounded" />
-          <span className="hidden text-sm font-semibold tracking-tight min-[390px]:inline">Wicker Study</span>
-          <div className="ml-auto w-[min(15rem,58vw)]"><WorkspaceSearch /></div>
+          <div className="ml-auto min-w-0 flex-1 max-w-60"><WorkspaceSearch shortcut={isMobile} /></div>
         </div>
         <div className="min-h-svh pb-20 md:pb-0">{children}</div>
         <nav className="border-border bg-background fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t md:hidden" aria-label="Primary navigation">

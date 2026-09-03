@@ -6,7 +6,6 @@ import { DownloadIcon, FileIcon, PlayIcon, RefreshCwIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -69,10 +68,15 @@ export function CourseMaterialLibrary({ courseCode }: { courseCode: string }) {
       {!materials ? <div className="grid gap-2"><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : error ? (
         <p role="alert" className="text-sm font-medium">{error}</p>
       ) : !materials.length ? (
-        <Empty className="min-h-40 border-0">
-          <EmptyHeader><EmptyTitle>No stored material yet</EmptyTitle><EmptyDescription>Authorise Canvas material collection or force a refresh from Connections. You can also choose an older course edition there.</EmptyDescription></EmptyHeader>
+        // Nothing stored is still a row of the register, not a box inside a
+        // box: one line of what is missing with its action beside it, held
+        // between the same hairlines the material rows would have used.
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-y py-3">
+          <p className="text-muted-foreground min-w-0 text-sm">
+            No stored material yet — authorise Canvas collection, refresh it, or choose an older course edition in Connections.
+          </p>
           <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/app/account?tab=connections">Open Canvas settings</Link>
-        </Empty>
+        </div>
       ) : !shown.length ? <p className="text-muted-foreground py-8 text-center text-sm">No material matches these filters.</p> : (
         <ul className="border-t">
           {shown.map((item) => (

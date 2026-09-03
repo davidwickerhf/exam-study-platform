@@ -11,6 +11,11 @@ import assert from 'node:assert/strict'
 import {
   KEY_PLACEHOLDER,
   activeKeys,
+  approximateBytes,
+  canvasCorpusSummary,
+  currentCourseFigure,
+  periodLabel,
+  programmeFacts,
   activityBars,
   allowanceMeters,
   availableScopes,
@@ -180,4 +185,106 @@ test('an unchanged week does not read as growth', () => {
   assert.equal(weekTrend({ week: { total: 12 }, previousWeek: 5 }).label, '7 more than the week before')
   assert.equal(weekTrend({ week: { total: 3 }, previousWeek: 9 }).label, '6 fewer than the week before')
   assert.equal(weekTrend(null), null)
+})
+
+// ----- What the figures on Profile actually mean --------------------------
+
+test('a small stored record is small, not broken', () => {
+  // The table's own vocabulary is unchanged: an empty family really is 0 B.
+  assert.equal(formatBytes(0), '0 B')
+  // Beside a non-zero count, "0 B" reads as a failed measurement, so the
+  // summary line says the true thing instead.
+  assert.equal(approximateBytes(400), 'under 1 KB')
+  assert.equal(approximateBytes(4096), '4.0 KB')
+  // Nothing to report is nothing, not a zero the caller has to render.
+  assert.equal(approximateBytes(0), null)
+  assert.equal(approximateBytes(null), null)
+  assert.equal(approximateBytes(-1), null)
+})
+
+test('current courses come from the student record, never from the library', () => {
+  const figure = currentCourseFigure({
+    currentCourses: [{ code: 'bcs1110' }, { code: 'BCS1120' }, { code: 'BCS1130' }],
+    academicContext: { period: 'Period 2' }
+  })
+  assert.equal(figure.count, 3)
+  assert.equal(figure.period, 'Period 2')
+  assert.deepEqual(figure.codes, ['BCS1110', 'BCS1120', 'BCS1130'])
+  // A feed that answered with nothing is zero courses, not an unknown.
+  assert.equal(currentCourseFigure({}).count, 0)
+  // A feed that has not answered at all is unknown, and says so.
+  assert.equal(currentCourseFigure(null), null)
+})
+
+test('a period reads as a period however the server spells it', () => {
+  assert.equal(periodLabel('2'), 'Period 2')
+  assert.equal(periodLabel('Period 2'), 'Period 2')
+  assert.equal(periodLabel(''), null)
+  assert.equal(periodLabel(null), null)
+})
+
+test('the programme a student recorded outranks the programme they are a member of', () => {
+  const membership = [{ programmeId: 'p1', role: 'member', programme: { degree: 'BSc', name: 'Data Science' } }]
+
+  // The bug this replaces: a saved academic programme, reported as none.
+  const recorded = programmeFacts(
+    { programmes: [], account: { mode: 'clerk' } },
+    { profile: { programme: 'BSc Data Science and AI', university: 'Maastricht' } }
+  )
+  assert.equal(recorded.programme, 'BSc Data Science and AI')
+  assert.equal(recorded.source, 'record')
+  assert.equal(recorded.institution, 'Maastricht')
+  assert.equal(recorded.membership, 'Not linked to a shared programme')
+  assert.equal(recorded.empty, false)
+
+  // With no record of their own, membership answers instead.
+  const joined = programmeFacts({ programmes: membership, account: { mode: 'clerk' } }, null)
+  assert.equal(joined.programme, 'BSc Data Science')
+  assert.equal(joined.source, 'membership')
+
+  // Admin is a fact about the membership, not about the programme.
+  const admin = programmeFacts(
+    { programmes: [{ ...membership[0], role: 'admin' }], account: { mode: 'clerk' } },
+    null
+  )
+  assert.equal(admin.memberships[0].admin, true)
+  assert.match(admin.membership, /programme admin/)
+
+  // A local account has every programme; it is not missing one.
+  const local = programmeFacts({ programmes: [], account: { mode: 'local' } }, null)
+  assert.equal(local.empty, false)
+  assert.equal(local.membership, 'All programmes (local development)')
+
+  // Genuinely nothing recorded anywhere.
+  assert.equal(programmeFacts({ programmes: [], account: { mode: 'clerk' } }, null).empty, true)
+})
+
+test('the Canvas import ledger is grouped in one pass', () => {
+  const summary = canvasCorpusSummary({
+    jobs: [
+      { id: '1', status: 'running', courseCode: 'BCS1110' },
+      { id: '2', status: 'failed', courseCode: 'BCS1120', error: 'Rate limited' },
+      { id: '3', status: 'failed', courseCode: 'BCS1130', error: 'Rate limited' },
+      { id: '4', status: 'failed', courseCode: 'BCS1140' },
+      { id: '5', status: 'completed', courseCode: 'BCS1110' },
+      { id: '6', status: 'pending' }
+    ],
+    courses: [{ sources: 12 }, { sources: 30 }]
+  })
+  assert.deepEqual(summary.active.map((job) => job.id), ['1', '6'])
+  assert.deepEqual(summary.failed.map((job) => job.id), ['2', '3', '4'])
+  // The last job the server reported for a course is that course's state.
+  assert.deepEqual(summary.latestByCourse.map((job) => job.id), ['5', '2', '3', '4'])
+  // Repeated failures collapse to one row per reason, in first-seen order.
+  assert.deepEqual(summary.failureGroups.map(([reason, jobs]) => [reason, jobs.length]), [
+    ['Rate limited', 2],
+    ['Unknown import error', 1]
+  ])
+  assert.equal(summary.courseEditions, 2)
+  assert.equal(summary.storedMaterials, 42)
+
+  // A server that has never run one is empty, not broken.
+  const none = canvasCorpusSummary(null)
+  assert.deepEqual(none.jobs, [])
+  assert.equal(none.storedMaterials, 0)
 })

@@ -43,7 +43,10 @@ import {
   filterAnnouncements,
   filterAssignments,
   isNewAnnouncement,
-  parsePreferences,
+  markSeen,
+  readPreferences,
+  readSeenAt,
+  writePreferences,
 } from "@/lib/workspace/updates.mjs";
 
 type Course = {
@@ -355,13 +358,7 @@ function Materials({ hub }: { hub: Hub }) {
 }
 
 export default function UpdatesPage() {
-  const [prefs, setPrefs] = useState(() =>
-      parsePreferences(
-        typeof window === "undefined"
-          ? null
-          : localStorage.getItem("updates-prefs"),
-      ),
-    ),
+  const [prefs, setPrefs] = useState(() => readPreferences()),
     [tab, setTab] = useState("announcements"),
     [hub, setHub] = useState<Hub | null>(null),
     [error, setError] = useState<string | null>(null),
@@ -370,11 +367,9 @@ export default function UpdatesPage() {
     [query, setQuery] = useState(""),
     [unreadOnly, setUnreadOnly] = useState(false),
     [expanded, setExpanded] = useState<Set<string>>(new Set()),
-    [since] = useState(() =>
-      typeof window === "undefined"
-        ? ""
-        : localStorage.getItem("updates-seen-at") || "",
-    );
+    // Read once, before this visit is recorded, so "new since" describes the
+    // previous visit rather than this one.
+    [since] = useState(() => readSeenAt());
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("tab");
     if (
@@ -405,10 +400,10 @@ export default function UpdatesPage() {
     };
   }, [prefs.scope, prefs.days]);
   useEffect(() => {
-    localStorage.setItem("updates-prefs", JSON.stringify(prefs));
+    writePreferences(prefs);
   }, [prefs]);
   useEffect(() => {
-    localStorage.setItem("updates-seen-at", new Date().toISOString());
+    markSeen();
   }, []);
   async function refresh() {
     setRefreshing(true);
@@ -457,7 +452,7 @@ export default function UpdatesPage() {
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-6 sm:p-8">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-4">
         <div>
-          <h1 className="font-heading text-5xl leading-none tracking-tight">
+          <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
             Updates
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -489,15 +484,20 @@ export default function UpdatesPage() {
           <EmptyHeader>
             <EmptyTitle>Canvas is not connected</EmptyTitle>
             <EmptyDescription>
-              Add a Personal Access Token under Account → Connections.
+              Once a Personal Access Token is saved under Account →
+              Connections, this page carries your course announcements,
+              assignment deadlines with their submission state, and the module
+              material each course publishes — read here, without opening
+              Canvas.
             </EmptyDescription>
           </EmptyHeader>
-          <a
-            href="/app/account?tab=connections"
-            className="text-primary font-semibold"
+          <Button
+            nativeButton={false}
+            render={<a href="/app/account?tab=connections" />}
+            variant="outline"
           >
             Connect Canvas
-          </a>
+          </Button>
         </Empty>
       ) : (
         hub && (
@@ -634,6 +634,7 @@ export default function UpdatesPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            nativeButton={false}
                             render={
                               <a
                                 href={item.url}

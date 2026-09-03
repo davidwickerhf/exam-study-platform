@@ -24,6 +24,8 @@
     --color-paper: var(--paper);
     --color-paper-subtle: var(--paper-subtle);
     --color-paper-ink: var(--paper-ink);
+    --color-paper-ink-secondary: var(--paper-ink-secondary);
+    --color-paper-rule: var(--paper-rule);
     --color-paper-link: var(--paper-link);
     --color-ring: var(--ring);
     --color-input: var(--input);
@@ -43,55 +45,67 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    /* Three corners, not seven: control 6px, card 10px, major plane 14px.
+       rounded-sm/md are what button, input, select, textarea and the tab row
+       carry; rounded-lg is the ordinary card; rounded-xl and above are the
+       major planes (sheet-like cards, dialog, sheet). */
+    --radius-sm: var(--radius);
+    --radius-md: var(--radius);
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+    --radius-2xl: 14px;
+    --radius-3xl: 14px;
+    --radius-4xl: 14px;
+
+    /* Depth is carried by shadow on white planes, not by outlines. */
+    --shadow-plane: 0 1px 2px rgb(32 38 58 / 0.05), 0 4px 16px -8px rgb(32 38 58 / 0.10);
+    --shadow-sheet: 0 1px 3px rgb(32 38 58 / 0.07), 0 16px 40px -20px rgb(32 38 58 / 0.22);
 }
 
-/* ── Dienstregeling ──────────────────────────────────────────────────────
- * shadcn's semantic names, resolved to the world documented in DESIGN.md, so
- * every component it generates is already this product's. Values are the same
- * canonical product tokens.
+/* ── The warm workspace ──────────────────────────────────────────────────
+ * The signed-in app lives in the same world as the public pages: warm paper
+ * canvas, white working planes that carry a soft real shadow, near-black navy
+ * ink, and one indigo. Borders separate regions inside a plane; they do not
+ * outline every control. shadcn's semantic names resolve to that world so
+ * every generated component is already this product's.
  * ------------------------------------------------------------------------ */
 :root {
-    --background: #0d0f13;
-    --foreground: #eceef1;
-    --card: #131720;
-    --card-foreground: #eceef1;
-    --popover: #131720;
-    --popover-foreground: #eceef1;
-    --primary: #2b54ff;
+    --background: #f7f7f4;
+    --foreground: #20263a;
+    --card: #ffffff;
+    --card-foreground: #20263a;
+    --popover: #ffffff;
+    --popover-foreground: #20263a;
+    --primary: #3f51d9;
     --primary-foreground: #ffffff;
-    --secondary: #191e29;
-    --secondary-foreground: #eceef1;
-    --muted: #191e29;
-    --muted-foreground: #98a0af;
-    --accent: #191e29;
-    --accent-foreground: #eceef1;
-    --destructive: #eceef1;
-    --border: #262c39;
-    --input: #39414f;
-    --ring: #2b54ff;
-    --radius: 2px;
-    --sidebar: #0d0f13;
-    --sidebar-foreground: #98a0af;
-    --sidebar-primary: #2b54ff;
+    --secondary: #f1f2f6;
+    --secondary-foreground: #20263a;
+    --muted: #f1f2f6;
+    --muted-foreground: #59627b;
+    --accent: #eceefe;
+    --accent-foreground: #3344c1;
+    --destructive: #b4233d;
+    --border: #e7e6e1;
+    --input: #d5d7e0;
+    --ring: #3f51d9;
+    --radius: 6px;
+    --sidebar: #f1f0ec;
+    --sidebar-foreground: #59627b;
+    --sidebar-primary: #3f51d9;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #131720;
-    --sidebar-accent-foreground: #eceef1;
-    --sidebar-border: #262c39;
-    --sidebar-ring: #2b54ff;
+    --sidebar-accent: #e8e7e1;
+    --sidebar-accent-foreground: #20263a;
+    --sidebar-border: #e7e6e1;
+    --sidebar-ring: #3f51d9;
 
-    /* The punched paper window — anything read at length is laid on the board
-       as paper, and it is the only place the ink inverts. */
-    --paper: #f4f3ef;
-    --paper-subtle: #e8e7e1;
-    --paper-ink: #14171d;
-    --paper-link: #1f3ad6;
+    /* Long-form reading sits on a white sheet raised off the canvas — the
+       same plane grammar as everything else, held at its calmest. */
+    --paper: #ffffff;
+    --paper-subtle: #f1f2f6;
+    --paper-ink: #20263a;
+    --paper-ink-secondary: #59627b;
+    --paper-rule: #e7e6e1;
+    --paper-link: #3f51d9;
 }
 
 
@@ -111,6 +125,28 @@
   [data-workspace] a {
     text-underline-offset: 3px;
   }
+
+  /* No glass. A scrim is a scrim.
+   *
+   * shadcn's overlays ship a 10% black wash plus a backdrop blur, which is the
+   * one decoration DESIGN.md names outright — and at 10% the wash does no
+   * separating on its own, so the blur was carrying the whole job. The blur
+   * goes and the scrim is set to a weight that actually holds the board back,
+   * in the canvas ink rather than in black. */
+  :is(
+    [data-slot="dialog-overlay"],
+    [data-slot="alert-dialog-overlay"],
+    [data-slot="sheet-overlay"]
+  ) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: color-mix(in oklab, var(--foreground) 32%, transparent);
+  }
+}
+
+@keyframes route-reveal {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
 }
 /* ── FullCalendar ─────────────────────────────────────────────────────────
  * The grid is FullCalendar's; the appearance is this product's. Its own
@@ -147,7 +183,7 @@
   text-transform: uppercase;
   color: var(--muted-foreground);
 }
-[data-fc] .fc-timegrid-slot-label-cushion { font-size: 0.7rem; color: var(--muted-foreground); }
+[data-fc] .fc-timegrid-slot-label-cushion { font-size: 11px; color: var(--muted-foreground); }
 [data-fc] .fc-daygrid-day-number { font-size: 0.75rem; color: var(--muted-foreground); padding: 0.25rem 0.35rem; }
 [data-fc] .fc-day-today .fc-daygrid-day-number { color: var(--foreground); font-weight: 600; }
 
@@ -158,7 +194,7 @@
   border-left: 1px solid var(--border);
   background: var(--card);
   padding: 2px 4px;
-  font-size: 0.72rem;
+  font-size: 11px;
   line-height: 1.3;
 }
 [data-fc] .fc-event:hover { background: var(--muted); }
@@ -174,11 +210,73 @@
 [data-fc] .fc-list-event:hover td { background: var(--card); }
 [data-fc] .fc-list-empty { background: transparent; color: var(--muted-foreground); }
 [data-fc] .fc-scrollgrid { border-color: var(--border); }
-[data-fc] .fc-timegrid-axis-cushion { color: var(--muted-foreground); font-size: 0.7rem; }
+[data-fc] .fc-timegrid-axis-cushion { color: var(--muted-foreground); font-size: 11px; }
 /* The day column headers sit on the board, not on a raised bar. */
 [data-fc] :is(.fc-col-header-cell, .fc-timegrid-axis, .fc-scrollgrid-section-header > *) { background: transparent; }
 [data-fc] .fc-day-today { background: color-mix(in oklab, var(--primary) 10%, transparent) !important; }
 [data-fc] .fc-daygrid-day.fc-day-today { background: color-mix(in oklab, var(--primary) 8%, transparent) !important; }
+
+/* The pieces FullCalendar still drew in its own hand.
+ *
+ * Answering the variables covers the grid, but the overflow popover, the "+2
+ * more" link, the list-view dots and the drag highlight are hard-coded in its
+ * stylesheet — a rounded white card with a blue dot, opening on top of the
+ * board. They are ruled ink surfaces here like everything else. */
+[data-fc] .fc-popover {
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--card);
+  box-shadow: none;
+}
+[data-fc] .fc-popover-header {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-fc] .fc-popover-close { color: var(--muted-foreground); opacity: 1; }
+[data-fc] .fc-popover-close:hover { color: var(--foreground); }
+
+[data-fc] .fc-daygrid-more-link {
+  color: var(--muted-foreground);
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 500;
+}
+[data-fc] .fc-daygrid-more-link:hover { color: var(--foreground); background: transparent; }
+
+/* State is a mark, not a hue: the dot becomes a square ink tick. */
+[data-fc] :is(.fc-daygrid-event-dot, .fc-list-event-dot) {
+  border: 0;
+  border-radius: 0;
+  width: 3px;
+  height: 10px;
+  margin: 0 6px 0 0;
+  background: var(--border-strong, var(--input));
+}
+
+/* Choosing a range marks it with the one colour. */
+[data-fc] .fc-highlight { background: color-mix(in oklab, var(--primary) 16%, transparent); }
+
+/* An event is reachable and visibly focused, like every other control. */
+[data-fc] .fc-event:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+[data-fc] .fc-event:focus-visible::after { display: none; }
+
+[data-fc] .fc-list-day-side-text { color: var(--muted-foreground); font-weight: 500; }
+[data-fc] .fc-list-table td { border-color: var(--border); }
+[data-fc] .fc-scroller { scrollbar-color: var(--input) transparent; scrollbar-width: thin; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-fc] * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
 /* react-day-picker's own grid was clipping its first weekday label. */
 [data-workspace] [data-slot="calendar"] { width: 100%; }
 [data-workspace] [data-slot="calendar"] table { width: 100%; }
