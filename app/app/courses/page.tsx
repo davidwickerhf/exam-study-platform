@@ -26,6 +26,14 @@ const NUMERALS = 'font-data tabular-nums'
 type CorpusCourse = { id: string; courseCode: string; courseName: string; academicYear?: string; period?: string; sources: number; lastSyncedAt?: string | null }
 type LedgerCourse = { key: string; code: string; name: string; editorial?: StudyCourse; academic?: AcademicCourse; corpus?: CorpusCourse; archived: boolean }
 type Catalogue = { programmes?: { id: string; versions?: { id: string; courses?: { id: string; code: string; name: string; ects?: number; yearLevel?: string; period?: string }[] }[] }[] }
+type CurrentCourse = { code: string; reasons?: string[] }
+
+const normalizedPeriod = (value: unknown) => String(value || '').replace(/^Period\s*/i, '').trim()
+const periodLabel = (value: unknown) => {
+  const period = normalizedPeriod(value)
+  return period ? `Period ${period}` : null
+}
+const cleanCanvasName = (name: string, code: string) => name.replace(new RegExp(`\\s*\\(20\\d{2}-20\\d{2}-(?:100|200|400|500)-${code}\\)\\s*$`, 'i'), '').trim()
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<StudyCourse[] | null>(null)
@@ -33,8 +41,9 @@ export default function CoursesPage() {
   const [read, setRead] = useState<Set<string>>(new Set())
   const [corpus, setCorpus] = useState<CorpusCourse[]>([])
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
-  const [programmeTemplate, setProgrammeTemplate] = useState<{ programmeId?: string; versionId?: string } | null>(null)
+  const [programmeTemplate, setProgrammeTemplate] = useState<{ programmeId?: string; versionId?: string; currentStudyYear?: string } | null>(null)
   const [currentPeriod, setCurrentPeriod] = useState<string | null>(null)
+  const [currentCourses, setCurrentCourses] = useState<CurrentCourse[]>([])
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState('current')
   const [sort, setSort] = useState('period')
@@ -51,7 +60,7 @@ export default function CoursesPage() {
     json('/api/academics').then((data) => { if (live) { setAcademic(data.workspace?.courses ?? []); setProgrammeTemplate(data.workspace?.programmeTemplate ?? null) } }).catch(() => {})
     json('/api/account/integrations/canvas/corpus').then((data) => { if (live) setCorpus(data.status?.courses ?? []) }).catch(() => {})
     json('/api/onboarding/programmes').then((data) => { if (live) setCatalogue(data) }).catch(() => {})
-    json('/api/calendar/events').then((data) => { if (live) setCurrentPeriod(data.academicContext?.period ?? null) }).catch(() => {})
+    json('/api/calendar/events').then((data) => { if (live) { setCurrentPeriod(data.academicContext?.period ?? null); setCurrentCourses(data.currentCourses ?? []) } }).catch(() => {})
     return () => { live = false }
   }, [])
 
@@ -68,7 +77,8 @@ export default function CoursesPage() {
     for (const course of corpus) {
       const key = String(course.courseCode || course.id).toUpperCase()
       const held = rows.get(key)
-      rows.set(key, { key, code: course.courseCode || held?.code || key, name: course.courseName || held?.name || course.courseCode, editorial: held?.editorial, academic: held?.academic, corpus: course, archived: held?.archived ?? false })
+      const canvasName = cleanCanvasName(course.courseName || course.courseCode, course.courseCode || key)
+      rows.set(key, { key, code: course.courseCode || held?.code || key, name: held?.name || canvasName, editorial: held?.editorial, academic: held?.academic, corpus: course, archived: held?.archived ?? false })
     }
     const programme = catalogue?.programmes?.find((entry) => entry.id === programmeTemplate?.programmeId)
     const version = programme?.versions?.find((entry) => entry.id === programmeTemplate?.versionId) ?? programme?.versions?.[0]
@@ -87,14 +97,12 @@ export default function CoursesPage() {
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase()
+    const resolvedCurrent = new Set(currentCourses.map((item) => String(item.code).toUpperCase()))
     const status = (entry: LedgerCourse) => {
       const attempts = entry.academic?.attempts ?? []
       const passed = attempts.some((attempt) => /pass|completed/i.test(String(attempt.status)))
       const failed = !passed && attempts.some((attempt) => /fail|no.?show|insufficient/i.test(String(attempt.status)))
-      const registered = attempts.some((attempt) => /current|registered|enrolled|planned/i.test(String(attempt.status)))
-      const period = String(entry.academic?.period || entry.corpus?.period || '')
-      const normalizedCurrent = String(currentPeriod || '').replace(/^Period\s*/i, '')
-      const current = !passed && !entry.archived && (registered || (Boolean(normalizedCurrent) && (period === normalizedCurrent || period === `Period ${normalizedCurrent}`)))
+      const current = !passed && !entry.archived && resolvedCurrent.has(entry.code.toUpperCase())
       return { passed, failed, current, future: !passed && !failed && !current && !entry.archived }
     }
     const filtered = ledger.filter((entry) => {
@@ -113,7 +121,7 @@ export default function CoursesPage() {
       if (leftExam || rightExam) return String(leftExam || '9999').localeCompare(String(rightExam || '9999'))
       return String(left.academic?.period || '99').localeCompare(String(right.academic?.period || '99')) || left.code.localeCompare(right.code)
     })
-  }, [ledger, query, scope, sort, academic, today, currentPeriod])
+  }, [ledger, query, scope, sort, academic, today, currentCourses])
 
   if (error) {
     return (
@@ -158,7 +166,7 @@ export default function CoursesPage() {
               </>
             ) : (
               <small className="text-muted-foreground truncate text-xs" title={course?.exam ?? undefined}>
-                {course?.exam ? 'Catalogue date only' : entry.academic?.period || entry.corpus?.period || 'No exam date'}
+                {course?.exam ? 'Catalogue date only' : periodLabel(entry.academic?.period || entry.corpus?.period) || 'No exam date'}
               </small>
             )}
           </span>
@@ -190,8 +198,8 @@ export default function CoursesPage() {
               <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search code or course name" className="pl-9" />
             </label>
-            <Select items={[{value:'current',label:'Current period'},{value:'future',label:'Future / outstanding'},{value:'passed',label:'Passed'},{value:'failed',label:'Failed / retake'},{value:'all',label:'All courses'},{value:'archived',label:'Archived'}]} value={scope} onValueChange={(value) => setScope(String(value))}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{[['current','Current period'],['future','Future / outstanding'],['passed','Passed'],['failed','Failed / retake'],['all','All courses'],['archived','Archived']].map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectGroup></SelectContent>
+            <Select items={[{value:'current',label:currentPeriod ? `Current · ${currentPeriod}` : 'Current period'},{value:'future',label:'Future / outstanding'},{value:'passed',label:'Passed'},{value:'failed',label:'Failed / retake'},{value:'all',label:'All courses'},{value:'archived',label:'Archived'}]} value={scope} onValueChange={(value) => setScope(String(value))}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{[['current',currentPeriod ? `Current · ${currentPeriod}` : 'Current period'],['future','Future / outstanding'],['passed','Passed'],['failed','Failed / retake'],['all','All courses'],['archived','Archived']].map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectGroup></SelectContent>
             </Select>
             <Select items={[{value:'period',label:'Period / next exam'},{value:'year',label:'Study year'},{value:'code',label:'Course code'},{value:'name',label:'Course name'}]} value={sort} onValueChange={(value) => setSort(String(value))}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{[['period','Period / next exam'],['year','Study year'],['code','Course code'],['name','Course name']].map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectGroup></SelectContent>

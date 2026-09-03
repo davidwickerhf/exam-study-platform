@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { aggregateCalendar, calendarPeriodCourseEvidence, isTeachingAppointment, resolveAcademicTimeContext, resolveExamWindow } from '../lib/calendar-feed.mjs'
+import { aggregateCalendar, calendarPeriodCourseEvidence, isTeachingAppointment, resolveAcademicTimeContext, resolveCurrentCourses, resolveExamWindow } from '../lib/calendar-feed.mjs'
 import { normalizeAcademicWorkspace } from '../lib/academics.mjs'
 
 test('calendar aggregates attempts, events, institution dates, and feeds without duplicates', () => {
@@ -77,6 +77,24 @@ test('the active-period answer is the intersection of current attempts and timet
   assert.deepEqual(result.periodCourses.filter((item) => item.active).map((item) => item.code), codes)
   assert.equal(result.periodCourses.filter((item) => item.active).length, 6)
   assert.deepEqual(result.examWindow, { title: 'Exam week · Period 1', start: '2026-10-12', end: '2026-10-16', period: 'Period 1', academicYear: '2026-2027' })
+})
+
+test('current courses combine the active study year, unresolved retakes, and timetable evidence', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: { currentYearKey: 'Year 3' },
+    programmeTemplate: { programmeId: 'cs', versionId: '2026', currentStudyYear: 'Year 3', selectedChoices: {} },
+    courses: [
+      { id: 'old-pass', code: 'BCS1110', name: 'Passed in year one', yearLevel: 'Year 1', period: 'Period 1', attempts: [{ status: 'passed', academicYear: '2024-2025' }] },
+      { id: 'current', code: 'BCS3110', name: 'Current year course', yearLevel: 'Year 3', period: 'Period 1', attempts: [] },
+      { id: 'retake', code: 'BCS2130', name: 'Retake', yearLevel: 'Year 2', period: 'Period 1', attempts: [{ status: 'failed', academicYear: '2025-2026' }] },
+      { id: 'later', code: 'BCS3140', name: 'Later this year', yearLevel: 'Year 3', period: 'Period 2', attempts: [] }
+    ]
+  })
+  const context = { period: 'Period 1', academicYear: '2026-2027' }
+  const result = resolveCurrentCourses(workspace, context, [{ code: 'BCS3210', name: 'Block Chains', teaching: true }])
+  assert.deepEqual(result.map((course) => course.code), ['BCS2130', 'BCS3110', 'BCS3210'])
+  assert.deepEqual(result.find((course) => course.code === 'BCS2130').reasons, ['unresolved-attempt'])
+  assert.equal(result.find((course) => course.code === 'BCS3210').outsidePlan, true)
 })
 
 test('teaching appointments remain current-course evidence before they are copied into the academic record', () => {
