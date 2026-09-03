@@ -25,7 +25,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
-import { OnboardingResume } from '@/components/workspace/onboarding-resume'
+import { DashboardSetupReminder } from '@/components/workspace/onboarding-resume'
 import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { cn } from '@/lib/utils'
 import type { Assignment } from '@/lib/workspace/canvas'
@@ -222,8 +222,8 @@ export default function HomePage() {
   const primaryLabel = lead?.kind === 'due' ? 'Open assignment' : lead ? 'Open today' : 'Start a practice set'
 
   return (
-    <div data-impeccable-contract={DESIGN_CONTRACT} className="w-full">
-      <header className="border-b">
+    <div data-impeccable-contract={DESIGN_CONTRACT} className="flex min-h-0 w-full flex-col xl:h-dvh xl:overflow-hidden">
+      <header className="bg-background sticky top-14 z-10 shrink-0 border-b md:top-0">
         <div className="mx-auto grid w-full max-w-[1280px] gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)] lg:items-end lg:px-8 lg:py-7">
         <div className="min-w-0">
           {calendar ? (
@@ -252,8 +252,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-7 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1.58fr)_minmax(19rem,0.72fr)]">
-        <section className="min-w-0" aria-labelledby="route-heading">
+      <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-7 px-4 py-6 sm:px-6 lg:px-8 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.58fr)_minmax(19rem,0.72fr)] xl:overflow-hidden xl:py-0">
+        <section className="min-w-0 xl:overflow-y-auto xl:overscroll-contain xl:py-6 xl:pr-3 xl:[scrollbar-gutter:stable]" aria-labelledby="route-heading" data-route-scroll-region>
           <div className="flex items-baseline justify-between gap-4 border-b pb-3">
             <h2 id="route-heading" className="text-lg font-semibold tracking-tight">Your study route</h2>
             <Link href="/app/calendar" className="text-primary text-xs font-semibold">Full calendar</Link>
@@ -303,7 +303,6 @@ export default function HomePage() {
                   ) : <div className="flex flex-col gap-3"><Skeleton className="h-8 w-64 bg-white/15" /><Skeleton className="h-4 w-80 max-w-full bg-white/10" /></div>}
                 </div>
                 {!hasTimetable && calendar && <p className="border-t border-white/15 px-5 py-4 text-sm text-white/70 sm:px-7 lg:px-8">Want classes on the route? <Link href="/app/setup?checklist=1&step=timetable" className="font-semibold text-white underline decoration-white/30 underline-offset-4">Connect your timetable</Link>.</p>}
-                <OnboardingResume className="mt-0 border-white/15 px-5 py-4 sm:px-7 lg:px-8 [&_span]:text-white/70" />
               </div>
             </div>
 
@@ -331,7 +330,8 @@ export default function HomePage() {
 
         </section>
 
-        <aside className="flex h-fit min-w-0 flex-col gap-4" aria-label="Study status">
+        <aside className="flex h-fit min-w-0 flex-col gap-4 xl:h-auto xl:overflow-y-auto xl:overscroll-contain xl:py-6 xl:pr-2 xl:[scrollbar-gutter:stable] [&>section]:shrink-0" aria-label="Study status" data-status-scroll-region>
+          <DashboardSetupReminder />
           <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
             <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} active${missingPrioritySources || priorityError ? ' · partial' : ''}` : missingPrioritySources ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
             {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs">Evidence coverage: {prioritySources.filter((source) => source.ready).length} of 3 sources connected.{unavailablePrioritySources ? ` ${unavailablePrioritySources} ${unavailablePrioritySources === 1 ? 'source is' : 'sources are'} temporarily unavailable.` : ''}</p></> : priorityLoading ? (
@@ -391,19 +391,20 @@ export default function HomePage() {
             })}</ol> : <p className="text-muted-foreground px-5 py-5 text-sm">Set your programme to build the course route. <Link href="/app/setup" className={QUIET_LINK}>Open setup</Link></p>}
           </section>
 
-          <section className="bg-card rounded-xl border p-5" data-activity-heatmap>
-            <div className="flex items-baseline justify-between gap-4"><h2 className="text-sm font-semibold">{context?.period ? `${context.period} activity` : 'Recent activity'}</h2><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{activity ? `${periodActiveDays} active days` : activityError ? 'Unavailable' : 'Loading'}</span></div>
-            {activity ? <div className="mt-4">
-              <div className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2" aria-hidden="true">
+          <section className="bg-card relative overflow-hidden rounded-xl border" data-activity-heatmap>
+            <SectionHead title={context?.period ? `${context.period} activity` : 'Recent activity'} meta={activity ? `${periodActiveDays} active days` : activityError ? 'Unavailable' : 'Loading'} />
+            {activity ? <>
+              <div className="px-5 py-4">
+              <div className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5" aria-hidden="true">
                 <span />
-                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${activityByWeek.length}, minmax(0, 1fr))` }}>
-                  {activityByWeek.map((_, index) => <span key={index} className={cn(`text-muted-foreground text-center text-xs leading-none ${NUMERALS}`, index + 1 === week && 'text-primary', index + 1 === examWeek && 'font-semibold text-foreground')}>{index + 1 === examWeek ? 'Exam' : `W${index + 1}`}</span>)}
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${activityByWeek.length}, minmax(0, 1fr))` }}>
+                  {activityByWeek.map((_, index) => <span key={index} className={cn(`text-muted-foreground text-center text-xs font-medium leading-none ${NUMERALS}`, index + 1 === week && 'text-primary', index + 1 === examWeek && 'text-foreground')}>W{index + 1}</span>)}
                 </div>
-                <div className={`text-muted-foreground grid grid-rows-7 gap-[3px] text-xs leading-none ${NUMERALS}`}>
+                <div className={`text-muted-foreground grid grid-rows-7 gap-1 text-xs leading-none ${NUMERALS}`}>
                   {['M', '', 'W', '', 'F', '', ''].map((label, index) => <span key={index} className="flex h-2.5 items-center">{label}</span>)}
                 </div>
-                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${activityByWeek.length}, minmax(0, 1fr))` }}>
-                  {activityByWeek.map((days, weekIndex) => <div key={weekIndex} className="grid grid-rows-7 justify-items-center gap-[3px]">
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${activityByWeek.length}, minmax(0, 1fr))` }}>
+                  {activityByWeek.map((days, weekIndex) => <div key={weekIndex} className={cn('grid grid-rows-7 justify-items-center gap-1', weekIndex + 1 === examWeek && 'relative before:absolute before:-inset-x-1 before:-inset-y-1 before:-z-10 before:rounded-md before:bg-muted/60')}>
                     {days.map((day, dayIndex) => day
                       ? <span key={day.date} title={activityLabel(day)} className={cn('size-2.5 rounded-[2px]', day.future ? 'bg-background ring-1 ring-inset ring-border' : HEAT_LEVEL[heatLevel(day.total, activityPeak)], day.today && 'outline-primary outline outline-1 outline-offset-1')} />
                       : <span key={`empty-${dayIndex}`} aria-hidden="true" className="size-2.5" />)}
@@ -413,12 +414,12 @@ export default function HomePage() {
               <ol className="sr-only" aria-label={`${periodActiveDays} active days in ${context?.period ?? `the last ${activity.days} days`}${examWeek ? `; exam week begins in week ${examWeek}` : ''}`}>
                 {activityDays.map((day) => <li key={day.date}>{activityLabel(day)}</li>)}
               </ol>
-              <div className={`text-muted-foreground mt-2 flex items-center justify-end gap-1 text-xs ${NUMERALS}`} aria-hidden="true">
-                <span className="mr-0.5">Less</span>
-                {HEAT_LEVEL.map((tone, index) => <span key={index} className={`size-2.5 rounded-[2px] ${tone}`} />)}
-                <span className="ml-0.5">More</span>
               </div>
-            </div> : activityError ? <p className="text-muted-foreground mt-4 text-xs">Activity is temporarily unavailable.</p> : <Skeleton className="mt-4 h-20 w-full" />}
+              <div className={`text-muted-foreground flex min-h-10 items-center justify-between gap-3 border-t px-5 py-2.5 text-xs ${NUMERALS}`} aria-hidden="true">
+                <span>{examWeek ? `Exam week · W${examWeek}` : 'Today is outlined'}</span>
+                <span className="flex items-center gap-1"><span className="mr-0.5">Less</span>{HEAT_LEVEL.map((tone, index) => <span key={index} className={`size-2.5 rounded-[2px] ${tone}`} />)}<span className="ml-0.5">More</span></span>
+              </div>
+            </> : activityError ? <p className="text-muted-foreground px-5 py-5 text-xs">Activity is temporarily unavailable.</p> : <div className="px-5 py-5"><Skeleton className="h-20 w-full" /></div>}
           </section>
         </aside>
       </div>
