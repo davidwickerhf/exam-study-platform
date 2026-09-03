@@ -7,6 +7,9 @@ node_modules/
 .t3/
 .impeccable/
 test/
+.env
+.env.*
+!.env.example
 
 # Local fallback snapshots and per-user state are not production content
 # sources. Published question banks under data/cache are deliberately bundled:
