@@ -39,7 +39,7 @@ import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedir
 import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
 import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
-import { applyProgramme, applySecureValue, chooseElectives, electiveChoices, finishSetup, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
+import { applyProgramme, applySecureValue, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
 import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
 import { TutorStoreError, deleteConversation, forgetFact, listConversations, newConversation, readConversation, readTutorMemory, saveConversation, saveTutorPreferences, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
@@ -55,6 +55,7 @@ import { editorialMode, editorialShellFromState, getEditorialFlashcards, getMate
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
+import { canvasPriorityProfiles } from './lib/priority-evidence.mjs'
 import { CONTRIBUTION_LICENSES, COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
 import { estimateEditorialGeneration, listEditorialWorkspace, prepareCourseContentRequest, processEditorialJobs, publishEditorialEdition, queueEditorialGeneration, registerEditorialSources, reviewEditorialContribution, updateEditorialArtifact, uploadEditorialSourceChunk, upsertEditorialEdition, withdrawCourseContentRequestContribution } from './lib/editorial-workflow.mjs'
 
@@ -707,11 +708,24 @@ async function readWorkspaceShell() {
 }
 
 async function scopeStateToActiveProgramme(state) {
-  const academic = await readAcademicState()
+  const [academic, priorityProfiles] = await Promise.all([
+    readAcademicState(),
+    canvasPriorityProfiles({ accountId: currentAuth().userId }).catch(() => [])
+  ])
   const selected = new Set((academic.workspace?.courses || []).map((course) => String(course.code || '').trim().toUpperCase()).filter(Boolean))
+  const prioritiesByCode = new Map(priorityProfiles.map((profile) => [String(profile.courseCode || '').trim().toUpperCase(), profile]))
   return {
     ...state,
-    courses: (state.courses || []).filter((course) => selected.has(String(course.code || '').trim().toUpperCase())),
+    courses: (state.courses || []).filter((course) => selected.has(String(course.code || '').trim().toUpperCase())).map((course) => {
+      const scan = prioritiesByCode.get(String(course.code || '').trim().toUpperCase())
+      if (!scan) return course
+      // A published, human-confirmed course profile remains authoritative.
+      // Otherwise the student's latest source-grounded scan fills the same
+      // compact shape; needs-review scans are visible but Home will not turn
+      // them into obligations until the conflict is resolved.
+      const published = course.courseProfile?.assessment?.status === 'confirmed'
+      return { ...course, courseProfile: published ? course.courseProfile : scan.courseProfile, priorityScan: { status: scan.status, conflicts: scan.conflicts, scannedAt: scan.scannedAt } }
+    }),
     meta: { ...state.meta, activeProgrammeId: academic.index?.activeProgrammeId || academic.workspace?.id || null, programme: academic.workspace?.profile?.programme || null }
   }
 }
@@ -4186,9 +4200,19 @@ const server = createServer(async (req, res) => {
     // manually is redirected straight back to setup.
     if (url.pathname === '/api/onboarding/finish' && req.method === 'POST') {
       try {
-        send(res, 200, JSON.stringify({ available: onboardingAvailable(), ...await finishSetup() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const body = await readBody(req, 4 * 1024)
+        send(res, 200, JSON.stringify({ available: onboardingAvailable(), ...await finishSetup({ allowEmpty: body?.skip === true }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Setup could not be finished.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/onboarding/defer' && req.method === 'PUT') {
+      try {
+        const body = await readBody(req, 4 * 1024)
+        send(res, 200, JSON.stringify({ available: onboardingAvailable(), ...await deferSetupStep(body?.step, body?.deferred !== false) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That step could not be deferred.' }))
       }
       return
     }

@@ -204,6 +204,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     window.addEventListener('pointerup', finish)
   }
 
+  // Setup is a focused first-run journey, not another workspace destination.
+  // Keep authentication and session wiring above it, but remove every piece of
+  // product navigation until the student enters (or explicitly skips) setup.
+  if (pathname === '/app/setup') return <div className="min-h-dvh bg-background">{children}</div>
+
   return (
     <SidebarProvider style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
       <Sidebar collapsible="icon" className="bg-sidebar">

@@ -123,7 +123,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS canvas_sync_jobs_one_catalog_idx
   WHERE job_type = 'catalog' AND status IN ('pending', 'running');
 
 CREATE UNIQUE INDEX IF NOT EXISTS canvas_sync_jobs_one_course_idx
-  ON canvas_sync_jobs (binding_id)
+  ON canvas_sync_jobs (user_id, binding_id)
   WHERE job_type = 'course' AND status IN ('pending', 'running');
 
 ALTER TABLE editorial_source_retrieval_chunks

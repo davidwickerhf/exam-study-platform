@@ -119,6 +119,31 @@ test('unverified course rules do not become student obligations', () => {
   assert.deepEqual(priorities, [])
 })
 
+test('Canvas and a verified course component merge into one priority and expose date conflicts', () => {
+  const course = { id: 'alg', code: 'BCS1540', courseProfile: { assessment: { status: 'confirmed', components: [{ name: 'Group project', type: 'project', deadline: '2026-09-20' }] } } }
+  const [priority] = homePriorities({
+    now: new Date('2026-09-03T08:00:00Z').getTime(),
+    assignments: [{ id: 'project', title: 'Group project', courseCode: 'BCS1540', courseName: 'Algorithmic Design', dueAt: '2026-09-21T23:59:00Z', status: 'upcoming' }],
+    courses: [course]
+  })
+  assert.equal(priority.kind, 'assignment')
+  assert.equal(priority.source, 'Canvas · rule conflict')
+  assert.equal(priority.attention, 'deadline-conflict')
+  assert.equal(homePriorities({ now: new Date('2026-09-03T08:00:00Z').getTime(), assignments: [{ id: 'project', title: 'Group project', courseCode: 'BCS1540', dueAt: '2026-09-20T23:59:00Z', status: 'upcoming' }], courses: [course] }).length, 1)
+})
+
+test('Canvas reconciliation never merges assessments that only share a generic word', () => {
+  const course = { id: 'alg', code: 'BCS1540', courseProfile: { assessment: { status: 'confirmed', components: [{ name: 'Final project', type: 'project', deadline: '2026-09-20' }] } } }
+  const priorities = homePriorities({
+    now: new Date('2026-09-03T08:00:00Z').getTime(),
+    assignments: [{ id: 'presentation', title: 'Final presentation', courseCode: 'BCS1540', dueAt: '2026-09-18T12:00:00Z', status: 'upcoming' }],
+    courses: [course]
+  })
+  assert.equal(priorities.length, 2)
+  assert.equal(priorities.find((item) => item.id === 'assignment:presentation')?.source, 'Canvas')
+  assert.ok(priorities.some((item) => item.kind === 'project'))
+})
+
 test('optional and unscoped attendance wording never becomes a required appointment', () => {
   const now = new Date('2026-09-03T08:00:00Z').getTime()
   const events = [

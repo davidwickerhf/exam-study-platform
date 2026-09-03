@@ -15,7 +15,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { deleteAllDocuments, readDocument } from '../lib/user-store.mjs'
-import { applyProgramme, finishSetup, onboardingView } from '../lib/onboarding-runtime.mjs'
+import { applyProgramme, deferSetupStep, finishSetup, onboardingView } from '../lib/onboarding-runtime.mjs'
 import { emptyAcademicWorkspace, saveActiveAcademicWorkspace } from '../lib/academics.mjs'
 import { OnboardingError } from '../lib/onboarding-agent.mjs'
 
@@ -35,6 +35,15 @@ test('an account with nothing recorded cannot declare itself finished', async ()
       return true
     })
     assert.equal((await onboardingView()).finished, false)
+  })
+})
+
+test('a student may explicitly skip first-run setup without inventing a programme', async () => {
+  await asNewStudent(async () => {
+    const view = await finishSetup({ allowEmpty: true })
+    assert.equal(view.finished, true)
+    assert.equal(view.state.programme, false)
+    assert.match(view.summary, /skipped/i)
   })
 })
 
@@ -78,5 +87,22 @@ test('an existing account with a programme and courses is already finished', asy
     assert.equal(view.finished, true, 'a working record is not sent back to setup')
     assert.ok(view.state.courseCount > 0)
     assert.ok(view.state.programmeName)
+  })
+})
+
+test('an optional source can be deferred and restored without changing academic data', async () => {
+  await asNewStudent(async () => {
+    const deferred = await deferSetupStep('canvas')
+    assert.deepEqual(deferred.skipped, ['canvas'])
+    assert.equal(deferred.state.canvas, false)
+
+    const restored = await deferSetupStep('canvas', false)
+    assert.deepEqual(restored.skipped, [])
+
+    await assert.rejects(() => deferSetupStep('programme'), (error) => {
+      assert.ok(error instanceof OnboardingError)
+      assert.match(error.message, /required/i)
+      return true
+    })
   })
 })
