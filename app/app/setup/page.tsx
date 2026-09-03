@@ -558,10 +558,13 @@ const STATUS_WORD: Record<SetupStep['status'], string> = {
  * The status, attached to the heading line rather than floating above the
  * panel on its own. Departure-board grammar: the mark, then the word.
  */
-function StatusLabel({ status }: { status: SetupStep['status'] }) {
+function StatusLabel({ status, inverse = false }: { status: SetupStep['status']; inverse?: boolean }) {
+  const mark = inverse && status === 'done'
+    ? <CheckIcon className="text-card size-4" aria-hidden="true" />
+    : MARKS[status]
   return (
-    <span className={`flex shrink-0 items-center gap-2 text-xs font-semibold tracking-[0.12em] uppercase ${status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
-      <span className="flex size-4 items-center justify-center">{MARKS[status]}</span>
+    <span className={`flex shrink-0 items-center gap-2 text-xs font-semibold tracking-[0.12em] uppercase ${inverse ? status === 'done' ? 'text-card' : 'text-card/65' : status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
+      <span className={`flex size-4 items-center justify-center ${inverse ? '[&>*]:text-current' : ''}`}>{mark}</span>
       {STATUS_WORD[status]}
     </span>
   )
@@ -828,49 +831,6 @@ function phaseFor(step: SetupStepId) {
   return SETUP_PHASES.find((phase) => phase.steps.includes(step)) ?? SETUP_PHASES[0]
 }
 
-function StudyMap({ steps }: { steps: SetupStep[] }) {
-  const settled = (ids: readonly SetupStepId[]) => ids.every((id) => {
-    const status = steps.find((step) => step.id === id)?.status
-    return status === 'done' || status === 'skipped'
-  })
-  const ready = SETUP_PHASES.map((phase) => settled(phase.steps))
-  return (
-    <section className="bg-foreground text-background overflow-hidden rounded-xl" aria-labelledby="study-map-title">
-      <div className="border-background/15 border-b px-5 py-4">
-        <p className="text-background/60 text-xs font-semibold tracking-[0.16em] uppercase">What this builds</p>
-        <h2 id="study-map-title" className="mt-1 text-lg font-semibold tracking-tight">Your study map</h2>
-      </div>
-      <div className="px-4 py-5">
-        <svg viewBox="0 0 320 244" role="img" aria-label="Study plan, academic record, schedule and Canvas converge into the study desk" className="h-auto w-full">
-          <g fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.28">
-            <path d="M116 31 H161 Q176 31 176 46 V108" />
-            <path d="M116 87 H146 Q161 87 176 108" />
-            <path d="M116 157 H146 Q161 157 176 136" />
-            <path d="M116 213 H161 Q176 213 176 198 V136" />
-            <path d="M176 122 H210" />
-          </g>
-          {[
-            [16, 14, 'PLAN', ready[0]],
-            [16, 70, 'RECORD', ready[1]],
-            [16, 140, 'SCHEDULE', ready[2]],
-            [16, 196, 'CANVAS', ready[3]]
-          ].map(([x, y, label, done]) => (
-            <g key={String(label)}>
-              <rect x={Number(x)} y={Number(y)} width="100" height="34" rx="8" className={done ? 'fill-primary stroke-primary' : 'fill-transparent stroke-current'} strokeWidth="1.5" opacity={done ? 1 : 0.72} />
-              <text x={Number(x) + 50} y={Number(y) + 21} textAnchor="middle" className={done ? 'fill-primary-foreground' : 'fill-current'} fontSize="10" fontWeight="700" letterSpacing="1.2">{String(label)}</text>
-            </g>
-          ))}
-          <circle cx="176" cy="122" r="10" className={ready.some(Boolean) ? 'fill-primary' : 'fill-transparent'} stroke="currentColor" strokeWidth="1.5" />
-          <rect x="210" y="88" width="94" height="68" rx="12" className={ready[0] ? 'fill-background stroke-background' : 'fill-transparent stroke-current'} strokeWidth="1.5" />
-          <text x="257" y="116" textAnchor="middle" className={ready[0] ? 'fill-foreground' : 'fill-current'} fontSize="10" fontWeight="700" letterSpacing="1.1">STUDY DESK</text>
-          <text x="257" y="136" textAnchor="middle" className={ready[0] ? 'fill-foreground' : 'fill-current'} fontSize="12" fontWeight="600">{ready[0] ? 'Ready to open' : 'Needs a plan'}</text>
-        </svg>
-        <p className="text-background/65 mt-2 text-xs leading-relaxed">We only place a rule or deadline on Home when it can be traced to a connected source.</p>
-      </div>
-    </section>
-  )
-}
-
 function ConflictResolver({
   issues,
   available,
@@ -1039,13 +999,13 @@ function UnifiedSetup({
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <main className="overflow-hidden rounded-xl border bg-background">
-          <div className="flex flex-col gap-3 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-7">
+          <div className="bg-foreground text-card flex flex-col gap-3 border-b border-foreground px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-7">
             <div>
-              <p className="text-muted-foreground text-xs font-semibold tracking-[0.15em] uppercase">{activePhase.label}</p>
+              <p className="text-card/60 text-xs font-semibold tracking-[0.15em] uppercase">{activePhase.label}</p>
               <h2 className="font-heading mt-1 text-[32px] leading-tight font-semibold tracking-[-0.035em]">{selected.title}</h2>
-              <p className="text-muted-foreground mt-2 max-w-[64ch] text-sm leading-relaxed">{PANEL_INTRO[selected.id] ?? selected.blurb}</p>
+              <p className="text-card/70 mt-2 max-w-[64ch] text-sm leading-relaxed">{PANEL_INTRO[selected.id] ?? selected.blurb}</p>
             </div>
-            <StatusLabel status={selected.status} />
+            <StatusLabel status={selected.status} inverse />
           </div>
 
           {selectedIssues.map((issue) => <section key={issue.id} role="alert" className="bg-primary/5 border-b px-5 py-5 sm:px-7">
@@ -1067,8 +1027,7 @@ function UnifiedSetup({
           </div>
         </main>
 
-        <aside className="flex flex-col gap-5">
-          <StudyMap steps={steps} />
+        <aside>
           <section className="overflow-hidden rounded-xl border" aria-labelledby="sources-title">
             <div className="border-b px-4 py-3"><h2 id="sources-title" className="text-sm font-semibold">Source register</h2></div>
             <ul>{steps.map((step) => { const stepIssues = issues.filter((issue) => issue.step === step.id || issue.relatedStep === step.id); return <li key={step.id} className="border-b last:border-b-0"><button type="button" disabled={step.status === 'blocked'} onClick={() => setOpen(step.id)} className={`focus-visible:ring-primary flex w-full items-center gap-3 px-4 py-3 text-left outline-none hover:bg-card focus-visible:ring-2 disabled:opacity-45 ${step.id === selected.id ? 'bg-card' : ''}`}><span className="grid size-5 shrink-0 place-items-center">{stepIssues.length ? <AlertTriangleIcon className="text-primary size-4" /> : MARKS[step.status]}</span><span className="min-w-0 flex-1"><strong className="block truncate text-sm font-medium">{step.title}</strong><span className="text-muted-foreground block truncate text-xs">{STATUS_WORD[step.status]}</span></span><ChevronRightIcon className="text-muted-foreground size-3.5" /></button></li>})}</ul>

@@ -88,15 +88,20 @@ separate account-data action to remove.
 
 - Warm board canvas, white working plane, near-black ink, one indigo signal.
 - Four-phase full-width route; status is a mark, not a rainbow.
-- A single dark “study map” uses an inline SVG to show sources converging on
-  the study desk. It is functional orientation, not decorative illustration.
+- The active task owns one near-black header band, matching Home's “Now”
+  hierarchy. Inputs remain white working surfaces; indigo is reserved for
+  actions, focus, and selection rather than filling fields.
 - All dividers run to the edge of their owning plane. Content padding lives in
   child bands; inset half-rules are avoided.
-- The source register is compact evidence/navigation, not a second sidebar.
+- The Source register is compact evidence/navigation, not a second sidebar or
+  a StudyMap; no decorative inline SVG substitutes for it. On desktop it
+  occupies the 20rem right column and begins level with the active task plane;
+  on mobile it follows the task plane in document order.
 - The global workspace sidebar and mobile navigation are absent during setup.
   A small brand bar and top-right escape action are the only shell.
-- Desktop uses a broad task plane plus a 20rem context column; mobile stacks
-  phases, task, map, and register without shrinking controls.
+- Desktop uses a broad task plane plus the 20rem Source register column; mobile
+  keeps the phase route first, then stacks the task plane and Source register
+  without shrinking controls.
 
 ## States to preserve
 
