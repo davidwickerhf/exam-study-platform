@@ -200,7 +200,7 @@ export default function HomePage() {
   const verifiedRules = useMemo(() => courses.filter((course) => course.courseProfile?.assessment?.status === 'confirmed').length, [courses])
   const prioritySources = [
     { label: 'Timetable', ready: hasTimetable, detail: academicsError ? 'Unavailable' : academicsLoading ? 'Checking…' : hasTimetable ? 'Teaching events available' : 'Not connected', href: '/app/setup?checklist=1&step=timetable' },
-    { label: 'Canvas', ready: Boolean(hub?.connected), detail: hubError ? 'Unavailable' : hubLoading ? 'Checking…' : hub?.connected ? 'Submission states available' : 'Not connected', href: '/app/account?tab=connections' },
+    { label: 'Canvas', ready: Boolean(hub?.connected), detail: hubError ? 'Unavailable' : hubLoading ? 'Checking…' : hub?.connected ? 'Submission states available' : 'Not connected', href: '/app/settings?tab=connections' },
     { label: 'Course rules', ready: verifiedRules > 0, detail: shellError ? 'Unavailable' : shellLoading ? 'Checking…' : verifiedRules ? `${verifiedRules} verified ${verifiedRules === 1 ? 'course' : 'courses'}` : 'No verified rules', href: '/app/courses' }
   ]
   const priorityLoading = academicsLoading || hubLoading || shellLoading

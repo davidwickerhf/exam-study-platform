@@ -64,7 +64,22 @@ typography:
     fontSize: "14px"
     fontWeight: 500
     lineHeight: 1.4
-  scale: ["10.5px", "11px", "12px", "12.5px", "13.5px", "14px", "14.5px", "15px", "16px", "21px", "24px", "32px", "42px", "60px"]
+  scale:
+    column-label: "10.5px"
+    micro: "11px"
+    label: "12px"
+    metadata: "12.5px"
+    compact: "13.5px"
+    body-small: "14px"
+    body-small-strong: "14.5px"
+    dense-row: "15px"
+    body: "16px"
+    section-title: "18px"
+    data-large: "21px"
+    title: "24px"
+    heading: "32px"
+    display-small: "42px"
+    display: "60px"
 rounded:
   control: "6px"
   card: "10px"
@@ -146,7 +161,7 @@ data voice.
 - Dashboard, Courses, and comparable operational board or register destinations use a fluid content measure capped at 1280px, with 16px phone, 24px tablet, and 32px desktop gutters. A wider canvas is an exception for content-heavy workspaces that demonstrably need it, not the operational default.
 - The dashboard is an operational overview, not a marketing page. Its summary is compact and the course ledger begins within the first viewport.
 - Updates follows design contract `updates-canvas-dispatch-ad40c9d9`: a near-black Canvas Briefing strip precedes a Two-Pane Dispatch inside the shared 1280px board. Announcements, Assignments, Materials, and Courses are URL-addressable local tabs. On desktop, the scan list and detail pane scroll independently below the fixed page context; on smaller screens they become one document flow and selection brings the detail into view. Toolbars, list rows, pane headers, fact bands, and footers use full-bleed internal rules while their content retains its own padding. The actual Canvas mark and Canvas red identify the source only; they never become product action or status styling.
-- Updates connects Canvas in place with a secure origin and Personal Access Token rather than redirecting to Account. The selected Canvas origin is carried through hub refreshes and material requests, including institution-specific origins. The connection and optional material-indexing permissions remain independently manageable in Account after setup.
+- Updates connects Canvas in place with a secure origin and Personal Access Token rather than diverting the task. The selected Canvas origin is carried through hub refreshes and material requests, including institution-specific origins. The connection and optional material-indexing permissions remain independently manageable in Settings after setup.
 - Updates never turns an incomplete Canvas response into a plausible zero. Truncated counts carry an open-ended marker, unavailable parts say unavailable, and partial briefings and empty results name their limited evidence. “New since last visit” compares announcements against the prior visit watermark and advances that watermark only after a successful, complete announcement response.
 - Courses appear as ruled rows with aligned columns. Repeated academic records never become a floating card grid.
 - A register-led overview may pair a broad content desk with a resizable context rail when the rail directly explains or filters the register. At the two-column desktop breakpoint, the Courses rail is sticky, persists its width, supports pointer and keyboard resizing from 256–400px, and protects at least 660px for the register. Below that breakpoint the separator disappears and the rail follows the register in one document flow. This pattern does not authorize permanent rails inside reading or practice.
@@ -161,18 +176,24 @@ data voice.
 - `/sign-in` is a dedicated access surface with the account action on a white
   working plane and a dark product-proof plane. The public home never doubles
   as the authentication gate.
-- Account replaces Settings at `#/account` with four tabs. API access: personal keys (name, scopes, one-time secret, revoke) and agent/MCP setup snippets. Profile: identity register, study-record facts, and the activity ledger. AI usage: allowance meters in two columns plus a table of recent requests. Data & privacy: a storage table (each record family, count, size, whether a reset clears it), export, reset study data (keeps account, plan, and usage ledger), erase everything (keeps sign-in), and the isolated account-deletion danger panel. Resets and deletion require a typed confirmation in a focused modal.
+- Settings is a main Manage destination with Connections, API access, AI usage, and Data & privacy. On desktop, its compact local tab list occupies a separate 208px full-height ruled rail; on mobile, the same destinations become a horizontal local tab row. Canvas and timetable connections share one compact register with Connection, Status, Details, Activity, and Actions columns; the shared column is Activity because Canvas reports credential use while timetable reports synchronization, so it must not be mislabeled “Last sync.” Setup expands only when requested. Profile remains behind the account menu. Data & privacy includes export, study reset, full erasure, and typed confirmation for destructive actions.
   Export is a normal account action; deletion is isolated in a bordered danger
   zone and requires a typed confirmation in a focused modal or mobile sheet.
 - Academic Planning is one destination with a local tab row for Overview,
-  Courses, Documents, Progress, Planner, and Settings. Documents accepts
-  transcripts, exam schedules, timetables, academic calendars, and .ics feeds at
+  Courses, Progress, Planner, and Settings. Documents is a main Manage destination
+  with a record-and-revision desk. It accepts transcripts, exam schedules,
+  timetables, academic calendars, and .ics feeds at
   any time; the reader proposes a change set (results, exam dates, new courses,
   events) that the student ticks and applies — nothing changes silently.
   Each source is cross-checked against the active selected-course ledger.
   Unselected source courses, scheduled completed courses, and disagreeing facts
   are explicit unchecked decisions; source omissions are informational and
   never remove a selected course.
+  Version history persists programme-scoped derived metadata, summaries, and
+  Academic Work course rows so adjacent saved readings can be inspected
+  truthfully; original PDFs and images are read but never retained. Document
+  impact records keep proposed, selected, and applied counts distinct because
+  selecting a proposal does not prove that it was applied.
   Institution-wide calendar dates maintained editorially appear read-only in
   the Calendar destination with an "Add to my plan" action. Courses holds the curriculum ledger, programme-structure choices,
   and per-course editing (expanded in place beneath the row); Progress holds
