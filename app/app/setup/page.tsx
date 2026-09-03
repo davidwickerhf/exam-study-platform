@@ -164,12 +164,12 @@ function workSummaryLine(result: WorkResult) {
 /* Safe to set: the parser escapes first and emits only its own rules. */
 function Answer({ content }: { content: string }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex min-w-0 items-start gap-3">
       <Avatar size="sm" className="mt-0.5 rounded-sm">
         <AvatarFallback className="bg-primary text-primary-foreground rounded-sm font-semibold">W</AvatarFallback>
       </Avatar>
       <div
-        className={`bg-card max-w-[62ch] border-l-2 border-primary px-4 py-3 text-[14.5px] leading-relaxed ${PROSE}`}
+        className={`bg-card min-w-0 max-w-[62ch] overflow-hidden border-l-2 border-primary px-4 py-3 text-[14.5px] leading-relaxed [overflow-wrap:anywhere] ${PROSE}`}
         dangerouslySetInnerHTML={{ __html: tutorMarkdown(content) }}
       />
     </div>
@@ -180,7 +180,7 @@ function Turn({ message }: { message: Message }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="bg-secondary max-w-[46ch] rounded-sm px-4 py-2.5 text-[14.5px] leading-relaxed">{message.content}</div>
+        <div className="bg-secondary min-w-0 max-w-[46ch] rounded-sm px-4 py-2.5 text-[14.5px] leading-relaxed [overflow-wrap:anywhere]">{message.content}</div>
       </div>
     )
   }
@@ -188,9 +188,9 @@ function Turn({ message }: { message: Message }) {
     // The server's own account of what a credential did. The student did not
     // type it, so it is not drawn as if they had.
     return (
-      <p className="text-muted-foreground flex items-start gap-2 text-sm">
+      <p className="text-muted-foreground flex min-w-0 items-start gap-2 text-sm">
         <CheckIcon className="text-primary mt-0.5 size-4 shrink-0" />
-        <span>{eventLine(message.content)}</span>
+        <span className="min-w-0 [overflow-wrap:anywhere]">{eventLine(message.content)}</span>
       </p>
     )
   }
@@ -278,6 +278,14 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
   const [error, setError] = useState<string | null>(null)
   const [collectMaterials, setCollectMaterials] = useState(false)
   const [sharingMode, setSharingMode] = useState<'private' | 'community'>('private')
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!busy) { setElapsed(0); return }
+    const started = Date.now()
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000)
+    return () => window.clearInterval(timer)
+  }, [busy])
 
   return (
     <form
@@ -358,7 +366,9 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={busy || !value.trim()}>
           {busy && <Spinner data-icon="inline-start" />}
-          {busy ? 'Checking…' : canvas ? 'Connect Canvas' : 'Connect timetable'}
+          {busy
+            ? canvas ? 'Checking Canvas…' : elapsed >= 8 ? 'Still importing appointments…' : elapsed >= 3 ? 'Downloading appointments…' : 'Checking timetable…'
+            : canvas ? 'Connect Canvas' : 'Connect timetable'}
         </Button>
         <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
           Skip this
@@ -590,9 +600,36 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
           </div>
 
           {issues.filter((issue) => issue.step === selected.id || issue.relatedStep === selected.id).map((issue) => (
-            <div key={issue.id} role="alert" className="border-primary bg-card flex gap-3 rounded-sm border p-4">
+            <div key={issue.id} role="alert" className="border-primary bg-card flex min-w-0 gap-3 rounded-sm border p-4">
               <AlertTriangleIcon className="text-primary mt-0.5 size-4 shrink-0" />
-              <div><strong className="text-sm">{issue.title}</strong><p className="text-muted-foreground mt-1 text-sm">{issue.detail}</p><p className="mt-2 text-sm">{issue.recovery}</p></div>
+              <div className="min-w-0 flex-1">
+                <strong className="text-sm">{issue.title}</strong>
+                <p className="text-muted-foreground mt-1 text-sm [overflow-wrap:anywhere]">{issue.detail}</p>
+                <p className="mt-2 text-sm">{issue.recovery}</p>
+                {(issue.unexpectedCourses?.length || issue.expectedCourses?.length) && (
+                  <details className="mt-3 border-t pt-3">
+                    <summary className="focus-visible:ring-primary w-fit cursor-pointer text-sm font-semibold outline-none hover:underline focus-visible:ring-2">See the course comparison</summary>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">In your current record</p>
+                        <ul className="space-y-1 text-sm">
+                          {issue.unexpectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data text-primary">{course.code}</span>{course.name ? ` — ${course.name}` : ''}</li>)}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">In the selected plan</p>
+                        <ul className="max-h-48 space-y-1 overflow-y-auto pr-2 text-sm">
+                          {issue.expectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data">{course.code}</span>{course.name ? ` — ${course.name}` : ''}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  </details>
+                )}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" type="button" onClick={() => setOpen('programme')}>Change programme or year</Button>
+                  <Button size="sm" variant="ghost" nativeButton={false} render={<Link href={`/app/setup?explain=${encodeURIComponent(issue.id)}`} />}>Explain my situation</Button>
+                </div>
+              </div>
             </div>
           ))}
 
@@ -686,6 +723,14 @@ function SetupSurface() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (params.get('explain') === 'current-courses-record-mismatch') {
+      setDraft('My current courses do not match the selected programme because ')
+    } else if (params.get('explain') === 'programme-record-mismatch') {
+      setDraft('The programme on my academic record differs from my selected programme because ')
+    }
+  }, [params])
 
   useEffect(() => {
     const viewport = threadRef.current?.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]')

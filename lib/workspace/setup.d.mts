@@ -17,7 +17,17 @@ export type RecordSummary = {
   programme?: string | null
 }
 
-export type SetupIssue = { id: string; step: string; relatedStep?: string; severity: 'warning' | 'error'; title: string; detail: string; recovery: string }
+export type SetupIssue = {
+  id: string
+  step: string
+  relatedStep?: string
+  severity: 'warning' | 'error'
+  title: string
+  detail: string
+  recovery: string
+  unexpectedCourses?: { code: string; name: string; status: string }[]
+  expectedCourses?: { code: string; name: string }[]
+}
 
 export type SetupSourceState = {
   programme: boolean
