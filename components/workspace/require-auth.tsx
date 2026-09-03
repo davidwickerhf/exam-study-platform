@@ -77,6 +77,16 @@ function Gate({ children }: { children: ReactNode }) {
     patched.current = true;
 
     const original = window.fetch.bind(window);
+    let heldToken: { value: string; expiresAt: number } | null = null;
+    let tokenRequest: Promise<string | null> | null = null;
+    const sessionToken = async () => {
+      if (heldToken && heldToken.expiresAt > Date.now()) return heldToken.value;
+      tokenRequest ??= getToken().then((value) => {
+        if (value) heldToken = { value, expiresAt: Date.now() + 30_000 };
+        return value;
+      }).finally(() => { tokenRequest = null; });
+      return tokenRequest;
+    };
     window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const href =
         typeof input === "string"
@@ -94,7 +104,10 @@ function Gate({ children }: { children: ReactNode }) {
       const headers = new Headers(
         init.headers || (input instanceof Request ? input.headers : undefined),
       );
-      const token = await getToken();
+      // Clerk token resolution is async and used to run once per API request.
+      // A page commonly starts three or four reads together, so deduplicate
+      // those lookups and briefly retain the same short-lived session token.
+      const token = await sessionToken();
       if (token) headers.set("authorization", `Bearer ${token}`);
       return original(input, { ...init, headers });
     };

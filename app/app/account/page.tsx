@@ -352,6 +352,7 @@ function ConnectionsTab() {
   const connections = useJson<{ connections: CanvasConnection[] }>(
     "/api/account/integrations/canvas",
   );
+  const corpusStatus = useJson<{ status: { jobs?: { id: string; type: string; status: string; error?: string | null; createdAt?: string; finishedAt?: string | null }[]; courses?: { id: string; courseCode: string; courseName: string; sources: number; lastSyncedAt?: string | null }[] } }>("/api/account/integrations/canvas/corpus");
   const [custom, setCustom] = useState(false);
   const [canvasUrl, setCanvasUrl] = useState(
     "https://canvas.maastrichtuniversity.nl",
@@ -571,6 +572,20 @@ function ConnectionsTab() {
           </a>
         }
       >
+        {corpusStatus.data?.status && (
+          <div className="mb-5 border-y py-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <strong>Material collection</strong>
+              <button type="button" className="text-primary text-sm font-semibold" onClick={corpusStatus.reload}>Refresh status</button>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <span><strong className={`${NUMERALS} block text-xl`}>{corpusStatus.data.status.jobs?.filter((job) => ["pending", "running"].includes(job.status)).length ?? 0}</strong><small className="text-muted-foreground">jobs in progress</small></span>
+              <span><strong className={`${NUMERALS} block text-xl`}>{corpusStatus.data.status.courses?.length ?? 0}</strong><small className="text-muted-foreground">course editions found</small></span>
+              <span><strong className={`${NUMERALS} block text-xl`}>{corpusStatus.data.status.courses?.reduce((total, course) => total + course.sources, 0) ?? 0}</strong><small className="text-muted-foreground">materials stored</small></span>
+            </div>
+            {!!corpusStatus.data.status.jobs?.length && <details className="mt-4 border-t pt-3"><summary className="cursor-pointer text-sm font-semibold">View collection history</summary><ul className="mt-3 flex max-h-64 flex-col overflow-y-auto">{corpusStatus.data.status.jobs.slice(0, 20).map((job) => <li key={job.id} className="flex items-start justify-between gap-4 border-b py-2 text-sm"><span><strong className="capitalize">{job.type}</strong>{job.error && <small className="text-muted-foreground mt-0.5 block max-w-[60ch] [overflow-wrap:anywhere]">{job.error}</small>}</span><span className={`${NUMERALS} text-muted-foreground capitalize`}>{job.status}</span></li>)}</ul></details>}
+          </div>
+        )}
         {connections.error ? (
           <Failed
             what="Canvas settings are unavailable"
