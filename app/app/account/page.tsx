@@ -365,6 +365,7 @@ function ConnectionsTab() {
   const [courseCatalog, setCourseCatalog] = useState<Record<string, CanvasCourseOption[]>>({});
   const [selectedCourse, setSelectedCourse] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [addingHost, setAddingHost] = useState(false);
 
   async function saveMaterialMode(connection: CanvasConnection, mode: "none" | "private" | "community") {
     setBusy(true); setError(null); setNotice(null);
@@ -457,9 +458,11 @@ function ConnectionsTab() {
   return (
     <div className="flex flex-col gap-8">
       <Section
-        title="Connect Canvas"
-        note="Bring announcements, deadlines and course material into your private workspace."
+        title={connections.data?.connections.length ? "Canvas" : "Connect Canvas"}
+        note={connections.data?.connections.length ? "Your connected Canvas accounts and material permissions." : "Bring announcements, deadlines and course material into your private workspace."}
+        action={connections.data?.connections.length ? <Button type="button" variant="outline" size="sm" onClick={() => setAddingHost((value) => !value)}>{addingHost ? "Cancel" : "Add another Canvas host"}</Button> : undefined}
       >
+        {(!connections.data?.connections.length || addingHost) && (
         <form
           onSubmit={connect}
           className="bg-card grid gap-4 rounded-sm p-4 sm:grid-cols-2"
@@ -559,6 +562,7 @@ function ConnectionsTab() {
             </p>
           )}
         </form>
+        )}
       </Section>
       <Section
         title="Saved Canvas hosts"
@@ -607,9 +611,11 @@ function ConnectionsTab() {
             {connections.data.connections.map((connection) => (
               <li
                 key={connection.origin}
-                className="grid gap-3 border-b py-4 lg:grid-cols-[minmax(15rem,1fr)_minmax(28rem,2fr)]"
+                className="border-b py-4"
               >
-                <span className="flex flex-col gap-0.5">
+                <details open className="group">
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-4 focus-visible:outline-2 focus-visible:outline-primary">
+                <span className="flex min-w-0 flex-col gap-0.5">
                   <strong className={NUMERALS}>{connection.origin}</strong>
                   <small className="text-muted-foreground">
                     Connected {relative(connection.createdAt)}
@@ -623,7 +629,9 @@ function ConnectionsTab() {
                       : "Materials: collection disabled"}
                   </small>
                 </span>
-                <div className="flex flex-col gap-2">
+                <span className="text-muted-foreground text-sm group-open:hidden">Configure</span><span className="text-muted-foreground hidden text-sm group-open:inline">Hide</span>
+                </summary>
+                <div className="mt-4 flex flex-col gap-2 border-t pt-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Select value={!connection.corpus?.collectionEnabled ? "none" : connection.corpus.sharingMode} onValueChange={(value) => void saveMaterialMode(connection, value as "none" | "private" | "community")} disabled={busy}>
                       <SelectTrigger className="w-52"><SelectValue aria-label="Material authorization" /></SelectTrigger>
@@ -649,6 +657,7 @@ function ConnectionsTab() {
                     </div>
                   )}
                 </div>
+                </details>
               </li>
             ))}
           </ul>
