@@ -450,7 +450,7 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
   }}>
     <div className="border-y py-4"><h3 className="font-semibold">Add a personal programme</h3><p className="text-muted-foreground mt-1 text-sm">This creates your private study record immediately. Courses and dates remain empty until you add or import them; it is not presented as a maintained curriculum.</p></div>
     <Field><FieldLabel htmlFor="custom-institution">Institution</FieldLabel><Input id="custom-institution" value={institution} onChange={(event) => setInstitution(event.target.value)} required /></Field>
-    <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Degree</FieldLabel><Select value={degree} onValueChange={(value) => setDegree(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Bachelor of Science">Bachelor of Science</SelectItem><SelectItem value="Bachelor of Arts">Bachelor of Arts</SelectItem><SelectItem value="Master of Science">Master of Science</SelectItem><SelectItem value="Master of Arts">Master of Arts</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select></Field><Field><FieldLabel htmlFor="custom-programme">Programme name</FieldLabel><Input id="custom-programme" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Econometrics and Operations Research" required /></Field></div>
+    <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Degree</FieldLabel><Select items={['Bachelor of Science', 'Bachelor of Arts', 'Master of Science', 'Master of Arts', 'Other'].map((value) => ({ value, label: value }))} value={degree} onValueChange={(value) => setDegree(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="Bachelor of Science">Bachelor of Science</SelectItem><SelectItem value="Bachelor of Arts">Bachelor of Arts</SelectItem><SelectItem value="Master of Science">Master of Science</SelectItem><SelectItem value="Master of Arts">Master of Arts</SelectItem><SelectItem value="Other">Other</SelectItem></SelectGroup></SelectContent></Select></Field><Field><FieldLabel htmlFor="custom-programme">Programme name</FieldLabel><Input id="custom-programme" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Econometrics and Operations Research" required /></Field></div>
     {error && <FieldError>{error}</FieldError>}
     <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy || !customName.trim()}>{busy ? 'Creating…' : 'Create personal programme'}</Button><Button type="button" variant="ghost" onClick={() => setCustom(false)}>Back to maintained programmes</Button></div>
   </form>
@@ -460,10 +460,10 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
     catch (cause) { setError(cause instanceof Error ? cause.message : 'The programme could not be saved.') }
     finally { setBusy(false) }
   }}>
-    <Field><FieldLabel>Programme</FieldLabel><Select value={programmeId} onValueChange={(value) => { const id = String(value); setProgrammeId(id); setVersionId(programmes.find((entry) => entry.id === id)?.versions?.[0]?.id ?? '') }}><SelectTrigger className="w-full"><SelectValue placeholder="Choose your programme" /></SelectTrigger><SelectContent><SelectGroup>{programmes.map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.degree} {entry.name}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+    <Field><FieldLabel>Programme</FieldLabel><Select items={programmes.map((entry) => ({ value: entry.id, label: `${entry.degree} ${entry.name}` }))} value={programmeId} onValueChange={(value) => { const id = String(value); setProgrammeId(id); setVersionId(programmes.find((entry) => entry.id === id)?.versions?.[0]?.id ?? '') }}><SelectTrigger className="w-full"><SelectValue placeholder="Choose your programme" /></SelectTrigger><SelectContent><SelectGroup>{programmes.map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.degree} {entry.name}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
     <div className="grid gap-4 sm:grid-cols-2">
-      <Field><FieldLabel>Curriculum</FieldLabel><Select value={versionId} onValueChange={(value) => setVersionId(String(value))}><SelectTrigger className="w-full"><SelectValue placeholder="Curriculum year" /></SelectTrigger><SelectContent>{(programme?.versions ?? []).map((version) => <SelectItem key={version.id} value={version.id}>{version.label || version.id}{version.status === 'current' ? ' · current' : ''}</SelectItem>)}</SelectContent></Select></Field>
-      <Field><FieldLabel>Current study year</FieldLabel><Select value={studyYear} onValueChange={(value) => setStudyYear(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>Year {index + 1}</SelectItem>)}</SelectContent></Select></Field>
+      <Field><FieldLabel>Curriculum</FieldLabel><Select items={(programme?.versions ?? []).map((version) => ({ value: version.id, label: `${version.label || version.id}${version.status === 'current' ? ' · current' : ''}` }))} value={versionId} onValueChange={(value) => setVersionId(String(value))}><SelectTrigger className="w-full"><SelectValue placeholder="Curriculum year" /></SelectTrigger><SelectContent><SelectGroup>{(programme?.versions ?? []).map((version) => <SelectItem key={version.id} value={version.id}>{version.label || version.id}{version.status === 'current' ? ' · current' : ''}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+      <Field><FieldLabel>Current study year</FieldLabel><Select items={Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => ({ value: String(index + 1), label: `Year ${index + 1}` }))} value={studyYear} onValueChange={(value) => setStudyYear(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>Year {index + 1}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
     </div>
     <FieldDescription>Changing programme preserves attempts already in your personal academic record.</FieldDescription>
     {error && <FieldError>{error}</FieldError>}
@@ -496,6 +496,26 @@ const STATUS_WORD: Record<SetupStep['status'], string> = {
   blocked: 'Waiting'
 }
 
+function ConversationStepRail({ view }: { view: View | null }) {
+  const steps = setupSteps({ state: view?.state ?? null, skipped: view?.skipped ?? [] })
+  const active = view?.opening?.step
+    ?? (view?.prompt?.kind === 'upload' ? 'record' : view?.prompt?.kind === 'secure' ? view.prompt.secure : nextStep(steps)?.id)
+  return (
+    <aside className="min-h-0 border-b pb-5 lg:border-r lg:border-b-0 lg:pr-7 lg:pb-0">
+      <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
+      <p className="font-data mt-3 text-4xl leading-none font-semibold tabular-nums">{connectedCount(steps)}<span className="text-muted-foreground text-lg">/{steps.length}</span></p>
+      <ol className="mt-6 flex flex-col border-t" aria-label="Setup progress">
+        {steps.map((step, index) => (
+          <li key={step.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b py-3" aria-current={step.id === active ? 'step' : undefined}>
+            <span className={`font-data text-xs tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>{step.status === 'done' ? '✓' : String(index + 1).padStart(2, '0')}</span>
+            <span className={`text-sm ${step.id === active ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{step.title}</span>
+          </li>
+        ))}
+      </ol>
+    </aside>
+  )
+}
+
 function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefresh: () => void; onApplied: (view: View) => void }) {
   const params = useSearchParams()
   const requestedStep = params.get('step')
@@ -516,6 +536,7 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
   return (
     <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-[1180px] content-center gap-10 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-16">
       <aside className="self-stretch border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
+          <Button variant="ghost" size="sm" className="mb-5 -ml-3" nativeButton={false} render={<Link href="/app/setup" />}>← Back to conversation</Button>
           <h1 className="text-sm font-semibold">Workspace setup</h1>
           <p className="font-data mt-3 text-4xl leading-none font-semibold tabular-nums">{connected}<span className="text-muted-foreground text-lg">/{steps.length}</span></p>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
@@ -814,7 +835,9 @@ function SetupSurface() {
   }
 
   return (
-    <div className="mx-auto flex h-[100svh] max-h-[100svh] w-full max-w-[1180px] flex-col overflow-hidden p-4 sm:p-6">
+    <div className="mx-auto grid h-[100svh] max-h-[100svh] w-full max-w-[1180px] grid-rows-[auto_minmax(0,1fr)] gap-5 overflow-hidden p-4 sm:p-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-1 lg:gap-10">
+      <ConversationStepRail view={view} />
+      <section className="flex min-h-0 min-w-0 flex-col">
       <div className="mx-auto flex w-full max-w-[76ch] items-center gap-4 border-b pb-4">
         <div className="min-w-0 flex-1">
           <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
@@ -893,6 +916,7 @@ function SetupSurface() {
 
       {error && <p className="mx-auto w-full max-w-[76ch] text-sm">{error}</p>}
       {!view?.finished && view?.prompt == null && <div className="mx-auto w-full max-w-[76ch] border-t pt-4">{composer('Type your reply…')}</div>}
+      </section>
     </div>
   )
 }
