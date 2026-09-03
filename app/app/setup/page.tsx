@@ -40,6 +40,8 @@ import {
   ShieldIcon,
   UploadIcon
 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
@@ -49,6 +51,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { tutorMarkdown } from '@/lib/workspace/markdown.mjs'
 import {
   type SetupSourceState,
@@ -161,10 +164,15 @@ function workSummaryLine(result: WorkResult) {
 /* Safe to set: the parser escapes first and emits only its own rules. */
 function Answer({ content }: { content: string }) {
   return (
-    <div
-      className={`bg-paper text-paper-ink [&_a]:text-paper-link [&_code]:bg-paper-subtle rounded-sm px-5 py-4 text-[14.5px] leading-relaxed shadow-lg ${PROSE}`}
-      dangerouslySetInnerHTML={{ __html: tutorMarkdown(content) }}
-    />
+    <div className="flex items-start gap-3">
+      <Avatar size="sm" className="mt-0.5 rounded-sm">
+        <AvatarFallback className="bg-primary text-primary-foreground rounded-sm font-semibold">W</AvatarFallback>
+      </Avatar>
+      <div
+        className={`bg-card max-w-[62ch] border-l-2 border-primary px-4 py-3 text-[14.5px] leading-relaxed ${PROSE}`}
+        dangerouslySetInnerHTML={{ __html: tutorMarkdown(content) }}
+      />
+    </div>
   )
 }
 
@@ -172,7 +180,7 @@ function Turn({ message }: { message: Message }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[46ch] rounded-sm border px-4 py-2.5 text-[14.5px] leading-relaxed">{message.content}</div>
+        <div className="bg-secondary max-w-[46ch] rounded-sm px-4 py-2.5 text-[14.5px] leading-relaxed">{message.content}</div>
       </div>
     )
   }
@@ -394,7 +402,13 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
           {busy ? <Spinner className="size-3.5" /> : <UploadIcon className="size-3.5" />}
           {busy ? 'Reading your overview…' : 'Read for its results, then discarded. The file is never stored.'}
         </FieldDescription>
-        {error && <FieldError>{error}</FieldError>}
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangleIcon />
+            <AlertTitle>We couldn’t read the course table</AlertTitle>
+            <AlertDescription>{error} If this is the correct document, download a fresh PDF using Print rather than a screenshot or scan.</AlertDescription>
+          </Alert>
+        )}
       </Field>
       {onSkip && (
         <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>
@@ -653,7 +667,8 @@ function SetupSurface() {
   }, [load])
 
   useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight })
+    const viewport = threadRef.current?.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]')
+    viewport?.scrollTo({ top: viewport.scrollHeight, behavior: said.length ? 'smooth' : 'auto' })
   }, [view, said, sending])
 
   const send = async (text: string) => {
@@ -799,37 +814,41 @@ function SetupSurface() {
   }
 
   return (
-    <div className="mx-auto flex h-dvh w-full max-w-[1180px] flex-col gap-4 p-6">
-      <div className="mx-auto flex w-full max-w-[72ch] items-center gap-4 border-b pb-3">
-        <h1 className="min-w-0 flex-1 truncate text-base font-semibold">Setting up your workspace</h1>
+    <div className="mx-auto flex h-[100svh] max-h-[100svh] w-full max-w-[1180px] flex-col overflow-hidden p-4 sm:p-6">
+      <div className="mx-auto flex w-full max-w-[76ch] items-center gap-4 border-b pb-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
+          <h1 className="mt-1 truncate text-lg font-semibold">Let’s make this yours</h1>
+        </div>
         <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/app/setup?checklist=1" />}>
           Use the checklist
         </Button>
       </div>
 
-      <div ref={threadRef} className="flex min-h-0 flex-1 flex-col justify-end gap-4 overflow-y-auto">
+      <ScrollArea ref={threadRef} className="min-h-0 flex-1 py-5">
+        <div className="flex min-h-full flex-col justify-end gap-5 px-1 pb-3">
         {!view ? (
-          <div className="mx-auto flex w-full max-w-[72ch] flex-col gap-3">
+            <div className="mx-auto flex w-full max-w-[76ch] flex-col gap-3">
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-32 w-full" />
           </div>
         ) : (
           messages.map((message, index) => (
-            <div key={index} className="mx-auto w-full max-w-[72ch]">
+            <div key={index} className="mx-auto w-full max-w-[76ch]">
               <Turn message={message} />
             </div>
           ))
         )}
 
         {sending && (
-          <div className="text-muted-foreground mx-auto flex w-full max-w-[72ch] items-center gap-2 text-sm">
+          <div className="text-muted-foreground mx-auto flex w-full max-w-[76ch] items-center gap-2 text-sm">
             <Spinner className="size-3.5" />
             Working on that…
           </div>
         )}
 
         {!sending && view?.prompt?.kind === 'upload' && (
-          <div className="mx-auto w-full max-w-[72ch]">
+          <div className="mx-auto w-full max-w-[76ch]">
             <UploadField
               onRead={async (result) => {
                 await send(workSummaryLine(result))
@@ -840,7 +859,7 @@ function SetupSurface() {
         )}
 
         {!sending && view?.prompt?.kind === 'secure' && (
-          <div className="mx-auto w-full max-w-[72ch]">
+          <div className="mx-auto w-full max-w-[76ch]">
             <SecureField
               kind={view.prompt.secure}
               onApplied={(next) => {
@@ -853,7 +872,7 @@ function SetupSurface() {
         )}
 
         {view?.finished && (
-          <div className="mx-auto flex w-full max-w-[72ch] flex-col gap-4 border-t pt-4">
+          <div className="mx-auto flex w-full max-w-[76ch] flex-col gap-4 border-t pt-4">
             <p className="flex items-start gap-2 text-sm">
               <CheckIcon className="text-primary mt-0.5 size-4 shrink-0" />
               <span>{view.summary || 'Setup is finished.'}</span>
@@ -869,10 +888,11 @@ function SetupSurface() {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </ScrollArea>
 
-      {error && <p className="mx-auto w-full max-w-[72ch] text-sm">{error}</p>}
-      {!view?.finished && <div className="mx-auto w-full max-w-[72ch]">{composer('Type your reply…')}</div>}
+      {error && <p className="mx-auto w-full max-w-[76ch] text-sm">{error}</p>}
+      {!view?.finished && view?.prompt == null && <div className="mx-auto w-full max-w-[76ch] border-t pt-4">{composer('Type your reply…')}</div>}
     </div>
   )
 }

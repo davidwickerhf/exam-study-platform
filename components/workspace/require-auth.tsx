@@ -100,8 +100,18 @@ function Gate({ children }: { children: ReactNode }) {
     };
     async function check() {
       try {
-        const response = await window.fetch("/api/auth/session");
-        const session = await response.json().catch(() => ({}));
+        // Both endpoints only read the authenticated account. Starting them
+        // together removes a full network round-trip from every sign-in and
+        // refresh; previously onboarding did not begin until session had
+        // completely returned and been decoded.
+        const [response, onboardingResponse] = await Promise.all([
+          window.fetch("/api/auth/session"),
+          window.fetch("/api/onboarding"),
+        ]);
+        const [session, onboarding] = await Promise.all([
+          response.json().catch(() => ({})),
+          onboardingResponse.json().catch(() => ({})),
+        ]);
         if (response.status === 403) {
           setAccess({
             kind: "ineligible",
@@ -114,8 +124,6 @@ function Gate({ children }: { children: ReactNode }) {
           throw new Error(
             session.error || "Your session could not be verified.",
           );
-        const onboardingResponse = await window.fetch("/api/onboarding");
-        const onboarding = await onboardingResponse.json().catch(() => ({}));
         if (!onboardingResponse.ok)
           throw new Error(
             onboarding.error || "Your setup status could not be checked.",

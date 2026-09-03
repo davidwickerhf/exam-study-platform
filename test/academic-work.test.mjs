@@ -90,6 +90,21 @@ BCS2120 Introduction to Artificial Intelligence - 0,0/4,0
   assert.equal(result.courses[0].name, 'Introduction to Artificial Intelligence')
 })
 
+test('the older My Study layout with the course code on the following line is read', () => {
+  const printed = `Current courses
+Course code Description Result Credits
+2026-2027-100- Introduction to Artificial Intelligence - 0,0/4,0
+BCS2120
+Completed courses
+2024-2025-200- Discrete Mathematics 7,5 4,0/4,0
+BCS1120`
+  const result = parseAcademicWork(printed)
+  assert.deepEqual(result.courses.map(({ code, name, status }) => ({ code, name, status })), [
+    { code: 'BCS2120', name: 'Introduction to Artificial Intelligence', status: 'upcoming' },
+    { code: 'BCS1120', name: 'Discrete Mathematics', status: 'passed' }
+  ])
+})
+
 test('identities that are not a Maastricht course triple are refused', () => {
   assert.equal(parseCourseIdentity('BCS2120'), null)
   assert.equal(parseCourseIdentity('2026-2027-100'), null)
