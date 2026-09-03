@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 const migration = await readFile(new URL('../db/020_canvas_corpus.sql', import.meta.url), 'utf8')
+const priorityMigration = await readFile(new URL('../db/022_priority_scans.sql', import.meta.url), 'utf8')
+const priorityEvidence = await readFile(new URL('../lib/priority-evidence.mjs', import.meta.url), 'utf8')
 const retrieval = await readFile(new URL('../lib/retrieval-store.mjs', import.meta.url), 'utf8')
 const worker = await readFile(new URL('../lib/canvas-corpus-worker.mjs', import.meta.url), 'utf8')
 const corpus = await readFile(new URL('../lib/course-corpus.mjs', import.meta.url), 'utf8')
@@ -26,6 +28,14 @@ test('the durable worker versions sources and schedules freshness checks', () =>
   assert.match(migration, /canvas_source_snapshots/)
   assert.match(worker, /last_synced_at=now\(\), next_sync_at=/)
   assert.match(worker, /sha256/)
+  assert.match(priorityMigration, /ON canvas_sync_jobs \(user_id, binding_id\)/)
+  assert.match(worker, /recent\.user_id=access\.user_id/)
+  assert.match(worker, /failed\.status='failed'.+FAILURE_COOLDOWN_HOURS/)
+})
+
+test('revoking material collection removes derived priority scans from the workspace', () => {
+  assert.match(priorityEvidence, /canvas_corpus_permissions p/)
+  assert.match(priorityEvidence, /p\.collection_enabled=true/)
 })
 
 test('retrieval supports embeddings and explicit academic-year editions', () => {

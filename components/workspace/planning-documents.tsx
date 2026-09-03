@@ -43,15 +43,18 @@ import {
   type Change,
   type ChangeSet,
   type SourceFile,
+  CHANGE_STATUS_LABEL,
   DOCUMENT_KINDS,
   MAX_DESCRIPTION,
   MAX_SOURCES,
   MAX_SOURCE_BYTES,
-  analysisPayload,
+  analysisRequests,
+  changeDiff,
+  changeStatus,
   defaultSelection,
   describeSource,
   groupChanges,
-  mergeChangeSets,
+  mergeAnalysisResults,
   needsDecision,
   reconciliationSummary,
   selectAll,
@@ -327,20 +330,42 @@ function CrossCheck({ result }: { result: ChangeSet }) {
   )
 }
 
+const ROW = 'grid grid-cols-[auto_4.25rem_minmax(0,1fr)] items-start gap-x-3'
+const COLUMN_LABEL = 'text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase'
+
+/**
+ * One proposal, as a ruled row the student ticks.
+ *
+ * The status column is the whole point of a review step: NEW adds something,
+ * MATCH touches a record already in the plan, CONFLICT would overwrite a
+ * recorded fact — and a conflict shows both values rather than describing the
+ * disagreement in a sentence.
+ */
 function ChangeRow({ change, checked, onToggle }: { change: Change; checked: boolean; onToggle: (checked: boolean) => void }) {
+  const status = changeStatus(change)
+  const diff = status === 'conflict' ? changeDiff(change) : null
   return (
     <li className="border-b last:border-b-0">
-      <Label className="flex cursor-pointer items-start gap-3 py-2.5 font-normal">
-        <Checkbox checked={checked} onCheckedChange={(value) => onToggle(value === true)} className="mt-0.5" />
-        <span className="flex min-w-0 flex-col gap-0.5">
+      <Label className={`${ROW} hover:bg-card cursor-pointer py-2.5 font-normal transition-colors`}>
+        <Checkbox checked={checked} onCheckedChange={(value) => onToggle(value === true)} className="mt-1" />
+        <span className={`${COLUMN_LABEL} mt-1.5 ${status === 'conflict' ? 'text-foreground' : ''}`}>
+          {CHANGE_STATUS_LABEL[status]}
+        </span>
+        <span className="flex min-w-0 flex-col gap-1">
           <strong className="text-[15px] leading-snug font-medium">{change.label}</strong>
-          {(change.detail || needsDecision(change)) && (
-            <small className={`text-muted-foreground text-xs ${NUMERALS}`}>
-              {change.detail}
-              {needsDecision(change) && (
-                <em className="text-foreground ml-1 font-semibold not-italic">Decision needed</em>
-              )}
-            </small>
+          {diff ? (
+            <span className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs ${NUMERALS}`}>
+              <span className="text-muted-foreground">In your plan</span>
+              <span className="line-through">{diff.current}</span>
+              <span aria-hidden className="text-muted-foreground">→</span>
+              <span className="text-muted-foreground">{diff.source}</span>
+              <span className="font-semibold">{diff.proposed}</span>
+            </span>
+          ) : (
+            change.detail && <small className={`text-muted-foreground text-xs ${NUMERALS}`}>{change.detail}</small>
+          )}
+          {needsDecision(change) && (
+            <small className="text-xs font-semibold">Your recorded fact wins unless you tick this.</small>
           )}
         </span>
       </Label>
@@ -422,6 +447,11 @@ function Review({
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
+                    <div className={`${ROW} border-b pb-1.5`}>
+                      <span className="size-4" aria-hidden />
+                      <span className={COLUMN_LABEL}>Status</span>
+                      <span className={COLUMN_LABEL}>Proposal</span>
+                    </div>
                     <ul className="flex flex-col">
                       {group.changes.map((change) => (
                         <ChangeRow
@@ -450,7 +480,7 @@ function Review({
               {counts.blocked > 0 && ` · ${counts.blocked} waiting on a course you have not ticked`}
             </p>
             <Button onClick={onApply} disabled={!counts.applying || applying}>
-              {applying ? 'Applying…' : `Apply ${counts.applying} change${counts.applying === 1 ? '' : 's'}`}
+              {applying ? 'Applying…' : `Apply ${counts.applying} selected change${counts.applying === 1 ? '' : 's'}`}
             </Button>
           </div>
         </>
@@ -518,23 +548,19 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
     setAnalysing(true)
     setError(null)
     try {
-      const { documents, calendars } = analysisPayload(files)
-      let next: ChangeSet | null = null
-      if (documents.length || description.trim()) {
-        next = await api<ChangeSet>('/api/academics/documents/analyze', {
-          method: 'POST',
-          body: JSON.stringify({ kind, description, documents })
+      // Which endpoint reads which file, and in which order the answers fold
+      // together, is decided in lib/workspace/documents.mjs and tested there.
+      // This function only posts what it is handed.
+      const requests = analysisRequests(files, { kind, description, date: localIsoDate(new Date()) })
+      if (!requests.length) throw new Error('Add a file, or describe what changed, before reading.')
+      const answers: { result: ChangeSet; source: { name?: string } | null }[] = []
+      for (const request of requests) {
+        answers.push({
+          result: await api<ChangeSet>(request.path, { method: 'POST', body: JSON.stringify(request.body) }),
+          source: request.source
         })
       }
-      // An .ics is parsed exactly rather than read by a model, so it goes to
-      // the calendar endpoint and its result is folded into the same review.
-      for (const file of calendars) {
-        const preview = await api<ChangeSet>('/api/academics/calendars/preview', {
-          method: 'POST',
-          body: JSON.stringify({ ics: file.text, date: localIsoDate(new Date()) })
-        })
-        next = mergeChangeSets(next, preview, { name: file.name })
-      }
+      const next = mergeAnalysisResults(answers)
       if (!next) throw new Error('Add a file, or describe what changed, before reading.')
       setResult(next)
       setSelected(defaultSelection(next.changes))
@@ -663,7 +689,7 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
           onDragOver={(event) => { event.preventDefault(); setDragging(true) }}
           onDragLeave={(event) => { event.preventDefault(); setDragging(false) }}
           onDrop={(event) => { event.preventDefault(); setDragging(false); if (!reading && !analysing) void addFiles(event.dataTransfer?.files ?? null) }}
-          className={`flex cursor-pointer flex-col items-center gap-2 border border-dashed p-8 text-center transition-colors ${dragging ? 'border-primary bg-card' : 'hover:bg-card'}`}
+          className={`flex cursor-pointer flex-col items-center gap-2 rounded-sm border border-dashed p-8 text-center transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50 has-[:disabled]:cursor-progress has-[:disabled]:opacity-60 ${dragging ? 'border-primary bg-card' : 'hover:bg-card'}`}
         >
           <input
             ref={fileInput}

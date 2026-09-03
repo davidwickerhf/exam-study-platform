@@ -4,9 +4,9 @@
  * Setup, migrated.
  *
  * The conversation opens on the first thing that is actually missing rather
- * than on a greeting. The server decides which that is — `GET /api/onboarding`
+ * than on a greeting. The server decides which that is. `GET /api/onboarding`
  * returns an `opening` of `{ step, heading, body, placeholder }` while the
- * student has not replied yet — and this page draws it as its own screen: the
+ * student has not replied yet, and this page draws it as its own screen: the
  * question, and the field that answers it, together. Shown as a transcript it
  * was one bubble stranded above a page of nothing with the composer parked on
  * the floor. Once they reply it becomes an ordinary thread.
@@ -14,11 +14,11 @@
  * A credential never enters the conversation. The timetable URL and the Canvas
  * token are typed into their own protected field, posted to
  * /api/onboarding/secure, applied by the server and written back into the
- * transcript only as the fact that they were applied — see `applySecureValue`
+ * transcript only as the fact that they were applied. See `applySecureValue`
  * in lib/onboarding-runtime.mjs. Nothing here puts either value in a message,
  * in a URL, or in the console.
  *
- * Assistant turns are Markdown, parsed by lib/app/markdown.mjs — the same
+ * Assistant turns are Markdown, parsed by lib/app/markdown.mjs, the same
  * escape-first parser the tutor uses, which is what makes it safe to set as
  * HTML.
  *
@@ -30,15 +30,14 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   CheckIcon,
   ChevronRightIcon,
   AlertTriangleIcon,
-  MinusIcon,
   SendIcon,
   ShieldIcon,
-  UploadIcon
+  SparklesIcon
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -54,8 +53,9 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { tutorMarkdown } from '@/lib/workspace/markdown.mjs'
 import {
-  type SetupSourceState,
   type SetupStep,
+  type SetupStepId,
+  type SetupIssue,
   connectedCount,
   eventLine,
   isComplete,
@@ -63,6 +63,10 @@ import {
   pdfPageText,
   setupSteps
 } from '@/lib/workspace/setup.mjs'
+import { FilePicker } from './file-picker'
+import { FinishSetup } from './finish-setup'
+import { json, type ElectiveGroup, type Message, type ProgrammeOption, type View } from './view'
+import { BrandMark } from '@/components/brand/brand-mark'
 
 const CANVAS_SETTINGS = 'https://canvas.maastrichtuniversity.nl/profile/settings'
 const TIMETABLE_PORTAL = 'https://timetable.maastrichtuniversity.nl/m/#loggedin'
@@ -70,36 +74,13 @@ const STUDENT_PORTAL = 'https://studentportal.maastrichtuniversity.nl/group/gues
 const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs'
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
+// The old transcript renderer stays compiled for one migration release so it
+// can read an in-flight conversation shape, but it is not a user-selectable
+// mode. Keeping the switch in code (rather than in the URL) closes the bypass.
+const legacySetupEnabled = () => false
+
 const PROSE =
   '[&>*+*]:mt-3 [&_a]:underline [&_a]:underline-offset-2 [&_code]:rounded-xs [&_code]:px-1.5 [&_code]:py-0.5 [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5'
-
-type Message = { role: 'user' | 'assistant' | 'event'; content: string; at: string | null }
-type Prompt = { kind: 'upload'; upload?: 'academic-work' | 'transcript' } | { kind: 'secure'; secure: 'timetable' | 'canvas' }
-type Opening = { step: string; heading: string; body: string; placeholder: string }
-type ProgrammeOption = { id: string; degree: string; name: string; durationYears: number; versions: { id: string; label: string; status: string }[] }
-type ElectiveGroup = { id: string; label: string; chosen: string[]; courses: { id: string; code: string; name: string; ects: number }[] }
-
-type View = {
-  available: boolean
-  id: string
-  name: string | null
-  messages: Message[]
-  prompt: Prompt | null
-  skipped: string[]
-  finished: boolean
-  summary: string | null
-  turns: number
-  maxTurns: number
-  opening: Opening | null
-  state: SetupSourceState
-}
-
-async function json<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { ...init, headers: { accept: 'application/json', ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers } })
-  const body = await response.json().catch(() => null)
-  if (!response.ok) throw new Error((body as { error?: string } | null)?.error ?? `Setup returned ${response.status}`)
-  return body as T
-}
 
 // ── The Academic Work overview ────────────────────────────────────────────
 // The portal prints a text PDF and the server parses it as a table, so only
@@ -207,7 +188,7 @@ function Step({ number, title, children }: { number: number; title: string; chil
       <span className="font-data tabular-nums text-muted-foreground border-border flex size-6 shrink-0 items-center justify-center rounded-sm border text-xs">{number}</span>
       <span className="flex flex-col gap-0.5">
         <strong className="font-medium">{title}</strong>
-        <span className="text-muted-foreground [&_a]:text-primary text-[13px] leading-relaxed [&_a]:underline [&_a]:underline-offset-2">{children}</span>
+        <span className="text-muted-foreground [&_a]:text-primary text-[13.5px] leading-relaxed [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground">{children}</span>
       </span>
     </li>
   )
@@ -219,8 +200,8 @@ function TimetableGuide() {
       <Step number={1} title="Open the timetable app and sign in">
         <a href={TIMETABLE_PORTAL} target="_blank" rel="noopener noreferrer">
           timetable.maastrichtuniversity.nl
-        </a>{' '}
-        — your normal university account.
+        </a>
+        . Sign in with your usual university account.
       </Step>
       <Step number={2} title="Open the menu">The ≡ button, top left of your week.</Step>
       <Step number={3} title="Choose “Connect to calendar app”">It sits under <em>Connect calendar</em>.</Step>
@@ -241,7 +222,7 @@ function CanvasGuide() {
         , in a tab where you are already signed in.
       </Step>
       <Step number={2} title="Create an access token">
-        Under <em>Approved integrations</em>, choose <em>+ New access token</em> and name it “Wicker Study”. Copy it once — Canvas will not show it again.
+        Under <em>Approved integrations</em>, choose <em>+ New access token</em> and name it “Wicker Study”. Copy it once. Canvas will not show it again.
       </Step>
       <Step number={3} title="Paste it below">Only a Personal Access Token. Never a password, an MFA code, or a cookie.</Step>
     </Steps>
@@ -289,7 +270,7 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
 
   return (
     <form
-      className="flex flex-col gap-4 rounded-sm border p-4"
+      className="flex flex-col gap-5"
       onSubmit={async (event) => {
         event.preventDefault()
         const secret = value.trim()
@@ -335,28 +316,34 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
       {canvas && (
         <fieldset className="flex flex-col gap-3 border-t pt-4">
           <legend className="text-sm font-semibold">Lesson materials</legend>
-          <label className="flex cursor-pointer items-start gap-3 text-sm">
+          <label className="hover:bg-card has-[input:focus-visible]:ring-ring/50 flex cursor-pointer items-start gap-3 text-sm transition-colors has-[input:focus-visible]:ring-2">
             <input
               type="checkbox"
               className="accent-primary mt-0.5 size-4"
               checked={collectMaterials}
+              disabled={busy}
               onChange={(event) => setCollectMaterials(event.target.checked)}
             />
             <span>
               <strong className="block font-medium">Collect and index my accessible course materials</strong>
-              <span className="text-muted-foreground mt-0.5 block">Runs as a background server job after Canvas is connected. You can change or revoke this later.</span>
+              <span className="text-muted-foreground mt-0.5 block text-[13.5px] leading-relaxed">Runs as a background server job after Canvas is connected. You can change or revoke this later.</span>
             </span>
           </label>
           {collectMaterials && (
-            <div className="grid gap-2 pl-7 sm:grid-cols-2" role="radiogroup" aria-label="Who may use collected materials">
+            <div className="flex flex-col border-t pl-7" role="radiogroup" aria-label="Who may use collected materials">
               {([
                 ['private', 'Private', 'Only your Tutor and authorised MCP clients can retrieve them.'],
                 ['community', 'Share with the community', 'Other enrolled students may reuse this edition after rights review.']
               ] as const).map(([value, title, detail]) => (
-                <label key={value} className={`cursor-pointer rounded-sm border p-3 ${sharingMode === value ? 'border-primary bg-primary/5' : 'hover:bg-card'}`}>
-                  <input type="radio" name="canvas-sharing" value={value} checked={sharingMode === value} onChange={() => setSharingMode(value)} className="accent-primary mr-2" />
-                  <strong className="text-sm font-medium">{title}</strong>
-                  <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">{detail}</span>
+                <label
+                  key={value}
+                  className={`hover:bg-card has-[input:focus-visible]:ring-ring/50 flex cursor-pointer items-start gap-3 border-b py-3 transition-colors has-[input:focus-visible]:ring-2 ${sharingMode === value ? 'text-foreground' : ''}`}
+                >
+                  <input type="radio" name="canvas-sharing" value={value} checked={sharingMode === value} disabled={busy} onChange={() => setSharingMode(value)} className="accent-primary mt-0.5" />
+                  <span className="min-w-0">
+                    <strong className={`block text-sm ${sharingMode === value ? 'font-semibold' : 'font-medium'}`}>{title}</strong>
+                    <span className="text-muted-foreground mt-0.5 block text-[12.5px] leading-relaxed">{detail}</span>
+                  </span>
                 </label>
               ))}
             </div>
@@ -371,7 +358,7 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
             : canvas ? 'Connect Canvas' : 'Connect timetable'}
         </Button>
         <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
-          Skip this
+          Do this later
         </Button>
       </div>
     </form>
@@ -384,45 +371,43 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
   const [error, setError] = useState<string | null>(null)
 
   return (
-    <div className="flex flex-col gap-4 rounded-sm border p-4">
+    <div className="flex flex-col gap-6">
       <RecordGuide />
-      <Field data-invalid={error ? true : undefined}>
-        <FieldLabel htmlFor="setup-record">Your Academic Work PDF</FieldLabel>
-        <Input
-          id="setup-record"
-          type="file"
-          accept="application/pdf,.pdf,.txt"
-          disabled={busy}
-          onChange={async (event) => {
-            const file = event.target.files?.[0]
-            event.target.value = ''
-            if (!file || busy) return
-            setBusy(true)
-            setError(null)
-            try {
-              await onRead(await uploadAcademicWork(file))
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : 'That file could not be read.')
-            } finally {
-              setBusy(false)
-            }
-          }}
-        />
-        <FieldDescription className="flex items-center gap-1.5">
-          {busy ? <Spinner className="size-3.5" /> : <UploadIcon className="size-3.5" />}
-          {busy ? 'Reading your overview…' : 'Read for its results, then discarded. The file is never stored.'}
-        </FieldDescription>
-        {error && (
-          <Alert variant="destructive">
-            <AlertTriangleIcon />
-            <AlertTitle>We couldn’t read the course table</AlertTitle>
-            <AlertDescription>{error} If this is the correct document, download a fresh PDF using Print rather than a screenshot or scan.</AlertDescription>
-          </Alert>
-        )}
-      </Field>
+      <FilePicker
+        label="Your Academic Work PDF"
+        accept="application/pdf,.pdf,.txt"
+        busy={busy}
+        invalid={Boolean(error)}
+        busyLabel="Reading…"
+        hint={
+          <>
+            {busy ? <Spinner className="size-3.5" /> : <ShieldIcon className="size-3.5 shrink-0" />}
+            {busy ? 'Reading your overview…' : 'Read for its results, then discarded. The file is never stored.'}
+          </>
+        }
+        onFile={async (file) => {
+          if (busy) return
+          setBusy(true)
+          setError(null)
+          try {
+            await onRead(await uploadAcademicWork(file))
+          } catch (cause) {
+            setError(cause instanceof Error ? cause.message : 'That file could not be read.')
+          } finally {
+            setBusy(false)
+          }
+        }}
+      />
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangleIcon />
+          <AlertTitle>We couldn’t read the course table</AlertTitle>
+          <AlertDescription>{error} If this is the correct document, download a fresh PDF using Print rather than a screenshot or scan.</AlertDescription>
+        </Alert>
+      )}
       {onSkip && (
         <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>
-          Skip this
+          Do this later
         </Button>
       )}
     </div>
@@ -435,12 +420,17 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?
   const [error, setError] = useState<string | null>(null)
   const [review, setReview] = useState<{ changes: TranscriptChange[]; revision: number; warnings?: string[] } | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  return <div className="flex flex-col gap-4 rounded-sm border p-4">
-    <div><h3 className="font-semibold">Official Transcript</h3><p className="text-muted-foreground mt-1 text-sm">Use the transcript that lists individual results and dates—not the Academic Work overview. The file is read in this browser and never stored.</p></div>
-    {!review ? <Field data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor="setup-transcript">Transcript PDF</FieldLabel>
-      <Input id="setup-transcript" type="file" accept="application/pdf,.pdf,.txt" disabled={busy} onChange={async (event) => {
-        const file = event.target.files?.[0]; event.target.value = ''; if (!file || busy) return
+  return <div className="flex flex-col gap-6">
+    <p className="text-muted-foreground max-w-[68ch] text-[13.5px] leading-relaxed">Use the transcript that lists individual results and dates, not the Academic Work overview. It is read in this browser and never stored.</p>
+    {!review ? <FilePicker
+      label="Transcript PDF"
+      accept="application/pdf,.pdf,.txt"
+      busy={busy}
+      invalid={Boolean(error)}
+      busyLabel="Reading…"
+      hint={<>{busy ? <Spinner className="size-3.5" /> : <ShieldIcon className="size-3.5 shrink-0" />}{busy ? 'Reading and cross-checking your transcript…' : 'You will review every proposed change before it is saved.'}</>}
+      onFile={async (file) => {
+        if (busy) return
         setBusy(true); setError(null)
         try {
           const text = await academicWorkText(file)
@@ -448,23 +438,40 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?
           setReview(result)
           setSelected(new Set(result.changes.filter((change) => change.selectedByDefault !== false && !change.requiresDecision).map((change) => change.id)))
         } catch (cause) { setError(cause instanceof Error ? cause.message : 'That transcript could not be read.') } finally { setBusy(false) }
-      }} />
-      <FieldDescription className="flex items-center gap-1.5">{busy ? <Spinner className="size-3.5" /> : <UploadIcon className="size-3.5" />}{busy ? 'Reading and cross-checking your transcript…' : 'You will review every proposed change before it is saved.'}</FieldDescription>
-    </Field> : <div className="flex flex-col gap-3">
+      }}
+    /> : <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between border-b pb-2"><strong>Review transcript</strong><span className="text-muted-foreground text-xs">{selected.size} of {review.changes.length} selected</span></div>
       {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
-      <ul className="max-h-72 overflow-y-auto border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="flex cursor-pointer items-start gap-3 py-3"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || !selected.size} onClick={async () => { setBusy(true); setError(null); try { await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes: review.changes.filter((change) => selected.has(change.id)) }) }); onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy ? 'Applying…' : `Apply ${selected.size} changes`}</Button><Button variant="ghost" onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
+      <ul className="max-h-72 overflow-y-auto border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || !selected.size} onClick={async () => { setBusy(true); setError(null); try { await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes: review.changes.filter((change) => selected.has(change.id)) }) }); onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
     </div>}
     {error && <Alert variant="destructive"><AlertTriangleIcon /><AlertTitle>Transcript needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-    {onSkip && <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>Skip this</Button>}
+    {onSkip && <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>Do this later</Button>}
   </div>
 }
 
 // ── The checklist ─────────────────────────────────────────────────────────
 
-function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved: () => void }) {
+/**
+ * What just happened, said where it happened.
+ *
+ * Saving used to be silent: the request succeeded, the rail counter stayed on
+ * 0/7 until a reload, and nothing on the page said the programme had been
+ * recorded. The editor now waits for the refreshed view before drawing this,
+ * so the mark and the step it belongs to change together.
+ */
+function SavedMark({ children }: { children: React.ReactNode }) {
+  return (
+    <p role="status" className="text-muted-foreground flex min-w-0 items-start gap-2 text-[13.5px] leading-relaxed">
+      <CheckIcon className="text-primary mt-0.5 size-4 shrink-0" />
+      <span className="min-w-0">{children}</span>
+    </p>
+  )
+}
+
+function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved: () => void | Promise<unknown> }) {
   const params = useSearchParams()
+  const [saved, setSaved] = useState(false)
   const [programmes, setProgrammes] = useState<ProgrammeOption[]>([])
   const [programmeId, setProgrammeId] = useState('')
   const [versionId, setVersionId] = useState('')
@@ -484,51 +491,60 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
   }, [current])
   const programme = programmes.find((entry) => entry.id === programmeId)
   if (custom) return <form className="flex flex-col gap-4" onSubmit={async (event) => {
-    event.preventDefault(); if (!customName.trim() || busy) return; setBusy(true); setError(null)
+    event.preventDefault(); if (!customName.trim() || busy) return; setBusy(true); setError(null); setSaved(false)
     const now = new Date(); const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1
-    try { await json('/api/academics/programmes', { method: 'POST', body: JSON.stringify({ profile: { university: institution.trim(), programme: `${degree} ${customName.trim()}`, academicYear: `${start}-${start + 1}`, currentYearKey: `${start}-${start + 1}` } }) }); onSaved() }
+    try { await json('/api/academics/programmes', { method: 'POST', body: JSON.stringify({ profile: { university: institution.trim(), programme: `${degree} ${customName.trim()}`, academicYear: `${start}-${start + 1}`, currentYearKey: `${start}-${start + 1}` } }) }); await onSaved(); setSaved(true) }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'The programme could not be created.') }
     finally { setBusy(false) }
   }}>
-    <div className="border-y py-4"><h3 className="font-semibold">Add a personal programme</h3><p className="text-muted-foreground mt-1 text-sm">This creates your private study record immediately. Courses and dates remain empty until you add or import them; it is not presented as a maintained curriculum.</p></div>
+    <div><h3 className="font-semibold">Add a personal programme</h3><p className="text-muted-foreground mt-1 text-sm">This creates your private study record immediately. Courses and dates remain empty until you add or import them; it is not presented as a maintained curriculum.</p></div>
     <Field><FieldLabel htmlFor="custom-institution">Institution</FieldLabel><Input id="custom-institution" value={institution} onChange={(event) => setInstitution(event.target.value)} required /></Field>
     <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Degree</FieldLabel><Select items={['Bachelor of Science', 'Bachelor of Arts', 'Master of Science', 'Master of Arts', 'Other'].map((value) => ({ value, label: value }))} value={degree} onValueChange={(value) => setDegree(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="Bachelor of Science">Bachelor of Science</SelectItem><SelectItem value="Bachelor of Arts">Bachelor of Arts</SelectItem><SelectItem value="Master of Science">Master of Science</SelectItem><SelectItem value="Master of Arts">Master of Arts</SelectItem><SelectItem value="Other">Other</SelectItem></SelectGroup></SelectContent></Select></Field><Field><FieldLabel htmlFor="custom-programme">Programme name</FieldLabel><Input id="custom-programme" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Econometrics and Operations Research" required /></Field></div>
     {error && <FieldError>{error}</FieldError>}
-    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy || !customName.trim()}>{busy ? 'Creating…' : 'Create personal programme'}</Button><Button type="button" variant="ghost" onClick={() => setCustom(false)}>Back to maintained programmes</Button></div>
+    <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={busy || !customName.trim()}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Creating…' : 'Create personal programme'}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => setCustom(false)}>Back to maintained programmes</Button>{saved && <SavedMark>Personal programme created.</SavedMark>}</div>
   </form>
   return <form className="flex flex-col gap-4" onSubmit={async (event) => {
-    event.preventDefault(); if (!programmeId || busy) return; setBusy(true); setError(null)
-    try { await json('/api/onboarding/programme', { method: 'PUT', body: JSON.stringify({ programmeId, versionId, studyYear }) }); onSaved() }
+    event.preventDefault(); if (!programmeId || busy) return; setBusy(true); setError(null); setSaved(false)
+    try { await json('/api/onboarding/programme', { method: 'PUT', body: JSON.stringify({ programmeId, versionId, studyYear }) }); await onSaved(); setSaved(true) }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'The programme could not be saved.') }
     finally { setBusy(false) }
   }}>
-    <Field><FieldLabel>Programme</FieldLabel><Select items={programmes.map((entry) => ({ value: entry.id, label: `${entry.degree} ${entry.name}` }))} value={programmeId} onValueChange={(value) => { const id = String(value); setProgrammeId(id); setVersionId(programmes.find((entry) => entry.id === id)?.versions?.[0]?.id ?? '') }}><SelectTrigger className="w-full"><SelectValue placeholder="Choose your programme" /></SelectTrigger><SelectContent><SelectGroup>{programmes.map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.degree} {entry.name}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+    <Field><FieldLabel>Programme</FieldLabel><Select items={programmes.map((entry) => ({ value: entry.id, label: `${entry.degree} ${entry.name}` }))} value={programmeId} onValueChange={(value) => { const id = String(value); setSaved(false); setProgrammeId(id); setVersionId(programmes.find((entry) => entry.id === id)?.versions?.[0]?.id ?? '') }}><SelectTrigger className="w-full"><SelectValue placeholder="Choose your programme" /></SelectTrigger><SelectContent><SelectGroup>{programmes.map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.degree} {entry.name}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
     <div className="grid gap-4 sm:grid-cols-2">
-      <Field><FieldLabel>Curriculum</FieldLabel><Select items={(programme?.versions ?? []).map((version) => ({ value: version.id, label: `${version.label || version.id}${version.status === 'current' ? ' · current' : ''}` }))} value={versionId} onValueChange={(value) => setVersionId(String(value))}><SelectTrigger className="w-full"><SelectValue placeholder="Curriculum year" /></SelectTrigger><SelectContent><SelectGroup>{(programme?.versions ?? []).map((version) => <SelectItem key={version.id} value={version.id}>{version.label || version.id}{version.status === 'current' ? ' · current' : ''}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
-      <Field><FieldLabel>Current study year</FieldLabel><Select items={Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => ({ value: String(index + 1), label: `Year ${index + 1}` }))} value={studyYear} onValueChange={(value) => setStudyYear(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>Year {index + 1}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+      <Field><FieldLabel>Curriculum</FieldLabel><Select items={(programme?.versions ?? []).map((version) => ({ value: version.id, label: `${version.label || version.id}${version.status === 'current' ? ' · current' : ''}` }))} value={versionId} onValueChange={(value) => { setSaved(false); setVersionId(String(value)) }}><SelectTrigger className="w-full"><SelectValue placeholder="Curriculum year" /></SelectTrigger><SelectContent><SelectGroup>{(programme?.versions ?? []).map((version) => <SelectItem key={version.id} value={version.id}>{version.label || version.id}{version.status === 'current' ? ' · current' : ''}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+      <Field><FieldLabel>Current study year</FieldLabel><Select items={Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => ({ value: String(index + 1), label: `Year ${index + 1}` }))} value={studyYear} onValueChange={(value) => { setSaved(false); setStudyYear(String(value)) }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>Year {index + 1}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
     </div>
     <FieldDescription>Changing programme preserves attempts already in your personal academic record.</FieldDescription>
     {error && <FieldError>{error}</FieldError>}
-    <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={busy || !programmeId || !versionId}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving…' : 'Save programme'}</Button><Button type="button" variant="ghost" onClick={() => setCustom(true)}>My programme isn’t listed</Button></div>
+    <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={busy || !programmeId || !versionId}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving…' : saved ? 'Save again' : 'Save programme'}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => { setSaved(false); setCustom(true) }}>My programme isn’t listed</Button>{saved && <SavedMark>Programme saved. Your courses, periods and exam weeks now come from it.</SavedMark>}</div>
   </form>
 }
 
-function ElectivesEditor({ onSaved }: { onSaved: () => void }) {
+function ElectivesEditor({ onSaved }: { onSaved: () => void | Promise<unknown> }) {
   const [groups, setGroups] = useState<ElectiveGroup[] | null>(null)
   const [chosen, setChosen] = useState<Record<string, string[]>>({})
   const [busy, setBusy] = useState<string | null>(null)
+  const [saved, setSaved] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => { json<{ groups: ElectiveGroup[] }>('/api/onboarding/electives').then((data) => { setGroups(data.groups); setChosen(Object.fromEntries(data.groups.map((group) => [group.id, group.chosen]))) }).catch((cause: Error) => setError(cause.message)) }, [])
   if (!groups) return error ? <FieldError>{error}</FieldError> : <Skeleton className="h-32 w-full" />
-  if (!groups.length) return <p className="text-muted-foreground border-y py-5 text-sm">There are no elective choices for your study year in the active teaching period.</p>
-  return <div className="flex flex-col gap-6">{groups.map((group) => <section key={group.id} className="border-y py-4"><div className="mb-3 flex items-center justify-between gap-3"><h3 className="font-semibold">{group.label}</h3><span className="text-muted-foreground text-xs">{chosen[group.id]?.length ?? 0} selected</span></div><div className="flex flex-col">{group.courses.map((course) => <label key={course.id} className="hover:bg-card flex cursor-pointer items-start gap-3 border-t py-3"><Checkbox checked={chosen[group.id]?.includes(course.id)} onCheckedChange={(checked) => setChosen((held) => ({ ...held, [group.id]: checked ? [...new Set([...(held[group.id] ?? []), course.id])] : (held[group.id] ?? []).filter((id) => id !== course.id) }))} /><span className="flex min-w-0 flex-1 justify-between gap-4 text-sm"><span><strong className="font-data mr-2">{course.code}</strong>{course.name}</span><span className="text-muted-foreground font-data shrink-0">{course.ects} ECTS</span></span></label>)}</div><Button size="sm" className="mt-4" disabled={busy === group.id} onClick={async () => { setBusy(group.id); setError(null); try { await json('/api/onboarding/electives', { method: 'PUT', body: JSON.stringify({ groupId: group.id, courseIds: chosen[group.id] ?? [] }) }); onSaved() } catch (cause) { setError(cause instanceof Error ? cause.message : 'The electives could not be saved.') } finally { setBusy(null) } }}>{busy === group.id ? 'Saving…' : 'Save electives'}</Button></section>)}{error && <FieldError>{error}</FieldError>}</div>
+  if (!groups.length) return <p className="text-muted-foreground text-sm">There are no elective choices for your study year in the active teaching period.</p>
+  return <div className="flex flex-col gap-6">{groups.map((group) => <section key={group.id} className="overflow-hidden rounded-lg border"><div className="flex items-center justify-between gap-3 border-b px-4 py-3"><h3 className="font-semibold">{group.label}</h3><span className="text-muted-foreground text-xs">{chosen[group.id]?.length ?? 0} selected</span></div><div className="flex flex-col">{group.courses.map((course) => <label key={course.id} className="hover:bg-card flex cursor-pointer items-start gap-3 border-b px-4 py-3 last:border-b-0"><Checkbox checked={chosen[group.id]?.includes(course.id)} onCheckedChange={(checked) => { setSaved(null); setChosen((held) => ({ ...held, [group.id]: checked ? [...new Set([...(held[group.id] ?? []), course.id])] : (held[group.id] ?? []).filter((id) => id !== course.id) })) }} /><span className="flex min-w-0 flex-1 justify-between gap-4 text-sm"><span><strong className="font-data mr-2">{course.code}</strong>{course.name}</span><span className="text-muted-foreground font-data shrink-0">{course.ects} ECTS</span></span></label>)}</div><div className="flex flex-wrap items-center gap-3 border-t px-4 py-3"><Button size="sm" disabled={busy === group.id} onClick={async () => { setBusy(group.id); setError(null); setSaved(null); try { await json('/api/onboarding/electives', { method: 'PUT', body: JSON.stringify({ groupId: group.id, courseIds: chosen[group.id] ?? [] }) }); await onSaved(); setSaved(group.id) } catch (cause) { setError(cause instanceof Error ? cause.message : 'The electives could not be saved.') } finally { setBusy(null) } }}>{busy === group.id && <Spinner data-icon="inline-start" />}{busy === group.id ? 'Saving…' : 'Save electives'}</Button>{saved === group.id && <SavedMark>Recorded for this teaching period.</SavedMark>}</div></section>)}{error && <FieldError>{error}</FieldError>}</div>
 }
 
+/**
+ * State is a mark, not an input.
+ *
+ * The rail used to draw a small empty square beside every unfinished step,
+ * which is the shape of a checkbox, so the row read as something you tick
+ * rather than as a status you open. Done carries the signal; waiting carries a
+ * square block; pending carries nothing at all, because nothing has happened.
+ */
 const MARKS: Record<SetupStep['status'], React.ReactNode> = {
-  done: <CheckIcon className="text-primary size-4" />,
-  todo: <span className="border-muted-foreground/60 size-2.5 rounded-xs border" />,
-  skipped: <MinusIcon className="text-muted-foreground size-4" />,
-  blocked: <span className="text-muted-foreground text-xs">…</span>
+  done: <CheckIcon className="text-primary size-4" aria-hidden="true" />,
+  todo: null,
+  skipped: <span aria-hidden="true" className="text-muted-foreground font-data text-[14px] leading-none">–</span>,
+  blocked: <span aria-hidden="true" className="text-muted-foreground text-xs leading-none">▪</span>
 }
 
 const STATUS_WORD: Record<SetupStep['status'], string> = {
@@ -538,19 +554,63 @@ const STATUS_WORD: Record<SetupStep['status'], string> = {
   blocked: 'Waiting'
 }
 
+/**
+ * The status, attached to the heading line rather than floating above the
+ * panel on its own. Departure-board grammar: the mark, then the word.
+ */
+function StatusLabel({ status, inverse = false }: { status: SetupStep['status']; inverse?: boolean }) {
+  const mark = inverse && status === 'done'
+    ? <CheckIcon className="text-card size-4" aria-hidden="true" />
+    : MARKS[status]
+  return (
+    <span className={`flex shrink-0 items-center gap-2 text-xs font-semibold tracking-[0.12em] uppercase ${inverse ? status === 'done' ? 'text-card' : 'text-card/65' : status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
+      <span className={`flex size-4 items-center justify-center ${inverse ? '[&>*]:text-current' : ''}`}>{mark}</span>
+      {STATUS_WORD[status]}
+    </span>
+  )
+}
+
+/**
+ * What the panel opens with. The rail already carries the consequence of a
+ * missing source ("Not set, so there are no courses…"); repeating it here left
+ * the same sentence twice on one screen, so the panel says what to do instead.
+ */
+const PANEL_INTRO: Record<SetupStepId, string> = {
+  programme: 'Choose the degree you are enrolled on, the curriculum year it follows, and the year you are in. Everything else is built from this one answer.',
+  electives: 'Tick the optional courses you are actually sitting this period. Nobody else can fill these in for you.',
+  record: 'Print the Academic Work overview from the student portal, then choose that PDF here. It is read in this browser.',
+  transcript: 'Import the transcript that lists dated results, then tick the changes you want kept. Nothing is saved before you do.',
+  calendar: 'Teaching periods, exam weeks and holidays are maintained for the programme you selected. Review them here.',
+  timetable: 'Paste the personal calendar link from the university timetable app to bring lectures, tutorials and labs across.',
+  canvas: 'Create a personal access token in Canvas and paste it here to bring announcements and hand-in deadlines across.'
+}
+
 function ConversationStepRail({ view }: { view: View | null }) {
   const steps = setupSteps({ state: view?.state ?? null, skipped: view?.skipped ?? [] })
   const active = view?.opening?.step
     ?? (view?.prompt?.kind === 'upload' ? (view.prompt.upload === 'transcript' ? 'transcript' : 'record') : view?.prompt?.kind === 'secure' ? view.prompt.secure : nextStep(steps)?.id)
   return (
-    <aside className="min-h-0 border-b pb-5 lg:border-r lg:border-b-0 lg:pr-7 lg:pb-0">
-      <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
-      <p className="font-data mt-3 text-4xl leading-none font-semibold tabular-nums">{connectedCount(steps)}<span className="text-muted-foreground text-lg">/{steps.length}</span></p>
-      <ol className="mt-6 flex flex-col border-t" aria-label="Setup progress">
+    <aside className="min-h-0 border-b pb-4 lg:border-r lg:border-b-0 lg:pr-7 lg:pb-0">
+      {/* On a phone the rail is a line, not a list: the count, and what is
+          being asked for right now. The full register belongs to the wide
+          layout, where it does not push the conversation off the screen. */}
+      <div className="flex items-baseline justify-between gap-4 lg:block">
+        <h2 className="text-sm font-semibold">Workspace setup</h2>
+        <p className="font-data text-[24px] leading-none font-semibold tabular-nums lg:mt-3 lg:text-[32px]">
+          {connectedCount(steps)}<span className="text-muted-foreground text-[14px] lg:text-[16px]">/{steps.length}</span>
+        </p>
+      </div>
+      <p className="text-muted-foreground mt-2 text-[13.5px] lg:hidden">
+        Now: {steps.find((step) => step.id === active)?.title ?? 'Reviewing what is connected'}
+      </p>
+      <ol className="mt-6 hidden flex-col border-t lg:flex" aria-label="Setup progress">
         {steps.map((step, index) => (
           <li key={step.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border-b py-3" aria-current={step.id === active ? 'step' : undefined}>
-            <span className={`font-data text-xs tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>{step.status === 'done' ? '✓' : String(index + 1).padStart(2, '0')}</span>
-            <span className={`text-sm ${step.id === active ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{step.title}</span>
+            <span className={`font-data text-[12px] tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>{step.status === 'done' ? '✓' : String(index + 1).padStart(2, '0')}</span>
+            <span className={`text-sm ${step.id === active ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+              <span className="sr-only">{STATUS_WORD[step.status]}. </span>
+              {step.title}
+            </span>
           </li>
         ))}
       </ol>
@@ -558,10 +618,11 @@ function ConversationStepRail({ view }: { view: View | null }) {
   )
 }
 
-function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefresh: () => void; onApplied: (view: View) => void }) {
+function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefresh: () => Promise<unknown>; onApplied: (view: View) => void }) {
   const params = useSearchParams()
   const requestedStep = params.get('step')
   const [open, setOpen] = useState<string | null>(requestedStep)
+  const [saved, setSaved] = useState<string | null>(null)
   const [timetable, setTimetable] = useState('')
   const [timetableBusy, setTimetableBusy] = useState(false)
   const [timetableError, setTimetableError] = useState<string | null>(null)
@@ -575,12 +636,23 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
     if (requestedStep) setOpen(requestedStep)
   }, [requestedStep])
 
+  // Read the account again and remember which step was just answered, so the
+  // rail's mark, its line of fact and the counter all change at the same time.
+  const refreshFrom = async (step: string) => {
+    await onRefresh()
+    setSaved(step)
+  }
+
   return (
-    <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-[1180px] content-center gap-10 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-16">
-      <aside className="self-stretch border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
-          <Button variant="ghost" size="sm" className="mb-5 -ml-3" nativeButton={false} render={<Link href="/app/setup" />}>← Back to conversation</Button>
-          <h1 className="text-sm font-semibold">Workspace setup</h1>
-          <p className="font-data mt-3 text-4xl leading-none font-semibold tabular-nums">{connected}<span className="text-muted-foreground text-lg">/{steps.length}</span></p>
+    <div className="mx-auto grid w-full max-w-[1180px] content-start gap-8 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-12">
+      <aside className="border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
+          <div className="flex items-baseline justify-between gap-4">
+            <h1 className="text-sm font-semibold">Workspace setup</h1>
+            <Link href="/app/setup" className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 rounded-sm text-[12.5px] outline-none hover:underline focus-visible:ring-2">
+              ← Conversation
+            </Link>
+          </div>
+          <p className="font-data mt-3 text-[32px] leading-none font-semibold tabular-nums">{connected}<span className="text-muted-foreground text-[16px]">/{steps.length}</span></p>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
             {view ? (
               <>Open any source to review or change it. Only your programme is required.</>
@@ -588,30 +660,39 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
               'Reading your account…'
             )}
           </p>
-          {!view ? <div className="mt-7 flex flex-col gap-3">
+          {view && <FinishSetup view={view} className="mt-4" onFinished={onApplied} />}
+          {!view ? <div className="mt-6 flex flex-col gap-3">
           {[0, 1, 2, 3, 4, 5].map((row) => (
             <Skeleton key={row} className="h-16 w-full" />
           ))}
-          </div> : <ol className="mt-7 flex flex-col border-t" aria-label="Setup steps">
+          </div> : <ol className="mt-6 flex flex-col border-t" aria-label="Setup steps">
           {steps.map((step) => {
             const stepIssues = issues.filter((issue) => issue.step === step.id || issue.relatedStep === step.id)
+            const current = selected?.id === step.id
             return (
               <li key={step.id} className="border-b">
-                <button type="button" disabled={step.status === 'blocked'} onClick={() => setOpen(step.id)} className="hover:bg-card focus-visible:ring-primary -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 px-2 py-3 text-left outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50">
+                <button
+                  type="button"
+                  disabled={step.status === 'blocked'}
+                  aria-current={current ? 'true' : undefined}
+                  onClick={() => setOpen(step.id)}
+                  className={`focus-visible:ring-ring/50 -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 px-2 py-3 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${current ? 'bg-card' : 'hover:bg-card'}`}
+                >
                   <span className="flex size-5 shrink-0 items-center justify-center" aria-hidden="true">
-                    {stepIssues.length ? <AlertTriangleIcon className="size-4 text-primary" /> : MARKS[step.status]}
+                    {stepIssues.length ? <AlertTriangleIcon className="text-primary size-4" /> : MARKS[step.status]}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <strong className="flex items-center gap-2 text-sm font-medium">
                       {step.title}
-                      {step.required && <em className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase not-italic">required</em>}
+                      {step.required && <em className="text-muted-foreground text-xs font-semibold tracking-[0.11em] uppercase not-italic">required</em>}
+                      {saved === step.id && step.status === 'done' && <em className="text-primary text-xs font-semibold tracking-[0.11em] uppercase not-italic">saved</em>}
                     </strong>
-                    <small className="text-muted-foreground text-[13px]">
+                    <small className="text-muted-foreground text-[13.5px] leading-relaxed">
                       <span className="sr-only">{STATUS_WORD[step.status]}. </span>
                       {step.detail}
                     </small>
                   </div>
-                  <ChevronRightIcon className={`size-4 ${selected?.id === step.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <ChevronRightIcon className={`size-4 shrink-0 ${current ? 'text-primary' : 'text-muted-foreground'}`} />
                 </button>
               </li>
             )
@@ -619,20 +700,18 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
           </ol>}
       </aside>
 
-      <main className="flex min-w-0 max-w-[68ch] flex-col justify-center gap-5">
+      <main className="flex min-w-0 max-w-[68ch] flex-col gap-6">
         {selected && <>
-          <div className="border-primary border-t-2 pt-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="font-heading text-5xl leading-[0.98] font-semibold tracking-[-0.025em] md:text-6xl">{selected.title}</h2>
-                <p className="text-muted-foreground mt-4 max-w-[58ch] text-[15px] leading-relaxed">{selected.blurb}</p>
-              </div>
-              <span className="text-muted-foreground text-xs">{STATUS_WORD[selected.status]}</span>
+          <div className="border-b pb-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+              <h2 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">{selected.title}</h2>
+              <StatusLabel status={selected.status} />
             </div>
+            <p className="text-muted-foreground mt-3 max-w-[58ch] text-sm leading-relaxed">{PANEL_INTRO[selected.id] ?? selected.blurb}</p>
           </div>
 
           {issues.filter((issue) => issue.step === selected.id || issue.relatedStep === selected.id).map((issue) => (
-            <div key={issue.id} role="alert" className="border-primary bg-card flex min-w-0 gap-3 rounded-sm border p-4">
+            <div key={issue.id} role="alert" className="border-primary bg-card flex min-w-0 gap-3 border-l-2 px-4 py-3">
               <AlertTriangleIcon className="text-primary mt-0.5 size-4 shrink-0" />
               <div className="min-w-0 flex-1">
                 <strong className="text-sm">{issue.title}</strong>
@@ -645,13 +724,13 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
                       <div>
                         <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">In your current record</p>
                         <ul className="space-y-1 text-sm">
-                          {issue.unexpectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data text-primary">{course.code}</span>{course.name ? ` — ${course.name}` : ''}</li>)}
+                          {issue.unexpectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data text-primary">{course.code}</span>{course.name ? ` · ${course.name}` : ''}</li>)}
                         </ul>
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">In the selected plan</p>
                         <ul className="max-h-48 space-y-1 overflow-y-auto pr-2 text-sm">
-                          {issue.expectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data">{course.code}</span>{course.name ? ` — ${course.name}` : ''}</li>)}
+                          {issue.expectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data">{course.code}</span>{course.name ? ` · ${course.name}` : ''}</li>)}
                         </ul>
                       </div>
                     </div>
@@ -665,12 +744,12 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
             </div>
           ))}
 
-          {selected.id === 'record' && <UploadField onRead={() => onRefresh()} />}
-          {selected.id === 'transcript' && <TranscriptField onApplied={onRefresh} />}
+          {selected.id === 'record' && <UploadField onRead={() => refreshFrom('record')} />}
+          {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} />}
 
           {selected.id === 'timetable' && (
                   <form
-                    className="flex flex-col gap-4 rounded-sm border p-4"
+                    className="flex flex-col gap-4 border-y py-6"
                     onSubmit={async (event) => {
                       event.preventDefault()
                       const url = timetable.trim()
@@ -680,7 +759,7 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
                       try {
                         await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) })
                         setTimetable('')
-                        onRefresh()
+                        await refreshFrom('timetable')
                       } catch (cause) {
                         setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.')
                       } finally {
@@ -708,27 +787,258 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
                       </FieldDescription>
                       {timetableError && <FieldError>{timetableError}</FieldError>}
                     </Field>
-                    <Button type="submit" size="sm" className="w-fit" disabled={timetableBusy || !timetable.trim()}>
-                      {timetableBusy && <Spinner data-icon="inline-start" />}
-                      {timetableBusy ? 'Checking the feed…' : 'Connect timetable'}
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button type="submit" size="sm" disabled={timetableBusy || !timetable.trim()}>
+                        {timetableBusy && <Spinner data-icon="inline-start" />}
+                        {timetableBusy ? 'Checking the feed…' : 'Connect timetable'}
+                      </Button>
+                      {saved === 'timetable' && <SavedMark>{selected.detail}</SavedMark>}
+                    </div>
                   </form>
           )}
 
-          {selected.id === 'canvas' && <SecureField kind="canvas" onApplied={onApplied} onSkip={() => {}} />}
+          {selected.id === 'canvas' && <SecureField kind="canvas" onApplied={(next) => { onApplied(next); setSaved('canvas') }} onSkip={() => {}} />}
 
-          {selected.id === 'programme' && <ProgrammeEditor current={view?.state?.programmeName ?? null} onSaved={onRefresh} />}
-          {selected.id === 'electives' && (view?.state?.customProgramme ? <div className="flex flex-col gap-3 border-y py-5"><p className="text-muted-foreground text-sm">This is a personal programme without a maintained curriculum, so there are no predefined elective groups. Add the courses you take directly to your personal plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={onRefresh} />)}
-          {selected.id === 'calendar' && <div className="flex flex-col gap-3 border-y py-5"><strong className="font-data text-2xl tabular-nums">{view?.state?.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground text-sm">Teaching periods, exam weeks and holidays come from the selected programme’s maintained calendar. Changing the programme updates this source automatically.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/calendar" />}>Open calendar</Button></div>}
+          {selected.id === 'programme' && <ProgrammeEditor current={view?.state?.programmeName ?? null} onSaved={() => refreshFrom('programme')} />}
+          {selected.id === 'electives' && (view?.state?.customProgramme ? <div className="flex flex-col gap-3 border-y py-6"><p className="text-muted-foreground text-sm">This is a personal programme without a maintained curriculum, so there are no predefined elective groups. Add the courses you take directly to your personal plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshFrom('electives')} />)}
+          {selected.id === 'calendar' && <div className="flex flex-col gap-3 border-y py-6"><strong className="font-data text-[24px] tabular-nums">{view?.state?.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground text-sm">Teaching periods, exam weeks and holidays come from the selected programme’s maintained calendar. Changing the programme updates this source automatically.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/calendar" />}>Open calendar</Button></div>}
         </>}
 
       {view && isComplete(steps) && !issues.length && (
-        <p className="flex items-start gap-2 text-sm">
-          <CheckIcon className="text-primary mt-0.5 size-4 shrink-0" />
-          <span>Everything is connected. Home now draws on your programme, the academic calendar, your timetable, Canvas and your academic record.</span>
-        </p>
+        <div className="flex flex-col gap-4 border-t pt-4">
+          <p className="flex items-start gap-2 text-sm">
+            <CheckIcon className="text-primary mt-0.5 size-4 shrink-0" />
+            <span>Everything is connected. Home now draws on your programme, the academic calendar, your timetable, Canvas and your academic record.</span>
+          </p>
+          <FinishSetup view={view} size="sm" reason={false} className="w-fit" onFinished={onApplied} />
+        </div>
       )}
       </main>
+    </div>
+  )
+}
+
+// ── The unified setup journey ─────────────────────────────────────────────
+
+const SETUP_PHASES = [
+  { id: 'plan', number: '01', label: 'Study plan', detail: 'Programme and electives', steps: ['programme', 'electives'] as SetupStepId[] },
+  { id: 'record', number: '02', label: 'Academic record', detail: 'Credits and attempts', steps: ['record', 'transcript'] as SetupStepId[] },
+  { id: 'schedule', number: '03', label: 'Schedule', detail: 'Periods and timetable', steps: ['calendar', 'timetable'] as SetupStepId[] },
+  { id: 'canvas', number: '04', label: 'Canvas', detail: 'Deadlines and course rules', steps: ['canvas'] as SetupStepId[] }
+] as const
+
+function phaseFor(step: SetupStepId) {
+  return SETUP_PHASES.find((phase) => phase.steps.includes(step)) ?? SETUP_PHASES[0]
+}
+
+function ConflictResolver({
+  issues,
+  available,
+  messages,
+  draft,
+  sending,
+  error,
+  onDraft,
+  onSend
+}: {
+  issues: SetupIssue[]
+  available: boolean
+  messages: Message[]
+  draft: string
+  sending: boolean
+  error: string | null
+  onDraft: (value: string) => void
+  onSend: (value: string) => Promise<void>
+}) {
+  if (!issues.length) return null
+  const recent = messages.filter((message) => message.role !== 'event').slice(-4)
+  return (
+    <section className="overflow-hidden rounded-xl border" aria-labelledby="resolver-title">
+      <div className="bg-card flex items-start gap-3 border-b px-5 py-4">
+        <span className="bg-primary text-primary-foreground grid size-8 shrink-0 place-items-center rounded-lg"><SparklesIcon className="size-4" /></span>
+        <div>
+          <p className="text-primary text-xs font-semibold tracking-[0.15em] uppercase">Clarification needed</p>
+          <h3 id="resolver-title" className="mt-0.5 font-semibold">Wicker can reconcile the evidence</h3>
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">The import found claims that should not be merged automatically. Explain the exception; Wicker can use that context without seeing your credentials or original documents.</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 px-5 py-5">
+        {recent.length > 0 && <div className="flex max-h-64 flex-col gap-3 overflow-y-auto">{recent.map((message, index) => <Turn key={`${message.at}-${index}`} message={message} />)}</div>}
+        {available ? <form className="focus-within:border-primary bg-background flex items-end gap-3 rounded-lg border p-3" onSubmit={(event) => { event.preventDefault(); void onSend(draft) }}>
+          <label className="sr-only" htmlFor="setup-resolver-input">Explain the conflict</label>
+          <Textarea id="setup-resolver-input" rows={2} value={draft} disabled={sending} placeholder="For example: I changed programmes after the first period…" className="max-h-36 min-h-12 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0" onChange={(event) => onDraft(event.target.value)} />
+          <Button type="submit" size="icon" disabled={sending || !draft.trim()} aria-label="Send clarification">{sending ? <Spinner /> : <SendIcon />}</Button>
+        </form> : <p className="text-muted-foreground text-sm">The assistant is unavailable, so use the direct correction above. The conflicting claim will remain unverified.</p>}
+        {error && <p role="alert" className="text-sm">{error}</p>}
+      </div>
+    </section>
+  )
+}
+
+function UnifiedSetup({
+  view,
+  onRefresh,
+  onApplied,
+  messages,
+  draft,
+  sending,
+  assistantError,
+  onDraft,
+  onSend
+}: {
+  view: View | null
+  onRefresh: () => Promise<View | null>
+  onApplied: (view: View) => void
+  messages: Message[]
+  draft: string
+  sending: boolean
+  assistantError: string | null
+  onDraft: (value: string) => void
+  onSend: (value: string) => Promise<void>
+}) {
+  const params = useSearchParams()
+  const router = useRouter()
+  const requested = params.get('step')
+  const [open, setOpen] = useState<SetupStepId | null>((requested as SetupStepId | null) ?? null)
+  const [saved, setSaved] = useState<SetupStepId | null>(null)
+  const [timetable, setTimetable] = useState('')
+  const [timetableBusy, setTimetableBusy] = useState(false)
+  const [timetableError, setTimetableError] = useState<string | null>(null)
+  const [deferBusy, setDeferBusy] = useState<SetupStepId | null>(null)
+  const [deferError, setDeferError] = useState<string | null>(null)
+  const [skipBusy, setSkipBusy] = useState(false)
+  const steps = setupSteps({ state: view?.state ?? null, skipped: view?.skipped ?? [] })
+  const connected = connectedCount(steps)
+  const selected = steps.find((step) => step.id === open) ?? nextStep(steps) ?? steps[0]
+  const activePhase = selected ? phaseFor(selected.id) : SETUP_PHASES[0]
+  const issues = view?.state?.issues ?? []
+  const selectedIssues = selected ? issues.filter((issue) => issue.step === selected.id || issue.relatedStep === selected.id) : []
+
+  useEffect(() => {
+    if (requested && steps.some((step) => step.id === requested)) setOpen(requested as SetupStepId)
+  }, [requested])
+
+  const advanceFrom = (fresh: View, completed: SetupStepId) => {
+    onApplied(fresh)
+    setSaved(completed)
+    const updated = setupSteps({ state: fresh.state, skipped: fresh.skipped })
+    setOpen((nextStep(updated)?.id ?? completed) as SetupStepId)
+  }
+
+  const refreshFrom = async (step: SetupStepId) => {
+    const fresh = await onRefresh()
+    if (fresh) advanceFrom(fresh, step)
+  }
+
+  const defer = async (step: SetupStepId) => {
+    if (deferBusy) return
+    setDeferBusy(step)
+    setDeferError(null)
+    try {
+      const fresh = await json<View>('/api/onboarding/defer', { method: 'PUT', body: JSON.stringify({ step }) })
+      advanceFrom(fresh, step)
+    } catch (cause) {
+      setDeferError(cause instanceof Error ? cause.message : 'That source could not be deferred.')
+    } finally {
+      setDeferBusy(null)
+    }
+  }
+
+  const openPhase = (ids: readonly SetupStepId[]) => {
+    const candidate = ids.map((id) => steps.find((step) => step.id === id)).find((step) => step && step.status !== 'done' && step.status !== 'blocked')
+      ?? ids.map((id) => steps.find((step) => step.id === id)).find(Boolean)
+    if (candidate) setOpen(candidate.id)
+  }
+
+  const skipSetup = async () => {
+    if (skipBusy) return
+    setSkipBusy(true)
+    setDeferError(null)
+    try {
+      const fresh = await json<View>('/api/onboarding/finish', { method: 'POST', body: JSON.stringify({ skip: true }) })
+      onApplied(fresh)
+      router.replace('/app')
+      router.refresh()
+    } catch (cause) {
+      setDeferError(cause instanceof Error ? cause.message : 'Setup could not be skipped.')
+      setSkipBusy(false)
+    }
+  }
+
+  if (!view || !selected) return <div className="mx-auto flex w-full max-w-[1260px] flex-col gap-4 p-5 sm:p-8"><Skeleton className="h-32 w-full" /><div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]"><Skeleton className="h-[34rem]" /><Skeleton className="h-[28rem]" /></div></div>
+
+  return (
+    <div className="mx-auto min-h-dvh w-full max-w-[1260px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3"><BrandMark className="size-9 rounded-lg" /><div className="leading-none"><strong className="block text-sm">Wicker Study</strong><span className="text-muted-foreground mt-1 block text-xs">Study desk setup</span></div></div>
+        <Button type="button" variant="ghost" size="sm" disabled={skipBusy} onClick={() => void skipSetup()}>{skipBusy && <Spinner data-icon="inline-start" />}{skipBusy ? 'Opening workspace…' : 'Skip for now'}</Button>
+      </div>
+      <header className="mb-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="font-heading text-[clamp(2rem,4vw,3.25rem)] leading-[0.98] font-semibold tracking-[-0.045em]">Build your study desk</h1>
+          <p className="text-muted-foreground mt-3 max-w-[62ch] text-sm leading-relaxed">Start with your programme. Then connect the sources that keep your courses, schedule and priorities accurate.</p>
+        </div>
+        <div className="flex w-full flex-wrap items-center gap-4 lg:w-auto lg:flex-nowrap">
+          <p className="text-muted-foreground text-right text-xs leading-relaxed"><strong className="text-foreground block text-sm">{connected} of {steps.length} sources connected</strong>A programme is enough to begin</p>
+          <FinishSetup view={view} reason={false} className="min-w-40" onFinished={onApplied} />
+        </div>
+      </header>
+
+      <nav className="mb-5 grid grid-cols-2 overflow-hidden rounded-xl border lg:grid-cols-4" aria-label="Setup phases">
+        {SETUP_PHASES.map((phase, index) => {
+          const phaseSteps = phase.steps.map((id) => steps.find((step) => step.id === id)).filter(Boolean) as SetupStep[]
+          const settled = phaseSteps.every((step) => step.status === 'done' || step.status === 'skipped')
+          const active = activePhase.id === phase.id
+          return <button key={phase.id} type="button" aria-current={active ? 'step' : undefined} onClick={() => openPhase(phase.steps)} className={`focus-visible:ring-primary relative flex min-h-20 items-center gap-3 px-4 py-3 text-left outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 ${index >= 2 ? 'border-t lg:border-t-0' : ''} ${index % 2 === 1 ? 'border-l' : ''} ${index === 2 ? 'lg:border-l' : ''} ${active ? 'bg-card' : 'hover:bg-card/60'}`}>
+            <span className={`font-data grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold ${settled ? 'bg-primary text-primary-foreground' : active ? 'border-primary text-primary border' : 'text-muted-foreground border'}`}>{settled ? <CheckIcon className="size-4" /> : phase.number}</span>
+            <span className="min-w-0"><strong className="block text-sm">{phase.label}</strong><span className="text-muted-foreground mt-0.5 block truncate text-xs">{phase.detail}</span></span>
+            {active && <span className="bg-primary absolute inset-x-0 bottom-0 h-0.5" />}
+          </button>
+        })}
+      </nav>
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <main className="overflow-hidden rounded-xl border bg-background">
+          <div className="bg-foreground text-card flex flex-col gap-3 border-b border-foreground px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-7">
+            <div>
+              <p className="text-card/60 text-xs font-semibold tracking-[0.15em] uppercase">{activePhase.label}</p>
+              <h2 className="font-heading mt-1 text-[32px] leading-tight font-semibold tracking-[-0.035em]">{selected.title}</h2>
+              <p className="text-card/70 mt-2 max-w-[64ch] text-sm leading-relaxed">{PANEL_INTRO[selected.id] ?? selected.blurb}</p>
+            </div>
+            <StatusLabel status={selected.status} inverse />
+          </div>
+
+          {selectedIssues.map((issue) => <section key={issue.id} role="alert" className="bg-primary/5 border-b px-5 py-5 sm:px-7">
+            <div className="flex items-start gap-3"><AlertTriangleIcon className="text-primary mt-0.5 size-5 shrink-0" /><div className="min-w-0"><strong>{issue.title}</strong><p className="text-muted-foreground mt-1 text-sm leading-relaxed">{issue.detail}</p><p className="mt-2 text-sm">{issue.recovery}</p></div></div>
+            {(issue.unexpectedCourses?.length || issue.expectedCourses?.length) && <details className="mt-4 border-t pt-4"><summary className="cursor-pointer text-sm font-semibold">Compare the evidence</summary><div className="mt-3 grid gap-5 sm:grid-cols-2"><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Current record</p>{issue.unexpectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data text-primary">{course.code}</span> {course.name}</p>)}</div><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Selected plan</p>{issue.expectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data">{course.code}</span> {course.name}</p>)}</div></div></details>}
+            <Button size="sm" variant="outline" type="button" className="mt-4" onClick={() => setOpen('programme')}>Correct programme or year</Button>
+          </section>)}
+
+          <div className="px-5 py-6 sm:px-7 sm:py-7">
+            {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
+            {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} onSaved={() => refreshFrom('programme')} />}
+            {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshFrom('electives')} />)}
+            {selected.id === 'record' && <UploadField onRead={() => refreshFrom('record')} onSkip={() => void defer('record')} />}
+            {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} onSkip={() => void defer('transcript')} />}
+            {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}
+            {selected.id === 'timetable' && <form className="flex flex-col gap-5" onSubmit={async (event) => { event.preventDefault(); const url = timetable.trim(); if (!url || timetableBusy) return; setTimetableBusy(true); setTimetableError(null); try { await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) }); setTimetable(''); await refreshFrom('timetable') } catch (cause) { setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.') } finally { setTimetableBusy(false) } }}><TimetableGuide /><Field data-invalid={timetableError ? true : undefined}><FieldLabel htmlFor="guided-timetable">Timetable URL</FieldLabel><Input id="guided-timetable" type="url" required autoComplete="off" spellCheck={false} value={timetable} disabled={timetableBusy} placeholder="https://timetable.maastrichtuniversity.nl/ical?…" onChange={(event) => setTimetable(event.target.value)} /><FieldDescription className="flex items-center gap-1.5"><ShieldIcon className="size-3.5" />Stored on your account only, and read but never written to.</FieldDescription>{timetableError && <FieldError>{timetableError}</FieldError>}</Field><div className="flex flex-wrap items-center gap-2"><Button type="submit" disabled={timetableBusy || !timetable.trim()}>{timetableBusy && <Spinner data-icon="inline-start" />}{timetableBusy ? 'Checking the feed…' : 'Connect timetable'}</Button><Button type="button" variant="ghost" disabled={timetableBusy} onClick={() => void defer('timetable')}>Do this later</Button>{saved === 'timetable' && <SavedMark>{selected.detail}</SavedMark>}</div></form>}
+            {selected.id === 'canvas' && <div className="flex flex-col gap-5"><div className="flex items-start gap-3"><SparklesIcon className="text-primary mt-0.5 size-5 shrink-0" /><div><p className="text-sm font-semibold">Priority detection is included</p><p className="text-muted-foreground mt-1 text-sm leading-relaxed">With material collection enabled, Wicker re-scans syllabi, slides and course manuals for assignments, attendance requirements, group work, submissions and deadlines. Claims are reconciled with Canvas assignments; conflicts stay unverified until you review them.</p></div></div><SecureField kind="canvas" onApplied={(fresh) => advanceFrom(fresh, 'canvas')} onSkip={() => void defer('canvas')} /></div>}
+            {selected.id === 'electives' && <Button type="button" variant="ghost" className="mt-5" disabled={deferBusy === 'electives'} onClick={() => void defer('electives')}>{deferBusy === 'electives' && <Spinner data-icon="inline-start" />}Do this later</Button>}
+          </div>
+        </main>
+
+        <aside className="flex flex-col gap-4">
+          <section className="overflow-hidden rounded-xl border" aria-labelledby="sources-title">
+            <div className="border-b px-4 py-3"><h2 id="sources-title" className="text-sm font-semibold">Source register</h2></div>
+            <ul>{steps.map((step) => { const stepIssues = issues.filter((issue) => issue.step === step.id || issue.relatedStep === step.id); return <li key={step.id} className="border-b last:border-b-0"><button type="button" disabled={step.status === 'blocked'} onClick={() => setOpen(step.id)} className={`focus-visible:ring-primary flex w-full items-center gap-3 px-4 py-3 text-left outline-none hover:bg-card focus-visible:ring-2 disabled:opacity-45 ${step.id === selected.id ? 'bg-card' : ''}`}><span className="grid size-5 shrink-0 place-items-center">{stepIssues.length ? <AlertTriangleIcon className="text-primary size-4" /> : MARKS[step.status]}</span><span className="min-w-0 flex-1"><strong className="block truncate text-sm font-medium">{step.title}</strong><span className="text-muted-foreground block truncate text-xs">{STATUS_WORD[step.status]}</span></span><ChevronRightIcon className="text-muted-foreground size-3.5" /></button></li>})}</ul>
+          </section>
+          <p className="text-muted-foreground px-1 text-xs leading-relaxed"><ShieldIcon className="mr-1 inline size-3.5 align-[-2px]" />Only structured study information reaches the assistant. Your files and credentials stay outside the conversation.</p>
+        </aside>
+      </div>
+
+      <div className="mt-5 max-w-[calc(100%-21.25rem)] max-xl:max-w-none">
+        <ConflictResolver issues={selectedIssues} available={view.available} messages={messages} draft={draft} sending={sending} error={assistantError} onDraft={onDraft} onSend={onSend} />
+      </div>
     </div>
   )
 }
@@ -744,17 +1054,25 @@ function SetupSurface() {
   const [said, setSaid] = useState<Message[]>([])
   const threadRef = useRef<HTMLDivElement>(null)
 
-  const load = useCallback(() => {
-    json<View>('/api/onboarding')
-      .then((data) => {
-        setView(data)
-        setSaid([])
-      })
-      .catch((cause: Error) => setError(cause.message))
-  }, [])
+  // Returns the read, so whatever asked for it can wait for the new view
+  // before it tells the student their answer was recorded.
+  const load = useCallback(
+    () =>
+      json<View>('/api/onboarding')
+        .then((data) => {
+          setView(data)
+          setSaid([])
+          return data
+        })
+        .catch((cause: Error) => {
+          setError(cause.message)
+          return null
+        }),
+    []
+  )
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
 
   useEffect(() => {
@@ -776,7 +1094,7 @@ function SetupSurface() {
     setSending(true)
     setError(null)
     setDraft('')
-    // Show what was said straight away: a reply takes a few seconds.
+    // Show what was said straight away. A reply takes a few seconds.
     setSaid((previous) => [...previous, { role: 'user', content: message, at: new Date().toISOString() }])
     try {
       const next = await json<View>('/api/onboarding', { method: 'POST', body: JSON.stringify({ message }) })
@@ -788,8 +1106,6 @@ function SetupSurface() {
       setSending(false)
     }
   }
-
-  const wantsChecklist = params.get('checklist') === '1'
 
   if (error && !view) {
     return (
@@ -804,13 +1120,15 @@ function SetupSurface() {
     )
   }
 
-  // The conversation needs a model. Without one the checklist does the same
-  // work, and is the only thing offered rather than a broken composer.
-  if (wantsChecklist || (view && !view.available)) {
-    return <Checklist view={view} onRefresh={load} onApplied={setView} />
-  }
-
   const messages = [...(view?.messages ?? []), ...said]
+  // The deterministic onboarding is now the only public setup surface. The
+  // legacy transcript remains below for one release solely so in-flight state
+  // can still be read; no query parameter can reopen the parallel interview.
+  if (!legacySetupEnabled()) return <UnifiedSetup view={view} onRefresh={load} onApplied={setView} messages={messages} draft={draft} sending={sending} assistantError={error} onDraft={setDraft} onSend={send} />
+
+  // Kept below during the migration for one release so an in-flight browser
+  // session can still hydrate its previous conversation state. New renders
+  // always use the unified guided surface above.
   const started = messages.some((message) => message.role === 'user')
   const opening = view?.opening ?? null
 
@@ -848,7 +1166,7 @@ function SetupSurface() {
 
   // Not a transcript yet, an invitation: the heading, the body, and the field
   // that answers it, on one screen. The question is whichever thing is
-  // actually missing — the server picked it.
+  // actually missing. The server picked it.
   if (view && opening && !started && !sending) {
     const steps = setupSteps({ state: view.state ?? null, skipped: view.skipped ?? [] })
     const connected = connectedCount(steps)
@@ -856,37 +1174,45 @@ function SetupSurface() {
       ? 'Your Academic Work PDF lists every course attempt you have made. Upload it below so the dashboard can calculate your earned credits, passed courses, and current registrations.'
       : opening.body
     return (
-      <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-[1180px] content-center gap-10 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-16">
-        <aside className="self-stretch border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
-          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
-          <p className="font-data mt-3 text-4xl leading-none font-semibold tabular-nums">
-            {connected}<span className="text-muted-foreground text-lg">/{steps.length}</span>
+      <div className="mx-auto grid w-full max-w-[1180px] content-start gap-8 p-6 md:p-8 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-12">
+        <aside className="border-b pb-6 lg:border-r lg:border-b-0 lg:pr-8 lg:pb-0">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="text-sm font-semibold">Workspace setup</h2>
+            <Link href="/app/setup?checklist=1" className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 rounded-sm text-[12.5px] outline-none hover:underline focus-visible:ring-2 lg:hidden">
+              Checklist →
+            </Link>
+          </div>
+          <p className="font-data mt-3 text-[32px] leading-none font-semibold tabular-nums">
+            {connected}<span className="text-muted-foreground text-[16px]">/{steps.length}</span>
           </p>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">Connect the sources that turn the workspace into your own study record.</p>
-          <ol className="mt-7 hidden flex-col border-t lg:flex" aria-label="Setup steps">
+          <ol className="mt-6 hidden flex-col border-t lg:flex" aria-label="Setup steps">
             {steps.map((step, index) => (
               <li key={step.id} className="border-b">
                 <Link
                   href={`/app/setup?checklist=1&step=${step.id}`}
                   aria-current={step.id === opening.step ? 'step' : undefined}
-                  className="hover:bg-card focus-visible:ring-primary -mx-2 grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-3 px-2 py-3 outline-none focus-visible:ring-2"
+                  className="hover:bg-card focus-visible:ring-ring/50 -mx-2 grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-3 px-2 py-3 transition-colors outline-none focus-visible:ring-2"
                 >
-                  <span className={`font-data text-xs tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <span className={`font-data text-[12px] tabular-nums ${step.status === 'done' ? 'text-primary' : 'text-muted-foreground'}`}>
                     {step.status === 'done' ? '✓' : String(index + 1).padStart(2, '0')}
                   </span>
-                  <span className={`text-sm ${step.id === opening.step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{step.title}</span>
+                  <span className={`text-sm ${step.id === opening.step ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                    <span className="sr-only">{STATUS_WORD[step.status]}. </span>
+                    {step.title}
+                  </span>
                 </Link>
               </li>
             ))}
           </ol>
         </aside>
 
-        <main className="flex min-w-0 max-w-[68ch] flex-col justify-center gap-5">
-          <div className="border-primary border-t-2 pt-6">
-            <h1 className="font-heading text-5xl leading-[0.98] font-semibold tracking-[-0.025em] md:text-6xl">{opening.heading}</h1>
+        <main className="flex min-w-0 max-w-[68ch] flex-col gap-6">
+          <div className="border-b pb-4">
+            <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">{opening.heading}</h1>
             {/* Safe to set: the parser escapes first and emits only its own rules. */}
             <div
-              className={`text-muted-foreground mt-5 max-w-[60ch] text-[15px] leading-relaxed ${PROSE}`}
+              className={`text-muted-foreground mt-3 max-w-[60ch] text-sm leading-relaxed ${PROSE}`}
               dangerouslySetInnerHTML={{ __html: tutorMarkdown(openingBody) }}
             />
           </div>
@@ -903,33 +1229,35 @@ function SetupSurface() {
           ) : (
             composer(opening.placeholder)
           )}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-            <p className="text-muted-foreground text-xs">Only your programme is required. Everything else can be connected later.</p>
-            <Link href="/app/setup?checklist=1" className="text-primary text-sm font-semibold hover:underline">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
+            <p className="text-muted-foreground max-w-[52ch] text-[12.5px] leading-relaxed">Only your programme is required. Everything else can be connected later.</p>
+            <Link href="/app/setup?checklist=1" className="text-primary focus-visible:ring-ring/50 rounded-sm text-sm font-semibold outline-none hover:underline focus-visible:ring-2">
               Use the checklist
             </Link>
           </div>
+          {/* The way out, without waiting for the model to offer it. */}
+          {view.state?.programme && <FinishSetup view={view} size="sm" reason={false} className="w-fit" onFinished={setView} />}
         </main>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto grid h-[100svh] max-h-[100svh] w-full max-w-[1180px] grid-rows-[auto_minmax(0,1fr)] gap-5 overflow-hidden p-4 sm:p-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-1 lg:gap-10">
+    <div className="mx-auto grid h-[100svh] max-h-[100svh] w-full max-w-[1180px] grid-rows-[auto_minmax(0,1fr)] gap-6 overflow-hidden p-4 sm:p-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-1 lg:gap-10">
       <ConversationStepRail view={view} />
       <section className="flex min-h-0 min-w-0 flex-col">
       <div className="mx-auto flex w-full max-w-[76ch] items-center gap-4 border-b pb-4">
         <div className="min-w-0 flex-1">
-          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
-          <h1 className="mt-1 truncate text-lg font-semibold">Let’s make this yours</h1>
+          <h1 className="font-heading truncate text-[24px] leading-tight font-semibold tracking-[-0.02em]">Let’s make this yours</h1>
+          <p className="text-muted-foreground mt-1 truncate text-[13.5px]">Answer what is asked, or connect the sources yourself.</p>
         </div>
-        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/app/setup?checklist=1" />}>
+        <Button variant="ghost" size="sm" className="shrink-0" nativeButton={false} render={<Link href="/app/setup?checklist=1" />}>
           Use the checklist
         </Button>
       </div>
 
-      <ScrollArea ref={threadRef} className="min-h-0 flex-1 py-5">
-        <div className="flex min-h-full flex-col justify-end gap-5 px-1 pb-3">
+      <ScrollArea ref={threadRef} className="min-h-0 flex-1 py-6">
+        <div className="flex min-h-full flex-col justify-end gap-6 px-1 pb-3">
         {!view ? (
             <div className="mx-auto flex w-full max-w-[76ch] flex-col gap-3">
             <Skeleton className="h-20 w-full" />
@@ -994,8 +1322,16 @@ function SetupSurface() {
         </div>
       </ScrollArea>
 
-      {error && <p className="mx-auto w-full max-w-[76ch] text-sm">{error}</p>}
+      {error && <p role="alert" className="mx-auto w-full max-w-[76ch] text-sm">{error}</p>}
       {!view?.finished && view?.prompt == null && <div className="mx-auto w-full max-w-[76ch] border-t pt-4">{composer('Type your reply…')}</div>}
+      {/* Finishing is the student's to take: it does not wait on the model
+          deciding the conversation is over. */}
+      {!view?.finished && view?.state?.programme && (
+        <div className="mx-auto flex w-full max-w-[76ch] flex-wrap items-center justify-between gap-x-6 gap-y-2 pt-3">
+          <p className="text-muted-foreground max-w-[52ch] text-[12.5px] leading-relaxed">Your programme is saved, so the workspace is ready whenever you are.</p>
+          <FinishSetup view={view} size="sm" reason={false} className="w-fit" onFinished={setView} />
+        </div>
+      )}
       </section>
     </div>
   )

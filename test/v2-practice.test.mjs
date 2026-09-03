@@ -28,6 +28,15 @@ import {
 } from '../lib/workspace/practice.mjs'
 import { buildMockSession, gradeRequest, mockRemaining, mockTimeLabel, sampleQuestions } from '../lib/workspace/practice.mjs'
 import { practiceLocation } from '../lib/workspace/practice.mjs'
+import {
+  advanceReviewQueue,
+  answerWasCorrect,
+  canSkip,
+  gradeMockAnswers,
+  practiceHeadline,
+  sessionMeter,
+  summariseSession
+} from '../lib/workspace/practice.mjs'
 
 const question = (overrides = {}) => ({
   id: 'gen-01-0',
@@ -219,6 +228,131 @@ test('mock session totals preserve fractional grades', () => {
   assert.equal(session.duration, 720)
   assert.equal(session.totalScore, 11.5)
   assert.equal(session.totalMax, 20)
+})
+
+test('a rated card leaves the queue, a skipped one goes to the back', () => {
+  const queue = ['a', 'b', 'c']
+  assert.deepEqual(advanceReviewQueue(queue, 'rate'), ['b', 'c'])
+  assert.deepEqual(advanceReviewQueue(queue, 'remove'), ['b', 'c'])
+  assert.deepEqual(advanceReviewQueue(queue, 'skip'), ['b', 'c', 'a'])
+  // The queue is never mutated in place; the page holds it as state.
+  assert.deepEqual(queue, ['a', 'b', 'c'])
+})
+
+test('skipping the last card is a no-op, and says so before it is offered', () => {
+  assert.deepEqual(advanceReviewQueue(['a'], 'skip'), ['a'])
+  assert.equal(canSkip(['a']), false)
+  assert.equal(canSkip(['a', 'b']), true)
+  assert.equal(canSkip([]), false)
+  assert.equal(canSkip(null), false)
+  assert.deepEqual(advanceReviewQueue([], 'rate'), [])
+  assert.deepEqual(advanceReviewQueue(['a', 'b'], 'nonsense'), ['a', 'b'])
+})
+
+test('a mock is graded in bounded batches, in order, and reports progress', async () => {
+  const questions = [1, 2, 3, 4, 5].map((n) => question({ id: `q${n}` }))
+  const answers = Object.fromEntries(questions.map((item) => [item.id, `answer ${item.id}`]))
+  let inFlight = 0
+  let peak = 0
+  const progress = []
+  const graded = await gradeMockAnswers(
+    questions,
+    answers,
+    async (item) => {
+      inFlight += 1
+      peak = Math.max(peak, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      inFlight -= 1
+      return { correction: `graded ${item.id}`, score: 8 }
+    },
+    { concurrency: 2, onProgress: (state) => progress.push(state.completed) }
+  )
+  assert.deepEqual(graded.map((item) => item.id), ['q1', 'q2', 'q3', 'q4', 'q5'])
+  assert.deepEqual(graded.map((item) => item.correction), questions.map((item) => `graded ${item.id}`))
+  assert.equal(peak, 2)
+  // Called once before the first batch, then once per finished question.
+  assert.deepEqual(progress, [0, 1, 2, 3, 4, 5])
+})
+
+test('an unanswered question is never sent for grading, and scores zero', async () => {
+  const questions = [question({ id: 'a' }), question({ id: 'b' })]
+  const asked = []
+  const graded = await gradeMockAnswers(questions, { a: '   ' }, async (item) => {
+    asked.push(item.id)
+    return { correction: 'fine', score: 9 }
+  })
+  assert.deepEqual(asked, [])
+  assert.deepEqual(graded.map((item) => [item.attempt, item.score]), [['', 0], ['', 0]])
+  assert.equal(graded[0].correction, '_No answer provided._')
+})
+
+test('one failed grading does not lose the sitting', async () => {
+  const questions = [question({ id: 'a' }), question({ id: 'b' })]
+  const graded = await gradeMockAnswers(
+    questions,
+    { a: 'first', b: 'second' },
+    async (item) => {
+      if (item.id === 'a') throw new Error('the grader timed out')
+      return { correction: 'good', score: 7 }
+    }
+  )
+  assert.equal(graded[0].score, 0)
+  assert.match(graded[0].correction, /Grading failed: the grader timed out/)
+  assert.equal(graded[1].score, 7)
+})
+
+test('an unscored grade is zero, not absent, once it is inside a mock total', async () => {
+  const [graded] = await gradeMockAnswers([question({ id: 'a' })], { a: 'x' }, async () => ({ correction: 'c', score: null }))
+  assert.equal(graded.score, 0)
+})
+
+test('the session ledger counts attempts and re-queues only what is still wrong', () => {
+  const event = (key, code, correct) => ({ key, courseId: code.toLowerCase(), courseCode: code, correct, item: { key } })
+  const summary = summariseSession([
+    event('alg/01/a', 'BCS1540', false),
+    event('alg/01/b', 'BCS1540', true),
+    event('nm/01/c', 'BCS2540', false),
+    // The same card, taken again and passed: it counts twice, but is not re-queued.
+    event('alg/01/a', 'BCS1540', true)
+  ])
+  assert.equal(summary.answered, 4)
+  assert.equal(summary.correct, 2)
+  assert.equal(summary.incorrect, 2)
+  assert.deepEqual(summary.courses.map((row) => [row.code, row.answered, row.correct, row.missed]),
+    [['BCS1540', 3, 2, 1], ['BCS2540', 1, 0, 1]])
+  assert.deepEqual(summary.missed.map((item) => item.key), ['nm/01/c'])
+  assert.deepEqual(summariseSession([]), { answered: 0, correct: 0, incorrect: 0, courses: [], missed: [] })
+})
+
+test('missed means what the grader files as a mistake', () => {
+  assert.equal(answerWasCorrect(7), true)
+  assert.equal(answerWasCorrect(6.5), false)
+  assert.equal(answerWasCorrect(null), false)
+  assert.equal(answerWasCorrect(undefined), false)
+})
+
+test('the header line states what is waiting in the tab that is open', () => {
+  assert.equal(practiceHeadline({ tab: 'questions', loaded: false }), 'Reading your queues…')
+  assert.equal(practiceHeadline({ tab: 'questions', loaded: true, questionCount: 547, courseCount: 5 }),
+    '547 questions across 5 active courses — filters stay as you move.')
+  assert.equal(practiceHeadline({ tab: 'questions', loaded: true, questionCount: 1, courseCount: 1 }),
+    '1 question across 1 active course — filters stay as you move.')
+  assert.equal(practiceHeadline({ tab: 'questions', loaded: true }), 'No questions are published for your courses yet.')
+  assert.equal(practiceHeadline({ tab: 'flashcards', loaded: true, dueCount: 2, totalCards: 40 }),
+    '2 cards due of 40 cards in your deck.')
+  assert.equal(practiceHeadline({ tab: 'flashcards', loaded: true, dueCount: 0, totalCards: 40 }),
+    'Nothing due — 40 cards scheduled in your deck.')
+  assert.equal(practiceHeadline({ tab: 'mistakes', loaded: true, mistakeCount: 1 }), '1 open mistake to correct.')
+  assert.equal(practiceHeadline({ tab: 'mocks', loaded: true, mockCount: 3 }),
+    '3 timed sittings recorded. Choose a chapter to sit another.')
+})
+
+test('the session meter reports only the sitting the open tab is running', () => {
+  assert.equal(sessionMeter({ tab: 'questions', answered: 1 }), '1 answer this session')
+  assert.equal(sessionMeter({ tab: 'questions', answered: 12 }), '12 answers this session')
+  assert.equal(sessionMeter({ tab: 'questions', answered: 0 }), null)
+  assert.equal(sessionMeter({ tab: 'flashcards', reviewed: 3 }), '3 reviews this session')
+  assert.equal(sessionMeter({ tab: 'mistakes', answered: 4 }), null)
 })
 
 test('legacy practice destinations map to URL-addressable V2 state', () => {

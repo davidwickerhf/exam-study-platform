@@ -11,6 +11,10 @@ import assert from 'node:assert/strict'
 import {
   MAX_IMAGE_PAGES,
   analysisPayload,
+  analysisRequests,
+  changeDiff,
+  changeStatus,
+  mergeAnalysisResults,
   defaultSelection,
   describeSource,
   groupChanges,
@@ -189,6 +193,61 @@ test('an .ics is parsed exactly, so it never goes to the model', () => {
   assert.deepEqual(payload.documents.map((item) => item.name), ['transcript.pdf'])
   // An .ics with no text could not be parsed, so it is read like any other file.
   assert.deepEqual(analysisPayload([{ ...ics, text: '' }]).calendars, [])
+})
+
+test('the read is one ordered list of requests, decided here rather than in the surface', () => {
+  const ics = { name: 'timetable.ics', type: 'text/calendar', text: 'BEGIN:VCALENDAR', images: [], pageCount: 0 }
+  const pdf = { name: 'transcript.pdf', type: 'application/pdf', text: 'x', images: [], pageCount: 1 }
+  const requests = analysisRequests([ics, pdf], { kind: 'transcript', description: ' ', date: '2026-09-03' })
+  // The documents request goes first: a calendar's events may depend on the
+  // courses a transcript proposes.
+  assert.deepEqual(requests.map((request) => request.path), ['/api/academics/documents/analyze', '/api/academics/calendars/preview'])
+  assert.deepEqual(requests[0].body.documents.map((item) => item.name), ['transcript.pdf'])
+  assert.equal(requests[0].body.kind, 'transcript')
+  assert.equal(requests[1].body.date, '2026-09-03')
+  assert.deepEqual(requests[1].source, { name: 'timetable.ics' })
+  // Nothing to read is no request at all, rather than an empty post.
+  assert.deepEqual(analysisRequests([], {}), [])
+  // A description alone is still a read.
+  assert.equal(analysisRequests([], { description: 'I passed PHY100' }).length, 1)
+})
+
+test('every answer folds into the one review, in the order it was requested', () => {
+  const merged = mergeAnalysisResults([
+    { result: { kind: 'transcript', changes: [{ id: 'a', kind: 'result' }], sources: [{ name: 'transcript.pdf' }] }, source: null },
+    { result: { kind: 'calendar-feed', changes: [{ id: 'a', kind: 'result' }, { id: 'b', kind: 'event' }] }, source: { name: 'timetable.ics' } }
+  ])
+  assert.deepEqual(merged.changes.map((change) => change.id), ['a', 'b'])
+  assert.deepEqual(merged.sources, [{ name: 'transcript.pdf' }, { name: 'timetable.ics' }])
+  assert.equal(mergeAnalysisResults([]), null)
+})
+
+test('each proposal says what it would do to the plan in one word', () => {
+  assert.equal(changeStatus(change('a', 'new-course')), 'new')
+  assert.equal(changeStatus(change('b', 'event', { payload: { event: {} } })), 'new')
+  // Anything addressed at a record the plan already holds is a match.
+  assert.equal(changeStatus(change('c', 'result', { payload: { courseId: 'c1', attempt: {} } })), 'match')
+  assert.equal(changeStatus(change('d', 'profile', { payload: { field: 'university', value: 'UM' } })), 'match')
+  // A conflict is a conflict whether the kind or the flag says so.
+  assert.equal(changeStatus(change('e', 'course-conflict', { payload: { courseId: 'c1' } })), 'conflict')
+  assert.equal(changeStatus(change('f', 'new-course', { requiresDecision: true })), 'conflict')
+})
+
+test('a conflict shows both values rather than describing the disagreement', () => {
+  assert.deepEqual(
+    changeDiff({ detail: 'Selected plan: 6 ECTS · Transcript: 7 ECTS' }),
+    { current: '6 ECTS', source: 'Transcript', proposed: '7 ECTS' }
+  )
+  // A blank side is still a side.
+  assert.deepEqual(changeDiff({ detail: 'Selected plan:  · Exam schedule: BCS1000' }).current, 'blank')
+  // Advice trailing the proposal is guidance, not the proposed value.
+  assert.equal(
+    changeDiff({ detail: 'Selected plan: passed 8 · Exam schedule: upcoming 14 Oct. Add a new attempt only if this is intentional.' }).proposed,
+    'upcoming 14 Oct'
+  )
+  // Anything that is not a disagreement has no diff to show.
+  assert.equal(changeDiff({ detail: 'Currently blank' }), null)
+  assert.equal(changeDiff({}), null)
 })
 
 test('a source is described by what it actually contributes', () => {

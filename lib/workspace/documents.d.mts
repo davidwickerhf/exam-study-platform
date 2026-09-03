@@ -149,3 +149,17 @@ export declare function analysisPayload(files: SourceFile[]): {
   calendars: SourceFile[]
 }
 export declare function describeSource(file: SourceFile): string
+
+export type ChangeStatus = 'new' | 'match' | 'conflict'
+export type AnalysisRequest = { path: string; body: Record<string, unknown>; source: { name?: string } | null }
+
+export declare function analysisRequests(
+  files: SourceFile[],
+  options?: { kind?: string; description?: string; date?: string | null }
+): AnalysisRequest[]
+export declare function mergeAnalysisResults(
+  results: { result: ChangeSet | null; source: { name?: string } | null }[]
+): ChangeSet | null
+export declare function changeStatus(change: Change): ChangeStatus
+export declare const CHANGE_STATUS_LABEL: Record<ChangeStatus, string>
+export declare function changeDiff(change: Change): { current: string; source: string; proposed: string } | null

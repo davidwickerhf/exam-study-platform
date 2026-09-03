@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assignmentState, connectionOrigin, courseRows, filterAnnouncements, filterAssignments, isNewAnnouncement, normalisePreferences, parsePreferences } from '../lib/workspace/updates.mjs'
+import { PREFERENCES_KEY, SEEN_AT_KEY, assignmentState, connectionOrigin, courseRows, filterAnnouncements, filterAssignments, isNewAnnouncement, markSeen, normalisePreferences, parsePreferences, readPreferences, readSeenAt, writePreferences } from '../lib/workspace/updates.mjs'
 
 test('stored update preferences are validated', () => {
   assert.deepEqual(normalisePreferences({ scope: 'all', days: '90', assignmentState: 'done' }).scope, 'all')
@@ -25,4 +25,60 @@ test('course rows retain selected courses and join honest counts', () => {
 test('only secure Canvas origins are accepted by the client helper', () => {
   assert.equal(connectionOrigin('https://canvas.example.edu/path'), 'https://canvas.example.edu')
   assert.equal(connectionOrigin('http://canvas.example.edu'), null)
+})
+
+// ----- Where the preferences live -----------------------------------------
+
+/** A Storage the tests can hold still, including one that refuses. */
+const memoryStore = () => {
+  const held = new Map()
+  return {
+    getItem: (key) => (held.has(key) ? held.get(key) : null),
+    setItem: (key, value) => held.set(key, String(value)),
+    held
+  }
+}
+
+const hostileStore = () => ({
+  getItem() { throw new Error('storage is not available') },
+  setItem() { throw new Error('quota exceeded') }
+})
+
+test('preferences survive a round trip through storage, validated on the way in', () => {
+  const store = memoryStore()
+  writePreferences({ scope: 'all', days: '90', assignmentState: 'done' }, store)
+  assert.equal(store.held.get(PREFERENCES_KEY), JSON.stringify(normalisePreferences({ scope: 'all', days: '90', assignmentState: 'done' })))
+  assert.equal(readPreferences(store).scope, 'all')
+
+  // Anything the store hands back that is not a preference set is defaults.
+  store.held.set(PREFERENCES_KEY, '{broken')
+  assert.deepEqual(readPreferences(store), normalisePreferences())
+
+  // A tampered value is still normalised rather than trusted.
+  store.held.set(PREFERENCES_KEY, JSON.stringify({ days: '999', scope: 'everything' }))
+  assert.equal(readPreferences(store).days, '30')
+  assert.equal(readPreferences(store).scope, 'current')
+})
+
+test('a browser that refuses storage costs a preference, not the page', () => {
+  const store = hostileStore()
+  // The private-window case: reading throws, and the page still renders.
+  assert.deepEqual(readPreferences(store), normalisePreferences())
+  assert.equal(readSeenAt(store), '')
+  // Writing throws too, and is simply not persisted.
+  assert.doesNotThrow(() => writePreferences({ scope: 'all' }, store))
+  assert.doesNotThrow(() => markSeen('2026-03-01T00:00:00.000Z', store))
+  // The caller still gets back a usable value for this session.
+  assert.equal(writePreferences({ scope: 'all' }, store).scope, 'all')
+})
+
+test('the seen-at watermark is written and read under one agreed key', () => {
+  const store = memoryStore()
+  assert.equal(readSeenAt(store), '')
+  markSeen('2026-03-01T09:00:00.000Z', store)
+  assert.equal(store.held.get(SEEN_AT_KEY), '2026-03-01T09:00:00.000Z')
+  assert.equal(readSeenAt(store), '2026-03-01T09:00:00.000Z')
+  // And it is the watermark announcement freshness is measured against.
+  assert.equal(isNewAnnouncement({ postedAt: '2026-03-02T10:00:00.000Z' }, readSeenAt(store)), true)
+  assert.equal(isNewAnnouncement({ postedAt: '2026-02-28T10:00:00.000Z' }, readSeenAt(store)), false)
 })

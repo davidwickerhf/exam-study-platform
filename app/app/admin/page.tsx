@@ -681,7 +681,7 @@ export default function AdminPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
       <header className="flex flex-col gap-1">
-        <h1 className="font-heading text-5xl leading-none tracking-tighter">
+        <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
           Editorial workspace
         </h1>
         <p className={`text-muted-foreground text-sm ${NUMERALS}`}>

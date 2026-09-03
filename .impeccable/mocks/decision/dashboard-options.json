@@ -1,0 +1,46 @@
+{
+  "title": "Choose the dashboard structure",
+  "question": "Which home screen would make it easiest to decide what to study next?",
+  "options": [
+    {
+      "id": "study-itinerary",
+      "label": "Study Itinerary",
+      "kicker": "THE ROLL",
+      "lineage": "day planner × route sheet",
+      "thesis": "Turn the day into one legible route from now, through the next deadline, to the next study move.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["ruled schedule", "signal-blue route", "compact ledgers"],
+      "viewport": "A wide Today route dominates the left two thirds; the current study action is a dark focal block, while deadlines and course readiness form a quiet right rail.",
+      "risk": "The route needs a convincing empty-day state when no timetable is connected.",
+      "comp": ".impeccable/mocks/decision/dashboard-study-itinerary.webp"
+    },
+    {
+      "id": "focus-command",
+      "label": "Focus Command",
+      "lineage": "Things × calm command center",
+      "thesis": "Make one recommended study action the unmistakable center, with every metric demoted to supporting evidence.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["lifted working plane", "quiet cool canvas", "one blue action"],
+      "viewport": "A single elevated focus plane holds the recommended course, reason, and start action; a slim week strip sits above and two terse ledgers sit below.",
+      "risk": "A recommendation can feel invented when the account has too little activity data.",
+      "comp": ".impeccable/mocks/decision/dashboard-focus-command.webp"
+    },
+    {
+      "id": "split-horizon",
+      "label": "Split Horizon",
+      "lineage": "academic cockpit × progress ledger",
+      "thesis": "Put immediate pressure and degree readiness side by side so today never obscures the larger exam trajectory.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["asymmetric split", "readiness matrix", "hairline registers"],
+      "viewport": "The left side is a compact Today agenda and start action; the right side is a course-by-course readiness matrix with exam distance, reading progress, and weak-work signals.",
+      "risk": "The matrix can become too analytical for a quick morning check.",
+      "comp": ".impeccable/mocks/decision/dashboard-split-horizon.webp"
+    }
+  ],
+  "reroll": true,
+  "buildPath": {
+    "value": "comp",
+    "toggle": true
+  },
+  "steer": true
+}

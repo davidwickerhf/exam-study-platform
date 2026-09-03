@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { DownloadIcon, UploadIcon } from 'lucide-react'
+import { DownloadIcon, PlusIcon, UploadIcon } from 'lucide-react'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
@@ -42,14 +42,19 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T
 }
 
-function SectionHead({ title, description }: { title: string; description?: string }) {
+function SectionHead({ title, description, children }: { title: string; description?: string; children?: React.ReactNode }) {
   return (
-    <div className="flex max-w-[74ch] flex-col gap-1 border-b pb-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      {description && <p className="text-muted-foreground text-sm">{description}</p>}
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b pb-3">
+      <div className="flex max-w-[74ch] flex-col gap-1">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {description && <p className="text-muted-foreground text-sm">{description}</p>}
+      </div>
+      {children}
     </div>
   )
 }
+
+const QUIET = 'text-muted-foreground hover:text-foreground rounded-sm text-[13.5px] font-medium underline underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicState) => void }) {
   const [state, setState] = useState<AcademicState | null>(null)
@@ -58,6 +63,7 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [importResult, setImportResult] = useState<string | null>(null)
+  const [composerOpen, setComposerOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const accept = (next: AcademicState) => {
@@ -93,7 +99,7 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
     void run(() => api('/api/academics/programmes', {
       method: 'POST',
       body: JSON.stringify({ profile: { programme, academicYear, currentYearKey: academicYear } })
-    }).then((next) => { form.reset(); return next as AcademicState }))
+    }).then((next) => { form.reset(); setComposerOpen(false); return next as AcademicState }))
   }
 
   const saveFailedRule = (checked: boolean) => {
@@ -157,12 +163,17 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
   return (
     <div className="flex max-w-[860px] flex-col gap-8">
       <section className="flex flex-col gap-4">
-        <SectionHead title="Programmes" description="Each programme is a separate private record with its own curriculum, attempts, and rules." />
+        <SectionHead title="Programmes" description="Each programme is a separate private record with its own curriculum, attempts, and rules.">
+          <Button variant="secondary" size="sm" aria-expanded={composerOpen} disabled={busy} onClick={() => setComposerOpen((open) => !open)}>
+            <PlusIcon data-icon="inline-start" />
+            New programme
+          </Button>
+        </SectionHead>
         <ul className="flex flex-col">
           {index.programmes.map((item) => {
             const active = item.id === index.activeProgrammeId
             return (
-              <li key={item.id} className="flex min-h-16 items-center justify-between gap-4 border-b py-3">
+              <li key={item.id} className="hover:bg-card flex min-h-16 items-center justify-between gap-4 border-b py-3 transition-colors">
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <strong className="truncate text-sm font-semibold">{programmeLabel(item)}</strong>
                   <span className="text-muted-foreground font-data text-sm tabular-nums">{item.academicYear || 'No academic year'}</span>
@@ -174,27 +185,39 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
             )
           })}
         </ul>
-        <form onSubmit={create} className="bg-card grid gap-4 rounded-sm border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)_auto] sm:items-end">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="new-programme">New programme</Label>
-            <Input id="new-programme" name="programme" maxLength={200} required placeholder="MSc Data Science" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="new-academic-year">Academic year or cohort</Label>
-            <Input id="new-academic-year" name="academicYear" maxLength={30} placeholder="2027–2028" />
-          </div>
-          <Button type="submit" variant="outline" disabled={busy}>Create and switch</Button>
-        </form>
+        {/* One programme is a fact, not an empty list. Say it plainly. */}
+        {index.programmes.length === 1 && (
+          <p className="text-muted-foreground text-sm">This is your only programme record. Create another to keep a second degree, exchange, or cohort year apart from this one.</p>
+        )}
+        {composerOpen && (
+          <form onSubmit={create} className="bg-muted flex flex-col gap-3 rounded-sm p-4">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)]">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[12px] font-semibold" htmlFor="new-programme">Programme</Label>
+                <Input id="new-programme" name="programme" maxLength={200} required placeholder="MSc Data Science" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[12px] font-semibold" htmlFor="new-academic-year">Academic year or cohort</Label>
+                <Input id="new-academic-year" name="academicYear" maxLength={30} placeholder="2027–2028" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button type="submit" size="sm" disabled={busy}>{busy ? 'Creating…' : 'Create and switch'}</Button>
+              <button type="button" className={QUIET} onClick={() => setComposerOpen(false)}>Cancel</button>
+            </div>
+          </form>
+        )}
       </section>
 
       <section className="flex flex-col gap-4">
         <SectionHead title="Statistics" />
-        <label className="flex cursor-pointer items-center justify-between gap-6 border-b pb-4">
+        {/* The control belongs beside the sentence it changes, not adrift at the far right. */}
+        <label className="hover:bg-card flex cursor-pointer items-start gap-3 border-b pb-4 transition-colors">
+          <Checkbox className="mt-0.5" aria-label="Include failed attempts in weighted GPA" checked={includesFailed} disabled={busy} onCheckedChange={(checked) => saveFailedRule(checked === true)} />
           <span className="flex flex-col gap-1">
             <strong className="text-sm font-semibold">Include failed attempts in weighted GPA</strong>
             <span className="text-muted-foreground text-sm">Some programmes average every recorded attempt; others count only passes.</span>
           </span>
-          <Checkbox role="switch" aria-label="Include failed attempts in weighted GPA" checked={includesFailed} disabled={busy} onCheckedChange={(checked) => saveFailedRule(checked === true)} />
         </label>
       </section>
 

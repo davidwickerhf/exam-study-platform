@@ -41,9 +41,37 @@ export type Workspace = {
 
 export type CourseStatus = 'passed' | 'failed' | 'registered' | 'not-recorded'
 
-export declare function bestAttempt(course: Course): Attempt | null
-export declare function courseStatus(course: Course): CourseStatus
+/** One record's worth of change, named rather than rebuilt at the call site. */
+export type WorkspaceEdit =
+  | { type: 'profile'; values: Partial<Workspace['profile']> & Record<string, unknown> }
+  | { type: 'course:add'; input: Record<string, unknown>; id?: string }
+  | { type: 'course:update'; id: string; input: Record<string, unknown> }
+  | { type: 'course:remove'; id: string }
+  | { type: 'attempt:add'; courseId: string; input: Record<string, unknown>; id?: string }
+  | { type: 'attempt:update'; courseId: string; attemptId: string; input: Record<string, unknown> }
+  | { type: 'attempt:remove'; courseId: string; attemptId?: string; index?: number }
+  | { type: 'gate:add'; input: Record<string, unknown>; id?: string }
+  | { type: 'gate:update'; id: string; input: Record<string, unknown> }
+  | { type: 'gate:remove'; id: string }
+  | { type: 'event:add'; input: Record<string, unknown>; id?: string }
+  | { type: 'event:update'; id: string; input: Record<string, unknown> }
+  | { type: 'event:remove'; id: string }
+
+/**
+ * The least a record must carry to be classified. Declared structurally so
+ * every surface reading a status — the register, the planner, the scenario —
+ * calls this one implementation instead of re-deriving it from attempt strings.
+ */
+export type StatusCandidate = { passMark?: number | null; attempts?: Attempt[] }
+
+export declare function bestAttempt(course: StatusCandidate): Attempt | null
+export declare function courseStatus(course: StatusCandidate): CourseStatus
 export declare const STATUS_LABEL: Record<CourseStatus, string>
+export declare const STATUS_MARK: Record<CourseStatus, string>
+export declare const ATTEMPT_STATUS: [string, string][]
+export declare const PROGRAMME_REQUIREMENTS: [string, string][]
+export declare const EVENT_TYPES: [string, string][]
+export declare function applyWorkspaceEdit(workspace: Workspace, patch: WorkspaceEdit): Workspace | null
 export declare function earnedEcts(courses: Course[]): number
 export declare function plannedEcts(courses: Course[]): number
 export declare function weightedGpa(courses: Course[]): number | null

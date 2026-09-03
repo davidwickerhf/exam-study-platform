@@ -1,19 +1,18 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckIcon, MinusIcon } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { STATUS_LABEL, STATUS_MARK, courseStatus } from '@/lib/workspace/academics.mjs'
 import {
   type Objective,
   type PlannerCourse,
   type PlannerWorkspace,
   groupOpenCourses,
-  isPassed,
   objectiveFor,
   plannerSummary,
   planningInsights,
@@ -45,12 +44,22 @@ function Measure({ label, value, unit, detail }: { label: string; value: string 
   )
 }
 
+/**
+ * What the record already says, classified by `courseStatus` rather than by
+ * reading attempt strings here — the scenario planner and the register must
+ * never disagree about whether a course is passed.
+ */
 function RecordedStatus({ course }: { course: PlannerCourse }) {
-  if (isPassed(course)) return <span className="inline-flex items-center gap-1.5 text-sm font-medium"><CheckIcon className="text-primary size-3.5" />Passed</span>
-  const upcoming = course.attempts.some((attempt) => attempt.status === 'upcoming')
-  if (upcoming) return <span className="text-sm">Registered</span>
-  if (course.attempts.some((attempt) => attempt.status === 'failed')) return <span className="inline-flex items-center gap-1.5 text-sm font-medium"><MinusIcon className="size-3.5" />Failed</span>
-  return <span className="text-muted-foreground text-sm">Not recorded</span>
+  const status = courseStatus(course)
+  if (status === 'not-recorded') {
+    return <span className={`text-muted-foreground/70 ${DATA}`} title="No result recorded">—<span className="sr-only">No result recorded</span></span>
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+      <span aria-hidden className={`text-muted-foreground ${DATA}`}>{STATUS_MARK[status]}</span>
+      {STATUS_LABEL[status]}
+    </span>
+  )
 }
 
 function Choice({ value, disabled, label, options, onChange }: { value: string; disabled?: boolean; label: string; options: [string, string][]; onChange: (value: string) => void }) {

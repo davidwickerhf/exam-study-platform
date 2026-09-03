@@ -20,6 +20,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { tutorMarkdown } from '@/lib/workspace/markdown.mjs'
 
@@ -128,7 +129,13 @@ export default function TutorPage() {
 
   if (hub && !hub.available) {
     return (
-      <div className="mx-auto w-full max-w-[1180px] p-5 sm:p-8">
+      <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
+        <header className="flex flex-col gap-1 border-b pb-4">
+          <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">Tutor</h1>
+          <p className="text-muted-foreground text-sm">
+            Grounded in your courses — answers cite their sources.
+          </p>
+        </header>
         <Empty>
           <EmptyHeader>
             <EmptyTitle>The tutor needs a language model</EmptyTitle>
@@ -154,7 +161,7 @@ export default function TutorPage() {
                   className="flex min-w-0 flex-1 flex-col gap-0.5 px-2 py-2 text-left"
                   onClick={() => load(entry.id)}
                 >
-                  <strong className="truncate text-[13px] font-medium">{entry.title ?? 'New conversation'}</strong>
+                  <strong className="truncate text-[13.5px] font-medium">{entry.title ?? 'New conversation'}</strong>
                   <small className="text-muted-foreground font-data text-[11px] tabular-nums">
                     {entry.messageCount} message{entry.messageCount === 1 ? '' : 's'}
                   </small>
@@ -162,7 +169,7 @@ export default function TutorPage() {
                 <button
                   type="button"
                   aria-label={`Delete ${entry.title ?? 'conversation'}`}
-                  className="text-muted-foreground hover:text-foreground p-2 opacity-0 group-hover:opacity-100"
+                  className="text-muted-foreground hover:text-foreground p-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   onClick={async () => {
                     await fetch(`/api/tutor/conversations/${entry.id}`, { method: 'DELETE' })
                     load(entry.id === conversationId ? undefined : conversationId ?? undefined)
@@ -232,7 +239,10 @@ export default function TutorPage() {
 
   const composer = (
     <form
-      className="focus-within:border-primary bg-card flex items-end gap-3 rounded-sm border p-3"
+      // The whole composer is the control, so the focus ring belongs to it
+      // rather than to the borderless field inside it.
+      className="focus-within:border-primary focus-within:ring-ring/50 bg-card flex items-end gap-3 rounded-sm border p-3 transition-shadow focus-within:ring-2 aria-busy:opacity-70"
+      aria-busy={sending}
       onSubmit={(event) => { event.preventDefault(); void ask(draft) }}
     >
       <label className="sr-only" htmlFor="tutor-input">Your question</label>
@@ -241,14 +251,21 @@ export default function TutorPage() {
         rows={1}
         value={draft}
         disabled={sending}
-        placeholder="Ask about your week, a course, or your progress…"
-        className="max-h-40 min-h-6 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+        placeholder={sending ? 'Reading your record…' : 'Ask about your week, a course, or your progress…'}
+        className="max-h-40 min-h-6 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 disabled:opacity-100"
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void ask(draft) }
         }}
       />
-      <Button type="submit" size="icon" disabled={sending || !draft.trim()} aria-label="Send"><SendIcon /></Button>
+      <Button
+        type="submit"
+        size="icon"
+        disabled={sending || !draft.trim()}
+        aria-label={sending ? 'Sending…' : 'Send'}
+      >
+        {sending ? <Spinner /> : <SendIcon />}
+      </Button>
     </form>
   )
 
@@ -256,23 +273,41 @@ export default function TutorPage() {
 
   if (!started && !sending) {
     return (
-      <div className="mx-auto flex h-dvh w-full max-w-[1180px] flex-col justify-center p-8">
-        <div className="mx-auto flex w-full max-w-[64ch] flex-col gap-4">
-          <h1 className="font-heading text-4xl leading-tight tracking-tight">Ask about your week.</h1>
-          <p className="text-muted-foreground text-[15px] leading-relaxed">
-            It reads your timetable, your Canvas deadlines, your courses and your record before it answers — and it tells you
-            which of those it could not reach.
+      <div className="mx-auto flex min-h-dvh w-full max-w-[1180px] flex-col p-5 sm:p-8">
+        {/* The destination's header, like every other one. */}
+        <header className="flex flex-col gap-1 border-b pb-4">
+          <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">Tutor</h1>
+          <p className="text-muted-foreground text-sm">
+            Grounded in your courses — answers cite their sources.
           </p>
-          <div className="flex flex-wrap gap-2">
-            {OPENERS.map((opener) => (
-              <Button key={opener} variant="outline" size="sm" className="rounded-full" onClick={() => void ask(opener)}>
-                {opener}
-              </Button>
-            ))}
+        </header>
+
+        {/* The opener keeps the centred invitation it had, beneath the header. */}
+        <div className="flex flex-1 flex-col justify-center py-10">
+          <div className="mx-auto flex w-full max-w-[64ch] flex-col gap-4">
+            <h2 className="font-heading text-[32px] leading-tight tracking-tight">Ask about your week.</h2>
+            <p className="text-muted-foreground text-[15px] leading-relaxed">
+              It reads your timetable, your Canvas deadlines, your courses and your record before it answers — and it tells you
+              which of those it could not reach.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {OPENERS.map((opener) => (
+                <Button
+                  key={opener}
+                  variant="outline"
+                  size="sm"
+                  disabled={sending}
+                  className="hover:border-primary hover:text-primary rounded-full transition-colors"
+                  onClick={() => void ask(opener)}
+                >
+                  {opener}
+                </Button>
+              ))}
+            </div>
+            {error && <p role="alert" className="text-sm font-medium">{error}</p>}
+            {composer}
+            <div className="flex items-center gap-3">{drawer}</div>
           </div>
-          {error && <p className="text-sm">{error}</p>}
-          {composer}
-          <div className="flex items-center gap-3">{drawer}</div>
         </div>
       </div>
     )
@@ -281,9 +316,12 @@ export default function TutorPage() {
   return (
     <div className="mx-auto flex h-dvh w-full max-w-[1180px] flex-col gap-4 p-6">
       <div className="mx-auto flex w-full max-w-[72ch] items-center gap-4 border-b pb-3">
-        <h1 className="min-w-0 flex-1 truncate text-base font-semibold">
-          {hub?.conversation?.title ?? messages.find((message) => message.role === 'user')?.content ?? 'Tutor'}
-        </h1>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Tutor</span>
+          <h1 className="min-w-0 truncate text-base font-semibold">
+            {hub?.conversation?.title ?? messages.find((message) => message.role === 'user')?.content ?? 'Grounded answers'}
+          </h1>
+        </div>
         <Button variant="ghost" size="sm" onClick={() => { setMessages([]); setConversationId(null); setConversationLocation(null); setDraft('') }}>
           <PlusIcon data-icon="inline-start" />New
         </Button>

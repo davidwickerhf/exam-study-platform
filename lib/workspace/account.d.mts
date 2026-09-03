@@ -129,8 +129,56 @@ export type ResetScope = 'study' | 'everything'
 
 export type KeyState = 'active' | 'revoked' | 'expired'
 
+export type CorpusJob = {
+  id: string
+  type: string
+  status: string
+  error?: string | null
+  courseCode?: string | null
+  courseName?: string | null
+  academicYear?: string | null
+  createdAt?: string
+  finishedAt?: string | null
+}
+
+export type CorpusCourseEdition = {
+  id: string
+  courseCode: string
+  courseName: string
+  sources: number
+  lastSyncedAt?: string | null
+}
+
+export type CorpusStatus = { jobs?: CorpusJob[]; courses?: CorpusCourseEdition[] }
+
+export type CorpusSummary = {
+  jobs: CorpusJob[]
+  active: CorpusJob[]
+  failed: CorpusJob[]
+  latestByCourse: CorpusJob[]
+  failureGroups: [string, CorpusJob[]][]
+  courseEditions: number
+  storedMaterials: number
+}
+
+export type CurrentCourseFigure = { count: number; period: string | null; codes: string[] }
+
+export type ProgrammeFacts = {
+  programme: string | null
+  source: 'record' | 'membership' | null
+  institution: string | null
+  memberships: { id: string; label: string; admin: boolean }[]
+  membership: string
+  empty: boolean
+}
+
 export declare function formatBytes(bytes: number | null | undefined): string
 export declare function formatCount(value: number | null | undefined): string
+export declare function approximateBytes(bytes: number | null | undefined): string | null
+export declare function periodLabel(value: unknown): string | null
+export declare function currentCourseFigure(calendar: { currentCourses?: { code?: string }[]; academicContext?: { period?: string } | null } | null | undefined): CurrentCourseFigure | null
+export declare function programmeFacts(summary: AccountSummary | null | undefined, workspace: { profile?: { programme?: string; university?: string } } | null | undefined): ProgrammeFacts
+export declare function canvasCorpusSummary(status: CorpusStatus | null | undefined): CorpusSummary
 export declare function meterPercent(used: number, limit: number | null | undefined): number | null
 export declare function allowanceMeters(summary: AiUsage | null): Meter[]
 export declare const AI_FEATURE_LABEL: Record<string, string>
