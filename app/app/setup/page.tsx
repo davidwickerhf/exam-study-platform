@@ -4,9 +4,9 @@
  * Setup, migrated.
  *
  * The conversation opens on the first thing that is actually missing rather
- * than on a greeting. The server decides which that is — `GET /api/onboarding`
+ * than on a greeting. The server decides which that is. `GET /api/onboarding`
  * returns an `opening` of `{ step, heading, body, placeholder }` while the
- * student has not replied yet — and this page draws it as its own screen: the
+ * student has not replied yet, and this page draws it as its own screen: the
  * question, and the field that answers it, together. Shown as a transcript it
  * was one bubble stranded above a page of nothing with the composer parked on
  * the floor. Once they reply it becomes an ordinary thread.
@@ -14,11 +14,11 @@
  * A credential never enters the conversation. The timetable URL and the Canvas
  * token are typed into their own protected field, posted to
  * /api/onboarding/secure, applied by the server and written back into the
- * transcript only as the fact that they were applied — see `applySecureValue`
+ * transcript only as the fact that they were applied. See `applySecureValue`
  * in lib/onboarding-runtime.mjs. Nothing here puts either value in a message,
  * in a URL, or in the console.
  *
- * Assistant turns are Markdown, parsed by lib/app/markdown.mjs — the same
+ * Assistant turns are Markdown, parsed by lib/app/markdown.mjs, the same
  * escape-first parser the tutor uses, which is what makes it safe to set as
  * HTML.
  *
@@ -200,8 +200,8 @@ function TimetableGuide() {
       <Step number={1} title="Open the timetable app and sign in">
         <a href={TIMETABLE_PORTAL} target="_blank" rel="noopener noreferrer">
           timetable.maastrichtuniversity.nl
-        </a>{' '}
-        — your normal university account.
+        </a>
+        . Sign in with your usual university account.
       </Step>
       <Step number={2} title="Open the menu">The ≡ button, top left of your week.</Step>
       <Step number={3} title="Choose “Connect to calendar app”">It sits under <em>Connect calendar</em>.</Step>
@@ -222,7 +222,7 @@ function CanvasGuide() {
         , in a tab where you are already signed in.
       </Step>
       <Step number={2} title="Create an access token">
-        Under <em>Approved integrations</em>, choose <em>+ New access token</em> and name it “Wicker Study”. Copy it once — Canvas will not show it again.
+        Under <em>Approved integrations</em>, choose <em>+ New access token</em> and name it “Wicker Study”. Copy it once. Canvas will not show it again.
       </Step>
       <Step number={3} title="Paste it below">Only a Personal Access Token. Never a password, an MFA code, or a cookie.</Step>
     </Steps>
@@ -421,7 +421,7 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?
   const [review, setReview] = useState<{ changes: TranscriptChange[]; revision: number; warnings?: string[] } | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   return <div className="flex flex-col gap-6">
-    <p className="text-muted-foreground max-w-[68ch] text-[13.5px] leading-relaxed">Use the transcript that lists individual results and dates — not the Academic Work overview. It is read in this browser and never stored.</p>
+    <p className="text-muted-foreground max-w-[68ch] text-[13.5px] leading-relaxed">Use the transcript that lists individual results and dates, not the Academic Work overview. It is read in this browser and never stored.</p>
     {!review ? <FilePicker
       label="Transcript PDF"
       accept="application/pdf,.pdf,.txt"
@@ -724,13 +724,13 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
                       <div>
                         <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">In your current record</p>
                         <ul className="space-y-1 text-sm">
-                          {issue.unexpectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data text-primary">{course.code}</span>{course.name ? ` — ${course.name}` : ''}</li>)}
+                          {issue.unexpectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data text-primary">{course.code}</span>{course.name ? ` · ${course.name}` : ''}</li>)}
                         </ul>
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">In the selected plan</p>
                         <ul className="max-h-48 space-y-1 overflow-y-auto pr-2 text-sm">
-                          {issue.expectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data">{course.code}</span>{course.name ? ` — ${course.name}` : ''}</li>)}
+                          {issue.expectedCourses?.map((course) => <li key={`${course.code}-${course.name}`}><span className="font-data">{course.code}</span>{course.name ? ` · ${course.name}` : ''}</li>)}
                         </ul>
                       </div>
                     </div>
@@ -976,7 +976,7 @@ function UnifiedSetup({
       <header className="mb-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="font-heading text-[clamp(2rem,4vw,3.25rem)] leading-[0.98] font-semibold tracking-[-0.045em]">Build your study desk</h1>
-          <p className="text-muted-foreground mt-3 max-w-[62ch] text-sm leading-relaxed">Start with your programme. Then connect the evidence that turns courses into an accurate weekly plan—usually in about five minutes.</p>
+          <p className="text-muted-foreground mt-3 max-w-[62ch] text-sm leading-relaxed">Start with your programme. Then connect the sources that keep your courses, schedule and priorities accurate.</p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-4 lg:w-auto lg:flex-nowrap">
           <p className="text-muted-foreground text-right text-xs leading-relaxed"><strong className="text-foreground block text-sm">{connected} of {steps.length} sources connected</strong>A programme is enough to begin</p>
@@ -1020,19 +1020,19 @@ function UnifiedSetup({
             {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshFrom('electives')} />)}
             {selected.id === 'record' && <UploadField onRead={() => refreshFrom('record')} onSkip={() => void defer('record')} />}
             {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} onSkip={() => void defer('transcript')} />}
-            {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place every week—and the next exam—in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}
+            {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}
             {selected.id === 'timetable' && <form className="flex flex-col gap-5" onSubmit={async (event) => { event.preventDefault(); const url = timetable.trim(); if (!url || timetableBusy) return; setTimetableBusy(true); setTimetableError(null); try { await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) }); setTimetable(''); await refreshFrom('timetable') } catch (cause) { setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.') } finally { setTimetableBusy(false) } }}><TimetableGuide /><Field data-invalid={timetableError ? true : undefined}><FieldLabel htmlFor="guided-timetable">Timetable URL</FieldLabel><Input id="guided-timetable" type="url" required autoComplete="off" spellCheck={false} value={timetable} disabled={timetableBusy} placeholder="https://timetable.maastrichtuniversity.nl/ical?…" onChange={(event) => setTimetable(event.target.value)} /><FieldDescription className="flex items-center gap-1.5"><ShieldIcon className="size-3.5" />Stored on your account only, and read but never written to.</FieldDescription>{timetableError && <FieldError>{timetableError}</FieldError>}</Field><div className="flex flex-wrap items-center gap-2"><Button type="submit" disabled={timetableBusy || !timetable.trim()}>{timetableBusy && <Spinner data-icon="inline-start" />}{timetableBusy ? 'Checking the feed…' : 'Connect timetable'}</Button><Button type="button" variant="ghost" disabled={timetableBusy} onClick={() => void defer('timetable')}>Do this later</Button>{saved === 'timetable' && <SavedMark>{selected.detail}</SavedMark>}</div></form>}
             {selected.id === 'canvas' && <div className="flex flex-col gap-5"><div className="flex items-start gap-3"><SparklesIcon className="text-primary mt-0.5 size-5 shrink-0" /><div><p className="text-sm font-semibold">Priority detection is included</p><p className="text-muted-foreground mt-1 text-sm leading-relaxed">With material collection enabled, Wicker re-scans syllabi, slides and course manuals for assignments, attendance requirements, group work, submissions and deadlines. Claims are reconciled with Canvas assignments; conflicts stay unverified until you review them.</p></div></div><SecureField kind="canvas" onApplied={(fresh) => advanceFrom(fresh, 'canvas')} onSkip={() => void defer('canvas')} /></div>}
             {selected.id === 'electives' && <Button type="button" variant="ghost" className="mt-5" disabled={deferBusy === 'electives'} onClick={() => void defer('electives')}>{deferBusy === 'electives' && <Spinner data-icon="inline-start" />}Do this later</Button>}
           </div>
         </main>
 
-        <aside>
+        <aside className="flex flex-col gap-4">
           <section className="overflow-hidden rounded-xl border" aria-labelledby="sources-title">
             <div className="border-b px-4 py-3"><h2 id="sources-title" className="text-sm font-semibold">Source register</h2></div>
             <ul>{steps.map((step) => { const stepIssues = issues.filter((issue) => issue.step === step.id || issue.relatedStep === step.id); return <li key={step.id} className="border-b last:border-b-0"><button type="button" disabled={step.status === 'blocked'} onClick={() => setOpen(step.id)} className={`focus-visible:ring-primary flex w-full items-center gap-3 px-4 py-3 text-left outline-none hover:bg-card focus-visible:ring-2 disabled:opacity-45 ${step.id === selected.id ? 'bg-card' : ''}`}><span className="grid size-5 shrink-0 place-items-center">{stepIssues.length ? <AlertTriangleIcon className="text-primary size-4" /> : MARKS[step.status]}</span><span className="min-w-0 flex-1"><strong className="block truncate text-sm font-medium">{step.title}</strong><span className="text-muted-foreground block truncate text-xs">{STATUS_WORD[step.status]}</span></span><ChevronRightIcon className="text-muted-foreground size-3.5" /></button></li>})}</ul>
           </section>
-          <p className="text-muted-foreground px-1 text-xs leading-relaxed"><ShieldIcon className="mr-1 inline size-3.5 align-[-2px]" />Files are parsed for structured facts. Credentials never enter the assistant conversation.</p>
+          <p className="text-muted-foreground px-1 text-xs leading-relaxed"><ShieldIcon className="mr-1 inline size-3.5 align-[-2px]" />Only structured study information reaches the assistant. Your files and credentials stay outside the conversation.</p>
         </aside>
       </div>
 
@@ -1094,7 +1094,7 @@ function SetupSurface() {
     setSending(true)
     setError(null)
     setDraft('')
-    // Show what was said straight away: a reply takes a few seconds.
+    // Show what was said straight away. A reply takes a few seconds.
     setSaid((previous) => [...previous, { role: 'user', content: message, at: new Date().toISOString() }])
     try {
       const next = await json<View>('/api/onboarding', { method: 'POST', body: JSON.stringify({ message }) })
@@ -1166,7 +1166,7 @@ function SetupSurface() {
 
   // Not a transcript yet, an invitation: the heading, the body, and the field
   // that answers it, on one screen. The question is whichever thing is
-  // actually missing — the server picked it.
+  // actually missing. The server picked it.
   if (view && opening && !started && !sending) {
     const steps = setupSteps({ state: view.state ?? null, skipped: view.skipped ?? [] })
     const connected = connectedCount(steps)

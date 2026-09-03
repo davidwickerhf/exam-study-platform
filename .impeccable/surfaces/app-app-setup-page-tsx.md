@@ -1,10 +1,11 @@
-# Surface brief — `/app/setup`
+# Surface brief: `/app/setup`
 
 ## Job
 
-Turn a new or incomplete account into a truthful personal study desk in roughly
-five minutes. The activation moment is a saved programme: this creates the
-course and academic-period frame and immediately makes the workspace useful.
+Turn a new or incomplete account into a truthful personal study desk without
+making a completion-time promise. Interface copy uses direct sentences without
+em dashes. The activation moment is a saved programme: this creates the course
+and academic-period frame and immediately makes the workspace useful.
 
 ## Flow
 
@@ -15,10 +16,10 @@ only the compact brand bar and the visible top-right escape action remain.
 
 The server-owned step order is deterministic:
 
-1. Study plan — programme (required), then current-period electives.
-2. Academic record — Academic Work overview, then transcript.
-3. Schedule — maintained academic calendar, then personal timetable.
-4. Canvas — live assignments plus optional private course-material indexing.
+1. Study plan: programme (required), then current-period electives.
+2. Academic record: Academic Work overview, then transcript.
+3. Schedule: maintained academic calendar, then personal timetable.
+4. Canvas: live assignments plus optional private course-material indexing.
 
 The phase strip may open a phase directly, but it chooses that phase's first
 unresolved, non-blocked source. After every successful save or deferral, the
@@ -96,7 +97,9 @@ separate account-data action to remove.
 - The Source register is compact evidence/navigation, not a second sidebar or
   a StudyMap; no decorative inline SVG substitutes for it. On desktop it
   occupies the 20rem right column and begins level with the active task plane;
-  on mobile it follows the task plane in document order.
+  on mobile it follows the task plane in document order. Its privacy helper is
+  deliberately separated below the bordered register rather than presented as
+  another register row.
 - The global workspace sidebar and mobile navigation are absent during setup.
   A small brand bar and top-right escape action are the only shell.
 - Desktop uses a broad task plane plus the 20rem Source register column; mobile

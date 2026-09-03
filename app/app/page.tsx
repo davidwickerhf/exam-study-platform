@@ -61,11 +61,38 @@ type Activity = {
 type AcademicsPayload = { summary: AcademicSummary; workspace?: { courses?: { ects?: number }[]; calendars?: unknown[] } }
 type WorkspaceShell = { courses?: StudyCourse[] }
 type HubPayload = { connected?: boolean; assignments?: Assignment[] }
+type ActivityCell = Activity['series'][number] | null
 
 const DESIGN_CONTRACT = 'study-itinerary-29b43344'
 const NUMERALS = 'font-data tabular-nums'
 const LABEL = 'text-muted-foreground text-[11px] font-semibold tracking-[0.09em] uppercase'
 const QUIET_LINK = 'text-primary font-medium underline decoration-border underline-offset-4 hover:decoration-current'
+const HEAT_LEVEL = [
+  'bg-muted ring-1 ring-inset ring-foreground/5',
+  'bg-primary/20',
+  'bg-primary/40',
+  'bg-primary/65',
+  'bg-primary'
+] as const
+
+function heatLevel(total: number, peak: number) {
+  if (!total) return 0
+  return Math.max(1, Math.min(4, Math.ceil((total / peak) * 4)))
+}
+
+function activityWeeks(series: Activity['series']): ActivityCell[][] {
+  if (!series.length) return []
+  const first = new Date(`${series[0].date}T00:00:00Z`)
+  const mondayOffset = (first.getUTCDay() + 6) % 7
+  const cells: ActivityCell[] = [...Array.from({ length: mondayOffset }, () => null), ...series]
+  while (cells.length % 7) cells.push(null)
+  return Array.from({ length: cells.length / 7 }, (_, week) => cells.slice(week * 7, week * 7 + 7))
+}
+
+function activityLabel(day: Activity['series'][number]) {
+  const date = new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+  return `${date}: ${day.total} ${day.total === 1 ? 'study activity' : 'study activities'}`
+}
 
 function shortDate(value: string | null) {
   if (!value) return null
@@ -168,6 +195,7 @@ export default function HomePage() {
   const missingPrioritySources = prioritySources.filter((source) => source.detail !== 'Checking…' && !source.ready).length
   const unavailablePrioritySources = prioritySources.filter((source) => source.detail === 'Unavailable').length
   const peak = useMemo(() => Math.max(1, ...(activity?.series ?? []).map((item) => item.total)), [activity])
+  const activityByWeek = useMemo(() => activityWeeks(activity?.series ?? []), [activity])
 
   if (calendarError) {
     return <div className="mx-auto w-full max-w-[1280px] p-5 sm:p-8"><Empty><EmptyHeader><EmptyTitle>Your week could not be read</EmptyTitle><EmptyDescription>{calendarError.message}</EmptyDescription></EmptyHeader></Empty></div>
@@ -347,7 +375,28 @@ export default function HomePage() {
 
           <section className="bg-card rounded-xl border p-5">
             <div className="flex items-baseline justify-between gap-4"><h2 className="text-sm font-semibold">28-day activity</h2><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{activity ? `${activity.activeDays} active days` : activityError ? 'Unavailable' : 'Loading'}</span></div>
-            {activity ? <div className="mt-4 flex h-12 items-end gap-1" role="img" aria-label={`${activity.activeDays} active days in the last ${activity.days} days`}>{activity.series.map((day) => <span key={day.date} title={`${day.date}: ${day.total}`} className={`min-h-px flex-1 ${day.total ? 'bg-primary' : 'bg-border'}`} style={{ height: `${day.total ? Math.max(12, (day.total / peak) * 100) : 3}%` }} />)}</div> : activityError ? <p className="text-muted-foreground mt-4 text-xs">Activity is temporarily unavailable.</p> : <Skeleton className="mt-4 h-12 w-full" />}
+            {activity ? <div className="mt-4">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3" aria-hidden="true">
+                <div className={`text-muted-foreground grid grid-rows-7 gap-1.5 text-xs ${NUMERALS}`} aria-hidden="true">
+                  {['M', '', 'W', '', 'F', '', ''].map((label, index) => <span key={index} className="flex h-5 items-center">{label}</span>)}
+                </div>
+                <div className="flex min-w-0 justify-between gap-1.5">
+                  {activityByWeek.map((week, weekIndex) => <div key={weekIndex} className="grid grid-rows-7 gap-1.5">
+                    {week.map((day, dayIndex) => day
+                      ? <span key={day.date} title={activityLabel(day)} className={`size-5 rounded-[3px] ${HEAT_LEVEL[heatLevel(day.total, peak)]}`} />
+                      : <span key={`empty-${dayIndex}`} aria-hidden="true" className="size-5" />)}
+                  </div>)}
+                </div>
+              </div>
+              <ol className="sr-only" aria-label={`${activity.activeDays} active days in the last ${activity.days} days`}>
+                {activity.series.map((day) => <li key={day.date}>{activityLabel(day)}</li>)}
+              </ol>
+              <div className={`text-muted-foreground mt-3 flex items-center justify-end gap-1.5 text-xs ${NUMERALS}`} aria-hidden="true">
+                <span className="mr-0.5">Less</span>
+                {HEAT_LEVEL.map((tone, index) => <span key={index} className={`size-2.5 rounded-[2px] ${tone}`} />)}
+                <span className="ml-0.5">More</span>
+              </div>
+            </div> : activityError ? <p className="text-muted-foreground mt-4 text-xs">Activity is temporarily unavailable.</p> : <Skeleton className="mt-4 h-32 w-full" />}
           </section>
         </aside>
       </div>
