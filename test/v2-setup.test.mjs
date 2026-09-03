@@ -29,6 +29,8 @@ const EMPTY = {
   courseCount: 0,
   record: false,
   recordSummary: null,
+  transcript: false,
+  transcriptAttempts: 0,
   calendar: false,
   calendarDates: 0,
   timetable: false,
@@ -71,8 +73,8 @@ test('a skipped step reads as skipped, never as done, and is not offered as the 
   assert.match(electives.detail, /^You skipped this\./)
   assert.equal(connectedCount(steps), 1)
   // Skipped is still outstanding — it is not connected.
-  assert.deepEqual(outstandingSteps(steps).map((step) => step.id), ['electives', 'record', 'calendar', 'timetable', 'canvas'])
-  assert.equal(nextStep(steps).id, 'calendar')
+  assert.deepEqual(outstandingSteps(steps).map((step) => step.id), ['electives', 'record', 'transcript', 'calendar', 'timetable', 'canvas'])
+  assert.equal(nextStep(steps).id, 'transcript')
 })
 
 test('connecting something that was skipped clears the skip', () => {
@@ -86,9 +88,9 @@ test('only the programme is required', () => {
 })
 
 test('the checklist walks the same order the conversation asks in', () => {
-  // lib/onboarding-runtime.mjs openingMessage(): programme, electives, record,
-  // calendar, timetable, canvas.
-  assert.deepEqual(SETUP_STEPS.map((step) => step.id), ['programme', 'electives', 'record', 'calendar', 'timetable', 'canvas'])
+  // lib/onboarding-runtime.mjs openingMessage(): programme, electives, Academic
+  // Work, Transcript, calendar, timetable, Canvas.
+  assert.deepEqual(SETUP_STEPS.map((step) => step.id), ['programme', 'electives', 'record', 'transcript', 'calendar', 'timetable', 'canvas'])
 })
 
 test('a fully connected account is complete and has nothing outstanding', () => {
@@ -96,12 +98,13 @@ test('a fully connected account is complete and has nothing outstanding', () => 
     programme: true, programmeName: 'Bachelor Data Science and Artificial Intelligence', courseCount: 21,
     electives: true, electivesChosen: 2,
     record: true, recordSummary: { earnedEcts: 96, passedCourses: 17, weightedAverage: 7.4 },
+    transcript: true, transcriptAttempts: 24,
     calendar: true, calendarDates: 34,
     timetable: true, timetableEvents: 212,
     canvas: true
   })
   const steps = setupSteps({ state })
-  assert.equal(connectedCount(steps), 6)
+  assert.equal(connectedCount(steps), 7)
   assert.equal(isComplete(steps), true)
   assert.deepEqual(outstandingSteps(steps), [])
   assert.equal(nextStep(steps), null)

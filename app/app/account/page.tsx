@@ -352,7 +352,7 @@ function ConnectionsTab() {
   const connections = useJson<{ connections: CanvasConnection[] }>(
     "/api/account/integrations/canvas",
   );
-  const corpusStatus = useJson<{ status: { jobs?: { id: string; type: string; status: string; error?: string | null; createdAt?: string; finishedAt?: string | null }[]; courses?: { id: string; courseCode: string; courseName: string; sources: number; lastSyncedAt?: string | null }[] } }>("/api/account/integrations/canvas/corpus");
+  const corpusStatus = useJson<{ status: { jobs?: { id: string; type: string; status: string; error?: string | null; courseCode?: string | null; courseName?: string | null; academicYear?: string | null; createdAt?: string; finishedAt?: string | null }[]; courses?: { id: string; courseCode: string; courseName: string; sources: number; lastSyncedAt?: string | null }[] } }>("/api/account/integrations/canvas/corpus");
   const [custom, setCustom] = useState(false);
   const [canvasUrl, setCanvasUrl] = useState(
     "https://canvas.maastrichtuniversity.nl",
@@ -366,6 +366,18 @@ function ConnectionsTab() {
   const [selectedCourse, setSelectedCourse] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [addingHost, setAddingHost] = useState(false);
+
+  const corpusJobs = corpusStatus.data?.status.jobs ?? [];
+  const activeJobs = corpusJobs.filter((job) => ["pending", "running"].includes(job.status));
+  const failedJobs = corpusJobs.filter((job) => job.status === "failed");
+  const latestCourseJobs = [...new Map(corpusJobs.filter((job) => job.courseCode).map((job) => [job.courseCode, job])).values()];
+  const failureGroups = [...new Map(failedJobs.map((job) => [job.error || "Unknown import error", failedJobs.filter((candidate) => (candidate.error || "Unknown import error") === (job.error || "Unknown import error"))])).entries()];
+
+  useEffect(() => {
+    if (!activeJobs.length) return;
+    const timer = window.setInterval(corpusStatus.reload, 4000);
+    return () => window.clearInterval(timer);
+  }, [activeJobs.length, corpusStatus.reload]);
 
   async function saveMaterialMode(connection: CanvasConnection, mode: "none" | "private" | "community") {
     setBusy(true); setError(null); setNotice(null);
@@ -583,11 +595,14 @@ function ConnectionsTab() {
               <button type="button" className="text-primary text-sm font-semibold" onClick={corpusStatus.reload}>Refresh status</button>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <span><strong className={`${NUMERALS} block text-xl`}>{corpusStatus.data.status.jobs?.filter((job) => ["pending", "running"].includes(job.status)).length ?? 0}</strong><small className="text-muted-foreground">jobs in progress</small></span>
+              <span><strong className={`${NUMERALS} block text-xl`}>{activeJobs.length}</strong><small className="text-muted-foreground">jobs in progress</small></span>
               <span><strong className={`${NUMERALS} block text-xl`}>{corpusStatus.data.status.courses?.length ?? 0}</strong><small className="text-muted-foreground">course editions found</small></span>
               <span><strong className={`${NUMERALS} block text-xl`}>{corpusStatus.data.status.courses?.reduce((total, course) => total + course.sources, 0) ?? 0}</strong><small className="text-muted-foreground">materials stored</small></span>
             </div>
-            {!!corpusStatus.data.status.jobs?.length && <details className="mt-4 border-t pt-3"><summary className="cursor-pointer text-sm font-semibold">View collection history</summary><ul className="mt-3 flex max-h-64 flex-col overflow-y-auto">{corpusStatus.data.status.jobs.slice(0, 20).map((job) => <li key={job.id} className="flex items-start justify-between gap-4 border-b py-2 text-sm"><span><strong className="capitalize">{job.type}</strong>{job.error && <small className="text-muted-foreground mt-0.5 block max-w-[60ch] [overflow-wrap:anywhere]">{job.error}</small>}</span><span className={`${NUMERALS} text-muted-foreground capitalize`}>{job.status}</span></li>)}</ul></details>}
+            {activeJobs.length > 0 && <p role="status" className="text-muted-foreground mt-3 text-xs">This updates automatically while Canvas is working. You can leave this page; collection continues on the server.</p>}
+            {failedJobs.length > 0 && <div className="mt-4 border-primary border-l-2 pl-4"><div className="flex flex-wrap items-center justify-between gap-3"><span><strong>{failedJobs.length} imports need attention</strong><small className="text-muted-foreground block">Repeated failures are grouped below.</small></span>{connections.data?.connections[0] && <Button size="sm" variant="outline" onClick={() => void refreshMaterials(connections.data!.connections[0])} disabled={busy}>Retry failed imports</Button>}</div><div className="mt-3 flex flex-col">{failureGroups.map(([message, jobs]) => <details key={message} className="border-t py-2"><summary className="cursor-pointer text-sm font-medium">{jobs.length} course{jobs.length === 1 ? '' : 's'} · {message}</summary><p className="text-muted-foreground mt-2 text-xs">{jobs.map((job) => job.courseCode || job.courseName || 'Course import').join(' · ')}</p></details>)}</div></div>}
+            {!!latestCourseJobs.length && <details className="mt-4 border-t pt-3" open={activeJobs.length > 0}><summary className="cursor-pointer text-sm font-semibold">Course-by-course progress</summary><ul className="mt-3 flex max-h-72 flex-col overflow-y-auto">{latestCourseJobs.map((job) => <li key={job.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b py-2 text-sm"><span><strong>{job.courseCode || job.courseName}</strong>{job.courseCode && job.courseName && <small className="text-muted-foreground ml-2">{job.courseName}</small>}<small className="text-muted-foreground mt-0.5 block">{job.academicYear || 'Year not supplied by Canvas'}</small></span><span className={`${NUMERALS} text-muted-foreground capitalize`}>{job.status}</span></li>)}</ul></details>}
+            {!!corpusJobs.length && <details className="mt-3"><summary className="text-muted-foreground cursor-pointer text-xs">Technical history</summary><ul className="mt-2 flex max-h-64 flex-col overflow-y-auto">{corpusJobs.slice(0, 30).map((job) => <li key={job.id} className="flex items-start justify-between gap-4 border-b py-2 text-xs"><span>{job.courseCode || job.type}{job.error && <small className="text-muted-foreground mt-0.5 block max-w-[60ch] [overflow-wrap:anywhere]">{job.error}</small>}</span><span className={`${NUMERALS} text-muted-foreground capitalize`}>{job.status}</span></li>)}</ul></details>}
           </div>
         )}
         {connections.error ? (
@@ -633,7 +648,7 @@ function ConnectionsTab() {
                 </summary>
                 <div className="mt-4 flex flex-col gap-2 border-t pt-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Select value={!connection.corpus?.collectionEnabled ? "none" : connection.corpus.sharingMode} onValueChange={(value) => void saveMaterialMode(connection, value as "none" | "private" | "community")} disabled={busy}>
+                    <Select items={[{value:'none',label:'Do not collect material'},{value:'private',label:'Private material library'},{value:'community',label:'Share with community'}]} value={!connection.corpus?.collectionEnabled ? "none" : connection.corpus.sharingMode} onValueChange={(value) => void saveMaterialMode(connection, value as "none" | "private" | "community")} disabled={busy}>
                       <SelectTrigger className="w-52"><SelectValue aria-label="Material authorization" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Do not collect material</SelectItem>
@@ -647,7 +662,7 @@ function ConnectionsTab() {
                   </div>
                   {courseCatalog[connection.origin] && (
                     <div className="flex flex-wrap items-center gap-2 rounded-sm bg-background p-2">
-                      <Select value={selectedCourse[connection.origin] || ""} onValueChange={(value) => setSelectedCourse((held) => ({ ...held, [connection.origin]: value || "" }))}>
+                      <Select items={courseCatalog[connection.origin].map((course) => ({ value: String(course.id), label: [course.courseCode, course.displayName || course.name, course.term?.name].filter(Boolean).join(' · ') }))} value={selectedCourse[connection.origin] || ""} onValueChange={(value) => setSelectedCourse((held) => ({ ...held, [connection.origin]: value || "" }))}>
                         <SelectTrigger className="min-w-72 flex-1"><SelectValue placeholder="Select any Canvas course edition" /></SelectTrigger>
                         <SelectContent>
                           {courseCatalog[connection.origin].map((course) => <SelectItem key={String(course.id)} value={String(course.id)}>{[course.courseCode, course.displayName || course.name, course.term?.name].filter(Boolean).join(" · ")}</SelectItem>)}

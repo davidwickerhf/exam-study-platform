@@ -12,9 +12,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { SearchIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { Input } from '@/components/ui/input'
 import { OnboardingResume } from '@/components/workspace/onboarding-resume'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { type AcademicCourse, type StudyCourse, byNextExam, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
 import { localIsoDate } from '@/lib/workspace/home.mjs'
@@ -22,12 +25,19 @@ import { localIsoDate } from '@/lib/workspace/home.mjs'
 const NUMERALS = 'font-data tabular-nums'
 type CorpusCourse = { id: string; courseCode: string; courseName: string; academicYear?: string; period?: string; sources: number; lastSyncedAt?: string | null }
 type LedgerCourse = { key: string; code: string; name: string; editorial?: StudyCourse; academic?: AcademicCourse; corpus?: CorpusCourse; archived: boolean }
+type Catalogue = { programmes?: { id: string; versions?: { id: string; courses?: { id: string; code: string; name: string; ects?: number; yearLevel?: string; period?: string }[] }[] }[] }
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<StudyCourse[] | null>(null)
   const [academic, setAcademic] = useState<AcademicCourse[]>([])
   const [read, setRead] = useState<Set<string>>(new Set())
   const [corpus, setCorpus] = useState<CorpusCourse[]>([])
+  const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
+  const [programmeTemplate, setProgrammeTemplate] = useState<{ programmeId?: string; versionId?: string } | null>(null)
+  const [currentPeriod, setCurrentPeriod] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [scope, setScope] = useState('current')
+  const [sort, setSort] = useState('period')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -38,8 +48,10 @@ export default function CoursesPage() {
         .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${path} returned ${response.status}`))))
     json('/api/state').then((data) => { if (live) setCourses(data.courses ?? []) })
       .catch((cause: Error) => { if (live) setError(cause.message) })
-    json('/api/academics').then((data) => { if (live) setAcademic(data.workspace?.courses ?? []) }).catch(() => {})
+    json('/api/academics').then((data) => { if (live) { setAcademic(data.workspace?.courses ?? []); setProgrammeTemplate(data.workspace?.programmeTemplate ?? null) } }).catch(() => {})
     json('/api/account/integrations/canvas/corpus').then((data) => { if (live) setCorpus(data.status?.courses ?? []) }).catch(() => {})
+    json('/api/onboarding/programmes').then((data) => { if (live) setCatalogue(data) }).catch(() => {})
+    json('/api/calendar/events').then((data) => { if (live) setCurrentPeriod(data.academicContext?.period ?? null) }).catch(() => {})
     return () => { live = false }
   }, [])
 
@@ -58,15 +70,50 @@ export default function CoursesPage() {
       const held = rows.get(key)
       rows.set(key, { key, code: course.courseCode || held?.code || key, name: course.courseName || held?.name || course.courseCode, editorial: held?.editorial, academic: held?.academic, corpus: course, archived: held?.archived ?? false })
     }
-    const current = [...rows.values()].filter((row) => !row.archived)
-    return current.sort((left, right) => {
+    const programme = catalogue?.programmes?.find((entry) => entry.id === programmeTemplate?.programmeId)
+    const version = programme?.versions?.find((entry) => entry.id === programmeTemplate?.versionId) ?? programme?.versions?.[0]
+    for (const course of version?.courses ?? []) {
+      const key = course.code.toUpperCase()
+      const held = rows.get(key)
+      if (!held) rows.set(key, { key, code: course.code, name: course.name, academic: { id: course.id, code: course.code, name: course.name, ects: course.ects, yearLevel: course.yearLevel, period: course.period, attempts: [] } as AcademicCourse, archived: false })
+    }
+    return [...rows.values()].sort((left, right) => {
       if (left.editorial && right.editorial) return byNextExam([left.editorial, right.editorial], academic, today)[0].id === left.editorial.id ? -1 : 1
       if (left.academic && !right.academic) return -1
       if (!left.academic && right.academic) return 1
       return left.code.localeCompare(right.code)
     })
-  }, [courses, academic, corpus, today])
-  const archived = (courses ?? []).filter((course) => course.archived)
+  }, [courses, academic, corpus, catalogue, programmeTemplate, today])
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    const status = (entry: LedgerCourse) => {
+      const attempts = entry.academic?.attempts ?? []
+      const passed = attempts.some((attempt) => /pass|completed/i.test(String(attempt.status)))
+      const failed = !passed && attempts.some((attempt) => /fail|no.?show|insufficient/i.test(String(attempt.status)))
+      const registered = attempts.some((attempt) => /current|registered|enrolled|planned/i.test(String(attempt.status)))
+      const period = String(entry.academic?.period || entry.corpus?.period || '')
+      const normalizedCurrent = String(currentPeriod || '').replace(/^Period\s*/i, '')
+      const current = !passed && !entry.archived && (registered || (Boolean(normalizedCurrent) && (period === normalizedCurrent || period === `Period ${normalizedCurrent}`)))
+      return { passed, failed, current, future: !passed && !failed && !current && !entry.archived }
+    }
+    const filtered = ledger.filter((entry) => {
+      if (needle && !`${entry.code} ${entry.name}`.toLowerCase().includes(needle)) return false
+      const value = status(entry)
+      if (scope === 'all') return true
+      if (scope === 'archived') return entry.archived
+      return value[scope as keyof typeof value]
+    })
+    return [...filtered].sort((left, right) => {
+      if (sort === 'code') return left.code.localeCompare(right.code)
+      if (sort === 'name') return left.name.localeCompare(right.name)
+      if (sort === 'year') return String(left.academic?.yearLevel || '').localeCompare(String(right.academic?.yearLevel || '')) || String(left.academic?.period || '').localeCompare(String(right.academic?.period || ''))
+      const leftExam = left.editorial ? nextExam(left.editorial, academic, today)?.date : null
+      const rightExam = right.editorial ? nextExam(right.editorial, academic, today)?.date : null
+      if (leftExam || rightExam) return String(leftExam || '9999').localeCompare(String(rightExam || '9999'))
+      return String(left.academic?.period || '99').localeCompare(String(right.academic?.period || '99')) || left.code.localeCompare(right.code)
+    })
+  }, [ledger, query, scope, sort, academic, today, currentPeriod])
 
   if (error) {
     return (
@@ -134,18 +181,24 @@ export default function CoursesPage() {
 
       {!courses ? (
         <div className="flex flex-col gap-3">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-16 w-full" />)}</div>
-      ) : !ledger.length && !archived.length ? (
+      ) : !ledger.length ? (
         <Empty><EmptyHeader><EmptyTitle>No courses yet</EmptyTitle><EmptyDescription>Finish setup to connect your programme and choose the courses you are taking.</EmptyDescription></EmptyHeader><OnboardingResume /></Empty>
       ) : (
         <>
+          <div className="grid gap-3 border-y py-4 sm:grid-cols-[minmax(15rem,1fr)_13rem_12rem]">
+            <label className="relative">
+              <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search code or course name" className="pl-9" />
+            </label>
+            <Select items={[{value:'current',label:'Current period'},{value:'future',label:'Future / outstanding'},{value:'passed',label:'Passed'},{value:'failed',label:'Failed / retake'},{value:'all',label:'All courses'},{value:'archived',label:'Archived'}]} value={scope} onValueChange={(value) => setScope(String(value))}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{[['current','Current period'],['future','Future / outstanding'],['passed','Passed'],['failed','Failed / retake'],['all','All courses'],['archived','Archived']].map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectGroup></SelectContent>
+            </Select>
+            <Select items={[{value:'period',label:'Period / next exam'},{value:'year',label:'Study year'},{value:'code',label:'Course code'},{value:'name',label:'Course name'}]} value={sort} onValueChange={(value) => setSort(String(value))}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{[['period','Period / next exam'],['year','Study year'],['code','Course code'],['name','Course name']].map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectGroup></SelectContent>
+            </Select>
+          </div>
           <div className="grid grid-cols-[7rem_minmax(0,1fr)_9rem_11rem] border-y py-2 text-[10.5px] font-semibold tracking-[0.11em] text-muted-foreground uppercase max-sm:hidden"><span>Course</span><span>Material status</span><span>Schedule</span><span className="text-right">Readiness</span></div>
-          <ul className="flex flex-col">{ledger.map(row)}</ul>
-          {archived.length > 0 && (
-            <section className="flex flex-col gap-1">
-              <h2 className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Archived</h2>
-              <ul className="flex flex-col border-t opacity-60">{archived.map((course) => row({ key: course.code.toUpperCase(), code: course.code, name: course.name, editorial: course, archived: true }))}</ul>
-            </section>
-          )}
+          {visible.length ? <ul className="flex flex-col">{visible.map(row)}</ul> : <Empty><EmptyHeader><EmptyTitle>No matching courses</EmptyTitle><EmptyDescription>Try another status or clear the search.</EmptyDescription></EmptyHeader></Empty>}
         </>
       )}
     </div>

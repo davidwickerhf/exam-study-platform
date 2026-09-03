@@ -74,7 +74,7 @@ const PROSE =
   '[&>*+*]:mt-3 [&_a]:underline [&_a]:underline-offset-2 [&_code]:rounded-xs [&_code]:px-1.5 [&_code]:py-0.5 [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5'
 
 type Message = { role: 'user' | 'assistant' | 'event'; content: string; at: string | null }
-type Prompt = { kind: 'upload' } | { kind: 'secure'; secure: 'timetable' | 'canvas' }
+type Prompt = { kind: 'upload'; upload?: 'academic-work' | 'transcript' } | { kind: 'secure'; secure: 'timetable' | 'canvas' }
 type Opening = { step: string; heading: string; body: string; placeholder: string }
 type ProgrammeOption = { id: string; degree: string; name: string; durationYears: number; versions: { id: string; label: string; status: string }[] }
 type ElectiveGroup = { id: string; label: string; chosen: string[]; courses: { id: string; code: string; name: string; ects: number }[] }
@@ -429,6 +429,38 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
   )
 }
 
+type TranscriptChange = { id: string; label: string; detail?: string; selectedByDefault?: boolean; requiresDecision?: boolean }
+function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [review, setReview] = useState<{ changes: TranscriptChange[]; revision: number; warnings?: string[] } | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  return <div className="flex flex-col gap-4 rounded-sm border p-4">
+    <div><h3 className="font-semibold">Official Transcript</h3><p className="text-muted-foreground mt-1 text-sm">Use the transcript that lists individual results and dates—not the Academic Work overview. The file is read in this browser and never stored.</p></div>
+    {!review ? <Field data-invalid={error ? true : undefined}>
+      <FieldLabel htmlFor="setup-transcript">Transcript PDF</FieldLabel>
+      <Input id="setup-transcript" type="file" accept="application/pdf,.pdf,.txt" disabled={busy} onChange={async (event) => {
+        const file = event.target.files?.[0]; event.target.value = ''; if (!file || busy) return
+        setBusy(true); setError(null)
+        try {
+          const text = await academicWorkText(file)
+          const result = await json<{ changes: TranscriptChange[]; revision: number; warnings?: string[] }>('/api/academics/documents/analyze', { method: 'POST', body: JSON.stringify({ kind: 'transcript', documents: [{ name: file.name, type: 'application/pdf', text, images: [], pageCount: 1 }] }) })
+          setReview(result)
+          setSelected(new Set(result.changes.filter((change) => change.selectedByDefault !== false && !change.requiresDecision).map((change) => change.id)))
+        } catch (cause) { setError(cause instanceof Error ? cause.message : 'That transcript could not be read.') } finally { setBusy(false) }
+      }} />
+      <FieldDescription className="flex items-center gap-1.5">{busy ? <Spinner className="size-3.5" /> : <UploadIcon className="size-3.5" />}{busy ? 'Reading and cross-checking your transcript…' : 'You will review every proposed change before it is saved.'}</FieldDescription>
+    </Field> : <div className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between border-b pb-2"><strong>Review transcript</strong><span className="text-muted-foreground text-xs">{selected.size} of {review.changes.length} selected</span></div>
+      {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
+      <ul className="max-h-72 overflow-y-auto border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="flex cursor-pointer items-start gap-3 py-3"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || !selected.size} onClick={async () => { setBusy(true); setError(null); try { await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes: review.changes.filter((change) => selected.has(change.id)) }) }); onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy ? 'Applying…' : `Apply ${selected.size} changes`}</Button><Button variant="ghost" onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
+    </div>}
+    {error && <Alert variant="destructive"><AlertTriangleIcon /><AlertTitle>Transcript needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+    {onSkip && <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>Skip this</Button>}
+  </div>
+}
+
 // ── The checklist ─────────────────────────────────────────────────────────
 
 function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved: () => void }) {
@@ -509,7 +541,7 @@ const STATUS_WORD: Record<SetupStep['status'], string> = {
 function ConversationStepRail({ view }: { view: View | null }) {
   const steps = setupSteps({ state: view?.state ?? null, skipped: view?.skipped ?? [] })
   const active = view?.opening?.step
-    ?? (view?.prompt?.kind === 'upload' ? 'record' : view?.prompt?.kind === 'secure' ? view.prompt.secure : nextStep(steps)?.id)
+    ?? (view?.prompt?.kind === 'upload' ? (view.prompt.upload === 'transcript' ? 'transcript' : 'record') : view?.prompt?.kind === 'secure' ? view.prompt.secure : nextStep(steps)?.id)
   return (
     <aside className="min-h-0 border-b pb-5 lg:border-r lg:border-b-0 lg:pr-7 lg:pb-0">
       <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">Workspace setup</p>
@@ -634,6 +666,7 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
           ))}
 
           {selected.id === 'record' && <UploadField onRead={() => onRefresh()} />}
+          {selected.id === 'transcript' && <TranscriptField onApplied={onRefresh} />}
 
           {selected.id === 'timetable' && (
                   <form
@@ -865,6 +898,8 @@ function SetupSurface() {
               }}
               onSkip={() => void send('Skip the academic record for now.')}
             />
+          ) : opening.step === 'transcript' ? (
+            <TranscriptField onApplied={() => void send('I reviewed and imported my Transcript.')} onSkip={() => void send('Skip the transcript for now.')} />
           ) : (
             composer(opening.placeholder)
           )}
@@ -917,12 +952,12 @@ function SetupSurface() {
 
         {!sending && view?.prompt?.kind === 'upload' && (
           <div className="mx-auto w-full max-w-[76ch]">
-            <UploadField
+            {view.prompt.upload === 'transcript' ? <TranscriptField onApplied={() => void send('I reviewed and imported my Transcript.')} onSkip={() => void send('Skip the transcript for now.')} /> : <UploadField
               onRead={async (result) => {
                 await send(workSummaryLine(result))
               }}
               onSkip={() => void send('Skip the academic record for now.')}
-            />
+            />}
           </div>
         )}
 

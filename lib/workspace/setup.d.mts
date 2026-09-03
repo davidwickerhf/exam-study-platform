@@ -36,6 +36,8 @@ export type SetupSourceState = {
   courseCount: number
   record: boolean
   recordSummary: RecordSummary | null
+  transcript: boolean
+  transcriptAttempts: number
   calendar: boolean
   calendarDates: number
   timetable: boolean
@@ -47,7 +49,7 @@ export type SetupSourceState = {
   issues?: SetupIssue[]
 }
 
-export type SetupStepId = 'programme' | 'electives' | 'record' | 'calendar' | 'timetable' | 'canvas'
+export type SetupStepId = 'programme' | 'electives' | 'record' | 'transcript' | 'calendar' | 'timetable' | 'canvas'
 
 export type SetupStepStatus = 'done' | 'skipped' | 'blocked' | 'todo'
 
