@@ -16,12 +16,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { CheckIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
+import { CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { COURSE_RETURN_KEY, academicCourseFor, type AcademicCourse, type Item, type StudyCourse, canvasCourseQuery, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
-import { localIsoDate } from '@/lib/workspace/home.mjs'
+import { type CalendarEvent, type CalendarPayload, localIsoDate } from '@/lib/workspace/home.mjs'
 import { CourseMaterialLibrary } from '@/components/workspace/course-material-library'
 
 const NUMERALS = 'font-data tabular-nums'
@@ -33,6 +33,7 @@ export default function CoursePage() {
   const params = useParams<{ courseId: string; itemId?: string }>()
   const [courses, setCourses] = useState<StudyCourse[] | null>(null)
   const [academic, setAcademic] = useState<AcademicCourse[]>([])
+  const [calendar, setCalendar] = useState<CalendarPayload | null>(null)
   const [read, setRead] = useState<Set<string>>(new Set())
   // A failed save is not a failed page: the two are kept apart so a mastery
   // click that loses the network does not replace the course with an error.
@@ -49,6 +50,7 @@ export default function CoursePage() {
     json('/api/state').then((data) => { if (live) setCourses(data.courses ?? []) })
       .catch((cause: Error) => { if (live) setLoadError(cause.message) })
     json('/api/academics').then((data) => { if (live) setAcademic(data.workspace?.courses ?? []) }).catch(() => {})
+    json('/api/calendar/events').then((data) => { if (live) setCalendar(data) }).catch(() => {})
     return () => { live = false }
   }, [])
 
@@ -93,6 +95,8 @@ export default function CoursePage() {
   const items = course.items ?? []
   const rated = items.filter(isRated).length
   const confident = items.filter((item) => isRated(item) && (item.mastery ?? 0) >= 4).length
+  const attendance = calendar?.attendance?.courses.find((entry) => String(entry.courseCode || '').toUpperCase() === String(course.code || '').toUpperCase()) ?? null
+  const attendanceEvents = (calendar?.events ?? []).filter((event) => event.attendanceEligible && String(event.courseCode || '').toUpperCase() === String(course.code || '').toUpperCase()).sort((left, right) => right.start.localeCompare(left.start))
 
   const setMastery = async (itemId: string, mastery: number) => {
     setSaving(itemId); setSaveError(null)
@@ -181,6 +185,30 @@ export default function CoursePage() {
       </header>
 
       {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
+
+      <section id="attendance" className="scroll-mt-8 overflow-hidden rounded-xl border bg-card">
+        <div className="flex flex-wrap items-baseline justify-between gap-3 border-b px-5 py-4">
+          <div><h2 className="text-base font-semibold">Attendance</h2><p className="text-muted-foreground mt-1 text-xs">Teaching sessions from your timetable, tied to this course.</p></div>
+          <Link href="/app/calendar?view=timeGridWeek" className="text-primary text-xs font-semibold">Open calendar</Link>
+        </div>
+        {attendance ? <>
+          <dl className="grid grid-cols-2 border-b sm:grid-cols-4">
+            {[
+              ['Attendance', attendance.rate == null ? '—' : `${attendance.rate}%`],
+              ['Attended', attendance.attended],
+              ['Missed', attendance.missed],
+              ['Unmarked', attendance.unmarked]
+            ].map(([label, value], index) => <div key={label} className={`border-r px-5 py-4 last:border-r-0 ${index < 2 ? 'max-sm:border-b' : ''} ${index === 1 ? 'max-sm:border-r-0' : ''}`}><dt className="text-muted-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">{label}</dt><dd className={`mt-1 text-2xl font-semibold ${NUMERALS}`}>{value}</dd></div>)}
+          </dl>
+          {(attendance.requiredScheduled > 0 || attendance.rule) && <div className="bg-accent/35 border-b px-5 py-4">
+            <div className="flex items-start gap-3"><span className="bg-primary/10 text-primary grid size-8 shrink-0 place-items-center rounded-md"><CalendarCheckIcon className="size-4" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-baseline justify-between gap-2"><strong className="text-sm">Required attendance</strong><span className={`text-sm font-semibold ${NUMERALS}`}>{attendance.requiredRate == null ? 'No marked sessions' : `${attendance.requiredRate}%`}</span></div><p className="text-muted-foreground mt-1 text-xs">{attendance.allowedMisses == null ? `${attendance.requiredMissed} required ${attendance.requiredMissed === 1 ? 'session' : 'sessions'} missed` : `${attendance.requiredMissed} of ${attendance.allowedMisses} allowed misses used · ${attendance.allowedMissesRemaining} remaining`}</p>{attendance.rule && <details className="mt-3 border-t pt-3"><summary className="cursor-pointer text-xs font-semibold">View verified rule</summary><p className="text-muted-foreground mt-2 text-xs leading-relaxed">{attendance.rule}</p><p className="text-primary mt-1 text-[11px] font-semibold">{attendance.ruleSource}</p></details>}</div></div>
+          </div>}
+          <div>
+            <div className="flex items-center justify-between border-b px-5 py-3"><h3 className="text-sm font-semibold">Session history</h3><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{attendanceEvents.length} scheduled</span></div>
+            {attendanceEvents.slice(0, 8).map((event: CalendarEvent) => <div key={event.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-4 border-b px-5 py-3 last:border-b-0"><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(event.start))}</span><span className="min-w-0"><strong className="block truncate text-sm">{event.activity || event.title}</strong><small className="text-muted-foreground mt-0.5 block truncate text-xs">{event.attendanceRequired ? 'Required' : 'Not required'}{event.attendancePolicy?.allowedMisses != null ? ` · ${event.attendancePolicy.allowedMisses} allowed misses` : ''}</small></span><span className={`rounded-md px-2 py-1 text-[10px] font-semibold ${event.attendanceStatus === 'missed' ? 'bg-destructive/10 text-destructive' : event.attendanceStatus === 'attended' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{event.attendanceStatus === 'attended' ? 'Attended' : event.attendanceStatus === 'missed' ? 'Missed' : event.attendanceStatus === 'excused' ? 'Excused' : 'Unmarked'}</span></div>)}
+          </div>
+        </> : <div className="flex items-start gap-3 px-5 py-6"><CircleAlertIcon className="text-muted-foreground mt-0.5 size-4" /><div><p className="text-sm font-semibold">No teaching sessions are connected yet</p><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Connect a timetable in Settings to track attendance for this course.</p></div></div>}
+      </section>
 
       {/* The register. The course is its chapters, so they come first. */}
       <section className="flex flex-col gap-1">

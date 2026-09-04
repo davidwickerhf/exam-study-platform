@@ -1,0 +1,43 @@
+{
+  "title": "Choose the Updates workspace",
+  "question": "All three keep the dashboard and Courses design language. Choose the structure that should organize Canvas announcements, assignments, materials, and courses.",
+  "options": [
+    {
+      "id": "canvas-briefing",
+      "label": "Canvas Briefing",
+      "kicker": "THE ROLL",
+      "lineage": "academic morning brief and Refero activity boards",
+      "thesis": "Open on what changed, what needs action, and what can wait.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["dark signal sheet", "ruled paper register"],
+      "viewport": "The shared 32px page header leads into one dark briefing strip for new announcements, open work, and the next deadline; a broad assignment register and narrow announcement pulse begin below it.",
+      "risk": "The briefing must stay quiet when Canvas has little new information.",
+      "comp": ".impeccable/mocks/decision/updates-canvas-briefing.png"
+    },
+    {
+      "id": "two-pane-dispatch",
+      "label": "Two-Pane Dispatch",
+      "lineage": "Refero inboxes and document review tools",
+      "thesis": "Scan a compact stream on the left and inspect the full Canvas item without losing your place.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["dispatch list", "reading pane", "hairline rules"],
+      "viewport": "Below the shared page header and local tabs, a compact announcement or assignment list occupies the left third while the selected item fills a calm reading pane on the right; filters sit as one edge-to-edge toolbar.",
+      "risk": "It is strongly desktop-native and needs a deliberate drill-in pattern on phones.",
+      "comp": ".impeccable/mocks/decision/updates-two-pane-dispatch.png"
+    },
+    {
+      "id": "course-signal-board",
+      "label": "Course Signal Board",
+      "lineage": "course operations register and Refero status tables",
+      "thesis": "Make each current course a signal row, with deadlines, unread news, material coverage, and grade context reconciled in one place.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["course register", "status marks", "context rail"],
+      "viewport": "A broad ruled course register dominates the first viewport; every row exposes its next deadline and Canvas activity while a compact right rail shows the selected course feed and connection health.",
+      "risk": "Chronological urgency across several courses is less immediate than in a true inbox.",
+      "comp": ".impeccable/mocks/decision/updates-course-signal-board.png"
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "comp", "toggle": true },
+  "steer": true
+}

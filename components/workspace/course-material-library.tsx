@@ -75,7 +75,7 @@ export function CourseMaterialLibrary({ courseCode }: { courseCode: string }) {
           <p className="text-muted-foreground min-w-0 text-sm">
             No stored material yet — authorise Canvas collection, refresh it, or choose an older course edition in Connections.
           </p>
-          <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/app/account?tab=connections">Open Canvas settings</Link>
+          <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/app/settings?tab=connections">Open Canvas settings</Link>
         </div>
       ) : !shown.length ? <p className="text-muted-foreground py-8 text-center text-sm">No material matches these filters.</p> : (
         <ul className="border-t">

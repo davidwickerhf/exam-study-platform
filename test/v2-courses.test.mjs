@@ -9,7 +9,9 @@ import assert from 'node:assert/strict'
 import { academicCourseFor, byNextExam, canvasCourseQuery, chaptersRead, compareByNextExam, courseProgress, isMaterialPath, masteryPercent, materialName, nextExam, readChapters, readKey } from '../lib/workspace/courses.mjs'
 import {
   cleanCanvasName,
+  courseMaterialCoverage,
   courseLedger,
+  currentSourceCoverage,
   filterLedger,
   materialSummary,
   periodLabel,
@@ -170,7 +172,7 @@ test('the section suffix is stripped for the row\'s own code, not any code', () 
   assert.equal(cleanCanvasName('Plain name', ''), 'Plain name')
 })
 
-test('the catalogue only ever adds a course no other source supplied', () => {
+test('the catalogue preserves richer course identity and adds missing courses', () => {
   const catalogue = { programmes: [{ id: 'p', versions: [{ id: 'v', courses: [
     { id: 'cat-1', code: 'BCS1540', name: 'Catalogue name' },
     { id: 'cat-2', code: 'BCS3000', name: 'Later course', period: '4' }
@@ -223,6 +225,9 @@ test('a row states its own destination rather than hiding three of them', () => 
   assert.equal(canvas.kind, 'canvas')
   assert.equal(canvas.href, '/app/updates?tab=materials&courseCode=D%20E')
   assert.equal(canvas.action, 'See Canvas material')
+
+  const timetable = rowDestination({ key: 'F', code: 'F', name: 'Field lab', calendar: { code: 'F' }, archived: false })
+  assert.deepEqual(timetable, { kind: 'calendar', href: '/app/calendar', action: 'Open calendar', chapters: 0 })
 })
 
 test('material summary names what is behind a row with no chapters', () => {
@@ -230,7 +235,53 @@ test('material summary names what is behind a row with no chapters', () => {
   assert.equal(materialSummary({ editorial: { chapters: [] } }), 'No chapters published')
   assert.equal(materialSummary({ corpus: { sources: 12 } }), '12 sources indexed')
   assert.equal(materialSummary({ corpus: { sources: 0 } }), 'Material import queued')
+  assert.equal(materialSummary({ calendar: { code: 'Y' } }), 'Timetable only')
   assert.equal(materialSummary({ academic: { code: 'X' } }), 'Course record only')
+})
+
+test('a timetable-only current course remains in the register and coverage denominator', () => {
+  const currentCourses = [{ code: 'LAB9000', name: 'Field lab', reasons: ['timetable'], outsidePlan: true }]
+  const ledger = courseLedger({ currentCourses, today: '2026-09-03' })
+
+  assert.equal(ledger.length, 1)
+  assert.equal(ledger[0].name, 'Field lab')
+  assert.deepEqual(filterLedger(ledger, { scope: 'current', currentCourses }).map((row) => row.code), ['LAB9000'])
+  assert.deepEqual(currentSourceCoverage({ ledger, currentCourses, academic: [] }), [
+    { id: 'record', covered: 0, total: 1, percent: 0 },
+    { id: 'canvas', covered: 0, total: 1, percent: 0 },
+    { id: 'library', covered: 0, total: 1, percent: 0 }
+  ])
+})
+
+test('catalogue placement enriches a maintained course without replacing its material', () => {
+  const [entry] = courseLedger({
+    editorial: [{ id: 'study-a', code: 'A', name: 'Algorithms', chapters: [{ id: '01' }] }],
+    catalogue: { programmes: [{ id: 'p', versions: [{ id: 'v', courses: [{ id: 'catalogue-a', code: 'A', name: 'Algorithms', yearLevel: 'Year 2', period: '3' }] }] }] },
+    programmeTemplate: { programmeId: 'p', versionId: 'v' }
+  })
+  assert.equal(entry.editorial.id, 'study-a')
+  assert.equal(entry.academic.yearLevel, 'Year 2')
+  assert.equal(entry.academic.period, '3')
+  assert.deepEqual(entry.academic.attempts, [])
+})
+
+test('material coverage counts only retrievable material channels', () => {
+  assert.deepEqual(courseMaterialCoverage({}), { percent: 0, available: 0, total: 2, detail: 'No material channel', library: false, canvas: false })
+  assert.equal(courseMaterialCoverage({ editorial: { chapters: [{ id: '01' }] } }).percent, 50)
+  assert.equal(courseMaterialCoverage({ editorial: { chapters: [{ id: '01' }] }, corpus: { sources: 4 } }).percent, 100)
+})
+
+test('source coverage is scoped to calendar-current courses', () => {
+  const ledger = [
+    { key: 'A', code: 'A', editorial: { chapters: [{ id: '01' }] }, corpus: { sources: 3 }, academic: { code: 'A', attempts: [] }, archived: false },
+    { key: 'B', code: 'B', academic: { code: 'B', attempts: [] }, archived: false },
+    { key: 'C', code: 'C', editorial: { chapters: [{ id: '01' }] }, academic: { code: 'C', attempts: [] }, archived: false }
+  ]
+  assert.deepEqual(currentSourceCoverage({ ledger, currentCourses: ['A', 'B'], academic: [{ code: 'A' }, { code: 'B' }] }), [
+    { id: 'record', covered: 2, total: 2, percent: 100 },
+    { id: 'canvas', covered: 1, total: 2, percent: 50 },
+    { id: 'library', covered: 1, total: 2, percent: 50 }
+  ])
 })
 
 // ── Narrowing ──────────────────────────────────────────────────────────────

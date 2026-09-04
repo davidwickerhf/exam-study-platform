@@ -1,0 +1,43 @@
+{
+  "title": "Choose Settings and Documents",
+  "question": "Each option makes Settings the single home for live connections and gives every student a Documents destination with version history. Choose the structure that should carry both pages.",
+  "options": [
+    {
+      "id": "record-revision-desk",
+      "label": "Record & Revision Desk",
+      "kicker": "THE ROLL",
+      "lineage": "Refero connected-account registers and document backup histories",
+      "thesis": "Settings is a quiet control plane; Documents is a master-detail desk where one record and its versions stay in view together.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["ruled connection register", "version rail", "progress plot"],
+      "viewport": "Settings uses a compact local section rail and full-width Canvas and timetable rows. Documents uses a broad registry on the left and a selected-document pane on the right with its version rail, progression figures, replace and remove actions.",
+      "risk": "The two-pane document view needs a deliberate single-column drill-in pattern on phones.",
+      "comp": ".impeccable/mocks/decision/settings-documents-record-revision-desk.png"
+    },
+    {
+      "id": "academic-archive-runway",
+      "label": "Academic Archive Runway",
+      "lineage": "departure boards, academic ledgers, and visual version timelines",
+      "thesis": "The document history itself becomes the organising axis, so transcript progression reads as a journey through the degree.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["degree runway", "version stops", "full-span fact bands"],
+      "viewport": "Settings remains a single connection register. Documents opens with a compact degree-progress runway, then groups Transcript, Academic Work and Academic Calendar into ruled rows whose versions are stops on one dated line.",
+      "risk": "A strong overview can become too abstract if individual file actions are not kept immediately reachable.",
+      "comp": ".impeccable/mocks/decision/settings-documents-academic-archive-runway.png"
+    },
+    {
+      "id": "source-control-desk",
+      "label": "Source Control Desk",
+      "lineage": "Refero integration boards and source provenance tools",
+      "thesis": "Connections and uploads share one source vocabulary while remaining separate destinations: live feeds in Settings, owned records in Documents.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["source register", "health marks", "revision ledger"],
+      "viewport": "Settings begins with a two-source status band and expands each connection inline. Documents is a dense source table with type, current version, last change and record impact; selecting a row opens an edge-aligned revision ledger below it.",
+      "risk": "This is the densest option and could feel administrative unless the upload and replace paths remain warm and direct.",
+      "comp": ".impeccable/mocks/decision/settings-documents-source-control-desk.png"
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "comp", "toggle": true },
+  "steer": true
+}
