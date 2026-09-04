@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   CalendarDaysIcon,
+  ExternalLinkIcon,
   FileClockIcon,
+  FileImageIcon,
   FileTextIcon,
   GraduationCapIcon,
+  LockKeyholeIcon,
+  Trash2Icon,
   UploadIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -28,6 +32,7 @@ import { PlanningDocuments } from "@/components/workspace/planning-documents";
 import { readJson, useJson } from "@/components/workspace/use-json";
 import { Confirm, NUMERALS } from "@/app/app/account/shared";
 import type { Workspace } from "@/lib/workspace/academics.mjs";
+import { readTutorFile } from "@/lib/workspace/tutor-files";
 
 type WorkSummary = {
   earnedEcts: number;
@@ -89,6 +94,22 @@ type DocumentGroup =
   | { id: "academic-work"; label: string; kind: "academic-work"; versions: WorkVersion[] }
   | { id: string; label: string; kind: string; versions: SupportingVersion[] };
 
+type TutorAttachment = {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  status: string;
+  courseCode?: string | null;
+  courseName?: string | null;
+  chapterName?: string | null;
+  conversationId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  private: boolean;
+  origin?: "tutor" | "documents";
+};
+
 const KIND_LABELS: Record<string, string> = {
   transcript: "Transcript",
   "academic-work": "Academic Work",
@@ -122,6 +143,15 @@ function fileSize(value: number | null) {
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function privateSourceType(type: string) {
+  if (type === "application/pdf") return "PDF";
+  if (type.includes("wordprocessingml")) return "DOCX";
+  if (type.startsWith("image/")) return "Image";
+  if (type === "text/calendar") return "Calendar file";
+  if (type === "text/markdown") return "Markdown";
+  return "Text source";
 }
 
 function courseRowChanges(current: WorkCourse[] = [], previous: WorkCourse[] = []) {
@@ -214,13 +244,18 @@ export default function DocumentsPage() {
   const academics = useJson<{ workspace: Workspace }>("/api/academics");
   const work = useJson<WorkRecord>("/api/academics/work");
   const supporting = useJson<{ documents: SupportingRecord[] }>("/api/academics/document-records");
+  const tutorUploads = useJson<{ attachments: TutorAttachment[] }>("/api/tutor/attachments");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [removing, setRemoving] = useState<{ group: DocumentGroup; version: WorkVersion | SupportingVersion } | null>(null);
   const [busy, setBusy] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadKind, setUploadKind] = useState<string | undefined>(undefined);
+  const [uploadMode, setUploadMode] = useState<"choose" | "academic" | "private">("choose");
+  const [privateUploading, setPrivateUploading] = useState(false);
+  const [privateUploadError, setPrivateUploadError] = useState<string | null>(null);
   const [expandedVersionId, setExpandedVersionId] = useState<string | null>(null);
+  const [removingTutor, setRemovingTutor] = useState<TutorAttachment | null>(null);
 
   const groups = useMemo<DocumentGroup[]>(() => {
     const result: DocumentGroup[] = [];
@@ -249,13 +284,15 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     if (!groups.length) setSelectedId(null);
-    else if (!groups.some((group) => group.id === selectedId)) setSelectedId(groups[0].id);
-  }, [groups, selectedId]);
+    else if (!groups.some((group) => group.id === selectedId) && !(tutorUploads.data?.attachments ?? []).some((source) => `tutor:${source.id}` === selectedId)) setSelectedId(groups[0].id);
+  }, [groups, selectedId, tutorUploads.data]);
 
   const selected = groups.find((group) => group.id === selectedId) ?? null;
+  const selectedTutor = tutorUploads.data?.attachments.find((source) => `tutor:${source.id}` === selectedId) ?? null;
   const reload = () => {
     work.reload();
     supporting.reload();
+    tutorUploads.reload();
   };
 
   async function removeVersion() {
@@ -276,8 +313,57 @@ export default function DocumentsPage() {
     }
   }
 
-  const openUpload = (kind?: string) => { setUploadKind(kind); setUploadOpen(true); };
+  async function removeTutorSource() {
+    if (!removingTutor) return;
+    setBusy(true);
+    setRemoveError(null);
+    try {
+      await readJson(`/api/tutor/attachments/${encodeURIComponent(removingTutor.id)}`, { method: "DELETE" });
+      setRemovingTutor(null);
+      setSelectedId(groups[0]?.id ?? null);
+      tutorUploads.reload();
+    } catch (cause) {
+      setRemoveError((cause as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadPrivateSources(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []).slice(0, 8);
+    event.target.value = "";
+    if (!files.length) return;
+    setPrivateUploading(true);
+    setPrivateUploadError(null);
+    try {
+      let newest: TutorAttachment | null = null;
+      for (const file of files) {
+        const source = await readTutorFile(file);
+        const result = await readJson<{ attachment: TutorAttachment }>("/api/tutor/attachments", {
+          method: "POST",
+          body: JSON.stringify({ ...source, origin: "documents" }),
+        });
+        newest = result.attachment;
+      }
+      await tutorUploads.reload();
+      if (newest) setSelectedId(`tutor:${newest.id}`);
+      setUploadOpen(false);
+    } catch (cause) {
+      setPrivateUploadError((cause as Error).message);
+    } finally {
+      setPrivateUploading(false);
+    }
+  }
+
+  const openUpload = (kind?: string) => {
+    setUploadKind(kind);
+    setUploadMode(kind ? "academic" : "choose");
+    setPrivateUploadError(null);
+    setUploadOpen(true);
+  };
   const loading = (!work.data && !work.error) || (!supporting.data && !supporting.error);
+  const tutorLoading = !tutorUploads.data && !tutorUploads.error;
+  const privateSources = tutorUploads.data?.attachments ?? [];
 
   return (
     <div className="flex w-full flex-col">
@@ -295,7 +381,7 @@ export default function DocumentsPage() {
           <div className="min-w-0">
             <div className="flex items-baseline justify-between gap-4 border-b px-4 py-4 sm:px-6 xl:hidden">
               <h2 className="text-[18px] font-semibold">Your records</h2>
-              {!loading && <span className={`text-muted-foreground text-sm ${NUMERALS}`}>{groups.filter((group) => group.versions.length).length} active</span>}
+              {!loading && <span className={`text-muted-foreground text-sm ${NUMERALS}`}>{groups.filter((group) => group.versions.length).length + privateSources.length} active</span>}
             </div>
             <div className="text-muted-foreground hidden grid-cols-[minmax(12rem,1.5fr)_minmax(7rem,0.72fr)_5.5rem_7rem_5rem_1.5rem] gap-3 border-b px-6 py-3 text-[10.5px] font-semibold tracking-[0.11em] uppercase xl:grid">
               <span>Document</span><span>Type</span><span>Version</span><span>Uploaded</span><span>State</span><span />
@@ -334,6 +420,46 @@ export default function DocumentsPage() {
                     </li>
                   );
                 })}
+                <li className="bg-muted/35 flex items-baseline justify-between gap-4 border-b px-4 py-2.5 sm:px-6">
+                  <span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Other uploads</span>
+                  <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{privateSources.length}</span>
+                </li>
+                {tutorLoading ? (
+                  <li className="border-b px-6 py-4"><Skeleton className="h-10 w-full" /></li>
+                ) : tutorUploads.error ? (
+                  <li className="border-b px-6 py-4 text-sm" role="alert">Private sources are unavailable. {tutorUploads.error}</li>
+                ) : privateSources.length ? privateSources.map((source) => {
+                  const active = selectedTutor?.id === source.id;
+                  const SourceIcon = source.type.startsWith("image/") ? FileImageIcon : FileTextIcon;
+                  return (
+                    <li key={source.id} className="border-b last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(`tutor:${source.id}`)}
+                        aria-current={active ? "true" : undefined}
+                        className={`focus-visible:outline-ring flex w-full items-center gap-4 px-4 py-4 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] sm:px-6 xl:grid xl:grid-cols-[minmax(12rem,1.5fr)_minmax(7rem,0.72fr)_5.5rem_7rem_5rem_1.5rem] xl:gap-3 ${active ? "bg-accent" : "hover:bg-muted/45"}`}
+                      >
+                        <span className="flex min-w-0 flex-1 items-center gap-3 xl:flex-none">
+                          <span className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-md"><SourceIcon className="size-[17px]" /></span>
+                          <span className="flex min-w-0 flex-col gap-0.5">
+                            <strong className="truncate text-sm font-semibold">{source.name}</strong>
+                            <small className="text-muted-foreground truncate text-xs xl:hidden">{privateSourceType(source.type)} · {fileSize(source.size)}</small>
+                          </span>
+                        </span>
+                        <span className="text-muted-foreground hidden truncate text-xs xl:block">{source.origin === "documents" ? "Private note" : "Tutor source"}</span>
+                        <span className="text-muted-foreground hidden text-xs xl:block">Original</span>
+                        <span className={`text-muted-foreground hidden text-xs xl:block ${NUMERALS}`}>{dateLabel(source.createdAt)}</span>
+                        <span className="hidden items-center gap-2 text-xs capitalize xl:flex"><span className="bg-primary size-1.5 rounded-full" />{source.status}</span>
+                        <span className="text-primary ml-auto text-lg leading-none xl:ml-0">›</span>
+                      </button>
+                    </li>
+                  );
+                }) : (
+                  <li className="border-b px-6 py-5 text-sm">
+                    <p className="font-medium">No private sources yet</p>
+                    <p className="text-muted-foreground mt-1">Notes and files added here or in Tutor will appear in this register.</p>
+                  </li>
+                )}
               </ul>
             )}
           </div>
@@ -341,6 +467,34 @@ export default function DocumentsPage() {
           <aside className="flex min-w-0 flex-col border-t xl:border-t-0 xl:border-l">
             {loading ? (
               <div className="flex flex-col gap-3 p-6"><Skeleton className="h-8 w-40" /><Skeleton className="h-56 w-full" /></div>
+            ) : selectedTutor ? (
+              <>
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4">
+                  <div className="min-w-0 flex flex-col gap-1">
+                    <span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Other upload</span>
+                    <h2 className="truncate text-[18px] font-semibold">{selectedTutor.name}</h2>
+                    <p className="text-muted-foreground text-sm">Private, stored and available to Tutor</p>
+                  </div>
+                  <a className={buttonVariants({ variant: "outline", size: "sm" })} href={`/api/tutor/attachments/${selectedTutor.id}/file`} target="_blank" rel="noreferrer">Open file<ExternalLinkIcon data-icon="inline-end" /></a>
+                </div>
+                <dl className="text-sm">
+                  {[
+                    ["File type", privateSourceType(selectedTutor.type)],
+                    ["Size", fileSize(selectedTutor.size)],
+                    ["Added", dateLabel(selectedTutor.createdAt)],
+                    ["Added from", selectedTutor.origin === "documents" ? "Documents" : "Tutor"],
+                    ["Retrieval", selectedTutor.status === "indexed" ? "Indexed and searchable" : "Original stored"],
+                    ["Course scope", selectedTutor.courseCode ? `${selectedTutor.courseCode}${selectedTutor.courseName ? ` · ${selectedTutor.courseName}` : ""}` : "Workspace-wide"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="grid grid-cols-[8rem_minmax(0,1fr)] gap-4 border-b px-6 py-4">
+                      <dt className="text-muted-foreground">{label}</dt><dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-auto border-t px-6 py-4">
+                  <Button variant="outline" size="sm" onClick={() => { setRemoveError(null); setRemovingTutor(selectedTutor); }}><Trash2Icon data-icon="inline-start" />Delete source</Button>
+                </div>
+              </>
             ) : work.error || supporting.error ? (
               <p role="alert" className="px-6 py-5 text-sm">The selected record cannot be inspected until document history is available.</p>
             ) : !selected ? (
@@ -456,20 +610,45 @@ export default function DocumentsPage() {
                 </>}
               </>
             )}
-            <div className="text-muted-foreground mt-auto flex items-start gap-3 border-t px-6 py-4 text-xs">
+            {!selectedTutor && <div className="text-muted-foreground mt-auto flex items-start gap-3 border-t px-6 py-4 text-xs">
               <FileClockIcon className="mt-0.5 size-4 shrink-0" />
-              <p>Wicker retains the parsed record and version history. Original PDFs and images are read in your browser and are not kept.</p>
-            </div>
+              <p>Versioned academic records retain the parsed reading and history. Private notes keep the original file so you can open or delete it here.</p>
+            </div>}
           </aside>
       </section>
 
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-0 sm:max-w-[56rem]" showCloseButton>
+        <DialogContent className={`max-h-[calc(100dvh-2rem)] overflow-y-auto p-0 ${uploadMode === "academic" ? "sm:max-w-[56rem]" : "sm:max-w-[38rem]"}`} showCloseButton>
           <DialogHeader className="border-b px-6 py-5 pr-14">
-            <DialogTitle className="text-[18px]">{uploadKind ? `Add ${KIND_LABELS[uploadKind] ?? "document"} version` : "Add a document version"}</DialogTitle>
-            <DialogDescription>Read a new source, review every proposed change, then decide what enters your plan.</DialogDescription>
+            <DialogTitle className="text-[18px]">{uploadMode === "choose" ? "Upload a document" : uploadMode === "private" ? "Add a private source" : uploadKind ? `Add ${KIND_LABELS[uploadKind] ?? "document"} version` : "Add an academic record"}</DialogTitle>
+            <DialogDescription>{uploadMode === "private" ? "Store a personal note or reference so Tutor can retrieve it in future conversations." : uploadMode === "choose" ? "Choose whether this updates your academic record or becomes a private Tutor source." : "Read a new source, review every proposed change, then decide what enters your plan."}</DialogDescription>
           </DialogHeader>
-          <div className="px-6 pb-6">
+          {uploadMode === "choose" ? (
+            <div>
+              <button type="button" onClick={() => setUploadMode("academic")} className="hover:bg-muted/45 flex w-full items-start gap-4 border-b px-6 py-5 text-left">
+                <span className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-md"><FileClockIcon className="size-[18px]" /></span>
+                <span><strong className="block text-sm">Academic record</strong><span className="text-muted-foreground mt-1 block text-sm">Transcript, Academic Work, calendar, exam schedule or timetable. Changes are reviewed and versioned.</span></span>
+              </button>
+              <button type="button" onClick={() => setUploadMode("private")} className="hover:bg-muted/45 flex w-full items-start gap-4 px-6 py-5 text-left">
+                <span className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-md"><LockKeyholeIcon className="size-[18px]" /></span>
+                <span><strong className="block text-sm">Private study source</strong><span className="text-muted-foreground mt-1 block text-sm">Personal notes, handouts, screenshots or reference files. Stored privately and searchable by Tutor.</span></span>
+              </button>
+            </div>
+          ) : uploadMode === "private" ? (
+            <div>
+              <label className="hover:bg-muted/45 flex cursor-pointer items-center gap-4 border-b px-6 py-5">
+                <span className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-md"><UploadIcon className="size-[18px]" /></span>
+                <span className="min-w-0 flex-1"><strong className="block text-sm">Choose files</strong><span className="text-muted-foreground mt-1 block text-sm">PDF, DOCX, image, Markdown or text. Up to 12 MB each.</span></span>
+                <input className="sr-only" type="file" multiple accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.gif,.heic,.txt,.md,.csv,.ics,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,text/*" disabled={privateUploading} onChange={uploadPrivateSources} />
+              </label>
+              <div className="flex items-start gap-3 px-6 py-4 text-xs text-muted-foreground">
+                <LockKeyholeIcon className="mt-0.5 size-4 shrink-0" />
+                <p>The original and its searchable index are tied to your account. Deleting the source, erasing your data or deleting your account removes both.</p>
+              </div>
+              {privateUploading && <p className="border-t px-6 py-4 text-sm">Reading and indexing your files…</p>}
+              {privateUploadError && <p className="border-t px-6 py-4 text-sm" role="alert">{privateUploadError}</p>}
+            </div>
+          ) : <div className="px-6 pb-6">
             {academics.data?.workspace ? (
               <PlanningDocuments
                 workspace={academics.data.workspace}
@@ -485,7 +664,7 @@ export default function DocumentsPage() {
             ) : (
               <Skeleton className="h-72 w-full" />
             )}
-          </div>
+          </div>}
         </DialogContent>
       </Dialog>
 
@@ -499,6 +678,17 @@ export default function DocumentsPage() {
         busy={busy}
         error={removeError}
         onConfirm={removeVersion}
+      />
+      <Confirm
+        open={Boolean(removingTutor)}
+        onOpenChange={(open) => { if (!open) setRemovingTutor(null); }}
+        title="Delete this private source?"
+        description="The original file and its searchable retrieval index will be removed. Tutor will no longer be able to cite it. Your existing conversations are not changed."
+        word="REMOVE"
+        action="Delete source"
+        busy={busy}
+        error={removeError}
+        onConfirm={removeTutorSource}
       />
     </div>
   );
