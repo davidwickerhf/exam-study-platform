@@ -30,7 +30,7 @@ import { DEFAULT_OPENAI_MODEL, DEFAULT_OPENAI_REASONING_EFFORT, openAiReasoningE
 import { AccountDeletionError, deletePersonalData, deleteStudyData, deleteUploadedData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
 import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
-import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
+import { detectAcademicDocumentKind, fallbackAcademicIntake, mergeAcademicIntakeDrafts, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
 import { dismissCalendarNotice, observeCalendarFeeds } from './lib/calendar-changes.mjs'
@@ -40,8 +40,9 @@ import { removePersonalCalendarEvent, savePersonalCalendarEvent } from './lib/pe
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
-import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
-import { academicProgress, deleteAcademicSnapshot, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
+import { AcademicWorkError, mergeAcademicWorkIntoWorkspace, parseAcademicWork } from './lib/academic-work.mjs'
+import { curriculumCourseIdentity, reconcileAcademicCourseIdentities } from './lib/course-identities.mjs'
+import { academicProgress, deleteAcademicSnapshot, latestAcademicSnapshot, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
 import { AcademicDocumentRegisterError, deleteAcademicDocumentRecord, deleteAcademicDocumentVersion, listAcademicDocumentRecords, recordAcademicDocumentVersion } from './lib/academic-document-register.mjs'
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
 import { applyProgramme, applySecureValue, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
@@ -1464,7 +1465,19 @@ const DOCUMENT_KIND_GUIDANCE = {
   curriculum: 'These sources are curricula or handbooks: focus on course codes, names, credits, levels, and periods.'
 }
 
-async function analyseAcademicIntake(body) {
+function programmeIdentityCourses(workspace) {
+  const template = workspace?.programmeTemplate
+  if (!template?.programmeId) return []
+  const programme = loadEditorialProgrammeCatalogue().programmes.find((entry) => entry.id === template.programmeId)
+  if (!programme) return []
+  return (programme.versions || []).flatMap((version) => (version.courses || []).map((course) => ({
+    ...course,
+    curriculumVersion: version.id,
+    selectedCurriculum: version.id === template.versionId
+  })))
+}
+
+async function analyseAcademicIntake(body, { workspace = null } = {}) {
   const kind = DOCUMENT_KINDS[body?.kind] ? String(body.kind) : 'auto'
   const description = String(body?.description || '').trim().slice(0, 20_000)
   const documents = (Array.isArray(body?.documents) ? body.documents : []).slice(0, 8).map((document) => ({
@@ -1485,7 +1498,11 @@ async function analyseAcademicIntake(body) {
 
   const editorialState = await readState()
   const editorialCourses = editorialState.courses || []
-  const catalogue = editorialCourses.map((course) => `${course.code} — ${course.name}`).join('\n')
+  const identityCourses = programmeIdentityCourses(workspace)
+  const catalogue = [...editorialCourses, ...identityCourses]
+    .map((course) => `${course.code} — ${course.name}${course.curriculumVersion ? ` (${course.curriculumVersion})` : ''}`)
+    .filter((line, index, lines) => lines.indexOf(line) === index)
+    .join('\n')
   const sourceBlocks = [
     description ? `STUDENT DESCRIPTION\n${description}` : '',
     ...documents.map((document, index) => [
@@ -1501,10 +1518,10 @@ async function analyseAcademicIntake(body) {
     'Never invent a course, grade, date, credit value, programme name, or requirement. Leave uncertain strings empty, numbers at 0, and add a concise warning.',
     'Merge duplicate course rows by course code, but preserve every distinct sitting as a separate attempt in chronological source order.',
     'For transcripts, repeated rows for the same course are expected: keep first attempts, resits, retakes, carry-overs, failures, no-shows, and later passes separately. Record the academic year on every attempt and never replace an earlier result with a later one.',
-    'Cross-reference the supplied documents with one another. If an academic overview prints a course code beside a title and an official transcript prints the same title without a code, use that explicit title-to-code evidence to connect the dated transcript attempts. Do not guess a code from the maintained catalogue alone.',
+    'Cross-reference the supplied documents with one another. If an academic overview prints a course code beside a title and an official transcript prints the same title without a code, use that explicit title-to-code evidence to connect the dated transcript attempts. The maintained catalogue may resolve an exact official title to the one course identity connected across the selected programme editions; never use fuzzy title similarity.',
     'In Maastricht academic overviews, the prefixes YYYY-YYYY-100/200/400/500 identify the academic year and teaching period; the following BCS line is the course code for that row. A dash under Current courses means upcoming, while rows under Failed courses are failed and rows under Completed courses are passed. NG has no numeric grade; keep grade null.',
     'A transcript describes history, not the current curriculum. Do not infer that an old course is currently selected, and do not use an old course order, year level, period, title, or credit value to rewrite today’s programme.',
-    'If a course code changed between curriculum years, return separate course records. If the code stayed the same but the title or credits changed, group attempts by code and add a warning describing the historical variation.',
+    'If a course code changed between curriculum years but the supplied sources or official curriculum history connect both codes to one exact course identity, use the currently selected curriculum code for the canonical course and preserve the historical code on the attempt. Otherwise return separate course records. If the code stayed the same but the title or credits changed, group attempts by code and add a warning describing the historical variation.',
     'For every attempt, preserve the course facts that applied at that sitting when known: courseCode, courseName, ects, yearLevel, period, and curriculumVersion. These are historical snapshots; a later official curriculum may move or rename the canonical course without invalidating them.',
     'Use ISO YYYY-MM-DD for explicit dates. If only a month, semester, or vague date is given, leave examDate null and preserve the wording in notes.',
     'For transcript grades, use the numeric value as printed on a 0–100 scale. Do not convert grading systems. If the scale is unclear, leave grade null.',
@@ -1539,7 +1556,7 @@ async function analyseAcademicIntake(body) {
   } catch (error) {
     if (error instanceof AiLimitError) throw error
     console.warn('Academic intake AI extraction failed; using text fallback:', error.message)
-    parsed = fallbackAcademicIntake(sourceText, editorialCourses, { kind: effectiveKind })
+    parsed = fallbackAcademicIntake(sourceText, editorialCourses, { kind: effectiveKind, identityCourses })
     if (effectiveKind === 'academic-calendar' || effectiveKind === 'timetable' || effectiveKind === 'auto') {
       const calendar = parseAcademicCalendarText(sourceText)
       if (calendar.events.length) { parsed.events = [...(parsed.events || []), ...calendar.events]; if (calendar.academicYear && !parsed.profile?.academicYear) parsed.profile = { ...(parsed.profile || {}), academicYear: calendar.academicYear } }
@@ -1551,7 +1568,13 @@ async function analyseAcademicIntake(body) {
     }
   }
 
-  const draft = normalizeAcademicIntakeDraft(parsed, editorialCourses, { kind: effectiveKind })
+  const deterministic = ['transcript', 'academic-overview'].includes(effectiveKind)
+    ? fallbackAcademicIntake(sourceText, editorialCourses, { kind: effectiveKind, identityCourses })
+    : null
+  const supplemented = deterministic && usedAi
+    ? mergeAcademicIntakeDrafts(parsed, deterministic)
+    : parsed
+  const draft = normalizeAcademicIntakeDraft(supplemented, editorialCourses, { kind: effectiveKind, identityCourses })
   return {
     draft,
     kind: effectiveKind,
@@ -3487,6 +3510,35 @@ async function tutorAttachmentText(body) {
   return [supplied, visual].filter(Boolean).join('\n\nVISUAL CONTENT\n').slice(0, 240_000)
 }
 
+async function readReconciledAcademicState({ snapshot = null } = {}) {
+  const state = await readAcademicState()
+  const record = snapshot || await latestAcademicSnapshot().catch(() => null)
+  let workspace = record?.courses?.length
+    ? mergeAcademicWorkIntoWorkspace(state.workspace, record.courses)
+    : state.workspace
+  const template = workspace?.programmeTemplate
+  const programme = template?.programmeId
+    ? loadEditorialProgrammeCatalogue().programmes.find((entry) => entry.id === template.programmeId)
+    : null
+  const selectedVersion = programme?.versions?.find((entry) => entry.id === template?.versionId) || programme?.versions?.[0] || null
+  if (programme && selectedVersion) {
+    const identity = curriculumCourseIdentity({ selectedVersion, programmeVersions: programme.versions || [] })
+    workspace = normalizeAcademicWorkspace({
+      ...workspace,
+      courses: reconcileAcademicCourseIdentities(workspace.courses, identity)
+    })
+  }
+  if (JSON.stringify(workspace.courses) === JSON.stringify(state.workspace.courses)) return state
+  try {
+    return await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
+  } catch (error) {
+    // Another tab may have written between the read and this idempotent repair.
+    // Return its newer state; the next read can reconcile any remaining rows.
+    if (/another tab/i.test(error instanceof Error ? error.message : '')) return readAcademicState()
+    throw error
+  }
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -4575,6 +4627,7 @@ const server = createServer(async (req, res) => {
           courses: parsed.courses,
           summary: { ...parsed.summary, programme: parsed.programme }
         })
+        const academicState = await readReconciledAcademicState({ snapshot: result.snapshot })
         // The student's name and number are read to confirm the document is
         // theirs; they are not stored and are not echoed back.
         send(res, 200, JSON.stringify({
@@ -4584,7 +4637,8 @@ const server = createServer(async (req, res) => {
           programme: parsed.programme,
           printedOn: parsed.printedOn,
           courses: parsed.courses,
-          summary: { ...parsed.summary, programme: parsed.programme }
+          summary: { ...parsed.summary, programme: parsed.programme },
+          revision: academicState.workspace.revision
         }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error instanceof AcademicWorkError ? 422 : /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
@@ -4633,7 +4687,7 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, MAX_ACADEMIC_INTAKE_BODY_BYTES)
         const { workspace } = await readAcademicState()
-        const analysis = await analyseAcademicIntake(body)
+        const analysis = await analyseAcademicIntake(body, { workspace })
         const sourceLabel = analysis.sources?.map((item) => item.name).filter(Boolean).join(', ') || (String(body?.description || '').trim() ? 'Supplied description' : 'Uploaded source')
         const changeSet = buildChangeSet(workspace, analysis.draft, { source: 'document', sourceLabel, kind: analysis.kind })
         send(res, 200, JSON.stringify({ ...changeSet, usedAi: analysis.usedAi, sources: analysis.sources, revision: workspace.revision, usage: analysis.usage }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
@@ -4758,7 +4812,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/academics' && req.method === 'GET') {
-      send(res, 200, JSON.stringify(await readAcademicState()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      send(res, 200, JSON.stringify(await readReconciledAcademicState()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
     if (url.pathname === '/api/planning/context' && req.method === 'GET') {

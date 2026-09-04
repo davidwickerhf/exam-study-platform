@@ -27,7 +27,8 @@ import {
   PlugIcon,
   PlusIcon,
   CheckIcon,
-  FileTextIcon
+  FileTextIcon,
+  BookMarkedIcon
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -75,6 +76,7 @@ const SECTIONS = [
     label: 'Manage',
     items: [
       { href: '/app/documents', label: 'Documents', icon: FileTextIcon },
+      { href: '/app/docs', label: 'Docs', icon: BookMarkedIcon },
       { href: '/app/settings', label: 'Settings', icon: SettingsIcon },
       { href: '/app/admin', label: 'Admin', icon: LayersIcon, adminOnly: true }
     ]

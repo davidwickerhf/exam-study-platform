@@ -25,6 +25,24 @@ import { getSavedCanvasAccessToken, promptForLocalCanvasImport, saveCanvasAccess
 import { beginAuthorization } from './authorize.mjs'
 import { configPath, forgetApiKey, listSavedServers, normaliseServerUrl, resolveApiKey, saveApiKey } from './config.mjs'
 
+// A copy-ready installation block can provision the credential before an MCP
+// client launches the stdio server. Persist it through the same hardened
+// config writer as browser authorization (0700 directory, 0600 file), then
+// discard the environment value with this short-lived process.
+if (process.argv[2] === 'configure') {
+  try {
+    const serverUrl = normaliseServerUrl(process.env.WICKER_STUDY_URL || 'https://study.wicker.life')
+    const apiKey = String(process.env.WICKER_STUDY_API_KEY || '').trim()
+    if (!apiKey) throw new Error('WICKER_STUDY_API_KEY is required for configuration.')
+    const saved = await saveApiKey(serverUrl, apiKey, { name: 'Terminal installation', scopes: ['read', 'write'] })
+    process.stdout.write(`Wicker Study access saved securely for ${saved.server} at ${saved.path}.\n`)
+    process.exit(0)
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : 'Wicker Study could not be configured.'}\n`)
+    process.exit(1)
+  }
+}
+
 const baseUrl = normaliseServerUrl(process.env.WICKER_STUDY_URL || 'https://study.wicker.life')
 const DEFAULT_CANVAS_URL = process.env.WICKER_CANVAS_URL || 'https://canvas.maastrichtuniversity.nl'
 
@@ -71,7 +89,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.6.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.7.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 

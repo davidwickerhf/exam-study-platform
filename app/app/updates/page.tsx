@@ -712,15 +712,22 @@ function AssignmentDesk({
 }
 
 function MaterialsDesk({ hub }: { hub: Hub }) {
-  const scoped = hub.courses.filter((course) =>
-    hub.selectedCourseIds?.includes(String(course.id)),
-  );
+  const scoped = courseRows(hub, "current");
   const [courseId, setCourseId] = useState(String(scoped[0]?.id || ""));
-  const activeCourseId = scoped.some(
+  const activeGroupId = scoped.some(
     (course) => String(course.id) === courseId,
   )
     ? courseId
     : String(scoped[0]?.id || "");
+  const activeGroup = scoped.find(
+    (course) => String(course.id) === activeGroupId,
+  );
+  const [editionId, setEditionId] = useState("");
+  const activeEdition =
+    activeGroup?.editions?.find(
+      (edition: Course) => String(edition.id) === editionId,
+    ) || activeGroup?.editions?.[0];
+  const activeCourseId = String(activeEdition?.id || "");
   const [data, setData] = useState<Modules | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -764,11 +771,14 @@ function MaterialsDesk({ hub }: { hub: Hub }) {
         {scoped.map((entry) => (
           <button
             key={entry.id}
-            onClick={() => setCourseId(String(entry.id))}
-            aria-pressed={String(entry.id) === activeCourseId}
-            className={`relative flex w-full items-center gap-3 border-b px-4 py-4 text-left transition-colors ${String(entry.id) === activeCourseId ? "bg-primary/[0.055]" : "hover:bg-muted/55"}`}
+            onClick={() => {
+              setCourseId(String(entry.id));
+              setEditionId("");
+            }}
+            aria-pressed={String(entry.id) === activeGroupId}
+            className={`relative flex w-full items-center gap-3 border-b px-4 py-4 text-left transition-colors ${String(entry.id) === activeGroupId ? "bg-primary/[0.055]" : "hover:bg-muted/55"}`}
           >
-            {String(entry.id) === activeCourseId && (
+            {String(entry.id) === activeGroupId && (
               <span className="bg-primary absolute inset-y-0 left-0 w-[3px]" />
             )}
             <SourceMark className="size-9" />
@@ -781,6 +791,11 @@ function MaterialsDesk({ hub }: { hub: Hub }) {
               <span className="mt-1 line-clamp-2 block text-sm font-semibold">
                 {courseName(entry)}
               </span>
+              <small className="text-muted-foreground mt-1 block text-xs">
+                {entry.editionCount === 1
+                  ? entry.editions[0]?.term?.name || "One Canvas edition"
+                  : `${entry.editionCount} Canvas editions`}
+              </small>
             </span>
             <ChevronRightIcon className="text-muted-foreground size-4" />
           </button>
@@ -804,12 +819,7 @@ function MaterialsDesk({ hub }: { hub: Hub }) {
             <header className="flex flex-wrap items-start justify-between gap-4 border-b px-5 py-5 sm:px-7">
               <div>
                 <h2 className="font-heading text-2xl font-semibold tracking-[-0.025em]">
-                  {data.course?.name ||
-                    label(
-                      scoped.find(
-                        (x) => String(x.id) === activeCourseId,
-                      ) || {},
-                    )}
+                  {courseName(activeGroup || data.course || {})}
                 </h2>
                 <p className={`text-muted-foreground mt-1 text-sm ${NUMERALS}`}>
                   {data.modules.length} modules ·{" "}
@@ -819,9 +829,34 @@ function MaterialsDesk({ hub }: { hub: Hub }) {
                   )}{" "}
                   items
                 </p>
+                {activeGroup?.editions?.length > 1 && (
+                  <Select
+                    value={activeCourseId}
+                    onValueChange={(value) => value && setEditionId(value)}
+                  >
+                    <SelectTrigger
+                      className="mt-3 w-[240px] bg-background"
+                      aria-label="Canvas course edition"
+                    >
+                      <SelectValue>
+                        {activeEdition?.term?.name || "Undated Canvas edition"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeGroup.editions.map((edition: Course) => (
+                        <SelectItem key={edition.id} value={String(edition.id)}>
+                          {edition.term?.name || `Canvas course ${edition.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <OpenCanvas
-                href={`${hub.origin}/courses/${activeCourseId}`}
+                href={
+                  activeEdition?.courseUrl ||
+                  `${hub.origin}/courses/${activeCourseId}`
+                }
                 label="Open course"
               />
             </header>
@@ -948,7 +983,9 @@ function CoursesDesk({ rows, hub }: { rows: any[]; hub: Hub }) {
                   {entry.displayName || entry.name}
                 </span>
                 <small className="text-muted-foreground mt-1 block text-xs">
-                  {entry.term?.name || "Term not stated"}
+                  {entry.editionCount > 1
+                    ? `${entry.editionCount} editions · ${entry.term?.name || "latest term unstated"}`
+                    : entry.term?.name || "Term not stated"}
                 </small>
               </span>
               <ChevronRightIcon className="text-muted-foreground size-4" />
@@ -972,13 +1009,16 @@ function CoursesDesk({ rows, hub }: { rows: any[]; hub: Hub }) {
                     {selected.displayName || selected.name}
                   </h2>
                   <p className="text-muted-foreground mt-1 text-sm">
-                    {selected.term?.name || "Term not stated"}
+                    {selected.editionCount > 1
+                      ? `${selected.editionCount} Canvas editions · latest ${selected.term?.name || "term unstated"}`
+                      : selected.term?.name || "Term not stated"}
                   </p>
                 </div>
               </div>
               <OpenCanvas
                 href={
-                  selected.courseUrl || `${hub.origin}/courses/${selected.id}`
+                  selected.courseUrl ||
+                  `${hub.origin}/courses/${selected.canvasId || selected.id}`
                 }
                 label="Open course"
               />

@@ -18,5 +18,7 @@ export declare function filterAnnouncements(items: any[], options?: any): any[]
 export declare function assignmentState(status: string): string
 export declare function updateBriefing(hub?: { announcements?: any[]; assignments?: any[]; problems?: { part?: string }[]; truncated?: boolean }, options?: { since?: string; now?: number }): { newAnnouncements: number | null; openAssignments: number | null; nextDeadline: any | null; announcementsAvailable: boolean; assignmentsAvailable: boolean; truncated: boolean }
 export declare function filterAssignments(items: any[], options?: any): any[]
+export declare function stableCanvasCourseCode(course?: any): string
+export declare function groupCanvasCourseEditions(courses?: any[]): any[]
 export declare function courseRows(hub: any, scope?: string): any[]
 export declare function connectionOrigin(value: string): string | null

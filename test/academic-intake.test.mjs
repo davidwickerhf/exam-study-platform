@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from '../lib/academic-intake.mjs'
+import { detectAcademicDocumentKind, fallbackAcademicIntake, mergeAcademicIntakeDrafts, normalizeAcademicIntakeDraft } from '../lib/academic-intake.mjs'
 
 test('academic intake normalizes, deduplicates, and connects courses by code', () => {
   const draft = normalizeAcademicIntakeDraft({
@@ -129,4 +129,55 @@ END OF TRANSCRIPT
 
   assert.equal(draft.courses[0].code, '')
   assert.equal(draft.courses[0].programmeRequirement, 'historical')
+})
+
+test('a title-only transcript connects through one stable code across official curriculum editions', () => {
+  const text = `Transcript / Resultatenoverzicht
+BSc CS year 2 core courses
+Operating Systems 7,0 18.06.2025 4,00 4,00 1
+END OF TRANSCRIPT`
+  const identityCourses = [
+    { id: 'old-os', code: 'BCS2140', name: 'Operating Systems', yearLevel: 'Year 2', period: 'Period 4' },
+    { id: 'new-os', code: 'BCS2140', name: 'Operating Systems', yearLevel: 'Year 3', period: 'Period 1' }
+  ]
+  const draft = fallbackAcademicIntake(text, [], { kind: 'transcript', identityCourses })
+
+  assert.equal(draft.courses[0].code, 'BCS2140')
+  assert.equal(draft.courses[0].attempts[0].courseCode, 'BCS2140')
+  assert.match(draft.warnings.join(' '), /stable codes/i)
+})
+
+test('a title-only transcript uses the selected curriculum code when an official course was recoded', () => {
+  const text = `Transcript / Resultatenoverzicht
+BSc CS year 2 core courses
+Operating Systems 7,0 18.06.2025 4,00 4,00 1
+END OF TRANSCRIPT`
+  const identityCourses = [
+    { id: 'old-os', code: 'BCS3420', name: 'Operating Systems', curriculumVersion: '2025-2026', selectedCurriculum: false },
+    { id: 'new-os', code: 'BCS2140', name: 'Operating Systems', curriculumVersion: '2026-2027', selectedCurriculum: true }
+  ]
+  const draft = fallbackAcademicIntake(text, [], { kind: 'transcript', identityCourses })
+
+  assert.equal(draft.courses[0].code, 'BCS2140')
+  assert.equal(draft.courses[0].attempts[0].courseCode, 'BCS2140')
+})
+
+test('deterministic transcript rows supplement an incomplete AI extraction', () => {
+  const merged = mergeAcademicIntakeDrafts({
+    profile: {},
+    courses: [{ code: 'BCS1110', name: 'Introduction to Computer Science', ects: 4, attempts: [{ academicYear: '2024-2025', status: 'passed', grade: 7 }] }],
+    events: [],
+    warnings: []
+  }, {
+    profile: {},
+    courses: [
+      { code: 'BCS1110', name: 'Introduction to Computer Science', ects: 4, attempts: [{ academicYear: '2024-2025', status: 'passed', grade: 7 }] },
+      { code: 'BCS1120', name: 'Procedural Programming', ects: 4, attempts: [{ academicYear: '2024-2025', status: 'passed', grade: 8 }] }
+    ],
+    events: [],
+    warnings: []
+  })
+
+  assert.deepEqual(merged.courses.map((course) => course.code), ['BCS1110', 'BCS1120'])
+  assert.equal(merged.courses[0].attempts.length, 2)
 })

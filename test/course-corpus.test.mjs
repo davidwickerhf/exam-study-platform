@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  aggregateCanvasCourseEditions,
   academicYearFromCanvasCourse,
   canonicalCanvasCourse,
   periodFromCanvasCourse,
@@ -54,4 +55,24 @@ test('an explicit edition is ranked first while historical fallback stays labell
   const editions = [{ academicYear: '2024-2025' }, { academicYear: '2026-2027' }, { academicYear: '2025-2026' }]
   assert.deepEqual(retrievalEditionOrder(editions, { academicYear: '2025-2026' }).map((edition) => edition.academicYear), ['2025-2026', '2026-2027', '2024-2025'])
   assert.deepEqual(retrievalEditionOrder(editions, { academicYear: '2025-2026', includeHistorical: false }).map((edition) => edition.academicYear), ['2025-2026'])
+})
+
+test('retake editions collapse into one course without losing their provenance', () => {
+  const [course] = aggregateCanvasCourseEditions([
+    {
+      id: 'binding-old', editionId: 'edition-old', canonicalCourseId: 'canvas:BCS2140',
+      courseCode: 'BCS2140', courseName: 'Operating Systems (2024-2025-100-BCS2140)',
+      academicYear: '2024-2025', period: '1', sources: 2, sourceAssetIds: ['shared', 'old-only']
+    },
+    {
+      id: 'binding-new', editionId: 'edition-new', canonicalCourseId: 'canvas:BCS2140',
+      courseCode: 'BCS2140', courseName: 'Operating Systems (2026-2027-100-BCS2140)',
+      academicYear: '2026-2027', period: '1', sources: 2, sourceAssetIds: ['shared', 'new-only']
+    }
+  ])
+  assert.equal(course.courseCode, 'BCS2140')
+  assert.equal(course.editionCount, 2)
+  assert.equal(course.sources, 3)
+  assert.deepEqual(course.academicYears, ['2026-2027', '2024-2025'])
+  assert.deepEqual(course.editions.map((edition) => edition.editionId), ['edition-new', 'edition-old'])
 })

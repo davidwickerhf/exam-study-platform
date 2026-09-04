@@ -270,7 +270,7 @@ test('the Canvas import ledger is grouped in one pass', () => {
       { id: '5', status: 'completed', courseCode: 'BCS1110' },
       { id: '6', status: 'pending' }
     ],
-    courses: [{ sources: 12 }, { sources: 30 }]
+    courses: [{ sources: 12, editionCount: 2 }, { sources: 30, editionCount: 1 }]
   })
   assert.deepEqual(summary.active.map((job) => job.id), ['1', '6'])
   assert.deepEqual(summary.failed.map((job) => job.id), ['2', '3', '4'])
@@ -282,7 +282,7 @@ test('the Canvas import ledger is grouped in one pass', () => {
     ['Rate limited', 2],
     ['Unknown import error', 1]
   ])
-  assert.equal(summary.courseEditions, 2)
+  assert.equal(summary.courseEditions, 3)
   assert.equal(summary.storedMaterials, 42)
 
   // A server that has never run one is empty, not broken.

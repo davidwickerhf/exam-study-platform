@@ -1,10 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash, randomUUID } from 'node:crypto'
+import { execFile } from 'node:child_process'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from '../lib/agent-authorization.mjs'
 import { authorizationUrl, makeVerifier, startCallbackListener } from '../mcp/authorize.mjs'
@@ -15,6 +17,7 @@ import { checkMcpVendor } from '../scripts/sync-mcp-vendor.mjs'
 // account is capped at twenty. A fixed user id therefore poisons the suite
 // after twenty runs, so each run gets its own throwaway account and deletes it.
 const dataRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'data/users')
+const execFileAsync = promisify(execFile)
 const scratchUsers = new Set()
 function scratchUser(prefix) {
   const id = `${prefix}_${randomUUID().slice(0, 8)}`
@@ -134,6 +137,28 @@ test('the saved key is per server, 0600, and never returned by a listing', async
 
     await assert.rejects(() => saveApiKey('https://study.wicker.life', 'not-a-key', {}, env))
     assert.ok(JSON.parse(await readFile(configPath(env), 'utf8')).servers)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('the copy-ready MCP configure command persists its embedded key securely', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'wicker-mcp-bootstrap-'))
+  try {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [resolve('mcp/server.mjs'), 'configure'], {
+      env: {
+        ...process.env,
+        WICKER_STUDY_CONFIG_DIR: directory,
+        WICKER_STUDY_URL: 'https://study.wicker.life',
+        WICKER_STUDY_API_KEY: 'wsk_copy_ready_test'
+      }
+    })
+    assert.equal(stderr, '')
+    assert.match(stdout, /saved securely/)
+    const path = join(directory, 'config.json')
+    const config = JSON.parse(await readFile(path, 'utf8'))
+    assert.equal(config.servers['https://study.wicker.life'].apiKey, 'wsk_copy_ready_test')
+    assert.equal((await stat(path)).mode & 0o777, 0o600)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

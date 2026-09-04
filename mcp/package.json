@@ -1,6 +1,6 @@
 {
   "name": "wicker-study-mcp",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "MCP server for Wicker Study: read course material and a student's academic record, study on their behalf, collect a private Canvas course snapshot, and \u2014 with an admin key \u2014 run the editorial workflow.",
   "keywords": [
     "mcp",

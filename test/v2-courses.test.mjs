@@ -12,7 +12,9 @@ import {
   courseMaterialCoverage,
   courseLedger,
   currentSourceCoverage,
+  degreeRunwayYears,
   filterLedger,
+  ledgerStatus,
   materialSummary,
   periodLabel,
   reconcileCourses,
@@ -155,6 +157,61 @@ test('one row per course code, whatever the case each source uses', () => {
   // The student's own record names their own course; Canvas, which knows the
   // course least well, never overwrites a name the other two supplied.
   assert.equal(row.name, 'Algorithms and Data Structures')
+})
+
+test('Canvas retake editions contribute to one course row and retain both years', () => {
+  const [row] = reconcileCourses({
+    corpus: [
+      corpusCourse('BCS2140', 'Operating Systems (2024-2025-100-BCS2140)', { id: 'old', academicYear: '2024-2025', period: '1', sources: 18 }),
+      corpusCourse('bcs2140', 'Operating Systems (2026-2027-100-BCS2140)', { id: 'new', academicYear: '2026-2027', period: '1', sources: 24 })
+    ]
+  })
+  assert.equal(row.code, 'BCS2140')
+  assert.equal(row.corpus.sources, 42)
+  assert.equal(row.corpus.editionCount, 2)
+  assert.deepEqual(row.corpus.academicYears, ['2026-2027', '2024-2025'])
+  assert.deepEqual(row.corpus.editions.map((edition) => edition.id), ['new', 'old'])
+})
+
+test('the degree runway counts ECTS and keeps unchosen elective credit visible', () => {
+  const years = degreeRunwayYears({
+    programme: { durationYears: 3, totalEcts: 180 },
+    version: { courses: [
+      { id: 'core', code: 'BCS2510', name: 'Core', yearLevel: 'Year 3', requirement: 'required', ects: 30 },
+      { id: 'elective-a', code: 'BCS3120', name: 'Elective A', yearLevel: 'Year 3', requirement: 'elective', ects: 4 },
+      { id: 'elective-b', code: 'BCS3130', name: 'Elective B', yearLevel: 'Year 3', requirement: 'elective', ects: 4 }
+    ] },
+    programmeTemplate: { currentStudyYear: 'Year 3', selectedChoices: { year3: ['elective-a'] } },
+    academic: [
+      { code: 'BCS2510', ects: 30, attempts: [{ status: 'passed', grade: 7 }] },
+      { code: 'BCS3130', ects: 4, attempts: [{ status: 'passed', grade: 8, academicYear: '2024-2025', period: 'Period 4' }] }
+    ],
+    currentCodes: new Set()
+  })
+  const year = years.find((entry) => entry.label === 'Year 3')
+
+  assert.equal(year.targetEcts, 60)
+  assert.equal(year.earnedEcts, 34)
+  assert.equal(year.mappedEcts, 38, 'the selected elective and passed historical elective both map into the current curriculum')
+  assert.equal(year.openChoiceEcts, 22)
+})
+
+test('a recoded course is one passed row under the selected curriculum identity', () => {
+  const catalogue = { programmes: [{ id: 'cs', durationYears: 3, totalEcts: 180, versions: [
+    { id: '2026', courses: [{ id: 'current-os', code: 'BCS2140', name: 'Operating Systems', ects: 4, yearLevel: 'Year 3', period: 'Period 1', requirement: 'required' }] },
+    { id: '2025', courses: [{ id: 'old-os', code: 'BCS3420', name: 'Operating Systems', ects: 4, yearLevel: 'Year 2', period: 'Period 4', requirement: 'required' }] }
+  ] }] }
+  const rows = reconcileCourses({
+    catalogue,
+    programmeTemplate: { programmeId: 'cs', versionId: '2026', currentStudyYear: 'Year 3' },
+    academic: [{ id: 'historical-os', code: 'BCS3420', name: 'Operating Systems', ects: 4, yearLevel: 'Year 2', period: 'Period 4', programmeRequirement: 'historical', attempts: [{ id: 'old-sitting', academicYear: '2024-2025', status: 'passed', grade: 7 }] }]
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].code, 'BCS2140')
+  assert.equal(rows[0].academic.yearLevel, 'Year 3')
+  assert.equal(rows[0].academic.attempts[0].courseCode, 'BCS3420')
+  assert.equal(ledgerStatus(rows[0], new Set()).passed, true)
 })
 
 test('Canvas fills in a course nothing else has heard of, minus its section', () => {

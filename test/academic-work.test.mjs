@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { AcademicWorkError, compareAcademicWork, parseAcademicWork, parseCourseIdentity, summariseAcademicWork } from '../lib/academic-work.mjs'
+import { AcademicWorkError, compareAcademicWork, mergeAcademicWorkIntoWorkspace, parseAcademicWork, parseCourseIdentity, summariseAcademicWork } from '../lib/academic-work.mjs'
 
 // The structure of a real Academic Work print-out, with invented courses and
 // grades: the real document carries a name, a student number, and a full grade
@@ -64,6 +64,23 @@ test('an Academic Work overview is read without a model', () => {
   // NG is a no-show, which is not the same as a bad grade.
   const noShow = result.courses.find((course) => course.academicYear === '2025-2026' && course.code === 'BCS2120')
   assert.deepEqual({ result: noShow.result, grade: noShow.grade, status: noShow.status }, { result: 'NG', grade: null, status: 'no-show' })
+})
+
+test('an Academic Work snapshot repairs passed courses in the academic workspace exactly once', () => {
+  const record = parseAcademicWork(OVERVIEW)
+  const initial = {
+    profile: { programme: 'Bachelor of Science Computer Science' },
+    courses: [{ id: 'programme-bcs1110', code: 'BCS1110', name: 'Introduction to Computer Science', ects: 4, yearLevel: 'Year 1', period: 'Period 1', attempts: [] }]
+  }
+  const once = mergeAcademicWorkIntoWorkspace(initial, record.courses)
+  const twice = mergeAcademicWorkIntoWorkspace(once, record.courses)
+  const foundations = once.courses.find((course) => course.code === 'BCS1110')
+  const ai = once.courses.find((course) => course.code === 'BCS2120')
+
+  assert.equal(foundations.attempts.some((attempt) => attempt.status === 'passed'), true)
+  assert.equal(ai.attempts.length, 3)
+  assert.equal(ai.attempts.at(-1).status, 'upcoming')
+  assert.deepEqual(twice.courses, once.courses)
 })
 
 test('the summary counts a retaken course once and weights the average by credits', () => {
