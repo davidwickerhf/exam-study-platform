@@ -1,4 +1,5 @@
 @import "../public/public-site.css";
+@import "../public/landing-pages.css";
 
 /* Public and authentication surfaces retain their light editorial sheet after
  * the workspace bundle is removed. These are the tokens that sheet consumes;
