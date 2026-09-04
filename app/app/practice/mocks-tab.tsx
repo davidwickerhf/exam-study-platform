@@ -19,6 +19,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -95,6 +96,7 @@ export default function MocksTab({
   } | null>(null);
   const [selected, setSelected] = useState<MockSession | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<"abandon" | "submit" | null>(null);
 
   const availableCourses = courseFacets(bank);
   const availableChapters = chapterFacets(bank, courseId || "all");
@@ -288,20 +290,14 @@ export default function MocksTab({
               variant="ghost"
               className="flex-1 sm:flex-none"
               disabled={grading}
-              onClick={() => {
-                if (window.confirm("Abandon this mock? Answers will be lost."))
-                  setRun(null);
-              }}
+              onClick={() => setConfirmation("abandon")}
             >
               Abandon
             </Button>
             <Button
               className="flex-1 sm:flex-none"
               disabled={grading}
-              onClick={() => {
-                if (window.confirm("Submit your mock for grading?"))
-                  void submit(run);
-              }}
+              onClick={() => setConfirmation("submit")}
             >
               {grading ? "Grading…" : "Submit mock"}
             </Button>
@@ -325,6 +321,23 @@ export default function MocksTab({
             {failure}
           </p>
         )}
+        <ConfirmDialog
+          open={confirmation === "abandon"}
+          onOpenChange={(open) => { if (!open) setConfirmation(null); }}
+          title="Abandon this mock?"
+          description="Your answers from this sitting will be lost and no result will be recorded."
+          confirmLabel="Abandon mock"
+          destructive
+          onConfirm={() => { setConfirmation(null); setRun(null); }}
+        />
+        <ConfirmDialog
+          open={confirmation === "submit"}
+          onOpenChange={(open) => { if (!open) setConfirmation(null); }}
+          title="Submit this mock for grading?"
+          description="This ends the timed sitting and grades every answer you have entered. Unanswered questions receive no credit."
+          confirmLabel="Submit mock"
+          onConfirm={() => { setConfirmation(null); void submit(run); }}
+        />
       </section>
     );
   }

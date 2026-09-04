@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { CheckIcon, Trash2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Empty,
   EmptyDescription,
@@ -57,11 +58,10 @@ export default function MistakesTab({
     Record<string, { correction: string; score: number | null }>
   >({});
   const [failure, setFailure] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Mistake | null>(null);
 
   const remove = async (mistake: Mistake, resolve: boolean) => {
     if (!mistakes) return;
-    if (!resolve && !window.confirm("Delete this mistake from the bank?"))
-      return;
     setRetrying(mistake.id);
     setFailure(null);
     try {
@@ -245,7 +245,7 @@ export default function MistakesTab({
                         size="sm"
                         variant="ghost"
                         className="w-full sm:w-auto"
-                        onClick={() => void remove(mistake, false)}
+                        onClick={() => setPendingDelete(mistake)}
                         disabled={retrying === mistake.id}
                       >
                         <Trash2Icon data-icon="inline-start" />
@@ -270,6 +270,16 @@ export default function MistakesTab({
           </section>
         );
       })}
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null); }}
+        title="Delete this mistake?"
+        description="The attempt will be removed from your mistake bank. This does not change the original practice result."
+        confirmLabel="Delete mistake"
+        destructive
+        busy={Boolean(pendingDelete && retrying === pendingDelete.id)}
+        onConfirm={() => { const mistake = pendingDelete; setPendingDelete(null); if (mistake) void remove(mistake, false); }}
+      />
     </div>
   );
 }

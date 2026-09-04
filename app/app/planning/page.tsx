@@ -17,8 +17,9 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRightIcon, CalendarDaysIcon, CheckCircle2Icon, Clock3Icon, FileCheck2Icon, LockIcon, PlusIcon, RotateCcwIcon, TriangleAlertIcon, XIcon } from "lucide-react";
+import { ArrowRightIcon, CalendarDaysIcon, CheckCircle2Icon, Clock3Icon, FileCheck2Icon, LockIcon, PlusIcon, RotateCcwIcon, SearchIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Empty,
   EmptyDescription,
@@ -400,31 +401,31 @@ function EditorActions({
   onCancel: () => void;
   destructive?: { label: string; confirm: string; onConfirm: () => void };
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-      {destructive ? (
-        <button
-          type="button"
-          className={QUIET}
-          disabled={busy}
-          onClick={() => {
-            if (window.confirm(destructive.confirm)) destructive.onConfirm();
-          }}
-        >
-          {destructive.label}
-        </button>
-      ) : (
-        <span />
-      )}
-      <span className="flex items-center gap-3">
-        <button type="button" className={QUIET} onClick={onCancel}>
-          Cancel
-        </button>
-        <Button type="submit" size="sm" disabled={busy}>
-          {busy ? "Saving…" : saveLabel}
-        </Button>
-      </span>
-    </div>
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+        {destructive ? (
+          <button type="button" className={QUIET} disabled={busy} onClick={() => setConfirmOpen(true)}>
+            {destructive.label}
+          </button>
+        ) : <span />}
+        <span className="flex items-center gap-3">
+          <button type="button" className={QUIET} onClick={onCancel}>Cancel</button>
+          <Button type="submit" size="sm" disabled={busy}>{busy ? "Saving…" : saveLabel}</Button>
+        </span>
+      </div>
+      {destructive && <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={destructive.confirm}
+        description="This removes the record and its related history from this academic plan. This action cannot be undone."
+        confirmLabel={destructive.label}
+        destructive
+        busy={busy}
+        onConfirm={() => { setConfirmOpen(false); destructive.onConfirm(); }}
+      />}
+    </>
   );
 }
 
@@ -704,6 +705,8 @@ function CourseRegister({
 }) {
   const years = useMemo(() => byYear(courses), [courses]);
   const [selectedYear, setSelectedYear] = useState("");
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
   useEffect(() => {
     const focusedYear = open ? years.find((year) => year.courses.some((course) => course.id === open))?.level : null;
     if (focusedYear && focusedYear !== selectedYear) setSelectedYear(focusedYear);
@@ -724,27 +727,28 @@ function CourseRegister({
   }
   const year = years.find((item) => item.level === selectedYear) || years[0];
   const yearPassed = year.courses.filter((course) => courseStatus(course) === "passed").length;
+  const visible = year.courses.filter((course) => {
+    const matchesQuery = !query.trim() || `${course.code} ${course.name}`.toLowerCase().includes(query.trim().toLowerCase());
+    const state = courseStatus(course);
+    return matchesQuery && (status === "all" || status === state || (status === "open" && state !== "passed"));
+  });
   return (
     <section className="overflow-hidden rounded-xl border bg-card">
-      <header className="flex min-h-[76px] items-stretch border-b">
-        <div className="flex min-w-56 flex-1 flex-col justify-center px-5 py-3 sm:px-6"><span className={COLUMN}>Curriculum record</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.025em]">{year.level}</h2></div>
+      <header className="flex min-h-[88px] items-stretch border-b">
+        <div className="flex min-w-56 flex-1 flex-col justify-center px-5 py-4 sm:px-6"><h2 className="font-heading text-xl font-semibold tracking-[-0.025em]">{year.level} courses</h2><p className="text-muted-foreground mt-1 text-sm">{year.courses.length} courses in this study year · {yearPassed} passed</p></div>
         <nav className="flex min-w-0 overflow-x-auto" aria-label="Course years">
           {years.map((item) => <button key={item.level} type="button" onClick={() => { setSelectedYear(item.level); onOpen(null); }} className={`relative min-w-36 border-l px-4 text-left ${year.level === item.level ? "bg-primary/[0.035]" : "hover:bg-muted/35"}`}><span className={`${COLUMN} ${year.level === item.level ? "text-primary" : ""}`}>{item.level}</span><span className={`text-muted-foreground mt-1 block text-xs ${NUMERALS}`}>{earnedEcts(item.courses)}/{item.ects} ECTS</span>{year.level === item.level && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}</button>)}
         </nav>
       </header>
-      <div className="grid grid-cols-3 border-b">
-        <div className="px-5 py-3 sm:px-6"><span className={COLUMN}>Courses</span><strong className={`mt-1 block text-lg ${NUMERALS}`}>{year.courses.length}</strong></div>
-        <div className="border-l px-5 py-3"><span className={COLUMN}>Passed</span><strong className={`mt-1 block text-lg ${NUMERALS}`}>{yearPassed}</strong></div>
-        <div className="border-l px-5 py-3"><span className={COLUMN}>Open ECTS</span><strong className={`mt-1 block text-lg ${NUMERALS}`}>{Math.max(0, year.ects - earnedEcts(year.courses))}</strong></div>
+      <div className="grid gap-3 border-b bg-muted/35 px-5 py-4 sm:grid-cols-[minmax(12rem,1fr)_11rem] sm:px-6">
+        <label className="relative"><span className="sr-only">Search this study year</span><SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" /><Input className="bg-card pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search courses" /></label>
+        <Select value={status} onValueChange={(value) => setStatus(String(value))}><SelectTrigger className="bg-card w-full" aria-label="Filter by course status"><SelectValue>{(value) => ({ all: "All statuses", open: "Still open", passed: "Passed", failed: "Failed / retake", registered: "Registered" })[String(value)]}</SelectValue></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">All statuses</SelectItem><SelectItem value="open">Still open</SelectItem><SelectItem value="passed">Passed</SelectItem><SelectItem value="failed">Failed / retake</SelectItem><SelectItem value="registered">Registered</SelectItem></SelectGroup></SelectContent></Select>
       </div>
       <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] border-collapse">
+            <table className="w-full min-w-[48rem] border-collapse">
               <thead>
                 <tr className={`${COLUMN} border-b`}>
-                  <th className="w-[7.5rem] px-5 py-3 text-left font-semibold sm:px-6">
-                    Code
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold">Course</th>
+                  <th className="px-5 py-3 text-left font-semibold sm:px-6">Course</th>
                   <th className="w-[7rem] px-3 py-3 text-left font-semibold">
                     Period
                   </th>
@@ -755,12 +759,12 @@ function CourseRegister({
                     Requirement
                   </th>
                   <th className="w-[8rem] px-5 py-3 text-left font-semibold sm:pr-6">
-                    Status
+                    Action
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {year.courses.map((course) => {
+                {visible.map((course) => {
                   const expanded = open === course.id;
                   return (
                     <Fragment key={course.id}>
@@ -773,20 +777,19 @@ function CourseRegister({
                         }}
                         className={`cursor-pointer border-b transition-colors ${expanded ? "bg-muted/60" : "hover:bg-card"}`}
                       >
-                        <td
-                          className={`px-5 py-3 text-sm font-semibold sm:px-6 ${NUMERALS}`}
-                        >
-                          {course.code || <span className={ABSENT}>—</span>}
-                        </td>
-                        <td className="px-3 py-3 text-[15px] font-medium">
+                        <td className="px-5 py-4 sm:px-6">
                           <button
                             type="button"
                             aria-expanded={expanded}
                             aria-controls={`course-editor-${course.id}`}
                             onClick={() => onOpen(expanded ? null : course.id)}
-                            className="rounded-sm text-left underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            className="group/course rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
-                            {course.name}
+                            <span className={`text-primary block text-xs font-semibold tracking-[0.04em] ${NUMERALS}`}>{course.code || "No code"}</span>
+                            <span className="mt-1 block text-[15px] font-semibold group-hover/course:underline">{course.name}</span>
+                            <span className="text-muted-foreground mt-2 inline-flex items-center gap-1.5 text-xs">
+                              <StatusCell course={course} />
+                            </span>
                           </button>
                         </td>
                         <td
@@ -804,13 +807,13 @@ function CourseRegister({
                             <span className={ABSENT}>—</span>
                           )}
                         </td>
-                        <td className="px-5 py-3 sm:pr-6">
-                          <StatusCell course={course} />
+                        <td className="px-5 py-4 sm:pr-6">
+                          <button type="button" aria-expanded={expanded} onClick={() => onOpen(expanded ? null : course.id)} className="text-primary inline-flex items-center gap-2 text-sm font-semibold">{expanded ? "Close record" : "Edit record"}<ArrowRightIcon className={`size-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} /></button>
                         </td>
                       </tr>
                       {expanded && (
                         <tr className="border-b">
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={5} className="p-0">
                             <CourseEditor
                               course={course}
                               commit={commit}
@@ -826,7 +829,8 @@ function CourseRegister({
               </tbody>
             </table>
       </div>
-      <footer className="text-muted-foreground flex items-center justify-between gap-4 border-t px-5 py-3 text-xs sm:px-6"><span>{yearPassed} completed, {year.courses.length - yearPassed} still open</span><span className={NUMERALS}>{year.ects} ECTS in {year.level}</span></footer>
+      {!visible.length && <p className="text-muted-foreground px-5 py-8 text-center text-sm sm:px-6">No courses match these filters.</p>}
+      <footer className="text-muted-foreground flex items-center justify-between gap-4 border-t px-5 py-3 text-xs sm:px-6"><span>Showing {visible.length} of {year.courses.length} courses</span><span className={NUMERALS}>{earnedEcts(year.courses)}/{year.ects} ECTS earned</span></footer>
     </section>
   );
 }
@@ -1743,8 +1747,9 @@ export default function PlanningPage() {
           {workspace ? (
             <>
               <ViewIntro
-                title="Build the curriculum route"
-                description="Move through the degree one study year at a time. Keep the maintained curriculum, your elective choices, and recorded attempts in one inspectable course register."
+                title="Courses in your plan"
+                description="Review the curriculum by study year, keep attempts accurate, and choose the electives that feed your Session Board. Study materials and source coverage stay in the Course Desk."
+                action={<Button nativeButton={false} render={<Link href="/app/courses" />} variant="outline" size="sm">Open Course Desk<ArrowRightIcon data-icon="inline-end" /></Button>}
               />
               {composer === "courses" && (
                 <CourseComposer
