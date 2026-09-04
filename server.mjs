@@ -33,6 +33,8 @@ import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgram
 import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
+import { dismissCalendarNotice, observeCalendarFeeds } from './lib/calendar-changes.mjs'
+import { discoverCourses } from './lib/course-repository.mjs'
 import { upsertAttendanceRecord } from './lib/attendance.mjs'
 import { removePersonalCalendarEvent, savePersonalCalendarEvent } from './lib/personal-calendar.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
@@ -3513,6 +3515,15 @@ const server = createServer(async (req, res) => {
       catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
       return
     }
+    if (url.pathname === '/api/public/course-repository' && req.method === 'GET') {
+      try {
+        const result = await discoverCourses({ query: url.searchParams.get('q') || '', kind: url.searchParams.get('kind') || 'all', limit: url.searchParams.get('limit') || 50 })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400' })
+      } catch (error) {
+        send(res, 503, JSON.stringify({ error: error instanceof Error ? error.message : 'Course discovery is unavailable.' }))
+      }
+      return
+    }
 
     // Step three of the agent authorization: an agent with no credential trades
     // its single-use code and verifier for a freshly minted API key, once.
@@ -4192,9 +4203,16 @@ const server = createServer(async (req, res) => {
           for (const problem of outcome.value.problems) problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: problem.error })
         }
       }
-      const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
+      const [result, changes] = await Promise.all([
+        Promise.resolve(aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })),
+        observeCalendarFeeds(workspace.id, feeds, { activeFeedIds: links.map((link) => link.id) }).catch((error) => {
+          problems.push({ id: 'calendar-change-detection', label: 'Timetable changes', error: error instanceof Error ? error.message : String(error) })
+          return []
+        })
+      ])
       send(res, 200, JSON.stringify({
         ...result,
+        changes,
         feeds: (workspace.calendars || []).map((link) => ({
           id: link.id,
           label: link.label,
@@ -4206,6 +4224,14 @@ const server = createServer(async (req, res) => {
         canvas: { connected: canvasConnected },
         problems
       }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    const calendarNoticeMatch = url.pathname.match(/^\/api\/calendar\/changes\/([^/]+)$/)
+    if (calendarNoticeMatch && req.method === 'DELETE') {
+      const { workspace } = await readAcademicState()
+      const removed = await dismissCalendarNotice(workspace.id, decodeURIComponent(calendarNoticeMatch[1]))
+      send(res, removed ? 200 : 404, JSON.stringify(removed ? { ok: true } : { error: 'Change notice not found.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
 

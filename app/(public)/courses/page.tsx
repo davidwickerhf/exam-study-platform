@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { CourseRegister } from '@/components/site/course-register'
+import { CourseDiscovery } from '@/components/site/course-discovery'
 import { SiteIcon } from '@/components/site/icon'
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function CoursesPage() {
 
       <section className="course-catalogue-intro"><h2>Current catalogue</h2><p>Five Maastricht University BCS courses are available now. Course material is maintained centrally; progress and history remain private to each account.</p></section>
       <CourseRegister />
+      <CourseDiscovery />
 
       <section className="course-capability-table">
         <header><h2>Inside every maintained course</h2><p>Reading, practice, review, and exams all stay attached to the same course.</p></header>

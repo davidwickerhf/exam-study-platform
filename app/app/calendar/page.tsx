@@ -8,7 +8,7 @@ import {
   CircleAlertIcon, Clock3Icon, ExternalLinkIcon,
   GripVerticalIcon, MoreHorizontalIcon, PanelLeftCloseIcon,
   PanelLeftOpenIcon, PanelRightCloseIcon, PanelRightOpenIcon, PencilIcon,
-  PlusIcon, RefreshCwIcon, RotateCcwIcon, Trash2Icon
+  PlusIcon, RefreshCwIcon, RotateCcwIcon, Trash2Icon, XIcon
 } from 'lucide-react'
 import { CanvasMark } from '@/components/brand/canvas-mark'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { type CalendarEvent, type CalendarPayload, localIsoDate, roomOf } from '@/lib/workspace/home.mjs'
+import { type CalendarChange, type CalendarEvent, type CalendarPayload, localIsoDate, roomOf } from '@/lib/workspace/home.mjs'
 import type { Course } from '@/lib/workspace/academics.mjs'
 import type { GridApi } from './calendar-grid'
 
@@ -86,6 +86,21 @@ const SOURCE_TONES: Record<SourceTone, string> = {
   institution: 'border-violet-500 bg-violet-500 text-white',
   feed: 'border-emerald-600 bg-emerald-600 text-white',
   canvas: 'border-[#E72429] bg-[#E72429] text-white'
+}
+
+const CHANGE_LABEL: Record<CalendarChange['kind'], string> = {
+  cancelled: 'Cancelled',
+  rescheduled: 'Rescheduled',
+  'room-changed': 'Room changed',
+  updated: 'Updated'
+}
+
+function TimetableChanges({ changes, onDismiss }: { changes: CalendarChange[]; onDismiss: (id: string) => void }) {
+  if (!changes.length) return null
+  return <section className="bg-card shrink-0 border-b px-4 sm:px-6" aria-labelledby="timetable-changes-title">
+    <div className="flex items-baseline justify-between gap-4 py-2"><h2 id="timetable-changes-title" className={LABEL}>Timetable changes</h2><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{changes.length} unread</span></div>
+    <ul>{changes.slice(0, 3).map((change) => <li key={change.id} className="grid grid-cols-[92px_minmax(0,1fr)_auto] items-start gap-3 border-t py-2.5 max-sm:grid-cols-[80px_minmax(0,1fr)_auto]"><strong className={`text-primary text-[10.5px] leading-5 font-semibold tracking-[0.08em] uppercase ${NUMERALS}`}>{CHANGE_LABEL[change.kind]}</strong><span className="min-w-0 text-sm leading-5"><b className="font-medium">{change.title}</b><small className="text-muted-foreground ml-2">{change.detail} · {change.feedLabel}</small></span><button type="button" onClick={() => onDismiss(change.id)} className="text-muted-foreground hover:text-foreground rounded-sm p-0.5 focus-visible:outline-2" aria-label={`Dismiss change to ${change.title}`}><XIcon className="size-4" /></button></li>)}</ul>
+  </section>
 }
 
 function SourceVisibilityToggle({ source, visible, onToggle }: { source: SourceRow; visible: boolean; onToggle: () => void }) {
@@ -212,6 +227,7 @@ export default function CalendarPage() {
   async function manageFeed(id: string, action: 'sync' | 'remove') { setSourceSaving(id); try { const response = await fetch(`/api/academics/calendars/${encodeURIComponent(id)}${action === 'sync' ? '/sync' : ''}`, { method: action === 'sync' ? 'POST' : 'DELETE', headers: { accept: 'application/json', 'content-type': 'application/json' }, body: action === 'sync' ? JSON.stringify({ date: selectedDate }) : undefined }); const body = await response.json().catch(() => null); if (!response.ok) throw new Error(body?.error || `Calendar ${action} returned ${response.status}`); setAcademicRevision(body.workspace.revision); await loadCalendar() } catch (cause) { setError((cause as Error).message) } finally { setSourceSaving(null) } }
   async function saveEvent(input: Record<string, unknown>) { if (!composer) return; setComposerSaving(true); setComposerError(null); const managedId = composer.mode === 'edit' ? composer.event?.managedEventId : null; try { const response = await fetch(managedId ? `/api/calendar/events/${encodeURIComponent(managedId)}` : '/api/calendar/events', { method: managedId ? 'PUT' : 'POST', headers: { accept: 'application/json', 'content-type': 'application/json' }, body: JSON.stringify({ event: input, expectedRevision: academicRevision }) }); const body = await response.json().catch(() => null); if (!response.ok) throw new Error(body?.error || `Calendar event returned ${response.status}`); setAcademicRevision(body.workspace.revision); setComposer(null); await loadCalendar(`personal:${body.event.id}`) } catch (cause) { setComposerError((cause as Error).message) } finally { setComposerSaving(false) } }
   async function deleteEvent(event: CalendarEvent) { if (!event.managedEventId) return; setComposerSaving(true); setComposerError(null); try { const response = await fetch(`/api/calendar/events/${encodeURIComponent(event.managedEventId)}`, { method: 'DELETE', headers: { accept: 'application/json', 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: academicRevision }) }); const body = await response.json().catch(() => null); if (!response.ok) throw new Error(body?.error || `Calendar event returned ${response.status}`); setAcademicRevision(body.workspace.revision); setComposer(null); setSelected(null); await loadCalendar() } catch (cause) { setComposerError((cause as Error).message) } finally { setComposerSaving(false) } }
+  function dismissChange(id: string) { setPayload((held) => held ? { ...held, changes: (held.changes ?? []).filter((change) => change.id !== id) } : held); void fetch(`/api/calendar/changes/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { accept: 'application/json' } }) }
 
   if (error) return <div className="mx-auto w-full max-w-[1400px] p-5 sm:p-8"><Empty><EmptyHeader><EmptyTitle>Your calendar could not be read</EmptyTitle><EmptyDescription>{error}</EmptyDescription></EmptyHeader></Empty></div>
   const summary = payload?.attendance?.summary
@@ -220,6 +236,7 @@ export default function CalendarPage() {
 
   return <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col md:h-dvh">
     <header className="bg-background flex min-h-[72px] shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6"><div className="flex items-center gap-2 sm:gap-3"><Button onClick={() => { setComposerError(null); setComposer({ mode: 'create', date: selectedDate }) }}><PlusIcon data-icon="inline-start" />Create</Button><Button variant="outline" onClick={() => moveCalendar('today')} disabled={!ready}>Today</Button><div className="flex"><Button variant="ghost" size="icon" onClick={() => moveCalendar('prev')} disabled={!ready} aria-label="Previous"><ChevronLeftIcon /></Button><Button variant="ghost" size="icon" onClick={() => moveCalendar('next')} disabled={!ready} aria-label="Next"><ChevronRightIcon /></Button></div><h1 className={`font-heading ml-1 text-xl font-semibold tracking-[-0.025em] ${NUMERALS}`}>{title || 'Calendar'}</h1></div><div className="bg-card flex overflow-x-auto rounded-lg border p-1" role="tablist" aria-label="Calendar view">{VIEWS.map((entry) => <button key={entry.id} type="button" role="tab" aria-selected={view === entry.id} disabled={!ready} onClick={() => changeView(entry.id)} className={cn('h-8 min-w-16 rounded-md px-3 text-xs font-semibold disabled:opacity-50', view === entry.id ? 'bg-foreground text-card' : 'text-muted-foreground hover:text-foreground')}>{entry.label}</button>)}</div></header>
+    <TimetableChanges changes={payload?.changes ?? []} onDismiss={dismissChange} />
     <details className="bg-card shrink-0 border-b lg:hidden"><summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Calendars</summary>{sourceList('mobile')}</details>
     {selected && <div className="bg-card fixed inset-x-0 bottom-16 z-30 max-h-[70dvh] overflow-y-auto border-t shadow-[var(--shadow-sheet)] lg:hidden"><DayDesk selected={selected} selectedDate={selectedDate} dayEvents={dayEvents} attendanceSaving={attendanceSaving} attendanceError={attendanceError} onSelect={setSelected} onMark={(status) => void markAttendance(status)} onEdit={(event) => setComposer({ mode: 'edit', date: event.start.slice(0, 10), event })} onCopy={(event) => setComposer({ mode: 'copy', date: event.start.slice(0, 10), event })} onClear={() => { setSelected(null); setAttendanceError(null) }} /></div>}
     <div style={splitStyle} className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_1px_var(--right-width)] xl:grid-cols-[var(--left-width)_1px_minmax(0,1fr)_1px_var(--right-width)]">

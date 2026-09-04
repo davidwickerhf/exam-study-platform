@@ -37,6 +37,8 @@ body.public-mode {
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
+  /* Independent of client-applied spacing tokens, so the link cannot flash
+   * visibly before PublicChrome marks the body as a public surface. */
   transform: translateY(calc(-100% - 24px));
   transition: transform 140ms ease-out;
 }
@@ -195,6 +197,24 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
 .comparison-table p { margin: 0; }
 .reading-cta { margin-top: clamp(64px, 8vw, 104px); padding: var(--space-7); display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 .courses-public-page .public-course-register { margin-top: 0; }
+.course-discovery { margin-top: clamp(64px, 8vw, 104px); padding-block: var(--space-7); border-block: 1px solid var(--color-border-strong); }
+.course-discovery-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-6); }
+.course-discovery-heading h2 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
+.course-discovery-heading p { max-width: 64ch; margin: var(--space-2) 0 0; color: var(--color-ink-secondary); line-height: 1.65; }
+.course-discovery-heading > a, .course-discovery-links a { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-brand) !important; font-size: 13px; font-weight: 650; text-decoration: none; }
+.course-discovery-form { margin-top: var(--space-6); display: grid; grid-template-columns: minmax(240px, 1fr) 180px auto; align-items: end; gap: var(--space-3); }
+.course-discovery-form label { display: grid; gap: var(--space-2); color: var(--color-ink-secondary); font-size: 12px; font-weight: 600; }
+.course-discovery-form input, .course-discovery-form select { width: 100%; min-height: var(--control-lg); padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); color: var(--color-ink); background: var(--color-surface); font: inherit; }
+.course-discovery-form input:focus, .course-discovery-form select:focus { outline: 2px solid var(--color-brand-soft); border-color: var(--color-brand); }
+.course-discovery-status { min-height: 38px; padding-top: var(--space-4); color: var(--color-ink-tertiary); font: 500 11px/1.5 var(--font-data); }
+.course-discovery-results { border-top: 1px solid var(--color-border-strong); }
+.course-discovery-results article { min-height: 72px; padding: var(--space-3) 0; display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; align-items: center; gap: var(--space-4); border-bottom: 1px solid var(--color-border); }
+.course-discovery-results article > span { color: var(--color-ink-tertiary); font: 500 10px/1.4 var(--font-data); text-transform: uppercase; }
+.course-discovery-results article > div:nth-child(2) { display: grid; gap: 3px; }
+.course-discovery-results strong { font-size: 15px; }.course-discovery-results small { color: var(--color-ink-secondary); font: 500 11px/1.4 var(--font-data); }
+.course-discovery-links { display: flex; align-items: center; gap: var(--space-4); }
+.course-discovery-empty { margin: 0; padding: var(--space-5) 0; border-top: 1px solid var(--color-border); color: var(--color-ink-secondary); }
+.course-discovery-note { margin: var(--space-4) 0 0; color: var(--color-ink-tertiary); font-size: 11px; line-height: 1.6; }
 .course-capability-table { margin-top: clamp(64px, 8vw, 104px); }
 .course-capability-table h2 { margin-bottom: var(--space-6); }
 .course-capability-table > div { min-height: 56px; padding: var(--space-3) 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); border-bottom: 1px solid var(--color-border); }
@@ -279,6 +299,10 @@ body.public-mode #app, body.public-mode #auth-gate { display: none !important; }
   .site-section { width: min(100% - 40px, var(--site-content-max)); }
   .site-section-heading { grid-template-columns: 1fr; gap: var(--space-4); }
   .public-course-register article { grid-template-columns: 36px 1fr auto; gap: var(--space-3); }
+  .course-discovery-heading, .course-discovery-form { grid-template-columns: 1fr; align-items: stretch; }
+  .course-discovery-heading > a { justify-self: start; }
+  .course-discovery-results article { grid-template-columns: 70px minmax(0, 1fr); }
+  .course-discovery-links { grid-column: 2; justify-content: start; }
   .public-course-register article p { grid-column: 2 / -1; }.course-register-count { align-self: start; }
   .mobile-proof { grid-template-columns: 1fr; }.mobile-proof-device { order: 2; }
   .site-close { width: calc(100% - 40px); padding: var(--space-7); }

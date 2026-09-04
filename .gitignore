@@ -28,6 +28,8 @@ data/*.bak-*
 #   data/cache/questions/         — self-test question banks per chapter
 #   data/cache/schemas/           — JSON schemas (committed)
 # Nothing to ignore under data/cache/, but it's listed here so you know it's intentional.
+# The Course Repository index is an upstream response cache, not product data.
+data/cache/course-repository.json
 
 # ── Node ────────────────────────────────────────────────────────────────────
 node_modules/
