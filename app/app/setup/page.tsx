@@ -53,6 +53,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { tutorMarkdown } from '@/lib/workspace/markdown.mjs'
 import {
+  type CurriculumReconciliation,
   type SetupStep,
   type SetupStepId,
   type SetupIssue,
@@ -73,6 +74,38 @@ const TIMETABLE_PORTAL = 'https://timetable.maastrichtuniversity.nl/m/#loggedin'
 const STUDENT_PORTAL = 'https://studentportal.maastrichtuniversity.nl/group/guest/my-study'
 const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs'
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+
+function CurriculumMatch({ value }: { value?: CurriculumReconciliation }) {
+  if (!value?.currentCount) return null
+  const complete = value.outsideCount === 0
+  return (
+    <section className="border-y py-4" aria-labelledby="curriculum-match-title">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h3 id="curriculum-match-title" className="text-sm font-semibold">Curriculum reconciliation</h3>
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+            {complete
+              ? `All ${value.currentCount} current courses are recognised in the selected programme.`
+              : `${value.recognizedCount} of ${value.currentCount} current courses are recognised.`}
+          </p>
+        </div>
+        <span className={`font-data text-sm font-semibold tabular-nums ${complete ? 'text-primary' : 'text-foreground'}`}>
+          {value.recognizedCount}/{value.currentCount}
+        </span>
+      </div>
+      {value.otherYearCount > 0 && <p className="text-muted-foreground mt-2 text-xs leading-relaxed">{value.otherYearCount} recognised {value.otherYearCount === 1 ? 'course belongs' : 'courses belong'} to another curriculum year, so it is treated as an elective, carry-over, or changed placement—not as a programme conflict.</p>}
+      {value.changes.length > 0 && <details className="mt-3">
+        <summary className="focus-visible:ring-primary w-fit cursor-pointer text-sm font-semibold outline-none hover:underline focus-visible:ring-2">{value.changes.length} historical {value.changes.length === 1 ? 'change' : 'changes'} recognised</summary>
+        <ul className="mt-3 space-y-3">
+          {value.changes.map((change) => <li key={change.id} className="text-sm">
+            <strong>{change.name}</strong>
+            <p className="text-muted-foreground mt-1 leading-relaxed">{change.placements.map((item) => [item.versionId, item.code, item.yearLevel, item.period].filter(Boolean).join(' · ')).join(' → ')}</p>
+          </li>)}
+        </ul>
+      </details>}
+    </section>
+  )
+}
 
 // The old transcript renderer stays compiled for one migration release so it
 // can read an in-flight conversation shape, but it is not a user-selectable
@@ -831,7 +864,7 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
             </div>
           ))}
 
-          {selected.id === 'record' && <UploadField onRead={() => refreshFrom('record')} />}
+          {selected.id === 'record' && <><UploadField onRead={() => refreshFrom('record')} /><CurriculumMatch value={view?.state.curriculumReconciliation} /></>}
           {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} />}
 
           {selected.id === 'timetable' && (
@@ -1105,7 +1138,7 @@ function UnifiedSetup({
             {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
             {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} onSaved={() => refreshFrom('programme')} />}
             {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshFrom('electives')} />)}
-            {selected.id === 'record' && <UploadField onRead={() => refreshFrom('record')} onSkip={() => void defer('record')} />}
+            {selected.id === 'record' && <><UploadField onRead={() => refreshFrom('record')} onSkip={() => void defer('record')} /><div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
             {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} onSkip={() => void defer('transcript')} />}
             {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}
             {selected.id === 'timetable' && <form className="flex flex-col gap-5" onSubmit={async (event) => { event.preventDefault(); const url = timetable.trim(); if (!url || timetableBusy) return; setTimetableBusy(true); setTimetableError(null); try { await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) }); setTimetable(''); await refreshFrom('timetable') } catch (cause) { setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.') } finally { setTimetableBusy(false) } }}><TimetableGuide /><Field data-invalid={timetableError ? true : undefined}><FieldLabel htmlFor="guided-timetable">Timetable URL</FieldLabel><Input id="guided-timetable" type="url" required autoComplete="off" spellCheck={false} value={timetable} disabled={timetableBusy} placeholder="https://timetable.maastrichtuniversity.nl/ical?…" onChange={(event) => setTimetable(event.target.value)} /><FieldDescription className="flex items-center gap-1.5"><ShieldIcon className="size-3.5" />Stored on your account only, and read but never written to.</FieldDescription>{timetableError && <FieldError>{timetableError}</FieldError>}</Field><div className="flex flex-wrap items-center gap-2"><Button type="submit" disabled={timetableBusy || !timetable.trim()}>{timetableBusy && <Spinner data-icon="inline-start" />}{timetableBusy ? 'Checking the feed…' : 'Connect timetable'}</Button><Button type="button" variant="ghost" disabled={timetableBusy} onClick={() => void defer('timetable')}>Do this later</Button>{saved === 'timetable' && <SavedMark>{selected.detail}</SavedMark>}</div></form>}

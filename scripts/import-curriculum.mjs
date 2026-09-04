@@ -87,6 +87,34 @@ export function summarise(version) {
   return byYear
 }
 
+/**
+ * Read either browser-extractor JSON or the compact pipe-delimited format used
+ * by the two master's programmes. Keeping this exported matters: catalogue
+ * tests can now compare the committed product data with the complete raw
+ * extraction instead of merely checking that the final numbers look
+ * plausible.
+ */
+export function parseCurriculumExtract(raw) {
+  if (String(raw).trimStart().startsWith('{')) return JSON.parse(raw)
+  const meta = {}
+  const courses = []
+  for (const line of String(raw).split('\n').map((entry) => entry.trim()).filter(Boolean)) {
+    if (line.startsWith('#')) continue
+    if (!line.includes('|')) {
+      const [key, ...rest] = line.split(':')
+      meta[key.trim()] = rest.join(':').trim()
+      continue
+    }
+    const [code, name, ects, periods, group] = line.split('|')
+    courses.push([code.trim(), name.trim(), Number(ects), periods.split('+').map(Number).filter(Boolean), group.trim()])
+  }
+  return {
+    ...meta,
+    sources: meta.repository ? [{ label: 'Official course repository', url: meta.repository }] : [],
+    courses
+  }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [file, ...flags] = process.argv.slice(2)
   if (!file) { console.error('Usage: node scripts/import-curriculum.mjs <extract.json> [--write]'); process.exit(1) }
@@ -94,21 +122,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // Two input shapes: JSON, or the pipe-delimited rows the browser extractor
   // prints — code|name|ects|periods|group, one per line, after a header of
   // `key: value` lines.
-  const extract = raw.trimStart().startsWith('{') ? JSON.parse(raw) : (() => {
-    const meta = {}
-    const courses = []
-    for (const line of raw.split('\n').map((entry) => entry.trim()).filter(Boolean)) {
-      if (line.startsWith('#')) continue
-      if (!line.includes('|')) {
-        const [key, ...rest] = line.split(':')
-        meta[key.trim()] = rest.join(':').trim()
-        continue
-      }
-      const [code, name, ects, periods, group] = line.split('|')
-      courses.push([code.trim(), name.trim(), Number(ects), periods.split('+').map(Number).filter(Boolean), group.trim()])
-    }
-    return { ...meta, sources: meta.repository ? [{ label: 'Official course repository', url: meta.repository }] : [], courses }
-  })()
+  const extract = parseCurriculumExtract(raw)
   const version = buildVersion({
     id: extract.versionId || '2026-2027',
     label: extract.versionLabel || '2026–2027 reference curriculum',

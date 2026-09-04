@@ -22,6 +22,7 @@ import {
   ListChecksIcon,
   PlayIcon
 } from 'lucide-react'
+import { CanvasMark } from '@/components/brand/canvas-mark'
 import { buttonVariants } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
@@ -29,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { DashboardSetupReminder } from '@/components/workspace/onboarding-resume'
 import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { cn } from '@/lib/utils'
+import { type CanvasSyncProgress, type CorpusStatus, canvasSyncProgress } from '@/lib/workspace/account.mjs'
 import type { Assignment } from '@/lib/workspace/canvas'
 import {
   type AcademicSummary,
@@ -62,6 +64,7 @@ type Activity = {
 type AcademicsPayload = { summary: AcademicSummary; workspace?: { courses?: { ects?: number }[]; calendars?: unknown[] } }
 type WorkspaceShell = { courses?: StudyCourse[] }
 type HubPayload = { connected?: boolean; assignments?: Assignment[] }
+type CorpusPayload = { status?: CorpusStatus }
 type ActivityCell = (Activity['series'][number] & { future?: boolean; today?: boolean }) | null
 
 const DESIGN_CONTRACT = 'study-itinerary-29b43344'
@@ -161,6 +164,34 @@ function PriorityRow({ item }: { item: HomePriority }) {
   )
 }
 
+function CanvasSyncWidget({ progress }: { progress: CanvasSyncProgress }) {
+  return (
+    <section className="bg-card overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]" aria-labelledby="canvas-sync-heading">
+      <div className="flex items-start gap-3 px-5 py-4">
+        <span className="bg-muted grid size-9 shrink-0 place-items-center rounded-lg"><CanvasMark className="size-5 text-[#E72429]" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="canvas-sync-heading" className="text-sm font-semibold">Canvas is syncing</h2>
+            {progress.percent != null && <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{progress.percent}%</span>}
+          </div>
+          <p className="text-muted-foreground mt-1 truncate text-xs">{progress.stage}</p>
+          {progress.percent != null
+            ? <Progress value={progress.percent} className="mt-3 h-1" />
+            : <div className="bg-muted mt-3 h-1 overflow-hidden"><span className="bg-primary block h-full w-1/3 motion-safe:animate-[sync-travel_1.4s_ease-in-out_infinite]" /></div>}
+          <p className="text-muted-foreground mt-2 text-xs">
+            {progress.totalCourses
+              ? `${progress.completedCourses} of ${progress.totalCourses} courses · ${progress.indexedFiles} files indexed`
+              : 'Discovering current, upcoming, and related historical course shells.'}
+          </p>
+        </div>
+      </div>
+      <Link href="/app/settings?tab=connections#canvas-sync" className="text-primary flex items-center justify-between border-t px-5 py-3 text-xs font-semibold">
+        View progress and logs <ChevronRightIcon className="size-3.5" />
+      </Link>
+    </section>
+  )
+}
+
 export default function HomePage() {
   const { data: calendar, error: calendarError } = useWorkspaceData<CalendarPayload>('/api/calendar/events')
   const { data: academics, error: academicsError, loading: academicsLoading } = useWorkspaceData<AcademicsPayload>('/api/academics')
@@ -169,9 +200,19 @@ export default function HomePage() {
   const { data: shell, error: shellError, loading: shellLoading } = useWorkspaceData<WorkspaceShell>('/api/workspace-shell')
   const { data: sr, error: srError } = useWorkspaceData<SrPayload>('/api/sr/due')
   const { data: mistakes, error: mistakesError } = useWorkspaceData<Mistake[]>('/api/mistakes?open=true')
+  const { data: corpusPayload, refresh: refreshCorpus } = useWorkspaceData<CorpusPayload>('/api/account/integrations/canvas/corpus')
   const [read, setRead] = useState<Set<string>>(() => new Set())
 
   useEffect(() => { setRead(readChapters(window.localStorage)) }, [])
+
+  const syncProgress = useMemo(() => canvasSyncProgress(corpusPayload?.status), [corpusPayload])
+  useEffect(() => {
+    if (!syncProgress.active) return
+    const poll = () => { if (document.visibilityState === 'visible') refreshCorpus() }
+    const timer = window.setInterval(poll, 6_000)
+    document.addEventListener('visibilitychange', poll)
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', poll) }
+  }, [refreshCorpus, syncProgress.active])
 
   const summary = academics?.summary ?? null
   const requiredEcts = useMemo(() => (academics?.workspace?.courses ?? []).reduce((total, course) => total + (course.ects ?? 0), 0), [academics])
@@ -333,6 +374,7 @@ export default function HomePage() {
 
         <aside className="flex h-fit min-w-0 flex-col gap-4 xl:h-auto xl:overflow-y-auto xl:overscroll-contain xl:py-6 xl:pr-2 xl:[scrollbar-gutter:stable] [&>section]:shrink-0" aria-label="Study status" data-status-scroll-region>
           <DashboardSetupReminder />
+          {syncProgress.active && <CanvasSyncWidget progress={syncProgress} />}
           <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
             <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} active${missingPrioritySources || priorityError ? ' · partial' : ''}` : missingPrioritySources ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
             {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs">Evidence coverage: {prioritySources.filter((source) => source.ready).length} of 3 sources connected.{unavailablePrioritySources ? ` ${unavailablePrioritySources} ${unavailablePrioritySources === 1 ? 'source is' : 'sources are'} temporarily unavailable.` : ''}</p></> : priorityLoading ? (

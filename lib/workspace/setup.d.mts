@@ -29,6 +29,30 @@ export type SetupIssue = {
   expectedCourses?: { code: string; name: string }[]
 }
 
+export type CurriculumPlacement = {
+  versionId: string
+  code: string
+  yearLevel: string
+  period: string
+  source: 'catalogue' | 'academic-record'
+}
+
+export type CurriculumReconciliation = {
+  selectedVersionId: string
+  currentCount: number
+  recognizedCount: number
+  outsideCount: number
+  otherYearCount: number
+  historicalCount: number
+  changes: {
+    id: string
+    name: string
+    currentCode: string
+    kind: 'placement' | 'code-and-placement'
+    placements: CurriculumPlacement[]
+  }[]
+}
+
 export type SetupSourceState = {
   programme: boolean
   programmeName: string | null
@@ -46,6 +70,7 @@ export type SetupSourceState = {
   electives: boolean
   electivesPending: number
   electivesChosen: number
+  curriculumReconciliation?: CurriculumReconciliation
   issues?: SetupIssue[]
 }
 

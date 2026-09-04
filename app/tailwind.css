@@ -148,6 +148,12 @@
   from { transform: scaleY(0); }
   to { transform: scaleY(1); }
 }
+
+@keyframes sync-travel {
+  0% { transform: translateX(-105%); }
+  50% { transform: translateX(105%); }
+  100% { transform: translateX(305%); }
+}
 /* ── FullCalendar ─────────────────────────────────────────────────────────
  * The grid is FullCalendar's; the appearance is this product's. Its own
  * stylesheet ships light borders, blue links and rounded event chips, none of

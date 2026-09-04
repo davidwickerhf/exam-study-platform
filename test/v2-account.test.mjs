@@ -13,6 +13,7 @@ import {
   activeKeys,
   approximateBytes,
   canvasCorpusSummary,
+  canvasSyncProgress,
   currentCourseFigure,
   periodLabel,
   programmeFacts,
@@ -273,8 +274,9 @@ test('the Canvas import ledger is grouped in one pass', () => {
   })
   assert.deepEqual(summary.active.map((job) => job.id), ['1', '6'])
   assert.deepEqual(summary.failed.map((job) => job.id), ['2', '3', '4'])
-  // The last job the server reported for a course is that course's state.
-  assert.deepEqual(summary.latestByCourse.map((job) => job.id), ['5', '2', '3', '4'])
+  // The server reports newest first, so an older completion cannot overwrite
+  // the currently running job for the same course.
+  assert.deepEqual(summary.latestByCourse.map((job) => job.id), ['1', '2', '3', '4'])
   // Repeated failures collapse to one row per reason, in first-seen order.
   assert.deepEqual(summary.failureGroups.map(([reason, jobs]) => [reason, jobs.length]), [
     ['Rate limited', 2],
@@ -287,4 +289,22 @@ test('the Canvas import ledger is grouped in one pass', () => {
   const none = canvasCorpusSummary(null)
   assert.deepEqual(none.jobs, [])
   assert.equal(none.storedMaterials, 0)
+})
+
+test('Canvas sync progress follows a persisted batch rather than unrelated old jobs', () => {
+  const progress = canvasSyncProgress({ jobs: [
+    { id: 'old', syncId: 'old-batch', type: 'course', status: 'failed', courseCode: 'OLD1000' },
+    { id: 'catalog', syncId: 'batch-2', type: 'catalog', status: 'completed' },
+    { id: 'one', syncId: 'batch-2', type: 'course', status: 'completed', courseCode: 'BCS1110', result: { indexed: 8 } },
+    { id: 'two', syncId: 'batch-2', type: 'course', status: 'running', courseCode: 'BCS1120' },
+    { id: 'three', syncId: 'batch-2', type: 'course', status: 'pending', courseCode: 'BCS1130' }
+  ] })
+  assert.equal(progress.active, true)
+  assert.equal(progress.percent, 33)
+  assert.equal(progress.totalCourses, 3)
+  assert.equal(progress.completedCourses, 1)
+  assert.equal(progress.indexedFiles, 8)
+  assert.match(progress.stage, /BCS1120/)
+  assert.equal(progress.jobs.some((job) => job.id === 'old'), false)
+  assert.equal(canvasSyncProgress({ jobs: [] }).active, false)
 })
