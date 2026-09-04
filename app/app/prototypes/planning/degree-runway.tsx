@@ -1,48 +1,60 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowRightIcon, CalendarDaysIcon, CheckIcon, ChevronRightIcon } from 'lucide-react'
-import { COURSES, PageHeader, ProgressLine, RegistrationNotice, SittingControl, StatusStrip, usePlanningPrototype } from './shared'
+import { MinusIcon, PlusIcon } from 'lucide-react'
+import { BOARD_COURSES, ChangeTray, CourseTile, EmptyDrop, GoalRibbon, PlanPulse, PlanningHeader, RegistrationLine, SESSIONS, plannedDate, type SessionKey, useAcademicBoard } from './shared'
+
+const FUTURE = {
+  2: { oct: ['Core sequence', '4 courses · 24 ECTS'], dec: ['Elective path', '3 courses · 18 ECTS'], feb: ['Resit reserve', 'No courses'], mar: ['Core sequence', '3 courses · 18 ECTS'], may: ['Elective path', '4 courses · 24 ECTS'], jun: ['Resit reserve', 'No courses'] },
+  3: { oct: ['Advanced electives', '3 courses · 18 ECTS'], dec: ['Minor / electives', '3 courses · 18 ECTS'], feb: ['Resit reserve', 'No courses'], mar: ['Bachelor project', '12 ECTS'], may: ['Final electives', '2 courses · 12 ECTS'], jun: ['Completion reserve', 'No courses'] },
+} as const
+
+function FutureCell({ title, meta }: { title: string; meta: string }) {
+  const empty = meta === 'No courses'
+  return <div className={`m-3 min-h-[72px] border p-3 ${empty ? 'border-dashed text-muted-foreground' : 'bg-card'}`}><strong className="block text-xs">{title}</strong><span className="font-data text-muted-foreground mt-2 block text-[10px] tabular-nums">{meta}</span></div>
+}
 
 export function DegreeRunway() {
-  const model = usePlanningPrototype()
-  const [selectedId, setSelectedId] = useState(COURSES[0].id)
-  const [saved, setSaved] = useState(false)
-  const selected = COURSES.find((course) => course.id === selectedId) || COURSES[0]
-  const choice = model.choices[selected.id]
+  const model = useAcademicBoard()
+  const [view, setView] = useState<'all' | '1' | '2' | '3'>('all')
+  const [dragOver, setDragOver] = useState<SessionKey | null>(null)
+  const [zoom, setZoom] = useState(0)
+  const sessions = SESSIONS.slice(0, 6)
+  const years = view === 'all' ? [1, 2, 3] : [Number(view)]
 
-  return <div className="min-h-full bg-background pb-24">
-    <PageHeader description="Make the few decisions that matter now. Wicker shows what each choice changes before it enters your plan." />
-    <StatusStrip projectedCredits={model.summary.projectedCredits} expectedGrade={model.summary.expectedGrade} />
-    <div className="mx-auto w-full max-w-[1280px] p-4 sm:p-6 lg:p-8">
-      <section className="overflow-hidden rounded-[14px] border bg-card">
-        <RegistrationNotice open={model.registrationOpen} setOpen={model.setRegistrationOpen} registered={model.registered} setRegistered={model.setRegistered} />
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_370px]">
-          <main className="min-w-0">
-            <div className="border-b px-5 py-5 sm:px-6"><div className="flex items-end justify-between gap-5"><div><h2 className="text-lg font-semibold">What needs your attention</h2><p className="text-muted-foreground mt-1 text-sm">Three choices. Start with the one due soonest.</p></div><span className="font-data text-muted-foreground text-sm tabular-nums">3 open</span></div></div>
-            <div>
-              <button type="button" onClick={() => model.setRegistrationOpen(true)} className="grid w-full grid-cols-[50px_minmax(0,1fr)_auto] items-center gap-4 border-b px-5 py-4 text-left hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6"><span className="font-data text-primary text-sm font-semibold tabular-nums">01</span><span><strong className="block text-sm">Register for Period 2</strong><span className="text-muted-foreground mt-1 block text-xs">Due 11 September. Confirm after you finish in the student portal.</span></span><span className="text-primary flex items-center gap-1 text-xs font-semibold">Review <ChevronRightIcon className="size-4" /></span></button>
-              <button type="button" onClick={() => setSelectedId('statistics')} className="grid w-full grid-cols-[50px_minmax(0,1fr)_auto] items-center gap-4 border-b px-5 py-4 text-left hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6"><span className="font-data text-primary text-sm font-semibold tabular-nums">02</span><span><strong className="block text-sm">Protect your Statistics attendance</strong><span className="text-muted-foreground mt-1 block text-xs">You have used every allowed absence for required tutorials.</span></span><span className="text-primary flex items-center gap-1 text-xs font-semibold">Open <ChevronRightIcon className="size-4" /></span></button>
-              <button type="button" onClick={() => setSelectedId('ubiquitous')} className="grid w-full grid-cols-[50px_minmax(0,1fr)_auto] items-center gap-4 border-b px-5 py-4 text-left hover:bg-muted/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6"><span className="font-data text-primary text-sm font-semibold tabular-nums">03</span><span><strong className="block text-sm">Check the Ubiquitous Computing resit</strong><span className="text-muted-foreground mt-1 block text-xs">Moving it to February creates a longer study window and a busier resit week.</span></span><span className="text-primary flex items-center gap-1 text-xs font-semibold">Review <ChevronRightIcon className="size-4" /></span></button>
-            </div>
+  return <div className="flex min-h-full flex-col bg-background pb-20">
+    <PlanningHeader />
+    <GoalRibbon />
+    <PlanPulse credits={model.projectedCredits} average={model.expectedAverage} changes={model.changes} />
+    <RegistrationLine />
 
-            <div className="flex items-end justify-between gap-5 border-b px-5 py-5 sm:px-6"><div><h2 className="text-lg font-semibold">Your next exams</h2><p className="text-muted-foreground mt-1 text-sm">Select a course to change its sitting or expected result.</p></div><button type="button" className="text-primary text-xs font-semibold">See full degree plan</button></div>
-            <ul>{COURSES.map((course) => {
-              const courseChoice = model.choices[course.id]
-              const active = selected.id === course.id
-              const date = courseChoice.sitting === 'resit' ? course.resit : courseChoice.sitting === 'skip' ? 'Not planned' : course.exam
-              return <li key={course.id} className="border-b last:border-b-0"><button type="button" onClick={() => { setSelectedId(course.id); setSaved(false) }} className={`grid w-full grid-cols-[minmax(0,1fr)_110px_90px_20px] items-center gap-4 px-5 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6 ${active ? 'bg-primary/[0.045]' : 'hover:bg-muted/25'}`}><span><span className="font-data text-primary text-xs font-semibold tabular-nums">{course.code}</span><strong className="mt-0.5 block text-sm">{course.name}</strong></span><span><span className="text-muted-foreground block text-[10.5px] font-semibold tracking-[0.08em] uppercase">Planned</span><span className="font-data mt-1 block text-sm tabular-nums">{date}</span></span><span><span className="text-muted-foreground block text-[10.5px] font-semibold tracking-[0.08em] uppercase">Expected</span><span className="font-data mt-1 block text-sm tabular-nums">{courseChoice.sitting === 'skip' ? 'None' : courseChoice.grade.toFixed(1)}</span></span><ChevronRightIcon className="text-muted-foreground size-4" /></button></li>
-            })}</ul>
-          </main>
-
-          <aside className="border-t lg:border-t-0 lg:border-l">
-            <div className="border-b px-5 py-5"><span className="font-data text-primary text-xs font-semibold tabular-nums">{selected.code}</span><h2 className="mt-1 text-lg font-semibold">Plan {selected.name}</h2><p className="text-muted-foreground mt-1 text-xs">{selected.ects} ECTS · {selected.requirement}</p></div>
-            <div className="border-b px-5 py-5"><SittingControl course={selected} choice={choice} onChange={(patch) => { model.update(selected.id, patch); setSaved(false) }} /></div>
-            <div className="border-b px-5 py-5"><h3 className="text-sm font-semibold">What this choice means</h3><ul className="mt-4 space-y-4 text-sm"><li className="flex gap-3"><CalendarDaysIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" /><span>{choice.sitting === 'resit' ? `Your exam moves to ${selected.resit}. The standard sitting on ${selected.exam} leaves your plan.` : choice.sitting === 'skip' ? 'This course leaves the current exam plan.' : `Your exam stays on ${selected.exam}.`}</span></li><li className="flex gap-3"><CheckIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" /><span>{choice.sitting !== 'skip' && choice.grade >= 5.5 ? `A pass adds ${selected.ects} ECTS to your projection.` : 'This choice adds no projected credits.'}</span></li></ul><div className="mt-5"><div className="flex items-baseline justify-between"><span className="text-xs font-semibold">Attendance</span><span className="font-data text-sm tabular-nums">{selected.attendance}</span></div><div className="mt-2"><ProgressLine value={selected.id === 'statistics' ? 75 : 88} /></div><p className="text-muted-foreground mt-2 text-xs">{selected.attendanceNote}</p></div></div>
-            <div className="px-5 py-5"><button type="button" onClick={() => setSaved(true)} className="flex h-10 w-full items-center justify-center gap-2 rounded-[6px] bg-primary px-4 text-sm font-semibold text-primary-foreground">{saved ? <><CheckIcon className="size-4" />Saved to your plan</> : <>Save this decision <ArrowRightIcon className="size-4" /></>}</button><p className="text-muted-foreground mt-3 text-center text-xs">This never registers you for the exam.</p></div>
-          </aside>
+    <section className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-14 flex-wrap items-center gap-4 border-b px-6 py-2 lg:px-8">
+        <div><strong className="text-sm">Bachelor atlas</strong><span className="text-muted-foreground ml-2 text-xs">Drag a course to another valid exam session</span></div>
+        <div className="ml-auto flex items-center gap-1 border p-1">
+          {[['all', 'Whole bachelor'], ['1', 'Year 1'], ['2', 'Year 2'], ['3', 'Year 3']].map(([id, label]) => <button key={id} type="button" onClick={() => setView(id as typeof view)} className={`h-7 px-3 text-[11px] font-semibold ${view === id ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}>{label}</button>)}
         </div>
-      </section>
-    </div>
+        <div className="flex items-center border"><button type="button" aria-label="Zoom out" onClick={() => setZoom(Math.max(-1, zoom - 1))} className="grid size-8 place-items-center border-r"><MinusIcon className="size-3.5" /></button><span className="font-data w-14 text-center text-[10px] tabular-nums">{zoom === 0 ? 'Fit' : zoom > 0 ? '125%' : '80%'}</span><button type="button" aria-label="Zoom in" onClick={() => setZoom(Math.min(1, zoom + 1))} className="grid size-8 place-items-center border-l"><PlusIcon className="size-3.5" /></button></div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto bg-card">
+        <div className={`grid ${zoom > 0 ? 'min-w-[1780px]' : zoom < 0 ? 'min-w-[1080px]' : 'min-w-[1420px]'} grid-cols-[132px_repeat(6,minmax(190px,1fr))]`}>
+          <div className="sticky left-0 z-20 border-r border-b bg-card px-4 py-3"><span className="text-muted-foreground text-[9.5px] font-semibold tracking-[0.12em] uppercase">Academic year</span><strong className="mt-1 block text-sm">2026–2029</strong></div>
+          {sessions.map((session) => <div key={session.id} className="border-r last:border-r-0"><div className="min-h-[68px] border-b px-4 py-3"><span className="text-muted-foreground text-[9px] font-semibold tracking-[0.12em] uppercase">{session.eyebrow}</span><strong className="mt-1 block text-xs">{session.label}</strong><span className="font-data text-muted-foreground mt-1 block text-[9.5px] tabular-nums">{session.range}</span></div></div>)}
+
+          {years.map((year) => <div key={year} className="contents">
+            <div className="sticky left-0 z-10 min-h-[164px] border-r border-b bg-background px-4 py-5"><span className="font-heading text-2xl font-semibold">Year {year}</span><span className="font-data text-muted-foreground mt-1 block text-[10px] tabular-nums">{2025 + year}–{2026 + year}</span><div className="mt-8"><span className="font-data block text-sm font-semibold tabular-nums">{year === 1 ? '48 / 60' : '0 / 60'} ECTS</span><span className="text-muted-foreground mt-1 block text-[10px]">{year === 1 ? '12 still required' : 'Curriculum mapped'}</span></div></div>
+            {sessions.map((session) => {
+              const courses = year === 1 ? BOARD_COURSES.filter((course) => model.placements[course.id] === session.id) : []
+              const future = year > 1 ? FUTURE[year as 2 | 3][session.id as keyof typeof FUTURE[2]] : null
+              return <div key={`${year}-${session.id}`} onDragOver={(event) => { if (year === 1) { event.preventDefault(); setDragOver(session.id) } }} onDragLeave={() => setDragOver(null)} onDrop={(event) => { event.preventDefault(); if (year === 1 && model.draggedId) model.move(model.draggedId, session.id); setDragOver(null); model.setDraggedId(null) }} className={`min-h-[164px] border-r border-b p-3 last:border-r-0 ${dragOver === session.id && year === 1 ? 'bg-primary/[0.035]' : session.id === 'feb' || session.id === 'jun' ? 'bg-muted/20' : ''}`}>
+                {year === 1 ? <div className="space-y-2">{courses.map((course) => <CourseTile key={course.id} compact course={course} displayDate={plannedDate(course, model.placements[course.id])} selected={model.selectedId === course.id} dragging={model.draggedId === course.id} onSelect={() => model.setSelectedId(course.id)} onDragStart={() => model.setDraggedId(course.id)} onDragEnd={() => { model.setDraggedId(null); setDragOver(null) }} />)}{courses.length === 0 && <EmptyDrop active={dragOver === session.id} />}</div> : future ? <FutureCell title={future[0]} meta={future[1]} /> : null}
+              </div>
+            })}
+          </div>)}
+        </div>
+      </div>
+      <ChangeTray model={model} label="Goal impact" />
+    </section>
   </div>
 }

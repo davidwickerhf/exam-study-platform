@@ -1,39 +1,61 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowRightIcon, CheckIcon, ChevronRightIcon } from 'lucide-react'
-import { COURSES, PageHeader, ProgressLine, RegistrationNotice, StatusStrip, usePlanningPrototype } from './shared'
+import { ArrowDownIcon, ArrowRightIcon, CheckIcon, XIcon } from 'lucide-react'
+import { BOARD_COURSES, ChangeTray, CourseTile, GoalRibbon, PlanPulse, PlanningHeader, RegistrationLine, SESSIONS, plannedDate, type SessionKey, useAcademicBoard } from './shared'
+
+const FILMSTRIP_SESSIONS: SessionKey[] = ['oct', 'dec', 'feb', 'next']
 
 export function ScenarioLedger() {
-  const model = usePlanningPrototype()
-  const [targetDate, setTargetDate] = useState('February 2027')
-  const [targetAverage, setTargetAverage] = useState('7.0')
-  return <div className="min-h-full bg-background pb-24">
-    <PageHeader description="Start with what you want to achieve. Wicker turns it into a course plan and explains the tradeoffs in plain language." />
-    <StatusStrip projectedCredits={model.summary.projectedCredits} expectedGrade={model.summary.expectedGrade} />
-    <div className="mx-auto w-full max-w-[1280px] p-4 sm:p-6 lg:p-8">
-      <section className="overflow-hidden rounded-[14px] border bg-card">
-        <div className="border-b px-5 py-5 sm:px-6"><span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.1em] uppercase">Your goal</span><h2 className="font-heading mt-2 max-w-[900px] text-[26px] leading-relaxed font-semibold tracking-[-0.02em]">I want to finish Year 1 by <select aria-label="Target date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className="mx-1 inline-flex h-10 rounded-[6px] border bg-card px-2 font-sans text-base font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-ring"><option>February 2027</option><option>June 2027</option></select> with an average of at least <select aria-label="Target average" value={targetAverage} onChange={(event) => setTargetAverage(event.target.value)} className="mx-1 inline-flex h-10 rounded-[6px] border bg-card px-2 font-sans text-base font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-ring"><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option></select>.</h2><p className="text-muted-foreground mt-2 text-sm">Wicker will compare every change with this goal.</p></div>
-        <RegistrationNotice compact open={model.registrationOpen} setOpen={model.setRegistrationOpen} registered={model.registered} setRegistered={model.setRegistered} />
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_360px]">
-          <main className="min-w-0">
-            <div className="border-b px-5 py-5 sm:px-6"><div className="flex items-end justify-between gap-5"><div><h2 className="text-lg font-semibold">Decisions for this term</h2><p className="text-muted-foreground mt-1 text-sm">Choose the courses below. The result updates as you make changes.</p></div><span className="font-data text-sm font-semibold tabular-nums">{model.summary.projectedCredits} / 72 ECTS</span></div><div className="mt-4"><ProgressLine value={(model.summary.projectedCredits / 72) * 100} /></div></div>
-            <div className="grid grid-cols-[minmax(0,1fr)_110px_190px_90px] border-b bg-muted/20 px-5 py-3 text-[10.5px] font-semibold tracking-[0.09em] uppercase text-muted-foreground sm:px-6"><span>Course</span><span>Include</span><span>When</span><span>Expected</span></div>
-            <div>{COURSES.map((course) => {
-              const choice = model.choices[course.id]
-              const included = choice.sitting !== 'skip'
-              return <div key={course.id} className="grid min-h-[78px] grid-cols-[minmax(0,1fr)_110px_190px_90px] items-center border-b px-5 py-3 last:border-b-0 sm:px-6"><span><span className="font-data text-primary text-xs font-semibold tabular-nums">{course.code}</span><strong className="mt-0.5 block text-sm">{course.name}</strong></span><label className="inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={included} onChange={(event) => model.update(course.id, { sitting: event.target.checked ? 'standard' : 'skip' })} className="size-4 accent-primary" />{included ? 'Yes' : 'No'}</label><div className="flex overflow-hidden rounded-[6px] border bg-card"><button type="button" disabled={!included} onClick={() => model.update(course.id, { sitting: 'standard' })} className={`h-9 flex-1 px-2 text-xs font-semibold disabled:opacity-40 ${choice.sitting === 'standard' ? 'bg-primary text-primary-foreground' : ''}`}>{course.exam}</button><button type="button" disabled={!included} onClick={() => model.update(course.id, { sitting: 'resit' })} className={`h-9 flex-1 border-l px-2 text-xs font-semibold disabled:opacity-40 ${choice.sitting === 'resit' ? 'bg-primary text-primary-foreground' : ''}`}>{course.resit}</button></div><input aria-label={`Expected grade for ${course.name}`} type="number" min="1" max="10" step="0.5" disabled={!included} value={choice.grade} onChange={(event) => model.update(course.id, { grade: Number(event.target.value) })} className="font-data h-9 w-[68px] rounded-[6px] border bg-card px-2 text-center text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-40" /></div>
-            })}</div>
-          </main>
-          <aside className="border-t lg:border-t-0 lg:border-l">
-            <div className="border-b px-5 py-5"><h2 className="text-lg font-semibold">What changes</h2><p className="text-muted-foreground mt-1 text-sm">Today compared with this plan.</p></div>
-            <div className="grid grid-cols-[1fr_auto_1fr] border-b"><div className="px-5 py-4"><span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.08em] uppercase">Today</span><strong className="font-data mt-2 block text-xl tabular-nums">48 ECTS</strong><span className="text-muted-foreground mt-1 block text-xs">6.9 average</span></div><span className="text-muted-foreground self-center">→</span><div className="px-5 py-4 text-right"><span className="text-primary text-[10.5px] font-semibold tracking-[0.08em] uppercase">With this plan</span><strong className="font-data mt-2 block text-xl tabular-nums">{model.summary.projectedCredits} ECTS</strong><span className="text-muted-foreground mt-1 block text-xs">{model.summary.expectedGrade?.toFixed(1) || 'No'} average</span></div></div>
-            <div className="border-b px-5 py-5"><h3 className="text-sm font-semibold">What changes</h3><ul className="mt-4 space-y-4 text-sm"><li className="flex gap-3"><CheckIcon className="text-primary mt-0.5 size-4 shrink-0" /><span>{model.summary.projectedCredits >= 72 ? 'This plan completes the remaining Year 1 credits.' : `${72 - model.summary.projectedCredits} more ECTS are needed to finish Year 1.`}</span></li><li className="flex gap-3"><span className="font-data text-muted-foreground w-4 shrink-0 text-center">↳</span><span>{model.choices.statistics.sitting === 'resit' ? 'Statistics moves out of the October exam cluster.' : 'Algorithmic Design and Statistics stay two days apart in October.'}</span></li><li className="flex gap-3"><span className="font-data text-muted-foreground w-4 shrink-0 text-center">!</span><span>Statistics attendance remains at its allowed absence limit.</span></li></ul></div>
-            <button type="button" className="flex w-full items-center justify-between border-b px-5 py-4 text-left hover:bg-muted/25"><span><strong className="block text-sm">See the whole bachelor</strong><span className="text-muted-foreground mt-0.5 block text-xs">Years 1 to 3 and every open requirement</span></span><ChevronRightIcon className="text-muted-foreground size-4" /></button>
-            <div className="px-5 py-5"><button type="button" className="flex h-10 w-full items-center justify-center gap-2 rounded-[6px] bg-primary px-4 text-sm font-semibold text-primary-foreground">Save this plan <ArrowRightIcon className="size-4" /></button><p className="text-muted-foreground mt-3 text-center text-xs">Official grades and registrations are never changed.</p></div>
-          </aside>
+  const model = useAcademicBoard(true)
+  const [dragOver, setDragOver] = useState<SessionKey | null>(null)
+  const [showCurrent, setShowCurrent] = useState(true)
+
+  return <div className="flex min-h-full flex-col bg-background pb-20">
+    <PlanningHeader />
+    <GoalRibbon />
+    <PlanPulse credits={model.projectedCredits} average={model.expectedAverage} changes={model.changes} />
+    <RegistrationLine />
+
+    <section className="flex min-h-0 flex-1 flex-col bg-card">
+      <div className="flex min-h-14 items-center gap-4 border-b px-6 lg:px-8"><div><strong className="text-sm">Scenario filmstrip</strong><span className="text-muted-foreground ml-2 text-xs">See the current path and proposed path together</span></div><label className="ml-auto flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={showCurrent} onChange={(event) => setShowCurrent(event.target.checked)} className="size-4 accent-primary" />Show current plan</label></div>
+
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="min-w-[1120px]">
+          <div className="grid grid-cols-[128px_repeat(4,minmax(220px,1fr))] border-b bg-muted/15">
+            <div className="border-r px-4 py-3"><span className="text-muted-foreground text-[9px] font-semibold tracking-[0.12em] uppercase">Academic path</span></div>
+            {FILMSTRIP_SESSIONS.map((id) => { const session = SESSIONS.find((item) => item.id === id)!; return <div key={id} className="border-r px-4 py-3 last:border-r-0"><span className="text-muted-foreground text-[9px] font-semibold tracking-[0.12em] uppercase">{session.eyebrow}</span><strong className="mt-1 block text-xs">{session.label}</strong><span className="font-data text-muted-foreground mt-1 block text-[9.5px]">{session.range}</span></div> })}
+          </div>
+
+          {showCurrent && <div className="grid grid-cols-[128px_repeat(4,minmax(220px,1fr))] border-b">
+            <div className="border-r bg-background px-4 py-5"><span className="text-muted-foreground text-[9px] font-semibold tracking-[0.12em] uppercase">Committed</span><strong className="mt-2 block text-sm">Current plan</strong><span className="text-muted-foreground mt-1 block text-[10px]">Before changes</span></div>
+            {FILMSTRIP_SESSIONS.map((session) => <div key={session} className={`min-h-[122px] border-r p-3 last:border-r-0 ${session === 'feb' ? 'bg-muted/15' : ''}`}><div className="space-y-2">{BOARD_COURSES.filter((course) => course.session === session).map((course) => <CourseTile key={course.id} course={course} compact />)}</div></div>)}
+          </div>}
+
+          <div className="grid grid-cols-[128px_minmax(0,1fr)] border-b bg-primary/[0.025]">
+            <div className="grid min-h-12 place-items-center border-r"><ArrowDownIcon className="text-primary size-4" /></div>
+            <div className="flex min-h-12 items-center gap-3 px-5"><span className="font-data text-primary text-[10px] font-semibold tracking-[0.1em] uppercase">One proposed move</span><strong className="text-xs">Statistics shifts from 14 October to 4 February</strong><span className="text-muted-foreground text-xs">October opens up; the February resit week becomes tighter.</span><button type="button" onClick={model.reset} className="text-muted-foreground ml-auto grid size-7 place-items-center" aria-label="Remove proposed move"><XIcon className="size-3.5" /></button></div>
+          </div>
+
+          <div className="grid grid-cols-[128px_repeat(4,minmax(220px,1fr))]">
+            <div className="border-r bg-background px-4 py-5"><span className="text-primary text-[9px] font-semibold tracking-[0.12em] uppercase">Editable</span><strong className="mt-2 block text-sm">Proposed plan</strong><span className="text-muted-foreground mt-1 block text-[10px]">Drag to revise</span></div>
+            {FILMSTRIP_SESSIONS.map((session) => {
+              const courses = BOARD_COURSES.filter((course) => model.placements[course.id] === session)
+              return <div key={session} onDragOver={(event) => { event.preventDefault(); setDragOver(session) }} onDragLeave={() => setDragOver(null)} onDrop={(event) => { event.preventDefault(); if (model.draggedId) model.move(model.draggedId, session); model.setDraggedId(null); setDragOver(null) }} className={`min-h-[252px] border-r p-3 last:border-r-0 ${session === 'feb' ? 'bg-muted/15' : ''} ${dragOver === session ? 'bg-primary/[0.045]' : ''}`}>
+                <div className="space-y-3">{courses.map((course) => <CourseTile key={course.id} course={course} displayDate={plannedDate(course, model.placements[course.id])} selected={model.selectedId === course.id} dragging={model.draggedId === course.id} onSelect={() => model.setSelectedId(course.id)} onDragStart={() => model.setDraggedId(course.id)} onDragEnd={() => { model.setDraggedId(null); setDragOver(null) }} />)}</div>
+                {courses.length === 0 && <div className="grid min-h-24 place-items-center border border-dashed text-[10px] text-muted-foreground">Drop a course here</div>}
+              </div>
+            })}
+          </div>
         </div>
-      </section>
-    </div>
+      </div>
+
+      <div className="grid border-t sm:grid-cols-3">
+        <div className="flex gap-3 border-b px-5 py-3 sm:border-r sm:border-b-0"><CheckIcon className="text-primary mt-0.5 size-3.5 shrink-0" /><p className="text-[11px] leading-relaxed"><strong className="block">Goal date remains possible</strong><span className="text-muted-foreground">All 24 planned ECTS still land before February ends.</span></p></div>
+        <div className="flex gap-3 border-b px-5 py-3 sm:border-r sm:border-b-0"><ArrowRightIcon className="text-primary mt-0.5 size-3.5 shrink-0" /><p className="text-[11px] leading-relaxed"><strong className="block">October becomes more realistic</strong><span className="text-muted-foreground">The two-day exam collision is removed.</span></p></div>
+        <div className="flex gap-3 px-5 py-3"><span className="text-muted-foreground mt-0.5 text-xs">!</span><p className="text-[11px] leading-relaxed"><strong className="block">Attendance risk remains</strong><span className="text-muted-foreground">Moving the exam does not change the tutorial requirement.</span></p></div>
+      </div>
+      <ChangeTray model={model} label="Scenario summary" />
+    </section>
   </div>
 }

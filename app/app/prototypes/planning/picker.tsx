@@ -6,9 +6,9 @@ import { RequirementBoard } from './requirement-board'
 import { ScenarioLedger } from './scenario-ledger'
 
 const VARIANTS = [
-  { name: 'Next Decisions', component: DegreeRunway },
-  { name: 'Exam Timeline', component: RequirementBoard },
-  { name: 'Guided What If', component: ScenarioLedger },
+  { name: 'Bachelor Atlas', component: DegreeRunway },
+  { name: 'Session Board', component: RequirementBoard },
+  { name: 'Scenario Filmstrip', component: ScenarioLedger },
 ]
 
 export function PlanningPrototypePicker({ initialActive = 0 }: { initialActive?: number }) {
