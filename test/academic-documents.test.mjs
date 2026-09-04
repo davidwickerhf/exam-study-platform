@@ -23,11 +23,24 @@ END:VCALENDAR`
 test('parseIcs reads timed and all-day events with types and notes', () => {
   const events = parseIcs(ICS)
   assert.equal(events.length, 2)
-  assert.deepEqual(events[0], { id: 'ics-exam-1', title: 'BCS1520 Statistics exam', date: '2026-10-14', endDate: null, type: 'deadline', notes: '09:00–12:00 · Hall A' })
+  assert.deepEqual(events[0], {
+    id: 'ics-exam-1', uid: 'exam-1', recurrenceId: null, title: 'BCS1520 Statistics exam', date: '2026-10-14', endDate: null,
+    startTime: '09:00', endTime: '12:00', location: 'Hall A', status: null, cancelled: false, sequence: null,
+    lastModified: null, type: 'deadline', notes: '09:00–12:00 · Hall A'
+  })
   assert.equal(events[1].date, '2026-10-01')
   assert.equal(events[1].endDate, '2026-10-07')
   assert.equal(events[1].type, 'registration')
   assert.match(events[1].notes, /Register via the student portal, before noon\./)
+})
+
+test('parseIcs preserves the fields required to detect timetable cancellations', () => {
+  const [event] = parseIcs(`BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:class-7\nSEQUENCE:4\nLAST-MODIFIED:20260904T101500Z\nSTATUS:CANCELLED\nDTSTART:20260908T083000Z\nDTEND:20260908T103000Z\nSUMMARY:BCS2130 tutorial\nLOCATION:Room C0.016\nEND:VEVENT\nEND:VCALENDAR`)
+  assert.equal(event.id, 'ics-class-7')
+  assert.equal(event.status, 'CANCELLED')
+  assert.equal(event.cancelled, true)
+  assert.equal(event.sequence, 4)
+  assert.equal(event.location, 'Room C0.016')
 })
 
 test('calendar links accept webcal and reject other schemes', () => {

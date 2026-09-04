@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { CalendarPlusIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
+import { CalendarPlusIcon, ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar as DatePicker } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -27,7 +27,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { eventRecord } from '@/lib/workspace/academics.mjs'
-import { type CalendarEvent, type CalendarPayload, roomOf } from '@/lib/workspace/home.mjs'
+import { type CalendarChange, type CalendarEvent, type CalendarPayload, roomOf } from '@/lib/workspace/home.mjs'
 import type { GridApi } from './calendar-grid'
 
 const VIEWS = [
@@ -71,6 +71,34 @@ const dayLabel = (value: string, allDay: boolean) =>
   }).format(new Date(value))
 
 type PlanState = { id: string; status: 'saving' | 'done' | 'failed'; message?: string }
+
+const CHANGE_LABEL: Record<CalendarChange['kind'], string> = {
+  cancelled: 'Cancelled',
+  rescheduled: 'Rescheduled',
+  'room-changed': 'Room changed',
+  updated: 'Updated'
+}
+
+function TimetableChanges({ changes, onDismiss }: { changes: CalendarChange[]; onDismiss: (id: string) => void }) {
+  if (!changes.length) return null
+  return (
+    <section className="border-y" aria-labelledby="timetable-changes-title">
+      <div className="flex items-baseline justify-between gap-4 py-2">
+        <h2 id="timetable-changes-title" className={RULE}>Timetable changes</h2>
+        <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{changes.length} unread</span>
+      </div>
+      <ul>
+        {changes.slice(0, 3).map((change) => (
+          <li key={change.id} className="grid grid-cols-[92px_minmax(0,1fr)_auto] items-start gap-3 border-t py-2.5 max-sm:grid-cols-[80px_minmax(0,1fr)_auto]">
+            <strong className={`text-primary text-[10.5px] leading-5 font-semibold tracking-[0.08em] uppercase ${NUMERALS}`}>{CHANGE_LABEL[change.kind]}</strong>
+            <span className="min-w-0 text-sm leading-5"><b className="font-medium">{change.title}</b><small className="text-muted-foreground ml-2">{change.detail} · {change.feedLabel}</small></span>
+            <button type="button" onClick={() => onDismiss(change.id)} className="text-muted-foreground hover:text-foreground rounded-sm p-0.5 focus-visible:outline-2" aria-label={`Dismiss change to ${change.title}`}><XIcon className="size-4" /></button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
 
 /**
  * The detail panel. Selecting a date or an event opens this — never an alert,
@@ -253,6 +281,11 @@ export default function CalendarPage() {
     }
   }
 
+  function dismissChange(id: string) {
+    setPayload((held) => held ? { ...held, changes: (held.changes ?? []).filter((change) => change.id !== id) } : held)
+    void fetch(`/api/calendar/changes/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { accept: 'application/json' } })
+  }
+
   if (error) {
     return (
       <div className="mx-auto w-full max-w-[1400px] p-5 sm:p-8">
@@ -303,6 +336,8 @@ export default function CalendarPage() {
           </p>
         )}
       </header>
+
+      <TimetableChanges changes={payload?.changes ?? []} onDismiss={dismissChange} />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1">

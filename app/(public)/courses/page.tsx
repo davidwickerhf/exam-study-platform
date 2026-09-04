@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { CourseRegister } from '@/components/site/course-register'
+import { CourseDiscovery } from '@/components/site/course-discovery'
 import { SiteIcon } from '@/components/site/icon'
 
 export const metadata: Metadata = { title: 'Courses' }
@@ -19,6 +20,7 @@ export default function CoursesPage() {
     <main id="main-content" className="site-reading-page courses-public-page">
       <header className="reading-hero"><h1>The current course catalogue.</h1><p>Every listed course includes maintained chapter material and a structured path into reading, practice, review, and exam preparation.</p></header>
       <CourseRegister />
+      <CourseDiscovery />
       <section className="course-capability-table"><h2>Available in every course</h2>{capabilities.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</section>
       <section className="reading-cta"><h2>Open the full workspace.</h2><a className="site-button site-button-primary" href="/app">Continue to sign in <SiteIcon name="arrow" /></a></section>
     </main>

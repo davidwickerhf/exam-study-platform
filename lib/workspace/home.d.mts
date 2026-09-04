@@ -40,6 +40,19 @@ export type CalendarPayload = {
   events: CalendarEvent[]
   academicContext: AcademicContext | null
   examWindow: ExamWindow
+  changes?: CalendarChange[]
+}
+
+export type CalendarChange = {
+  id: string
+  feedId: string
+  feedLabel: string
+  eventId: string
+  kind: 'cancelled' | 'rescheduled' | 'room-changed' | 'updated'
+  title: string
+  detail: string
+  date: string
+  detectedAt: string
 }
 
 export type HomePriority = {
