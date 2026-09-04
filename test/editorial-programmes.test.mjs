@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { findEditorialProgramme, loadEditorialProgrammeCatalogue, normalizeEditorialProgrammeCatalogue } from '../lib/editorial-programmes.mjs'
+import { findEditorialProgramme, loadEditorialProgrammeCatalogue, mergeEditorialProgrammeSeed, normalizeEditorialProgrammeCatalogue } from '../lib/editorial-programmes.mjs'
 
 test('Maastricht Computer Science reference programme encodes a complete 180 ECTS structure', () => {
   const found = findEditorialProgramme('maastricht-university-bsc-computer-science', '2025-2026')
@@ -28,6 +28,24 @@ test('editorial programme catalogue rejects duplicate identifiers', () => {
   const catalogue = loadEditorialProgrammeCatalogue()
   catalogue.programmes.push(structuredClone(catalogue.programmes[0]))
   assert.throws(() => normalizeEditorialProgrammeCatalogue(catalogue), /Duplicate programme id/)
+})
+
+test('a hosted programme keeps administrator edits while repository releases add new curriculum versions', () => {
+  const seeded = loadEditorialProgrammeCatalogue().programmes.find((programme) => programme.id === 'maastricht-university-bsc-computer-science')
+  const stored = structuredClone(seeded)
+  stored.name = 'Computer Science — hosted wording'
+  stored.calendar = [{ id: 'hosted-date', title: 'Hosted calendar date', date: '2026-09-01', type: 'other', kind: 'other' }]
+  stored.versions = stored.versions.filter((version) => version.id === '2025-2026')
+  stored.versions[0].label = 'Administrator-edited 2025–2026 curriculum'
+  stored.institution.domains = ['student.maastrichtuniversity.nl']
+
+  const merged = mergeEditorialProgrammeSeed(stored, seeded)
+
+  assert.equal(merged.name, 'Computer Science — hosted wording')
+  assert.deepEqual(merged.versions.map((version) => version.id), ['2026-2027', '2025-2026'])
+  assert.equal(merged.versions[1].label, 'Administrator-edited 2025–2026 curriculum')
+  assert.deepEqual(merged.calendar.map((event) => event.id), ['hosted-date'])
+  assert.deepEqual(merged.institution.domains.sort(), ['maastrichtuniversity.nl', 'student.maastrichtuniversity.nl'])
 })
 
 test('every maintained DACS curriculum reconciles to a full degree', async () => {
