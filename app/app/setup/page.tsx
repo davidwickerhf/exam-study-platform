@@ -33,6 +33,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   CheckIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   AlertTriangleIcon,
   SendIcon,
@@ -49,7 +50,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { tutorMarkdown } from '@/lib/workspace/markdown.mjs'
 import {
@@ -477,6 +477,44 @@ function SavedMark({ children }: { children: React.ReactNode }) {
   )
 }
 
+type SetupPickerOption = { value: string; label: string }
+
+/**
+ * The setup form is a critical data-entry path, so its pickers use the browser's
+ * native select interaction instead of a portal-based menu. This keeps every
+ * option available across pointer, keyboard, zoom, and constrained viewport
+ * layouts while retaining the Wicker field styling.
+ */
+function SetupPicker({
+  id,
+  value,
+  options,
+  placeholder,
+  onValueChange
+}: {
+  id: string
+  value: string
+  options: SetupPickerOption[]
+  placeholder?: string
+  onValueChange: (value: string) => void
+}) {
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        data-slot="setup-picker"
+        className="h-10 w-full appearance-none rounded-sm border border-input bg-transparent py-2 pr-9 pl-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+        value={value}
+        onChange={(event) => onValueChange(event.target.value)}
+      >
+        {placeholder && !value && <option value="" disabled>{placeholder}</option>}
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <ChevronDownIcon aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
+  )
+}
+
 function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved: () => void | Promise<unknown> }) {
   const params = useSearchParams()
   const [saved, setSaved] = useState(false)
@@ -507,7 +545,18 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
   }}>
     <div><h3 className="font-semibold">Add a personal programme</h3><p className="text-muted-foreground mt-1 text-sm">This creates your private study record immediately. Courses and dates remain empty until you add or import them; it is not presented as a maintained curriculum.</p></div>
     <Field><FieldLabel htmlFor="custom-institution">Institution</FieldLabel><Input id="custom-institution" value={institution} onChange={(event) => setInstitution(event.target.value)} required /></Field>
-    <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Degree</FieldLabel><Select items={['Bachelor of Science', 'Bachelor of Arts', 'Master of Science', 'Master of Arts', 'Other'].map((value) => ({ value, label: value }))} value={degree} onValueChange={(value) => setDegree(String(value))}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="Bachelor of Science">Bachelor of Science</SelectItem><SelectItem value="Bachelor of Arts">Bachelor of Arts</SelectItem><SelectItem value="Master of Science">Master of Science</SelectItem><SelectItem value="Master of Arts">Master of Arts</SelectItem><SelectItem value="Other">Other</SelectItem></SelectGroup></SelectContent></Select></Field><Field><FieldLabel htmlFor="custom-programme">Programme name</FieldLabel><Input id="custom-programme" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Econometrics and Operations Research" required /></Field></div>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field>
+        <FieldLabel htmlFor="custom-degree">Degree</FieldLabel>
+        <SetupPicker
+          id="custom-degree"
+          value={degree}
+          options={['Bachelor of Science', 'Bachelor of Arts', 'Master of Science', 'Master of Arts', 'Other'].map((entry) => ({ value: entry, label: entry }))}
+          onValueChange={setDegree}
+        />
+      </Field>
+      <Field><FieldLabel htmlFor="custom-programme">Programme name</FieldLabel><Input id="custom-programme" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Econometrics and Operations Research" required /></Field>
+    </div>
     {error && <FieldError>{error}</FieldError>}
     <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={busy || !customName.trim()}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Creating…' : 'Create personal programme'}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => setCustom(false)}>Back to maintained programmes</Button>{saved && <SavedMark>Personal programme created.</SavedMark>}</div>
   </form>
@@ -517,10 +566,40 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
     catch (cause) { setError(cause instanceof Error ? cause.message : 'The programme could not be saved.') }
     finally { setBusy(false) }
   }}>
-    <Field><FieldLabel>Programme</FieldLabel><Select items={programmes.map((entry) => ({ value: entry.id, label: `${entry.degree} ${entry.name}` }))} value={programmeId} onValueChange={(value) => { const id = String(value); setSaved(false); setProgrammeId(id); setVersionId(programmes.find((entry) => entry.id === id)?.versions?.[0]?.id ?? '') }}><SelectTrigger className="w-full"><SelectValue placeholder="Choose your programme" /></SelectTrigger><SelectContent><SelectGroup>{programmes.map((entry) => <SelectItem key={entry.id} value={entry.id}>{entry.degree} {entry.name}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+    <Field>
+      <FieldLabel htmlFor="setup-programme">Programme</FieldLabel>
+      <SetupPicker
+        id="setup-programme"
+        value={programmeId}
+        placeholder="Choose your programme"
+        options={programmes.map((entry) => ({ value: entry.id, label: `${entry.degree} ${entry.name}` }))}
+        onValueChange={(id) => {
+          setSaved(false)
+          setProgrammeId(id)
+          setVersionId(programmes.find((entry) => entry.id === id)?.versions?.[0]?.id ?? '')
+        }}
+      />
+    </Field>
     <div className="grid gap-4 sm:grid-cols-2">
-      <Field><FieldLabel>Curriculum</FieldLabel><Select items={(programme?.versions ?? []).map((version) => ({ value: version.id, label: `${version.label || version.id}${version.status === 'current' ? ' · current' : ''}` }))} value={versionId} onValueChange={(value) => { setSaved(false); setVersionId(String(value)) }}><SelectTrigger className="w-full"><SelectValue placeholder="Curriculum year" /></SelectTrigger><SelectContent><SelectGroup>{(programme?.versions ?? []).map((version) => <SelectItem key={version.id} value={version.id}>{version.label || version.id}{version.status === 'current' ? ' · current' : ''}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
-      <Field><FieldLabel>Current study year</FieldLabel><Select items={Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => ({ value: String(index + 1), label: `Year ${index + 1}` }))} value={studyYear} onValueChange={(value) => { setSaved(false); setStudyYear(String(value)) }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>Year {index + 1}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+      <Field>
+        <FieldLabel htmlFor="setup-curriculum">Curriculum</FieldLabel>
+        <SetupPicker
+          id="setup-curriculum"
+          value={versionId}
+          placeholder="Curriculum year"
+          options={(programme?.versions ?? []).map((version) => ({ value: version.id, label: `${version.label || version.id}${version.status === 'current' ? ' · current' : ''}` }))}
+          onValueChange={(id) => { setSaved(false); setVersionId(id) }}
+        />
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="setup-study-year">Current study year</FieldLabel>
+        <SetupPicker
+          id="setup-study-year"
+          value={studyYear}
+          options={Array.from({ length: Math.max(1, programme?.durationYears ?? 3) }, (_, index) => ({ value: String(index + 1), label: `Year ${index + 1}` }))}
+          onValueChange={(year) => { setSaved(false); setStudyYear(year) }}
+        />
+      </Field>
     </div>
     <FieldDescription>Changing programme preserves attempts already in your personal academic record.</FieldDescription>
     {error && <FieldError>{error}</FieldError>}
