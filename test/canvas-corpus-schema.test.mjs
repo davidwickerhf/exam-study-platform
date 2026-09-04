@@ -71,4 +71,5 @@ test('faculty and community Canvas shells are retired from the academic corpus',
   assert.match(corpus, /supportedCanvasCourseCode/)
   assert.match(corpus, /loadEditorialProgrammeCatalogue/)
   assert.match(corpus, /DELETE FROM canvas_corpus_access/)
+  assert.match(worker, /reconciledExistingAccess/)
 })
