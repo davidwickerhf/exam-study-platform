@@ -26,6 +26,14 @@ test('an absent or malformed objective has the honest recorded default', () => {
   assert.deepEqual(objectiveFor(workspace({ planning: { objectives: { a: { mode: 'later', outcome: 'maybe' } } } }), 'a'), { mode: 'current', outcome: 'actual' })
 })
 
+test('a planning objective retains a bounded expected grade and named exam session', () => {
+  const value = workspace({ planning: { objectives: { a: { mode: 'resit', outcome: 'pass', expectedGrade: 120, targetSession: '  resit-february  ' } } } })
+  assert.deepEqual(objectiveFor(value, 'a'), { mode: 'resit', outcome: 'pass', expectedGrade: 100, targetSession: 'resit-february' })
+  assert.deepEqual(withObjective(workspace(), 'a', { expectedGrade: 7.5, targetSession: 'period-2' }).planning.objectives.a, {
+    mode: 'current', outcome: 'actual', expectedGrade: 7.5, targetSession: 'period-2'
+  })
+})
+
 test('recorded passes are fixed and projected passes count once', () => {
   const value = workspace({
     courses: [

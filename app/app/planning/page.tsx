@@ -196,6 +196,33 @@ function SectionHead({
   );
 }
 
+function ViewIntro({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-end justify-between gap-5 border-b pb-6">
+      <div className="max-w-[70ch]">
+        <span className={COLUMN}>{eyebrow}</span>
+        <h2 className="font-heading mt-2 text-[28px] leading-tight font-semibold tracking-[-0.03em] text-balance">
+          {title}
+        </h2>
+        <p className="text-muted-foreground mt-2 text-sm leading-relaxed text-pretty">
+          {description}
+        </p>
+      </div>
+      {action}
+    </header>
+  );
+}
+
 /** A planning summary: one ruled strip of measures, never a row of cards. */
 function Strip({
   cells,
@@ -1337,7 +1364,7 @@ export default function PlanningPage() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("planner");
   const [focus, setFocus] = useState<string | null>(null);
   const [composer, setComposer] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -1481,23 +1508,21 @@ export default function PlanningPage() {
   const action = HEADER_ACTION[tab];
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 p-5 sm:p-8">
+    <div className={`flex w-full flex-col gap-5 p-5 sm:p-8 ${tab === "planner" ? "h-dvh min-h-[720px] overflow-hidden" : "mx-auto min-h-dvh max-w-[1240px]"}`}>
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="flex min-w-0 flex-col gap-1">
           {workspace ? (
             <>
-              <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
-                {workspace.profile.programme || "Academic planning"}
-              </h1>
+              <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">Planning</h1>
               <p
                 className={`text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm ${NUMERALS}`}
               >
                 <LockIcon aria-hidden className="size-3.5 shrink-0" />
                 <span>
-                  Private to your account
+                  {workspace.profile.programme || "Academic programme"}
                   {[
-                    workspace.profile.university,
                     workspace.profile.academicYear,
+                    workspace.profile.university,
                   ]
                     .filter(Boolean)
                     .map((part) => ` · ${part}`)
@@ -1540,7 +1565,7 @@ export default function PlanningPage() {
           setEditing(null);
           history.replaceState(null, "", `/app/planning?tab=${value}`);
         }}
-        className="gap-5"
+        className="min-h-0 flex-1 gap-5"
       >
         <TabsList
           variant="line"
@@ -1597,6 +1622,12 @@ export default function PlanningPage() {
         <TabsContent value="overview" className="flex flex-col gap-8">
           {workspace ? (
             <>
+              <ViewIntro
+                eyebrow="Academic overview"
+                title="The degree at a glance"
+                description="Read the recorded position first, then move into the exam plan, programme facts, or dates that need a decision."
+                action={<Button size="sm" onClick={() => { setTab("planner"); history.replaceState(null, "", "/app/planning?tab=planner"); }}>Open exam planner</Button>}
+              />
               {composer === "overview" && (
                 <EventComposer
                   commit={commit}
@@ -1604,13 +1635,6 @@ export default function PlanningPage() {
                   onClose={() => setComposer(null)}
                 />
               )}
-              <FactsRegister
-                workspace={workspace}
-                open={editing}
-                onOpen={setEditing}
-                commit={commit}
-                busy={saving}
-              />
               <Strip
                 cells={[
                   {
@@ -1632,6 +1656,13 @@ export default function PlanningPage() {
                   },
                 ]}
               />
+              <FactsRegister
+                workspace={workspace}
+                open={editing}
+                onOpen={setEditing}
+                commit={commit}
+                busy={saving}
+              />
               <EventsRegister
                 workspace={workspace}
                 open={editing}
@@ -1648,6 +1679,11 @@ export default function PlanningPage() {
         <TabsContent value="courses" className="flex flex-col gap-6">
           {workspace ? (
             <>
+              <ViewIntro
+                eyebrow="Curriculum"
+                title="Courses and electives"
+                description="Review every course by study year. Requirement labels distinguish core, choice, and elective space without mixing exam planning into the curriculum record."
+              />
               {composer === "courses" && (
                 <CourseComposer
                   commit={commit}
@@ -1671,6 +1707,11 @@ export default function PlanningPage() {
         <TabsContent value="progress" className="flex flex-col gap-8">
           {workspace ? (
             <>
+              <ViewIntro
+                eyebrow="Progress"
+                title="What is complete, safe, and still exposed"
+                description="Recorded results stay separate from the assumptions in your current exam plan. Requirements below remain grounded in the programme record."
+              />
               {composer === "progress" && (
                 <GateComposer
                   commit={commit}
@@ -1725,10 +1766,10 @@ export default function PlanningPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="planner">
+        <TabsContent value="planner" className="min-h-0 flex-1">
           <PlanningPlanner />
         </TabsContent>
-        <TabsContent value="settings">
+        <TabsContent value="settings" className="mx-auto w-full max-w-[1180px]">
           <PlanningSettings
             onChanged={(state) => setWorkspace(state.workspace)}
           />

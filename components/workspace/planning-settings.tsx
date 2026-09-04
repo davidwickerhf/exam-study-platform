@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { DownloadIcon, PlusIcon, UploadIcon } from 'lucide-react'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -161,7 +162,15 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
   const includesFailed = workspace.profile.gpaIncludesFailedCourses === true
 
   return (
-    <div className="flex max-w-[860px] flex-col gap-8">
+    <div className="flex max-w-[920px] flex-col gap-10 pb-10">
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b pb-6">
+        <div className="max-w-[66ch]">
+          <span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">Plan settings</span>
+          <h2 className="font-heading mt-2 text-[28px] font-semibold tracking-[-0.03em]">How this academic record behaves</h2>
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">Keep separate programmes apart, choose how grades are calculated, and move a complete planning record in or out of Wicker.</p>
+        </div>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/app/settings" />}>Workspace settings</Button>
+      </header>
       <section className="flex flex-col gap-4">
         <SectionHead title="Programmes" description="Each programme is a separate private record with its own curriculum, attempts, and rules.">
           <Button variant="secondary" size="sm" aria-expanded={composerOpen} disabled={busy} onClick={() => setComposerOpen((open) => !open)}>
