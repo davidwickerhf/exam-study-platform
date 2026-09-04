@@ -27,7 +27,7 @@ import {
 } from './lib/study-store.mjs'
 import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
 import { DEFAULT_OPENAI_MODEL, DEFAULT_OPENAI_REASONING_EFFORT, openAiReasoningEffort, publicLlmConfiguration } from './lib/llm-config.mjs'
-import { deletePersonalData, deleteStudyData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
+import { deletePersonalData, deleteStudyData, deleteUploadedData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
 import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
@@ -3829,12 +3829,22 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/account/data' && req.method === 'DELETE') {
       const body = await readBody(req, 64 * 1024)
-      if (body?.confirmation !== 'RESET') {
-        send(res, 400, JSON.stringify({ error: 'Type RESET to confirm.' }))
+      const scopes = new Set(['study', 'uploads', 'everything'])
+      if (!scopes.has(body?.scope)) {
+        send(res, 400, JSON.stringify({ error: 'Choose which data to remove.' }))
         return
       }
-      const scope = body.scope === 'everything' ? 'everything' : 'study'
-      const removed = scope === 'everything' ? await deletePersonalData() : await deleteStudyData()
+      const scope = body.scope
+      const expected = scope === 'uploads' ? 'DELETE UPLOADS' : 'RESET'
+      if (body?.confirmation !== expected) {
+        send(res, 400, JSON.stringify({ error: `Type ${expected} to confirm.` }))
+        return
+      }
+      const removed = scope === 'everything'
+        ? await deletePersonalData()
+        : scope === 'uploads'
+          ? await deleteUploadedData()
+          : await deleteStudyData()
       send(res, 200, JSON.stringify({ ok: true, scope, removed }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
@@ -3919,15 +3929,27 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/account' && req.method === 'DELETE') {
-      const body = await readBody(req, 1024 * 1024)
-      if (body?.confirmation !== 'DELETE') {
-        send(res, 400, JSON.stringify({ error: 'Type DELETE to confirm permanent account deletion.' }))
+      const body = await readBody(req, 64 * 1024)
+      const auth = currentAuth()
+      const clerkUserId = auth.clerkUserId || auth.userId
+      const account = await getAuthUser(clerkUserId)
+      const expected = account.email || 'DELETE'
+      if (body?.confirmation !== expected) {
+        send(res, 400, JSON.stringify({ error: account.email ? 'Enter your exact email address to confirm account deletion.' : 'Type DELETE to confirm permanent account deletion.' }))
         return
       }
-      const userId = currentAuth().userId
-      const clerkUserId = currentAuth().clerkUserId || userId
       const removed = await deletePersonalData()
-      const identity = await deleteAuthUser(clerkUserId)
+      let identity
+      try {
+        identity = await deleteAuthUser(clerkUserId)
+      } catch (error) {
+        send(res, 502, JSON.stringify({
+          error: 'Your Wicker data was removed, but the Clerk sign-in identity could not be deleted. Retry this action or contact privacy@study.wicker.life.',
+          code: 'CLERK_ACCOUNT_DELETE_FAILED',
+          personalDataDeleted: true
+        }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        return
+      }
       send(res, 200, JSON.stringify({ ok: true, removed, identity }), 'application/json; charset=utf-8', {
         'Cache-Control': 'no-store'
       })

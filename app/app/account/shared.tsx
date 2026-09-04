@@ -169,11 +169,11 @@ export function HostedProfileActions() {
         Edit sign-in profile
       </Button>
       <Button
-        variant="destructive"
+        variant="ghost"
         size="sm"
         onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}
       >
-        Sign out of Wicker Study
+        Sign out
       </Button>
     </span>
   );
@@ -197,6 +197,7 @@ export function Confirm({
   busy,
   error,
   onConfirm,
+  destructive = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -208,6 +209,7 @@ export function Confirm({
   busy: boolean;
   error: string | null;
   onConfirm: () => void;
+  destructive?: boolean;
 }) {
   const [typed, setTyped] = useState("");
   useEffect(() => {
@@ -222,14 +224,16 @@ export function Confirm({
         if (!busy) onOpenChange(next);
       }}
     >
-      <AlertDialogContent className="sm:max-w-md">
+      <AlertDialogContent className="gap-5 p-5 sm:max-w-[480px]">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="flex flex-col gap-3 text-sm">
-          <p className="font-semibold">This cannot be undone.</p>
+          <p className={destructive ? "text-destructive font-semibold" : "font-semibold"}>
+            This cannot be undone.
+          </p>
           {removes && (
             <ul className="text-muted-foreground flex flex-col gap-1">
               {removes.map((line) => (
@@ -264,7 +268,7 @@ export function Confirm({
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>Keep it</AlertDialogCancel>
-          <Button variant="secondary" disabled={!ready} onClick={onConfirm}>
+          <Button variant={destructive ? "destructive" : "default"} disabled={!ready} onClick={onConfirm}>
             {busy ? "Working…" : action}
           </Button>
         </AlertDialogFooter>

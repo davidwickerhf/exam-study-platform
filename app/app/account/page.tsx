@@ -6,8 +6,7 @@ import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useJson } from "@/components/workspace/use-json";
-import { type AccountSummary, formatCount } from "@/lib/workspace/account.mjs";
-import { NUMERALS, longDate } from "./shared";
+import { type AccountSummary } from "@/lib/workspace/account.mjs";
 
 /** What a tab looks like while its module is on the wire. */
 function TabLoading() {
@@ -36,48 +35,18 @@ export default function AccountPage() {
     if (requested && requested !== "profile") window.location.replace(`/app/settings?tab=${requested}`);
   }, []);
 
-  const account = summary.data?.account;
-  const name =
-    [account?.firstName, account?.lastName].filter(Boolean).join(" ") || null;
-  const since = longDate(account?.createdAt);
-  const secondary =
-    [
-      name,
-      account?.email ??
-        (account?.mode === "local" ? "Local development account" : null),
-      since ? `member since ${since}` : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "Your identity and study record.";
-
   return (
-    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <header className="-mx-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <header className="border-b pb-5">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
-            Profile
+            Profile settings
           </h1>
-          {summary.data || summary.error ? (
-            <p
-              className={`text-muted-foreground text-sm [overflow-wrap:anywhere] ${NUMERALS}`}
-            >
-              {summary.error
-                ? "Your account record could not be read."
-                : secondary}
-            </p>
-          ) : (
-            <Skeleton className="h-4 w-64" />
-          )}
+          <p className="text-muted-foreground max-w-3xl text-sm">Manage your identity, review your study record and control every piece of personal data attached to your account.</p>
         </div>
-        {/* The meter: how much of this account there is to look at. */}
-        {summary.data && (
-          <p className={`text-muted-foreground text-sm ${NUMERALS}`}>
-            {formatCount(summary.data.totals.documents)} stored records
-          </p>
-        )}
       </header>
 
-      <ProfileTab summary={summary.data} summaryError={summary.error} />
+      <ProfileTab summary={summary.data} summaryError={summary.error} reload={summary.reload} />
     </div>
   );
 }
