@@ -9,16 +9,17 @@ import { readJson } from "@/components/workspace/use-json";
 import type { CreatedApiKey } from "@/lib/workspace/account.mjs";
 
 type Client = "codex" | "claude";
+const MCP_PACKAGE = "wicker-study-mcp@2.7.0";
 
 function quoted(value: string) {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 function installCommand(client: Client, origin: string, secret: string) {
-  const configure = `WICKER_STUDY_URL=${quoted(origin)} WICKER_STUDY_API_KEY=${quoted(secret)} npx -y wicker-study-mcp configure`;
+  const configure = `WICKER_STUDY_URL=${quoted(origin)} WICKER_STUDY_API_KEY=${quoted(secret)} npx -y ${MCP_PACKAGE} configure`;
   const register = client === "codex"
-    ? "codex mcp add wicker-study -- npx -y wicker-study-mcp"
-    : "claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp";
+    ? `codex mcp add wicker-study -- npx -y ${MCP_PACKAGE}`
+    : `claude mcp add --scope user wicker-study -- npx -y ${MCP_PACKAGE}`;
   return `${configure}\n${register}`;
 }
 
