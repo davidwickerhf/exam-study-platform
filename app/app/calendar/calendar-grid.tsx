@@ -103,6 +103,14 @@ export default function CalendarGrid({
       dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
       dayMaxEvents
       slotEventOverlap={false}
+      eventClassNames={(info) => {
+        const event = info.event.extendedProps as CalendarEvent
+        return [
+          event.attendanceEligible ? 'fc-attendance-eligible' : '',
+          event.attendanceRequired ? 'fc-attendance-required' : '',
+          event.attendanceStatus && event.attendanceStatus !== 'unknown' ? `fc-attendance-${event.attendanceStatus}` : ''
+        ].filter(Boolean)
+      }}
       eventClick={(info: EventClickArg) => {
         info.jsEvent.preventDefault()
         onSelectEvent(info.event.extendedProps as CalendarEvent)

@@ -1,0 +1,45 @@
+{
+  "title": "Choose the Tutor workspace",
+  "question": "Which structure should make Tutor feel most useful for explanations, decisions, and consented study actions?",
+  "options": [
+    {
+      "id": "situation-desk",
+      "label": "Situation Desk",
+      "kicker": "THE ROLL",
+      "thesis": "Tutor turns each question into a concise academic brief: what matters, what it checked, and what it can do next. A narrow action docket stays visible beside the answer until the student approves or dismisses each proposal.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9", "#e7e6e1"],
+      "materials": "Warm paper workspace, one navy briefing plane, white conversation sheet, full-span rules, indigo for scope and consent only.",
+      "viewport": "Desktop, 1440 × 900",
+      "risk": "The action docket must remain contextual or it will become a second dashboard competing with the conversation.",
+      "comp": ".impeccable/mocks/decision/tutor-situation-desk.png"
+    },
+    {
+      "id": "tutor-workbench",
+      "label": "Tutor Workbench",
+      "thesis": "A calm, document-like conversation fills the page. Scope, sources, remembered plans, and proposed actions open as full-width ruled drawers beneath the relevant answer, keeping reading central and evidence close to the claim.",
+      "palette": ["#f7f7f4", "#ffffff", "#f1f2f6", "#20263a", "#3f51d9"],
+      "materials": "Editorial answer sheet, flush disclosure rows, quiet scope chips, no permanent inner rail, dark composer only at the point of action.",
+      "viewport": "Desktop, 1440 × 900",
+      "risk": "Without a persistent action region, multi-step plans could be easier to overlook after a long explanation.",
+      "comp": ".impeccable/mocks/decision/tutor-workbench.png"
+    },
+    {
+      "id": "study-brief",
+      "label": "Study Brief",
+      "thesis": "Tutor opens on a compact briefing of today’s risks, plans, and course signals, then continues as a workspace-wide dialogue. The current course or lecture appears as an explicit lens that the student can widen at any time.",
+      "palette": ["#f7f7f4", "#ffffff", "#eceefe", "#20263a", "#3f51d9"],
+      "materials": "Departure-board hierarchy, restrained signal tint, ruled briefing rows, one anchored composer, compact evidence drawer.",
+      "viewport": "Desktop, 1440 × 900",
+      "risk": "The opening brief may feel like another Home page unless it quickly yields to the active conversation.",
+      "comp": ".impeccable/mocks/decision/tutor-study-brief.png"
+    }
+  ],
+  "reroll": {
+    "registers": ["safer", "bolder"]
+  },
+  "buildPath": {
+    "value": "comp",
+    "toggle": true
+  },
+  "steer": true
+}

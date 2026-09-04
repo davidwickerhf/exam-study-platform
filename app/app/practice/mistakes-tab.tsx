@@ -16,7 +16,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import {
   type Mistake,
   type PracticeQuestion,
@@ -28,6 +27,7 @@ import {
 } from "@/lib/workspace/practice.mjs";
 import type { StudyCourse } from "@/lib/workspace/courses.mjs";
 import {
+  AnswerControl,
   COLUMN_LABEL,
   NUMERALS,
   PAPER,
@@ -203,29 +203,34 @@ export default function MistakesTab({
                     <Prose source={mistake.correction} className={PAPER} />
                   )}
                   <div className="flex flex-col gap-2 border-t pt-3">
-                    <Textarea
+                    <AnswerControl
+                      question={mistake as unknown as PracticeQuestion}
                       value={drafts[mistake.id] ?? ""}
-                      onChange={(event) =>
+                      onChange={(value) =>
                         setDrafts((current) => ({
                           ...current,
-                          [mistake.id]: event.target.value,
+                          [mistake.id]: value,
                         }))
                       }
-                      placeholder="Retry this question…"
-                      aria-label="Retry answer"
+                      label="Try again"
                       disabled={retrying === mistake.id}
+                      actions={
+                        <Button
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={() => void retry(mistake)}
+                          disabled={
+                            retrying === mistake.id ||
+                            !drafts[mistake.id]?.trim()
+                          }
+                        >
+                          {retrying === mistake.id
+                            ? "Checking…"
+                            : "Check retry"}
+                        </Button>
+                      }
                     />
                     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                      <Button
-                        size="sm"
-                        className="w-full sm:w-auto"
-                        onClick={() => void retry(mistake)}
-                        disabled={
-                          retrying === mistake.id || !drafts[mistake.id]?.trim()
-                        }
-                      >
-                        {retrying === mistake.id ? "Checking…" : "Check retry"}
-                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

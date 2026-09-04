@@ -19,6 +19,7 @@ import {
   ChevronRightIcon,
   PlusIcon,
   SearchIcon,
+  SlidersHorizontalIcon,
   ShuffleIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,8 +44,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   type PracticePayload,
   type PracticeQuestion,
@@ -59,7 +58,7 @@ import {
   typeLabel,
 } from "@/lib/workspace/practice.mjs";
 import {
-  Choices,
+  AnswerControl,
   NUMERALS,
   PAPER,
   PROSE,
@@ -71,6 +70,27 @@ import {
 import { SessionLedger } from "./session-ledger";
 
 type QuestionEvent = SessionEvent<PracticeQuestion>;
+
+function SessionDatum({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={`min-w-0 px-4 py-3 sm:px-5 ${className}`}>
+      <span className="text-muted-foreground block text-[10px] font-semibold tracking-[0.1em] uppercase">
+        {label}
+      </span>
+      <strong className="mt-0.5 block truncate text-sm font-medium">
+        {value}
+      </strong>
+    </div>
+  );
+}
 
 function QuestionCard({
   question,
@@ -148,63 +168,90 @@ function QuestionCard({
   };
 
   return (
-    // Measure, not width: a reference answer is read, so it stops at a line length.
-    <div className="flex min-w-0 max-w-[80ch] flex-col gap-3">
-      <TypeLine question={question} />
-      <Prose source={question.question} className={PROSE} />
-      <Choices question={question} />
-      <div className="flex flex-col gap-2">
-        <Textarea
-          value={attempt}
-          onChange={(event) => setAttempt(event.target.value)}
-          placeholder="Write your answer…"
-          aria-label="Your answer"
-          disabled={busy}
+    <div className="mx-auto flex w-full min-w-0 max-w-[900px] flex-col gap-5 sm:gap-6">
+      <div className="flex flex-col gap-2 sm:gap-3">
+        <TypeLine question={question} />
+        <Prose
+          source={question.question}
+          className={`${PROSE} font-heading text-[21px] leading-[1.45] font-semibold tracking-[-0.015em]`}
         />
-        <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:flex-wrap sm:items-center">
-          <Button
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => void grade()}
-            disabled={busy || !attempt.trim()}
-          >
-            {busy ? "Checking…" : "Check answer"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => void add()}
-            disabled={busy || inDeck}
-          >
-            {inDeck ? (
-              <CheckIcon data-icon="inline-start" />
-            ) : (
-              <PlusIcon data-icon="inline-start" />
-            )}
-            {inDeck ? "In flashcards" : "Add to flashcards"}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="w-full sm:ml-auto sm:w-auto"
-            onClick={() => {
-              setAttempt("");
-              setResult(null);
-              setFailure(null);
-            }}
-            disabled={!attempt && !result}
-          >
-            Clear answer
-          </Button>
-        </div>
+      </div>
+      <div className="flex flex-col gap-4">
+        <AnswerControl
+          question={question}
+          value={attempt}
+          onChange={(value) => {
+            setAttempt(value);
+            setResult(null);
+            setFailure(null);
+          }}
+          disabled={busy}
+          actions={
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+              <Button
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => void grade()}
+                disabled={busy || !attempt.trim()}
+              >
+                {busy ? "Checking…" : "Check answer"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full bg-background sm:w-auto"
+                onClick={() => void add()}
+                disabled={busy || inDeck}
+              >
+                {inDeck ? (
+                  <CheckIcon data-icon="inline-start" />
+                ) : (
+                  <PlusIcon data-icon="inline-start" />
+                )}
+                {inDeck ? "In flashcards" : "Add to flashcards"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full sm:ml-auto sm:w-auto"
+                onClick={() => {
+                  setAttempt("");
+                  setResult(null);
+                  setFailure(null);
+                }}
+                disabled={!attempt && !result}
+              >
+                Clear answer
+              </Button>
+              {question.expected && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full sm:w-auto"
+                  onClick={() => setOpen((shown) => !shown)}
+                >
+                  <ChevronDownIcon
+                    data-icon="inline-start"
+                    className={open ? "rotate-180" : ""}
+                  />
+                  {open ? "Hide reference" : "Reference answer"}
+                </Button>
+              )}
+            </div>
+          }
+        />
       </div>
       {result && (
-        <div className="flex flex-col gap-2">
-          <strong className={`text-sm ${NUMERALS}`}>
-            {result.score === null ? "Not scored" : `${result.score}/10`}
-          </strong>
-          <Prose source={result.correction} className={PAPER} />
+        <div className="bg-card overflow-hidden rounded-[10px] border">
+          <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
+            <strong className="text-sm">Grader feedback</strong>
+            <strong className={`text-sm ${NUMERALS}`}>
+              {result.score === null ? "Not scored" : `${result.score}/10`}
+            </strong>
+          </div>
+          <div className="px-4 py-4">
+            <Prose source={result.correction} className={PROSE} />
+          </div>
         </div>
       )}
       {failure && (
@@ -212,26 +259,13 @@ function QuestionCard({
           {failure}
         </p>
       )}
-      {question.expected ? (
-        <Collapsible open={open} onOpenChange={setOpen}>
-          <CollapsibleTrigger
-            render={<Button variant="outline" size="sm" className="w-full sm:w-auto" />}
-          >
-            <ChevronDownIcon
-              data-icon="inline-start"
-              className={open ? "rotate-180" : ""}
-            />
-            {open ? "Hide reference answer" : "Reference answer"}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3">
-            {open && <Prose source={question.expected} className={PAPER} />}
-          </CollapsibleContent>
-        </Collapsible>
-      ) : (
+      {open && question.expected ? (
+        <Prose source={question.expected} className={PAPER} />
+      ) : !question.expected ? (
         <p className="text-muted-foreground text-xs">
           No reference answer was published with this question.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -265,6 +299,7 @@ export default function QuestionsTab({
   const [query, setQuery] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [focus, setFocus] = useState<PracticeQuestion[] | null>(null);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   const all = useMemo(() => payload?.questions ?? [], [payload]);
   const courses = useMemo(() => courseFacets(all), [all]);
@@ -277,10 +312,20 @@ export default function QuestionsTab({
   const visible = focus ?? filtered;
   const current = visible[currentIndex] ?? null;
   const summary = useMemo(() => summariseSession(events), [events]);
+  const selectedCourse = courses.find((course) => course.id === courseId);
+  const selectedChapter = chapters.find(
+    (chapter) => chapter.key === chapterKey,
+  );
+  const selectedType =
+    type === "all" ? "All types" : (typeLabel(type) ?? "All types");
 
   useEffect(() => {
     setCurrentIndex(0);
   }, [courseId, chapterKey, type, query, focus]);
+
+  useEffect(() => {
+    if (events.length > 0) setSetupOpen(false);
+  }, [events.length]);
 
   if (error) {
     return (
@@ -332,7 +377,7 @@ export default function QuestionsTab({
   return (
     <div className="flex flex-col gap-6">
       {focus ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+        <div className="bg-background flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-5 py-4">
           <p className="text-sm">
             <span className={`font-semibold ${NUMERALS}`}>{focus.length}</span>{" "}
             missed {focus.length === 1 ? "question" : "questions"} from this
@@ -343,110 +388,181 @@ export default function QuestionsTab({
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 border-b pb-4">
-          {/* Contained scroller: the chip row scrolls, the canvas does not. */}
-          <div className="-m-2 overflow-x-auto p-2">
-            <ToggleGroup
-              value={[courseId]}
-              onValueChange={(value) => {
-                const next = value.at(-1);
-                if (next) {
-                  setCourseId(next);
-                  setChapterKey("all");
-                }
-              }}
-              variant="outline"
-              className="flex-nowrap"
+        <Collapsible
+          open={setupOpen}
+          onOpenChange={setSetupOpen}
+          className="bg-background overflow-hidden rounded-[14px] border"
+        >
+          <div className="sm:hidden">
+            <CollapsibleTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="flex h-auto min-h-16 w-full items-center justify-between rounded-none px-4 py-3 text-left"
+                />
+              }
             >
-              <ToggleGroupItem value="all" className="gap-1.5">
-                All
-                <span className={`text-muted-foreground ${NUMERALS}`}>
-                  {all.length}
+              <span className="min-w-0">
+                <span className="text-muted-foreground block text-[10px] font-semibold tracking-[0.1em] uppercase">
+                  Session setup
                 </span>
-              </ToggleGroupItem>
-              {courses.map((course) => (
-                <ToggleGroupItem
-                  key={course.id}
-                  value={course.id}
-                  className="gap-1.5"
-                  aria-label={course.name}
-                >
-                  <span className={NUMERALS}>{course.code}</span>
-                  <span className={`text-muted-foreground ${NUMERALS}`}>
-                    {course.count}
-                  </span>
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+                <span className="mt-0.5 block truncate text-sm font-medium">
+                  {selectedCourse?.code ?? "All courses"} ·{" "}
+                  {selectedChapter
+                    ? `Ch ${selectedChapter.chapterId}`
+                    : "All chapters"}{" "}
+                  · {selectedType}
+                </span>
+              </span>
+              <span className="ml-4 flex shrink-0 items-center gap-2 text-sm font-semibold">
+                <span className={NUMERALS}>{filtered.length}</span>
+                <SlidersHorizontalIcon className="size-4" />
+              </span>
+            </CollapsibleTrigger>
           </div>
-
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-[minmax(0,1fr)_15rem_10rem]">
-            <div className="relative min-w-0">
-              <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search questions"
-                className="w-full pl-9"
-                aria-label="Search questions"
+          <div className="hidden min-w-0 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid min-w-0 grid-cols-5">
+              <SessionDatum
+                label="Course"
+                value={selectedCourse?.code ?? "All courses"}
+                className="border-r"
               />
+              <SessionDatum
+                label="Chapter"
+                value={
+                  selectedChapter
+                    ? `Ch ${selectedChapter.chapterId} · ${selectedChapter.chapterName}`
+                    : "All chapters"
+                }
+                className="border-r"
+              />
+              <SessionDatum
+                label="Type"
+                value={selectedType}
+                className="border-r"
+              />
+              <SessionDatum
+                label="Search"
+                value={query.trim() || "None"}
+                className="border-r"
+              />
+              <SessionDatum label="Questions" value={`${filtered.length}`} />
             </div>
-
-            <Select
-              value={chapterKey}
-              onValueChange={(value) => setChapterKey(value ?? "all")}
+            <CollapsibleTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="h-auto min-h-12 rounded-none border-t px-5 sm:border-t-0 sm:border-l"
+                />
+              }
             >
-              <SelectTrigger className="w-full" aria-label="Chapter">
-                <SelectValue>
-                  {(value) => {
-                    const chapter = chapters.find(
-                      (entry) => entry.key === value,
-                    );
-                    return chapter
-                      ? `Ch ${chapter.chapterId} · ${chapter.chapterName}`
-                      : "All chapters";
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">All chapters</SelectItem>
-                  {chapters.map((chapter) => (
-                    <SelectItem key={chapter.key} value={chapter.key}>
-                      {courseId === "all" ? `${chapter.courseCode} · ` : ""}Ch{" "}
-                      {chapter.chapterId} · {chapter.chapterName}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={type}
-              onValueChange={(value) => setType(value ?? "all")}
-            >
-              <SelectTrigger className="w-full" aria-label="Question type">
-                <SelectValue>
-                  {(value) =>
-                    value === "all"
-                      ? "All types"
-                      : (typeLabel(value) ?? "All types")
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">All types</SelectItem>
-                  {types.map((entry) => (
-                    <SelectItem key={entry.id} value={entry.id}>
-                      {entry.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              <SlidersHorizontalIcon data-icon="inline-start" />
+              {setupOpen ? "Close setup" : "Adjust setup"}
+            </CollapsibleTrigger>
           </div>
-        </div>
+          <CollapsibleContent>
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-2 border-t px-4 py-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-[minmax(13rem,1fr)_13rem_15rem_11rem]">
+              <div className="relative min-w-0">
+                <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search questions"
+                  className="w-full pl-9"
+                  aria-label="Search questions"
+                />
+              </div>
+
+              <Select
+                value={courseId}
+                onValueChange={(value) => {
+                  setCourseId(value ?? "all");
+                  setChapterKey("all");
+                }}
+              >
+                <SelectTrigger className="w-full" aria-label="Course">
+                  <SelectValue>
+                    {(value) => {
+                      const course = courses.find(
+                        (entry) => entry.id === value,
+                      );
+                      return course
+                        ? `${course.code} · ${course.name || `${course.count} questions`}`
+                        : `All courses · ${all.length}`;
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">
+                      All courses · {all.length}
+                    </SelectItem>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.code} ·{" "}
+                        {course.name || `${course.count} questions`}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={chapterKey}
+                onValueChange={(value) => setChapterKey(value ?? "all")}
+              >
+                <SelectTrigger className="w-full" aria-label="Chapter">
+                  <SelectValue>
+                    {(value) => {
+                      const chapter = chapters.find(
+                        (entry) => entry.key === value,
+                      );
+                      return chapter
+                        ? `Ch ${chapter.chapterId} · ${chapter.chapterName}`
+                        : "All chapters";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">All chapters</SelectItem>
+                    {chapters.map((chapter) => (
+                      <SelectItem key={chapter.key} value={chapter.key}>
+                        {courseId === "all" ? `${chapter.courseCode} · ` : ""}Ch{" "}
+                        {chapter.chapterId} · {chapter.chapterName}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={type}
+                onValueChange={(value) => setType(value ?? "all")}
+              >
+                <SelectTrigger className="w-full" aria-label="Question type">
+                  <SelectValue>
+                    {(value) =>
+                      value === "all"
+                        ? "All types"
+                        : (typeLabel(value) ?? "All types")
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">All types</SelectItem>
+                    {types.map((entry) => (
+                      <SelectItem key={entry.id} value={entry.id}>
+                        {entry.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       {!visible.length ? (
@@ -454,15 +570,15 @@ export default function QuestionsTab({
           <EmptyHeader>
             <EmptyTitle>Nothing matches</EmptyTitle>
             <EmptyDescription>
-              {all.length} published questions sit outside this filter. Widen the
-              course, chapter or type.
+              {all.length} published questions sit outside this filter. Widen
+              the course, chapter or type.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         current && (
-          <section className="mx-auto flex w-full max-w-[980px] min-w-0 flex-col">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b pb-3">
+          <section className="bg-background mx-auto flex w-full min-w-0 flex-col overflow-hidden rounded-[14px] border md:min-h-[calc(100dvh-282px)]">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b px-5 py-4 sm:px-8">
               <div className="min-w-0">
                 <p className="font-data text-sm font-semibold tabular-nums">
                   {current.courseCode} · Chapter {current.chapterId}
@@ -485,7 +601,7 @@ export default function QuestionsTab({
               </Button>
             </div>
 
-            <div className="py-6">
+            <div className="flex-1 px-5 py-5 sm:px-8 sm:py-7 lg:px-12 lg:py-9">
               <QuestionCard
                 key={questionKey(current)}
                 question={current}
@@ -496,7 +612,7 @@ export default function QuestionsTab({
               />
             </div>
 
-            <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="bg-background/95 z-10 flex flex-col gap-3 border-t px-5 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 md:sticky md:bottom-0">
               <div className="flex items-center justify-between gap-2">
                 <Button
                   variant="outline"
