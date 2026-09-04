@@ -53,7 +53,7 @@ import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
-import { canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
+import { cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -3686,6 +3686,16 @@ const server = createServer(async (req, res) => {
         send(res, 202, JSON.stringify(await enqueueCanvasCatalogSync({ accountId: currentAuth().userId, origin, force: body?.force === true })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas material sync could not be queued.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/corpus/sync' && req.method === 'DELETE') {
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
+        send(res, 200, JSON.stringify(await cancelPendingCanvasSyncs({ accountId: currentAuth().userId, origin })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Queued Canvas work could not be cancelled.' }))
       }
       return
     }

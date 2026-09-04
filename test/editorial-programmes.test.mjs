@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { findEditorialProgramme, loadEditorialProgrammeCatalogue, mergeEditorialProgrammeSeed, normalizeEditorialProgrammeCatalogue } from '../lib/editorial-programmes.mjs'
+import { buildVersion, parseCurriculumExtract } from '../scripts/import-curriculum.mjs'
 
 test('Maastricht Computer Science reference programme encodes a complete 180 ECTS structure', () => {
   const found = findEditorialProgramme('maastricht-university-bsc-computer-science', '2025-2026')
@@ -112,5 +114,36 @@ test('every maintained DACS curriculum reconciles to a full degree', async () =>
         }
       }
     }
+  }
+})
+
+test('every current catalogue course is an exact row from the complete official extraction', async () => {
+  const catalogue = loadEditorialProgrammeCatalogue()
+  const extracts = [
+    ['maastricht-university-bsc-computer-science', 'data/curricula/bcs.json'],
+    ['maastricht-university-bsc-data-science-and-artificial-intelligence', 'data/curricula/dsai.json'],
+    ['maastricht-university-msc-artificial-intelligence', 'data/curricula/msc-ai.txt'],
+    ['maastricht-university-msc-data-science-for-decision-making', 'data/curricula/msc-dsdm.txt']
+  ]
+  const identity = (course) => ({
+    code: course.code,
+    name: course.name,
+    ects: course.ects,
+    yearLevel: course.yearLevel,
+    period: course.period,
+    requirement: course.requirement
+  })
+
+  for (const [programmeId, path] of extracts) {
+    const extract = parseCurriculumExtract(await readFile(new URL(`../${path}`, import.meta.url), 'utf8'))
+    const imported = buildVersion({ id: '2026-2027', courses: extract.courses })
+    const programme = catalogue.programmes.find((entry) => entry.id === programmeId)
+    const current = programme?.versions.find((entry) => entry.id === '2026-2027')
+    assert.ok(current, `${programmeId} has a current curriculum`)
+    assert.deepEqual(
+      current.courses.map(identity),
+      imported.courses.map(identity),
+      `${programmeId} must not omit, invent, rename, or reposition an extracted course`
+    )
   }
 })

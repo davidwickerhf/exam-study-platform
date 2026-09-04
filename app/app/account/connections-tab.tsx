@@ -20,6 +20,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ import { connectionOrigin } from "@/lib/workspace/updates.mjs";
 import {
   type CorpusStatus,
   canvasCorpusSummary,
+  canvasSyncProgress,
 } from "@/lib/workspace/account.mjs";
 import { Confirm, Failed, NUMERALS, Section, relative } from "./shared";
 
@@ -241,6 +243,10 @@ export function ConnectionsTab() {
     () => canvasCorpusSummary(corpusStatus.data?.status),
     [corpusStatus.data],
   );
+  const syncProgress = useMemo(
+    () => canvasSyncProgress(corpusStatus.data?.status),
+    [corpusStatus.data],
+  );
   const activeCount = corpus.active.length;
   const reloadCorpus = corpusStatus.reload;
 
@@ -271,6 +277,31 @@ export function ConnectionsTab() {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [activeCount, reloadCorpus]);
+
+  useEffect(() => {
+    if (window.location.hash === "#canvas-sync") setManagingHosts(true);
+  }, []);
+
+  async function cancelQueuedMaterials() {
+    const origins = [...new Set(syncProgress.activeJobs.map((job) => job.origin).filter(Boolean))];
+    if (!origins.length && saved[0]) origins.push(saved[0].origin);
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const results = await Promise.all(origins.map((origin) => readJson<{ cancelled: number }>("/api/integrations/canvas/corpus/sync", {
+        method: "DELETE",
+        body: JSON.stringify({ canvasUrl: origin }),
+      })));
+      const cancelled = results.reduce((sum, result) => sum + (result.cancelled || 0), 0);
+      setNotice(cancelled ? `${cancelled} queued Canvas ${cancelled === 1 ? "job was" : "jobs were"} cancelled. A job already indexing a course will finish safely.` : "No queued Canvas jobs remained to cancel.");
+      reloadCorpus();
+    } catch (cause) {
+      setError((cause as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function saveMaterialMode(
     connection: CanvasConnection,
@@ -608,7 +639,7 @@ export function ConnectionsTab() {
         </button>}
       </div>
 
-      {saved.length > 0 && managingHosts && <div className="mt-8"><Section
+      {saved.length > 0 && managingHosts && <div id="canvas-sync" className="mt-8 scroll-mt-6"><Section
         title="Canvas management"
         note="Removing one deletes its encrypted token here and changes nothing in Canvas."
         action={
@@ -659,10 +690,15 @@ export function ConnectionsTab() {
               </span>
             </div>
             {activeCount > 0 && (
-              <p role="status" className="text-muted-foreground mt-3 text-xs">
-                This updates automatically while Canvas is working. You can
-                leave this page; collection continues on the server.
-              </p>
+              <div className="mt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p role="status" className="text-muted-foreground text-xs">
+                    {syncProgress.stage}. You can leave this page; collection continues on the server.
+                  </p>
+                  <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void cancelQueuedMaterials()}>Stop queued work</Button>
+                </div>
+                {syncProgress.percent != null && <><Progress value={syncProgress.percent} className="mt-3 h-1" /><p className={`${NUMERALS} text-muted-foreground mt-2 text-xs`}>{syncProgress.completedCourses} of {syncProgress.totalCourses} courses · {syncProgress.indexedFiles} files indexed</p></>}
+              </div>
             )}
             {corpus.failed.length > 0 && (
               <div className="border-primary mt-4 border-l-2 pl-4">
@@ -728,6 +764,7 @@ export function ConnectionsTab() {
                         )}
                         <small className="text-muted-foreground mt-0.5 block">
                           {job.academicYear || "Year not supplied by Canvas"}
+                          {job.status === "completed" && job.result ? ` · ${job.result.indexed || 0} indexed · ${job.result.skipped || 0} skipped` : ""}
                         </small>
                       </span>
                       <span
@@ -753,6 +790,7 @@ export function ConnectionsTab() {
                     >
                       <span>
                         {job.courseCode || job.type}
+                        <small className="text-muted-foreground mt-0.5 block">Attempt {job.attempts || 0}{job.startedAt ? ` · started ${relative(job.startedAt)}` : ""}{job.finishedAt ? ` · finished ${relative(job.finishedAt)}` : ""}</small>
                         {job.error && (
                           <small className="text-muted-foreground mt-0.5 block max-w-[60ch] [overflow-wrap:anywhere]">
                             {job.error}

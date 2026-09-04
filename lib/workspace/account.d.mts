@@ -131,13 +131,18 @@ export type KeyState = 'active' | 'revoked' | 'expired'
 
 export type CorpusJob = {
   id: string
+  syncId?: string
+  origin?: string
   type: string
   status: string
+  attempts?: number
+  result?: { files?: number; indexed?: number; skipped?: number }
   error?: string | null
   courseCode?: string | null
   courseName?: string | null
   academicYear?: string | null
   createdAt?: string
+  startedAt?: string | null
   finishedAt?: string | null
 }
 
@@ -161,6 +166,18 @@ export type CorpusSummary = {
   storedMaterials: number
 }
 
+export type CanvasSyncProgress = {
+  active: boolean
+  percent: number | null
+  stage: string | null
+  activeJobs: CorpusJob[]
+  jobs: CorpusJob[]
+  totalCourses: number
+  completedCourses: number
+  failedCourses: number
+  indexedFiles: number
+}
+
 export type CurrentCourseFigure = { count: number; period: string | null; codes: string[] }
 
 export type ProgrammeFacts = {
@@ -179,6 +196,7 @@ export declare function periodLabel(value: unknown): string | null
 export declare function currentCourseFigure(calendar: { currentCourses?: { code?: string }[]; academicContext?: { period?: string } | null } | null | undefined): CurrentCourseFigure | null
 export declare function programmeFacts(summary: AccountSummary | null | undefined, workspace: { profile?: { programme?: string; university?: string } } | null | undefined): ProgrammeFacts
 export declare function canvasCorpusSummary(status: CorpusStatus | null | undefined): CorpusSummary
+export declare function canvasSyncProgress(status: CorpusStatus | null | undefined): CanvasSyncProgress
 export declare function meterPercent(used: number, limit: number | null | undefined): number | null
 export declare function allowanceMeters(summary: AiUsage | null): Meter[]
 export declare const AI_FEATURE_LABEL: Record<string, string>
