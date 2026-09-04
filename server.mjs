@@ -27,7 +27,7 @@ import {
 } from './lib/study-store.mjs'
 import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, getAiUsageSummary, reserveAiUsage } from './lib/ai-usage.mjs'
 import { DEFAULT_OPENAI_MODEL, DEFAULT_OPENAI_REASONING_EFFORT, openAiReasoningEffort, publicLlmConfiguration } from './lib/llm-config.mjs'
-import { deletePersonalData, deleteStudyData, deleteUploadedData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
+import { AccountDeletionError, deletePersonalData, deleteStudyData, deleteUploadedData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
 import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
@@ -581,6 +581,17 @@ function sendAiError(res, error) {
     'Retry-After': String(error.retryAfter),
     'X-RateLimit-Reason': error.reason
   })
+  return true
+}
+
+function sendAccountDeletionError(res, error) {
+  if (!(error instanceof AccountDeletionError)) return false
+  console.error('Account deletion failed:', error.cause || error)
+  send(res, error.code === 'ACCOUNT_DELETION_SCHEMA_NOT_READY' ? 503 : 500, JSON.stringify({
+    error: error.message,
+    code: error.code,
+    partial: error.partial
+  }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
   return true
 }
 
@@ -3840,11 +3851,17 @@ const server = createServer(async (req, res) => {
         send(res, 400, JSON.stringify({ error: `Type ${expected} to confirm.` }))
         return
       }
-      const removed = scope === 'everything'
-        ? await deletePersonalData()
-        : scope === 'uploads'
-          ? await deleteUploadedData()
-          : await deleteStudyData()
+      let removed
+      try {
+        removed = scope === 'everything'
+          ? await deletePersonalData()
+          : scope === 'uploads'
+            ? await deleteUploadedData()
+            : await deleteStudyData()
+      } catch (error) {
+        if (sendAccountDeletionError(res, error)) return
+        throw error
+      }
       send(res, 200, JSON.stringify({ ok: true, scope, removed }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
@@ -3938,7 +3955,13 @@ const server = createServer(async (req, res) => {
         send(res, 400, JSON.stringify({ error: account.email ? 'Enter your exact email address to confirm account deletion.' : 'Type DELETE to confirm permanent account deletion.' }))
         return
       }
-      const removed = await deletePersonalData()
+      let removed
+      try {
+        removed = await deletePersonalData()
+      } catch (error) {
+        if (sendAccountDeletionError(res, error)) return
+        throw error
+      }
       let identity
       try {
         identity = await deleteAuthUser(clerkUserId)

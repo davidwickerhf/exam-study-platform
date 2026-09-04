@@ -21,6 +21,6 @@ CREATE INDEX IF NOT EXISTS canvas_priority_scans_latest_idx
 -- its imported snapshots and derived obligations are private per student.
 -- Therefore active refresh jobs must be unique per student + binding too.
 DROP INDEX IF EXISTS canvas_sync_jobs_one_course_idx;
-CREATE UNIQUE INDEX canvas_sync_jobs_one_course_idx
+CREATE UNIQUE INDEX IF NOT EXISTS canvas_sync_jobs_one_course_idx
   ON canvas_sync_jobs (user_id, binding_id)
   WHERE job_type = 'course' AND status IN ('pending', 'running');

@@ -42,24 +42,28 @@ function start() {
 }
 
 function startProduction() {
-  // A web container must be able to serve its first request immediately.
-  // Waiting for every migration check here made otherwise small workspace
-  // reads wait several seconds whenever Vercel started a fresh container.
-  // The migration runner still executes on every production boot; it simply
-  // no longer occupies the request-serving process while doing so.
-  start()
-  if (!process.env.DATABASE_URL) return
-  console.log('Applying database migrations in the background…')
+  if (!process.env.DATABASE_URL) { start(); return }
+  console.log('Checking database migrations before accepting requests…')
   migrationChild = spawn('node', [migrationPath], { stdio: 'inherit', cwd: __dirname })
   migrationChild.on('exit', (code, signal) => {
     migrationChild = null
     if (shuttingDown) return
-    if (signal) console.warn(`Database migration process stopped by ${signal}; the server remains available.`)
-    else if (code !== 0) console.error(`Database migrations exited with code ${code}; the server remains available, but this deployment needs attention.`)
-    else console.log('Database migrations are up to date.')
+    if (signal) {
+      console.error(`Database migration process stopped by ${signal}; refusing to start with an unknown schema.`)
+      process.kill(process.pid, signal)
+      return
+    }
+    if (code !== 0) {
+      console.error(`Database migrations exited with code ${code}; refusing to start with an incomplete schema.`)
+      process.exit(code ?? 1)
+      return
+    }
+    console.log('Database migrations are up to date. Starting the server.')
+    start()
   })
   migrationChild.on('error', (err) => {
     console.error(`runner: failed to apply database migrations: ${err.message}`)
+    process.exit(1)
   })
 }
 

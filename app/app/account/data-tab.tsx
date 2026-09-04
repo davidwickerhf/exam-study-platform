@@ -175,10 +175,11 @@ export function DataTab({
       window.location.assign("/?account-deleted=1");
     } catch (cause) {
       setDeleteBusy(false);
+      const message = (cause as Error).message;
       setDeleteError(
-        /Wicker data was removed/i.test((cause as Error).message)
-          ? (cause as Error).message
-          : `Your account remains accessible and nothing was deleted. ${(cause as Error).message}`,
+        /Wicker data was removed|Account deletion did not finish|temporarily unavailable/i.test(message)
+          ? message
+          : `Your account remains accessible and nothing was deleted. ${message}`,
       );
     }
   }

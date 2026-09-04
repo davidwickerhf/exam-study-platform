@@ -61,6 +61,6 @@ ALTER TABLE mock_session_answers ADD CONSTRAINT mock_session_answers_programme_s
 ALTER TABLE browser_state ADD PRIMARY KEY (user_id, programme_id, key);
 
 DROP INDEX IF EXISTS academic_snapshots_user_hash_idx;
-CREATE UNIQUE INDEX academic_snapshots_user_programme_hash_idx ON academic_snapshots (user_id, programme_id, content_hash);
+CREATE UNIQUE INDEX IF NOT EXISTS academic_snapshots_user_programme_hash_idx ON academic_snapshots (user_id, programme_id, content_hash);
 CREATE INDEX IF NOT EXISTS activity_events_user_programme_created_idx ON activity_events (user_id, programme_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS academic_snapshots_user_programme_created_idx ON academic_snapshots (user_id, programme_id, created_at DESC);
