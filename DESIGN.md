@@ -32,19 +32,19 @@ colors:
   danger: "#b4233d"
 typography:
   display:
-    fontFamily: "Archivo Narrow, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "60px"
     fontWeight: 600
     lineHeight: 1.08
     letterSpacing: "-0.035em"
   display-small:
-    fontFamily: "Archivo Narrow, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "42px"
     fontWeight: 600
     lineHeight: 1.1
     letterSpacing: "-0.025em"
   heading:
-    fontFamily: "Archivo Narrow, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "32px"
     fontWeight: 600
     lineHeight: 1.1
@@ -75,13 +75,13 @@ typography:
     fontWeight: 500
     lineHeight: 1.4
   public-display:
-    fontFamily: "Archivo Narrow, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "clamp(58px, 7.4vw, 106px)"
     fontWeight: 500
     lineHeight: 0.96
     letterSpacing: "-0.04em"
   public-section:
-    fontFamily: "Archivo Narrow, system-ui, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "clamp(42px, 5.5vw, 72px)"
     fontWeight: 600
     lineHeight: 0.98
@@ -228,7 +228,7 @@ cards because the real workspace is the strongest claim the site can make.
 
 **Key Characteristics:**
 
-- Poster-scale narrow typography on a quiet white first viewport.
+- Poster-scale full-width grotesque typography on a quiet white first viewport.
 - Exact copies of four dashboard widgets that map directly into a near-full-width Study Itinerary.
 - A quiet field of moving rules, status marks, and study data behind the opening promise; it disappears before the workspace lands.
 - Scroll-directed geometric assembly on wide screens; static, readable composition on compact screens.
@@ -271,12 +271,13 @@ marketing accent or spread it across decorative background acreage.
 
 ## Typography
 
-**Display Font:** Archivo Narrow with the system sans-serif fallback.
+**Display Font:** Archivo with the system sans-serif fallback.
 **Body Font:** Archivo with the system sans-serif fallback.
+**Data Font:** Archivo Narrow with the system sans-serif fallback.
 
-**Character:** The narrow cut gives the public site the authority of transport
-signage and an academic register. The regular cut keeps explanation quiet and
-highly legible; there is no separate decorative or serif voice.
+**Character:** The full-width cut gives headings the calmer, more open character
+of the access screen. The narrow companion is reserved for aligned academic data,
+so dates, codes and counts remain compact without compressing the hierarchy.
 
 ### Hierarchy
 
@@ -285,9 +286,9 @@ highly legible; there is no separate decorative or serif voice.
 - **Public body** (`typography.public-body`): explanatory copy, held near 48–60 characters per line.
 - **Public label** (`typography.public-label`): compact route, status, and register metadata inside evidence compositions.
 
-**The Narrow Authority Rule.** Large public statements, numerals, dates, route
-labels, and preview data use Archivo Narrow; explanatory prose and controls use
-Archivo.
+**The Heading and Data Split.** Public statements and headings use Archivo.
+Numerals, dates, course codes, route labels and compact preview data use Archivo
+Narrow; explanatory prose and controls use Archivo.
 
 ## Layout
 
@@ -296,7 +297,7 @@ Archivo.
 - Setup uses the same near-black emphasis as Home's “Now” plane for the active task header only. Inputs remain white working surfaces, while indigo is reserved for action, focus, and selection; dark-filled inputs are not part of the control language.
 - Onboarding copy makes no completion-time promise and uses direct sentences without em dashes.
 - Setup is deterministic and server-state-led: programme, electives, Academic Work, transcript, academic calendar, timetable, then Canvas, grouped as Study plan, Academic record, Schedule, and Canvas. A source becomes done only when the server confirms it; electives remain blocked until a programme exists, and each save or deferral advances to the first remaining actionable step. The whole-flow skip enters an honestly empty workspace without inference, while “Do this later” records only that one optional source as deferred, leaves academic data unchanged, and keeps it reachable from the source register. Finishing normally becomes available as soon as the required programme is saved.
-- Every destination opens with a 32px title in the narrow cut and one line of secondary copy above a single rule. There are no eyebrows: a small tracked-caps label is a column header on a table or a section label in navigation, never a kicker stacked above a heading. Local tabs (Practice, Planning, Account) sit directly under that header as a flat row with one rule. Primary section titles inside a destination are 18px and carry no rule of their own, so two dividers never stack; compact status and context widgets use 16px headings.
+- Every destination opens with a 32px title in the full-width Archivo cut and one line of secondary copy above a single rule. There are no eyebrows: a small tracked-caps label is a column header on a table or a section label in navigation, never a kicker stacked above a heading. Local tabs (Practice, Planning, Account) sit directly under that header as a flat row with one rule. Primary section titles inside a destination are 18px and carry no rule of their own, so two dividers never stack; compact status and context widgets use 16px headings.
 - Regions are structured by full-span rules and space before they become containers. Page dividers reach the edges of their page band; section heads, toolbars, rows and footers carry edge-to-edge dividers inside their owning working plane while their content keeps its own padding. Operational widgets are flat, white, bordered planes with the shared 14px major-plane corner. The shared soft sheet shadow is reserved for supporting depth and the singular near-black emphasis sheet; rows remain flat and nested card stacks remain prohibited.
 - Home is the **Study Itinerary**. A compact date and period header ends in a W1–WN measure: the current week carries solid indigo, elapsed weeks carry a faded signal, future weeks carry the neutral rule, and an exam label appears only when the selected course exam or exam week falls inside the displayed period. At the two-column desktop breakpoint this band remains fixed while the route and status rail scroll independently; smaller layouts retain one document scroll below the sticky band to avoid nested mobile scroll regions. The broad left column begins with a ruled four-metric band for credits, courses passed, streak, and weekly sessions above the single route: a dark NOW plane followed by at most two deduplicated NEXT/LATER stops drawn from assignments, course exams, and maintained institution milestones. Its one-pixel indigo rail is centered through the circular stop markers; when there are no future stops, the connecting rail is omitted rather than decorative. The narrower right column holds evidenced priorities, the study queue, browser-read course progress, and the period activity heatmap.
 - When the onboarding source of truth reports outstanding setup steps, Home places one dismissible reminder above Priorities. It names the number of missing steps, identifies the next actionable step, and deep-links into that setup step. Dismissal is stored per workspace and exact outstanding-step signature, so unchanged work stays dismissed while newly changed coverage may be surfaced again. The reminder is absent when setup is complete and never duplicates inside the NOW plane.
@@ -539,7 +540,7 @@ split major plane: a soft indigo thesis block beside two white evidence columns.
   silently deleted; deletion remains a separate account-data action.
 - Miniature product compositions may use 9–11px simulated-interface type;
   these sizes are reserved for non-interactive visual proof and never for
-  actual controls or reading content. Public display type uses Archivo Narrow
+  actual controls or reading content. Public display type uses Archivo
   and scales fluidly through the `typography.public-display` and
   `typography.public-section` roles.
 - The 23px/32px radii are reserved for the simulated phone device and screen.

@@ -34,8 +34,8 @@ const archivoNarrow = Archivo_Narrow({
 const DIRECTION_CONTRACT = `<!--
 THESIS: Wicker Study turns a whole degree into one clear next move; the public
 site refuses the generic feature-card landing page and lets the product prove it.
-OWN-WORLD: warm academic canvas, near-black ink, signal indigo, narrow display
-type, full-span rules, compact registers, and white working planes.
+OWN-WORLD: warm academic canvas, near-black ink, signal indigo, broad grotesque
+headings, narrow data, full-span rules, compact registers, and white working planes.
 STORY: understand the promise, inspect a faithful Study Itinerary, follow the
 source-to-action loop, then open a private workspace.
 FIRST VIEWPORT: a poster-scale statement and compact action column lead into a
