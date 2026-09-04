@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
+import { ArrowRightIcon, CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
 import { CanvasMark } from "@/components/brand/canvas-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -281,27 +281,6 @@ export function ConnectionsTab() {
   useEffect(() => {
     if (window.location.hash === "#canvas-sync") setManagingHosts(true);
   }, []);
-
-  async function cancelQueuedMaterials() {
-    const origins = [...new Set(syncProgress.activeJobs.map((job) => job.origin).filter(Boolean))];
-    if (!origins.length && saved[0]) origins.push(saved[0].origin);
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const results = await Promise.all(origins.map((origin) => readJson<{ cancelled: number }>("/api/integrations/canvas/corpus/sync", {
-        method: "DELETE",
-        body: JSON.stringify({ canvasUrl: origin }),
-      })));
-      const cancelled = results.reduce((sum, result) => sum + (result.cancelled || 0), 0);
-      setNotice(cancelled ? `${cancelled} queued Canvas ${cancelled === 1 ? "job was" : "jobs were"} cancelled. A job already indexing a course will finish safely.` : "No queued Canvas jobs remained to cancel.");
-      reloadCorpus();
-    } catch (cause) {
-      setError((cause as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function saveMaterialMode(
     connection: CanvasConnection,
@@ -652,161 +631,17 @@ export function ConnectionsTab() {
         }
       >
         {corpusStatus.data?.status && (
-          <div className="mb-5 border-y py-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <strong>Material collection</strong>
-              <button
-                type="button"
-                className="text-primary text-sm font-semibold hover:underline"
-                onClick={reloadCorpus}
-              >
-                Refresh status
-              </button>
+          <div className="mb-5 overflow-hidden rounded-lg border">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 sm:px-5">
+              <span className={`${activeCount ? "bg-primary" : corpus.failed.length ? "bg-destructive" : "bg-foreground"} size-2 shrink-0 rounded-full ${activeCount ? "animate-pulse" : ""}`} />
+              <span className="min-w-48 flex-1">
+                <strong className="block text-sm">{activeCount ? "Canvas is collecting material" : corpus.failed.length ? "Canvas sync needs attention" : "Canvas material is up to date"}</strong>
+                <small className="text-muted-foreground mt-0.5 block text-xs">{activeCount ? syncProgress.stage : `${corpus.courseEditions} course editions · ${corpus.storedMaterials} materials stored`}</small>
+              </span>
+              <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{activeCount ? `${syncProgress.completedCourses}/${syncProgress.totalCourses || "—"} courses` : `${corpus.failed.length} issues`}</span>
+              <a href="/app/settings/canvas-sync" className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold hover:underline">Open sync activity <ArrowRightIcon className="size-3.5" /></a>
             </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <span>
-                <strong className={`${NUMERALS} block text-[21px]`}>
-                  {activeCount}
-                </strong>
-                <small className="text-muted-foreground">
-                  jobs in progress
-                </small>
-              </span>
-              <span>
-                <strong className={`${NUMERALS} block text-[21px]`}>
-                  {corpus.courseEditions}
-                </strong>
-                <small className="text-muted-foreground">
-                  course editions found
-                </small>
-              </span>
-              <span>
-                <strong className={`${NUMERALS} block text-[21px]`}>
-                  {corpus.storedMaterials}
-                </strong>
-                <small className="text-muted-foreground">
-                  materials stored
-                </small>
-              </span>
-            </div>
-            {activeCount > 0 && (
-              <div className="mt-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p role="status" className="text-muted-foreground text-xs">
-                    {syncProgress.stage}. You can leave this page; collection continues on the server.
-                  </p>
-                  <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void cancelQueuedMaterials()}>Stop queued work</Button>
-                </div>
-                {syncProgress.percent != null && <><Progress value={syncProgress.percent} className="mt-3 h-1" /><p className={`${NUMERALS} text-muted-foreground mt-2 text-xs`}>{syncProgress.completedCourses} of {syncProgress.totalCourses} courses · {syncProgress.indexedFiles} files indexed</p></>}
-              </div>
-            )}
-            {corpus.failed.length > 0 && (
-              <div className="border-primary mt-4 border-l-2 pl-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span>
-                    <strong>
-                      {corpus.failed.length} imports need attention
-                    </strong>
-                    <small className="text-muted-foreground block">
-                      Repeated failures are grouped below.
-                    </small>
-                  </span>
-                  {saved[0] && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void refreshMaterials(saved[0])}
-                      disabled={busy}
-                    >
-                      Retry failed imports
-                    </Button>
-                  )}
-                </div>
-                <div className="mt-3 flex flex-col">
-                  {corpus.failureGroups.map(([message, jobs]) => (
-                    <details key={message} className="border-t py-2">
-                      <summary className="cursor-pointer text-sm font-medium">
-                        {jobs.length} course{jobs.length === 1 ? "" : "s"} ·{" "}
-                        {message}
-                      </summary>
-                      <p className="text-muted-foreground mt-2 text-xs">
-                        {jobs
-                          .map(
-                            (job) =>
-                              job.courseCode ||
-                              job.courseName ||
-                              "Course import",
-                          )
-                          .join(" · ")}
-                      </p>
-                    </details>
-                  ))}
-                </div>
-              </div>
-            )}
-            {!!corpus.latestByCourse.length && (
-              <details className="mt-4 border-t pt-3" open={activeCount > 0}>
-                <summary className="cursor-pointer text-sm font-semibold">
-                  Course-by-course progress
-                </summary>
-                <ul className="mt-3 flex max-h-72 flex-col overflow-y-auto">
-                  {corpus.latestByCourse.map((job) => (
-                    <li
-                      key={job.id}
-                      className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b py-2 text-sm"
-                    >
-                      <span>
-                        <strong>{job.courseCode || job.courseName}</strong>
-                        {job.courseCode && job.courseName && (
-                          <small className="text-muted-foreground ml-2">
-                            {job.courseName}
-                          </small>
-                        )}
-                        <small className="text-muted-foreground mt-0.5 block">
-                          {job.academicYear || "Year not supplied by Canvas"}
-                          {job.status === "completed" && job.result ? ` · ${job.result.indexed || 0} indexed · ${job.result.skipped || 0} skipped` : ""}
-                        </small>
-                      </span>
-                      <span
-                        className={`${NUMERALS} text-muted-foreground capitalize`}
-                      >
-                        {job.status}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-            {!!corpus.jobs.length && (
-              <details className="mt-3">
-                <summary className="text-muted-foreground cursor-pointer text-xs">
-                  Technical history
-                </summary>
-                <ul className="mt-2 flex max-h-64 flex-col overflow-y-auto">
-                  {corpus.jobs.slice(0, 30).map((job) => (
-                    <li
-                      key={job.id}
-                      className="flex items-start justify-between gap-4 border-b py-2 text-xs"
-                    >
-                      <span>
-                        {job.courseCode || job.type}
-                        <small className="text-muted-foreground mt-0.5 block">Attempt {job.attempts || 0}{job.startedAt ? ` · started ${relative(job.startedAt)}` : ""}{job.finishedAt ? ` · finished ${relative(job.finishedAt)}` : ""}</small>
-                        {job.error && job.status !== "running" && (
-                          <small className="text-muted-foreground mt-0.5 block max-w-[60ch] [overflow-wrap:anywhere]">
-                            {job.status === "pending" ? "Last attempt: " : ""}{job.error}
-                          </small>
-                        )}
-                      </span>
-                      <span
-                        className={`${NUMERALS} text-muted-foreground capitalize`}
-                      >
-                        {job.status}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
+            {activeCount > 0 && syncProgress.percent != null && <Progress value={syncProgress.percent} className="h-1 rounded-none" />}
           </div>
         )}
         {connections.error ? (

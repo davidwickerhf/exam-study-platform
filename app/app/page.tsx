@@ -164,14 +164,14 @@ function PriorityRow({ item }: { item: HomePriority }) {
   )
 }
 
-function CanvasSyncWidget({ progress }: { progress: CanvasSyncProgress }) {
+function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgress; className?: string }) {
   return (
-    <section className="bg-card overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]" aria-labelledby="canvas-sync-heading">
+    <section className={cn("bg-card overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]", className)} aria-label="Canvas sync status">
       <div className="flex items-start gap-3 px-5 py-4">
         <span className="bg-muted grid size-9 shrink-0 place-items-center rounded-lg"><CanvasMark className="size-5 text-[#E72429]" /></span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 id="canvas-sync-heading" className="text-sm font-semibold">Canvas is syncing</h2>
+            <h2 className="text-sm font-semibold">Canvas is syncing</h2>
             {progress.percent != null && <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{progress.percent}%</span>}
           </div>
           <p className="text-muted-foreground mt-1 truncate text-xs">{progress.stage}</p>
@@ -185,7 +185,7 @@ function CanvasSyncWidget({ progress }: { progress: CanvasSyncProgress }) {
           </p>
         </div>
       </div>
-      <Link href="/app/settings?tab=connections#canvas-sync" className="text-primary flex items-center justify-between border-t px-5 py-3 text-xs font-semibold">
+      <Link href="/app/settings/canvas-sync" className="text-primary flex items-center justify-between border-t px-5 py-3 text-xs font-semibold">
         View progress and logs <ChevronRightIcon className="size-3.5" />
       </Link>
     </section>
@@ -312,6 +312,8 @@ export default function HomePage() {
             </dl>
           )}
 
+          {syncProgress.active && <CanvasSyncWidget progress={syncProgress} className="mt-4 xl:hidden" />}
+
           <div className="relative mt-6 pl-9 sm:pl-12" data-study-route>
             {routeStops.length > 0 && <>
               <span aria-hidden="true" className="bg-border absolute top-4 bottom-8 left-[11px] w-px sm:left-[15px]" />
@@ -374,7 +376,7 @@ export default function HomePage() {
 
         <aside className="flex h-fit min-w-0 flex-col gap-4 xl:h-auto xl:overflow-y-auto xl:overscroll-contain xl:py-6 xl:pr-2 xl:[scrollbar-gutter:stable] [&>section]:shrink-0" aria-label="Study status" data-status-scroll-region>
           <DashboardSetupReminder />
-          {syncProgress.active && <CanvasSyncWidget progress={syncProgress} />}
+          {syncProgress.active && <CanvasSyncWidget progress={syncProgress} className="hidden xl:block" />}
           <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
             <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} active${missingPrioritySources || priorityError ? ' · partial' : ''}` : missingPrioritySources ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
             {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs">Evidence coverage: {prioritySources.filter((source) => source.ready).length} of 3 sources connected.{unavailablePrioritySources ? ` ${unavailablePrioritySources} ${unavailablePrioritySources === 1 ? 'source is' : 'sources are'} temporarily unavailable.` : ''}</p></> : priorityLoading ? (
