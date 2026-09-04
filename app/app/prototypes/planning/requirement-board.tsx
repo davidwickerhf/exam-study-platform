@@ -15,22 +15,22 @@ export function RequirementBoard() {
         <RegistrationNotice compact open={model.registrationOpen} setOpen={model.setRegistrationOpen} registered={model.registered} setRegistered={model.setRegistered} />
         <div className="grid lg:grid-cols-[minmax(0,1fr)_310px]">
           <main className="min-w-0 overflow-x-auto">
-            <div className="flex min-w-[830px] items-end justify-between gap-5 border-b px-6 py-5"><div><h2 className="text-lg font-semibold">Your exam timeline</h2><p className="text-muted-foreground mt-1 text-sm">Click a date to choose that sitting. Your plan can always be changed later.</p></div><span className="font-data text-sm tabular-nums">4 courses · 24 ECTS possible</span></div>
-            <div className="min-w-[830px]">
-              <div className="grid grid-cols-[220px_repeat(6,minmax(95px,1fr))] border-b bg-muted/20"><span className="px-5 py-3 text-[10.5px] font-semibold tracking-[0.1em] uppercase text-muted-foreground">Course</span>{months.map((month) => <span key={month} className="border-l px-3 py-3 text-center text-[10.5px] font-semibold tracking-[0.06em] uppercase text-muted-foreground">{month.slice(0, 3)}</span>)}</div>
+            <div className="flex min-w-[760px] items-end justify-between gap-5 border-b px-6 py-5"><div><h2 className="text-lg font-semibold">Your exam timeline</h2><p className="text-muted-foreground mt-1 text-sm">Click a date to choose that sitting. Your plan can always be changed later.</p></div><span className="font-data shrink-0 text-sm tabular-nums">4 courses · 24 ECTS possible</span></div>
+            <div className="min-w-[760px]">
+              <div className="grid grid-cols-[200px_minmax(0,1fr)] border-b bg-muted/20"><span className="px-5 py-3 text-[10.5px] font-semibold tracking-[0.1em] uppercase text-muted-foreground">Course</span><div className="grid grid-cols-6">{months.map((month) => <span key={month} className="border-l px-3 py-3 text-center text-[10.5px] font-semibold tracking-[0.06em] uppercase text-muted-foreground">{month.slice(0, 3)}</span>)}</div></div>
               {COURSES.map((course) => {
                 const choice = model.choices[course.id]
-                const standardColumn = course.period === 1 ? 2 : 4
-                return <div key={course.id} className="grid min-h-24 grid-cols-[220px_repeat(6,minmax(95px,1fr))] border-b last:border-b-0">
+                const standardLeft = course.period === 1 ? '24%' : '57%'
+                return <div key={course.id} className="grid min-h-24 grid-cols-[200px_minmax(0,1fr)] border-b last:border-b-0">
                   <div className="flex flex-col justify-center px-5 py-4"><span className="font-data text-primary text-xs font-semibold tabular-nums">{course.code}</span><strong className="mt-0.5 text-sm">{course.name}</strong><span className="text-muted-foreground mt-1 text-xs">{course.ects} ECTS</span></div>
-                  {months.map((month, monthIndex) => {
-                    const column = monthIndex + 1
-                    const standard = column === standardColumn
-                    const resit = column === 6
-                    return <div key={month} className="relative flex items-center justify-center border-l px-2 py-3">
-                      {(standard || resit) && <button type="button" onClick={() => model.update(course.id, { sitting: standard ? 'standard' : 'resit' })} className={`relative z-10 w-full rounded-[8px] border px-2 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${choice.sitting === (standard ? 'standard' : 'resit') ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:border-primary/50'}`}><span className="font-data block text-sm font-semibold tabular-nums">{standard ? course.exam : course.resit}</span><span className={`mt-0.5 block text-[10px] ${choice.sitting === (standard ? 'standard' : 'resit') ? 'text-primary-foreground/75' : 'text-muted-foreground'}`}>{standard ? 'Standard' : 'Resit'}</span></button>}
-                    </div>
-                  })}
+                  <div className="relative border-l">
+                    <div className="absolute inset-0 grid grid-cols-6">{months.map((month) => <span key={month} className="border-r last:border-r-0" />)}</div>
+                    <span className="bg-border absolute inset-x-0 top-1/2 h-px" />
+                    {([['standard', standardLeft, course.exam, 'Standard'], ['resit', '91%', course.resit, 'Resit']] as const).map(([sitting, left, date, label]) => {
+                      const selected = choice.sitting === sitting
+                      return <button key={sitting} type="button" aria-label={`${date} ${label}`} onClick={() => model.update(course.id, { sitting })} style={{ left }} className="group absolute top-1/2 z-10 h-14 w-16 -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none"><span className={`absolute left-1/2 top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-transform group-hover:scale-125 ${selected ? 'border-primary bg-primary ring-4 ring-primary/10' : 'border-border-strong bg-card'}`} /><span className={`font-data absolute inset-x-0 top-0 text-center text-[10px] font-semibold tabular-nums ${selected ? 'text-primary' : 'text-muted-foreground'}`}>{label}</span><span className={`font-data absolute inset-x-0 bottom-0 text-center text-[11px] font-semibold tabular-nums ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>{date}</span></button>
+                    })}
+                  </div>
                 </div>
               })}
             </div>
