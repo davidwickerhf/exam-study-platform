@@ -97,7 +97,7 @@ export function AccountDataControls({
     } catch (cause) {
       const message = (cause as Error).message;
       setAccountError(
-        /Wicker data was removed/i.test(message)
+        /Wicker data was removed|Account deletion did not finish|temporarily unavailable/i.test(message)
           ? message
           : `The account was not deleted. ${message}`,
       );

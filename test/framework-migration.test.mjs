@@ -10,6 +10,9 @@ const nextCss = await readFile(new URL('../app/next.css', import.meta.url), 'utf
 const tailwindCss = await readFile(new URL('../app/tailwind.css', import.meta.url), 'utf8')
 const appPublicCss = await readFile(new URL('../app/public.css', import.meta.url), 'utf8')
 const publicSiteCss = await readFile(new URL('../public/public-site.css', import.meta.url), 'utf8')
+const databaseMigration = await readFile(new URL('../scripts/db-migrate.mjs', import.meta.url), 'utf8')
+const productionRunner = await readFile(new URL('../runner.mjs', import.meta.url), 'utf8')
+const programmeScopedMigration = await readFile(new URL('../db/021_programme_scoped_study.sql', import.meta.url), 'utf8')
 
 test('Next.js App Router owns the document and route runtime', async () => {
   assert.equal(packageJson.dependencies.next.startsWith('^16.'), true)
@@ -48,4 +51,15 @@ test('headings use full-width Archivo while compact data keeps Archivo Narrow', 
   assert.match(tailwindCss, /--font-heading:\s*var\(--next-font-ui\)/)
   assert.match(tailwindCss, /--font-data:\s*var\(--next-font-data\)/)
   assert.match(appPublicCss, /#public-site :is\(h1, h2, h3\),\s*#auth-gate :is\(h1, h2, h3\)\s*\{\s*font-family:\s*var\(--font-ui\)/s)
+})
+
+test('production applies tracked, repeatable migrations before accepting requests', () => {
+  assert.match(databaseMigration, /CREATE TABLE IF NOT EXISTS schema_migrations/)
+  assert.match(databaseMigration, /checksum/)
+  assert.match(programmeScopedMigration, /CREATE UNIQUE INDEX IF NOT EXISTS academic_snapshots_user_programme_hash_idx/)
+  assert.match(productionRunner, /Checking database migrations before accepting requests/)
+  const ready = productionRunner.indexOf('Database migrations are up to date. Starting the server.')
+  assert.ok(ready >= 0)
+  assert.ok(productionRunner.indexOf('start()', ready) > ready)
+  assert.doesNotMatch(productionRunner, /Applying database migrations in the background/)
 })
