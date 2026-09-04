@@ -33,6 +33,7 @@ import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgram
 import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
+import { upsertAttendanceRecord } from './lib/attendance.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
@@ -4616,6 +4617,21 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/academics' && req.method === 'GET') {
       send(res, 200, JSON.stringify(await readAcademicState()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/attendance' && req.method === 'PUT') {
+      try {
+        const body = await readBody(req, 64 * 1024)
+        const event = body?.event
+        if (!event || event.category !== 'timetable' || !event.attendanceEligible || !event.courseCode || !event.start) throw new Error('Attendance can only be recorded for a course teaching block.')
+        const state = await readAcademicState()
+        const workspace = structuredClone(state.workspace)
+        workspace.planning = workspace.planning || { objectives: {}, periodAssignments: [], academicPeriods: [], attendanceRecords: [] }
+        workspace.planning.attendanceRecords = upsertAttendanceRecord(workspace.planning.attendanceRecords, event, body?.status, body?.note)
+        send(res, 200, JSON.stringify(await saveActiveAcademicWorkspace(workspace, body?.expectedRevision)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
+      }
       return
     }
     if (url.pathname === '/api/academics' && req.method === 'PUT') {

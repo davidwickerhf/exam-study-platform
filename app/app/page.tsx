@@ -14,6 +14,7 @@ import Link from 'next/link'
 import {
   ArrowRightIcon,
   BookOpenIcon,
+  CalendarCheckIcon,
   CalendarDaysIcon,
   CheckIcon,
   ChevronRightIcon,
@@ -354,6 +355,22 @@ export default function HomePage() {
                 </ul>
               </div>
             )}
+          </section>
+
+          <section className="bg-card overflow-hidden rounded-xl border">
+            <SectionHead title="Attendance" meta="By course" href="/app/courses" />
+            {calendar?.attendance?.summary?.scheduled ? <>
+              <dl className="grid grid-cols-3 border-b">
+                {[
+                  ['Rate', calendar.attendance.summary.rate == null ? '—' : `${calendar.attendance.summary.rate}%`],
+                  ['Missed', calendar.attendance.summary.missed],
+                  ['Unmarked', calendar.attendance.summary.unmarked]
+                ].map(([label, value]) => <div key={label} className="border-r px-4 py-3 last:border-r-0"><dt className={LABEL}>{label}</dt><dd className={`mt-1 text-xl font-semibold ${NUMERALS}`}>{value}</dd></div>)}
+              </dl>
+              <ol>
+                {calendar.attendance.courses.slice(0, 3).map((course) => <li key={course.courseCode || course.courseName} className="border-b last:border-b-0"><Link href={course.editorialCourseId ? `/app/courses/${course.editorialCourseId}#attendance` : '/app/courses'} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-3.5"><span className={cn('grid size-8 place-items-center rounded-md', course.atRisk ? 'bg-destructive/10 text-destructive' : 'bg-accent text-primary')}><CalendarCheckIcon className="size-4" /></span><span className="min-w-0"><strong className="block truncate text-sm">{course.courseCode || course.courseName}</strong><small className="text-muted-foreground mt-0.5 block truncate text-xs">{course.allowedMisses == null ? `${course.missed} missed · ${course.unmarked} unmarked` : `${course.requiredMissed} of ${course.allowedMisses} allowed misses used`}</small></span><span className={`flex items-center gap-2 text-sm font-semibold ${NUMERALS}`}>{course.rate == null ? '—' : `${course.rate}%`}<ChevronRightIcon className="text-muted-foreground size-3.5 transition-transform group-hover:translate-x-0.5" /></span></Link></li>)}
+              </ol>
+            </> : <div className="px-5 py-5"><p className="text-sm font-semibold">No attendance record yet</p><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Connect a timetable, then mark lectures, tutorials, and labs from Calendar.</p><Link href={hasTimetable ? '/app/calendar?view=timeGridWeek' : '/app/settings?tab=connections'} className="text-primary mt-3 inline-flex text-xs font-semibold">{hasTimetable ? 'Open calendar' : 'Connect timetable'}</Link></div>}
           </section>
 
           <section className="bg-card overflow-hidden rounded-xl border">
