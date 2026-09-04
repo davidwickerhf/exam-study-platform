@@ -68,7 +68,11 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
             <h1 id="auth-title">{signUp ? 'Create your study record.' : 'Return to your study record.'}</h1>
             <p>{signUp ? 'Your notes, attempts, mastery history, and review schedule — private to you, on any device.' : 'Open your notes, attempts, mastery history, and review schedule.'}</p>
           </div>
-          {allowedDomains.length > 0 && <p className="auth-eligibility">For Maastricht University students and staff. {signUp ? 'Sign up' : 'Sign in'} with your <code>{formatDomains(allowedDomains)}</code> address.</p>}
+          {allowedDomains.length > 0 && (
+            <p className="auth-eligibility">
+              For Maastricht University students and staff. Enter your <code>{formatDomains(allowedDomains)}</code> address. {signUp ? 'We verify it once, then your password becomes the fast way back in.' : 'Use your password for immediate access. Email verification remains available as a fallback.'}
+            </p>
+          )}
           <div id="clerk-sign-in">
             {enabled ? (
               signUp

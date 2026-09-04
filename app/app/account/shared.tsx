@@ -166,7 +166,7 @@ export function HostedProfileActions() {
         size="sm"
         onClick={() => clerk.openUserProfile()}
       >
-        Edit sign-in profile
+        Manage sign-in &amp; password
       </Button>
       <Button
         variant="ghost"
