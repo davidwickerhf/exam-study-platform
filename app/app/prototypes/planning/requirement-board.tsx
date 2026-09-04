@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ArrowRightIcon, BookOpenIcon, CalendarDaysIcon, CheckIcon, ChevronRightIcon, CirclePlusIcon, GripVerticalIcon, TargetIcon } from 'lucide-react'
-import { BOARD_COURSES, SESSIONS, type BoardCourse, type SessionKey, PlanningHeader } from './shared'
+import { ArrowRightIcon, CalendarDaysIcon, CheckIcon, ChevronRightIcon, CirclePlusIcon, GripVerticalIcon, TargetIcon } from 'lucide-react'
+import { BOARD_COURSES, SESSIONS, type BoardCourse, type PlanningSection, type SessionKey, PlanningHeader } from './shared'
 
 type PlannerCourse = BoardCourse & {
   year: number
@@ -78,9 +78,51 @@ function ElectiveLibrary({ year, selected, onToggle }: { year: number; selected:
   </div>
 }
 
+function YearTabs({ year, onChange, plannedCredits, includeAtlas = false }: { year: number; onChange: (year: number) => void; plannedCredits: (year: number) => number; includeAtlas?: boolean }) {
+  return <nav className="flex min-w-0 items-stretch overflow-x-auto" aria-label="Academic years">
+    {[1, 2, 3].map((item) => {
+      const itemSummary = YEAR_SUMMARY[item as keyof typeof YEAR_SUMMARY]
+      return <button key={item} type="button" onClick={() => onChange(item)} className={`relative min-w-40 px-5 text-left ${year === item ? 'bg-primary/[0.035]' : ''}`}><span className={`text-[10px] font-semibold tracking-[0.1em] uppercase ${year === item ? 'text-primary' : 'text-muted-foreground'}`}>Year {item}</span><span className="font-data mt-1 block text-xs tabular-nums">{itemSummary.label} · {plannedCredits(item)}/60</span>{year === item && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}</button>
+    })}
+    {includeAtlas && <a href="?v=1" className="text-muted-foreground inline-flex min-w-36 items-center justify-center gap-2 px-4 text-xs font-semibold">Whole bachelor <ChevronRightIcon className="size-3.5" /></a>}
+  </nav>
+}
+
+function OverviewView({ plannedCredits, onOpen }: { plannedCredits: (year: number) => number; onOpen: (section: PlanningSection) => void }) {
+  return <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-5 border-b pb-7"><div><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">Academic overview</span><h2 className="font-heading mt-2 text-[28px] font-semibold tracking-[-0.03em]">The degree at a glance</h2><p className="text-muted-foreground mt-2 text-sm">Status, open decisions, and the path your current plan produces.</p></div><button type="button" onClick={() => onOpen('Planner')} className="bg-primary h-10 px-4 text-xs font-semibold text-primary-foreground">Open exam planner</button></div>
+
+      <section className="mt-7 grid rounded-[12px] border bg-card lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)]">
+        <div className="p-6 lg:p-7"><div className="flex items-center gap-3"><span className="bg-primary/8 text-primary grid size-9 place-items-center rounded-[7px]"><TargetIcon className="size-4.5" /></span><div><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">What if</span><h3 className="mt-1 text-[17px] font-semibold">Finish Year 1 by February 2027 with an average of at least 7.0.</h3></div></div><p className="text-muted-foreground mt-5 max-w-2xl text-sm leading-relaxed">The current draft reaches the credit target, but Statistics and Ubiquitous Computing would sit within 24 hours in the February resit week.</p><button type="button" onClick={() => onOpen('Planner')} className="text-primary mt-5 inline-flex items-center gap-2 text-xs font-semibold">Test another route <ArrowRightIcon className="size-3.5" /></button></div>
+        <div className="border-t p-6 lg:border-t-0 lg:border-l lg:p-7"><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">Next decision</span><div className="mt-4 flex items-start justify-between gap-4"><div><strong className="text-sm">Register for Period 2</strong><p className="text-muted-foreground mt-1 text-xs">Required in the student portal</p></div><span className="font-data text-primary text-xs font-semibold">11 SEP</span></div><button type="button" className="mt-6 w-full border-t pt-4 text-left text-xs font-semibold">Review registration <ArrowRightIcon className="ml-1 inline size-3.5" /></button></div>
+      </section>
+
+      <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.7fr)]">
+        <section><div className="flex items-baseline justify-between border-b pb-4"><h3 className="text-base font-semibold">Degree trajectory</h3><span className="font-data text-muted-foreground text-xs">48 / 180 ECTS earned</span></div>{[1, 2, 3].map((item) => <button key={item} type="button" onClick={() => onOpen('Planner')} className="grid w-full grid-cols-[90px_minmax(0,1fr)_80px] items-center gap-5 border-b py-5 text-left"><div><strong className="text-sm">Year {item}</strong><span className="text-muted-foreground mt-1 block text-[11px]">{YEAR_SUMMARY[item as keyof typeof YEAR_SUMMARY].label}</span></div><div><div className="bg-muted h-1.5 overflow-hidden rounded-full"><div className="bg-primary h-full rounded-full" style={{ width: `${plannedCredits(item) / 0.6}%` }} /></div><span className="text-muted-foreground mt-2 block text-[11px]">{plannedCredits(item) === 60 ? 'Fully mapped' : `${60 - plannedCredits(item)} ECTS still to choose`}</span></div><span className="font-data text-right text-sm font-semibold tabular-nums">{plannedCredits(item)}/60</span></button>)}</section>
+        <section><div className="flex items-baseline justify-between border-b pb-4"><h3 className="text-base font-semibold">Open choices</h3><button type="button" onClick={() => onOpen('Courses')} className="text-primary text-xs font-semibold">Manage</button></div><button type="button" onClick={() => onOpen('Courses')} className="flex w-full items-center justify-between gap-5 border-b py-5 text-left"><span><strong className="text-sm">Year 1 elective</strong><span className="text-muted-foreground mt-1 block text-xs">6 ECTS remain unselected</span></span><ChevronRightIcon className="text-muted-foreground size-4" /></button><button type="button" onClick={() => onOpen('Courses')} className="flex w-full items-center justify-between gap-5 border-b py-5 text-left"><span><strong className="text-sm">Year 2 elective</strong><span className="text-muted-foreground mt-1 block text-xs">6 ECTS remain unselected</span></span><ChevronRightIcon className="text-muted-foreground size-4" /></button></section>
+      </div>
+    </div>
+  </div>
+}
+
+function ProgressView({ plannedCredits }: { plannedCredits: (year: number) => number }) {
+  const requirements = [
+    ['Foundation courses', '42 of 48 ECTS', 'On track'],
+    ['Methods requirement', 'Statistics planned', 'At risk'],
+    ['Technical electives', '12 of 24 ECTS chosen', 'Open'],
+    ['Bachelor project', 'Prerequisites expected', 'On track'],
+  ]
+  return <div className="min-h-0 flex-1 overflow-y-auto"><div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+    <div className="border-b pb-7"><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">Progress</span><h2 className="font-heading mt-2 text-[28px] font-semibold tracking-[-0.03em]">What is complete, safe, and still exposed</h2><p className="text-muted-foreground mt-2 text-sm">Recorded results stay separate from projections made by the current plan.</p></div>
+    <section className="mt-7 grid rounded-[12px] border bg-card sm:grid-cols-2 xl:grid-cols-4">{[['48 / 180','ECTS earned'],['7.1','recorded average'],['0 / 2','allowed absences used'],['132','ECTS remaining']].map(([value,label], index) => <div key={label} className={`p-6 ${index ? 'border-t sm:border-t-0 sm:border-l' : ''}`}><strong className="font-data text-2xl tabular-nums">{value}</strong><p className="text-muted-foreground mt-2 text-xs">{label}</p></div>)}</section>
+    <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]"><section><div className="flex items-baseline justify-between border-b pb-4"><h3 className="text-base font-semibold">Requirements</h3><span className="text-muted-foreground text-xs">Based on verified programme rules</span></div>{requirements.map(([name, detail, status]) => <div key={name} className="grid grid-cols-[minmax(0,1fr)_minmax(150px,0.55fr)_80px] items-center gap-5 border-b py-5"><strong className="text-sm">{name}</strong><span className="text-muted-foreground text-xs">{detail}</span><span className={`text-right text-xs font-semibold ${status === 'At risk' ? 'text-amber-700' : status === 'Open' ? 'text-primary' : ''}`}>{status}</span></div>)}</section><section><div className="border-b pb-4"><h3 className="text-base font-semibold">Plan projection</h3></div><div className="py-5"><div className="flex items-baseline justify-between"><strong className="font-data text-2xl tabular-nums">{plannedCredits(1) + plannedCredits(2) + plannedCredits(3)} / 180</strong><span className="text-muted-foreground text-xs">ECTS mapped</span></div><div className="bg-muted mt-4 h-2 overflow-hidden rounded-full"><div className="bg-primary h-full rounded-full" style={{ width: `${(plannedCredits(1) + plannedCredits(2) + plannedCredits(3)) / 1.8}%` }} /></div><p className="text-muted-foreground mt-5 text-sm leading-relaxed">Your current selections leave 18 ECTS of elective space open across the degree. The February plan preserves the Year 1 target but creates one exam-density risk.</p></div></section></div>
+  </div></div>
+}
+
 export function RequirementBoard() {
+  const [activeSection, setActiveSection] = useState<PlanningSection>('Planner')
   const [year, setYear] = useState(1)
-  const [mode, setMode] = useState<'sessions' | 'choices'>('sessions')
   const [selectedElectives, setSelectedElectives] = useState(INITIAL_ELECTIVES)
   const [placements, setPlacements] = useState<Record<string, SessionKey>>({ ...INITIAL_PLACEMENTS, statistics: 'feb' })
   const [selectedId, setSelectedId] = useState('statistics')
@@ -110,7 +152,6 @@ export function RequirementBoard() {
 
   const changeYear = (nextYear: number) => {
     setYear(nextYear)
-    setMode('sessions')
     const first = ALL_COURSES.find((course) => course.year === nextYear && (course.kind === 'core' || selectedElectives.includes(course.id)))
     if (first) setSelectedId(first.id)
   }
@@ -118,39 +159,25 @@ export function RequirementBoard() {
   const toggleElective = (id: string) => setSelectedElectives((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
 
   return <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
-    <PlanningHeader />
+    <PlanningHeader active={activeSection} onActiveChange={setActiveSection} />
 
-    <section className="shrink-0 border-b bg-card">
-      <div className="flex min-h-[76px] flex-wrap items-center gap-6 px-6 py-3 lg:px-8">
-        <div className="mr-2 min-w-44"><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">Degree plan</span><strong className="mt-1 block text-sm">Bachelor of Science</strong></div>
-        <nav className="flex min-w-0 flex-1 items-stretch self-stretch overflow-x-auto" aria-label="Academic years">
-          {[1, 2, 3].map((item) => {
-            const itemSummary = YEAR_SUMMARY[item as keyof typeof YEAR_SUMMARY]
-            return <button key={item} type="button" onClick={() => changeYear(item)} className={`relative min-w-40 px-5 text-left ${year === item ? 'bg-primary/[0.035]' : ''}`}><span className={`text-[10px] font-semibold tracking-[0.1em] uppercase ${year === item ? 'text-primary' : 'text-muted-foreground'}`}>Year {item}</span><span className="font-data mt-1 block text-xs tabular-nums">{itemSummary.label} · {plannedCredits(item)}/60</span>{year === item && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}</button>
-          })}
-          <a href="?v=1" className="text-muted-foreground inline-flex min-w-36 items-center justify-center gap-2 px-4 text-xs font-semibold">Whole bachelor <ChevronRightIcon className="size-3.5" /></a>
-        </nav>
-        <button type="button" className="inline-flex items-center gap-2 text-left text-xs"><span className="font-data text-primary font-semibold">11 SEP</span><span><strong className="block">Registration due</strong><span className="text-muted-foreground">Period 2</span></span><ArrowRightIcon className="text-muted-foreground size-4" /></button>
+    {activeSection === 'Overview' && <OverviewView plannedCredits={plannedCredits} onOpen={setActiveSection} />}
+
+    {activeSection === 'Courses' && <section className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-[76px] shrink-0 flex-wrap items-center gap-6 border-b bg-card px-6 py-3 lg:px-8"><div className="mr-auto"><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">Curriculum</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.02em]">Courses and electives</h2></div><YearTabs year={year} onChange={changeYear} plannedCredits={plannedCredits} /></div>
+      <ElectiveLibrary year={year} selected={selectedElectives} onToggle={toggleElective} />
+    </section>}
+
+    {activeSection === 'Progress' && <ProgressView plannedCredits={plannedCredits} />}
+
+    {activeSection === 'Planner' && <section className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-[76px] shrink-0 flex-wrap items-center gap-5 border-b bg-card px-6 py-3 lg:px-8">
+        <div className="mr-auto min-w-44"><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">{year === 1 ? 'Current year' : plannedCredits(year) === 60 ? 'Year mapped' : `${60 - plannedCredits(year)} ECTS still open`}</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.02em]">Year {year} · {summary.label}</h2></div>
+        <YearTabs year={year} onChange={changeYear} plannedCredits={plannedCredits} includeAtlas />
       </div>
+      <div className="flex min-h-[58px] shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-6 py-2.5 lg:px-8"><span className="bg-primary/8 text-primary grid size-8 shrink-0 place-items-center rounded-[7px]"><TargetIcon className="size-4" /></span><div className="min-w-0 flex-1"><span className="text-muted-foreground mr-2 text-[10px] font-semibold tracking-[0.12em] uppercase">What if</span><strong className="text-xs">Finish Year 1 by February 2027 with an average of at least 7.0.</strong></div><button type="button" className="text-primary text-xs font-semibold">Change goal</button></div>
 
-      <div className="flex min-h-[66px] flex-wrap items-center gap-x-5 gap-y-3 border-t px-6 py-3 lg:px-8">
-        <span className="bg-primary/8 text-primary grid size-9 shrink-0 place-items-center rounded-[7px]"><TargetIcon className="size-4.5" /></span>
-        <div className="min-w-0 flex-1"><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">What if</span><p className="mt-0.5 text-sm font-semibold">Finish Year 1 by February 2027 with an average of at least 7.0.</p></div>
-        <div className="hidden items-center gap-7 text-xs lg:flex"><span><strong className="font-data text-sm tabular-nums">{plannedCredits(year)}/60</strong> <span className="text-muted-foreground">ECTS planned</span></span><span><strong className="font-data text-sm tabular-nums">7.0</strong> <span className="text-muted-foreground">expected average</span></span></div>
-        <button type="button" className="text-primary text-xs font-semibold">Change goal</button>
-      </div>
-    </section>
-
-    <section className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-[76px] shrink-0 flex-wrap items-center justify-between gap-4 border-b px-6 py-3 lg:px-8">
-        <div><span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">{year === 1 ? 'Current year' : plannedCredits(year) === 60 ? 'Year mapped' : `${60 - plannedCredits(year)} ECTS still open`}</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.02em]">Year {year} · {summary.label}</h2></div>
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-[8px] border bg-card p-1"><button type="button" onClick={() => setMode('sessions')} className={`h-8 rounded-[5px] px-3 text-xs font-semibold ${mode === 'sessions' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}>Exam plan</button><button type="button" onClick={() => setMode('choices')} className={`h-8 rounded-[5px] px-3 text-xs font-semibold ${mode === 'choices' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}>Course choices</button></div>
-          <button type="button" onClick={() => setMode('choices')} className="text-primary hidden h-10 items-center gap-2 px-2 text-xs font-semibold sm:inline-flex"><BookOpenIcon className="size-4" /> Choose electives</button>
-        </div>
-      </div>
-
-      {mode === 'choices' ? <ElectiveLibrary year={year} selected={selectedElectives} onToggle={toggleElective} /> : <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
         <div className="grid h-full min-w-max auto-cols-[276px] grid-flow-col gap-5 px-6 py-6 lg:px-8">
           {SESSIONS.map((session) => {
             const sessionCourses = courses.filter((course) => placements[course.id] === session.id)
@@ -163,12 +190,12 @@ export function RequirementBoard() {
             </section>
           })}
         </div>
-      </div>}
+      </div>
 
       <footer className="grid min-h-[72px] shrink-0 border-t bg-card lg:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex items-center gap-4 px-6 py-3 lg:px-8"><span className="bg-primary/8 text-primary grid size-8 shrink-0 place-items-center rounded-full"><CheckIcon className="size-4" /></span><div>{lastMove ? <><strong className="text-xs">{ALL_COURSES.find((course) => course.id === lastMove.courseId)?.name} moved to {SESSIONS.find((session) => session.id === lastMove.to)?.label.toLowerCase()}</strong><p className="text-muted-foreground mt-1 text-[11px]">The change stays in this draft until you review and save it.</p></> : <><strong className="text-xs">Move a course to test another path</strong><p className="text-muted-foreground mt-1 text-[11px]">Drag between sessions. Nothing is saved immediately.</p></>}</div></div>
         <div className="flex items-center gap-2 border-t px-6 py-3 lg:border-t-0 lg:border-l"><label className="text-muted-foreground hidden text-[10px] font-semibold tracking-[0.08em] uppercase xl:block">Move selected</label><select aria-label="Move selected course" disabled={!selectedCourse} value={selectedCourse ? placements[selectedCourse.id] : 'oct'} onChange={(event) => selectedCourse && move(selectedCourse.id, event.target.value as SessionKey)} className="h-9 min-w-40 rounded-[7px] border bg-background px-3 text-xs font-semibold outline-none"><option value="oct">October exams</option><option value="dec">December exams</option><option value="feb">February resits</option><option value="mar">March exams</option><option value="may">May exams</option><option value="jun">June resits</option><option value="next">Following year</option></select><button type="button" className="h-9 bg-primary px-4 text-xs font-semibold text-primary-foreground">Review {Math.max(1, changes)} {changes === 1 ? 'change' : 'changes'}</button></div>
       </footer>
-    </section>
+    </section>}
   </div>
 }

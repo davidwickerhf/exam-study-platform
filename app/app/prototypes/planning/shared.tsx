@@ -74,14 +74,16 @@ export function useAcademicBoard(demoMove = false) {
   return { placements, grades, setGrades, selectedId, setSelectedId, draggedId, setDraggedId, lastMove, move, reset, changes, expectedAverage, projectedCredits }
 }
 
-export function PlanningHeader({ active = 'Planner' }: { active?: string }) {
+export type PlanningSection = 'Overview' | 'Courses' | 'Progress' | 'Planner'
+
+export function PlanningHeader({ active = 'Planner', onActiveChange }: { active?: PlanningSection; onActiveChange?: (section: PlanningSection) => void }) {
   return <header className="shrink-0 bg-background">
     <div className="flex min-h-[76px] flex-wrap items-end justify-between gap-4 px-6 py-5 lg:px-8">
       <div><h1 className="font-heading text-[32px] leading-none font-semibold tracking-[-0.035em]">Planning</h1><p className="text-muted-foreground mt-2 text-sm">Shape the academic path, then review every consequence before saving it.</p></div>
       <div className="font-data text-muted-foreground text-xs tabular-nums">2026–2027 · Bachelor of Science</div>
     </div>
     <nav className="flex h-12 items-stretch gap-7 border-y px-6 lg:px-8" aria-label="Planning sections">
-      {['Overview', 'Courses', 'Progress', 'Planner'].map((item) => <button key={item} type="button" className={`relative text-sm font-semibold ${active === item ? 'text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary' : 'text-muted-foreground'}`}>{item}</button>)}
+      {(['Overview', 'Courses', 'Progress', 'Planner'] as PlanningSection[]).map((item) => <button key={item} type="button" onClick={() => onActiveChange?.(item)} className={`relative text-sm font-semibold ${active === item ? 'text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary' : 'text-muted-foreground'}`}>{item}</button>)}
     </nav>
   </header>
 }
