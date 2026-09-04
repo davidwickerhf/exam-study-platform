@@ -5,7 +5,8 @@ import {
   canonicalCanvasCourse,
   periodFromCanvasCourse,
   retrievalEditionOrder,
-  selectCanvasCorpusCourses
+  selectCanvasCorpusCourses,
+  supportedCanvasCourseCode
 } from '../lib/course-corpus.mjs'
 
 test('Canvas course shells become stable courses with explicit yearly editions', () => {
@@ -35,6 +36,18 @@ test('sync includes active courses and historical shells of those same courses o
     { id: 'unrelated', courseCode: 'BCS1000', concluded: true }
   ]
   assert.deepEqual(selectCanvasCorpusCourses(courses).map((course) => course.id), ['new', 'old'])
+})
+
+test('sync excludes active Canvas community and faculty shells', () => {
+  const courses = [
+    { id: 'course', courseCode: '2026-100-BCS2120', name: 'Introduction to Artificial Intelligence', current: true },
+    { id: 'incognito', courseCode: 'MSV INCOGNITO', name: 'MSV Incognito', current: true },
+    { id: 'communication', courseCode: '9503', name: 'Communication B Computer Science', current: true },
+    { id: 'faculty', courseCode: 'FSE', name: 'Communication FSE (all students)', current: true },
+    { id: 'department', courseCode: 'DACS', name: 'DACS', current: true }
+  ]
+  assert.equal(supportedCanvasCourseCode(courses[0]), 'BCS2120')
+  assert.deepEqual(selectCanvasCorpusCourses(courses).map((course) => course.id), ['course'])
 })
 
 test('an explicit edition is ranked first while historical fallback stays labelled', () => {
