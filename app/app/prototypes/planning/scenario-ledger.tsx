@@ -11,7 +11,7 @@ export function ScenarioLedger() {
   const [dragOver, setDragOver] = useState<SessionKey | null>(null)
   const [showCurrent, setShowCurrent] = useState(true)
 
-  return <div className="flex min-h-full flex-col bg-background pb-20">
+  return <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
     <PlanningHeader />
     <GoalRibbon />
     <PlanPulse credits={model.projectedCredits} average={model.expectedAverage} changes={model.changes} />

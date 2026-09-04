@@ -9,7 +9,7 @@ export function RequirementBoard() {
   const [dragOver, setDragOver] = useState<SessionKey | null>(null)
   const [year, setYear] = useState(1)
 
-  return <div className="flex min-h-full flex-col bg-background pb-20">
+  return <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
     <PlanningHeader />
     <GoalRibbon />
     <PlanPulse credits={model.projectedCredits} average={model.expectedAverage} changes={model.changes} />
@@ -25,7 +25,7 @@ export function RequirementBoard() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden bg-card">
-        {year === 1 ? <div className="grid h-full min-h-[430px] min-w-[1660px] grid-cols-7">
+        {year === 1 ? <div className="grid h-full min-h-0 min-w-[1660px] grid-cols-7">
           {SESSIONS.map((session) => {
             const courses = BOARD_COURSES.filter((course) => model.placements[course.id] === session.id)
             const draggingCourse = BOARD_COURSES.find((course) => course.id === model.draggedId)
@@ -40,7 +40,7 @@ export function RequirementBoard() {
               <div className="border-t px-4 py-3"><span className="text-muted-foreground text-[10px]">{session.id === 'next' ? 'Delays the goal date' : session.id === 'feb' ? '3 days between current exams' : courses.length > 1 ? `${courses.length} exams clustered` : 'Capacity available'}</span></div>
             </div>
           })}
-        </div> : <div className="grid h-full min-h-[430px] place-items-center px-8 text-center"><div className="max-w-md"><span className="font-heading text-5xl font-semibold text-muted-foreground/25">0{year}</span><h2 className="font-heading mt-4 text-2xl font-semibold">Year {year} stays mapped, not crowded</h2><p className="text-muted-foreground mt-2 text-sm leading-relaxed">Open this year when you want to move a carry-over forward or see how today’s decisions affect later prerequisites.</p><button type="button" onClick={() => setYear(1)} className="text-primary mt-5 inline-flex items-center gap-2 text-sm font-semibold">Return to active year <ArrowRightIcon className="size-4" /></button></div></div>}
+        </div> : <div className="grid h-full min-h-0 place-items-center px-8 text-center"><div className="max-w-md"><span className="font-heading text-5xl font-semibold text-muted-foreground/25">0{year}</span><h2 className="font-heading mt-4 text-2xl font-semibold">Year {year} stays mapped, not crowded</h2><p className="text-muted-foreground mt-2 text-sm leading-relaxed">Open this year when you want to move a carry-over forward or see how today’s decisions affect later prerequisites.</p><button type="button" onClick={() => setYear(1)} className="text-primary mt-5 inline-flex items-center gap-2 text-sm font-semibold">Return to active year <ArrowRightIcon className="size-4" /></button></div></div>}
       </div>
 
       <ChangeTray model={model} label="Draft impact" />

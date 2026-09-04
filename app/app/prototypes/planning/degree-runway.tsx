@@ -22,7 +22,7 @@ export function DegreeRunway() {
   const sessions = SESSIONS.slice(0, 6)
   const years = view === 'all' ? [1, 2, 3] : [Number(view)]
 
-  return <div className="flex min-h-full flex-col bg-background pb-20">
+  return <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
     <PlanningHeader />
     <GoalRibbon />
     <PlanPulse credits={model.projectedCredits} average={model.expectedAverage} changes={model.changes} />
