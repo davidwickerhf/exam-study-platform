@@ -55,6 +55,21 @@ test('original documents and local media retain the same account authorization b
 
 test('accounts can force a refresh or explicitly archive an out-of-period course', () => {
   assert.match(worker, /job\.payload\?\.force/)
-  assert.match(corpus, /explicit \? courses : selectCanvasCorpusCourses/)
+  assert.match(corpus, /const selected = explicit/)
   assert.match(corpus, /enqueueCanvasCourseSync/)
+})
+
+test('derived priority failures do not restart a completed course archive', () => {
+  assert.match(worker, /previous_error/)
+  assert.match(worker, /reusedImport: true/)
+  assert.match(worker, /error=null/)
+  assert.match(priorityEvidence, /responseFormat: \{ type: 'json_object' \}/)
+  assert.match(priorityEvidence, /stored course material remains available/i)
+})
+
+test('faculty and community Canvas shells are retired from the academic corpus', () => {
+  assert.match(corpus, /supportedCanvasCourseCode/)
+  assert.match(corpus, /loadEditorialProgrammeCatalogue/)
+  assert.match(corpus, /DELETE FROM canvas_corpus_access/)
+  assert.match(worker, /reconciledExistingAccess/)
 })

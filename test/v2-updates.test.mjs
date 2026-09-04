@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { PREFERENCES_KEY, SEEN_AT_KEY, assignmentState, canRecordAnnouncementVisit, connectionOrigin, courseRows, filterAnnouncements, filterAssignments, isNewAnnouncement, markSeen, normalisePreferences, parsePreferences, readPreferences, readSeenAt, updateBriefing, writePreferences } from '../lib/workspace/updates.mjs'
+import { PREFERENCES_KEY, SEEN_AT_KEY, assignmentState, canRecordAnnouncementVisit, connectionOrigin, courseRows, filterAnnouncements, filterAssignments, isNewAnnouncement, markSeen, normalisePreferences, parsePreferences, readPreferences, readSeenAt, stableCanvasCourseCode, updateBriefing, writePreferences } from '../lib/workspace/updates.mjs'
 
 test('stored update preferences are validated', () => {
   assert.deepEqual(normalisePreferences({ scope: 'all', days: '90', assignmentState: 'done' }).scope, 'all')
@@ -62,6 +62,24 @@ test('course rows mark affected summary counts unavailable', () => {
   const [row] = courseRows({ selectedCourseIds: ['1'], courses: [{ id: '1' }], announcements: [], assignments: [], grades: [], problems: [{ part: 'assignments' }] })
   assert.equal(row.announcementCount, 0)
   assert.equal(row.openCount, null)
+})
+test('retake shells become one Canvas course while each edition remains inspectable', () => {
+  const rows = courseRows({
+    selectedCourseIds: ['new'],
+    courses: [
+      { id: 'old', courseCode: '2024-2025-100-BCS2140', name: 'Operating Systems', term: { name: '2024-2025' } },
+      { id: 'new', courseCode: '2026-2027-100-BCS2140', name: 'Operating Systems', current: true, term: { name: '2026-2027' } }
+    ],
+    announcements: [{ courseId: 'old' }, { courseId: 'new' }],
+    assignments: [{ courseId: 'new', status: 'missing' }],
+    grades: []
+  }, 'all')
+  assert.equal(stableCanvasCourseCode({ courseCode: '2026-2027-100-BCS2140' }), 'BCS2140')
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].courseCode, 'BCS2140')
+  assert.equal(rows[0].editionCount, 2)
+  assert.equal(rows[0].announcementCount, 2)
+  assert.deepEqual(rows[0].editions.map((edition) => edition.id), ['new', 'old'])
 })
 test('only secure Canvas origins are accepted by the client helper', () => {
   assert.equal(connectionOrigin('https://canvas.example.edu/path'), 'https://canvas.example.edu')

@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  aggregateCanvasCourseEditions,
   academicYearFromCanvasCourse,
   canonicalCanvasCourse,
   periodFromCanvasCourse,
   retrievalEditionOrder,
-  selectCanvasCorpusCourses
+  selectCanvasCorpusCourses,
+  supportedCanvasCourseCode
 } from '../lib/course-corpus.mjs'
 
 test('Canvas course shells become stable courses with explicit yearly editions', () => {
@@ -37,8 +39,40 @@ test('sync includes active courses and historical shells of those same courses o
   assert.deepEqual(selectCanvasCorpusCourses(courses).map((course) => course.id), ['new', 'old'])
 })
 
+test('sync excludes active Canvas community and faculty shells', () => {
+  const courses = [
+    { id: 'course', courseCode: '2026-100-BCS2120', name: 'Introduction to Artificial Intelligence', current: true },
+    { id: 'incognito', courseCode: 'MSV INCOGNITO', name: 'MSV Incognito', current: true },
+    { id: 'communication', courseCode: '9503', name: 'Communication B Computer Science', current: true },
+    { id: 'faculty', courseCode: 'FSE', name: 'Communication FSE (all students)', current: true },
+    { id: 'department', courseCode: 'DACS', name: 'DACS', current: true }
+  ]
+  assert.equal(supportedCanvasCourseCode(courses[0]), 'BCS2120')
+  assert.deepEqual(selectCanvasCorpusCourses(courses).map((course) => course.id), ['course'])
+})
+
 test('an explicit edition is ranked first while historical fallback stays labelled', () => {
   const editions = [{ academicYear: '2024-2025' }, { academicYear: '2026-2027' }, { academicYear: '2025-2026' }]
   assert.deepEqual(retrievalEditionOrder(editions, { academicYear: '2025-2026' }).map((edition) => edition.academicYear), ['2025-2026', '2026-2027', '2024-2025'])
   assert.deepEqual(retrievalEditionOrder(editions, { academicYear: '2025-2026', includeHistorical: false }).map((edition) => edition.academicYear), ['2025-2026'])
+})
+
+test('retake editions collapse into one course without losing their provenance', () => {
+  const [course] = aggregateCanvasCourseEditions([
+    {
+      id: 'binding-old', editionId: 'edition-old', canonicalCourseId: 'canvas:BCS2140',
+      courseCode: 'BCS2140', courseName: 'Operating Systems (2024-2025-100-BCS2140)',
+      academicYear: '2024-2025', period: '1', sources: 2, sourceAssetIds: ['shared', 'old-only']
+    },
+    {
+      id: 'binding-new', editionId: 'edition-new', canonicalCourseId: 'canvas:BCS2140',
+      courseCode: 'BCS2140', courseName: 'Operating Systems (2026-2027-100-BCS2140)',
+      academicYear: '2026-2027', period: '1', sources: 2, sourceAssetIds: ['shared', 'new-only']
+    }
+  ])
+  assert.equal(course.courseCode, 'BCS2140')
+  assert.equal(course.editionCount, 2)
+  assert.equal(course.sources, 3)
+  assert.deepEqual(course.academicYears, ['2026-2027', '2024-2025'])
+  assert.deepEqual(course.editions.map((edition) => edition.editionId), ['edition-new', 'edition-old'])
 })

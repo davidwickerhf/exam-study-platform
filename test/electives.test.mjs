@@ -20,6 +20,10 @@ const version = () => {
   const programme = loadEditorialProgrammeCatalogue().programmes.find((entry) => entry.id === CS)
   return programme.versions.find((entry) => entry.id === '2026-2027')
 }
+const legacyVersion = () => {
+  const programme = loadEditorialProgrammeCatalogue().programmes.find((entry) => entry.id === CS)
+  return programme.versions.find((entry) => entry.id === '2025-2026')
+}
 
 const asNewStudent = (body) => withRequestContext(
   { userId: `electives-${Date.now()}-${Math.random().toString(16).slice(2)}` },
@@ -55,6 +59,25 @@ test('the relevant groups are this period, the semester around it, and the year'
 
 test('a period with no electives asks nothing', () => {
   assert.deepEqual(relevantElectiveGroups(version(), { studyYear: 'Year 1', period: 'Period 1' }), [])
+})
+
+test('explicit curriculum choice groups remain editable and expose their rule', async () => {
+  const groups = relevantElectiveGroups(legacyVersion(), { studyYear: 'Year 2', period: 'Period 1' })
+  assert.equal(groups.length, 1)
+  assert.equal(groups[0].id, 'year-2-semester-1-module')
+  assert.deepEqual([groups[0].minSelections, groups[0].maxSelections], [1, 1])
+
+  await asNewStudent(async () => {
+    await applyProgramme({ programmeId: CS, versionId: '2025-2026', studyYear: 2 })
+    const offered = await electiveChoices({ scope: 'all' })
+    const group = offered.groups.find((entry) => entry.id === 'year-2-semester-1-module')
+    assert.deepEqual([group.minSelections, group.maxSelections], [1, 1])
+    await assert.rejects(() => chooseElectives({ groupId: group.id, courseIds: [] }), /Choose exactly 1 course/)
+    await chooseElectives({ groupId: group.id, courseIds: [group.courses[0].id] })
+    await applyProgramme({ programmeId: CS, versionId: '2025-2026', studyYear: 2 })
+    const { workspace } = await readAcademicState()
+    assert.deepEqual(workspace.programmeTemplate.selectedChoices[group.id], [group.courses[0].id], 're-saving the same programme preserves elective choices')
+  })
 })
 
 test('setup records a choice, and changing it later does not duplicate the course', async () => {

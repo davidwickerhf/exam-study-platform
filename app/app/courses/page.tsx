@@ -60,6 +60,7 @@ import {
   courseMaterialCoverage,
   currentCodeSet,
   currentSourceCoverage,
+  degreeRunwayYears,
   filterLedger,
   ledgerStatus,
   periodLabel,
@@ -363,13 +364,7 @@ export default function CoursesPage() {
     }).filter((entry) => {
       if (source === "library" && !entry.editorial) return false;
       if (source === "canvas" && !entry.corpus) return false;
-      if (
-        source === "record" &&
-        !academic.some(
-          (course) => course.code.toUpperCase() === entry.code.toUpperCase(),
-        )
-      )
-        return false;
+      if (source === "record" && !entry.academic) return false;
       if (studyYear !== "all" && entry.academic?.yearLevel !== studyYear)
         return false;
       return true;
@@ -414,52 +409,14 @@ export default function CoursesPage() {
     programme?.versions?.[0] ||
     null;
   const years = useMemo(() => {
-    const recordedCodes = new Set(
-      academic.map((course) => course.code.toUpperCase()),
-    );
-    const runwayCourses =
-      programmeVersion?.courses?.filter(
-        (course) =>
-          course.requirement !== "elective" ||
-          recordedCodes.has(course.code.toUpperCase()),
-      ) || [];
-    const source =
-      programmeVersion?.courses ||
-      ledger.map((entry) => entry.academic).filter(Boolean);
-    const runwayCodes = new Set(
-      runwayCourses.map((course) => course.code.toUpperCase()),
-    );
-    const labels = [
-      ...new Set(
-        source
-          .map((course) => course?.yearLevel)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    ].sort(
-      (left, right) =>
-        yearNumber(left) - yearNumber(right) || left.localeCompare(right),
-    );
-    return labels.map((label) => {
-      const entries = ledger.filter(
-        (entry) =>
-          entry.academic?.yearLevel === label &&
-          (!programmeVersion || runwayCodes.has(entry.code.toUpperCase())),
-      );
-      const passed = entries.filter(
-        (entry) => ledgerStatus(entry, currentCodes).passed,
-      ).length;
-      const running = entries.filter(
-        (entry) => ledgerStatus(entry, currentCodes).current,
-      ).length;
-      return {
-        label,
-        total: entries.length,
-        passed,
-        running,
-        current: label === programmeTemplate?.currentStudyYear,
-      };
+    return degreeRunwayYears({
+      programme,
+      version: programmeVersion,
+      programmeTemplate,
+      academic,
+      currentCodes,
     });
-  }, [programmeVersion, ledger, currentCodes, programmeTemplate, academic]);
+  }, [programme, programmeVersion, currentCodes, programmeTemplate, academic]);
   const counts = useMemo(() => {
     const facts: Record<string, number | null> = Object.fromEntries(
       scopes.map(([value]) => [
@@ -770,12 +727,20 @@ export default function CoursesPage() {
               your programme, record, Canvas and maintained course material.
             </p>
           </div>
-          <Link
-            href="/app/planning"
-            className="text-primary mt-4 inline-flex items-center gap-1.5 text-sm font-semibold sm:mt-0"
-          >
-            Open study plan <ArrowRightIcon className="size-4" />
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center gap-5 sm:mt-0">
+            <Link
+              href="/app/planning?tab=courses#electives"
+              className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold"
+            >
+              Update electives <ArrowRightIcon className="size-4" />
+            </Link>
+            <Link
+              href="/app/planning"
+              className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold"
+            >
+              Open study plan <ArrowRightIcon className="size-4" />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -861,8 +826,11 @@ export default function CoursesPage() {
                   }
                 >
                   {years.map((year) => {
-                    const percent = year.total
-                      ? Math.round((year.passed / year.total) * 100)
+                    const earnedPercent = year.targetEcts
+                      ? Math.min(100, Math.round((year.earnedEcts / year.targetEcts) * 100))
+                      : 0;
+                    const mappedPercent = year.targetEcts
+                      ? Math.min(100, Math.round((year.mappedEcts / year.targetEcts) * 100))
                       : 0;
                     return (
                       <div
@@ -877,21 +845,27 @@ export default function CoursesPage() {
                             {year.label}
                           </h3>
                           <span className={`text-xs text-white/58 ${NUMERALS}`}>
-                            {year.passed}/{year.total} passed
+                            {year.earnedEcts}/{year.targetEcts} ECTS earned
                           </span>
                         </div>
-                        <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/12">
+                        <div className="relative mt-4 h-1 overflow-hidden rounded-full bg-white/12">
                           <div
-                            className="bg-primary h-full rounded-full"
-                            style={{ width: `${percent}%` }}
+                            className="absolute inset-y-0 left-0 rounded-full bg-white/24"
+                            style={{ width: `${mappedPercent}%` }}
+                          />
+                          <div
+                            className="bg-primary absolute inset-y-0 left-0 rounded-full"
+                            style={{ width: `${earnedPercent}%` }}
                           />
                         </div>
                         <p className="mt-3 min-h-5 text-xs text-white/62">
-                          {year.current
-                            ? `${year.running} ${year.running === 1 ? "course" : "courses"} active${currentPeriod ? ` in ${currentPeriod}` : ""} · ${year.total} in your plan`
-                            : year.passed === year.total && year.total
-                              ? "Course record complete"
-                              : `${year.total} ${year.total === 1 ? "course" : "courses"} in your plan`}
+                          {year.openChoiceEcts
+                            ? `${year.mappedEcts} ECTS mapped · ${year.openChoiceEcts} ECTS still to choose`
+                            : year.overplannedEcts
+                              ? `${year.mappedEcts} ECTS mapped · ${year.overplannedEcts} above the year target`
+                              : year.current && year.running
+                                ? `${year.running} ${year.running === 1 ? "course" : "courses"} active${currentPeriod ? ` in ${currentPeriod}` : ""} · full ${year.targetEcts} ECTS mapped`
+                                : `Full ${year.targetEcts} ECTS mapped`}
                         </p>
                       </div>
                     );
@@ -910,7 +884,9 @@ export default function CoursesPage() {
                     : runwayPhase === "error"
                       ? "Degree progress could not be read."
                       : currentYear
-                        ? `${currentYear.total - currentYear.passed} planned courses are not yet passed in ${currentYear.label}.`
+                        ? currentYear.openChoiceEcts
+                          ? `${currentYear.openChoiceEcts} ECTS of ${currentYear.label} still need an elective choice.`
+                          : `${Math.max(0, currentYear.targetEcts - currentYear.earnedEcts)} ECTS remain to be earned in ${currentYear.label}.`
                         : "Set your study year to mark your position."}
                 </p>
                 {sourcePhase.academics === "loading" ? (

@@ -11,7 +11,7 @@ export type Message = { role: 'user' | 'assistant' | 'event'; content: string; a
 export type Prompt = { kind: 'upload'; upload?: 'academic-work' | 'transcript' } | { kind: 'secure'; secure: 'timetable' | 'canvas' }
 export type Opening = { step: string; heading: string; body: string; placeholder: string }
 export type ProgrammeOption = { id: string; degree: string; name: string; durationYears: number; versions: { id: string; label: string; status: string }[] }
-export type ElectiveGroup = { id: string; label: string; chosen: string[]; courses: { id: string; code: string; name: string; ects: number }[] }
+export type ElectiveGroup = { id: string; label: string; minSelections: number; maxSelections: number; chosen: string[]; courses: { id: string; code: string; name: string; ects: number }[] }
 
 export type View = {
   available: boolean

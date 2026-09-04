@@ -9,6 +9,17 @@ Runs from anywhere. Nothing here needs a checkout of the application.
 
 ## Use it
 
+The authenticated **Docs** page in Wicker Study can mint a scoped key and place it directly inside
+one copy-ready Codex or Claude Code installation block. There is no separate credential field to
+copy. The first line stores the embedded key with owner-only permissions and the second registers
+the MCP server.
+
+For a manually supplied key, the same secure bootstrap is available as:
+
+```sh
+WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.7.0 configure
+```
+
 ```jsonc
 // Claude Desktop / Claude Code / Cursor MCP config
 {

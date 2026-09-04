@@ -15,7 +15,11 @@ export declare function canonicalCanvasCourse(input: { origin: string; course: C
   canonicalCourseId: string; editionId: string; editionKey: string; courseCode: string; courseName: string; academicYear: string; period: string; institution: string; termName: string
 }
 export declare function selectCanvasCorpusCourses(courses?: CanvasCorpusCourse[]): CanvasCorpusCourse[]
+export declare function supportedCanvasCourseCode(course?: CanvasCorpusCourse): string
+export declare function isSupportedCanvasCourse(course?: CanvasCorpusCourse): boolean
+export declare function retireUnsupportedCanvasCorpusCourses(input: { accountId: string; origin: string; courses?: CanvasCorpusCourse[] }): Promise<{ retired: number; cancelled: number; mode?: string }>
 export declare function retrievalEditionOrder<T extends { academicYear?: string | null }>(editions?: T[], options?: { academicYear?: string; includeHistorical?: boolean }): T[]
+export declare function aggregateCanvasCourseEditions(editions?: Array<Record<string, unknown>>): Array<Record<string, unknown>>
 export declare function enqueueCanvasCatalogSync(input: { accountId: string; origin: string; force?: boolean }): Promise<Record<string, unknown>>
 export declare function canvasCorpusPermission(input: { accountId: string; origin: string }): Promise<Record<string, unknown>>
 export declare function setCanvasCorpusPermission(input: { accountId: string; origin: string; collectionEnabled: boolean; sharingMode?: 'private' | 'community' }): Promise<Record<string, unknown>>

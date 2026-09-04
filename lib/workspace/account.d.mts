@@ -148,9 +148,15 @@ export type CorpusJob = {
 
 export type CorpusCourseEdition = {
   id: string
+  canonicalCourseId?: string
   courseCode: string
   courseName: string
+  academicYear?: string | null
+  academicYears?: string[]
+  period?: string | null
   sources: number
+  editionCount?: number
+  editions?: Array<{ id?: string; editionId?: string | null; academicYear?: string | null; period?: string | null; sources?: number; lastSyncedAt?: string | null }>
   lastSyncedAt?: string | null
 }
 

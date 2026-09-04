@@ -5,17 +5,23 @@ import type { CourseStatus } from './academics.mjs'
 
 export type CorpusCourse = {
   id: string
+  canonicalCourseId?: string
   courseCode: string
   courseName: string
   academicYear?: string
+  academicYears?: string[]
   period?: string
   sources: number
+  editionCount?: number
+  editions?: Array<{ id?: string; editionId?: string | null; academicYear?: string; period?: string; courseCode?: string; courseName?: string; sources?: number; lastSyncedAt?: string | null }>
   lastSyncedAt?: string | null
 }
 
 export type CatalogueCourse = { id: string; code: string; name: string; ects?: number; yearLevel?: string; period?: string; requirement?: string }
-export type Catalogue = { programmes?: { id: string; name?: string; degree?: string; durationYears?: number; totalEcts?: number; versions?: { id: string; label?: string; courses?: CatalogueCourse[] }[] }[] }
-export type ProgrammeTemplate = { programmeId?: string; versionId?: string; currentStudyYear?: string } | null
+export type CatalogueVersion = { id: string; label?: string; courses?: CatalogueCourse[]; choiceGroups?: Array<{ id: string; label?: string; courseIds?: string[]; minSelections?: number; maxSelections?: number; yearLevel?: string; period?: string; derived?: boolean }> }
+export type CatalogueProgramme = { id: string; name?: string; degree?: string; durationYears?: number; totalEcts?: number; versions?: CatalogueVersion[] }
+export type Catalogue = { programmes?: CatalogueProgramme[] }
+export type ProgrammeTemplate = { programmeId?: string; versionId?: string; currentStudyYear?: string; selectedChoices?: Record<string, string[]> } | null
 export type CurrentCourse = { code: string; name?: string; courseId?: string | null; reasons?: string[]; outsidePlan?: boolean }
 
 export type LedgerCourse = {
@@ -67,6 +73,7 @@ export declare function comparePeriod(academicCourses: AcademicCourse[], today?:
 export declare function courseLedger(sources?: LedgerSources): LedgerCourse[]
 export declare function ledgerStatus(entry: LedgerCourse, currentCodes: Set<string>): LedgerStatus
 export declare function currentCodeSet(currentCourses: ({ code: string } | string)[]): Set<string>
+export declare function degreeRunwayYears(options?: { programme?: CatalogueProgramme | null; version?: CatalogueVersion | null; programmeTemplate?: ProgrammeTemplate; academic?: AcademicCourse[]; currentCodes?: Set<string> }): Array<{ label: string; targetEcts: number; mappedEcts: number; earnedEcts: number; openChoiceEcts: number; overplannedEcts: number; choiceOptions: number; selectedChoices: number; running: number; current: boolean }>
 export declare function rowDestination(entry: LedgerCourse): RowDestination
 export declare function materialSummary(entry: LedgerCourse): string | null
 export declare function courseMaterialCoverage(entry: LedgerCourse): { percent: number; available: number; total: 2; detail: string; library: boolean; canvas: boolean }

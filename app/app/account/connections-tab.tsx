@@ -791,9 +791,9 @@ export function ConnectionsTab() {
                       <span>
                         {job.courseCode || job.type}
                         <small className="text-muted-foreground mt-0.5 block">Attempt {job.attempts || 0}{job.startedAt ? ` · started ${relative(job.startedAt)}` : ""}{job.finishedAt ? ` · finished ${relative(job.finishedAt)}` : ""}</small>
-                        {job.error && (
+                        {job.error && job.status !== "running" && (
                           <small className="text-muted-foreground mt-0.5 block max-w-[60ch] [overflow-wrap:anywhere]">
-                            {job.error}
+                            {job.status === "pending" ? "Last attempt: " : ""}{job.error}
                           </small>
                         )}
                       </span>
