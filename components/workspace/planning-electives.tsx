@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { BookOpenIcon, CheckIcon, ChevronDownIcon, PlusIcon, RotateCcwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,16 +23,19 @@ async function json<T>(url: string, init: RequestInit = {}) {
   return body as T
 }
 
-export function PlanningElectives({ onSaved }: { onSaved: () => void | Promise<unknown> }) {
+export function PlanningElectives({ onSaved, onAddCourse }: { onSaved: () => void | Promise<unknown>; onAddCourse: () => void }) {
   const [groups, setGroups] = useState<ElectiveGroup[] | null>(null)
   const [chosen, setChosen] = useState<Record<string, string[]>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeGroupId, setActiveGroupId] = useState('')
+  const [readAttempt, setReadAttempt] = useState(0)
 
   useEffect(() => {
     let live = true
+    setError(null)
+    setGroups(null)
     json<{ groups: ElectiveGroup[] }>('/api/onboarding/electives?scope=all')
       .then((data) => {
         if (!live) return
@@ -42,12 +45,31 @@ export function PlanningElectives({ onSaved }: { onSaved: () => void | Promise<u
       })
       .catch((cause: Error) => { if (live) setError(cause.message) })
     return () => { live = false }
-  }, [])
+  }, [readAttempt])
 
   const selectedCount = useMemo(() => Object.values(chosen).reduce((total, ids) => total + ids.length, 0), [chosen])
   if (!groups && !error) return <Skeleton className="h-14 w-full" />
-  if (!groups && error) return <p role="alert" className="border-y py-3 text-sm text-destructive">Elective choices could not be read: {error}</p>
-  if (!groups?.length) return <p className="border-y py-3 text-sm text-muted-foreground">This curriculum has no maintained elective groups. You can still add a personal course from the page header.</p>
+  if (!groups && error) return (
+    <section role="alert" className="flex flex-wrap items-center gap-4 rounded-xl border bg-card px-5 py-5 sm:px-6">
+      <span className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-lg"><BookOpenIcon className="size-[18px]" /></span>
+      <div className="min-w-56 flex-1">
+        <h2 className="text-sm font-semibold">The elective library is temporarily unavailable</h2>
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">Your course record is unaffected. Try loading the maintained curriculum choices again.</p>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => setReadAttempt((value) => value + 1)}><RotateCcwIcon data-icon="inline-start" />Try again</Button>
+      <details className="basis-full border-t pt-3 text-xs text-muted-foreground"><summary className="cursor-pointer font-medium">Technical details</summary><p className="mt-2">{error}</p></details>
+    </section>
+  )
+  if (!groups?.length) return (
+    <section className="flex flex-wrap items-center gap-4 rounded-xl border bg-card px-5 py-5 sm:px-6">
+      <span className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-lg"><BookOpenIcon className="size-[18px]" /></span>
+      <div className="min-w-56 flex-1">
+        <h2 className="text-sm font-semibold">No elective groups are published for this curriculum</h2>
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">You can still add an elective or another approved course to your plan yourself.</p>
+      </div>
+      <Button variant="outline" size="sm" onClick={onAddCourse}><PlusIcon data-icon="inline-start" />Add course</Button>
+    </section>
+  )
   const active = groups.find((group) => group.id === activeGroupId) || groups[0]
   const selected = chosen[active.id] ?? []
 

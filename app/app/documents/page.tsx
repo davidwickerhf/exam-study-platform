@@ -9,6 +9,7 @@ import {
   FileTextIcon,
   GraduationCapIcon,
   LockKeyholeIcon,
+  RotateCcwIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   Empty,
   EmptyDescription,
   EmptyHeader,
+  EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -364,6 +366,12 @@ export default function DocumentsPage() {
   const loading = (!work.data && !work.error) || (!supporting.data && !supporting.error);
   const tutorLoading = !tutorUploads.data && !tutorUploads.error;
   const privateSources = tutorUploads.data?.attachments ?? [];
+  const historyError = work.error || supporting.error;
+  const historyNeedsSession = Boolean(historyError && /sign[ -]?in|unauthori[sz]ed|authenticat|session/i.test(historyError));
+  const retryHistory = () => {
+    work.reload();
+    supporting.reload();
+  };
 
   return (
     <div className="flex w-full flex-col">
@@ -388,8 +396,20 @@ export default function DocumentsPage() {
             </div>
             {loading ? (
               <div className="flex flex-col gap-3 p-6"><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></div>
-            ) : work.error || supporting.error ? (
-              <p role="alert" className="px-6 py-5 text-sm">Document history is unavailable. {work.error || supporting.error}</p>
+            ) : historyError ? (
+              <Empty role="alert" className="min-h-[420px] border-0">
+                <EmptyMedia variant="icon"><LockKeyholeIcon /></EmptyMedia>
+                <EmptyHeader>
+                  <EmptyTitle>{historyNeedsSession ? "Reconnect to view your documents" : "Document history is temporarily unavailable"}</EmptyTitle>
+                  <EmptyDescription>
+                    {historyNeedsSession
+                      ? "We could not verify this request. Try again to reconnect your session. Your documents have not been changed."
+                      : "We could not load the saved versions right now. Try again in a moment. Your documents have not been changed."}
+                  </EmptyDescription>
+                </EmptyHeader>
+                <Button variant="outline" size="sm" onClick={retryHistory}><RotateCcwIcon data-icon="inline-start" />Try again</Button>
+                <details className="text-muted-foreground max-w-xl text-xs"><summary className="cursor-pointer font-medium">Technical details</summary><p className="mt-2">{historyError}</p></details>
+              </Empty>
             ) : (
               <ul>
                 {groups.map((group) => {
@@ -495,8 +515,14 @@ export default function DocumentsPage() {
                   <Button variant="outline" size="sm" onClick={() => { setRemoveError(null); setRemovingTutor(selectedTutor); }}><Trash2Icon data-icon="inline-start" />Delete source</Button>
                 </div>
               </>
-            ) : work.error || supporting.error ? (
-              <p role="alert" className="px-6 py-5 text-sm">The selected record cannot be inspected until document history is available.</p>
+            ) : historyError ? (
+              <Empty className="min-h-[420px] border-0">
+                <EmptyMedia variant="icon"><FileClockIcon /></EmptyMedia>
+                <EmptyHeader>
+                  <EmptyTitle>Document details will appear here</EmptyTitle>
+                  <EmptyDescription>Once history reconnects, choose a record to inspect its versions and progression.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : !selected ? (
               <div className="flex min-h-[420px] items-center justify-center p-8 text-center">
                 <p className="text-muted-foreground max-w-sm text-sm">Choose a record to inspect its versions and progression.</p>

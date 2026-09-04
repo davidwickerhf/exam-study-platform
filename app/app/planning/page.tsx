@@ -17,7 +17,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRightIcon, CalendarDaysIcon, CheckCircle2Icon, Clock3Icon, FileCheck2Icon, LockIcon, PlusIcon, RotateCcwIcon, SearchIcon, TriangleAlertIcon, XIcon } from "lucide-react";
+import { ArrowRightIcon, CalendarDaysIcon, CheckCircle2Icon, Clock3Icon, FileCheck2Icon, GraduationCapIcon, LockIcon, PlusIcon, RotateCcwIcon, SearchIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -692,14 +692,18 @@ function CourseEditor({
 
 function CourseRegister({
   courses,
+  hasProgramme,
   open,
   onOpen,
+  onAdd,
   commit,
   busy,
 }: {
   courses: Course[];
+  hasProgramme: boolean;
   open: string | null;
   onOpen: (id: string | null) => void;
+  onAdd: () => void;
   commit: Commit;
   busy: boolean;
 }) {
@@ -714,15 +718,71 @@ function CourseRegister({
   }, [open, selectedYear, years]);
   if (!courses.length) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>No courses yet</EmptyTitle>
-          <EmptyDescription>
-            Add a course from the page header, or read a transcript in Documents
-            and this register fills with your own curriculum.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <section className="overflow-hidden rounded-xl border bg-card">
+        <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+          <div className="flex flex-col items-start px-6 py-9 sm:px-9 sm:py-11">
+            <span className="bg-primary/[0.07] text-primary flex size-11 items-center justify-center rounded-lg">
+              <GraduationCapIcon className="size-5" />
+            </span>
+            <span className={`${COLUMN} mt-6`}>Curriculum setup</span>
+            <h2 className="font-heading mt-2 max-w-xl text-[26px] leading-tight font-semibold tracking-[-0.03em]">
+              {hasProgramme
+                ? "Add the first course to your programme"
+                : "Start with your programme"}
+            </h2>
+            <p className="text-muted-foreground mt-3 max-w-[58ch] text-sm leading-relaxed">
+              {hasProgramme
+                ? "Import your transcript to build the record automatically, or add a course yourself. You can revise every detail later."
+                : "Choose your degree and curriculum year to load its courses, periods and elective rules. You can change this later without losing recorded attempts."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {hasProgramme ? (
+                <Button onClick={onAdd}>
+                  <PlusIcon data-icon="inline-start" />
+                  Add first course
+                </Button>
+              ) : (
+                <Button nativeButton={false} render={<Link href="/app/setup?checklist=1&step=programme" />}>
+                  Choose programme
+                  <ArrowRightIcon data-icon="inline-end" />
+                </Button>
+              )}
+              <Button nativeButton={false} render={<Link href="/app/documents" />} variant="outline">
+                <FileCheck2Icon data-icon="inline-start" />
+                Import transcript
+              </Button>
+            </div>
+          </div>
+
+          <aside className="border-t lg:border-t-0 lg:border-l" aria-label="What programme setup unlocks">
+            <div className="px-6 py-4">
+              <span className={COLUMN}>What this builds</span>
+            </div>
+            {[
+              ["01", "Course record", "Required courses, credits and electives by study year."],
+              ["02", "Valid exam options", "Primary sittings and resits placed in the right periods."],
+              ["03", "Degree progress", "A live view of what is complete, planned and still open."],
+            ].map(([number, title, copy]) => (
+              <div key={number} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 border-t px-6 py-4">
+                <span className={`text-primary text-xs font-semibold ${NUMERALS}`}>{number}</span>
+                <span>
+                  <strong className="block text-sm font-semibold">{title}</strong>
+                  <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">{copy}</span>
+                </span>
+              </div>
+            ))}
+          </aside>
+        </div>
+        {!hasProgramme && (
+          <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 text-sm sm:px-9">
+            <span>Already know what belongs in your plan?</span>
+            <button type="button" onClick={onAdd} className="text-foreground inline-flex items-center gap-1.5 font-semibold underline decoration-border-strong underline-offset-4 hover:text-primary">
+              Add a course manually
+              <ArrowRightIcon className="size-3.5" />
+            </button>
+          </div>
+        )}
+      </section>
     );
   }
   const year = years.find((item) => item.level === selectedYear) || years[0];
@@ -1749,7 +1809,7 @@ export default function PlanningPage() {
               <ViewIntro
                 title="Courses in your plan"
                 description="Review the curriculum by study year, keep attempts accurate, and choose the electives that feed your Session Board. Study materials and source coverage stay in the Course Desk."
-                action={<Button nativeButton={false} render={<Link href="/app/courses" />} variant="outline" size="sm">Open Course Desk<ArrowRightIcon data-icon="inline-end" /></Button>}
+                action={courses.length || workspace.profile.programme?.trim() ? <Button nativeButton={false} render={<Link href="/app/courses" />} variant="outline" size="sm">Open Course Desk<ArrowRightIcon data-icon="inline-end" /></Button> : undefined}
               />
               {composer === "courses" && (
                 <CourseComposer
@@ -1760,12 +1820,19 @@ export default function PlanningPage() {
               )}
               <CourseRegister
                 courses={courses}
+                hasProgramme={Boolean(workspace.profile.programme?.trim())}
                 open={editing}
                 onOpen={setEditing}
+                onAdd={() => setComposer("courses")}
                 commit={commit}
                 busy={saving}
               />
-              <PlanningElectives onSaved={reload} />
+              {workspace.profile.programme?.trim() && (
+                <PlanningElectives
+                  onSaved={reload}
+                  onAddCourse={() => setComposer("courses")}
+                />
+              )}
             </>
           ) : (
             <Skeleton className="h-64 w-full" />
