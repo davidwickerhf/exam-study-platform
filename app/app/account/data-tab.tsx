@@ -10,7 +10,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { DownloadIcon, RotateCcwIcon, TrashIcon } from "lucide-react";
+import { DownloadIcon, FileArchiveIcon, RotateCcwIcon, TrashIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -106,6 +106,9 @@ export function DataTab({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [uploadsOpen, setUploadsOpen] = useState(false);
+  const [uploadsBusy, setUploadsBusy] = useState(false);
+  const [uploadsError, setUploadsError] = useState<string | null>(null);
 
   async function exportData() {
     setExporting(true);
@@ -166,15 +169,34 @@ export function DataTab({
     try {
       await readJson("/api/account", {
         method: "DELETE",
-        body: JSON.stringify({ confirmation: "DELETE" }),
+        body: JSON.stringify({ confirmation: summary?.account.email || "DELETE" }),
       });
       localStorage.clear();
       window.location.assign("/?account-deleted=1");
     } catch (cause) {
       setDeleteBusy(false);
       setDeleteError(
-        `Your account remains accessible and nothing was deleted. ${(cause as Error).message}`,
+        /Wicker data was removed/i.test((cause as Error).message)
+          ? (cause as Error).message
+          : `Your account remains accessible and nothing was deleted. ${(cause as Error).message}`,
       );
+    }
+  }
+
+  async function deleteUploads() {
+    setUploadsBusy(true);
+    setUploadsError(null);
+    try {
+      await readJson("/api/account/data", {
+        method: "DELETE",
+        body: JSON.stringify({ confirmation: "DELETE UPLOADS", scope: "uploads" }),
+      });
+      setUploadsOpen(false);
+      reload();
+    } catch (cause) {
+      setUploadsError(`Uploaded data was not deleted. ${(cause as Error).message}`);
+    } finally {
+      setUploadsBusy(false);
     }
   }
 
@@ -286,6 +308,18 @@ export function DataTab({
           </div>
           <div className="flex items-start justify-between gap-6 border-b py-3">
             <div className="flex flex-col gap-0.5">
+              <strong className="text-[15px] font-medium">Delete uploaded data</strong>
+              <small className="text-muted-foreground text-sm">
+                Removes files uploaded through Tutor or Documents, private retrieval indexes, transcript snapshots and document revision history. Your plan and accepted public-library contributions stay.
+              </small>
+            </div>
+            <Button variant="secondary" onClick={() => { setUploadsError(null); setUploadsOpen(true); }}>
+              <FileArchiveIcon data-icon="inline-start" />
+              Delete uploads
+            </Button>
+          </div>
+          <div className="flex items-start justify-between gap-6 border-b py-3">
+            <div className="flex flex-col gap-0.5">
               <strong className="text-[15px] font-medium">
                 Reset study data
               </strong>
@@ -345,11 +379,8 @@ export function DataTab({
         </p>
       </Section>
 
-      {/*
-        The danger zone. There is no danger red in this world, so it is set
-        apart by position, a rule and its copy: last on the page, below a full
-        separator, alone under its own heading.
-      */}
+      {/* Account deletion remains distinct from record resets because it also
+          removes the Clerk identity and ends the signed-in session. */}
       <div className="flex flex-col gap-6 pt-4">
         <Separator />
         <section className="flex flex-col gap-3">
@@ -358,9 +389,9 @@ export function DataTab({
           </h2>
           <p className="text-muted-foreground max-w-[60ch] text-sm">
             This is the only action on this page that removes your sign-in as
-            well as your data. Your sources are withdrawn from future editorial
-            work; material already published after review is unaffected. It
-            cannot be undone, and support cannot restore it.
+            well as your private data. Material already accepted into the public
+            library remains under its sharing licence, but its link to your
+            account is removed. It cannot be undone, and support cannot restore it.
           </p>
           <div>
             <Button
@@ -393,6 +424,24 @@ export function DataTab({
       />
 
       <Confirm
+        open={uploadsOpen}
+        onOpenChange={setUploadsOpen}
+        title="Delete all uploaded data?"
+        description="This removes private material you supplied across every programme without resetting your study plan. Content already accepted into the public library stays available anonymously under its sharing licence."
+        removes={[
+          "Files and pictures uploaded through Tutor or Documents",
+          "Private retrieval indexes, transcript snapshots and document versions",
+          "Pending source requests and unshared contribution files",
+        ]}
+        word="DELETE UPLOADS"
+        action="Delete uploaded data"
+        busy={uploadsBusy}
+        error={uploadsError}
+        onConfirm={() => void deleteUploads()}
+        destructive
+      />
+
+      <Confirm
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title="Permanently delete your account?"
@@ -402,11 +451,12 @@ export function DataTab({
           "Progress, notes, answers, review history, tutor conversations and usage records",
           "Encrypted Canvas connections and uploaded academic-record history",
         ]}
-        word="DELETE"
+        word={summary?.account.email || "DELETE"}
         action="Delete account and data"
         busy={deleteBusy}
         error={deleteError}
         onConfirm={deleteAccount}
+        destructive
       />
     </div>
   );
