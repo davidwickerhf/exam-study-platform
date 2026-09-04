@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlanningDocuments } from "@/components/workspace/planning-documents";
 import { PlanningPlanner } from "@/components/workspace/planning-planner";
 import { PlanningSettings } from "@/components/workspace/planning-settings";
 import {
@@ -1318,7 +1317,6 @@ const TABS: [string, string][] = [
   ["overview", "Overview"],
   ["courses", "Courses"],
   ["progress", "Progress"],
-  ["documents", "Documents"],
   ["planner", "Planner"],
   ["settings", "Settings"],
 ];
@@ -1357,6 +1355,10 @@ export default function PlanningPage() {
   useEffect(() => {
     let live = true;
     const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "documents") {
+      window.location.replace("/app/documents");
+      return () => { live = false; };
+    }
     setFocus(params.get("focus"));
     setTab(planningTab(params.get("tab")));
     read()
@@ -1723,16 +1725,6 @@ export default function PlanningPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="documents">
-          {workspace ? (
-            <PlanningDocuments
-              workspace={workspace}
-              onWorkspace={(state) => setWorkspace(state.workspace)}
-            />
-          ) : (
-            <Skeleton className="h-64 w-full" />
-          )}
-        </TabsContent>
         <TabsContent value="planner">
           <PlanningPlanner />
         </TabsContent>

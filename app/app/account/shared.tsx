@@ -114,7 +114,7 @@ export function Section({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b pb-2">
+      <div className="-mx-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b px-4 pb-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-semibold">{title}</h2>
           {note && <p className="text-muted-foreground text-sm">{note}</p>}

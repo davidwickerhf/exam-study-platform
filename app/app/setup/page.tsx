@@ -415,10 +415,16 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
 }
 
 type TranscriptChange = { id: string; label: string; detail?: string; selectedByDefault?: boolean; requiresDecision?: boolean }
+type TranscriptReview = {
+  changes: TranscriptChange[]
+  revision: number
+  warnings?: string[]
+  source: { name: string; type: string; size: number; fingerprint: string }
+}
 function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [review, setReview] = useState<{ changes: TranscriptChange[]; revision: number; warnings?: string[] } | null>(null)
+  const [review, setReview] = useState<TranscriptReview | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   return <div className="flex flex-col gap-6">
     <p className="text-muted-foreground max-w-[68ch] text-[13.5px] leading-relaxed">Use the transcript that lists individual results and dates, not the Academic Work overview. It is read in this browser and never stored.</p>
@@ -434,8 +440,10 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?
         setBusy(true); setError(null)
         try {
           const text = await academicWorkText(file)
-          const result = await json<{ changes: TranscriptChange[]; revision: number; warnings?: string[] }>('/api/academics/documents/analyze', { method: 'POST', body: JSON.stringify({ kind: 'transcript', documents: [{ name: file.name, type: 'application/pdf', text, images: [], pageCount: 1 }] }) })
-          setReview(result)
+          const result = await json<Omit<TranscriptReview, 'source'>>('/api/academics/documents/analyze', { method: 'POST', body: JSON.stringify({ kind: 'transcript', documents: [{ name: file.name, type: 'application/pdf', text, images: [], pageCount: 1 }] }) })
+          const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+          const fingerprint = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+          setReview({ ...result, source: { name: file.name, type: file.type || 'application/pdf', size: file.size, fingerprint } })
           setSelected(new Set(result.changes.filter((change) => change.selectedByDefault !== false && !change.requiresDecision).map((change) => change.id)))
         } catch (cause) { setError(cause instanceof Error ? cause.message : 'That transcript could not be read.') } finally { setBusy(false) }
       }}
@@ -443,7 +451,7 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?
       <div className="flex items-baseline justify-between border-b pb-2"><strong>Review transcript</strong><span className="text-muted-foreground text-xs">{selected.size} of {review.changes.length} selected</span></div>
       {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
       <ul className="max-h-72 overflow-y-auto border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || !selected.size} onClick={async () => { setBusy(true); setError(null); try { await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes: review.changes.filter((change) => selected.has(change.id)) }) }); onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || !selected.size} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
     </div>}
     {error && <Alert variant="destructive"><AlertTriangleIcon /><AlertTitle>Transcript needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
     {onSkip && <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>Do this later</Button>}

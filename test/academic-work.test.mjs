@@ -141,6 +141,20 @@ test('comparing against nothing reports the whole first upload as progress', () 
   assert.deepEqual(summariseAcademicWork([]), { earnedEcts: 0, passedCourses: 0, failedAttempts: 0, currentCourses: 0, weightedAverage: null, academicYears: [] })
 })
 
+test('a changed credit total is an inspectable course-row revision', () => {
+  const previous = {
+    courses: [{ academicYear: '2026-2027', periodCode: '100', code: 'BCS2120', status: 'upcoming', grade: null, creditsEarned: 0, creditsTotal: 4 }]
+  }
+  const current = {
+    courses: [{ academicYear: '2026-2027', periodCode: '100', code: 'BCS2120', status: 'upcoming', grade: null, creditsEarned: 0, creditsTotal: 5 }]
+  }
+  const progress = compareAcademicWork(previous, current)
+  assert.equal(progress.changes.length, 1)
+  assert.equal(progress.changes[0].type, 'changed')
+  assert.equal(progress.changes[0].from.creditsTotal, 4)
+  assert.equal(progress.changes[0].course.creditsTotal, 5)
+})
+
 test('a snapshot records the derived record and never the document', async () => {
   const { academicProgress, deleteAcademicSnapshots, recordAcademicSnapshot, snapshotHash } = await import('../lib/academic-snapshots.mjs')
   const { withRequestContext } = await import('../lib/request-context.mjs')
@@ -181,7 +195,8 @@ test('a snapshot records the derived record and never the document', async () =>
     assert.equal(progress.snapshots.length, 2)
     assert.equal(progress.since.ectsDelta, 4)
     assert.deepEqual(progress.series.map((point) => point.earnedEcts), [18, 22], 'the series runs oldest to newest')
-    assert.equal(progress.snapshots[0].courses, undefined, 'a listing carries totals, not the whole record')
+    assert.equal(progress.snapshots[0].courses.length, passedRetake.courses.length, 'history keeps the derived rows needed to inspect adjacent versions')
+    assert.ok(!JSON.stringify(progress.snapshots).includes('page 1/2'), 'history still excludes the original document')
   } finally {
     await asOwner(() => deleteAcademicSnapshots())
     await rm(join(resolve(dirname(fileURLToPath(import.meta.url)), '..', 'data/users'), owner), { recursive: true, force: true })

@@ -37,7 +37,8 @@ import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
 import { AcademicWorkError, parseAcademicWork } from './lib/academic-work.mjs'
-import { academicProgress, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
+import { academicProgress, deleteAcademicSnapshot, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
+import { AcademicDocumentRegisterError, deleteAcademicDocumentRecord, deleteAcademicDocumentVersion, listAcademicDocumentRecords, recordAcademicDocumentVersion } from './lib/academic-document-register.mjs'
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
 import { applyProgramme, applySecureValue, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
@@ -4306,6 +4307,42 @@ const server = createServer(async (req, res) => {
       }
       return
     }
+    const academicWorkVersionMatch = url.pathname.match(/^\/api\/academics\/work\/([^/]+)$/)
+    if (academicWorkVersionMatch && req.method === 'DELETE') {
+      try {
+        send(res, 200, JSON.stringify(await deleteAcademicSnapshot(decodeURIComponent(academicWorkVersionMatch[1]))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error?.status || 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The record version could not be removed.' }))
+      }
+      return
+    }
+
+    if (url.pathname === '/api/academics/document-records' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ documents: await listAcademicDocumentRecords() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/academics/document-records' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 64 * 1024)
+        send(res, 200, JSON.stringify(await recordAcademicDocumentVersion(body)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof AcademicDocumentRegisterError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The document version could not be recorded.' }))
+      }
+      return
+    }
+    const documentRecordMatch = url.pathname.match(/^\/api\/academics\/document-records\/([^/]+)(?:\/versions\/([^/]+))?$/)
+    if (documentRecordMatch && req.method === 'DELETE') {
+      try {
+        const kind = decodeURIComponent(documentRecordMatch[1])
+        const result = documentRecordMatch[2]
+          ? await deleteAcademicDocumentVersion({ kind, versionId: decodeURIComponent(documentRecordMatch[2]) })
+          : await deleteAcademicDocumentRecord({ kind })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error instanceof AcademicDocumentRegisterError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The document could not be removed.' }))
+      }
+      return
+    }
 
     // Supporting documents at any time: analyse → reviewable change set → apply.
     if (url.pathname === '/api/academics/documents/analyze' && req.method === 'POST') {
@@ -4327,8 +4364,21 @@ const server = createServer(async (req, res) => {
         const state = await readAcademicState()
         if (Number(body?.expectedRevision) !== state.workspace.revision) { send(res, 409, JSON.stringify({ error: 'This programme changed in another tab. Reload before applying again.' })); return }
         const { workspace, applied } = applyChanges(state.workspace, body?.changes)
-        const saved = await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
-        send(res, 200, JSON.stringify({ ...saved, applied }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const saved = applied.length
+          ? await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
+          : state
+        let documentRecord = null
+        let documentRecordError = null
+        if (body?.documentRecord) {
+          try {
+            documentRecord = await recordAcademicDocumentVersion({
+              ...body.documentRecord,
+              impact: { ...(body.documentRecord.impact || {}), applied: applied.length }
+            })
+          }
+          catch (error) { documentRecordError = error instanceof Error ? error.message : 'Version history could not be updated.' }
+        }
+        send(res, 200, JSON.stringify({ ...saved, applied, documentRecord, documentRecordError }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
       }

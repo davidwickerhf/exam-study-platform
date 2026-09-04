@@ -26,7 +26,8 @@ import {
   SettingsIcon,
   PlugIcon,
   PlusIcon,
-  CheckIcon
+  CheckIcon,
+  FileTextIcon
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -72,7 +73,11 @@ const SECTIONS = [
   },
   {
     label: 'Manage',
-    items: [{ href: '/app/admin', label: 'Admin', icon: LayersIcon }]
+    items: [
+      { href: '/app/documents', label: 'Documents', icon: FileTextIcon },
+      { href: '/app/settings', label: 'Settings', icon: SettingsIcon },
+      { href: '/app/admin', label: 'Admin', icon: LayersIcon, adminOnly: true }
+    ]
   }
 ] as const
 
@@ -132,8 +137,9 @@ function AccountMenu({ identity, programmeIndex, onSignOut }: { identity: Accoun
           <DropdownMenuSeparator />
         </>}
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href="/app/account" />}><SettingsIcon />Account settings</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/app/account?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/app/account" />}><UserRoundIcon />Profile settings</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/app/settings" />}><SettingsIcon />Settings</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/app/settings?tab=connections" />}><PlugIcon />Connections</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
@@ -227,12 +233,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         </SidebarHeader>
 
         <SidebarContent className="py-2">
-          {SECTIONS.filter((section) => section.label !== 'Manage' || isAdmin).map((section) => (
+          {SECTIONS.map((section) => (
             <SidebarGroup key={section.label} className="px-3 py-2.5">
               <SidebarGroupLabel className="font-data h-7 px-2 text-[10px] font-semibold tracking-[0.1em] uppercase">{section.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
-                  {section.items.map((item) => {
+                  {section.items.filter((item) => !('adminOnly' in item) || !item.adminOnly || isAdmin).map((item) => {
                     const active = item.href === '/app' ? pathname === item.href : pathname.startsWith(item.href)
                     return (
                       <SidebarMenuItem key={item.href}>

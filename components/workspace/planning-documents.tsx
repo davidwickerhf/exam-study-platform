@@ -213,7 +213,7 @@ async function readSource(file: File): Promise<SourceFile> {
 
 function SectionHead({ title, note, children }: { title: string; note?: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-2">
+    <div className="-mx-6 flex flex-wrap items-end justify-between gap-3 border-b px-6 pb-2">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-sm font-semibold">{title}</h2>
         {note && <p className="text-muted-foreground max-w-prose text-xs">{note}</p>}
@@ -431,6 +431,12 @@ function Review({
               {result.warnings?.length ? ', but see the notes above' : ''}.
             </EmptyDescription>
           </EmptyHeader>
+          {result.kind !== 'calendar-feed' && (
+            <Button onClick={onApply} disabled={applying}>
+              {applying ? 'Saving…' : 'Save as a dated version'}
+            </Button>
+          )}
+          {error && <Failure message={error} />}
         </Empty>
       ) : (
         <>
@@ -491,10 +497,26 @@ function Review({
 
 // ── The tab ──────────────────────────────────────────────────────────────
 
-export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Workspace; onWorkspace: (state: AcademicState) => void }) {
+export function PlanningDocuments({
+  workspace,
+  onWorkspace,
+  showConnections = true,
+  showAcademicRecord = true,
+  showAcademicRecordSummary = true,
+  focusedKind,
+  onRecorded
+}: {
+  workspace: Workspace
+  onWorkspace: (state: AcademicState) => void
+  showConnections?: boolean
+  showAcademicRecord?: boolean
+  showAcademicRecordSummary?: boolean
+  focusedKind?: string
+  onRecorded?: () => void
+}) {
   const [files, setFiles] = useState<SourceFile[]>([])
   const [description, setDescription] = useState('')
-  const [kind, setKind] = useState('auto')
+  const [kind, setKind] = useState(focusedKind && focusedKind !== 'academic-work' ? focusedKind : 'auto')
   const [reading, setReading] = useState(false)
   const [analysing, setAnalysing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -502,6 +524,7 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState<number | null>(null)
+  const [recorded, setRecorded] = useState<'saved' | 'unchanged' | null>(null)
   const [dragging, setDragging] = useState(false)
 
   const [calendarUrl, setCalendarUrl] = useState('')
@@ -518,6 +541,10 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
 
   const fileInput = useRef<HTMLInputElement>(null)
   const workInput = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setKind(focusedKind && focusedKind !== 'academic-work' ? focusedKind : 'auto')
+  }, [focusedKind])
 
   useEffect(() => {
     let live = true
@@ -565,6 +592,7 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
       setResult(next)
       setSelected(defaultSelection(next.changes))
       setApplied(null)
+      setRecorded(null)
     } catch (cause) {
       setError((cause as Error).message)
     } finally {
@@ -575,15 +603,36 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
   const apply = useCallback(async () => {
     if (!result) return
     const changes = selectedChanges(result.changes, selected)
-    if (!changes.length) return
+    const hasSource = Boolean(files.length || description.trim())
+    if (!changes.length && !hasSource) return
     setApplying(true)
     setError(null)
     try {
-      const saved = await api<AcademicState & { applied: string[] }>('/api/academics/documents/apply', {
+      let documentRecord: Record<string, unknown> | undefined
+      if (hasSource) {
+        const payload = JSON.stringify(files.map((file) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          text: file.text,
+          images: file.images
+        }))) + description
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload))
+        const fingerprint = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+        documentRecord = {
+          kind: result.kind || kind,
+          label: files.map((file) => file.name).join(', ') || 'Supplied description',
+          fingerprint,
+          sources: files.map((file) => ({ name: file.name, type: file.type, size: file.size })),
+          impact: { proposed: result.changes.length, selected: changes.length, warnings: result.warnings?.length ?? 0 }
+        }
+      }
+      const saved = await api<AcademicState & { applied: string[]; documentRecord?: { unchanged?: boolean } | null; documentRecordError?: string | null }>('/api/academics/documents/apply', {
         method: 'POST',
-        body: JSON.stringify({ changes, expectedRevision: workspace.revision })
+        body: JSON.stringify({ changes, expectedRevision: workspace.revision, documentRecord })
       })
       onWorkspace(saved)
+      if (hasSource && !saved.documentRecordError) onRecorded?.()
       setFiles([])
       setDescription('')
       setResult(null)
@@ -591,13 +640,15 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
       // Report what the server says it applied, not what was ticked: a
       // proposal can be a no-op by the time it is submitted.
       setApplied(saved.applied?.length ?? 0)
+      setRecorded(hasSource && !saved.documentRecordError ? (saved.documentRecord?.unchanged ? 'unchanged' : 'saved') : null)
+      setError(saved.documentRecordError ? `The plan was updated, but this reading could not be added to version history. ${saved.documentRecordError}` : null)
     } catch (cause) {
       const message = (cause as Error).message
       setError(/another tab/.test(message) ? 'Your plan changed somewhere else. Reload the page and read the document again.' : message)
     } finally {
       setApplying(false)
     }
-  }, [result, selected, workspace.revision, onWorkspace])
+  }, [result, selected, workspace.revision, onWorkspace, files, description, kind, onRecorded])
 
   const calendarRequest = useCallback(async (path: string, body: object | null, action: 'preview' | 'connect' | 'sync' | 'remove') => {
     setCalendarBusy(true)
@@ -641,12 +692,13 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
         body: JSON.stringify({ documents: [{ name: file.name, text: source.text }] })
       }))
       setWork(await api<WorkRecord>('/api/academics/work'))
+      onRecorded?.()
     } catch (cause) {
       setWorkError((cause as Error).message)
     } finally {
       setWorkUploading(false)
     }
-  }, [])
+  }, [onRecorded])
 
   const calendars = workspace.calendars ?? []
   const canAnalyse = !reading && !analysing && (files.length > 0 || description.trim().length > 0)
@@ -672,13 +724,23 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
         <Alert>
           <CheckIcon />
           <AlertTitle>
-            {applied} change{applied === 1 ? '' : 's'} applied to your plan.
+            {recorded === 'unchanged'
+              ? 'This exact document version was already saved.'
+              : recorded === 'saved' && applied === 0
+                ? 'Document version saved. Your plan was already up to date.'
+                : `${applied} change${applied === 1 ? '' : 's'} applied to your plan.`}
           </AlertTitle>
-          <AlertDescription>Everything you left unticked was discarded and nothing else was touched.</AlertDescription>
+          <AlertDescription>
+            {recorded === 'unchanged'
+              ? applied === 0
+                ? 'No duplicate version was created and your plan was not changed.'
+                : `${applied} plan change${applied === 1 ? ' was' : 's were'} applied, but no duplicate history entry was created.`
+              : 'Everything you left unticked was discarded and nothing else was touched.'}
+          </AlertDescription>
         </Alert>
       )}
 
-      <section className="flex flex-col gap-4">
+      {focusedKind !== 'academic-work' && <section className="flex flex-col gap-4">
         <SectionHead
           title="Read a document"
           note="A transcript, exam schedule, timetable, academic calendar or .ics file. It is read in this browser, proposed as a list of changes, and never stored."
@@ -730,7 +792,7 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
         <div className="flex flex-wrap gap-4">
           <div className="flex min-w-[240px] flex-col gap-1.5">
             <Label htmlFor="document-kind">What is it?</Label>
-            <Select value={kind} onValueChange={(value) => setKind((value as string | null) ?? 'auto')}>
+            <Select value={kind} disabled={Boolean(focusedKind)} onValueChange={(value) => setKind((value as string | null) ?? 'auto')}>
               <SelectTrigger id="document-kind" className="w-[280px]">
                 <SelectValue>{(value) => DOCUMENT_KINDS.find(([id]) => id === value)?.[1] ?? 'Detect automatically'}</SelectValue>
               </SelectTrigger>
@@ -762,9 +824,9 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
             {analysing ? 'Reading…' : 'Read and propose updates'}
           </Button>
         </div>
-      </section>
+      </section>}
 
-      <section className="flex flex-col gap-4">
+      {showConnections && <section className="flex flex-col gap-4">
         <SectionHead
           title="Calendar connections"
           note="A timetable or exam-schedule feed stays live: its appointments are read from the feed every 15 minutes and are never copied into your academic record."
@@ -839,15 +901,17 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
             </div>
           </div>
         )}
-      </section>
+      </section>}
 
-      <section className="flex flex-col gap-4">
+      {showAcademicRecord && (!focusedKind || focusedKind === 'academic-work') && <section className="flex flex-col gap-4">
         <SectionHead
-          title="Academic record"
-          note="The Academic Work overview printed from the student portal. It is read by a parser, not a model, so it cannot invent a grade — and each reading is kept as a snapshot of the result, never the document."
+          title={showAcademicRecordSummary ? 'Academic record' : 'Academic Work overview'}
+          note={showAcademicRecordSummary
+            ? 'The Academic Work overview printed from the student portal. It is read by a parser, not a model, so it cannot invent a grade. Each reading is kept as a snapshot of the result, never the document.'
+            : 'Upload the overview printed from the student portal. It is parsed deterministically and saved as the next version of your derived academic record.'}
         />
 
-        {workError ? (
+        {showAcademicRecordSummary && (workError ? (
           <Failure message={workError} />
         ) : !work ? (
           <Skeleton className="h-16 w-full" />
@@ -877,7 +941,7 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
               </p>
             )}
           </div>
-        )}
+        ))}
 
         <div className="flex flex-wrap items-center gap-3">
           <input
@@ -919,7 +983,7 @@ export function PlanningDocuments({ workspace, onWorkspace }: { workspace: Works
             </AlertDescription>
           </Alert>
         )}
-      </section>
+      </section>}
     </div>
   )
 }
