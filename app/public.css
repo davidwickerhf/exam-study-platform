@@ -1,4 +1,5 @@
 @import "../public/public-site.css";
+@import "../public/landing-pages.css";
 
 /* Public and authentication surfaces retain their light editorial sheet after
  * the workspace bundle is removed. These are the tokens that sheet consumes;
@@ -37,4 +38,12 @@ body.public-mode,
   --radius-lg: 12px;
   --shadow-sm: 0 1px 2px rgba(32, 38, 58, .06);
   --shadow-md: 0 8px 24px rgba(32, 38, 58, .08);
+}
+
+/* Headings use the same full-width Archivo face as the access screen.
+ * Archivo Narrow remains reserved for dates, course codes, counts and other
+ * compact data that benefits from tabular alignment. */
+#public-site :is(h1, h2, h3),
+#auth-gate :is(h1, h2, h3) {
+  font-family: var(--font-ui);
 }

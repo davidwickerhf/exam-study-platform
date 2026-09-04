@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--next-font-data), ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--next-font-ui), ui-sans-serif, system-ui, sans-serif;
     --font-sans: var(--next-font-ui), ui-sans-serif, system-ui, sans-serif;
     --font-data: var(--next-font-data), ui-sans-serif, system-ui, sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);

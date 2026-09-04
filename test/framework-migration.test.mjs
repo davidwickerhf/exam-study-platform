@@ -7,6 +7,8 @@ const server = await readFile(new URL('../server.mjs', import.meta.url), 'utf8')
 const layout = await readFile(new URL('../app/layout.tsx', import.meta.url), 'utf8')
 const migration = await readFile(new URL('../lib/workspace/migration.mjs', import.meta.url), 'utf8')
 const nextCss = await readFile(new URL('../app/next.css', import.meta.url), 'utf8')
+const tailwindCss = await readFile(new URL('../app/tailwind.css', import.meta.url), 'utf8')
+const appPublicCss = await readFile(new URL('../app/public.css', import.meta.url), 'utf8')
 const publicSiteCss = await readFile(new URL('../public/public-site.css', import.meta.url), 'utf8')
 
 test('Next.js App Router owns the document and route runtime', async () => {
@@ -40,4 +42,10 @@ test('framework font variables are rooted and long authentication addresses can 
   for (const [, name] of fonts) assert.ok(rooted[1].includes(`${name}.variable`), `${name} is rooted on <html>`)
   assert.match(nextCss, /:root\s*\{[^}]*--font-ui:\s*var\(--next-font-ui\)/s)
   assert.match(publicSiteCss, /\.auth-eligibility code\s*\{[^}]*overflow-wrap:\s*anywhere;[^}]*white-space:\s*normal;/s)
+})
+
+test('headings use full-width Archivo while compact data keeps Archivo Narrow', () => {
+  assert.match(tailwindCss, /--font-heading:\s*var\(--next-font-ui\)/)
+  assert.match(tailwindCss, /--font-data:\s*var\(--next-font-data\)/)
+  assert.match(appPublicCss, /#public-site :is\(h1, h2, h3\),\s*#auth-gate :is\(h1, h2, h3\)\s*\{\s*font-family:\s*var\(--font-ui\)/s)
 })

@@ -9,7 +9,7 @@ import { operatorName } from '@/lib/site-content'
 import { ContactLink } from './contact-link'
 import { SiteIcon } from './icon'
 
-const links = [['/', 'Product'], ['/about', 'About'], ['/courses', 'Courses'], ['/docs', 'Docs']] as const
+const links = [['/', 'Overview'], ['/courses', 'Courses'], ['/about', 'Approach'], ['/docs', 'Docs']] as const
 
 export function PublicChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname()
@@ -46,7 +46,7 @@ export function PublicChrome({ children }: { children: ReactNode }) {
           </div>
         )}
         <header className="site-header">
-          <Link className="site-brand" href="/" aria-label="Wicker Study home"><BrandMark className="site-brand-mark" /><strong>Wicker Study</strong></Link>
+          <Link className="site-brand" href="/" aria-label="Wicker Study home"><BrandMark className="site-brand-mark" /><span><strong>Wicker Study</strong><small>Private academic workspace</small></span></Link>
           <button className="site-menu-button" type="button" aria-expanded={menuOpen} aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} onClick={() => setMenuOpen((open) => !open)}>
             <SiteIcon name={menuOpen ? 'close' : 'menu'} />
           </button>
@@ -59,13 +59,13 @@ export function PublicChrome({ children }: { children: ReactNode }) {
         {children}
         <footer className="site-footer">
           <div className="site-footer-main">
-            <Link className="site-brand" href="/" aria-label="Wicker Study home"><BrandMark className="site-brand-mark" /><strong>Wicker Study</strong></Link>
-            <p>A private academic workspace built around maintained university course material.</p>
+            <Link className="site-brand" href="/" aria-label="Wicker Study home"><BrandMark className="site-brand-mark" /><span><strong>Wicker Study</strong><small>Private academic workspace</small></span></Link>
+            <p>Course material, academic planning, focused practice, and a continuous private study record.</p>
           </div>
-          <nav aria-label="Legal and product links">
-            <Link href="/about">About</Link><Link href="/courses">Courses</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><ContactLink kind="info">Contact</ContactLink><Link href="/sign-in">Sign in</Link>
-          </nav>
-          <p className="site-footer-note">© 2026 {operatorName}, operating as Wicker Study. Essential authentication storage only; no advertising trackers.</p>
+          <div className="site-footer-group"><strong>Explore</strong><nav aria-label="Product links"><Link href="/">Overview</Link><Link href="/courses">Courses</Link><Link href="/about">Approach</Link><Link href="/docs">Docs</Link></nav></div>
+          <div className="site-footer-group"><strong>Account</strong><nav aria-label="Account and contact links"><Link href="/sign-in">Sign in</Link><ContactLink kind="support">Support</ContactLink><ContactLink kind="info">Contact</ContactLink></nav></div>
+          <div className="site-footer-group"><strong>Trust</strong><nav aria-label="Legal links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><ContactLink kind="security">Security</ContactLink></nav></div>
+          <p className="site-footer-note"><span>© 2026 {operatorName}, operating as Wicker Study.</span><span>Essential authentication storage only. No advertising trackers.</span></p>
         </footer>
       </div>
     </>

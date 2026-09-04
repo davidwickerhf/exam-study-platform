@@ -1,0 +1,70 @@
+{
+  "title": "Choose the landing-page composition",
+  "question": "Which structure should lead the Wicker Study public site?",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Study Control Room",
+      "kicker": "THE ROLL",
+      "lineage": "academic operations board",
+      "thesis": "The first viewport pairs a decisive promise with a live, full-system study itinerary.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["ruled registers", "departure-board type"],
+      "viewport": "A compact editorial statement sits beside a large operational workspace showing today, courses, deadlines, practice, and planning at once.",
+      "risk": "The proof composition must stay readable at miniature scale.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          {"label": "promise + action", "x": 0, "y": 0, "w": 4, "h": 8, "accent": true},
+          {"label": "live workspace", "x": 4, "y": 0, "w": 8, "h": 8, "accent": false},
+          {"label": "proof register", "x": 0, "y": 8, "w": 12, "h": 2, "accent": false}
+        ]
+      },
+      "comp": ".impeccable/mocks/decision/landing-control-room.webp"
+    },
+    {
+      "id": "study-loop",
+      "label": "The Study Loop",
+      "lineage": "continuous learning workflow",
+      "thesis": "The landing page opens on the loop from source to plan to study to evidence, with the product embedded inside it.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["process rules", "editorial annotations"],
+      "viewport": "A wide headline spans the page above a four-stage horizontal route, with a product slice occupying the active stage.",
+      "risk": "A process-led opening can feel explanatory before it feels desirable.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          {"label": "headline", "x": 0, "y": 0, "w": 12, "h": 3, "accent": true},
+          {"label": "four-stage route", "x": 0, "y": 3, "w": 12, "h": 2, "accent": false},
+          {"label": "active product proof", "x": 3, "y": 5, "w": 9, "h": 5, "accent": false}
+        ]
+      },
+      "comp": ".impeccable/mocks/decision/landing-study-loop.webp"
+    },
+    {
+      "id": "degree-ledger",
+      "label": "Degree Ledger",
+      "lineage": "university course register",
+      "thesis": "The real degree and its five courses become the front door, with each row exposing the study system behind it.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9"],
+      "materials": ["curriculum ledger", "tabular annotations"],
+      "viewport": "A restrained value proposition gives way immediately to a dense course register carrying readiness, materials, and next actions.",
+      "risk": "It is highly credible for current students but less universal for visitors outside the listed programme.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          {"label": "promise", "x": 0, "y": 0, "w": 7, "h": 3, "accent": true},
+          {"label": "trust facts", "x": 8, "y": 0, "w": 4, "h": 3, "accent": false},
+          {"label": "course ledger", "x": 0, "y": 3, "w": 12, "h": 7, "accent": false}
+        ]
+      },
+      "comp": ".impeccable/mocks/decision/landing-degree-ledger.webp"
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": true},
+  "steer": true
+}

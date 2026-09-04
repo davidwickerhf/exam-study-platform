@@ -70,6 +70,9 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },
+  "overrides": {
+    "qs": "6.16.0"
+  },
   "version": "1.0.0",
   "description": "A hosted or local study platform for the Maastricht BCS June 2026 resit window. With editorial chapter notes, prepared mock exams, question banks, and flashcards for five courses:",
   "main": "index.js",
