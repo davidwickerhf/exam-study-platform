@@ -30,10 +30,6 @@ const appearance = {
   }
 } as const
 
-function formatDomains(domains: string[]) {
-  return domains.map((domain) => `@${domain}`).join(domains.length > 1 ? ' or ' : '')
-}
-
 export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: { mode: 'sign-in' | 'sign-up'; enabled: boolean; allowedDomains: string[]; localAccounts?: string[] }) {
   const signUp = mode === 'sign-up'
   const [localError, setLocalError] = useState<string | null>(null)
@@ -68,7 +64,11 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
             <h1 id="auth-title">{signUp ? 'Create your study record.' : 'Return to your study record.'}</h1>
             <p>{signUp ? 'Your notes, attempts, mastery history, and review schedule — private to you, on any device.' : 'Open your notes, attempts, mastery history, and review schedule.'}</p>
           </div>
-          {allowedDomains.length > 0 && <p className="auth-eligibility">For Maastricht University students and staff. {signUp ? 'Sign up' : 'Sign in'} with your <code>{formatDomains(allowedDomains)}</code> address.</p>}
+          {allowedDomains.length > 0 && (
+            <p className="auth-eligibility">
+              Students should use their <code>@student.maastrichtuniversity.nl</code> address. University staff should use <code>@maastrichtuniversity.nl</code>. {signUp ? 'We verify it once, then your password becomes the fast way back in.' : 'Use your password for immediate access. Email verification remains available as a fallback.'}
+            </p>
+          )}
           <div id="clerk-sign-in">
             {enabled ? (
               signUp
