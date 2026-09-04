@@ -86,6 +86,45 @@ test('teaching periods allow only the matching exam, related resit and later yea
   assert.throws(() => updatePlanningObjective(value, 'p1', { targetSession: 'calendar:exam-2' }), /recorded teaching-period/)
 })
 
+test('overlapping calendar records become one examination window with course-specific roles', () => {
+  const value = workspace({
+    profile: { academicYear: '2026-2027' },
+    courses: [course('p1'), course('p2', { period: 'Period 2' })],
+    planning: { objectives: {}, academicPeriods: [
+      { id: 'p2-primary', title: 'Period 2 exams', date: '2026-12-14', endDate: '2026-12-18', academicYear: '2026-2027', kind: 'exam-week', period: 2 },
+      { id: 'p1-resit', title: 'Period 1 resits', date: '2026-12-14', endDate: '2026-12-18', academicYear: '2026-2027', kind: 'resit-week', period: 1, resit: true }
+    ] }
+  })
+  const windows = planningSessions(value, { academicYear: '2026–2027', courses: value.courses })
+  const shared = windows.find((session) => session.kind === 'exam-window')
+  assert.equal(windows.filter((session) => session.kind === 'exam-window').length, 1)
+  assert.equal(shared.label, 'Period 2 exams + Period 1 resits')
+  assert.deepEqual(shared.offerings.map((offering) => [offering.period, offering.resit]), [[2, false], [1, true]])
+  assert.equal(planningDestinations(value, 'p1').destinations.find((item) => item.id === shared.id).role, 'resit')
+  assert.equal(planningDestinations(value, 'p2').destinations.find((item) => item.id === shared.id).role, 'primary')
+  const context = planningContext(value)
+  assert.equal(context.courses.find((item) => item.id === 'p1').planningRules.allowedDestinations.find((item) => item.sessionId === shared.id).role, 'resit')
+  assert.equal(context.courses.find((item) => item.id === 'p2').planningRules.allowedDestinations.find((item) => item.sessionId === shared.id).role, 'primary')
+
+  const updated = updatePlanningObjective(value, 'p1', { targetSession: 'calendar:p1-resit' })
+  assert.equal(updated.after.targetSession, shared.id, 'legacy source ids resolve to the grouped canonical window')
+  assert.equal(updated.after.mode, 'resit')
+})
+
+test('same-date resits from several periods share a dedicated resit window', () => {
+  const value = workspace({
+    courses: [course('p1'), course('p2', { period: 'Period 2' })],
+    planning: { objectives: {}, academicPeriods: [
+      { id: 'p1-resit', title: 'Period 1 resits', date: '2027-01-18', endDate: '2027-01-22', kind: 'resit-week', period: 1, resit: true },
+      { id: 'p2-resit', title: 'Period 2 resits', date: '2027-01-18', endDate: '2027-01-22', kind: 'resit-week', period: 2, resit: true }
+    ] }
+  })
+  const shared = planningSessions(value).find((session) => session.kind === 'exam-window')
+  assert.equal(shared.label, 'Period 1 + Period 2 resits')
+  assert.equal(shared.resit, true)
+  assert.equal(planningSessions(value).filter((session) => session.id === 'resit').length, 0)
+})
+
 test('a transcript attempt supplies a missing teaching period and verified no-resit rules win', () => {
   const value = workspace({ courses: [course('history', {
     period: '',

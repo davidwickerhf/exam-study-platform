@@ -12,8 +12,8 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton'
 import { courseStatus } from '@/lib/workspace/academics.mjs'
 import {
-  type Objective, type PlannerAcademicPeriod, type PlannerCourse, type PlannerWorkspace,
-  objectiveFor, plannerSummary, planningDestinations, withObjective
+  type Objective, type PlannerCourse, type PlannerWorkspace, type PlanningSession,
+  objectiveFor, plannerSummary, planningDestinations, planningSessions, withObjective
 } from '@/lib/workspace/planner.mjs'
 
 const DATA = 'font-data tabular-nums'
@@ -30,6 +30,10 @@ type BoardSession = {
   period: number | null
   semester?: number | null
   resit: boolean
+  hasResit?: boolean
+  kind?: string
+  aliases?: string[]
+  offerings?: PlanningSession['offerings']
   carry?: boolean
   startsAt?: string | null
   endsAt?: string | null
@@ -46,11 +50,6 @@ async function readResponse(response: Response): Promise<AcademicState> {
 function yearNumber(label: string | null | undefined) {
   const match = String(label ?? '').match(/\d+/)
   return match ? Number(match[0]) : null
-}
-
-function periodNumber(label: string | null | undefined) {
-  const match = String(label ?? '').match(/period\s*(\d+)/i)
-  return match ? Number(match[1]) : null
 }
 
 function shiftAcademicYear(value: string | undefined, amount: number) {
@@ -89,54 +88,26 @@ function yearAcademicLabel(workspace: PlannerWorkspace, selectedYear: string, ye
 
 function sessionsFor(workspace: PlannerWorkspace, selectedYear: string, courses: PlannerCourse[], years: string[]): BoardSession[] {
   const targetAcademicYear = yearAcademicLabel(workspace, selectedYear, years)
-  const examPeriods = ((workspace.planning?.academicPeriods ?? []) as PlannerAcademicPeriod[])
-    .filter((item) => item.kind === 'exam-week' || item.kind === 'resit-week')
-    .filter((item) => !targetAcademicYear || !item.academicYear || item.academicYear.replace('-', '–') === targetAcademicYear.replace('-', '–'))
-    .sort((left, right) => String(left.date).localeCompare(String(right.date)))
-
-  const seen = new Set<string>()
-  const sessions: BoardSession[] = []
-  for (const item of examPeriods) {
-    const id = `calendar:${item.id}`
-    if (seen.has(id)) continue
-    seen.add(id)
-    sessions.push({
-      id,
-      label: item.title,
-      eyebrow: item.resit || item.kind === 'resit-week' ? 'Resit' : item.period ? `Period ${item.period}` : 'Exam session',
-      range: dateRange(item.date, item.endDate),
-      period: item.period ?? null,
-      semester: item.semester ?? null,
-      resit: Boolean(item.resit || item.kind === 'resit-week'),
-      startsAt: item.date,
-      endsAt: item.endDate || item.date
-    })
-  }
-
-  const periods = [...new Set(courses.map((course) => periodNumber(course.period || course.attempts?.find((attempt) => attempt.status === 'upcoming')?.period)).filter((value): value is number => value !== null))].sort((a, b) => a - b)
-  for (const period of periods) {
-    if (!sessions.some((session) => !session.resit && session.period === period)) sessions.push({ id: `period:${period}`, label: `Period ${period} exams`, eyebrow: `Period ${period}`, range: 'Exam dates not connected', period, semester: null, resit: false })
-  }
-  if (!sessions.some((session) => !session.resit) && !periods.length) sessions.push({ id: 'current-sit', label: 'Current sitting', eyebrow: 'Planned', range: 'Exam date not recorded', period: null, semester: null, resit: false })
-  if (!sessions.some((session) => session.resit)) sessions.push({ id: 'resit', label: 'Resit session', eyebrow: 'Alternative sitting', range: 'Resit calendar not connected', period: null, semester: null, resit: true })
-
-  if (courses.some((course) => /semester|year/i.test(String(course.period || '')))) {
-    sessions.unshift({ id: CONTINUOUS_ID, label: 'Coursework', eyebrow: 'Continuous work', range: 'No exam sitting recorded', period: null, semester: null, resit: false })
-  }
-  sessions.push({ id: CARRY_ID, label: 'Following year', eyebrow: 'Carry over', range: shiftAcademicYear(targetAcademicYear, 1) || 'Later', period: null, resit: false, carry: true })
-  return sessions
+  return planningSessions(workspace, { academicYear: targetAcademicYear, courses }).map((session) => ({
+    ...session,
+    eyebrow: session.kind === 'continuous-work' ? 'Continuous work' : session.kind === 'carry-over' ? 'Carry over' : session.startsAt ? dateRange(session.startsAt, session.endsAt) : session.resit ? 'Alternative sitting' : session.period ? `Period ${session.period}` : 'Planned',
+    range: session.kind === 'continuous-work' ? 'No exam sitting recorded' : session.kind === 'carry-over' ? shiftAcademicYear(targetAcademicYear, 1) || 'Later' : session.startsAt ? 'Academic calendar' : session.resit ? 'Resit calendar not connected' : 'Exam dates not connected',
+    carry: session.kind === 'carry-over'
+  }))
 }
 
 function sessionForCourse(workspace: PlannerWorkspace, course: PlannerCourse, sessions: BoardSession[]) {
   const objective = objectiveFor(workspace, course.id)
-  if (objective.targetSession && sessions.some((session) => session.id === objective.targetSession)) return objective.targetSession
+  const rules = planningDestinations(workspace, course.id)
+  if (objective.targetSession) {
+    const explicit = sessions.find((session) => session.id === objective.targetSession || session.aliases?.includes(objective.targetSession as string))
+    if (explicit) return explicit.id
+  }
   if (objective.mode === 'none') return CARRY_ID
   if (/semester|year/i.test(String(course.period || ''))) return sessions.some((session) => session.id === CONTINUOUS_ID) ? CONTINUOUS_ID : CARRY_ID
-  const coursePeriod = periodNumber(course.period)
   const candidates = sessions.filter((session) => !session.carry)
   if (objective.mode === 'resit') {
-    return candidates.find((session) => session.resit && (coursePeriod === null || session.period === coursePeriod))?.id
-      || candidates.find((session) => session.resit)?.id
+    return candidates.find((session) => rules.destinations.find((item) => item.id === session.id)?.role === 'resit')?.id
       || CARRY_ID
   }
   const upcoming = course.attempts?.find((attempt) => attempt.status === 'upcoming' && attempt.examDate)?.examDate
@@ -144,8 +115,7 @@ function sessionForCourse(workspace: PlannerWorkspace, course: PlannerCourse, se
     const dated = candidates.find((session) => session.startsAt && session.endsAt && upcoming >= session.startsAt && upcoming <= session.endsAt)
     if (dated) return dated.id
   }
-  return candidates.find((session) => !session.resit && coursePeriod !== null && session.period === coursePeriod)?.id
-    || candidates.find((session) => !session.resit)?.id
+  return candidates.find((session) => rules.destinations.find((item) => item.id === session.id)?.role === 'primary')?.id
     || candidates[0]?.id
     || CARRY_ID
 }
@@ -160,12 +130,18 @@ function nextObjective(workspace: PlannerWorkspace, course: PlannerCourse, sessi
   const passMark = Number((course as PlannerCourse & { passMark?: number }).passMark) || 5.5
   const maximum = passMark > 10 ? 100 : 10
   const bounded = typeof grade === 'number' && Number.isFinite(grade) ? Math.max(0, Math.min(maximum, grade)) : undefined
+  const role = planningDestinations(workspace, course.id).destinations.find((item) => item.id === session.id)?.role
   return withObjective(workspace, course.id, {
-    mode: session.carry ? 'none' : session.resit ? 'resit' : 'current',
+    mode: role === 'carry' ? 'none' : role === 'resit' ? 'resit' : 'current',
     targetSession: session.id,
     expectedGrade: bounded,
     outcome: bounded === undefined ? 'actual' : bounded >= passMark ? 'pass' : 'fail'
   })
+}
+
+function offeringLabel(offering: NonNullable<BoardSession['offerings']>[number]) {
+  const reference = offering.period ? `P${offering.period}` : offering.semester ? `S${offering.semester}` : 'Exam'
+  return `${reference} ${offering.resit ? 'resit' : 'first sitting'}`
 }
 
 function requirementFor(workspace: PlannerWorkspace, course: PlannerCourse) {
@@ -346,14 +322,14 @@ export function PlanningPlanner() {
 
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="grid min-w-max" style={{ gridTemplateColumns: `280px repeat(${sessions.length}, minmax(190px, 1fr))` }}>
-          <div className="bg-background sticky left-0 z-20 flex min-h-[92px] items-end border-r border-b px-5 py-4 lg:px-6">
+          <div className="bg-background sticky left-0 z-20 flex min-h-[112px] items-end border-r border-b px-5 py-4 lg:px-6">
             <div><span className={LABEL}>Course route</span><p className="text-muted-foreground mt-1 text-[11px]">Move a course across its possible sittings.</p></div>
           </div>
           {sessions.map((session, index) => {
             const held = yearCourses.filter((course) => placement(course) === session.id)
-            return <header key={session.id} className={`relative min-h-[92px] border-b px-4 py-4 ${index ? 'border-l' : ''} ${session.carry ? 'bg-muted/25' : ''}`}>
-              <div className="mb-3 flex items-center"><span className={`size-2 rounded-full ${session.resit || session.carry ? 'border border-muted-foreground bg-background' : 'bg-primary'}`} /><span className="bg-border h-px flex-1" /></div>
-              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><span className={LABEL}>{session.eyebrow}</span><h3 className="mt-1 truncate text-xs font-semibold" title={session.label}>{session.label}</h3><span className={`text-muted-foreground mt-1 block text-[10px] ${DATA}`}>{session.range}</span></div><span className={`text-muted-foreground text-[10px] ${DATA}`}>{held.length}</span></div>
+            return <header key={session.id} className={`relative min-h-[112px] border-b px-4 py-3.5 ${index ? 'border-l' : ''} ${session.carry ? 'bg-muted/25' : ''}`}>
+              <div className="mb-2.5 flex items-center"><span className={`size-2 rounded-full ${session.resit || session.carry ? 'border border-muted-foreground bg-background' : 'bg-primary'}`} /><span className="bg-border h-px flex-1" /></div>
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><span className={LABEL}>{session.eyebrow}</span><h3 className="mt-1 truncate text-xs font-semibold" title={session.label}>{session.label}</h3>{session.offerings?.length ? <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1">{session.offerings.map((offering) => <span key={offering.sourceId} className="text-muted-foreground inline-flex items-center gap-1 text-[9.5px]"><span className={`size-1.5 rounded-full ${offering.resit ? 'border border-muted-foreground' : 'bg-primary'}`} />{offeringLabel(offering)}</span>)}</div> : <span className={`text-muted-foreground mt-1 block text-[10px] ${DATA}`}>{session.range}</span>}</div><span className={`text-muted-foreground text-[10px] ${DATA}`}>{held.length}</span></div>
             </header>
           })}
 
@@ -371,11 +347,12 @@ export function PlanningPlanner() {
                 const placed = courseSession === session.id
                 const destination = rules.destinations.find((item) => item.id === session.id)
                 const allowed = Boolean(destination?.allowed)
+                const role = destination?.role
                 const over = dragOver === `${course.id}:${session.id}`
                 return <div key={session.id} title={!allowed ? destination?.reason || 'This sitting is not available for the course.' : undefined} onDragOver={allowed ? (event) => { event.preventDefault(); setDragOver(`${course.id}:${session.id}`) } : undefined} onDragLeave={() => setDragOver(null)} onDrop={allowed ? (event) => { event.preventDefault(); move(course, session); setDraggedId(null); setDragOver(null) } : undefined} className={`grid min-h-[78px] place-items-center border-b px-3 py-2 ${index ? 'border-l' : ''} ${session.carry ? 'bg-muted/20' : ''} ${!allowed ? 'bg-muted/15' : ''} ${over ? 'bg-primary/[0.04]' : ''}`}>
                   {placed ? <button type="button" draggable onDragStart={() => setDraggedId(course.id)} onDragEnd={() => { setDraggedId(null); setDragOver(null) }} onClick={() => setSelectedId(course.id)} className={`group flex w-full cursor-grab items-center gap-2 rounded-[7px] border px-3 py-2 text-left transition-[border-color,background-color,opacity] active:cursor-grabbing ${isSelected ? 'border-primary bg-primary/[0.055]' : 'bg-card hover:border-foreground/25'} ${draggedId === course.id ? 'opacity-40' : ''}`}>
                     <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
-                    <span className="min-w-0 flex-1"><strong className={`block truncate text-[11px] ${DATA}`}>{course.code}</strong><span className="text-muted-foreground mt-0.5 block truncate text-[10px]">{session.carry ? 'Deferred' : session.id === CONTINUOUS_ID ? 'Continuous assessment' : session.resit ? 'Resit planned' : 'Primary sitting'}</span></span>
+                    <span className="min-w-0 flex-1"><strong className={`block truncate text-[11px] ${DATA}`}>{course.code}</strong><span className="text-muted-foreground mt-0.5 block truncate text-[10px]">{role === 'carry' ? 'Deferred' : role === 'continuous' ? 'Continuous assessment' : role === 'resit' ? 'Resit planned' : 'Primary sitting'}</span></span>
                   </button> : allowed ? <span className={`h-px w-5 transition-colors ${over ? 'bg-primary' : 'bg-border/70'}`} /> : isSelected ? <span className="text-muted-foreground/65 inline-flex items-center gap-1 text-[10px]"><LockIcon className="size-3" />Not offered</span> : <LockIcon className="text-muted-foreground/30 size-3" />}
                 </div>
               })}
