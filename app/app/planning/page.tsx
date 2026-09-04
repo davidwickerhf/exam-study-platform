@@ -17,15 +17,15 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { LockIcon, PlusIcon, RotateCcwIcon, TriangleAlertIcon, XIcon } from "lucide-react";
+import { ArrowRightIcon, CalendarDaysIcon, CheckCircle2Icon, Clock3Icon, FileCheck2Icon, GraduationCapIcon, LockIcon, PlusIcon, RotateCcwIcon, SearchIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -38,7 +38,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlanningPlanner } from "@/components/workspace/planning-planner";
+import { PlanningElectives } from "@/components/workspace/planning-electives";
 import { PlanningSettings } from "@/components/workspace/planning-settings";
+import { gateResolved, objectiveFor, type PlannerGate, type PlannerWorkspace, plannerSummary, planningDestinations } from "@/lib/workspace/planner.mjs";
 import {
   type AcademicEvent,
   type Attempt,
@@ -52,12 +54,12 @@ import {
   STATUS_LABEL,
   STATUS_MARK,
   applyWorkspaceEdit,
+  bestAttempt,
   byYear,
   courseStatus,
   earnedEcts,
   planningTab,
   plannedEcts,
-  weightedGpa,
 } from "@/lib/workspace/academics.mjs";
 
 const NUMERALS = "font-data tabular-nums";
@@ -172,13 +174,15 @@ function SectionHead({
   title,
   note,
   meter,
+  contained = false,
 }: {
   title: string;
   note?: string;
   meter?: React.ReactNode;
+  contained?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b pb-2">
+    <div className={`flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b ${contained ? "px-5 py-4 sm:px-6" : "pb-2"}`}>
       <div className="flex min-w-0 flex-col gap-0.5">
         <h2 className="text-sm font-semibold">{title}</h2>
         {note && (
@@ -196,38 +200,145 @@ function SectionHead({
   );
 }
 
-/** A planning summary: one ruled strip of measures, never a row of cards. */
-function Strip({
-  cells,
+function ViewIntro({
+  title,
+  description,
+  action,
 }: {
-  cells: { label: string; value: string | number; unit?: string; detail?: string }[];
+  title: string;
+  description: string;
+  action?: React.ReactNode;
 }) {
   return (
-    <dl className="grid grid-cols-2 border-y sm:grid-cols-4">
-      {cells.map((cell, index) => (
-        <div
-          key={cell.label}
-          className={`flex flex-col gap-1 py-3 pr-4 ${index % 2 ? "border-l pl-4" : ""} sm:border-l sm:pl-4 sm:first:border-l-0 sm:first:pl-0`}
-        >
-          <dt className={COLUMN}>{cell.label}</dt>
-          <dd
-            className={`text-2xl leading-none font-semibold tracking-tight ${NUMERALS}`}
-          >
-            {cell.value}
-            {cell.unit && (
-              <small className="text-muted-foreground ml-1 text-sm font-medium">
-                {cell.unit}
-              </small>
-            )}
-          </dd>
-          {cell.detail && (
-            <span className="text-muted-foreground text-[11px]">
-              {cell.detail}
-            </span>
-          )}
+    <header className="flex flex-wrap items-end justify-between gap-5 border-b pb-6">
+      <div className="max-w-[70ch]">
+        <h2 className="font-heading text-[32px] leading-tight font-semibold tracking-[-0.03em] text-balance">
+          {title}
+        </h2>
+        <p className="text-muted-foreground mt-2 text-sm leading-relaxed text-pretty">
+          {description}
+        </p>
+      </div>
+      {action}
+    </header>
+  );
+}
+
+function degreeTarget(workspace: Workspace) {
+  const recorded = plannedEcts(workspace.courses ?? []);
+  const degreeGate = [...(workspace.gates ?? [])]
+    .filter((gate) => gate.type === "total-credits" && Number(gate.target) > 0)
+    .sort((left, right) => Number(right.target) - Number(left.target))[0];
+  return Math.max(recorded, Number(degreeGate?.target) || 0);
+}
+
+function expectedGpa(workspace: Workspace) {
+  const planner = workspace as unknown as PlannerWorkspace;
+  let weight = 0;
+  let total = 0;
+  let scenarioGrades = 0;
+  for (const course of workspace.courses ?? []) {
+    const objective = objectiveFor(planner, course.id);
+    const recorded = bestAttempt(course)?.grade;
+    const grade = objective.expectedGrade ?? recorded;
+    if (!Number.isFinite(grade)) continue;
+    weight += Number(course.ects) || 0;
+    total += Number(grade) * (Number(course.ects) || 0);
+    if (objective.expectedGrade !== undefined) scenarioGrades += 1;
+  }
+  return { value: weight ? Math.round((total / weight) * 10) / 10 : null, scenarioGrades };
+}
+
+function DegreePosition({ workspace }: { workspace: Workspace }) {
+  const courses = workspace.courses ?? [];
+  const earned = earnedEcts(courses);
+  const total = degreeTarget(workspace);
+  const passed = courses.filter((course) => courseStatus(course) === "passed").length;
+  const scenario = plannerSummary(workspace as unknown as PlannerWorkspace);
+  const attendance = (workspace.planning?.attendanceRecords ?? []) as { status?: string }[];
+  const missed = attendance.filter((item) => item.status === "missed").length;
+  const attended = attendance.filter((item) => item.status === "attended").length;
+  const attendanceRate = attended + missed ? Math.round(attended / (attended + missed) * 100) : null;
+  const expected = expectedGpa(workspace);
+  const projected = Math.min(100, scenario.projectedCredits / Math.max(total, 1) * 100);
+  const completed = Math.min(100, earned / Math.max(total, 1) * 100);
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <div className="grid lg:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(130px,0.5fr))]">
+        <div className="px-5 py-5 sm:px-6">
+          <span className={COLUMN}>Degree completion</span>
+          <div className="mt-2 flex items-end justify-between gap-6">
+            <strong className={`font-heading text-4xl tracking-[-0.04em] ${NUMERALS}`}>{earned} <small className="text-muted-foreground text-base font-medium">/ {total || "—"} ECTS</small></strong>
+            <span className="text-primary text-xs font-semibold">{total ? Math.round(completed) : 0}% complete</span>
+          </div>
+          <span className="bg-muted relative mt-4 block h-1.5 overflow-hidden rounded-full"><span className="bg-primary/25 absolute inset-y-0 left-0" style={{ width: `${projected}%` }} /><span className="bg-primary absolute inset-y-0 left-0" style={{ width: `${completed}%` }} /></span>
+          <div className="text-muted-foreground mt-2 flex justify-between gap-3 text-xs"><span>{earned} earned</span><span>{Math.max(0, scenario.projectedCredits - earned)} planned</span></div>
         </div>
-      ))}
-    </dl>
+        {[
+          { label: "Passed", value: `${passed}`, note: `${courses.length} courses recorded` },
+          { label: "Attendance", value: attendanceRate === null ? "—" : `${attendanceRate}%`, note: attendance.length ? `${missed} missed · ${attendance.length} marked` : "No attendance marked" },
+          { label: "Expected GPA", value: expected.value ?? "—", note: expected.scenarioGrades ? `${expected.scenarioGrades} scenario grades` : "No scenario grades set" },
+        ].map((item) => <div key={item.label} className="border-t px-5 py-5 lg:border-t-0 lg:border-l"><span className={COLUMN}>{item.label}</span><strong className={`mt-3 block text-2xl ${NUMERALS}`}>{item.value}</strong><span className="text-muted-foreground mt-1 block text-xs">{item.note}</span></div>)}
+      </div>
+    </section>
+  );
+}
+
+function shortDate(value?: string | null) {
+  if (!value) return null;
+  const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function DecisionDesk({ workspace }: { workspace: Workspace }) {
+  const planner = workspace as unknown as PlannerWorkspace;
+  const rows: { icon: typeof CalendarDaysIcon; label: string; detail: string; meta: string; href: string; attention?: boolean }[] = [];
+  const openCourses = plannerSummary(planner).openCourses;
+  const currentYear = workspace.programmeTemplate?.currentStudyYear;
+  const currentCourses = currentYear ? openCourses.filter((course) => course.yearLevel === currentYear) : openCourses;
+  const failed = openCourses.find((course) => courseStatus(course as Course) === "failed");
+  const course = failed ?? currentCourses.find((item) => !objectiveFor(planner, item.id).targetSession && !/year|thesis|project/i.test(String(item.period ?? item.name)));
+  if (course) {
+    const destination = planningDestinations(planner, course.id).destinations.find((item) => item.allowed && item.role !== "carry" && item.role !== "continuous");
+    rows.push({
+      icon: CalendarDaysIcon,
+      label: failed ? `Choose the ${course.code || course.name} retake` : `Choose a sitting for ${course.code || course.name}`,
+      detail: destination ? `${destination.label} · ${destination.role === "resit" ? "resit sitting" : "primary sitting"}` : `${course.period || "Teaching period not recorded"} · no dated exam window connected`,
+      meta: shortDate(destination?.startsAt) || "Plan",
+      href: "/app/planning?tab=planner",
+      attention: true,
+    });
+  }
+  const openGate = (workspace.gates ?? []).find((gate) => !gateResolved(gate as unknown as PlannerGate, planner));
+  if (openGate) rows.push({ icon: Clock3Icon, label: openGate.label, detail: openGate.type === "course" ? "A named course requirement is still open" : `${openGate.target} ECTS required`, meta: "Open", href: `/app/planning?tab=overview&focus=${encodeURIComponent(openGate.id)}` });
+  const upcoming = [...(workspace.events ?? [])].filter((event) => event.date && event.date >= new Date().toISOString().slice(0, 10)).sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
+  if (upcoming) rows.push({ icon: FileCheck2Icon, label: upcoming.title, detail: upcoming.type === "registration" ? "Registration action recorded in your plan" : "Upcoming academic date", meta: shortDate(upcoming.date) || "Review", href: "/app/calendar" });
+  if (rows.length < 3 && !(workspace.planning?.academicPeriods as unknown[] | undefined)?.length) rows.push({ icon: CalendarDaysIcon, label: "Connect the academic calendar", detail: "Add verified exam windows, resits, and registration periods", meta: "Source", href: "/app/documents" });
+
+  return <section className="overflow-hidden rounded-xl border bg-card">
+    <header className="flex items-baseline justify-between gap-4 px-5 py-4 sm:px-6"><div><span className={COLUMN}>Needs a decision</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.025em]">What can change the route</h2></div><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{rows.length} open</span></header>
+    {rows.length ? <div className="border-t">{rows.slice(0, 3).map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} className="group grid min-h-[78px] grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-t px-5 py-3 first:border-t-0 hover:bg-muted/25 sm:px-6"><span className={`grid size-9 place-items-center rounded-[8px] ${item.attention ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}><item.icon className="size-4" /></span><span><strong className="block text-sm">{item.label}</strong><span className="text-muted-foreground mt-1 block text-xs">{item.detail}</span></span><span className="flex items-center gap-2 text-xs font-semibold"><span className={`text-muted-foreground ${NUMERALS}`}>{item.meta}</span><ArrowRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span></Link>)}</div> : <p className="text-muted-foreground border-t px-5 py-5 text-sm sm:px-6">Nothing needs a planning decision right now.</p>}
+  </section>;
+}
+
+function YearProgress({ courses }: { courses: Course[] }) {
+  const years = byYear(courses);
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <SectionHead title="Progress by study year" note="Recorded credits only. Scenario grades stay on the Session Board." contained />
+      <div className="grid sm:grid-cols-2 xl:grid-cols-3">
+        {years.map((year, index) => {
+          const value = earnedEcts(year.courses);
+          const percentage = year.ects ? Math.min(100, value / year.ects * 100) : 0;
+          return <div key={year.level} className={`min-h-32 px-5 py-4 sm:px-6 ${index ? "border-t sm:border-l sm:border-t-0" : ""} ${index === 2 ? "sm:border-t xl:border-t-0" : ""}`}>
+            <div className="flex items-baseline justify-between gap-3"><h3 className="text-sm font-semibold">{year.level}</h3><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{value}/{year.ects} ECTS</span></div>
+            <div className="bg-muted mt-5 h-1.5 overflow-hidden rounded-full"><span className="bg-primary block h-full" style={{ width: `${percentage}%` }} /></div>
+            <p className="text-muted-foreground mt-3 text-xs">{year.courses.filter((course) => courseStatus(course) === "passed").length} of {year.courses.length} courses passed</p>
+          </div>;
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -290,31 +401,31 @@ function EditorActions({
   onCancel: () => void;
   destructive?: { label: string; confirm: string; onConfirm: () => void };
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-      {destructive ? (
-        <button
-          type="button"
-          className={QUIET}
-          disabled={busy}
-          onClick={() => {
-            if (window.confirm(destructive.confirm)) destructive.onConfirm();
-          }}
-        >
-          {destructive.label}
-        </button>
-      ) : (
-        <span />
-      )}
-      <span className="flex items-center gap-3">
-        <button type="button" className={QUIET} onClick={onCancel}>
-          Cancel
-        </button>
-        <Button type="submit" size="sm" disabled={busy}>
-          {busy ? "Saving…" : saveLabel}
-        </Button>
-      </span>
-    </div>
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+        {destructive ? (
+          <button type="button" className={QUIET} disabled={busy} onClick={() => setConfirmOpen(true)}>
+            {destructive.label}
+          </button>
+        ) : <span />}
+        <span className="flex items-center gap-3">
+          <button type="button" className={QUIET} onClick={onCancel}>Cancel</button>
+          <Button type="submit" size="sm" disabled={busy}>{busy ? "Saving…" : saveLabel}</Button>
+        </span>
+      </div>
+      {destructive && <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={destructive.confirm}
+        description="This removes the record and its related history from this academic plan. This action cannot be undone."
+        confirmLabel={destructive.label}
+        destructive
+        busy={busy}
+        onConfirm={() => { setConfirmOpen(false); destructive.onConfirm(); }}
+      />}
+    </>
   );
 }
 
@@ -581,63 +692,139 @@ function CourseEditor({
 
 function CourseRegister({
   courses,
+  hasProgramme,
   open,
   onOpen,
+  onAdd,
   commit,
   busy,
 }: {
   courses: Course[];
+  hasProgramme: boolean;
   open: string | null;
   onOpen: (id: string | null) => void;
+  onAdd: () => void;
   commit: Commit;
   busy: boolean;
 }) {
   const years = useMemo(() => byYear(courses), [courses]);
+  const [selectedYear, setSelectedYear] = useState("");
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  useEffect(() => {
+    const focusedYear = open ? years.find((year) => year.courses.some((course) => course.id === open))?.level : null;
+    if (focusedYear && focusedYear !== selectedYear) setSelectedYear(focusedYear);
+    else if (!years.some((year) => year.level === selectedYear)) setSelectedYear(years[0]?.level || "");
+  }, [open, selectedYear, years]);
   if (!courses.length) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>No courses yet</EmptyTitle>
-          <EmptyDescription>
-            Add a course from the page header, or read a transcript in Documents
-            and this register fills with your own curriculum.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <section className="overflow-hidden rounded-xl border bg-card">
+        <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+          <div className="flex flex-col items-start px-6 py-9 sm:px-9 sm:py-11">
+            <span className="bg-primary/[0.07] text-primary flex size-11 items-center justify-center rounded-lg">
+              <GraduationCapIcon className="size-5" />
+            </span>
+            <span className={`${COLUMN} mt-6`}>Curriculum setup</span>
+            <h2 className="font-heading mt-2 max-w-xl text-[26px] leading-tight font-semibold tracking-[-0.03em]">
+              {hasProgramme
+                ? "Add the first course to your programme"
+                : "Start with your programme"}
+            </h2>
+            <p className="text-muted-foreground mt-3 max-w-[58ch] text-sm leading-relaxed">
+              {hasProgramme
+                ? "Import your transcript to build the record automatically, or add a course yourself. You can revise every detail later."
+                : "Choose your degree and curriculum year to load its courses, periods and elective rules. You can change this later without losing recorded attempts."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {hasProgramme ? (
+                <Button onClick={onAdd}>
+                  <PlusIcon data-icon="inline-start" />
+                  Add first course
+                </Button>
+              ) : (
+                <Button nativeButton={false} render={<Link href="/app/setup?checklist=1&step=programme" />}>
+                  Choose programme
+                  <ArrowRightIcon data-icon="inline-end" />
+                </Button>
+              )}
+              <Button nativeButton={false} render={<Link href="/app/documents" />} variant="outline">
+                <FileCheck2Icon data-icon="inline-start" />
+                Import transcript
+              </Button>
+            </div>
+          </div>
+
+          <aside className="border-t lg:border-t-0 lg:border-l" aria-label="What programme setup unlocks">
+            <div className="px-6 py-4">
+              <span className={COLUMN}>What this builds</span>
+            </div>
+            {[
+              ["01", "Course record", "Required courses, credits and electives by study year."],
+              ["02", "Valid exam options", "Primary sittings and resits placed in the right periods."],
+              ["03", "Degree progress", "A live view of what is complete, planned and still open."],
+            ].map(([number, title, copy]) => (
+              <div key={number} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 border-t px-6 py-4">
+                <span className={`text-primary text-xs font-semibold ${NUMERALS}`}>{number}</span>
+                <span>
+                  <strong className="block text-sm font-semibold">{title}</strong>
+                  <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">{copy}</span>
+                </span>
+              </div>
+            ))}
+          </aside>
+        </div>
+        {!hasProgramme && (
+          <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 text-sm sm:px-9">
+            <span>Already know what belongs in your plan?</span>
+            <button type="button" onClick={onAdd} className="text-foreground inline-flex items-center gap-1.5 font-semibold underline decoration-border-strong underline-offset-4 hover:text-primary">
+              Add a course manually
+              <ArrowRightIcon className="size-3.5" />
+            </button>
+          </div>
+        )}
+      </section>
     );
   }
+  const year = years.find((item) => item.level === selectedYear) || years[0];
+  const yearPassed = year.courses.filter((course) => courseStatus(course) === "passed").length;
+  const visible = year.courses.filter((course) => {
+    const matchesQuery = !query.trim() || `${course.code} ${course.name}`.toLowerCase().includes(query.trim().toLowerCase());
+    const state = courseStatus(course);
+    return matchesQuery && (status === "all" || status === state || (status === "open" && state !== "passed"));
+  });
   return (
-    <div className="flex flex-col gap-8">
-      {years.map((year) => (
-        <section key={year.level} className="flex flex-col gap-1">
-          <SectionHead
-            title={year.level}
-            meter={`${year.courses.length} courses · ${year.ects} ECTS`}
-          />
-          <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[40rem] border-collapse">
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <header className="flex min-h-[88px] items-stretch border-b">
+        <div className="flex min-w-56 flex-1 flex-col justify-center px-5 py-4 sm:px-6"><h2 className="font-heading text-xl font-semibold tracking-[-0.025em]">{year.level} courses</h2><p className="text-muted-foreground mt-1 text-sm">{year.courses.length} courses in this study year · {yearPassed} passed</p></div>
+        <nav className="flex min-w-0 overflow-x-auto" aria-label="Course years">
+          {years.map((item) => <button key={item.level} type="button" onClick={() => { setSelectedYear(item.level); onOpen(null); }} className={`relative min-w-36 border-l px-4 text-left ${year.level === item.level ? "bg-primary/[0.035]" : "hover:bg-muted/35"}`}><span className={`${COLUMN} ${year.level === item.level ? "text-primary" : ""}`}>{item.level}</span><span className={`text-muted-foreground mt-1 block text-xs ${NUMERALS}`}>{earnedEcts(item.courses)}/{item.ects} ECTS</span>{year.level === item.level && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}</button>)}
+        </nav>
+      </header>
+      <div className="grid gap-3 border-b bg-muted/35 px-5 py-4 sm:grid-cols-[minmax(12rem,1fr)_11rem] sm:px-6">
+        <label className="relative"><span className="sr-only">Search this study year</span><SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" /><Input className="bg-card pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search courses" /></label>
+        <Select value={status} onValueChange={(value) => setStatus(String(value))}><SelectTrigger className="bg-card w-full" aria-label="Filter by course status"><SelectValue>{(value) => ({ all: "All statuses", open: "Still open", passed: "Passed", failed: "Failed / retake", registered: "Registered" })[String(value)]}</SelectValue></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">All statuses</SelectItem><SelectItem value="open">Still open</SelectItem><SelectItem value="passed">Passed</SelectItem><SelectItem value="failed">Failed / retake</SelectItem><SelectItem value="registered">Registered</SelectItem></SelectGroup></SelectContent></Select>
+      </div>
+      <div className="overflow-x-auto">
+            <table className="w-full min-w-[48rem] border-collapse">
               <thead>
-                <tr className={COLUMN}>
-                  <th className="w-[6.5rem] py-2 pr-4 text-left font-semibold">
-                    Code
-                  </th>
-                  <th className="py-2 pr-6 text-left font-semibold">Course</th>
-                  <th className="w-[7rem] py-2 pr-4 text-left font-semibold">
+                <tr className={`${COLUMN} border-b`}>
+                  <th className="px-5 py-3 text-left font-semibold sm:px-6">Course</th>
+                  <th className="w-[7rem] px-3 py-3 text-left font-semibold">
                     Period
                   </th>
-                  <th className="w-[4.5rem] py-2 pr-6 text-right font-semibold">
+                  <th className="w-[4.5rem] px-3 py-3 text-right font-semibold">
                     ECTS
                   </th>
-                  <th className="w-[7rem] py-2 pr-4 text-left font-semibold">
+                  <th className="w-[8rem] px-3 py-3 text-left font-semibold">
                     Requirement
                   </th>
-                  <th className="w-[8rem] py-2 text-left font-semibold">
-                    Status
+                  <th className="w-[8rem] px-5 py-3 text-left font-semibold sm:pr-6">
+                    Action
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {year.courses.map((course) => {
+                {visible.map((course) => {
                   const expanded = open === course.id;
                   return (
                     <Fragment key={course.id}>
@@ -650,44 +837,43 @@ function CourseRegister({
                         }}
                         className={`cursor-pointer border-b transition-colors ${expanded ? "bg-muted/60" : "hover:bg-card"}`}
                       >
-                        <td
-                          className={`py-2 pr-4 text-sm font-semibold ${NUMERALS}`}
-                        >
-                          {course.code || <span className={ABSENT}>—</span>}
-                        </td>
-                        <td className="py-2 pr-6 text-[15px] font-medium">
+                        <td className="px-5 py-4 sm:px-6">
                           <button
                             type="button"
                             aria-expanded={expanded}
                             aria-controls={`course-editor-${course.id}`}
                             onClick={() => onOpen(expanded ? null : course.id)}
-                            className="rounded-sm text-left underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            className="group/course rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
-                            {course.name}
+                            <span className={`text-primary block text-xs font-semibold tracking-[0.04em] ${NUMERALS}`}>{course.code || "No code"}</span>
+                            <span className="mt-1 block text-[15px] font-semibold group-hover/course:underline">{course.name}</span>
+                            <span className="text-muted-foreground mt-2 inline-flex items-center gap-1.5 text-xs">
+                              <StatusCell course={course} />
+                            </span>
                           </button>
                         </td>
                         <td
-                          className={`text-muted-foreground py-2 pr-4 text-sm ${NUMERALS}`}
+                          className={`text-muted-foreground px-3 py-3 text-sm ${NUMERALS}`}
                         >
                           {course.period || <span className={ABSENT}>—</span>}
                         </td>
                         <td
-                          className={`py-2 pr-6 text-right text-sm ${NUMERALS}`}
+                          className={`px-3 py-3 text-right text-sm ${NUMERALS}`}
                         >
                           {course.ects}
                         </td>
-                        <td className="text-muted-foreground py-2 pr-4 text-sm capitalize">
+                        <td className="text-muted-foreground px-3 py-3 text-sm capitalize">
                           {course.programmeRequirement || (
                             <span className={ABSENT}>—</span>
                           )}
                         </td>
-                        <td className="py-2">
-                          <StatusCell course={course} />
+                        <td className="px-5 py-4 sm:pr-6">
+                          <button type="button" aria-expanded={expanded} onClick={() => onOpen(expanded ? null : course.id)} className="text-primary inline-flex items-center gap-2 text-sm font-semibold">{expanded ? "Close record" : "Edit record"}<ArrowRightIcon className={`size-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} /></button>
                         </td>
                       </tr>
                       {expanded && (
                         <tr className="border-b">
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={5} className="p-0">
                             <CourseEditor
                               course={course}
                               commit={commit}
@@ -702,10 +888,10 @@ function CourseRegister({
                 })}
               </tbody>
             </table>
-          </div>
-        </section>
-      ))}
-    </div>
+      </div>
+      {!visible.length && <p className="text-muted-foreground px-5 py-8 text-center text-sm sm:px-6">No courses match these filters.</p>}
+      <footer className="text-muted-foreground flex items-center justify-between gap-4 border-t px-5 py-3 text-xs sm:px-6"><span>Showing {visible.length} of {year.courses.length} courses</span><span className={NUMERALS}>{earnedEcts(year.courses)}/{year.ects} ECTS earned</span></footer>
+    </section>
   );
 }
 
@@ -824,10 +1010,11 @@ function FactsRegister({
   busy: boolean;
 }) {
   return (
-    <section className="flex flex-col gap-1">
+    <section className="overflow-hidden rounded-xl border bg-card">
       <SectionHead
         title="Programme record"
         note="These facts are private to your account and describe your own cohort, not the shared course catalogue."
+        contained
       />
       <ul className="flex flex-col">
         {PROFILE_FACTS.map((fact) => {
@@ -842,7 +1029,7 @@ function FactsRegister({
                 aria-expanded={expanded}
                 aria-controls={`fact-editor-${fact.field}`}
                 onClick={() => onOpen(expanded ? null : fact.field)}
-                className={`flex min-h-11 items-center justify-between gap-4 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${expanded ? "" : "hover:bg-card"}`}
+                className={`flex min-h-14 items-center justify-between gap-4 px-5 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:px-6 ${expanded ? "bg-muted/35" : "hover:bg-muted/25"}`}
               >
                 <span className="text-[12px] font-semibold">{fact.label}</span>
                 {value ? (
@@ -933,11 +1120,12 @@ function EventsRegister({
     String(left.date ?? "").localeCompare(String(right.date ?? "")),
   );
   return (
-    <section className="flex flex-col gap-1">
+    <section className="overflow-hidden rounded-xl border bg-card">
       <SectionHead
         title="Personal academic events"
         note="Dates saved here also appear in the unified Calendar."
         meter={events.length ? `${events.length} recorded` : undefined}
+        contained
       />
       {events.length ? (
         <ul className="flex flex-col">
@@ -954,7 +1142,7 @@ function EventsRegister({
                   aria-expanded={expanded}
                   aria-controls={`event-editor-${item.id}`}
                   onClick={() => onOpen(expanded ? null : item.id)}
-                  className={`grid min-h-11 grid-cols-[6.5rem_minmax(0,1fr)_auto] items-center gap-3 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${expanded ? "" : "hover:bg-card"}`}
+                  className={`grid min-h-14 grid-cols-[6.5rem_minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:px-6 ${expanded ? "bg-muted/35" : "hover:bg-muted/25"}`}
                 >
                   <span className={`text-muted-foreground text-sm ${NUMERALS}`}>
                     {item.date ?? <span className={ABSENT}>—</span>}
@@ -980,7 +1168,7 @@ function EventsRegister({
           })}
         </ul>
       ) : (
-        <p className="text-muted-foreground py-3 text-[13.5px]">
+        <p className="text-muted-foreground px-5 py-5 text-[13.5px] sm:px-6">
           No personal dates recorded. Add one from the page header, or read an
           exam schedule in Documents.
         </p>
@@ -1132,26 +1320,44 @@ function RequirementsRegister({
   workspace,
   open,
   onOpen,
+  onAdd,
   commit,
   busy,
 }: {
   workspace: Workspace;
   open: string | null;
   onOpen: (id: string | null) => void;
+  onAdd?: () => void;
   commit: Commit;
   busy: boolean;
 }) {
   const gates = workspace.gates ?? [];
+  const progressFor = (gate: Gate) => {
+    if (gate.type === "course") {
+      const target = workspace.courses.find((course) => course.id === gate.courseId);
+      const complete = target ? courseStatus(target) === "passed" : false;
+      return { value: complete ? 1 : 0, target: 1, copy: complete ? "Complete" : "Course still open" };
+    }
+    const eligible = gate.type === "credit-level" || gate.type === "all-level" ? workspace.courses.filter((course) => course.yearLevel === gate.level) : workspace.courses;
+    if (gate.type === "all-level") {
+      const complete = eligible.filter((course) => courseStatus(course) === "passed").length;
+      return { value: complete, target: eligible.length, copy: `${complete} of ${eligible.length} courses` };
+    }
+    const value = earnedEcts(eligible);
+    return { value, target: Number(gate.target) || 0, copy: `${value} of ${Number(gate.target) || 0} ECTS` };
+  };
   return (
-    <section className="flex flex-col gap-1">
-      <SectionHead
-        title="Credit and progression requirements"
-        note="Targets you must clear in your own programme. They are yours, not the shared catalogue's."
-      />
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <header className="flex min-h-[77px] items-center justify-between gap-4 px-5 py-4 sm:px-6">
+        <div><span className={COLUMN}>Requirements</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.025em]">What the route must satisfy</h2></div>
+        {onAdd && <Button variant="ghost" size="sm" onClick={onAdd}><PlusIcon data-icon="inline-start" />Add</Button>}
+      </header>
       {gates.length ? (
         <ul className="flex flex-col">
           {gates.map((gate: Gate) => {
             const expanded = open === gate.id;
+            const progress = progressFor(gate);
+            const percentage = progress.target ? Math.min(100, progress.value / progress.target * 100) : 0;
             return (
               <li
                 key={gate.id}
@@ -1163,12 +1369,11 @@ function RequirementsRegister({
                   aria-expanded={expanded}
                   aria-controls={`gate-editor-${gate.id}`}
                   onClick={() => onOpen(expanded ? null : gate.id)}
-                  className={`flex min-h-11 items-center justify-between gap-4 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${expanded ? "" : "hover:bg-card"}`}
+                  className={`grid min-h-[76px] grid-cols-[minmax(0,1fr)_minmax(120px,0.55fr)_auto] items-center gap-5 px-5 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:px-6 ${expanded ? "bg-muted/35" : "hover:bg-muted/25"}`}
                 >
-                  <span className="text-[15px] font-medium">{gate.label}</span>
-                  <span className={`text-muted-foreground text-sm ${NUMERALS}`}>
-                    {gate.target} ECTS
-                  </span>
+                  <span><strong className="block text-sm font-semibold">{gate.label}</strong><span className="text-muted-foreground mt-1 block text-xs">{progress.copy}</span></span>
+                  <span className="min-w-0"><span className="bg-muted block h-1.5 overflow-hidden rounded-full"><span className="bg-primary block h-full" style={{ width: `${percentage}%` }} /></span></span>
+                  {percentage >= 100 ? <CheckCircle2Icon className="size-4 text-primary" /> : <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{Math.round(percentage)}%</span>}
                 </button>
                 {expanded && (
                   <GateEditor
@@ -1183,9 +1388,8 @@ function RequirementsRegister({
           })}
         </ul>
       ) : (
-        <p className="text-muted-foreground py-3 text-[13.5px]">
-          No requirements recorded. Add one from the page header — a propedeuse
-          or a year target — and the planner will route towards it.
+        <p className="text-muted-foreground border-t px-5 py-5 text-[13.5px] sm:px-6">
+          No programme requirements are recorded yet. Add a propedeuse, year target, or named course requirement so the planner can test the route.
         </p>
       )}
     </section>
@@ -1316,16 +1520,13 @@ function GateComposer({
 const TABS: [string, string][] = [
   ["overview", "Overview"],
   ["courses", "Courses"],
-  ["progress", "Progress"],
   ["planner", "Planner"],
   ["settings", "Settings"],
 ];
 
 /** Which composer each tab offers from the page header. */
 const HEADER_ACTION: Record<string, string> = {
-  overview: "Add event",
   courses: "Add course",
-  progress: "Add requirement",
 };
 
 export default function PlanningPage() {
@@ -1337,7 +1538,7 @@ export default function PlanningPage() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("planner");
   const [focus, setFocus] = useState<string | null>(null);
   const [composer, setComposer] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -1374,12 +1575,6 @@ export default function PlanningPage() {
   }, [read]);
 
   const courses = workspace?.courses ?? [];
-  const earned = earnedEcts(courses);
-  const planned = plannedEcts(courses);
-  const gpa = weightedGpa(courses);
-  const passed = courses.filter(
-    (course) => courseStatus(course) === "passed",
-  ).length;
 
   // A deep link opens the record it names, once. Re-running on every save
   // would drag the student back to the row they had moved on from.
@@ -1388,7 +1583,7 @@ export default function PlanningPage() {
     focused.current = true;
     if (workspace.events?.some((item) => item.id === focus)) setTab("overview");
     else if (workspace.gates?.some((item) => item.id === focus))
-      setTab("progress");
+      setTab("overview");
     else if (workspace.courses.some((item) => item.id === focus))
       setTab("courses");
     setEditing(focus);
@@ -1481,23 +1676,21 @@ export default function PlanningPage() {
   const action = HEADER_ACTION[tab];
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 p-5 sm:p-8">
+    <div className={`flex w-full flex-col gap-5 p-5 sm:p-8 ${tab === "planner" ? "h-dvh min-h-[720px] overflow-hidden" : "mx-auto min-h-dvh max-w-[1240px]"}`}>
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="flex min-w-0 flex-col gap-1">
           {workspace ? (
             <>
-              <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
-                {workspace.profile.programme || "Academic planning"}
-              </h1>
+              <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">Planning</h1>
               <p
                 className={`text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm ${NUMERALS}`}
               >
                 <LockIcon aria-hidden className="size-3.5 shrink-0" />
                 <span>
-                  Private to your account
+                  {workspace.profile.programme || "Academic programme"}
                   {[
-                    workspace.profile.university,
                     workspace.profile.academicYear,
+                    workspace.profile.university,
                   ]
                     .filter(Boolean)
                     .map((part) => ` · ${part}`)
@@ -1513,11 +1706,6 @@ export default function PlanningPage() {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          {workspace && (
-            <span className={`text-muted-foreground text-sm ${NUMERALS}`}>
-              {earned} / {planned} ECTS
-            </span>
-          )}
           {workspace && action && (
             <Button
               variant="secondary"
@@ -1540,7 +1728,7 @@ export default function PlanningPage() {
           setEditing(null);
           history.replaceState(null, "", `/app/planning?tab=${value}`);
         }}
-        className="gap-5"
+        className="min-h-0 flex-1 gap-5"
       >
         <TabsList
           variant="line"
@@ -1594,51 +1782,21 @@ export default function PlanningPage() {
           </div>
         )}
 
-        <TabsContent value="overview" className="flex flex-col gap-8">
+        <TabsContent value="overview" className="flex flex-col gap-8 pb-10">
           {workspace ? (
             <>
-              {composer === "overview" && (
-                <EventComposer
-                  commit={commit}
-                  busy={saving}
-                  onClose={() => setComposer(null)}
-                />
-              )}
-              <FactsRegister
-                workspace={workspace}
-                open={editing}
-                onOpen={setEditing}
-                commit={commit}
-                busy={saving}
+              <ViewIntro
+                title="Your academic position"
+                description="The recorded degree status, decisions that can change it, and the requirements your current plan must still clear."
+                action={<Button size="sm" onClick={() => { setTab("planner"); history.replaceState(null, "", "/app/planning?tab=planner"); }}>Open Session Board<ArrowRightIcon data-icon="inline-end" /></Button>}
               />
-              <Strip
-                cells={[
-                  {
-                    label: "Credits earned",
-                    value: earned,
-                    unit: `/ ${planned}`,
-                    detail: "From your own passed attempts",
-                  },
-                  {
-                    label: "Courses passed",
-                    value: passed,
-                    unit: `/ ${courses.length}`,
-                  },
-                  { label: "Weighted GPA", value: gpa ?? "—" },
-                  {
-                    label: "Study year",
-                    value:
-                      workspace.programmeTemplate?.currentStudyYear || "—",
-                  },
-                ]}
-              />
-              <EventsRegister
-                workspace={workspace}
-                open={editing}
-                onOpen={setEditing}
-                commit={commit}
-                busy={saving}
-              />
+              {composer === "overview:gate" && <GateComposer commit={commit} busy={saving} onClose={() => setComposer(null)} />}
+              <DegreePosition workspace={workspace} />
+              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+                <DecisionDesk workspace={workspace} />
+                <RequirementsRegister workspace={workspace} open={editing} onOpen={setEditing} onAdd={() => setComposer(composer === "overview:gate" ? null : "overview:gate")} commit={commit} busy={saving} />
+              </div>
+              <YearProgress courses={courses} />
             </>
           ) : (
             <Skeleton className="h-64 w-full" />
@@ -1648,6 +1806,11 @@ export default function PlanningPage() {
         <TabsContent value="courses" className="flex flex-col gap-6">
           {workspace ? (
             <>
+              <ViewIntro
+                title="Courses in your plan"
+                description="Review the curriculum by study year, keep attempts accurate, and choose the electives that feed your Session Board. Study materials and source coverage stay in the Course Desk."
+                action={courses.length || workspace.profile.programme?.trim() ? <Button nativeButton={false} render={<Link href="/app/courses" />} variant="outline" size="sm">Open Course Desk<ArrowRightIcon data-icon="inline-end" /></Button> : undefined}
+              />
               {composer === "courses" && (
                 <CourseComposer
                   commit={commit}
@@ -1657,78 +1820,29 @@ export default function PlanningPage() {
               )}
               <CourseRegister
                 courses={courses}
+                hasProgramme={Boolean(workspace.profile.programme?.trim())}
                 open={editing}
                 onOpen={setEditing}
+                onAdd={() => setComposer("courses")}
                 commit={commit}
                 busy={saving}
               />
+              {workspace.profile.programme?.trim() && (
+                <PlanningElectives
+                  onSaved={reload}
+                  onAddCourse={() => setComposer("courses")}
+                />
+              )}
             </>
           ) : (
             <Skeleton className="h-64 w-full" />
           )}
         </TabsContent>
 
-        <TabsContent value="progress" className="flex flex-col gap-8">
-          {workspace ? (
-            <>
-              {composer === "progress" && (
-                <GateComposer
-                  commit={commit}
-                  busy={saving}
-                  onClose={() => setComposer(null)}
-                />
-              )}
-              <RequirementsRegister
-                workspace={workspace}
-                open={editing}
-                onOpen={setEditing}
-                commit={commit}
-                busy={saving}
-              />
-              <section className="flex flex-col gap-1">
-                <SectionHead
-                  title="Credits by study year"
-                  meter={`${earned} / ${planned} ECTS overall`}
-                />
-                <ul className="flex flex-col">
-                  {byYear(courses).map((year) => {
-                    const yearEarned = earnedEcts(year.courses);
-                    return (
-                      <li
-                        key={year.level}
-                        className="flex flex-col gap-2 border-b py-3"
-                      >
-                        <div className="flex items-baseline justify-between gap-4">
-                          <h3 className="text-sm font-semibold">
-                            {year.level}
-                          </h3>
-                          <span
-                            className={`text-muted-foreground text-sm ${NUMERALS}`}
-                          >
-                            {yearEarned} / {year.ects} ECTS
-                          </span>
-                        </div>
-                        <Progress
-                          value={
-                            year.ects ? (yearEarned / year.ects) * 100 : 0
-                          }
-                          className="h-1.5"
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            </>
-          ) : (
-            <Skeleton className="h-32 w-full" />
-          )}
-        </TabsContent>
-
-        <TabsContent value="planner">
+        <TabsContent value="planner" className="min-h-0 flex-1">
           <PlanningPlanner />
         </TabsContent>
-        <TabsContent value="settings">
+        <TabsContent value="settings" className="mx-auto w-full max-w-[1180px]">
           <PlanningSettings
             onChanged={(state) => setWorkspace(state.workspace)}
           />

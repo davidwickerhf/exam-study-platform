@@ -60,6 +60,7 @@ import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 import { applyWorkspaceEdit } from './lib/workspace/academics.mjs'
+import { planningContext, updatePlanningObjective } from './lib/workspace/planner.mjs'
 import { canvasPriorityProfiles } from './lib/priority-evidence.mjs'
 import { CONTRIBUTION_LICENSES, COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
 import { estimateEditorialGeneration, listEditorialWorkspace, prepareCourseContentRequest, processEditorialJobs, publishEditorialEdition, queueEditorialGeneration, registerEditorialSources, reviewEditorialContribution, updateEditorialArtifact, uploadEditorialSourceChunk, upsertEditorialEdition, withdrawCourseContentRequestContribution } from './lib/editorial-workflow.mjs'
@@ -1446,7 +1447,7 @@ const DOCUMENT_KIND_GUIDANCE = {
   transcript: 'These sources are transcripts or grade lists: focus on passed/failed attempts with grades and academic years; do not invent upcoming courses.',
   'exam-schedule': 'These sources are exam schedules: focus on exam dates (ISO), attempt type (first/resit), and the course each date belongs to; mark them upcoming.',
   timetable: 'These sources are timetables or calendars: extract dated events (lectures need not be listed individually; capture exams, deadlines, registration windows, and course-level dates).',
-  'academic-calendar': 'These sources are institutional academic calendars. Extract every dated entry as an event with ISO date and endDate (multi-day spans), and classify each with kind: period (education/teaching period), exam-week, resit-week, study-week, project-week, holiday (no education), intro, deadline (registration/enrolment), ceremony, or other. Fill period (1-6) or semester (1-2) when the entry names one, resit=true when resits are included, and cohorts with any cohort codes (BY1, BY2/3, MA P1, BAY1 …). Use clean titles such as "Period 1", "Exam week · Period 1", "Resits · Semester 1 (BY1)", "Christmas Holiday". No courses unless explicitly listed.',
+  'academic-calendar': 'These sources are institutional academic calendars. Extract every dated entry as an event with ISO date and endDate (multi-day spans), and classify each with kind: period (education/teaching period), exam-week, resit-week, study-week, project-week, holiday (no education), intro, deadline (registration/enrolment), ceremony, or other. Fill period (1-6) or semester (1-2) when the entry names one, resit=true when resits are included, and cohorts with any cohort codes (BY1, BY2/3, MA P1, BAY1 …). A single dated block may serve multiple purposes. When it says, for example, Period 2 exams and Period 1 resits, emit two events with the same dates: one Period 2 exam-week with resit=false and one Period 1 resit-week with resit=true. Likewise split a shared Period 1 and 2 resit week into separate same-date resit events. Never flatten a combined examination block into an unscoped generic event. Use clean titles such as "Period 1", "Exam week · Period 1", "Resits · Semester 1 (BY1)", "Christmas Holiday". No courses unless explicitly listed.',
   curriculum: 'These sources are curricula or handbooks: focus on course codes, names, credits, levels, and periods.'
 }
 
@@ -3432,6 +3433,13 @@ async function executeTutorProposal(proposal) {
     await saveActiveAcademicWorkspace(next, state.workspace.revision)
     return { kind: 'calendar-event', label: 'Added to Planning', href: '/app/planning' }
   }
+  if (proposal.type === 'planning-objective') {
+    const state = await readAcademicState()
+    if (Number(proposal.payload.expectedRevision) !== state.workspace.revision) throw new TutorStoreError('The exam plan changed after Tutor prepared this action. Ask Tutor to review the latest plan before approving it.', 409)
+    const update = updatePlanningObjective(state.workspace, proposal.payload.courseId, proposal.payload.objective)
+    await saveActiveAcademicWorkspace(update.workspace, state.workspace.revision)
+    return { kind: 'planning-objective', label: `${update.course.code} plan updated`, href: '/app/planning?tab=planner' }
+  }
   if (proposal.type === 'practice-set') {
     const state = await readState()
     const course = (state.courses || []).find((item) => item.id === proposal.payload.courseId || item.code === proposal.payload.courseCode)
@@ -4670,6 +4678,25 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/academics' && req.method === 'GET') {
       send(res, 200, JSON.stringify(await readAcademicState()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/planning/context' && req.method === 'GET') {
+      const { workspace } = await readAcademicState()
+      send(res, 200, JSON.stringify(planningContext(workspace)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    const planningObjectiveMatch = url.pathname.match(/^\/api\/planning\/objectives\/([^/]+)$/)
+    if (planningObjectiveMatch && req.method === 'PATCH') {
+      try {
+        const body = await readBody(req, 32 * 1024)
+        const state = await readAcademicState()
+        if (Number(body?.expectedRevision) !== state.workspace.revision) throw new Error('This programme changed in another tab. Reload the planning context before saving again.')
+        const update = updatePlanningObjective(state.workspace, decodeURIComponent(planningObjectiveMatch[1]), body?.objective)
+        const saved = await saveActiveAcademicWorkspace(update.workspace, state.workspace.revision)
+        send(res, 200, JSON.stringify({ changed: { courseId: update.course.id, courseCode: update.course.code, before: update.before, after: update.after }, context: planningContext(saved.workspace) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab|planning context/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
+      }
       return
     }
     if (url.pathname === '/api/attendance' && req.method === 'PUT') {

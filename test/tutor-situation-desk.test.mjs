@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { deletePersonalData } from '../lib/account-data.mjs'
-import { evidenceFromTool, normalizeTutorContext, proposalFromTool } from '../lib/tutor-agent.mjs'
+import { evidenceFromTool, normalizeTutorContext, proposalFromTool, TUTOR_TOOLS, tutorSystemPrompt } from '../lib/tutor-agent.mjs'
 import { deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment, searchTutorAttachments } from '../lib/tutor-attachments.mjs'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { readTutorMemory, rememberPlan, saveTutorActionReceipt, tutorActionReceipt } from '../lib/tutor-store.mjs'
@@ -75,6 +75,15 @@ test('mutations remain proposals and evidence remains separate from prose', () =
   assert.equal(evidence.length, 1)
   assert.equal(evidence[0].sourceType, 'Timetable')
   assert.match(evidence[0].location, /C0\.002/)
+})
+
+test('Tutor can retrieve planning context and stages planning writes for approval', () => {
+  const names = TUTOR_TOOLS.map((tool) => tool.function.name)
+  assert.ok(names.includes('get_planning_context'))
+  assert.ok(names.includes('propose_planning_update'))
+  const prompt = tutorSystemPrompt({ memory: {}, briefing: null, planner: { revision: 4, courses: [{ code: 'BCS1540' }] }, context: {}, now: new Date('2026-09-04T10:00:00Z') })
+  assert.match(prompt, /saved planning scenario/)
+  assert.match(prompt, /exam-scenario changes are proposals/)
 })
 
 test('approved plans and action receipts are durable and idempotent', async () => {

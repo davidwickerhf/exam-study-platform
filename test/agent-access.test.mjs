@@ -17,6 +17,8 @@ test('agent manifest lists every scope and has unique method+path pairs', () => 
   assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.scope === 'write'))
   assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.path === '/api/admin/editorial-editions/{editionId}/sources'))
   assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.path === '/api/admin/editorial-editions/{editionId}/publish'))
+  assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.method === 'GET' && e.path === '/api/planning/context' && e.scope === 'read'))
+  assert.ok(AGENT_MANIFEST.endpoints.some((e) => e.method === 'PATCH' && e.path === '/api/planning/objectives/{courseId}' && e.scope === 'write'))
 })
 
 test('editorial writes are unavailable without a hosted database', async () => {

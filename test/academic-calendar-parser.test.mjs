@@ -46,3 +46,15 @@ test('legend lines become dated events with headings, ranges, and year roll-over
   assert.equal(byTitle.Graduation.type, 'ceremony')
   assert.match(byTitle.Graduation.notes, /Month only/)
 })
+
+test('a shared examination block preserves each primary and resit purpose', () => {
+  const { events } = parseAcademicCalendarText(`Academic Calendar 2026-2027
+Exam periods
+Period 2 exams and Period 1 resits: 14 - 18 December
+Periods 1 and 2 resits: 18 - 22 January 2027`)
+  const december = events.filter((event) => event.date === '2026-12-14')
+  assert.deepEqual(december.map((event) => [event.period, event.resit]), [[2, false], [1, true]])
+  const january = events.filter((event) => event.date === '2027-01-18')
+  assert.deepEqual(january.map((event) => [event.period, event.resit]), [[1, true], [2, true]])
+  assert.ok([...december, ...january].every((event) => /Period/.test(event.notes)))
+})
