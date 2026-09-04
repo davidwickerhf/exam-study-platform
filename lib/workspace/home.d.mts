@@ -31,6 +31,12 @@ export type CalendarEvent = {
   attendanceRequired?: boolean
   attendanceRule?: string | null
   attendancePolicy?: { allowedMisses: number | null; minimumAttendancePercent: number | null; excusedPolicy: string; source: string; evidence: unknown[] } | null
+  source?: string
+  feedLabel?: string | null
+  location?: string | null
+  editable?: boolean
+  managedEventId?: string | null
+  managedCalendarId?: string | null
 }
 
 export type AcademicContext = {
@@ -52,6 +58,9 @@ export type CalendarPayload = {
     summary: { scheduled: number; past: number; attended: number; missed: number; excused: number; unmarked: number; requiredMissed: number; requiredUnmarked: number; rate: number | null; atRiskCourses: number }
     courses: Array<{ courseId: string | null; editorialCourseId: string | null; courseCode: string | null; courseName: string; scheduled: number; past: number; attended: number; missed: number; excused: number; unmarked: number; requiredScheduled: number; requiredPast: number; requiredAttended: number; requiredMissed: number; requiredExcused: number; requiredUnmarked: number; allowedMisses: number | null; allowedMissesRemaining: number | null; minimumAttendancePercent: number | null; rule: string | null; ruleSource: string | null; rate: number | null; requiredRate: number | null; atRisk: boolean }>
   }
+  feeds?: Array<{ id: string; label: string; url?: string; eventCount?: number; lastSyncedAt?: string | null }>
+  canvas?: { connected: boolean }
+  problems?: Array<{ id: string; label: string; error: string }>
 }
 
 export type HomePriority = {

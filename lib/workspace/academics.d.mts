@@ -17,6 +17,7 @@ export type Course = {
 export type Gate = { id: string; label: string; section: string; type: string; courseId: string | null; level: string | null; target: number }
 export type AcademicEvent = { id: string; title: string; date: string | null; endDate?: string | null; type: string; notes?: string }
 export type AttendanceRecord = { id: string; eventId: string; courseId: string | null; courseCode: string | null; courseName: string | null; title: string; activity: string; startsAt: string; endsAt: string | null; status: 'attended' | 'missed' | 'excused'; note: string; recordedAt: string }
+export type PersonalCalendarEvent = { id: string; calendarId: string; title: string; start: string; end: string | null; allDay: boolean; type: 'study' | 'deadline' | 'appointment' | 'other'; courseId: string | null; courseCode: string | null; courseName: string | null; location: string; notes: string; sourceEventId: string | null; createdAt: string; updatedAt: string }
 
 export type Workspace = {
   id: string
@@ -38,7 +39,7 @@ export type Workspace = {
   }[]
   gates?: Gate[]
   events?: AcademicEvent[]
-  planning?: { objectives?: Record<string, unknown>; periodAssignments?: unknown[]; academicPeriods?: unknown[]; attendanceRecords?: AttendanceRecord[] }
+  planning?: { objectives?: Record<string, unknown>; periodAssignments?: unknown[]; academicPeriods?: unknown[]; attendanceRecords?: AttendanceRecord[]; calendarEvents?: PersonalCalendarEvent[] }
 }
 
 export type CourseStatus = 'passed' | 'failed' | 'registered' | 'not-recorded'

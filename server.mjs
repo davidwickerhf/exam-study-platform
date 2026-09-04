@@ -34,6 +34,7 @@ import { detectAcademicDocumentKind, fallbackAcademicIntake, normalizeAcademicIn
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
 import { upsertAttendanceRecord } from './lib/attendance.mjs'
+import { removePersonalCalendarEvent, savePersonalCalendarEvent } from './lib/personal-calendar.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
@@ -4184,7 +4185,59 @@ const server = createServer(async (req, res) => {
         }
       }
       const result = aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })
-      send(res, 200, JSON.stringify({ ...result, feeds: (workspace.calendars || []).map((link) => ({ id: link.id, label: link.label })), canvas: { connected: canvasConnected }, problems }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      send(res, 200, JSON.stringify({
+        ...result,
+        feeds: (workspace.calendars || []).map((link) => ({
+          id: link.id,
+          label: link.label,
+          eventCount: link.eventCount || 0,
+          lastSyncedAt: link.lastSyncedAt || null,
+          rangeStart: link.rangeStart || null,
+          rangeEnd: link.rangeEnd || null
+        })),
+        canvas: { connected: canvasConnected },
+        problems
+      }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+
+    if (url.pathname === '/api/calendar/events' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 64 * 1024)
+        const state = await readAcademicState()
+        const workspace = structuredClone(state.workspace)
+        workspace.planning ||= { objectives: {}, periodAssignments: [], academicPeriods: [], attendanceRecords: [], calendarEvents: [] }
+        workspace.planning.calendarEvents = savePersonalCalendarEvent(workspace.planning.calendarEvents, body?.event)
+        const event = workspace.planning.calendarEvents.at(-1)
+        const saved = await saveActiveAcademicWorkspace(workspace, body?.expectedRevision ?? state.workspace.revision)
+        send(res, 201, JSON.stringify({ ...saved, event }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
+      }
+      return
+    }
+
+    const personalCalendarMatch = url.pathname.match(/^\/api\/calendar\/events\/([^/]+)$/)
+    if (personalCalendarMatch && (req.method === 'PUT' || req.method === 'DELETE')) {
+      try {
+        const body = await readBody(req, 64 * 1024)
+        const state = await readAcademicState()
+        const workspace = structuredClone(state.workspace)
+        const eventId = decodeURIComponent(personalCalendarMatch[1])
+        workspace.planning ||= { objectives: {}, periodAssignments: [], academicPeriods: [], attendanceRecords: [], calendarEvents: [] }
+        if (req.method === 'DELETE') {
+          workspace.planning.calendarEvents = removePersonalCalendarEvent(workspace.planning.calendarEvents, eventId)
+          const saved = await saveActiveAcademicWorkspace(workspace, body?.expectedRevision ?? state.workspace.revision)
+          send(res, 200, JSON.stringify(saved), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+          return
+        }
+        workspace.planning.calendarEvents = savePersonalCalendarEvent(workspace.planning.calendarEvents, { ...body?.event, id: eventId })
+        const event = workspace.planning.calendarEvents.find((item) => item.id === eventId)
+        const saved = await saveActiveAcademicWorkspace(workspace, body?.expectedRevision ?? state.workspace.revision)
+        send(res, 200, JSON.stringify({ ...saved, event }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab/.test(error.message) ? 409 : /Unknown Wicker calendar event/.test(error.message) ? 404 : 400, JSON.stringify({ error: error.message }))
+      }
       return
     }
 
