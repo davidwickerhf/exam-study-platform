@@ -179,6 +179,7 @@ export type CanvasSyncProgress = {
   activeJobs: CorpusJob[]
   jobs: CorpusJob[]
   totalCourses: number
+  settledCourses: number
   completedCourses: number
   failedCourses: number
   indexedFiles: number

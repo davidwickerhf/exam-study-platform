@@ -180,7 +180,7 @@ function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgres
             : <div className="bg-muted mt-3 h-1 overflow-hidden"><span className="bg-primary block h-full w-1/3 motion-safe:animate-[sync-travel_1.4s_ease-in-out_infinite]" /></div>}
           <p className="text-muted-foreground mt-2 text-xs">
             {progress.totalCourses
-              ? `${progress.completedCourses} of ${progress.totalCourses} courses · ${progress.indexedFiles} files indexed`
+              ? `${progress.settledCourses} of ${progress.totalCourses} courses settled · ${progress.indexedFiles} materials stored`
               : 'Discovering current, upcoming, and related historical course shells.'}
           </p>
         </div>

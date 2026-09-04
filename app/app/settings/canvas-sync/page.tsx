@@ -21,6 +21,7 @@ import { readJson, useJson } from "@/components/workspace/use-json";
 import { cn } from "@/lib/utils";
 import {
   type CorpusJob,
+  type CorpusCourseEdition,
   type CorpusStatus,
   canvasCorpusSummary,
   canvasSyncProgress,
@@ -33,6 +34,17 @@ type StatusFilter = "all" | "active" | "attention" | "completed";
 
 const POLL_MS = 10_000;
 const ACTIVE = new Set(["pending", "running"]);
+const PRIORITY_JSON_FAILURE = /^Priority scan returned no JSON object\.?$/i;
+
+function failureCopy(message: string) {
+  if (PRIORITY_JSON_FAILURE.test(message)) {
+    return {
+      title: "Priority extraction needs another pass",
+      explanation: "The course files remain stored and searchable. Only the derived deadlines and requirements scan failed.",
+    };
+  }
+  return { title: message, explanation: null };
+}
 
 function jobLabel(job: CorpusJob) {
   if (job.status === "running") return job.error ? "Retrying" : "Indexing";
@@ -118,9 +130,9 @@ function AttemptLine({ job }: { job: CorpusJob }) {
   );
 }
 
-function CourseRow({ job, attempts }: { job: CorpusJob; attempts: CorpusJob[] }) {
-  const indexed = Number(job.result?.indexed) || 0;
-  const skipped = Number(job.result?.skipped) || 0;
+function CourseRow({ job, attempts, material }: { job: CorpusJob; attempts: CorpusJob[]; material?: CorpusCourseEdition }) {
+  const stored = Math.max(0, Number(material?.sources) || 0);
+  const editions = Math.max(1, Number(material?.editionCount) || 0);
   return (
     <details className="group border-b last:border-b-0">
       <summary className="hover:bg-muted/35 focus-visible:outline-ring grid cursor-pointer list-none gap-3 px-4 py-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] sm:grid-cols-[minmax(15rem,1.6fr)_minmax(8rem,.7fr)_minmax(8rem,.7fr)_9rem_auto] sm:items-center sm:px-5 [&::-webkit-details-marker]:hidden">
@@ -129,11 +141,17 @@ function CourseRow({ job, attempts }: { job: CorpusJob; attempts: CorpusJob[] })
             <strong className={`${NUMERALS} shrink-0 text-sm`}>{job.courseCode || "Canvas course"}</strong>
             {job.courseName && <span className="text-muted-foreground truncate text-sm">{job.courseName}</span>}
           </span>
-          {job.error && ACTIVE.has(job.status) ? <small className="text-muted-foreground mt-1 block truncate">Previous attempt: {job.error}</small> : null}
+          {job.error && ACTIVE.has(job.status) ? <small className="text-muted-foreground mt-1 block truncate">Previous attempt: {failureCopy(job.error).title}</small> : null}
         </span>
         <span className="text-muted-foreground text-xs">{job.academicYear || "Year not supplied"}</span>
         <span className={`text-xs ${NUMERALS}`}>
-          {job.status === "completed" ? `${indexed} indexed${skipped ? ` · ${skipped} skipped` : ""}` : ACTIVE.has(job.status) ? "Collection in progress" : "No material stored"}
+          {stored > 0
+            ? `${stored} stored${editions > 1 ? ` · ${editions} editions` : ""}`
+            : ACTIVE.has(job.status)
+              ? "Collection in progress"
+              : job.status === "completed"
+                ? "No material found"
+                : "No material indexed"}
         </span>
         <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{when(job)}</span>
         <span className="flex items-center justify-between gap-2 sm:justify-end">
@@ -144,7 +162,9 @@ function CourseRow({ job, attempts }: { job: CorpusJob; attempts: CorpusJob[] })
       <div className="bg-muted/25 border-t">
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:px-5">
           <span className="text-muted-foreground text-[11px] font-semibold tracking-[0.1em] uppercase">Attempt history</span>
-          <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{attempts.length} recorded</span>
+          <span className={`text-muted-foreground text-xs ${NUMERALS}`}>
+            {stored > 0 ? `${stored} stored material${stored === 1 ? "" : "s"} remain available · ` : ""}{attempts.length} recorded
+          </span>
         </div>
         <ul>{attempts.slice(0, 8).map((attempt) => <AttemptLine key={attempt.id} job={attempt} />)}</ul>
       </div>
@@ -165,6 +185,10 @@ export default function CanvasSyncPage() {
   const corpus = useMemo(() => canvasCorpusSummary(statusResource.data?.status), [statusResource.data]);
   const progress = useMemo(() => canvasSyncProgress(statusResource.data?.status), [statusResource.data]);
   const courseJobs = useMemo(() => corpus.latestByCourse.filter((job) => job.type === "course" || Boolean(job.courseCode)), [corpus.latestByCourse]);
+  const materialByCourse = useMemo(() => new Map(
+    (statusResource.data?.status.courses ?? []).map((course) => [course.courseCode.trim().toUpperCase(), course]),
+  ), [statusResource.data]);
+  const activeCourses = courseJobs.filter((job) => ACTIVE.has(job.status)).length;
   const completed = courseJobs.filter((job) => job.status === "completed").length;
   const attention = courseJobs.filter((job) => job.status === "failed").length;
 
@@ -299,7 +323,7 @@ export default function CanvasSyncPage() {
               </div>
               <dl className="grid border-t sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  ["In progress", progress.activeJobs.length],
+                  ["In progress", activeCourses],
                   ["Course editions", corpus.courseEditions],
                   ["Materials stored", corpus.storedMaterials],
                   ["Needs attention", attention],
@@ -331,14 +355,23 @@ export default function CanvasSyncPage() {
                 </div>
                 <div className="border-t">
                   {corpus.failureGroups.map(([message, jobs]) => (
-                    <details key={message} className="group border-b last:border-b-0">
-                      <summary className="hover:bg-muted/35 grid cursor-pointer list-none gap-2 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:px-5 [&::-webkit-details-marker]:hidden">
-                        <span className="font-medium [overflow-wrap:anywhere]">{message}</span>
-                        <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{jobs.length} {jobs.length === 1 ? "course" : "courses"}</span>
-                        <ChevronDownIcon className="text-muted-foreground size-4 transition-transform group-open:rotate-180" />
-                      </summary>
-                      <p className="text-muted-foreground bg-muted/25 border-t px-4 py-3 text-xs sm:px-5">{jobs.map((job) => job.courseCode || job.courseName || "Canvas catalog").join(" · ")}</p>
-                    </details>
+                    (() => {
+                      const copy = failureCopy(message);
+                      const affected = [...new Set(jobs.map((job) => job.courseCode || job.courseName || "Canvas catalog"))];
+                      return (
+                        <details key={message} className="group border-b last:border-b-0">
+                          <summary className="hover:bg-muted/35 grid cursor-pointer list-none gap-2 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:px-5 [&::-webkit-details-marker]:hidden">
+                            <span className="font-medium [overflow-wrap:anywhere]">{copy.title}</span>
+                            <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{affected.length} {affected.length === 1 ? "course" : "courses"} · {jobs.length} {jobs.length === 1 ? "attempt" : "attempts"}</span>
+                            <ChevronDownIcon className="text-muted-foreground size-4 transition-transform group-open:rotate-180" />
+                          </summary>
+                          <div className="text-muted-foreground bg-muted/25 border-t px-4 py-3 text-xs sm:px-5">
+                            {copy.explanation ? <p className="mb-1.5 text-foreground">{copy.explanation}</p> : null}
+                            <p>{affected.join(" · ")}</p>
+                          </div>
+                        </details>
+                      );
+                    })()
                   ))}
                 </div>
               </section>
@@ -382,7 +415,8 @@ export default function CanvasSyncPage() {
                     </div>
                     {visibleJobs.map((job) => {
                       const attempts = corpus.jobs.filter((candidate) => candidate.courseCode === job.courseCode).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-                      return <CourseRow key={job.id} job={job} attempts={attempts.length ? attempts : [job]} />;
+                      const material = job.courseCode ? materialByCourse.get(job.courseCode.trim().toUpperCase()) : undefined;
+                      return <CourseRow key={job.id} job={job} attempts={attempts.length ? attempts : [job]} material={material} />;
                     })}
                   </div>
                 ) : (

@@ -247,7 +247,7 @@ export function ConnectionsTab() {
     () => canvasSyncProgress(corpusStatus.data?.status),
     [corpusStatus.data],
   );
-  const activeCount = corpus.active.length;
+  const activeCount = syncProgress.activeJobs.length;
   const reloadCorpus = corpusStatus.reload;
 
   useEffect(() => {
@@ -638,7 +638,7 @@ export function ConnectionsTab() {
                 <strong className="block text-sm">{activeCount ? "Canvas is collecting material" : corpus.failed.length ? "Canvas sync needs attention" : "Canvas material is up to date"}</strong>
                 <small className="text-muted-foreground mt-0.5 block text-xs">{activeCount ? syncProgress.stage : `${corpus.courseEditions} course editions · ${corpus.storedMaterials} materials stored`}</small>
               </span>
-              <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{activeCount ? `${syncProgress.completedCourses}/${syncProgress.totalCourses || "—"} courses` : `${corpus.failed.length} issues`}</span>
+              <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{activeCount ? `${syncProgress.settledCourses}/${syncProgress.totalCourses || "—"} courses settled` : `${corpus.failed.length} issues`}</span>
               <a href="/app/settings/canvas-sync" className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold hover:underline">Open sync activity <ArrowRightIcon className="size-3.5" /></a>
             </div>
             {activeCount > 0 && syncProgress.percent != null && <Progress value={syncProgress.percent} className="h-1 rounded-none" />}
