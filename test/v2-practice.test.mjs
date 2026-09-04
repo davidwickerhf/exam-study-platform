@@ -15,12 +15,14 @@ import {
   courseFacets,
   difficultyLabel,
   filterQuestions,
+  formatChoiceAttempt,
   groupByChapter,
   groupMistakes,
   mockMinutes,
   mockPercent,
   passed,
   queueLine,
+  questionAnswerMode,
   questionKey,
   typeFacets,
   typeLabel,
@@ -82,6 +84,24 @@ test('the generator\'s placeholders are not answers', () => {
   // One real choice among placeholders is not a choice either.
   assert.deepEqual(usableOptions({ type: 'mc', options: ['Earliest finish', 'string2', ''] }), [])
   assert.deepEqual(usableOptions({ type: 'mc', options: null }), [])
+})
+
+test('each published question gets an honest answer instrument', () => {
+  const options = ['Earliest start', 'Shortest duration', 'Earliest finish']
+  assert.equal(questionAnswerMode(question({ type: 'written' })), 'written')
+  assert.equal(questionAnswerMode(question({ type: 'calc' })), 'written')
+  assert.equal(questionAnswerMode(question({ type: 'pseudocode' })), 'written')
+  assert.equal(questionAnswerMode(question({ type: 'tf' })), 'true-false')
+  assert.equal(questionAnswerMode(question({ type: 'mc', options })), 'single-choice')
+  assert.equal(questionAnswerMode(question({ type: 'multi', options })), 'multiple-choice')
+  // A closed type with incomplete generated data remains answerable.
+  assert.equal(questionAnswerMode(question({ type: 'mc', options: ['Real answer', 'string2'] })), 'written')
+})
+
+test('multi-select attempts retain the published option order', () => {
+  const options = ['A', 'B', 'C', 'D']
+  assert.equal(formatChoiceAttempt(options, ['D', 'B']), 'B\nD')
+  assert.equal(formatChoiceAttempt(options, []), '')
 })
 
 test('a question id is only unique inside its chapter', () => {
@@ -334,9 +354,9 @@ test('missed means what the grader files as a mistake', () => {
 test('the header line states what is waiting in the tab that is open', () => {
   assert.equal(practiceHeadline({ tab: 'questions', loaded: false }), 'Reading your queues…')
   assert.equal(practiceHeadline({ tab: 'questions', loaded: true, questionCount: 547, courseCount: 5 }),
-    '547 questions across 5 active courses — filters stay as you move.')
+    '547 questions across 5 active courses.')
   assert.equal(practiceHeadline({ tab: 'questions', loaded: true, questionCount: 1, courseCount: 1 }),
-    '1 question across 1 active course — filters stay as you move.')
+    '1 question across 1 active course.')
   assert.equal(practiceHeadline({ tab: 'questions', loaded: true }), 'No questions are published for your courses yet.')
   assert.equal(practiceHeadline({ tab: 'flashcards', loaded: true, dueCount: 2, totalCards: 40 }),
     '2 cards due of 40 cards in your deck.')

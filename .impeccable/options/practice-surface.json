@@ -1,0 +1,45 @@
+{
+  "title": "Choose the Practice workspace",
+  "question": "Which structure should turn Practice into a focused study session?",
+  "options": [
+    {
+      "id": "exam-bench",
+      "label": "Exam Bench",
+      "kicker": "THE ROLL",
+      "thesis": "The active question becomes the one decisive instrument panel. Setup recedes into a compact ruled strip while the attempt, feedback, and session controls read as one serious working surface.",
+      "palette": ["#f7f7f4", "#ffffff", "#20263a", "#3f51d9", "#e7e6e1"],
+      "materials": "Warm workspace, white setup band, one near-black focus plane, full-span rules, indigo only for action and state.",
+      "viewport": "Desktop, 1280 × 800",
+      "risk": "The dark focus plane could feel too heavy during long sessions unless feedback and reading states stay restrained.",
+      "comp": ".impeccable/mocks/decision/practice-exam-bench.png"
+    },
+    {
+      "id": "session-cockpit",
+      "label": "Session Cockpit",
+      "thesis": "Configure the sitting once, then let a centered question canvas and a clear session bar carry the work. Filters collapse after the session begins so progress remains visible without competing with the question.",
+      "palette": ["#f7f7f4", "#ffffff", "#f1f2f6", "#3f51d9", "#59627b"],
+      "materials": "Light ruled planes, compact controls, quiet status tint, one anchored progress band, no permanent inner rail.",
+      "viewport": "Desktop, 1280 × 800",
+      "risk": "It is the most immediately familiar option and could feel conventional if the session mechanics are not explicit enough.",
+      "comp": ".impeccable/mocks/decision/practice-session-cockpit.png"
+    },
+    {
+      "id": "question-ledger",
+      "label": "Question Ledger",
+      "thesis": "Practice becomes a ruled academic register. Students can scan questions by course and chapter, then expand one row into a full answering area without losing their place in the bank.",
+      "palette": ["#f7f7f4", "#ffffff", "#eceefe", "#20263a", "#3f51d9"],
+      "materials": "Dense flat rows, full-width dividers, restrained selected-row tint, inset answer field only when a row opens.",
+      "viewport": "Desktop, 1280 × 800",
+      "risk": "It is strongest for browsing but weaker for exam-like immersion, and its density must collapse carefully on mobile.",
+      "comp": ".impeccable/mocks/decision/practice-question-ledger.png"
+    }
+  ],
+  "reroll": {
+    "registers": ["safer", "bolder"]
+  },
+  "buildPath": {
+    "value": "comp",
+    "toggle": true
+  },
+  "steer": true
+}

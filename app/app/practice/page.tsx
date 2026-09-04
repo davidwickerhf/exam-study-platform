@@ -3,6 +3,13 @@
 /**
  * Practice.
  *
+ * THESIS: Practice is a focused sitting, not a searchable catalogue with an answer field.
+ * OWN-WORLD: Warm board, white ruled work plane, near-black ink, indigo only for action and selection.
+ * STORY: Set the scope once, answer one question, check it, and advance without losing the sitting.
+ * FIRST VIEWPORT: A compact instrument strip sits above one broad question plane whose response surface and session footer own the action.
+ * FORM: Session Cockpit, ranked second in seed ba84d8fd and selected as the comp-led direction.
+ * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+ *
  * One destination, four local tabs, and a page frame that stays the same
  * height whichever tab is open: a title, one line saying what is waiting in
  * the tab you are on, this sitting's figure at the right, then the tab row.
@@ -40,7 +47,10 @@ import { NUMERALS, type SessionEvent, api } from "./shared";
 const TabSkeleton = () => (
   <div className="flex flex-col gap-4">
     {Array.from({ length: 4 }).map((_, index) => (
-      <Skeleton key={index} className="h-20 w-full motion-reduce:animate-none" />
+      <Skeleton
+        key={index}
+        className="h-20 w-full motion-reduce:animate-none"
+      />
     ))}
   </div>
 );
@@ -195,7 +205,7 @@ export default function PracticePage() {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] min-w-0 flex-col gap-6 p-5 sm:p-8">
+    <div className="mx-auto flex w-full max-w-[1180px] min-w-0 flex-col gap-6 p-5 pb-28 sm:p-8">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b pb-4">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
@@ -222,19 +232,20 @@ export default function PracticePage() {
           variant="line"
           className="max-w-full justify-start overflow-x-auto"
         >
-          <TabsTrigger value="questions">
+          <TabsTrigger value="questions" className="gap-1.5 px-2 sm:px-3">
             Questions
-            {questionCount > 0 && <TabCount value={questionCount} />}
           </TabsTrigger>
-          <TabsTrigger value="flashcards">
+          <TabsTrigger value="flashcards" className="px-2 sm:px-3">
             Flashcards
             {dueCount > 0 && <TabCount value={dueCount} />}
           </TabsTrigger>
-          <TabsTrigger value="mistakes">
+          <TabsTrigger value="mistakes" className="px-2 sm:px-3">
             Mistakes
             {openMistakes > 0 && <TabCount value={openMistakes} />}
           </TabsTrigger>
-          <TabsTrigger value="mocks">Mocks</TabsTrigger>
+          <TabsTrigger value="mocks" className="px-2 sm:px-3">
+            Mocks
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="questions" className="min-w-0">
