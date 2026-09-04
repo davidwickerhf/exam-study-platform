@@ -5,7 +5,7 @@ export type Item = { id: string; title: string; mastery: number; chapterIds?: st
 export type CourseProfile = {
   description?: string
   learningOutcomes?: string[]
-  assessment?: { status?: string; components?: { name: string; type?: string; weightPercent?: number | null; minimumPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }[]; overallPassRules?: string[]; resitRules?: string[]; attendanceRules?: string[] }
+  assessment?: { status?: string; components?: { name: string; type?: string; weightPercent?: number | null; minimumPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }[]; overallPassRules?: string[]; resitRules?: string[]; attendanceRules?: string[]; attendanceEvidence?: { text: string; activity: string; allowedMisses?: number | null; minimumAttendancePercent?: number | null; excusedPolicy?: string; evidence?: unknown[] }[] }
 }
 
 export type StudyCourse = {

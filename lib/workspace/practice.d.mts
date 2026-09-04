@@ -137,6 +137,8 @@ export declare function sessionMeter(state?: { tab?: string; answered?: number; 
 export declare function typeLabel(type: unknown): string | null
 export declare function difficultyLabel(question: { difficulty?: unknown } | null | undefined): string | null
 export declare function usableOptions(question: { type?: unknown; options?: unknown } | null | undefined): string[]
+export declare function questionAnswerMode(question: { type?: unknown; options?: unknown } | null | undefined): 'true-false' | 'single-choice' | 'multiple-choice' | 'written'
+export declare function formatChoiceAttempt(options: unknown, selected: unknown): string
 export declare function questionKey(question: { courseId?: unknown; chapterId?: unknown; id?: unknown } | null | undefined): string
 export declare function courseFacets(questions: PracticeQuestion[] | null | undefined): CourseFacet[]
 export declare function chapterFacets(questions: PracticeQuestion[] | null | undefined, courseId?: string): ChapterFacet[]

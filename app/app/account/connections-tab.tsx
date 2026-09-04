@@ -10,6 +10,8 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
+import { CanvasMark } from "@/components/brand/canvas-mark";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -56,6 +58,17 @@ type CanvasCourseOption = {
 
 type MaterialMode = "none" | "private" | "community";
 
+type CalendarLink = {
+  id: string;
+  label: string;
+  url: string;
+  eventCount: number;
+  lastSyncedAt?: string | null;
+  unselectedCourseCount?: number;
+};
+
+type AcademicState = { workspace: { calendars?: CalendarLink[] } };
+
 /**
  * How often the import ledger is asked again while Canvas is working.
  *
@@ -66,6 +79,137 @@ type MaterialMode = "none" | "private" | "community";
  * while the document is hidden, resuming with a fresh read when it is not.
  */
 const POLL_MS = 10_000;
+const CONNECTION_GRID = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 sm:grid-cols-[minmax(12rem,1.2fr)_7rem_minmax(10rem,1fr)_8rem_auto] sm:gap-3";
+const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+function isStale(value: string | null | undefined) {
+  if (!value) return true;
+  const time = new Date(value).getTime();
+  return !Number.isFinite(time) || Date.now() - time > STALE_AFTER_MS;
+}
+
+function TimetableConnections() {
+  const academics = useJson<AcademicState>("/api/academics");
+  const [url, setUrl] = useState("");
+  const [label, setLabel] = useState("University timetable");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<CalendarLink | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const calendars = academics.data?.workspace.calendars ?? [];
+
+  async function connect(event: React.FormEvent) {
+    event.preventDefault();
+    if (!url.trim()) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await readJson("/api/academics/calendars", {
+        method: "POST",
+        body: JSON.stringify({ url: url.trim(), label: label.trim() || "University timetable" }),
+      });
+      setUrl("");
+      setNotice("Timetable connected. Appointments will keep refreshing in the background.");
+      academics.reload();
+    } catch (cause) {
+      setError((cause as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sync(link: CalendarLink) {
+    setBusy(true);
+    setSyncingId(link.id);
+    setError(null);
+    setNotice(null);
+    try {
+      await readJson(`/api/academics/calendars/${encodeURIComponent(link.id)}/sync`, { method: "POST", body: JSON.stringify({}) });
+      setNotice(`${link.label} is up to date.`);
+      academics.reload();
+    } catch (cause) {
+      setError((cause as Error).message);
+    } finally {
+      setBusy(false);
+      setSyncingId(null);
+    }
+  }
+
+  async function remove() {
+    if (!removing) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await readJson(`/api/academics/calendars/${encodeURIComponent(removing.id)}`, { method: "DELETE" });
+      setNotice("Timetable connection removed. Its appointments no longer appear in Wicker Study.");
+      setRemoving(null);
+      academics.reload();
+    } catch (cause) {
+      setError((cause as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      {academics.error ? (
+        <div className="border-b px-4 py-4 sm:px-6 lg:px-8"><Failed what="Timetable settings are unavailable" message={academics.error} /></div>
+      ) : !academics.data ? (
+        <div className="border-b px-4 py-4 sm:px-6 lg:px-8"><Skeleton className="h-12 w-full" /></div>
+      ) : calendars.length ? (
+        calendars.map((link) => {
+          const refreshing = syncingId === link.id;
+          const stale = !refreshing && isStale(link.lastSyncedAt);
+          return <div key={link.id} className={`border-b px-4 py-4 sm:px-6 lg:px-8 ${CONNECTION_GRID}`}>
+            <span className="col-start-1 row-start-1 flex min-w-0 items-center gap-3"><span className="bg-muted text-primary flex size-10 shrink-0 items-center justify-center rounded-md"><CalendarDaysIcon className="size-[18px]" /></span><span className="min-w-0"><strong className="block truncate text-sm font-semibold">{link.label}</strong><small className="text-muted-foreground sm:hidden">Timetable</small></span></span>
+            <span className="col-start-1 row-start-2 flex items-center gap-2 pl-[3.25rem] text-xs sm:col-auto sm:row-auto sm:pl-0"><span className={`${refreshing ? "animate-pulse bg-primary" : stale ? "bg-border-strong" : "bg-foreground"} size-1.5 rounded-full`} />{refreshing ? "Refreshing" : stale ? "Needs refresh" : "Connected"}</span>
+            <span className={`text-muted-foreground hidden text-xs sm:block ${NUMERALS}`}>{link.eventCount} appointment{link.eventCount === 1 ? "" : "s"}</span>
+            <span className={`text-muted-foreground hidden text-xs sm:block ${NUMERALS}`}>{link.lastSyncedAt ? relative(link.lastSyncedAt) : "Not synced"}</span>
+            <span className="col-start-2 row-span-2 row-start-1 flex justify-end gap-1 sm:col-auto sm:row-auto"><Button variant="ghost" size="sm" disabled={busy} onClick={() => void sync(link)}><RefreshCwIcon className="sm:hidden" aria-label="Refresh" /><span className="hidden sm:inline">Refresh</span></Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => setRemoving(link)}>Remove</Button></span>
+          </div>;
+        })
+      ) : (
+        <div className={`border-b px-4 py-4 sm:px-6 lg:px-8 ${CONNECTION_GRID}`}>
+          <span className="col-start-1 row-start-1 flex min-w-0 items-center gap-3"><span className="bg-muted text-primary flex size-10 shrink-0 items-center justify-center rounded-md"><CalendarDaysIcon className="size-[18px]" /></span><span><strong className="block text-sm font-semibold">Timetable</strong><small className="text-muted-foreground sm:hidden">Live calendar feed</small></span></span>
+          <span className="col-start-1 row-start-2 flex items-center gap-2 pl-[3.25rem] text-xs sm:col-auto sm:row-auto sm:pl-0"><span className="bg-border-strong size-1.5 rounded-full" />Not connected</span>
+          <span className="text-muted-foreground hidden text-xs sm:block">Live schedule and exam dates</span>
+          <span className="text-muted-foreground hidden text-xs sm:block">Never</span>
+          <Button type="button" variant="ghost" size="sm" className="col-start-2 row-span-2 row-start-1 sm:col-auto sm:row-auto" onClick={() => setAdding(true)}>Connect</Button>
+        </div>
+      )}
+
+        {adding && <form onSubmit={connect} className="bg-muted/45 grid gap-4 border-b p-4 sm:grid-cols-[minmax(0,1fr)_15rem_auto] sm:items-end sm:p-6 lg:px-8">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Feed URL</span>
+            <Input type="url" required value={url} disabled={busy} onChange={(event) => setUrl(event.target.value)} placeholder="https://… or webcal://…" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Name</span>
+            <Input value={label} maxLength={120} disabled={busy} onChange={(event) => setLabel(event.target.value)} />
+          </label>
+          <span className="flex items-center justify-end gap-1"><Button type="button" variant="ghost" disabled={busy} onClick={() => { setAdding(false); setError(null); }}>Cancel</Button><Button type="submit" disabled={busy || !url.trim()}>{busy ? "Connecting…" : "Connect timetable"}</Button></span>
+        </form>}
+        {notice && <p role="status" className="border-b px-4 py-3 text-primary text-sm font-medium sm:px-6 lg:px-8">{notice}</p>}
+        {error && <p role="alert" className="border-b px-4 py-3 text-sm font-medium sm:px-6 lg:px-8">{error}</p>}
+
+      <Confirm
+        open={Boolean(removing)}
+        onOpenChange={(open) => { if (!open) setRemoving(null); }}
+        title="Remove this timetable connection?"
+        description="Its live appointments will stop appearing in Wicker Study. Nothing changes in your university timetable."
+        word="REMOVE"
+        action="Remove connection"
+        busy={busy}
+        error={error}
+        onConfirm={remove}
+      />
+    </>
+  );
+}
 
 export function ConnectionsTab() {
   const connections = useJson<{ connections: CanvasConnection[] }>(
@@ -91,6 +235,7 @@ export function ConnectionsTab() {
   );
   const [notice, setNotice] = useState<string | null>(null);
   const [addingHost, setAddingHost] = useState(false);
+  const [managingHosts, setManagingHosts] = useState(false);
 
   const corpus = useMemo(
     () => canvasCorpusSummary(corpusStatus.data?.status),
@@ -233,11 +378,16 @@ export function ConnectionsTab() {
     }
     setBusy(true);
     setError(null);
+    let credentialsSaved = false;
     try {
       await readJson("/api/account/integrations/canvas", {
         method: "PUT",
         body: JSON.stringify({ canvasUrl: origin, accessToken: token }),
       });
+      credentialsSaved = true;
+      setToken("");
+      setAddingHost(false);
+      connections.reload();
       await readJson("/api/account/integrations/canvas/corpus", {
         method: "PUT",
         body: JSON.stringify({
@@ -246,11 +396,16 @@ export function ConnectionsTab() {
           sharingMode: materialMode === "community" ? "community" : "private",
         }),
       });
-      setToken("");
-      setAddingHost(false);
+      setNotice("Canvas connected. Your material permission was saved.");
       connections.reload();
     } catch (cause) {
-      setError((cause as Error).message);
+      if (credentialsSaved) {
+        setNotice("Canvas is connected.");
+        setError(`The material permission was not saved. Open Manage to choose it again. ${(cause as Error).message}`);
+        connections.reload();
+      } else {
+        setError((cause as Error).message);
+      }
     } finally {
       setBusy(false);
     }
@@ -277,31 +432,41 @@ export function ConnectionsTab() {
   const saved = connections.data?.connections ?? [];
 
   return (
-    <div className="flex flex-col gap-8">
-      <Section
-        title={saved.length ? "Canvas" : "Connect Canvas"}
-        note={
-          saved.length
-            ? "Your connected Canvas accounts and material permissions."
-            : "Bring announcements, deadlines and course material into your private workspace."
-        }
-        action={
-          saved.length ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setAddingHost((value) => !value)}
-            >
-              {addingHost ? "Cancel" : "Add another Canvas host"}
-            </Button>
-          ) : undefined
-        }
-      >
-        {(!saved.length || addingHost) && (
+    <div className="flex flex-col">
+      <header className="-mx-4 border-b px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <h2 className="text-[18px] font-semibold">Connections</h2>
+        <p className="text-muted-foreground mt-1 text-sm">Manage the services and live sources connected to your study desk.</p>
+      </header>
+      <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+        <div className={`text-muted-foreground hidden gap-3 border-b px-8 py-3 text-[10.5px] font-semibold tracking-[0.11em] uppercase sm:grid ${CONNECTION_GRID}`}>
+          <span>Connection</span><span>Status</span><span>Details</span><span>Activity</span><span>Actions</span>
+        </div>
+        {connections.error ? (
+          <div className="border-b px-4 py-4 sm:px-6 lg:px-8"><Failed what="Canvas settings are unavailable" message={connections.error} /></div>
+        ) : !connections.data ? (
+          <div className="border-b px-4 py-4 sm:px-6 lg:px-8"><Skeleton className="h-12 w-full" /></div>
+        ) : saved.length ? saved.map((connection) => {
+          return <div key={connection.origin} className={`border-b px-4 py-4 sm:px-6 lg:px-8 ${CONNECTION_GRID}`}>
+            <span className="col-start-1 row-start-1 flex min-w-0 items-center gap-3"><span className="bg-muted text-[#e13f2f] flex size-10 shrink-0 items-center justify-center rounded-md"><CanvasMark className="size-5" /></span><span className="min-w-0"><strong className="block truncate text-sm font-semibold">Canvas</strong><small className="text-muted-foreground block max-w-52 truncate text-xs sm:max-w-none">{connection.origin}</small></span></span>
+            <span className="col-start-1 row-start-2 flex items-center gap-2 pl-[3.25rem] text-xs sm:col-auto sm:row-auto sm:pl-0"><span className="bg-foreground size-1.5 rounded-full" />Connected</span>
+            <span className="text-muted-foreground hidden text-xs sm:block">{connection.corpus?.collectionEnabled ? connection.corpus.sharingMode === "community" ? "Shared material" : "Private material" : "Deadlines only"}</span>
+            <span className={`text-muted-foreground hidden text-xs sm:block ${NUMERALS}`}>{connection.lastUsedAt ? relative(connection.lastUsedAt) : "Not yet used"}</span>
+            <Button type="button" variant="ghost" size="sm" className="col-start-2 row-span-2 row-start-1 sm:col-auto sm:row-auto" onClick={() => setManagingHosts((value) => !value)}>{managingHosts ? "Close" : "Manage"}</Button>
+          </div>;
+        }) : null}
+        {connections.data && !saved.length && !addingHost && (
+          <div className={`border-b px-4 py-4 sm:px-6 lg:px-8 ${CONNECTION_GRID}`}>
+            <span className="col-start-1 row-start-1 flex min-w-0 items-center gap-3"><span className="bg-muted text-[#e13f2f] flex size-10 shrink-0 items-center justify-center rounded-md"><CanvasMark className="size-5" /></span><span><strong className="block text-sm font-semibold">Canvas</strong><small className="text-muted-foreground sm:hidden">Courses, deadlines and rules</small></span></span>
+            <span className="col-start-1 row-start-2 flex items-center gap-2 pl-[3.25rem] text-xs sm:col-auto sm:row-auto sm:pl-0"><span className="bg-border-strong size-1.5 rounded-full" />Not connected</span>
+            <span className="text-muted-foreground hidden text-xs sm:block">Courses, deadlines and rules</span>
+            <span className="text-muted-foreground hidden text-xs sm:block">Never</span>
+            <Button type="button" variant="ghost" size="sm" className="col-start-2 row-span-2 row-start-1 sm:col-auto sm:row-auto" onClick={() => setAddingHost(true)}>Connect</Button>
+          </div>
+        )}
+        {addingHost && (
           <form
             onSubmit={connect}
-            className="bg-card grid gap-4 rounded-sm p-4 sm:grid-cols-2"
+            className="bg-muted/45 grid gap-4 border-b p-4 sm:grid-cols-2 sm:p-6 lg:px-8"
           >
             <div className="flex flex-col gap-2 sm:col-span-2">
               <p className="text-sm">
@@ -353,7 +518,7 @@ export function ConnectionsTab() {
                 {custom ? "Use Maastricht Canvas" : "Use another institution"}
               </button>
             </label>
-            <fieldset className="flex flex-col gap-2 border-t pt-4 sm:col-span-2">
+            <fieldset className="-mx-4 flex flex-col gap-2 border-t px-4 pt-4 sm:col-span-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
               <legend className="text-sm font-semibold">
                 Course-material collection
               </legend>
@@ -414,14 +579,17 @@ export function ConnectionsTab() {
                 required
               />
             </label>
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-3 sm:col-span-2">
+            <div className="-mx-4 flex flex-wrap items-center justify-between gap-4 border-t px-4 pt-3 sm:col-span-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
               <p className="text-muted-foreground text-xs">
                 Encrypted immediately and never displayed again. Do not paste a
                 password, OTP, cookie or session export.
               </p>
-              <Button type="submit" disabled={busy}>
-                {busy ? "Connecting…" : "Connect Canvas"}
-              </Button>
+              <span className="flex items-center gap-2">
+                <Button type="button" variant="ghost" disabled={busy} onClick={() => { setAddingHost(false); setError(null); }}>Cancel</Button>
+                <Button type="submit" disabled={busy}>
+                  {busy ? "Connecting…" : "Connect Canvas"}
+                </Button>
+              </span>
             </div>
             {error && (
               <p role="alert" className="text-sm font-medium sm:col-span-2">
@@ -430,10 +598,18 @@ export function ConnectionsTab() {
             )}
           </form>
         )}
-      </Section>
+        {!addingHost && !managingHosts && notice && <p role="status" className="border-b px-4 py-3 text-primary text-sm font-medium sm:px-6 lg:px-8">{notice}</p>}
+        {!addingHost && !managingHosts && error && <p role="alert" className="border-b px-4 py-3 text-sm font-medium sm:px-6 lg:px-8">{error}</p>}
+        <TimetableConnections />
+        {saved.length > 0 && <button type="button" onClick={() => setAddingHost(true)} className="hover:bg-muted/45 flex w-full items-center gap-3 border-b px-4 py-4 text-left sm:px-6 lg:px-8">
+          <span className="border-border-strong text-muted-foreground flex size-10 items-center justify-center rounded-full border text-xl">+</span>
+          <span><strong className="block text-sm font-semibold">Add connection</strong><small className="text-muted-foreground text-xs">Connect another Canvas host</small></span>
+          <span className="text-primary ml-auto text-lg">›</span>
+        </button>}
+      </div>
 
-      <Section
-        title="Saved Canvas hosts"
+      {saved.length > 0 && managingHosts && <div className="mt-8"><Section
+        title="Canvas management"
         note="Removing one deletes its encrypted token here and changes nothing in Canvas."
         action={
           <a
@@ -778,7 +954,7 @@ export function ConnectionsTab() {
             {error}
           </p>
         )}
-      </Section>
+      </Section></div>}
 
       <Confirm
         open={Boolean(removing)}

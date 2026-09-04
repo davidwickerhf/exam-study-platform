@@ -18,7 +18,7 @@ test('Canvas connection and material collection are separate explicit permission
 
 test('private snapshots stay account-scoped while community snapshots can be reused by enrolled accounts', () => {
   assert.match(migration, /contributor_user_id TEXT NOT NULL/)
-  assert.match(retrieval, /s\.sharing_mode='community' OR s\.contributor_user_id=\$\{accountId\}/)
+  assert.match(retrieval, /s\.contributor_user_id=\$\{accountId\}.+s\.sharing_mode='community'.+accepted\.consent_status='accepted'/s)
   assert.match(worker, /permission\.sharing_mode === 'community' \? 'candidate' : 'private'/)
 })
 
@@ -47,7 +47,7 @@ test('retrieval supports embeddings and explicit academic-year editions', () => 
 
 test('original documents and local media retain the same account authorization boundary', () => {
   assert.match(corpus, /canvasCorpusAsset/)
-  assert.match(corpus, /s\.sharing_mode='community' OR s\.contributor_user_id=\$\{accountId\}/)
+  assert.match(corpus, /s\.contributor_user_id=\$\{accountId\}.+s\.sharing_mode='community'.+accepted\.consent_status='accepted'/s)
   assert.match(worker, /localObjectKey/)
   assert.match(server, /Accept-Ranges/)
   assert.match(server, /\/api\\\/corpus\\\/assets/)

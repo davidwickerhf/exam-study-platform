@@ -19,6 +19,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import {
   type MockSession,
   type PracticeQuestion,
@@ -46,8 +46,8 @@ import {
 } from "@/lib/workspace/practice.mjs";
 import type { StudyCourse } from "@/lib/workspace/courses.mjs";
 import {
+  AnswerControl,
   COLUMN_LABEL,
-  Choices,
   NUMERALS,
   PAPER,
   PROSE,
@@ -96,6 +96,7 @@ export default function MocksTab({
   } | null>(null);
   const [selected, setSelected] = useState<MockSession | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<"abandon" | "submit" | null>(null);
 
   const availableCourses = courseFacets(bank);
   const availableChapters = chapterFacets(bank, courseId || "all");
@@ -229,38 +230,43 @@ export default function MocksTab({
     const question = run.questions[run.index];
     const grading = run.phase === "grading";
     return (
-      <div className="flex w-full max-w-[74ch] flex-col gap-5">
-        <div className="flex items-center justify-between gap-3 border-b pb-3">
+      <section className="bg-background flex w-full flex-col overflow-hidden rounded-[14px] border md:min-h-[calc(100dvh-282px)]">
+        <header className="flex items-center justify-between gap-3 border-b px-5 py-4 sm:px-8">
           <strong className={NUMERALS}>
             Question {run.index + 1} / {run.questions.length}
           </strong>
           <strong className={`text-2xl ${NUMERALS}`}>
             {mockTimeLabel(remaining)}
           </strong>
+        </header>
+        <div className="mx-auto flex w-full max-w-[900px] flex-1 flex-col gap-7 px-5 py-7 sm:px-8 sm:py-9">
+          <div className="flex flex-col gap-3">
+            <TypeLine question={question} />
+            <Prose
+              source={question.question}
+              className={`${PROSE} font-heading text-[21px] leading-[1.45] font-semibold tracking-[-0.015em]`}
+            />
+          </div>
+          <AnswerControl
+            question={question}
+            value={run.answers[question.id] ?? ""}
+            onChange={(value) =>
+              setRun((current) =>
+                current
+                  ? {
+                      ...current,
+                      answers: {
+                        ...current.answers,
+                        [question.id]: value,
+                      },
+                    }
+                  : current,
+              )
+            }
+            disabled={grading}
+          />
         </div>
-        <TypeLine question={question} />
-        <Prose source={question.question} className={PROSE} />
-        <Choices question={question} />
-        <Textarea
-          value={run.answers[question.id] ?? ""}
-          onChange={(event) =>
-            setRun((current) =>
-              current
-                ? {
-                    ...current,
-                    answers: {
-                      ...current.answers,
-                      [question.id]: event.target.value,
-                    },
-                  }
-                : current,
-            )
-          }
-          placeholder="Write your answer…"
-          aria-label="Your answer"
-          disabled={grading}
-        />
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-between">
+        <footer className="bg-background/95 z-10 flex flex-col gap-2 border-t px-5 py-4 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:justify-between sm:px-8 md:sticky md:bottom-0">
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -284,41 +290,55 @@ export default function MocksTab({
               variant="ghost"
               className="flex-1 sm:flex-none"
               disabled={grading}
-              onClick={() => {
-                if (window.confirm("Abandon this mock? Answers will be lost."))
-                  setRun(null);
-              }}
+              onClick={() => setConfirmation("abandon")}
             >
               Abandon
             </Button>
             <Button
               className="flex-1 sm:flex-none"
               disabled={grading}
-              onClick={() => {
-                if (window.confirm("Submit your mock for grading?"))
-                  void submit(run);
-              }}
+              onClick={() => setConfirmation("submit")}
             >
               {grading ? "Grading…" : "Submit mock"}
             </Button>
           </div>
-        </div>
+        </footer>
         {grading && (
           <p
             role="status"
             aria-live="polite"
-            className={`text-muted-foreground border-t pt-3 text-sm ${NUMERALS}`}
+            className={`text-muted-foreground border-t px-5 py-3 text-sm sm:px-8 ${NUMERALS}`}
           >
             Graded {progress?.completed ?? 0} of{" "}
             {progress?.total ?? run.questions.length} answers.
           </p>
         )}
         {failure && (
-          <p role="alert" className="text-destructive text-sm font-medium">
+          <p
+            role="alert"
+            className="text-destructive border-t px-5 py-3 text-sm font-medium sm:px-8"
+          >
             {failure}
           </p>
         )}
-      </div>
+        <ConfirmDialog
+          open={confirmation === "abandon"}
+          onOpenChange={(open) => { if (!open) setConfirmation(null); }}
+          title="Abandon this mock?"
+          description="Your answers from this sitting will be lost and no result will be recorded."
+          confirmLabel="Abandon mock"
+          destructive
+          onConfirm={() => { setConfirmation(null); setRun(null); }}
+        />
+        <ConfirmDialog
+          open={confirmation === "submit"}
+          onOpenChange={(open) => { if (!open) setConfirmation(null); }}
+          title="Submit this mock for grading?"
+          description="This ends the timed sitting and grades every answer you have entered. Unanswered questions receive no credit."
+          confirmLabel="Submit mock"
+          onConfirm={() => { setConfirmation(null); void submit(run); }}
+        />
+      </section>
     );
   }
 

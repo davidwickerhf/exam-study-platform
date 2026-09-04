@@ -176,3 +176,31 @@ test('Canvas deadlines and Canvas events join the calendar and keep a link out t
   assert.equal(event.notes, 'C1.05')
   assert.equal(result.categories['canvas-deadline'], 'Canvas deadlines')
 })
+
+test('Wicker calendar events retain their editable identity and source', () => {
+  const workspace = normalizeAcademicWorkspace({
+    profile: {},
+    courses: [{ id: 'stats', code: 'BCS1520', name: 'Statistics', attempts: [] }],
+    planning: {
+      calendarEvents: [{
+        id: 'personal-review',
+        calendarId: 'wicker',
+        title: 'Review probability',
+        start: '2026-09-04T12:00:00.000Z',
+        end: '2026-09-04T13:00:00.000Z',
+        allDay: false,
+        type: 'study',
+        courseId: 'stats',
+        location: 'Library'
+      }]
+    }
+  })
+  const result = aggregateCalendar({ workspace })
+  const event = result.events.find((item) => item.id === 'personal:personal-review')
+  assert.equal(event.editable, true)
+  assert.equal(event.managedEventId, 'personal-review')
+  assert.equal(event.source, 'personal:wicker')
+  assert.equal(event.feedLabel, 'Wicker calendar')
+  assert.equal(event.location, 'Library')
+  assert.equal(event.courseCode, 'BCS1520')
+})

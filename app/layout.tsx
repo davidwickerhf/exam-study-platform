@@ -32,19 +32,17 @@ const archivoNarrow = Archivo_Narrow({
 // The direction this surface is built to, kept in the emitted markup so it
 // survives the production build and can be audited against the render.
 const DIRECTION_CONTRACT = `<!--
-THESIS: a degree is a timetable, not a dashboard; this uses the form the
-student's own country trusts for dense public truth — the departure board.
-OWN-WORLD: ink ground, paper-white type, signal blue for what is live, rules
-before cards, Archivo, and Archivo Narrow for numerals and course codes.
-STORY: opened at 01:35 to learn what is true tomorrow; the live row is the
-only thing carrying colour, so it is read first, and acted on.
-FIRST VIEWPORT: period and week rule the top, the next commitment owns the
-broad left field, due work scans at right, and degree progress follows below.
-FORM: Dutch public information design (NS board, Crouwel, Total Design);
-candidate 4 of seven; seed key wicker1.
-FINISH: unreviewed and undocumented is unfinished; this build ends with the
-finish review, the verdict, DESIGN.md, and every shipping raster carrying its
-provenance.
+THESIS: Wicker Study turns a whole degree into one clear next move; the public
+site refuses the generic feature-card landing page and lets the product prove it.
+OWN-WORLD: warm academic canvas, near-black ink, signal indigo, broad grotesque
+headings, narrow data, full-span rules, compact registers, and white working planes.
+STORY: understand the promise, inspect a faithful Study Itinerary, follow the
+source-to-action loop, then open a private workspace.
+FIRST VIEWPORT: a poster-scale statement and compact action column lead into a
+near-full-width real product composition; Plan, Follow, Study, Remember forms
+its index, and the route reveal is the signature motion.
+FORM: Study Control Room, dealt structure seven; seed 4cd51852.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 -->`
 
 export const metadata: Metadata = {

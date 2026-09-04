@@ -1,26 +1,29 @@
-/** The course ledger while it is being read. */
+/** The degree runway and active course desk while their sources are loading. */
 
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from "@/components/ui/skeleton";
 
-const BAR = 'rounded-[4px] motion-reduce:animate-none'
-const ROWS = [0, 1, 2, 3, 4]
-
+const BAR = "motion-reduce:animate-none";
 export default function CoursesLoading() {
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8" role="status" aria-busy="true" aria-label="Loading your courses">
-      <header className="border-border flex flex-col gap-2 border-b pb-5">
-        <Skeleton className={`h-8 w-52 ${BAR}`} />
-        <Skeleton className={`h-4 w-[24rem] max-w-full ${BAR}`} />
+    <div
+      className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      role="status"
+      aria-busy="true"
+      aria-label="Loading your courses"
+    >
+      <header className="flex flex-col gap-2">
+        <Skeleton className={`h-10 w-44 rounded-[4px] ${BAR}`} />
+        <Skeleton className={`h-4 w-[38rem] max-w-full rounded-[4px] ${BAR}`} />
       </header>
-      <div className="flex flex-col">
-        {ROWS.map((row) => (
-          <div key={row} className="border-border grid grid-cols-[7rem_minmax(0,1fr)_6rem] items-center gap-x-6 border-b py-4">
-            <Skeleton className={`h-3.5 w-16 ${BAR}`} />
-            <Skeleton className={`h-3.5 w-full max-w-[22rem] ${BAR}`} />
-            <Skeleton className={`ml-auto h-3.5 w-14 ${BAR}`} />
-          </div>
-        ))}
+      <Skeleton className={`h-56 w-full rounded-xl ${BAR}`} />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <Skeleton className={`h-[36rem] w-full rounded-xl ${BAR}`} />
+        <div className="flex flex-col gap-4">
+          <Skeleton className={`h-32 w-full rounded-xl ${BAR}`} />
+          <Skeleton className={`h-64 w-full rounded-xl ${BAR}`} />
+          <Skeleton className={`h-72 w-full rounded-xl ${BAR}`} />
+        </div>
       </div>
     </div>
-  )
+  );
 }

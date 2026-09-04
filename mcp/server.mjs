@@ -417,7 +417,7 @@ server.tool('wicker_sign_out',
       stillConnected: Boolean(credential.apiKey),
       note: credential.apiKey
         ? 'WICKER_STUDY_API_KEY is set in this process’s environment and still applies; unset it to disconnect fully.'
-        : `Revoke the key itself at ${baseUrl}/app/account?tab=api if it should stop working everywhere.`
+        : `Revoke the key itself at ${baseUrl}/app/settings?tab=api if it should stop working everywhere.`
     }
   }))
 
@@ -426,7 +426,7 @@ server.tool('canvas_connect',
   { canvasUrl: z.string().optional().describe(`Canvas origin. Default ${DEFAULT_CANVAS_URL}.`) },
   run(async ({ canvasUrl }) => {
     const origin = new URL(canvasUrl || DEFAULT_CANVAS_URL).origin
-    const settings = `${baseUrl}/app/account?tab=connections`
+    const settings = `${baseUrl}/app/settings?tab=connections`
     const connections = (await api('/api/account/integrations/canvas')).connections || []
     const match = connections.find((connection) => connection.origin === origin) || null
     if (match) {
@@ -489,6 +489,7 @@ server.tool('list_mistakes', 'Mistake bank.', { open: z.boolean().optional().des
 server.tool('list_mock_sessions', 'Completed mock sessions.', {}, run(() => api('/api/mocks')))
 server.tool('get_mock_session', 'One mock session with every answer and correction.', { sessionId: z.string() }, run(({ sessionId }) => api(`/api/mocks/${encodeURIComponent(sessionId)}`)))
 server.tool('get_academic_plan', 'Active academic programme: courses, attempts, exam dates, events, gates, summary.', {}, run(() => api('/api/academics')))
+server.tool('get_planning_context', 'Read the student’s saved exam scenario as a compact planning model. Recorded attempts and grades are explicitly separated from private choices such as a resit, following-year deferral, expected grade, or what-if outcome. Actual academic-calendar records are grouped into dated examination windows, so one window can contain a period’s primary exams and another period’s resits. Each course includes allowed session ids and course-specific roles derived from its teaching period, calendar, transcript fallback, and verified resit rules. Returns stable session ids and a revision; call this before suggesting or changing the plan.', {}, run(() => api('/api/planning/context')))
 server.tool('list_known_programmes', 'The catalogue of known bachelor programmes.', {}, run(() => api('/api/editorial-programmes')))
 server.tool('get_calendar', 'Unified calendar in one call: exam attempts, personal events, registration windows, the institution calendar, saved timetable feeds (lectures, tutorials, labs), and — when Canvas is connected — Canvas assignment deadlines and Canvas course events. This is the tool for "when is my next lecture", "where do I need to be", and "what is due this week". Events carry `category`, `courseCode`, and for Canvas items a `canvasStatus`; `problems` names any source that could not be read, which is how you tell an empty week from a missing timetable feed.', { from: z.string().optional().describe('ISO date; omit for everything'), to: z.string().optional() },
   run(async ({ from, to }) => { const data = await api('/api/calendar/events'); const events = data.events.filter((e) => (!from || String(e.start) >= from) && (!to || String(e.start) <= to)); return { ...data, events } }))
@@ -518,6 +519,14 @@ server.tool('record_chapter_read', 'Record that the student read a chapter.', { 
   run(({ courseId, chapterId, label }) => api('/api/activity', { method: 'POST', body: { type: 'read', courseId, chapterId, label } })))
 server.tool('save_academic_plan', 'Save the active academic programme workspace. Pass the revision you read to avoid overwriting concurrent edits.', { workspace: z.record(z.any()), expectedRevision: z.number().int() },
   run(({ workspace, expectedRevision }) => api('/api/academics', { method: 'PUT', body: { workspace, expectedRevision } })))
+server.tool('update_planning_objective', 'Update one course in the student’s private exam scenario without replacing the rest of the academic record. Call get_planning_context first, use a session id from that course’s planningRules.allowedSessionIds, inspect allowedDestinations for whether the shared window is a primary or resit route for that course, explain the exact change to the student, and pass the revision you read. Invalid sittings and stale revisions are rejected.', {
+  courseId: z.string(),
+  expectedRevision: z.number().int(),
+  mode: z.enum(['current', 'resit', 'none']).optional(),
+  targetSession: z.string().max(140).nullable().optional(),
+  expectedGrade: z.number().min(0).max(100).nullable().optional(),
+  outcome: z.enum(['actual', 'pass', 'fail']).optional()
+}, run(({ courseId: id, expectedRevision, ...objective }) => api(`/api/planning/objectives/${encodeURIComponent(id)}`, { method: 'PATCH', body: { objective, expectedRevision } })))
 server.tool('set_course_visibility', 'Archive/unarchive or reorder a course for the student.', { courseId, archived: z.boolean().optional(), order: z.number().int().optional() },
   run(({ courseId, archived, order }) => api(`/api/courses/${encodeURIComponent(courseId)}`, { method: 'PATCH', body: { archived, order } })))
 

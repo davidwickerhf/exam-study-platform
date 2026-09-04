@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { DownloadIcon, PlusIcon, UploadIcon } from 'lucide-react'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -44,7 +45,7 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 function SectionHead({ title, description, children }: { title: string; description?: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b pb-3">
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b px-5 py-4 sm:px-6">
       <div className="flex max-w-[74ch] flex-col gap-1">
         <h2 className="text-lg font-semibold">{title}</h2>
         {description && <p className="text-muted-foreground text-sm">{description}</p>}
@@ -161,8 +162,15 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
   const includesFailed = workspace.profile.gpaIncludesFailedCourses === true
 
   return (
-    <div className="flex max-w-[860px] flex-col gap-8">
-      <section className="flex flex-col gap-4">
+    <div className="flex w-full flex-col gap-8 pb-10">
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b pb-6">
+        <div className="max-w-[66ch]">
+          <h2 className="font-heading text-[32px] font-semibold tracking-[-0.03em]">Planning preferences</h2>
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">Control the active programme, calculation rules, agent permissions, and portability of this academic plan.</p>
+        </div>
+        <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/app/settings" />}>Workspace settings</Button>
+      </header>
+      <section className="overflow-hidden rounded-xl border bg-card">
         <SectionHead title="Programmes" description="Each programme is a separate private record with its own curriculum, attempts, and rules.">
           <Button variant="secondary" size="sm" aria-expanded={composerOpen} disabled={busy} onClick={() => setComposerOpen((open) => !open)}>
             <PlusIcon data-icon="inline-start" />
@@ -173,7 +181,7 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
           {index.programmes.map((item) => {
             const active = item.id === index.activeProgrammeId
             return (
-              <li key={item.id} className="hover:bg-card flex min-h-16 items-center justify-between gap-4 border-b py-3 transition-colors">
+              <li key={item.id} className="hover:bg-muted/25 flex min-h-16 items-center justify-between gap-4 border-b px-5 py-3 transition-colors sm:px-6">
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <strong className="truncate text-sm font-semibold">{programmeLabel(item)}</strong>
                   <span className="text-muted-foreground font-data text-sm tabular-nums">{item.academicYear || 'No academic year'}</span>
@@ -187,10 +195,10 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
         </ul>
         {/* One programme is a fact, not an empty list. Say it plainly. */}
         {index.programmes.length === 1 && (
-          <p className="text-muted-foreground text-sm">This is your only programme record. Create another to keep a second degree, exchange, or cohort year apart from this one.</p>
+          <p className="text-muted-foreground px-5 py-4 text-sm sm:px-6">This is your only programme record. Create another to keep a second degree, exchange, or cohort year apart from this one.</p>
         )}
         {composerOpen && (
-          <form onSubmit={create} className="bg-muted flex flex-col gap-3 rounded-sm p-4">
+          <form onSubmit={create} className="bg-muted/35 flex flex-col gap-3 border-t px-5 py-4 sm:px-6">
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)]">
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[12px] font-semibold" htmlFor="new-programme">Programme</Label>
@@ -209,10 +217,10 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <SectionHead title="Statistics" />
+      <section className="overflow-hidden rounded-xl border bg-card">
+        <SectionHead title="Grade calculation" description="Choose which recorded attempts contribute to the planning baseline." />
         {/* The control belongs beside the sentence it changes, not adrift at the far right. */}
-        <label className="hover:bg-card flex cursor-pointer items-start gap-3 border-b pb-4 transition-colors">
+        <label className="hover:bg-muted/25 flex cursor-pointer items-start gap-3 px-5 py-4 transition-colors sm:px-6">
           <Checkbox className="mt-0.5" aria-label="Include failed attempts in weighted GPA" checked={includesFailed} disabled={busy} onCheckedChange={(checked) => saveFailedRule(checked === true)} />
           <span className="flex flex-col gap-1">
             <strong className="text-sm font-semibold">Include failed attempts in weighted GPA</strong>
@@ -221,18 +229,36 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
         </label>
       </section>
 
-      <section className="flex flex-col gap-4">
+      <section className="overflow-hidden rounded-xl border bg-card">
+        <SectionHead title="Tutor and agent access" description="Saved planning choices are workspace context. Draft changes on the Session Board remain private to that browser until you save them." />
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b px-5 py-4 sm:px-6">
+          <div className="max-w-[62ch]">
+            <strong className="text-sm font-semibold">Tutor</strong>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">Tutor can read your saved sittings, expected grades, and progression effects. It always places a planning change in Proposed actions for your approval.</p>
+          </div>
+          <Button nativeButton={false} render={<Link href="/app/tutor" />} variant="outline" size="sm">Open Tutor</Button>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6">
+          <div className="max-w-[62ch]">
+            <strong className="text-sm font-semibold">MCP and API</strong>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">Read access can inspect planning context, including shared examination windows and each course&rsquo;s role inside them. Write access changes one objective at a time. Teaching-period, calendar, transcript, resit-rule, and revision checks reject impossible or stale changes.</p>
+          </div>
+          <Button nativeButton={false} render={<Link href="/app/settings?tab=api" />} variant="outline" size="sm">Manage access</Button>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border bg-card">
         <SectionHead title="Portable data" description="Download this programme or import a Wicker Study academics file into a new programme. Course-code matches are shown before anything is saved." />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 px-5 py-4 sm:px-6">
           <Button variant="outline" onClick={download}><DownloadIcon data-icon="inline-start" />Download JSON</Button>
           <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={busy}><UploadIcon data-icon="inline-start" />Import JSON</Button>
           <input ref={fileRef} type="file" accept="application/json" className="sr-only" onChange={(event) => void chooseImport(event.target.files?.[0])} />
         </div>
-        {importResult && <p role="status" className="text-muted-foreground text-sm">{importResult}</p>}
+        {importResult && <p role="status" className="text-muted-foreground border-t px-5 py-3 text-sm sm:px-6">{importResult}</p>}
       </section>
 
       {index.programmes.length > 1 && (
-        <section className="flex flex-wrap items-center justify-between gap-4 border p-4">
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-5 py-4 sm:px-6">
           <div className="flex max-w-[60ch] flex-col gap-1">
             <strong className="text-sm font-semibold">Delete the active programme</strong>
             <p className="text-muted-foreground text-sm">Removes its curriculum, attempts, events, and scenarios. Other programmes are not affected.</p>

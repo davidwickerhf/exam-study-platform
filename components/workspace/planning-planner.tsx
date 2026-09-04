@@ -1,29 +1,44 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import Link from 'next/link'
+import { AlertTriangleIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, GripVerticalIcon, LockIcon, RotateCcwIcon, TargetIcon } from 'lucide-react'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { STATUS_LABEL, STATUS_MARK, courseStatus } from '@/lib/workspace/academics.mjs'
+import { courseStatus } from '@/lib/workspace/academics.mjs'
 import {
-  type Objective,
-  type PlannerCourse,
-  type PlannerWorkspace,
-  groupOpenCourses,
-  objectiveFor,
-  plannerSummary,
-  planningInsights,
-  resetObjectives,
-  withObjective
+  type Objective, type PlannerCourse, type PlannerWorkspace, type PlanningSession,
+  objectiveFor, plannerSummary, planningDestinations, planningSessions, withObjective
 } from '@/lib/workspace/planner.mjs'
 
 const DATA = 'font-data tabular-nums'
-const LABEL = 'text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase'
+const LABEL = 'text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase'
+const CARRY_ID = 'following-year'
+const CONTINUOUS_ID = 'continuous-work'
 
 type AcademicState = { workspace: PlannerWorkspace }
+type BoardSession = {
+  id: string
+  label: string
+  eyebrow: string
+  range: string
+  period: number | null
+  semester?: number | null
+  resit: boolean
+  hasResit?: boolean
+  kind?: string
+  aliases?: string[]
+  offerings?: PlanningSession['offerings']
+  carry?: boolean
+  startsAt?: string | null
+  endsAt?: string | null
+}
+type BoardMove = { courseId: string; from: string; to: string }
 
 async function readResponse(response: Response): Promise<AcademicState> {
   const body = await response.json().catch(() => null) as AcademicState & { error?: string } | null
@@ -32,172 +47,349 @@ async function readResponse(response: Response): Promise<AcademicState> {
   return body
 }
 
-function Measure({ label, value, unit, detail }: { label: string; value: string | number; unit?: string; detail: string }) {
+function yearNumber(label: string | null | undefined) {
+  const match = String(label ?? '').match(/\d+/)
+  return match ? Number(match[0]) : null
+}
+
+function shiftAcademicYear(value: string | undefined, amount: number) {
+  const match = String(value ?? '').match(/(\d{4})\D+(\d{4})/)
+  if (!match) return value || ''
+  return `${Number(match[1]) + amount}–${Number(match[2]) + amount}`
+}
+
+function dateLabel(value: string | null | undefined) {
+  if (!value) return ''
+  const parsed = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(parsed)
+}
+
+function dateRange(start: string | null | undefined, end: string | null | undefined) {
+  if (!start) return 'Date not recorded'
+  if (!end || end === start) return dateLabel(start)
+  return `${dateLabel(start)} – ${dateLabel(end)}`
+}
+
+function currentStudyYear(workspace: PlannerWorkspace) {
+  return workspace.programmeTemplate?.currentStudyYear
+    || workspace.courses.find((course) => courseStatus(course) !== 'passed')?.yearLevel
+    || workspace.courses[0]?.yearLevel
+    || 'Unassigned'
+}
+
+function yearAcademicLabel(workspace: PlannerWorkspace, selectedYear: string, years: string[]) {
+  const selected = yearNumber(selectedYear)
+  const current = yearNumber(currentStudyYear(workspace))
+  if (selected !== null && current !== null) return shiftAcademicYear(workspace.profile?.academicYear, selected - current)
+  const currentIndex = Math.max(0, years.indexOf(currentStudyYear(workspace)))
+  return shiftAcademicYear(workspace.profile?.academicYear, Math.max(0, years.indexOf(selectedYear) - currentIndex))
+}
+
+function sessionsFor(workspace: PlannerWorkspace, selectedYear: string, courses: PlannerCourse[], years: string[]): BoardSession[] {
+  const targetAcademicYear = yearAcademicLabel(workspace, selectedYear, years)
+  return planningSessions(workspace, { academicYear: targetAcademicYear, courses }).map((session) => ({
+    ...session,
+    eyebrow: session.kind === 'continuous-work' ? 'Continuous work' : session.kind === 'carry-over' ? 'Carry over' : session.startsAt ? dateRange(session.startsAt, session.endsAt) : session.resit ? 'Alternative sitting' : session.period ? `Period ${session.period}` : 'Planned',
+    range: session.kind === 'continuous-work' ? 'No exam sitting recorded' : session.kind === 'carry-over' ? shiftAcademicYear(targetAcademicYear, 1) || 'Later' : session.startsAt ? 'Academic calendar' : session.resit ? 'Resit calendar not connected' : 'Exam dates not connected',
+    carry: session.kind === 'carry-over'
+  }))
+}
+
+function sessionForCourse(workspace: PlannerWorkspace, course: PlannerCourse, sessions: BoardSession[]) {
+  const objective = objectiveFor(workspace, course.id)
+  const rules = planningDestinations(workspace, course.id)
+  if (objective.targetSession) {
+    const explicit = sessions.find((session) => session.id === objective.targetSession || session.aliases?.includes(objective.targetSession as string))
+    if (explicit) return explicit.id
+  }
+  if (objective.mode === 'none') return CARRY_ID
+  if (/semester|year/i.test(String(course.period || ''))) return sessions.some((session) => session.id === CONTINUOUS_ID) ? CONTINUOUS_ID : CARRY_ID
+  const candidates = sessions.filter((session) => !session.carry)
+  if (objective.mode === 'resit') {
+    return candidates.find((session) => rules.destinations.find((item) => item.id === session.id)?.role === 'resit')?.id
+      || CARRY_ID
+  }
+  const upcoming = course.attempts?.find((attempt) => attempt.status === 'upcoming' && attempt.examDate)?.examDate
+  if (upcoming) {
+    const dated = candidates.find((session) => session.startsAt && session.endsAt && upcoming >= session.startsAt && upcoming <= session.endsAt)
+    if (dated) return dated.id
+  }
+  return candidates.find((session) => rules.destinations.find((item) => item.id === session.id)?.role === 'primary')?.id
+    || candidates[0]?.id
+    || CARRY_ID
+}
+
+function objectiveEqual(left: Objective, right: Objective) {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function nextObjective(workspace: PlannerWorkspace, course: PlannerCourse, session: BoardSession, expectedGrade?: number | null) {
+  const prior = objectiveFor(workspace, course.id)
+  const grade = expectedGrade === undefined ? prior.expectedGrade : expectedGrade
+  const passMark = Number((course as PlannerCourse & { passMark?: number }).passMark) || 5.5
+  const maximum = passMark > 10 ? 100 : 10
+  const bounded = typeof grade === 'number' && Number.isFinite(grade) ? Math.max(0, Math.min(maximum, grade)) : undefined
+  const role = planningDestinations(workspace, course.id).destinations.find((item) => item.id === session.id)?.role
+  return withObjective(workspace, course.id, {
+    mode: role === 'carry' ? 'none' : role === 'resit' ? 'resit' : 'current',
+    targetSession: session.id,
+    expectedGrade: bounded,
+    outcome: bounded === undefined ? 'actual' : bounded >= passMark ? 'pass' : 'fail'
+  })
+}
+
+function offeringLabel(offering: NonNullable<BoardSession['offerings']>[number]) {
+  const reference = offering.period ? `P${offering.period}` : offering.semester ? `S${offering.semester}` : 'Exam'
+  return `${reference} ${offering.resit ? 'resit' : 'first sitting'}`
+}
+
+function requirementFor(workspace: PlannerWorkspace, course: PlannerCourse) {
+  const named = workspace.gates.find((gate) => gate.courseId === course.id)
+  if (named) return named.label
+  const level = workspace.gates.find((gate) => gate.level && gate.level === course.yearLevel)
+  if (level) return level.label
+  const requirement = (course as PlannerCourse & { programmeRequirement?: string }).programmeRequirement
+  if (requirement === 'elective' || requirement === 'choice') return 'Supports your elective requirement'
+  if (requirement === 'required') return `Required in ${course.yearLevel || 'this programme'}`
+  return `${course.ects} ECTS toward the degree`
+}
+
+function CreditRail({ workspace, summary }: { workspace: PlannerWorkspace; summary: ReturnType<typeof plannerSummary> }) {
+  const total = Math.max(summary.totalCredits, 1)
+  const earned = Math.min(100, summary.earnedCredits / total * 100)
+  const projected = Math.min(100, summary.projectedCredits / total * 100)
+  const markers = workspace.gates
+    .filter((gate) => ['total-credits', 'credit-level'].includes(gate.type) && Number(gate.target) > 0)
+    .map((gate) => ({ ...gate, position: Math.min(100, Number(gate.target) / total * 100) }))
+    .sort((left, right) => left.position - right.position)
+
   return (
-    <div className="flex min-w-36 flex-col gap-1 border-l pl-4 first:border-l-0 first:pl-0">
-      <span className={LABEL}>{label}</span>
-      <strong className={`text-2xl font-semibold tracking-tight ${DATA}`}>
-        {value}{unit && <small className="text-muted-foreground ml-1 text-sm font-medium">{unit}</small>}
-      </strong>
-      <span className="text-muted-foreground text-xs">{detail}</span>
+    <div className="min-w-[260px] flex-1" aria-label={`${summary.earnedCredits} credits earned and ${summary.projectedCredits} projected out of ${summary.totalCredits}`}>
+      <div className="flex items-center justify-between gap-4 text-[10px]">
+        <span className="text-muted-foreground"><strong className={`text-foreground ${DATA}`}>{summary.earnedCredits}</strong> earned</span>
+        <span className="text-muted-foreground"><strong className={`text-primary ${DATA}`}>{summary.projectedCredits}</strong> projected</span>
+        <span className={`text-muted-foreground ${DATA}`}>{summary.totalCredits} degree</span>
+      </div>
+      <div className="relative mt-2 h-4">
+        <div className="bg-muted absolute inset-x-0 top-1.5 h-1 overflow-hidden rounded-full">
+          <span className="bg-primary/25 absolute inset-y-0 left-0" style={{ width: `${projected}%` }} />
+          <span className="bg-primary absolute inset-y-0 left-0" style={{ width: `${earned}%` }} />
+        </div>
+        {markers.map((gate) => <span key={gate.id} title={`${gate.label}: ${gate.target} ECTS`} className="border-background bg-foreground absolute top-0 size-3 -translate-x-1/2 rounded-full border-2" style={{ left: `${gate.position}%` }} />)}
+      </div>
     </div>
   )
 }
 
-/**
- * What the record already says, classified by `courseStatus` rather than by
- * reading attempt strings here — the scenario planner and the register must
- * never disagree about whether a course is passed.
- */
-function RecordedStatus({ course }: { course: PlannerCourse }) {
-  const status = courseStatus(course)
-  if (status === 'not-recorded') {
-    return <span className={`text-muted-foreground/70 ${DATA}`} title="No result recorded">—<span className="sr-only">No result recorded</span></span>
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
-      <span aria-hidden className={`text-muted-foreground ${DATA}`}>{STATUS_MARK[status]}</span>
-      {STATUS_LABEL[status]}
-    </span>
-  )
-}
-
-function Choice({ value, disabled, label, options, onChange }: { value: string; disabled?: boolean; label: string; options: [string, string][]; onChange: (value: string) => void }) {
-  return (
-    <Select value={value} disabled={disabled} onValueChange={(next) => { if (next) onChange(String(next)) }}>
-      <SelectTrigger size="sm" aria-label={label} className="min-w-30 rounded-sm">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map(([id, copy]) => <SelectItem key={id} value={id}>{copy}</SelectItem>)}
-      </SelectContent>
-    </Select>
-  )
-}
-
-function daysLabel(days: number | null) {
-  if (days === null) return 'No exam date'
-  if (days < 0) return `${Math.abs(days)} days ago`
-  if (days === 0) return 'Today'
-  return `In ${days} day${days === 1 ? '' : 's'}`
-}
-
 export function PlanningPlanner() {
   const [workspace, setWorkspace] = useState<PlannerWorkspace | null>(null)
+  const [draft, setDraft] = useState<PlannerWorkspace | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [selectedYear, setSelectedYear] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState<string | null>(null)
+  const [lastMove, setLastMove] = useState<BoardMove | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   useEffect(() => {
     let live = true
     fetch('/api/academics', { headers: { accept: 'application/json' } })
       .then(readResponse)
-      .then((state) => { if (live) setWorkspace(state.workspace) })
+      .then((state) => {
+        if (!live) return
+        setWorkspace(state.workspace)
+        setDraft(state.workspace)
+        setSelectedYear(currentStudyYear(state.workspace))
+      })
       .catch((cause: Error) => { if (live) setError(cause.message) })
     return () => { live = false }
   }, [])
 
-  const summary = useMemo(() => workspace ? plannerSummary(workspace) : null, [workspace])
-  const insights = useMemo(() => workspace ? planningInsights(workspace) : null, [workspace])
-  const groups = useMemo(() => groupOpenCourses(summary?.openCourses ?? []), [summary])
+  const years = useMemo(() => {
+    if (!draft) return []
+    const recorded = [...new Set(draft.courses.map((course) => course.yearLevel || 'Unassigned'))]
+    const numbered = recorded.map(yearNumber).filter((value): value is number => value !== null)
+    const programmeYears = /bachelor/i.test(draft.profile?.programme || '') ? 3 : /master/i.test(draft.profile?.programme || '') ? 2 : Math.max(0, ...numbered)
+    const complete = programmeYears > 0 ? Array.from({ length: programmeYears }, (_, index) => `Year ${index + 1}`) : []
+    return [...new Set([...complete, ...recorded])].sort((left, right) => (yearNumber(left) ?? 99) - (yearNumber(right) ?? 99) || left.localeCompare(right))
+  }, [draft])
 
-  const save = async (next: PlannerWorkspace) => {
-    if (!workspace || saving) return
-    const previous = workspace
-    setWorkspace(next)
+  useEffect(() => {
+    if (!selectedYear && years.length) setSelectedYear(years[0])
+    else if (selectedYear && years.length && !years.includes(selectedYear)) setSelectedYear(years[0])
+  }, [selectedYear, years])
+
+  const yearCourses = useMemo(() => draft ? draft.courses.filter((course) => (course.yearLevel || 'Unassigned') === selectedYear && courseStatus(course) !== 'passed') : [], [draft, selectedYear])
+  const sessions = useMemo(() => draft ? sessionsFor(draft, selectedYear, yearCourses, years) : [], [draft, selectedYear, yearCourses, years])
+  const summary = useMemo(() => draft ? plannerSummary(draft) : null, [draft])
+  const changes = useMemo(() => {
+    if (!workspace || !draft) return []
+    return draft.courses.flatMap((course) => {
+      const before = objectiveFor(workspace, course.id)
+      const after = objectiveFor(draft, course.id)
+      return objectiveEqual(before, after) ? [] : [{ course, before, after }]
+    })
+  }, [workspace, draft])
+
+  const placement = (course: PlannerCourse) => draft ? sessionForCourse(draft, course, sessions) : CARRY_ID
+  const selectedCourse = yearCourses.find((course) => course.id === selectedId) || yearCourses[0] || null
+  const selectedSession = selectedCourse ? sessions.find((session) => session.id === placement(selectedCourse)) : null
+  const savedSession = selectedCourse && workspace ? sessions.find((session) => session.id === sessionForCourse(workspace, selectedCourse, sessions)) : null
+  const selectedObjective = selectedCourse && draft ? objectiveFor(draft, selectedCourse.id) : null
+  const selectedMaximum = selectedCourse && Number(selectedCourse.passMark) > 10 ? 100 : 10
+  const selectedRules = selectedCourse && draft ? planningDestinations(draft, selectedCourse.id) : null
+  const selectedChanged = selectedCourse ? changes.some((change) => change.course.id === selectedCourse.id) : false
+  const selectedAllowedSessions = selectedRules ? sessions.filter((session) => selectedRules.allowedSessionIds.includes(session.id)) : sessions
+  const yearEcts = yearCourses.reduce((total, course) => total + course.ects, 0)
+  const expected = yearCourses.flatMap((course) => {
+    const grade = draft ? objectiveFor(draft, course.id).expectedGrade : undefined
+    return typeof grade === 'number' ? [{ grade, ects: course.ects }] : []
+  })
+  const expectedAverage = expected.length ? expected.reduce((sum, item) => sum + item.grade * item.ects, 0) / expected.reduce((sum, item) => sum + item.ects, 0) : null
+  const nextRegistration = draft ? [...((draft as PlannerWorkspace & { events?: { title: string; date?: string | null; type?: string }[] }).events ?? [])]
+    .filter((item) => item.type === 'registration' && item.date && item.date >= new Date().toISOString().slice(0, 10))
+    .sort((left, right) => String(left.date).localeCompare(String(right.date)))[0] : null
+
+  const move = (course: PlannerCourse, session: BoardSession) => {
+    if (!draft) return
+    if (!planningDestinations(draft, course.id).allowedSessionIds.includes(session.id)) return
+    const from = placement(course)
+    if (from === session.id) return
+    setDraft(nextObjective(draft, course, session))
+    setSelectedId(course.id)
+    setLastMove({ courseId: course.id, from, to: session.id })
+  }
+
+  const changeGrade = (course: PlannerCourse, grade: number | null) => {
+    if (!draft) return
+    const session = sessions.find((item) => item.id === placement(course)) || sessions[0]
+    if (!session) return
+    setDraft(nextObjective(draft, course, session, grade))
+    setSelectedId(course.id)
+  }
+
+  const save = async () => {
+    if (!workspace || !draft || saving || !changes.length) return
     setSaving(true)
     setError(null)
     try {
-      const response = await fetch('/api/academics', {
-        method: 'PUT',
-        headers: { accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspace: next, expectedRevision: previous.revision })
-      })
+      const response = await fetch('/api/academics', { method: 'PUT', headers: { accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace: draft, expectedRevision: workspace.revision }) })
       const state = await readResponse(response)
       setWorkspace(state.workspace)
+      setDraft(state.workspace)
+      setLastMove(null)
+      setReviewOpen(false)
     } catch (cause) {
-      setWorkspace(previous)
-      setError(cause instanceof Error ? cause.message : 'The scenario could not be saved.')
-    } finally {
-      setSaving(false)
-    }
+      setError(cause instanceof Error ? cause.message : 'The plan could not be saved.')
+      setReviewOpen(false)
+    } finally { setSaving(false) }
   }
 
-  const change = (courseId: string, patch: Partial<Objective>) => {
-    if (workspace) void save(withObjective(workspace, courseId, patch))
-  }
+  if (!workspace && error) return <Empty><EmptyHeader><EmptyTitle>The plan could not be read</EmptyTitle><EmptyDescription>{error}</EmptyDescription></EmptyHeader></Empty>
+  if (!workspace || !draft || !summary) return <div className="flex h-full min-h-[520px] flex-col gap-3"><Skeleton className="h-20 w-full" /><Skeleton className="min-h-0 flex-1" /></div>
+  if (!draft.courses.length) return <Empty className="min-h-[520px]"><EmptyHeader><EmptyTitle>No courses to plan yet</EmptyTitle><EmptyDescription>Add courses in the Courses tab or finish programme setup. The session board will use your own academic calendar and exam records.</EmptyDescription></EmptyHeader></Empty>
 
-  if (!workspace && error) {
-    return <Empty><EmptyHeader><EmptyTitle>The scenario could not be read</EmptyTitle><EmptyDescription>{error}</EmptyDescription></EmptyHeader></Empty>
-  }
-  if (!workspace || !summary || !insights) return <div className="flex flex-col gap-3"><Skeleton className="h-24 w-full" /><Skeleton className="h-72 w-full" /></div>
-
-  const highest = insights.priority[0]
+  const goal = draft.gates[0]
   return (
-    <div className="flex flex-col gap-8" aria-busy={saving}>
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-4">
-        <div className="flex max-w-[68ch] flex-col gap-1">
-          <h2 className="font-heading text-3xl leading-none tracking-tight">Scenario planner</h2>
-          <p className="text-muted-foreground text-sm">Plan which courses you will sit and assume outcomes to see projected credits and requirements. Recorded grades are never changed.</p>
+    <section className="flex h-full min-h-[660px] flex-col overflow-hidden border bg-background" aria-busy={saving}>
+      <div className="flex min-h-[78px] shrink-0 flex-wrap items-stretch border-b bg-card">
+        <div className="flex min-w-56 flex-1 flex-col justify-center px-5 py-3 lg:px-6"><span className={LABEL}>{selectedYear === currentStudyYear(draft) ? 'Current study year' : 'Degree plan'}</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.025em]">{selectedYear}</h2></div>
+        <nav className="flex min-w-0 overflow-x-auto" aria-label="Study years">
+          {years.map((year) => {
+            const courses = draft.courses.filter((course) => (course.yearLevel || 'Unassigned') === year)
+            const earned = courses.filter((course) => courseStatus(course) === 'passed').reduce((total, course) => total + course.ects, 0)
+            const total = courses.reduce((sum, course) => sum + course.ects, 0)
+            return <button key={year} type="button" onClick={() => { setSelectedYear(year); setSelectedId(null); setLastMove(null) }} className={`relative min-w-40 border-l px-5 text-left ${selectedYear === year ? 'bg-primary/[0.035]' : 'hover:bg-muted/40'}`}><span className={`text-[10px] font-semibold tracking-[0.1em] uppercase ${selectedYear === year ? 'text-primary' : 'text-muted-foreground'}`}>{year}</span><span className={`mt-1 block text-xs ${DATA}`}>{earned}/{total || 0} ECTS earned</span>{selectedYear === year && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}</button>
+          })}
+        </nav>
+      </div>
+
+      <div className="grid shrink-0 border-b bg-card lg:grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.4fr)]">
+        <div className="flex items-center gap-3 px-5 py-4 lg:border-r lg:px-6">
+          <span className="bg-primary/8 text-primary grid size-8 shrink-0 place-items-center rounded-[7px]"><TargetIcon className="size-4" /></span>
+          <div className="min-w-0"><span className={LABEL}>Planning question</span><strong className="mt-1 block text-xs leading-relaxed">{yearCourses.length ? `Can I complete ${yearEcts} open ECTS in ${selectedYear}${goal ? ` and still meet ${goal.label}?` : '?'} ` : `Which courses belong in ${selectedYear}?`}</strong></div>
         </div>
-        {summary.plannedCount > 0 && <Button variant="outline" size="sm" disabled={saving} onClick={() => void save(resetObjectives(workspace))}>Reset scenario</Button>}
-      </header>
-
-      <div className="grid gap-5 border-b pb-6 sm:grid-cols-2 xl:grid-cols-4">
-        <Measure label="Projected credits" value={summary.projectedCredits} unit={`/ ${summary.totalCredits}`} detail={`${summary.earnedCredits} earned today`} />
-        <Measure label="Requirements" value={workspace.gates.length ? summary.projectedGates : '—'} unit={workspace.gates.length ? `/ ${workspace.gates.length}` : undefined} detail={workspace.gates.length ? 'Met in this scenario' : 'None configured'} />
-        <Measure label="Open courses" value={summary.openCourses.length} detail={`${summary.plannedCount} with planned outcomes`} />
-        <Measure label="Highest risk" value={highest?.course.code || highest?.course.name || '—'} detail={highest ? (highest.days === null ? 'No exam date' : `${highest.days} days to exam`) : 'No open courses'} />
+        <div className="flex items-center gap-5 border-t px-5 py-4 lg:border-t-0 lg:px-6">
+          <CreditRail workspace={draft} summary={summary} />
+          <div className="shrink-0 text-right"><span className={LABEL}>Expected result</span><strong className={`mt-1 block text-xs ${DATA}`}>{expectedAverage === null ? 'Grades not set' : `${expectedAverage.toFixed(1)} average`}</strong></div>
+        </div>
       </div>
 
-      <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,1fr)_17rem]">
-        <main className="flex min-w-0 flex-col gap-6">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-lg font-semibold">Assumptions</h3>
-            <p className="text-muted-foreground text-sm">Passed courses are fixed. Set how you plan to sit each open course and the outcome to assume.</p>
+      {nextRegistration && <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b px-5 py-2.5 text-xs lg:px-6"><span className={`${LABEL} text-primary`}>Registration action</span><strong>{nextRegistration.title}</strong><span className={`text-muted-foreground ${DATA}`}>{dateLabel(nextRegistration.date)}</span><Button nativeButton={false} render={<Link href="/app/calendar?view=agenda" />} variant="ghost" size="sm" className="ml-auto">Review in Calendar</Button></div>}
+
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="grid min-w-max" style={{ gridTemplateColumns: `280px repeat(${sessions.length}, minmax(190px, 1fr))` }}>
+          <div className="bg-background sticky left-0 z-20 flex min-h-[112px] items-end border-r border-b px-5 py-4 lg:px-6">
+            <div><span className={LABEL}>Course route</span><p className="text-muted-foreground mt-1 text-[11px]">Move a course across its possible sittings.</p></div>
           </div>
-          {groups.length ? groups.map((group) => (
-            <section key={group.level} className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between border-b pb-2">
-                <h4 className="text-sm font-semibold">{group.level}</h4>
-                <span className={`text-muted-foreground text-sm ${DATA}`}>{group.courses.length} open · {group.ects} ECTS</span>
-              </div>
-              <Table>
-                <TableHeader><TableRow className={LABEL}><TableHead>Code</TableHead><TableHead>Course</TableHead><TableHead className="text-right">ECTS</TableHead><TableHead>Recorded</TableHead><TableHead>Plan</TableHead><TableHead>Assume</TableHead></TableRow></TableHeader>
-                <TableBody>{group.courses.map((course) => {
-                  const objective = objectiveFor(workspace, course.id)
-                  return (
-                    <TableRow key={course.id} className={objective.mode === 'none' ? 'opacity-55' : undefined}>
-                      <TableCell className={`font-semibold ${DATA}`}>{course.code || '—'}</TableCell>
-                      <TableCell className="min-w-52 whitespace-normal font-medium">{course.name}</TableCell>
-                      <TableCell className={`text-right ${DATA}`}>{course.ects}</TableCell>
-                      <TableCell><RecordedStatus course={course} /></TableCell>
-                      <TableCell><Choice value={objective.mode} disabled={saving} label={`Plan for ${course.name}`} options={[["current", "Current sit"], ["resit", "Planned resit"], ["none", "Do not sit"]]} onChange={(mode) => change(course.id, { mode: mode as Objective['mode'] })} /></TableCell>
-                      <TableCell><Choice value={objective.outcome} disabled={saving || objective.mode === 'none'} label={`Assumed outcome for ${course.name}`} options={[["actual", "As recorded"], ["pass", "Pass"], ["fail", "Fail"]]} onChange={(outcome) => change(course.id, { outcome: outcome as Objective['outcome'] })} /></TableCell>
-                    </TableRow>
-                  )
-                })}</TableBody>
-              </Table>
-            </section>
-          )) : <Empty><EmptyHeader><EmptyTitle>Nothing left to simulate</EmptyTitle><EmptyDescription>Every course in this record has a passed attempt.</EmptyDescription></EmptyHeader></Empty>}
-        </main>
+          {sessions.map((session, index) => {
+            const held = yearCourses.filter((course) => placement(course) === session.id)
+            return <header key={session.id} className={`relative min-h-[112px] border-b px-4 py-3.5 ${index ? 'border-l' : ''} ${session.carry ? 'bg-muted/25' : ''}`}>
+              <div className="mb-2.5 flex items-center"><span className={`size-2 rounded-full ${session.resit || session.carry ? 'border border-muted-foreground bg-background' : 'bg-primary'}`} /><span className="bg-border h-px flex-1" /></div>
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><span className={LABEL}>{session.eyebrow}</span><h3 className="mt-1 truncate text-xs font-semibold" title={session.label}>{session.label}</h3>{session.offerings?.length ? <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1">{session.offerings.map((offering) => <span key={offering.sourceId} className="text-muted-foreground inline-flex items-center gap-1 text-[9.5px]"><span className={`size-1.5 rounded-full ${offering.resit ? 'border border-muted-foreground' : 'bg-primary'}`} />{offeringLabel(offering)}</span>)}</div> : <span className={`text-muted-foreground mt-1 block text-[10px] ${DATA}`}>{session.range}</span>}</div><span className={`text-muted-foreground text-[10px] ${DATA}`}>{held.length}</span></div>
+            </header>
+          })}
 
-        <aside className="flex flex-col gap-7 border-t pt-6 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-6">
-          <section className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold">Focus order</h3>
-            {insights.priority.length ? <ol className="flex flex-col gap-3">{insights.priority.slice(0, 8).map((item, index) => <li key={item.course.id} className="grid grid-cols-[1.5rem_1fr] gap-2"><span className={`text-muted-foreground text-sm ${DATA}`}>{index + 1}</span><span className="flex flex-col"><strong className={`text-sm ${DATA}`}>{item.course.code || item.course.name}</strong><small className="text-muted-foreground">{daysLabel(item.days)} · {item.course.ects} ECTS</small></span></li>)}</ol> : <p className="text-muted-foreground text-sm">No open courses in this scenario.</p>}
-          </section>
-          <section className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold">Load per period</h3>
-            {insights.periods.length ? <ul className="flex flex-col gap-2">{insights.periods.map((item) => <li key={item.period} className="flex justify-between gap-3 border-b pb-2 text-sm"><strong>{item.period}</strong><span className={`text-muted-foreground ${DATA}`}>{item.count} course{item.count === 1 ? '' : 's'} · {item.ects} ECTS</span></li>)}</ul> : <p className="text-muted-foreground text-sm">No open periods.</p>}
-          </section>
-          <section className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold">Shortest route to credit targets</h3>
-            {insights.minimumPaths.length ? <ul className="flex flex-col gap-3">{insights.minimumPaths.map((item) => <li key={item.gate.id} className="flex flex-col gap-0.5"><strong className="text-sm">{item.gate.label}</strong><span className="text-muted-foreground text-xs">{item.gap} ECTS short · {item.courses.map((course) => course.code || course.name).join(', ') || 'no eligible courses'}</span></li>)}</ul> : <p className="text-muted-foreground text-sm">{workspace.gates.length ? 'Every credit target is already met.' : 'Add credit requirements in Progress to see the shortest path.'}</p>}
-          </section>
-        </aside>
+          {yearCourses.map((course) => {
+            const courseSession = placement(course)
+            const isSelected = selectedCourse?.id === course.id
+            const rules = planningDestinations(draft, course.id)
+            return <div key={course.id} className="contents">
+              <button type="button" onClick={() => setSelectedId(course.id)} className={`bg-background sticky left-0 z-10 min-h-[78px] border-r border-b px-5 py-3 text-left lg:px-6 ${isSelected ? 'before:bg-primary relative before:absolute before:inset-y-0 before:left-0 before:w-0.5' : 'hover:bg-muted/30'}`}>
+                <span className={`text-[10px] font-semibold tracking-[0.06em] ${isSelected ? 'text-primary' : 'text-muted-foreground'} ${DATA}`}>{course.code || 'COURSE'} · {course.ects} ECTS</span>
+                <strong className="mt-1 block max-w-56 truncate text-xs" title={course.name}>{course.name}</strong>
+                <span className="text-muted-foreground mt-1 block text-[10px]">{rules.teachingPeriod ? `Taught ${rules.teachingPeriod} · ${rules.allowedSessionIds.length} valid routes` : 'Period not recorded · routes unrestricted'}</span>
+              </button>
+              {sessions.map((session, index) => {
+                const placed = courseSession === session.id
+                const destination = rules.destinations.find((item) => item.id === session.id)
+                const allowed = Boolean(destination?.allowed)
+                const role = destination?.role
+                const over = dragOver === `${course.id}:${session.id}`
+                return <div key={session.id} title={!allowed ? destination?.reason || 'This sitting is not available for the course.' : undefined} onDragOver={allowed ? (event) => { event.preventDefault(); setDragOver(`${course.id}:${session.id}`) } : undefined} onDragLeave={() => setDragOver(null)} onDrop={allowed ? (event) => { event.preventDefault(); move(course, session); setDraggedId(null); setDragOver(null) } : undefined} className={`grid min-h-[78px] place-items-center border-b px-3 py-2 ${index ? 'border-l' : ''} ${session.carry ? 'bg-muted/20' : ''} ${!allowed ? 'bg-muted/15' : ''} ${over ? 'bg-primary/[0.04]' : ''}`}>
+                  {placed ? <button type="button" draggable onDragStart={() => setDraggedId(course.id)} onDragEnd={() => { setDraggedId(null); setDragOver(null) }} onClick={() => setSelectedId(course.id)} className={`group flex w-full cursor-grab items-center gap-2 rounded-[7px] border px-3 py-2 text-left transition-[border-color,background-color,opacity] active:cursor-grabbing ${isSelected ? 'border-primary bg-primary/[0.055]' : 'bg-card hover:border-foreground/25'} ${draggedId === course.id ? 'opacity-40' : ''}`}>
+                    <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1"><strong className={`block truncate text-[11px] ${DATA}`}>{course.code}</strong><span className="text-muted-foreground mt-0.5 block truncate text-[10px]">{role === 'carry' ? 'Deferred' : role === 'continuous' ? 'Continuous assessment' : role === 'resit' ? 'Resit planned' : 'Primary sitting'}</span></span>
+                  </button> : allowed ? <span className={`h-px w-5 transition-colors ${over ? 'bg-primary' : 'bg-border/70'}`} /> : isSelected ? <span className="text-muted-foreground/65 inline-flex items-center gap-1 text-[10px]"><LockIcon className="size-3" />Not offered</span> : <LockIcon className="text-muted-foreground/30 size-3" />}
+                </div>
+              })}
+            </div>
+          })}
+          {!yearCourses.length && <div className="col-span-full grid min-h-56 place-items-center border-b text-center"><div><strong className="text-sm">No courses placed in {selectedYear}</strong><p className="text-muted-foreground mt-1 text-xs">Choose electives or add courses from the Courses tab.</p></div></div>}
+        </div>
       </div>
 
-      {error && <Alert><AlertTitle>Changes could not be saved</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-    </div>
+      <footer className="shrink-0 border-t bg-card">
+        {selectedCourse && selectedSession ? <div className="grid lg:grid-cols-[minmax(260px,0.85fr)_minmax(420px,1.15fr)_auto]">
+          <div className="flex min-w-0 items-center gap-3 px-5 py-3 lg:border-r lg:px-6"><span className={`grid size-8 shrink-0 place-items-center rounded-full ${selectedChanged ? 'bg-primary/8 text-primary' : 'bg-muted text-muted-foreground'}`}>{selectedChanged ? <CheckIcon className="size-4" /> : <CalendarDaysIcon className="size-4" />}</span><div className="min-w-0"><strong className="block truncate text-xs">{selectedCourse.name}</strong><p className="text-muted-foreground mt-1 truncate text-[10.5px]">{selectedRules?.teachingPeriod ? `${selectedRules.teachingPeriod} rule · ${selectedRules.evidenceSource === 'transcript-attempt' ? 'transcript evidence' : 'course record'}` : requirementFor(draft, selectedCourse)}</p></div></div>
+          <div className="flex min-w-0 flex-wrap items-center gap-3 border-t px-5 py-3 lg:border-t-0 lg:px-6">
+            <span className={LABEL}>{selectedChanged ? 'What if' : 'Planned sitting'}</span>
+            {selectedChanged && savedSession && <><span className="text-muted-foreground max-w-32 truncate text-[11px]">{savedSession.label}</span><ArrowRightIcon className="text-muted-foreground size-3.5" /></>}
+            <select aria-label={`Planned session for ${selectedCourse.name}`} value={selectedSession.id} onChange={(event) => { const session = sessions.find((item) => item.id === event.target.value); if (session) move(selectedCourse, session) }} className="h-9 min-w-44 rounded-[7px] border bg-background px-3 text-xs font-semibold outline-none">{selectedAllowedSessions.map((session) => <option key={session.id} value={session.id}>{session.label}</option>)}</select>
+            <label className="flex items-center gap-2 text-[11px] font-semibold"><span className="text-muted-foreground">Expected grade</span><input aria-label={`Expected grade for ${selectedCourse.name}`} type="number" min="0" max={selectedMaximum} step="0.1" value={selectedObjective?.expectedGrade ?? ''} placeholder="Set" onChange={(event) => changeGrade(selectedCourse, event.target.value === '' ? null : Number(event.target.value))} className={`h-9 w-16 rounded-[7px] border bg-background px-2 text-right text-xs font-semibold outline-none focus:border-primary ${DATA}`} /></label>
+          </div>
+          <div className="flex items-center gap-2 border-t px-5 py-3 lg:border-t-0 lg:border-l lg:px-6">
+            {changes.length > 0 && <Button variant="ghost" size="sm" onClick={() => { setDraft(workspace); setLastMove(null) }} disabled={saving}><RotateCcwIcon data-icon="inline-start" />Reset</Button>}
+            <Button size="sm" disabled={!changes.length || saving} onClick={() => setReviewOpen(true)}>Review {changes.length || ''} {changes.length === 1 ? 'change' : 'changes'}</Button>
+          </div>
+        </div> : <div className="px-5 py-4 text-xs lg:px-6">Choose a course to inspect its route.</div>}
+        <div className="flex items-center justify-between gap-4 border-t px-5 py-2.5 text-[10.5px] lg:px-6"><span className="text-muted-foreground">{lastMove ? `${draft.courses.find((course) => course.id === lastMove.courseId)?.name} moved to ${sessions.find((session) => session.id === lastMove.to)?.label.toLowerCase()}.` : 'This is a private scenario. Recorded results and registrations stay unchanged.'}</span><span className={`shrink-0 font-semibold ${changes.length ? 'text-primary' : 'text-muted-foreground'} ${DATA}`}>{changes.length ? `${changes.length} unsaved` : 'Saved plan'}</span></div>
+      </footer>
+
+      {error && <div role="alert" className="flex shrink-0 items-start gap-2 border-t px-5 py-3 text-sm text-destructive lg:px-6"><AlertTriangleIcon className="mt-0.5 size-4 shrink-0" /><span>The plan could not be saved: {error}</span></div>}
+
+      <AlertDialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <AlertDialogContent className="max-w-lg sm:max-w-lg">
+          <AlertDialogHeader><AlertDialogTitle>Save {changes.length} planning {changes.length === 1 ? 'change' : 'changes'}?</AlertDialogTitle><AlertDialogDescription>This updates only your private plan. Recorded grades, registrations, and the maintained curriculum do not change.</AlertDialogDescription></AlertDialogHeader>
+          <ul className="max-h-64 overflow-y-auto border-y">
+            {changes.map(({ course, before, after }) => <li key={course.id} className="flex items-start justify-between gap-4 border-b py-3 last:border-b-0"><span><strong className="block text-sm">{course.code || course.name}</strong><span className="text-muted-foreground mt-0.5 block text-xs">{course.name}</span></span><span className="text-right text-xs"><strong>{after.mode === 'none' ? 'Following year' : after.mode === 'resit' ? 'Resit' : 'Current sitting'}</strong>{after.expectedGrade !== undefined && <span className={`text-muted-foreground mt-1 block ${DATA}`}>Expected {after.expectedGrade}</span>}{before.targetSession !== after.targetSession && <span className="text-muted-foreground mt-1 block">Session changed</span>}</span></li>)}
+          </ul>
+          <AlertDialogFooter><AlertDialogCancel>Keep editing</AlertDialogCancel><AlertDialogAction disabled={saving} onClick={() => void save()}>{saving ? 'Saving…' : 'Save plan'}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </section>
   )
 }

@@ -1,14 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { accessPolicy, emailAllowed } from '../lib/auth.mjs'
+import { accessPolicy, emailAllowed, isAccessAdministratorEmail, verifiedPrimaryEmail } from '../lib/access-policy.mjs'
 
-test('access policy parses env and matches domains, subdomains, and exceptions', () => {
-  const policy = accessPolicy({ ALLOWED_EMAIL_DOMAINS: 'student.maastrichtuniversity.nl, MaastrichtUniversity.nl', ALLOWED_EMAILS: 'Owner@example.com' })
-  assert.deepEqual(policy.domains, ['student.maastrichtuniversity.nl', 'maastrichtuniversity.nl'])
+test('access policy is locked to exact Maastricht domains and the administrator exception', () => {
+  const policy = accessPolicy()
+  assert.deepEqual(policy.domains, ['maastrichtuniversity.nl', 'student.maastrichtuniversity.nl'])
+  assert.deepEqual(policy.emails, ['davidwickerhf@gmail.com'])
   assert.equal(emailAllowed('a.b@student.maastrichtuniversity.nl', policy), true)
   assert.equal(emailAllowed('Staff@MaastrichtUniversity.nl', policy), true)
-  assert.equal(emailAllowed('x@fse.maastrichtuniversity.nl', policy), true)
-  assert.equal(emailAllowed('owner@example.com', policy), true)
+  assert.equal(emailAllowed('x@fse.maastrichtuniversity.nl', policy), false)
+  assert.equal(emailAllowed('DavidWickerHF@Gmail.com', policy), true)
   assert.equal(emailAllowed('someone@gmail.com', policy), false)
   assert.equal(emailAllowed('evil@maastrichtuniversity.nl.attacker.com', policy), false)
   assert.equal(emailAllowed('evil@notmaastrichtuniversity.nl', policy), false)
@@ -16,6 +17,29 @@ test('access policy parses env and matches domains, subdomains, and exceptions',
   assert.equal(emailAllowed(null, policy), false)
 })
 
-test('no policy means everyone is allowed', () => {
-  assert.equal(emailAllowed('anyone@gmail.com', accessPolicy({})), true)
+test('deployment variables cannot broaden the locked access policy', () => {
+  const policy = accessPolicy({ ALLOWED_EMAIL_DOMAINS: 'gmail.com', ALLOWED_EMAILS: 'someone@gmail.com' })
+  assert.equal(emailAllowed('anyone@gmail.com', policy), false)
+  assert.equal(emailAllowed('someone@gmail.com', policy), false)
+})
+
+test('only the named exception receives administrator access by email', () => {
+  assert.equal(isAccessAdministratorEmail('DavidWickerHF@Gmail.com'), true)
+  assert.equal(isAccessAdministratorEmail('someone@maastrichtuniversity.nl'), false)
+  assert.equal(isAccessAdministratorEmail('davidwickerhf@gmail.com.attacker.test'), false)
+})
+
+test('eligibility reads only a verified primary email', () => {
+  const user = {
+    primaryEmailAddressId: 'primary',
+    emailAddresses: [
+      { id: 'primary', emailAddress: 'person@gmail.com', verification: { status: 'unverified' } },
+      { id: 'secondary', emailAddress: 'person@student.maastrichtuniversity.nl', verification: { status: 'verified' } }
+    ]
+  }
+  assert.equal(verifiedPrimaryEmail(user), null)
+  user.emailAddresses[0].verification.status = 'verified'
+  assert.equal(verifiedPrimaryEmail(user), 'person@gmail.com')
+  user.primaryEmailAddressId = 'secondary'
+  assert.equal(verifiedPrimaryEmail(user), 'person@student.maastrichtuniversity.nl')
 })

@@ -19,10 +19,24 @@ export type CalendarEvent = {
   notes: string | null
   activity?: string | null
   courseId?: string | null
+  editorialCourseId?: string | null
   externalHref: string | null
   href: string | null
   canvasStatus?: string | null
   canvasDone?: boolean
+  attendanceEligible?: boolean
+  attendanceStatus?: 'unknown' | 'attended' | 'missed' | 'excused'
+  attendanceNote?: string
+  attendanceRecordedAt?: string | null
+  attendanceRequired?: boolean
+  attendanceRule?: string | null
+  attendancePolicy?: { allowedMisses: number | null; minimumAttendancePercent: number | null; excusedPolicy: string; source: string; evidence: unknown[] } | null
+  source?: string
+  feedLabel?: string | null
+  location?: string | null
+  editable?: boolean
+  managedEventId?: string | null
+  managedCalendarId?: string | null
 }
 
 export type AcademicContext = {
@@ -41,6 +55,13 @@ export type CalendarPayload = {
   academicContext: AcademicContext | null
   examWindow: ExamWindow
   changes?: CalendarChange[]
+  attendance: {
+    summary: { scheduled: number; past: number; attended: number; missed: number; excused: number; unmarked: number; requiredMissed: number; requiredUnmarked: number; rate: number | null; atRiskCourses: number }
+    courses: Array<{ courseId: string | null; editorialCourseId: string | null; courseCode: string | null; courseName: string; scheduled: number; past: number; attended: number; missed: number; excused: number; unmarked: number; requiredScheduled: number; requiredPast: number; requiredAttended: number; requiredMissed: number; requiredExcused: number; requiredUnmarked: number; allowedMisses: number | null; allowedMissesRemaining: number | null; minimumAttendancePercent: number | null; rule: string | null; ruleSource: string | null; rate: number | null; requiredRate: number | null; atRisk: boolean }>
+  }
+  feeds?: Array<{ id: string; label: string; url?: string; eventCount?: number; lastSyncedAt?: string | null }>
+  canvas?: { connected: boolean }
+  problems?: Array<{ id: string; label: string; error: string }>
 }
 
 export type CalendarChange = {
@@ -89,7 +110,7 @@ export declare function upcomingDeadlines(events: CalendarEvent[], limit?: numbe
 export declare function homePriorities(input?: {
   events?: CalendarEvent[]
   assignments?: Array<{ id: string; title: string; courseCode?: string | null; courseName?: string | null; dueAt?: string | null; status: string; url?: string | null }>
-  courses?: Array<{ id: string; code?: string; courseProfile?: { assessment?: { status?: string; attendanceRules?: string[]; components?: Array<{ name: string; type?: string; weightPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }> } | null } | null }>
+  courses?: Array<{ id: string; code?: string; courseProfile?: { assessment?: { status?: string; attendanceRules?: string[]; attendanceEvidence?: Array<{ text: string; activity: string; allowedMisses?: number | null; minimumAttendancePercent?: number | null; excusedPolicy?: string }>; components?: Array<{ name: string; type?: string; weightPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }> } | null } | null }>
   now?: number
   limit?: number
 }): HomePriority[]

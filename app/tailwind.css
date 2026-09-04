@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--next-font-data), ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--next-font-ui), ui-sans-serif, system-ui, sans-serif;
     --font-sans: var(--next-font-ui), ui-sans-serif, system-ui, sans-serif;
     --font-data: var(--next-font-data), ui-sans-serif, system-ui, sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
@@ -201,6 +201,37 @@
 [data-fc] .fc-event-main { color: var(--foreground); }
 [data-fc] .fc-event-title { font-weight: 500; }
 [data-fc] .fc-event-time { color: var(--muted-foreground); font-weight: 500; }
+[data-fc] .fc-event.fc-attendance-required {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 34%, transparent);
+}
+[data-fc] .fc-event.fc-attendance-required::after {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  color: var(--primary);
+  content: "Required";
+  font-family: var(--font-data);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+[data-fc] .fc-event.fc-attendance-attended::after { content: "Attended"; }
+[data-fc] .fc-event.fc-attendance-missed::after { color: var(--destructive); content: "Missed"; }
+[data-fc] .fc-event.fc-attendance-excused::after { color: var(--muted-foreground); content: "Excused"; }
+[data-fc] .fc-event.fc-attendance-eligible:not(.fc-attendance-required)::after {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  color: var(--muted-foreground);
+  content: "Mark";
+  font-family: var(--font-data);
+  font-size: 8px;
+  font-weight: 600;
+}
+[data-fc] .fc-event.fc-attendance-attended:not(.fc-attendance-required)::after { color: var(--primary); content: "Attended"; }
+[data-fc] .fc-event.fc-attendance-missed:not(.fc-attendance-required)::after { color: var(--destructive); content: "Missed"; }
+[data-fc] .fc-event.fc-attendance-excused:not(.fc-attendance-required)::after { content: "Excused"; }
 /* The one colour, spent on what is happening now. */
 [data-fc] .fc-timegrid-now-indicator-line { border-color: var(--primary); border-width: 1px; }
 [data-fc] .fc-timegrid-now-indicator-arrow { border-color: var(--primary); color: var(--primary); }

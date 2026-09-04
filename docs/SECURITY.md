@@ -8,8 +8,9 @@
 - API keys (`wsk_…`, 192 bits of entropy) are stored as SHA-256 hashes, carry
   explicit scopes (`read` / `write` / `admin`), expire (30 days, 90 days, or 1
   year), can be revoked, and cannot manage other keys, reset data, or delete
-  the account. `admin` keys can only be minted by users listed in
-  `ADMIN_USER_IDS` or assigned the Clerk private-metadata admin role;
+  the account. `admin` keys can only be minted by the fixed administrator
+  email, users listed in `ADMIN_USER_IDS`, or users assigned the Clerk
+  private-metadata admin role;
   `/api/admin/*` requires that flag.
 - Account deletion and data resets require a typed confirmation and a session.
 
@@ -18,10 +19,13 @@
   instance. Social sign-in in production requires custom OAuth credentials
   configured in the Clerk dashboard.
 
-- Eligibility: with `ALLOWED_EMAIL_DOMAINS` set, a session or API key whose
-  owner's primary email is not on an allowed domain (or in `ALLOWED_EMAILS`)
-  gets 403 `email_not_allowed` on every protected route and an explanatory
-  sign-out screen in the app. Primary emails are cached for 10 minutes.
+- Eligibility is fixed in server code: only a verified primary email exactly
+  at `maastrichtuniversity.nl` or `student.maastrichtuniversity.nl` may enter.
+  `davidwickerhf@gmail.com` is the sole exception and is also a global
+  administrator. Environment variables cannot broaden this allowlist. Every
+  protected browser or API-key request is checked and receives 403
+  `email_not_allowed` when ineligible. Primary identities are cached for 10
+  minutes.
 
 - Programme scoping: every editorial programme is an organisation
   (`programme_memberships`). At first sign-in the server matches the email

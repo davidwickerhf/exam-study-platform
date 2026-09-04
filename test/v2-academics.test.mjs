@@ -181,5 +181,5 @@ test('requirements and events are edited in place and removed by id', () => {
 })
 
 test('legacy planning tab aliases resolve to migrated tabs', () => {
-  assert.equal(planningTab('curriculum'), 'courses'); assert.equal(planningTab('credits'), 'progress'); assert.equal(planningTab('requirements'), 'progress'); assert.equal(planningTab('unknown'), 'overview')
+  assert.equal(planningTab('curriculum'), 'courses'); assert.equal(planningTab('credits'), 'overview'); assert.equal(planningTab('requirements'), 'overview'); assert.equal(planningTab('progress'), 'overview'); assert.equal(planningTab('unknown'), 'planner')
 })
