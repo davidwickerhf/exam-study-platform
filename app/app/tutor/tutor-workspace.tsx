@@ -11,7 +11,7 @@ import remarkMath from 'remark-math'
 import {
   BookOpenIcon, CalendarDaysIcon, CheckIcon, ChevronDownIcon, Clock3Icon, CopyIcon,
   ExternalLinkIcon, FileImageIcon, FileTextIcon, Globe2Icon, HistoryIcon, InfoIcon,
-  ListChecksIcon, PaperclipIcon, PlusIcon, SendIcon, SparklesIcon, Trash2Icon, XIcon
+  ListChecksIcon, PaperclipIcon, PlusIcon, SendIcon, SparklesIcon, TargetIcon, Trash2Icon, XIcon
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,7 @@ export type TutorContext = {
   chapterId?: string | null; chapterName?: string | null; sourcePath?: string | null
 }
 type Evidence = { id: string; sourceType: string; title: string; course?: string | null; location?: string; excerpt?: string; url?: string | null; status?: string }
-type Proposal = { id: string; type: 'practice-set' | 'calendar-event' | 'remember-plan'; title: string; summary: string; detail: string; reversible: boolean }
+type Proposal = { id: string; type: 'practice-set' | 'calendar-event' | 'remember-plan' | 'planning-objective'; title: string; summary: string; detail: string; reversible: boolean }
 type Message = { role: 'user' | 'assistant'; content: string; at?: string; evidence?: Evidence[]; proposals?: Proposal[]; context?: TutorContext | null }
 type Conversation = { id: string; title: string | null; updatedAt: string; messageCount: number }
 type Fact = { id: string; fact: string }
@@ -63,7 +63,7 @@ function when(value?: string) {
 }
 function size(value: number) { return value < 1024 * 1024 ? `${Math.max(1, Math.round(value / 1024))} KB` : `${(value / (1024 * 1024)).toFixed(1)} MB` }
 function ActionIcon({ type }: { type: Proposal['type'] }) {
-  const Icon = type === 'practice-set' ? BookOpenIcon : type === 'calendar-event' ? CalendarDaysIcon : Clock3Icon
+  const Icon = type === 'practice-set' ? BookOpenIcon : type === 'calendar-event' ? CalendarDaysIcon : type === 'planning-objective' ? TargetIcon : Clock3Icon
   return <Icon className="size-4.5" />
 }
 

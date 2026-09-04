@@ -165,8 +165,7 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
     <div className="flex max-w-[920px] flex-col gap-10 pb-10">
       <header className="flex flex-wrap items-end justify-between gap-5 border-b pb-6">
         <div className="max-w-[66ch]">
-          <span className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">Plan settings</span>
-          <h2 className="font-heading mt-2 text-[28px] font-semibold tracking-[-0.03em]">How this academic record behaves</h2>
+          <h2 className="font-heading text-[32px] font-semibold tracking-[-0.03em]">How this academic record behaves</h2>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">Keep separate programmes apart, choose how grades are calculated, and move a complete planning record in or out of Wicker.</p>
         </div>
         <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/app/settings" />}>Workspace settings</Button>
@@ -228,6 +227,24 @@ export function PlanningSettings({ onChanged }: { onChanged?: (state: AcademicSt
             <span className="text-muted-foreground text-sm">Some programmes average every recorded attempt; others count only passes.</span>
           </span>
         </label>
+      </section>
+
+      <section className="flex flex-col gap-0">
+        <SectionHead title="Tutor and agent access" description="Saved planning choices are workspace context. Draft changes on the Session Board remain private to that browser until you save them." />
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b py-4">
+          <div className="max-w-[62ch]">
+            <strong className="text-sm font-semibold">Tutor</strong>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">Tutor can read your saved sittings, expected grades, and progression effects. It always places a planning change in Proposed actions for your approval.</p>
+          </div>
+          <Button nativeButton={false} render={<Link href="/app/tutor" />} variant="outline" size="sm">Open Tutor</Button>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b py-4">
+          <div className="max-w-[62ch]">
+            <strong className="text-sm font-semibold">MCP and API</strong>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">Read access can inspect planning context. Write access can update one course objective at a time. Teaching-period, calendar, transcript, resit-rule, and revision checks reject impossible or stale changes.</p>
+          </div>
+          <Button nativeButton={false} render={<Link href="/app/settings?tab=api" />} variant="outline" size="sm">Manage access</Button>
+        </div>
       </section>
 
       <section className="flex flex-col gap-4">

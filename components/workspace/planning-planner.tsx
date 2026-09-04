@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangleIcon, CalendarDaysIcon, CheckIcon, GripVerticalIcon, RotateCcwIcon, TargetIcon } from 'lucide-react'
+import { AlertTriangleIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, GripVerticalIcon, LockIcon, RotateCcwIcon, TargetIcon } from 'lucide-react'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
@@ -13,12 +13,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { courseStatus } from '@/lib/workspace/academics.mjs'
 import {
   type Objective, type PlannerAcademicPeriod, type PlannerCourse, type PlannerWorkspace,
-  objectiveFor, plannerSummary, withObjective
+  objectiveFor, plannerSummary, planningDestinations, withObjective
 } from '@/lib/workspace/planner.mjs'
 
 const DATA = 'font-data tabular-nums'
 const LABEL = 'text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase'
 const CARRY_ID = 'following-year'
+const CONTINUOUS_ID = 'continuous-work'
 
 type AcademicState = { workspace: PlannerWorkspace }
 type BoardSession = {
@@ -27,6 +28,7 @@ type BoardSession = {
   eyebrow: string
   range: string
   period: number | null
+  semester?: number | null
   resit: boolean
   carry?: boolean
   startsAt?: string | null
@@ -104,19 +106,23 @@ function sessionsFor(workspace: PlannerWorkspace, selectedYear: string, courses:
       eyebrow: item.resit || item.kind === 'resit-week' ? 'Resit' : item.period ? `Period ${item.period}` : 'Exam session',
       range: dateRange(item.date, item.endDate),
       period: item.period ?? null,
+      semester: item.semester ?? null,
       resit: Boolean(item.resit || item.kind === 'resit-week'),
       startsAt: item.date,
       endsAt: item.endDate || item.date
     })
   }
 
-  if (!sessions.length) {
-    const periods = [...new Set(courses.map((course) => periodNumber(course.period)).filter((value): value is number => value !== null))].sort((a, b) => a - b)
-    for (const period of periods) sessions.push({ id: `period:${period}`, label: `Period ${period} exams`, eyebrow: `Period ${period}`, range: 'Exam dates not connected', period, resit: false })
-    if (!periods.length) sessions.push({ id: 'current-sit', label: 'Current sitting', eyebrow: 'Planned', range: 'Exam date not recorded', period: null, resit: false })
-    sessions.push({ id: 'resit', label: 'Resit session', eyebrow: 'Alternative sitting', range: 'Date not recorded', period: null, resit: true })
+  const periods = [...new Set(courses.map((course) => periodNumber(course.period || course.attempts?.find((attempt) => attempt.status === 'upcoming')?.period)).filter((value): value is number => value !== null))].sort((a, b) => a - b)
+  for (const period of periods) {
+    if (!sessions.some((session) => !session.resit && session.period === period)) sessions.push({ id: `period:${period}`, label: `Period ${period} exams`, eyebrow: `Period ${period}`, range: 'Exam dates not connected', period, semester: null, resit: false })
   }
+  if (!sessions.some((session) => !session.resit) && !periods.length) sessions.push({ id: 'current-sit', label: 'Current sitting', eyebrow: 'Planned', range: 'Exam date not recorded', period: null, semester: null, resit: false })
+  if (!sessions.some((session) => session.resit)) sessions.push({ id: 'resit', label: 'Resit session', eyebrow: 'Alternative sitting', range: 'Resit calendar not connected', period: null, semester: null, resit: true })
 
+  if (courses.some((course) => /semester|year/i.test(String(course.period || '')))) {
+    sessions.unshift({ id: CONTINUOUS_ID, label: 'Coursework', eyebrow: 'Continuous work', range: 'No exam sitting recorded', period: null, semester: null, resit: false })
+  }
   sessions.push({ id: CARRY_ID, label: 'Following year', eyebrow: 'Carry over', range: shiftAcademicYear(targetAcademicYear, 1) || 'Later', period: null, resit: false, carry: true })
   return sessions
 }
@@ -125,6 +131,7 @@ function sessionForCourse(workspace: PlannerWorkspace, course: PlannerCourse, se
   const objective = objectiveFor(workspace, course.id)
   if (objective.targetSession && sessions.some((session) => session.id === objective.targetSession)) return objective.targetSession
   if (objective.mode === 'none') return CARRY_ID
+  if (/semester|year/i.test(String(course.period || ''))) return sessions.some((session) => session.id === CONTINUOUS_ID) ? CONTINUOUS_ID : CARRY_ID
   const coursePeriod = periodNumber(course.period)
   const candidates = sessions.filter((session) => !session.carry)
   if (objective.mode === 'resit') {
@@ -172,36 +179,30 @@ function requirementFor(workspace: PlannerWorkspace, course: PlannerCourse) {
   return `${course.ects} ECTS toward the degree`
 }
 
-function CourseCard({ workspace, course, session, selected, dragging, onSelect, onDragStart, onDragEnd, onGrade }: {
-  workspace: PlannerWorkspace
-  course: PlannerCourse
-  session: BoardSession
-  selected: boolean
-  dragging: boolean
-  onSelect: () => void
-  onDragStart: () => void
-  onDragEnd: () => void
-  onGrade: (grade: number | null) => void
-}) {
-  const objective = objectiveFor(workspace, course.id)
-  const maximum = Number((course as PlannerCourse & { passMark?: number }).passMark) > 10 ? 100 : 10
+function CreditRail({ workspace, summary }: { workspace: PlannerWorkspace; summary: ReturnType<typeof plannerSummary> }) {
+  const total = Math.max(summary.totalCredits, 1)
+  const earned = Math.min(100, summary.earnedCredits / total * 100)
+  const projected = Math.min(100, summary.projectedCredits / total * 100)
+  const markers = workspace.gates
+    .filter((gate) => ['total-credits', 'credit-level'].includes(gate.type) && Number(gate.target) > 0)
+    .map((gate) => ({ ...gate, position: Math.min(100, Number(gate.target) / total * 100) }))
+    .sort((left, right) => left.position - right.position)
+
   return (
-    <article draggable onDragStart={onDragStart} onDragEnd={onDragEnd} className={`group rounded-[10px] border bg-card transition-[border-color,box-shadow,opacity,transform] ${selected ? 'border-primary shadow-[0_0_0_1px_var(--primary)]' : 'hover:border-foreground/25'} ${dragging ? 'scale-[0.985] opacity-45' : ''}`}>
-      <button type="button" onClick={onSelect} className="w-full cursor-grab p-4 text-left active:cursor-grabbing">
-        <div className="flex items-start gap-3">
-          <GripVerticalIcon className="text-muted-foreground/55 mt-0.5 size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-3"><span className={`text-primary text-[10px] font-semibold tracking-[0.06em] ${DATA}`}>{course.code || 'COURSE'}</span><span className={`text-muted-foreground text-[10px] ${DATA}`}>{course.ects} ECTS</span></div>
-            <strong className="mt-1.5 block text-[14px] leading-snug">{course.name}</strong>
-            <p className="text-muted-foreground mt-3 text-[11px] leading-relaxed"><span className="text-foreground font-semibold">Goal</span> · {requirementFor(workspace, course)}</p>
-          </div>
-        </div>
-      </button>
-      <div className="flex items-center justify-between gap-3 border-t px-4 py-3">
-        <span className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 text-[10.5px]"><CalendarDaysIcon className="size-3.5 shrink-0" /><span className="truncate">{session.range}</span></span>
-        <label className="flex shrink-0 items-center gap-1.5 text-[10.5px] font-semibold"><span className="text-muted-foreground">Expected</span><input aria-label={`Expected grade for ${course.name}`} type="number" min="0" max={maximum} step="0.1" value={objective.expectedGrade ?? ''} placeholder="Set" draggable={false} onPointerDown={(event) => event.stopPropagation()} onChange={(event) => onGrade(event.target.value === '' ? null : Number(event.target.value))} className={`h-7 w-12 rounded-[6px] border bg-background px-1.5 text-right text-[11px] font-semibold outline-none focus:border-primary ${DATA}`} /></label>
+    <div className="min-w-[260px] flex-1" aria-label={`${summary.earnedCredits} credits earned and ${summary.projectedCredits} projected out of ${summary.totalCredits}`}>
+      <div className="flex items-center justify-between gap-4 text-[10px]">
+        <span className="text-muted-foreground"><strong className={`text-foreground ${DATA}`}>{summary.earnedCredits}</strong> earned</span>
+        <span className="text-muted-foreground"><strong className={`text-primary ${DATA}`}>{summary.projectedCredits}</strong> projected</span>
+        <span className={`text-muted-foreground ${DATA}`}>{summary.totalCredits} degree</span>
       </div>
-    </article>
+      <div className="relative mt-2 h-4">
+        <div className="bg-muted absolute inset-x-0 top-1.5 h-1 overflow-hidden rounded-full">
+          <span className="bg-primary/25 absolute inset-y-0 left-0" style={{ width: `${projected}%` }} />
+          <span className="bg-primary absolute inset-y-0 left-0" style={{ width: `${earned}%` }} />
+        </div>
+        {markers.map((gate) => <span key={gate.id} title={`${gate.label}: ${gate.target} ECTS`} className="border-background bg-foreground absolute top-0 size-3 -translate-x-1/2 rounded-full border-2" style={{ left: `${gate.position}%` }} />)}
+      </div>
+    </div>
   )
 }
 
@@ -260,6 +261,12 @@ export function PlanningPlanner() {
   const placement = (course: PlannerCourse) => draft ? sessionForCourse(draft, course, sessions) : CARRY_ID
   const selectedCourse = yearCourses.find((course) => course.id === selectedId) || yearCourses[0] || null
   const selectedSession = selectedCourse ? sessions.find((session) => session.id === placement(selectedCourse)) : null
+  const savedSession = selectedCourse && workspace ? sessions.find((session) => session.id === sessionForCourse(workspace, selectedCourse, sessions)) : null
+  const selectedObjective = selectedCourse && draft ? objectiveFor(draft, selectedCourse.id) : null
+  const selectedMaximum = selectedCourse && Number(selectedCourse.passMark) > 10 ? 100 : 10
+  const selectedRules = selectedCourse && draft ? planningDestinations(draft, selectedCourse.id) : null
+  const selectedChanged = selectedCourse ? changes.some((change) => change.course.id === selectedCourse.id) : false
+  const selectedAllowedSessions = selectedRules ? sessions.filter((session) => selectedRules.allowedSessionIds.includes(session.id)) : sessions
   const yearEcts = yearCourses.reduce((total, course) => total + course.ects, 0)
   const expected = yearCourses.flatMap((course) => {
     const grade = draft ? objectiveFor(draft, course.id).expectedGrade : undefined
@@ -272,6 +279,7 @@ export function PlanningPlanner() {
 
   const move = (course: PlannerCourse, session: BoardSession) => {
     if (!draft) return
+    if (!planningDestinations(draft, course.id).allowedSessionIds.includes(session.id)) return
     const from = placement(course)
     if (from === session.id) return
     setDraft(nextObjective(draft, course, session))
@@ -310,9 +318,9 @@ export function PlanningPlanner() {
 
   const goal = draft.gates[0]
   return (
-    <section className="flex h-full min-h-[640px] flex-col overflow-hidden border bg-background" aria-busy={saving}>
+    <section className="flex h-full min-h-[660px] flex-col overflow-hidden border bg-background" aria-busy={saving}>
       <div className="flex min-h-[78px] shrink-0 flex-wrap items-stretch border-b bg-card">
-        <div className="flex min-w-56 flex-1 flex-col justify-center px-5 py-3 lg:px-6"><span className={LABEL}>{selectedYear === currentStudyYear(draft) ? 'Current study year' : 'Future study year'}</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.025em]">{selectedYear}</h2></div>
+        <div className="flex min-w-56 flex-1 flex-col justify-center px-5 py-3 lg:px-6"><span className={LABEL}>{selectedYear === currentStudyYear(draft) ? 'Current study year' : 'Degree plan'}</span><h2 className="font-heading mt-1 text-xl font-semibold tracking-[-0.025em]">{selectedYear}</h2></div>
         <nav className="flex min-w-0 overflow-x-auto" aria-label="Study years">
           {years.map((year) => {
             const courses = draft.courses.filter((course) => (course.yearLevel || 'Unassigned') === year)
@@ -323,36 +331,75 @@ export function PlanningPlanner() {
         </nav>
       </div>
 
-      <div className="flex min-h-[58px] shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-5 py-2.5 lg:px-6">
-        <span className="bg-primary/8 text-primary grid size-8 shrink-0 place-items-center rounded-[7px]"><TargetIcon className="size-4" /></span>
-        <div className="min-w-0 flex-1"><span className={`${LABEL} mr-2`}>What if</span><strong className="text-xs">{yearCourses.length ? `Complete ${selectedYear} with ${yearEcts} open ECTS${goal ? ` while protecting “${goal.label}”` : ''}.` : `Build out ${selectedYear} before placing its exams.`}</strong></div>
-        <span className={`text-muted-foreground text-xs ${DATA}`}>{yearCourses.length ? `${expectedAverage === null ? 'Set expected grades' : `${expectedAverage.toFixed(1)} expected average`} · ${summary.projectedCredits}/${summary.totalCredits} ECTS projected` : 'Add core courses and electives in Courses'}</span>
+      <div className="grid shrink-0 border-b bg-card lg:grid-cols-[minmax(260px,0.8fr)_minmax(420px,1.4fr)]">
+        <div className="flex items-center gap-3 px-5 py-4 lg:border-r lg:px-6">
+          <span className="bg-primary/8 text-primary grid size-8 shrink-0 place-items-center rounded-[7px]"><TargetIcon className="size-4" /></span>
+          <div className="min-w-0"><span className={LABEL}>Planning question</span><strong className="mt-1 block text-xs leading-relaxed">{yearCourses.length ? `Can I complete ${yearEcts} open ECTS in ${selectedYear}${goal ? ` and still meet ${goal.label}?` : '?'} ` : `Which courses belong in ${selectedYear}?`}</strong></div>
+        </div>
+        <div className="flex items-center gap-5 border-t px-5 py-4 lg:border-t-0 lg:px-6">
+          <CreditRail workspace={draft} summary={summary} />
+          <div className="shrink-0 text-right"><span className={LABEL}>Expected result</span><strong className={`mt-1 block text-xs ${DATA}`}>{expectedAverage === null ? 'Grades not set' : `${expectedAverage.toFixed(1)} average`}</strong></div>
+        </div>
       </div>
 
-      {nextRegistration && <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b bg-primary/[0.025] px-5 py-2.5 text-xs lg:px-6"><span className={`${LABEL} text-primary`}>Registration</span><strong>{nextRegistration.title}</strong><span className={`text-muted-foreground ${DATA}`}>{dateLabel(nextRegistration.date)}</span><Button nativeButton={false} render={<Link href="/app/calendar?view=agenda" />} variant="ghost" size="sm" className="ml-auto">Review in Calendar</Button></div>}
+      {nextRegistration && <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b px-5 py-2.5 text-xs lg:px-6"><span className={`${LABEL} text-primary`}>Registration action</span><strong>{nextRegistration.title}</strong><span className={`text-muted-foreground ${DATA}`}>{dateLabel(nextRegistration.date)}</span><Button nativeButton={false} render={<Link href="/app/calendar?view=agenda" />} variant="ghost" size="sm" className="ml-auto">Review in Calendar</Button></div>}
 
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="grid h-full min-w-max auto-cols-[276px] grid-flow-col gap-5 px-5 py-5 lg:px-6">
-          {sessions.map((session) => {
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="grid min-w-max" style={{ gridTemplateColumns: `280px repeat(${sessions.length}, minmax(190px, 1fr))` }}>
+          <div className="bg-background sticky left-0 z-20 flex min-h-[92px] items-end border-r border-b px-5 py-4 lg:px-6">
+            <div><span className={LABEL}>Course route</span><p className="text-muted-foreground mt-1 text-[11px]">Move a course across its possible sittings.</p></div>
+          </div>
+          {sessions.map((session, index) => {
             const held = yearCourses.filter((course) => placement(course) === session.id)
-            return <section key={session.id} onDragOver={(event) => { event.preventDefault(); setDragOver(session.id) }} onDragLeave={() => setDragOver(null)} onDrop={(event) => { event.preventDefault(); const course = yearCourses.find((item) => item.id === draggedId); if (course) move(course, session); setDraggedId(null); setDragOver(null) }} className={`flex h-full min-h-0 flex-col rounded-[12px] border bg-card transition-[border-color,background-color] ${dragOver === session.id ? 'border-primary bg-primary/[0.018]' : ''}`}>
-              <header className="flex min-h-[88px] shrink-0 items-start justify-between gap-3 border-b px-4 py-4"><div className="min-w-0"><span className={LABEL}>{session.eyebrow}</span><h3 className="mt-1 truncate text-sm font-semibold" title={session.label}>{session.label}</h3><span className={`text-muted-foreground mt-1 block text-[10.5px] ${DATA}`}>{session.range}</span></div><span className={`text-muted-foreground mt-0.5 text-xs ${DATA}`}>{held.length}</span></header>
-              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-                {held.map((course) => <CourseCard key={course.id} workspace={draft} course={course} session={session} selected={selectedCourse?.id === course.id} dragging={draggedId === course.id} onSelect={() => setSelectedId(course.id)} onDragStart={() => setDraggedId(course.id)} onDragEnd={() => { setDraggedId(null); setDragOver(null) }} onGrade={(grade) => changeGrade(course, grade)} />)}
-                {!held.length && <div className={`grid min-h-28 place-items-center rounded-[9px] border border-dashed px-5 text-center text-[11px] ${dragOver === session.id ? 'border-primary text-primary' : 'text-muted-foreground/65'}`}>{dragOver === session.id ? 'Release to move here' : session.carry ? 'Drag here to defer a course' : 'No exam planned'}</div>}
-              </div>
-            </section>
+            return <header key={session.id} className={`relative min-h-[92px] border-b px-4 py-4 ${index ? 'border-l' : ''} ${session.carry ? 'bg-muted/25' : ''}`}>
+              <div className="mb-3 flex items-center"><span className={`size-2 rounded-full ${session.resit || session.carry ? 'border border-muted-foreground bg-background' : 'bg-primary'}`} /><span className="bg-border h-px flex-1" /></div>
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><span className={LABEL}>{session.eyebrow}</span><h3 className="mt-1 truncate text-xs font-semibold" title={session.label}>{session.label}</h3><span className={`text-muted-foreground mt-1 block text-[10px] ${DATA}`}>{session.range}</span></div><span className={`text-muted-foreground text-[10px] ${DATA}`}>{held.length}</span></div>
+            </header>
           })}
+
+          {yearCourses.map((course) => {
+            const courseSession = placement(course)
+            const isSelected = selectedCourse?.id === course.id
+            const rules = planningDestinations(draft, course.id)
+            return <div key={course.id} className="contents">
+              <button type="button" onClick={() => setSelectedId(course.id)} className={`bg-background sticky left-0 z-10 min-h-[78px] border-r border-b px-5 py-3 text-left lg:px-6 ${isSelected ? 'before:bg-primary relative before:absolute before:inset-y-0 before:left-0 before:w-0.5' : 'hover:bg-muted/30'}`}>
+                <span className={`text-[10px] font-semibold tracking-[0.06em] ${isSelected ? 'text-primary' : 'text-muted-foreground'} ${DATA}`}>{course.code || 'COURSE'} · {course.ects} ECTS</span>
+                <strong className="mt-1 block max-w-56 truncate text-xs" title={course.name}>{course.name}</strong>
+                <span className="text-muted-foreground mt-1 block text-[10px]">{rules.teachingPeriod ? `Taught ${rules.teachingPeriod} · ${rules.allowedSessionIds.length} valid routes` : 'Period not recorded · routes unrestricted'}</span>
+              </button>
+              {sessions.map((session, index) => {
+                const placed = courseSession === session.id
+                const destination = rules.destinations.find((item) => item.id === session.id)
+                const allowed = Boolean(destination?.allowed)
+                const over = dragOver === `${course.id}:${session.id}`
+                return <div key={session.id} title={!allowed ? destination?.reason || 'This sitting is not available for the course.' : undefined} onDragOver={allowed ? (event) => { event.preventDefault(); setDragOver(`${course.id}:${session.id}`) } : undefined} onDragLeave={() => setDragOver(null)} onDrop={allowed ? (event) => { event.preventDefault(); move(course, session); setDraggedId(null); setDragOver(null) } : undefined} className={`grid min-h-[78px] place-items-center border-b px-3 py-2 ${index ? 'border-l' : ''} ${session.carry ? 'bg-muted/20' : ''} ${!allowed ? 'bg-muted/15' : ''} ${over ? 'bg-primary/[0.04]' : ''}`}>
+                  {placed ? <button type="button" draggable onDragStart={() => setDraggedId(course.id)} onDragEnd={() => { setDraggedId(null); setDragOver(null) }} onClick={() => setSelectedId(course.id)} className={`group flex w-full cursor-grab items-center gap-2 rounded-[7px] border px-3 py-2 text-left transition-[border-color,background-color,opacity] active:cursor-grabbing ${isSelected ? 'border-primary bg-primary/[0.055]' : 'bg-card hover:border-foreground/25'} ${draggedId === course.id ? 'opacity-40' : ''}`}>
+                    <GripVerticalIcon className="text-muted-foreground size-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1"><strong className={`block truncate text-[11px] ${DATA}`}>{course.code}</strong><span className="text-muted-foreground mt-0.5 block truncate text-[10px]">{session.carry ? 'Deferred' : session.id === CONTINUOUS_ID ? 'Continuous assessment' : session.resit ? 'Resit planned' : 'Primary sitting'}</span></span>
+                  </button> : allowed ? <span className={`h-px w-5 transition-colors ${over ? 'bg-primary' : 'bg-border/70'}`} /> : isSelected ? <span className="text-muted-foreground/65 inline-flex items-center gap-1 text-[10px]"><LockIcon className="size-3" />Not offered</span> : <LockIcon className="text-muted-foreground/30 size-3" />}
+                </div>
+              })}
+            </div>
+          })}
+          {!yearCourses.length && <div className="col-span-full grid min-h-56 place-items-center border-b text-center"><div><strong className="text-sm">No courses placed in {selectedYear}</strong><p className="text-muted-foreground mt-1 text-xs">Choose electives or add courses from the Courses tab.</p></div></div>}
         </div>
       </div>
 
-      <footer className="grid min-h-[74px] shrink-0 border-t bg-card lg:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="flex min-w-0 items-center gap-4 px-5 py-3 lg:px-6"><span className={`grid size-8 shrink-0 place-items-center rounded-full ${changes.length ? 'bg-primary/8 text-primary' : 'bg-muted text-muted-foreground'}`}>{changes.length ? <CheckIcon className="size-4" /> : <GripVerticalIcon className="size-4" />}</span><div className="min-w-0">{lastMove ? <><strong className="block truncate text-xs">{draft.courses.find((course) => course.id === lastMove.courseId)?.name} moved to {sessions.find((session) => session.id === lastMove.to)?.label.toLowerCase()}</strong><p className="text-muted-foreground mt-1 text-[11px]">This remains a draft until you review and save it.</p></> : <><strong className="text-xs">Move a course to test another path</strong><p className="text-muted-foreground mt-1 text-[11px]">Drag between sessions or use the move menu. Nothing saves immediately.</p></>}</div></div>
-        <div className="flex items-center gap-2 border-t px-5 py-3 lg:border-t-0 lg:border-l lg:px-6">
-          <select aria-label="Move selected course" disabled={!selectedCourse} value={selectedSession?.id || ''} onChange={(event) => { const session = sessions.find((item) => item.id === event.target.value); if (selectedCourse && session) move(selectedCourse, session) }} className="h-9 min-w-44 rounded-[7px] border bg-background px-3 text-xs font-semibold outline-none disabled:opacity-50">{sessions.map((session) => <option key={session.id} value={session.id}>{session.label}</option>)}</select>
-          {changes.length > 0 && <Button variant="ghost" size="sm" onClick={() => { setDraft(workspace); setLastMove(null) }} disabled={saving}><RotateCcwIcon data-icon="inline-start" />Reset</Button>}
-          <Button size="sm" disabled={!changes.length || saving} onClick={() => setReviewOpen(true)}>Review {changes.length || ''} {changes.length === 1 ? 'change' : 'changes'}</Button>
-        </div>
+      <footer className="shrink-0 border-t bg-card">
+        {selectedCourse && selectedSession ? <div className="grid lg:grid-cols-[minmax(260px,0.85fr)_minmax(420px,1.15fr)_auto]">
+          <div className="flex min-w-0 items-center gap-3 px-5 py-3 lg:border-r lg:px-6"><span className={`grid size-8 shrink-0 place-items-center rounded-full ${selectedChanged ? 'bg-primary/8 text-primary' : 'bg-muted text-muted-foreground'}`}>{selectedChanged ? <CheckIcon className="size-4" /> : <CalendarDaysIcon className="size-4" />}</span><div className="min-w-0"><strong className="block truncate text-xs">{selectedCourse.name}</strong><p className="text-muted-foreground mt-1 truncate text-[10.5px]">{selectedRules?.teachingPeriod ? `${selectedRules.teachingPeriod} rule · ${selectedRules.evidenceSource === 'transcript-attempt' ? 'transcript evidence' : 'course record'}` : requirementFor(draft, selectedCourse)}</p></div></div>
+          <div className="flex min-w-0 flex-wrap items-center gap-3 border-t px-5 py-3 lg:border-t-0 lg:px-6">
+            <span className={LABEL}>{selectedChanged ? 'What if' : 'Planned sitting'}</span>
+            {selectedChanged && savedSession && <><span className="text-muted-foreground max-w-32 truncate text-[11px]">{savedSession.label}</span><ArrowRightIcon className="text-muted-foreground size-3.5" /></>}
+            <select aria-label={`Planned session for ${selectedCourse.name}`} value={selectedSession.id} onChange={(event) => { const session = sessions.find((item) => item.id === event.target.value); if (session) move(selectedCourse, session) }} className="h-9 min-w-44 rounded-[7px] border bg-background px-3 text-xs font-semibold outline-none">{selectedAllowedSessions.map((session) => <option key={session.id} value={session.id}>{session.label}</option>)}</select>
+            <label className="flex items-center gap-2 text-[11px] font-semibold"><span className="text-muted-foreground">Expected grade</span><input aria-label={`Expected grade for ${selectedCourse.name}`} type="number" min="0" max={selectedMaximum} step="0.1" value={selectedObjective?.expectedGrade ?? ''} placeholder="Set" onChange={(event) => changeGrade(selectedCourse, event.target.value === '' ? null : Number(event.target.value))} className={`h-9 w-16 rounded-[7px] border bg-background px-2 text-right text-xs font-semibold outline-none focus:border-primary ${DATA}`} /></label>
+          </div>
+          <div className="flex items-center gap-2 border-t px-5 py-3 lg:border-t-0 lg:border-l lg:px-6">
+            {changes.length > 0 && <Button variant="ghost" size="sm" onClick={() => { setDraft(workspace); setLastMove(null) }} disabled={saving}><RotateCcwIcon data-icon="inline-start" />Reset</Button>}
+            <Button size="sm" disabled={!changes.length || saving} onClick={() => setReviewOpen(true)}>Review {changes.length || ''} {changes.length === 1 ? 'change' : 'changes'}</Button>
+          </div>
+        </div> : <div className="px-5 py-4 text-xs lg:px-6">Choose a course to inspect its route.</div>}
+        <div className="flex items-center justify-between gap-4 border-t px-5 py-2.5 text-[10.5px] lg:px-6"><span className="text-muted-foreground">{lastMove ? `${draft.courses.find((course) => course.id === lastMove.courseId)?.name} moved to ${sessions.find((session) => session.id === lastMove.to)?.label.toLowerCase()}.` : 'This is a private scenario. Recorded results and registrations stay unchanged.'}</span><span className={`shrink-0 font-semibold ${changes.length ? 'text-primary' : 'text-muted-foreground'} ${DATA}`}>{changes.length ? `${changes.length} unsaved` : 'Saved plan'}</span></div>
       </footer>
 
       {error && <div role="alert" className="flex shrink-0 items-start gap-2 border-t px-5 py-3 text-sm text-destructive lg:px-6"><AlertTriangleIcon className="mt-0.5 size-4 shrink-0" /><span>The plan could not be saved: {error}</span></div>}

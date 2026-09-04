@@ -38,6 +38,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlanningPlanner } from "@/components/workspace/planning-planner";
+import { PlanningElectives } from "@/components/workspace/planning-electives";
 import { PlanningSettings } from "@/components/workspace/planning-settings";
 import {
   type AcademicEvent,
@@ -197,12 +198,10 @@ function SectionHead({
 }
 
 function ViewIntro({
-  eyebrow,
   title,
   description,
   action,
 }: {
-  eyebrow: string;
   title: string;
   description: string;
   action?: React.ReactNode;
@@ -210,8 +209,7 @@ function ViewIntro({
   return (
     <header className="flex flex-wrap items-end justify-between gap-5 border-b pb-6">
       <div className="max-w-[70ch]">
-        <span className={COLUMN}>{eyebrow}</span>
-        <h2 className="font-heading mt-2 text-[28px] leading-tight font-semibold tracking-[-0.03em] text-balance">
+        <h2 className="font-heading text-[32px] leading-tight font-semibold tracking-[-0.03em] text-balance">
           {title}
         </h2>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed text-pretty">
@@ -1623,7 +1621,6 @@ export default function PlanningPage() {
           {workspace ? (
             <>
               <ViewIntro
-                eyebrow="Academic overview"
                 title="The degree at a glance"
                 description="Read the recorded position first, then move into the exam plan, programme facts, or dates that need a decision."
                 action={<Button size="sm" onClick={() => { setTab("planner"); history.replaceState(null, "", "/app/planning?tab=planner"); }}>Open exam planner</Button>}
@@ -1680,10 +1677,10 @@ export default function PlanningPage() {
           {workspace ? (
             <>
               <ViewIntro
-                eyebrow="Curriculum"
                 title="Courses and electives"
                 description="Review every course by study year. Requirement labels distinguish core, choice, and elective space without mixing exam planning into the curriculum record."
               />
+              <PlanningElectives onSaved={reload} />
               {composer === "courses" && (
                 <CourseComposer
                   commit={commit}
@@ -1708,7 +1705,6 @@ export default function PlanningPage() {
           {workspace ? (
             <>
               <ViewIntro
-                eyebrow="Progress"
                 title="What is complete, safe, and still exposed"
                 description="Recorded results stay separate from the assumptions in your current exam plan. Requirements below remain grounded in the programme record."
               />

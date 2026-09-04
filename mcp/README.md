@@ -59,10 +59,11 @@ they are how a key is obtained. Everything else needs one.
 - **Reading** — `list_courses`, `get_course`, `get_chapter`, `get_course_outline`, `search_course`,
   `list_materials`, `list_questions`, `get_practice_queue`, `get_progress`, `list_flashcards`,
   `list_due_cards`, `list_mistakes`, `list_mock_sessions`, `get_mock_session`, `get_academic_plan`,
-  `list_known_programmes`, `get_calendar`, `get_activity`, `get_account_summary`, `whoami`
+  `get_planning_context`, `list_known_programmes`, `get_calendar`, `get_activity`,
+  `get_account_summary`, `whoami`
 - **Studying** — `submit_answer`, `set_mastery`, `review_card`, `add_to_deck`, `create_flashcard`,
   `review_flashcard`, `resolve_mistake`, `record_chapter_read`, `save_academic_plan`,
-  `set_course_visibility`, `join_programme`
+  `update_planning_objective`, `set_course_visibility`, `join_programme`
 - **Documents and calendars** — `analyze_documents`, `apply_changes`, `preview_calendar`,
   `save_calendar_link`, `sync_calendar_link`, `remove_calendar_link`
 - **Canvas** — `canvas_connect`, `canvas_updates` (announcements, assignments with

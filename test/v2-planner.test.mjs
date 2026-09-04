@@ -4,9 +4,13 @@ import {
   gateResolved,
   groupOpenCourses,
   objectiveFor,
+  planningContext,
+  planningDestinations,
   plannerSummary,
   planningInsights,
+  planningSessions,
   resetObjectives,
+  updatePlanningObjective,
   withObjective
 } from '../lib/workspace/planner.mjs'
 
@@ -32,6 +36,77 @@ test('a planning objective retains a bounded expected grade and named exam sessi
   assert.deepEqual(withObjective(workspace(), 'a', { expectedGrade: 7.5, targetSession: 'period-2' }).planning.objectives.a, {
     mode: 'current', outcome: 'actual', expectedGrade: 7.5, targetSession: 'period-2'
   })
+})
+
+test('agent planning context separates recorded results from scenario choices', () => {
+  const value = workspace({
+    profile: { programme: 'BSc Computer Science', academicYear: '2026–2027' },
+    programmeTemplate: { currentStudyYear: 'Year 1' },
+    courses: [course('algo', { passMark: 5.5, attempts: [{ status: 'failed', grade: 4.8, examDate: '2026-10-12', type: 'first' }] })],
+    planning: {
+      objectives: { algo: { mode: 'resit', outcome: 'pass', expectedGrade: 7.5, targetSession: 'calendar:resit-1' } },
+      academicPeriods: [{ id: 'resit-1', title: 'Period 1 resits', date: '2027-01-04', endDate: '2027-01-08', kind: 'resit-week', resit: true }]
+    }
+  })
+  const context = planningContext(value)
+  assert.equal(context.revision, 3)
+  assert.equal(context.courses[0].recordedStatus, 'failed')
+  assert.equal(context.courses[0].recordedAttempts[0].grade, 4.8)
+  assert.equal(context.courses[0].objective.expectedGrade, 7.5)
+  assert.equal(context.courses[0].plannedSession.label, 'Period 1 resits')
+  assert.equal(context.courses[0].placementSource, 'scenario-choice')
+  assert.ok(planningSessions(value).some((session) => session.id === 'following-year'))
+})
+
+test('planner exposes continuous coursework separately from exam sittings', () => {
+  const value = workspace({ courses: [course('project', { period: 'Semester 1' }), course('exam')] })
+  const sessions = planningSessions(value)
+  assert.equal(sessions[0].id, 'continuous-work')
+  assert.equal(sessions.find((session) => session.id === 'continuous-work').kind, 'continuous-work')
+  assert.ok(sessions.some((session) => session.id === 'period:1'))
+  const context = planningContext(value)
+  assert.equal(context.courses.find((item) => item.id === 'project').plannedSession.id, 'continuous-work')
+  assert.equal(context.courses.find((item) => item.id === 'exam').plannedSession.id, 'period:1')
+  assert.equal(context.courses.find((item) => item.id === 'exam').placementSource, 'course-and-calendar')
+  assert.deepEqual(planningDestinations(value, 'project').allowedSessionIds, ['continuous-work', 'following-year'])
+})
+
+test('teaching periods allow only the matching exam, related resit and later year', () => {
+  const value = workspace({
+    courses: [course('p1'), course('p2', { period: 'Period 2' })],
+    planning: { objectives: {}, academicPeriods: [
+      { id: 'exam-1', title: 'Period 1 exams', date: '2026-10-12', endDate: '2026-10-16', kind: 'exam-week', period: 1 },
+      { id: 'exam-2', title: 'Period 2 exams', date: '2026-12-14', endDate: '2026-12-18', kind: 'exam-week', period: 2 },
+      { id: 'resit-s1', title: 'Semester 1 resits', date: '2027-01-04', endDate: '2027-01-08', kind: 'resit-week', semester: 1, resit: true }
+    ] }
+  })
+  const rules = planningDestinations(value, 'p1')
+  assert.deepEqual(rules.allowedSessionIds, ['calendar:exam-1', 'calendar:resit-s1', 'following-year'])
+  assert.equal(rules.destinations.find((item) => item.id === 'calendar:exam-2').allowed, false)
+  assert.throws(() => updatePlanningObjective(value, 'p1', { targetSession: 'calendar:exam-2' }), /recorded teaching-period/)
+})
+
+test('a transcript attempt supplies a missing teaching period and verified no-resit rules win', () => {
+  const value = workspace({ courses: [course('history', {
+    period: '',
+    attempts: [{ status: 'failed', period: 'Period 2' }],
+    courseProfile: { assessment: { status: 'confirmed', resitRules: ['No resit is available for this course.'] } }
+  }), course('period-one')] })
+  const rules = planningDestinations(value, 'history')
+  assert.equal(rules.evidenceSource, 'transcript-attempt')
+  assert.deepEqual(rules.allowedSessionIds, ['period:2', 'following-year'])
+})
+
+test('narrow planning updates validate the course, session, grade scale and inferred outcome', () => {
+  const value = workspace({ courses: [course('algo', { passMark: 5.5 }), course('other', { period: 'Period 2' })] })
+  const updated = updatePlanningObjective(value, 'ALGO', { targetSession: 'resit', expectedGrade: 7.2 })
+  assert.equal(updated.course.id, 'algo')
+  assert.deepEqual(updated.after, { mode: 'resit', outcome: 'pass', targetSession: 'resit', expectedGrade: 7.2 })
+  assert.throws(() => updatePlanningObjective(value, 'missing', { mode: 'resit' }), /not in the active/)
+  assert.throws(() => updatePlanningObjective(value, 'algo', { targetSession: 'invented-session' }), /not available/)
+  assert.throws(() => updatePlanningObjective(value, 'algo', { targetSession: 'period:2' }), /recorded teaching-period/)
+  assert.throws(() => updatePlanningObjective(value, 'algo', { expectedGrade: 70 }), /between 0 and 10/)
+  assert.deepEqual(updatePlanningObjective(updated.workspace, 'algo', { expectedGrade: null }).after, { mode: 'resit', outcome: 'actual', targetSession: 'resit' })
 })
 
 test('recorded passes are fixed and projected passes count once', () => {

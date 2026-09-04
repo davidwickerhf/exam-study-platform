@@ -60,6 +60,7 @@ import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
 import { formatRetrievalContext, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 import { applyWorkspaceEdit } from './lib/workspace/academics.mjs'
+import { planningContext, updatePlanningObjective } from './lib/workspace/planner.mjs'
 import { canvasPriorityProfiles } from './lib/priority-evidence.mjs'
 import { CONTRIBUTION_LICENSES, COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
 import { estimateEditorialGeneration, listEditorialWorkspace, prepareCourseContentRequest, processEditorialJobs, publishEditorialEdition, queueEditorialGeneration, registerEditorialSources, reviewEditorialContribution, updateEditorialArtifact, uploadEditorialSourceChunk, upsertEditorialEdition, withdrawCourseContentRequestContribution } from './lib/editorial-workflow.mjs'
@@ -3432,6 +3433,13 @@ async function executeTutorProposal(proposal) {
     await saveActiveAcademicWorkspace(next, state.workspace.revision)
     return { kind: 'calendar-event', label: 'Added to Planning', href: '/app/planning' }
   }
+  if (proposal.type === 'planning-objective') {
+    const state = await readAcademicState()
+    if (Number(proposal.payload.expectedRevision) !== state.workspace.revision) throw new TutorStoreError('The exam plan changed after Tutor prepared this action. Ask Tutor to review the latest plan before approving it.', 409)
+    const update = updatePlanningObjective(state.workspace, proposal.payload.courseId, proposal.payload.objective)
+    await saveActiveAcademicWorkspace(update.workspace, state.workspace.revision)
+    return { kind: 'planning-objective', label: `${update.course.code} plan updated`, href: '/app/planning?tab=planner' }
+  }
   if (proposal.type === 'practice-set') {
     const state = await readState()
     const course = (state.courses || []).find((item) => item.id === proposal.payload.courseId || item.code === proposal.payload.courseCode)
@@ -4670,6 +4678,25 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/academics' && req.method === 'GET') {
       send(res, 200, JSON.stringify(await readAcademicState()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/planning/context' && req.method === 'GET') {
+      const { workspace } = await readAcademicState()
+      send(res, 200, JSON.stringify(planningContext(workspace)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    const planningObjectiveMatch = url.pathname.match(/^\/api\/planning\/objectives\/([^/]+)$/)
+    if (planningObjectiveMatch && req.method === 'PATCH') {
+      try {
+        const body = await readBody(req, 32 * 1024)
+        const state = await readAcademicState()
+        if (Number(body?.expectedRevision) !== state.workspace.revision) throw new Error('This programme changed in another tab. Reload the planning context before saving again.')
+        const update = updatePlanningObjective(state.workspace, decodeURIComponent(planningObjectiveMatch[1]), body?.objective)
+        const saved = await saveActiveAcademicWorkspace(update.workspace, state.workspace.revision)
+        send(res, 200, JSON.stringify({ changed: { courseId: update.course.id, courseCode: update.course.code, before: update.before, after: update.after }, context: planningContext(saved.workspace) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, /another tab|planning context/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
+      }
       return
     }
     if (url.pathname === '/api/attendance' && req.method === 'PUT') {
