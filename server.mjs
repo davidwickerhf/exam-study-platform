@@ -52,6 +52,7 @@ import { AcademicDocumentRegisterError, deleteAcademicDocumentRecord, deleteAcad
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
 import { applyProgramme, applySecureValue, chooseElectiveGroups, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingStatus, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
+import { beginTutorTurn, completeTutorTurn, completedTutorRetry, failTutorTurn, visibleTutorConversation } from './lib/tutor-turns.mjs'
 import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
 import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
 import { TutorAttachmentError, deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment } from './lib/tutor-attachments.mjs'
@@ -3448,17 +3449,6 @@ async function runGenerateAllCoursesJob(masterJobId) {
   }
 }
 
-function visibleTutorConversation(conversation) {
-  if (!conversation) return null
-  return {
-    id: conversation.id,
-    title: conversation.title,
-    updatedAt: conversation.updatedAt,
-    messages: (conversation.messages || [])
-      .filter((message) => ['user', 'assistant'].includes(message.role) && String(message.content || '').trim())
-      .map(({ role, content, at, evidence, proposals, context }) => ({ role, content, at, evidence: evidence || [], proposals: proposals || [], context: context || null }))
-  }
-}
 
 function tutorProposalFromConversation(conversation, proposalId) {
   for (const message of [...(conversation?.messages || [])].reverse()) {
@@ -4440,25 +4430,39 @@ const server = createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/api/tutor' && req.method === 'POST') {
+      const controller = new AbortController()
+      const disconnected = () => { if (!res.writableEnded) controller.abort() }
+      res.once('close', disconnected)
+      const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(180_000)])
+      let activeTurn = null
       try {
         const body = await readBody(req, 32 * 1024)
         const message = String(body?.message || '').trim().slice(0, 4000)
         if (!message) { send(res, 400, JSON.stringify({ error: 'Ask something.' })); return }
-        const conversation = (body?.conversation && await readConversation(body.conversation)) || newConversation()
-        const turn = await runTutorTurn(conversation, { message, context: body?.context || {} })
-        conversation.messages = [...(conversation.messages || []), ...turn.added]
-        const saved = await saveConversation(conversation)
+        const stored = body?.conversation ? await readConversation(body.conversation) : null
+        const canCreate = body?.create === true && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body?.conversation || ''))
+        if (body?.conversation && !stored && !canCreate) throw new TutorStoreError('This conversation no longer exists. Start a new one.', 404)
+        let saved = stored
+        let usage = null
+        if (!(body?.retry && completedTutorRetry(stored, message))) {
+          activeTurn = await beginTutorTurn(stored, { message, context: body?.context || {}, retry: Boolean(body?.retry), id: canCreate ? body.conversation : undefined })
+          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, signal })
+          signal.throwIfAborted()
+          saved = await completeTutorTurn(activeTurn, turn)
+          usage = turn.usage
+          activeTurn = null
+        }
+        const [conversations, memory, receipts, attachments] = await Promise.all([listConversations(), readTutorMemory(), readTutorActionReceipts(), listTutorAttachments()])
         send(res, 200, JSON.stringify({
           conversation: visibleTutorConversation(saved),
-          conversations: await listConversations(),
-          memory: await readTutorMemory(),
-          receipts: await readTutorActionReceipts(),
-          attachments: await listTutorAttachments(),
-          usage: turn.usage
+          conversations, memory, receipts, attachments,
+          usage
         }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
-        send(res, error?.status || 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That could not be sent.' }))
-      }
+        let conversation = null
+        if (activeTurn) conversation = await failTutorTurn(activeTurn, error, controller.signal.aborted).catch(() => null)
+        if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify({ conversation: visibleTutorConversation(conversation), error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }))
+      } finally { res.off('close', disconnected) }
       return
     }
     if (url.pathname === '/api/tutor/actions' && req.method === 'POST') {
