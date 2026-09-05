@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { priorityEvidenceCandidates } from '../lib/priority-evidence.mjs'
+import { priorityEvidenceCandidates, priorityScanSetupIssue } from '../lib/priority-evidence.mjs'
 
 test('priority retrieval keeps obligation evidence and ranks authoritative sources first', () => {
   const rows = [
@@ -13,4 +13,16 @@ test('priority retrieval keeps obligation evidence and ranks authoritative sourc
 
 test('priority retrieval does not turn ordinary teaching content into an obligation', () => {
   assert.deepEqual(priorityEvidenceCandidates([{ chunkId: 1, sourceType: 'slides', content: 'A graph has vertices and edges.' }]), [])
+})
+
+test('setup groups failed priority extraction without pretending the programme is wrong', () => {
+  const issue = priorityScanSetupIssue([
+    { courseCode: 'BCS3120', status: 'needs-review' },
+    { courseCode: 'BCS2120', status: 'needs-review' },
+    { courseCode: 'BCS3130', status: 'confirmed' }
+  ])
+  assert.equal(issue.step, 'canvas')
+  assert.match(issue.title, /2 courses need another priority scan/)
+  assert.match(issue.detail, /stored and searchable/)
+  assert.match(issue.recovery, /Canvas sync/)
 })

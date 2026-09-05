@@ -45,7 +45,7 @@ import { curriculumCourseIdentity, reconcileAcademicCourseIdentities } from './l
 import { academicProgress, deleteAcademicSnapshot, latestAcademicSnapshot, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
 import { AcademicDocumentRegisterError, deleteAcademicDocumentRecord, deleteAcademicDocumentVersion, listAcademicDocumentRecords, recordAcademicDocumentVersion } from './lib/academic-document-register.mjs'
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
-import { applyProgramme, applySecureValue, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
+import { applyProgramme, applySecureValue, chooseElectiveGroups, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
 import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
 import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
@@ -4595,7 +4595,10 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/onboarding/electives' && req.method === 'PUT') {
       try {
         const body = await readBody(req, 16 * 1024)
-        send(res, 200, JSON.stringify(await chooseElectives({ groupId: body?.groupId, courseIds: body?.courseIds })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const result = Array.isArray(body?.choices)
+          ? await chooseElectiveGroups({ choices: body.choices })
+          : await chooseElectives({ groupId: body?.groupId, courseIds: body?.courseIds })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Electives could not be saved.' })) }
       return
     }

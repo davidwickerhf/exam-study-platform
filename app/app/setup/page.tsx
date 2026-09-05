@@ -643,13 +643,60 @@ function ProgrammeEditor({ current, onSaved }: { current: string | null; onSaved
 function ElectivesEditor({ onSaved }: { onSaved: () => void | Promise<unknown> }) {
   const [groups, setGroups] = useState<ElectiveGroup[] | null>(null)
   const [chosen, setChosen] = useState<Record<string, string[]>>({})
-  const [busy, setBusy] = useState<string | null>(null)
-  const [saved, setSaved] = useState<string | null>(null)
+  const [baseline, setBaseline] = useState<Record<string, string[]>>({})
+  const [answered, setAnswered] = useState<Set<string>>(new Set())
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  useEffect(() => { json<{ groups: ElectiveGroup[] }>('/api/onboarding/electives').then((data) => { setGroups(data.groups); setChosen(Object.fromEntries(data.groups.map((group) => [group.id, group.chosen]))) }).catch((cause: Error) => setError(cause.message)) }, [])
+  useEffect(() => { json<{ groups: ElectiveGroup[] }>('/api/onboarding/electives').then((data) => {
+    const initial = Object.fromEntries(data.groups.map((group) => [group.id, [...group.chosen]]))
+    setGroups(data.groups)
+    setChosen(initial)
+    setBaseline(initial)
+    setAnswered(new Set(data.groups.filter((group) => group.answered).map((group) => group.id)))
+  }).catch((cause: Error) => setError(cause.message)) }, [])
   if (!groups) return error ? <FieldError>{error}</FieldError> : <Skeleton className="h-32 w-full" />
   if (!groups.length) return <p className="text-muted-foreground text-sm">There are no elective choices for your study year in the active teaching period.</p>
-  return <div className="flex flex-col gap-6">{groups.map((group) => <section key={group.id} className="overflow-hidden rounded-lg border"><div className="flex items-center justify-between gap-3 border-b px-4 py-3"><h3 className="font-semibold">{group.label}</h3><span className="text-muted-foreground text-xs">{chosen[group.id]?.length ?? 0} selected</span></div><div className="flex flex-col">{group.courses.map((course) => <label key={course.id} className="hover:bg-card flex cursor-pointer items-start gap-3 border-b px-4 py-3 last:border-b-0"><Checkbox checked={chosen[group.id]?.includes(course.id)} onCheckedChange={(checked) => { setSaved(null); setChosen((held) => ({ ...held, [group.id]: checked ? [...new Set([...(held[group.id] ?? []), course.id])] : (held[group.id] ?? []).filter((id) => id !== course.id) })) }} /><span className="flex min-w-0 flex-1 justify-between gap-4 text-sm"><span><strong className="font-data mr-2">{course.code}</strong>{course.name}</span><span className="text-muted-foreground font-data shrink-0">{course.ects} ECTS</span></span></label>)}</div><div className="flex flex-wrap items-center gap-3 border-t px-4 py-3"><Button size="sm" disabled={busy === group.id} onClick={async () => { setBusy(group.id); setError(null); setSaved(null); try { await json('/api/onboarding/electives', { method: 'PUT', body: JSON.stringify({ groupId: group.id, courseIds: chosen[group.id] ?? [] }) }); await onSaved(); setSaved(group.id) } catch (cause) { setError(cause instanceof Error ? cause.message : 'The electives could not be saved.') } finally { setBusy(null) } }}>{busy === group.id && <Spinner data-icon="inline-start" />}{busy === group.id ? 'Saving…' : 'Save electives'}</Button>{saved === group.id && <SavedMark>Recorded for this teaching period.</SavedMark>}</div></section>)}{error && <FieldError>{error}</FieldError>}</div>
+  const same = (left: string[] = [], right: string[] = []) => [...left].sort().join('\u0000') === [...right].sort().join('\u0000')
+  const changed = groups.filter((group) => !answered.has(group.id) || !same(chosen[group.id], baseline[group.id]))
+  const invalid = groups.find((group) => {
+    const count = chosen[group.id]?.length ?? 0
+    return count < group.minSelections || count > group.maxSelections
+  })
+  const reset = () => { setChosen(Object.fromEntries(groups.map((group) => [group.id, [...(baseline[group.id] ?? [])]]))); setSaved(false); setError(null) }
+  const save = async () => {
+    if (busy || invalid || !changed.length) return
+    setBusy(true)
+    setSaved(false)
+    setError(null)
+    try {
+      await json('/api/onboarding/electives', { method: 'PUT', body: JSON.stringify({ choices: groups.map((group) => ({ groupId: group.id, courseIds: chosen[group.id] ?? [] })) }) })
+      setBaseline(Object.fromEntries(groups.map((group) => [group.id, [...(chosen[group.id] ?? [])]])))
+      setAnswered(new Set(groups.map((group) => group.id)))
+      setSaved(true)
+      await onSaved()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The elective choices could not be saved.')
+    } finally { setBusy(false) }
+  }
+  return <div className="flex flex-col gap-6">
+    {groups.map((group) => {
+      const count = chosen[group.id]?.length ?? 0
+      const rule = group.minSelections === group.maxSelections
+        ? `Choose ${group.minSelections}`
+        : group.minSelections > 0 ? `Choose ${group.minSelections}–${group.maxSelections}` : `Choose up to ${group.maxSelections}`
+      return <section key={group.id} className="overflow-hidden rounded-lg border">
+        <div className="flex items-center justify-between gap-3 border-b px-4 py-3"><div><h3 className="font-semibold">{group.label}</h3><p className="text-muted-foreground mt-0.5 text-xs">{rule}</p></div><span className="text-muted-foreground text-xs">{count} selected</span></div>
+        <div className="flex flex-col">{group.courses.map((course) => <label key={course.id} className="hover:bg-card flex cursor-pointer items-start gap-3 border-b px-4 py-3 last:border-b-0"><Checkbox checked={chosen[group.id]?.includes(course.id)} onCheckedChange={(checked) => { setSaved(false); setChosen((held) => ({ ...held, [group.id]: checked ? [...new Set([...(held[group.id] ?? []), course.id])] : (held[group.id] ?? []).filter((id) => id !== course.id) })) }} /><span className="flex min-w-0 flex-1 justify-between gap-4 text-sm"><span><strong className="font-data mr-2">{course.code}</strong>{course.name}</span><span className="text-muted-foreground font-data shrink-0">{course.ects} ECTS</span></span></label>)}</div>
+      </section>
+    })}
+    {invalid && <FieldError>{invalid.minSelections === invalid.maxSelections ? `Choose exactly ${invalid.minSelections} ${invalid.minSelections === 1 ? 'course' : 'courses'} in ${invalid.label}.` : `Choose between ${invalid.minSelections} and ${invalid.maxSelections} courses in ${invalid.label}.`}</FieldError>}
+    {error && <FieldError>{error}</FieldError>}
+    <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t bg-background py-4">
+      <p className="text-muted-foreground text-sm">{saved ? 'All elective choices are saved.' : changed.length ? `${changed.length} ${changed.length === 1 ? 'group has' : 'groups have'} unsaved choices.` : 'All elective choices are saved.'}</p>
+      <div className="flex items-center gap-2">{changed.length > 0 && <Button type="button" variant="ghost" disabled={busy} onClick={reset}>Discard changes</Button>}<Button type="button" disabled={busy || Boolean(invalid) || !changed.length} onClick={() => void save()}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving choices…' : 'Save all choices'}</Button></div>
+    </div>
+  </div>
 }
 
 /**
@@ -857,8 +904,10 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
                   </details>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" type="button" onClick={() => setOpen('programme')}>Change programme or year</Button>
-                  <Button size="sm" variant="ghost" nativeButton={false} render={<Link href={`/app/setup?explain=${encodeURIComponent(issue.id)}`} />}>Explain my situation</Button>
+                  {issue.step === 'canvas'
+                    ? <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/app/settings/canvas-sync" />}>Review Canvas sync</Button>
+                    : <Button size="sm" variant="outline" type="button" onClick={() => setOpen('programme')}>Change programme or year</Button>}
+                  {issue.step !== 'canvas' && <Button size="sm" variant="ghost" nativeButton={false} render={<Link href={`/app/setup?explain=${encodeURIComponent(issue.id)}`} />}>Explain my situation</Button>}
                 </div>
               </div>
             </div>
@@ -1050,6 +1099,16 @@ function UnifiedSetup({
     if (fresh) advanceFrom(fresh, step)
   }
 
+  // A multi-group elective save should visibly settle before the student
+  // chooses where to go next. Auto-advancing used to unmount the editor as the
+  // request completed, which made a successful save look as if it had failed.
+  const refreshInPlace = async (step: SetupStepId) => {
+    const fresh = await onRefresh()
+    if (!fresh) return
+    onApplied(fresh)
+    setSaved(step)
+  }
+
   const defer = async (step: SetupStepId) => {
     if (deferBusy) return
     setDeferBusy(step)
@@ -1128,16 +1187,18 @@ function UnifiedSetup({
             <StatusLabel status={selected.status} inverse />
           </div>
 
-          {selectedIssues.map((issue) => <section key={issue.id} role="alert" className="bg-primary/5 border-b px-5 py-5 sm:px-7">
+          {selectedIssues.map((issue) => <section key={issue.id} role="alert" className="border-b px-5 py-5 sm:px-7">
             <div className="flex items-start gap-3"><AlertTriangleIcon className="text-primary mt-0.5 size-5 shrink-0" /><div className="min-w-0"><strong>{issue.title}</strong><p className="text-muted-foreground mt-1 text-sm leading-relaxed">{issue.detail}</p><p className="mt-2 text-sm">{issue.recovery}</p></div></div>
             {(issue.unexpectedCourses?.length || issue.expectedCourses?.length) && <details className="mt-4 border-t pt-4"><summary className="cursor-pointer text-sm font-semibold">Compare the evidence</summary><div className="mt-3 grid gap-5 sm:grid-cols-2"><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Current record</p>{issue.unexpectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data text-primary">{course.code}</span> {course.name}</p>)}</div><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Selected plan</p>{issue.expectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data">{course.code}</span> {course.name}</p>)}</div></div></details>}
-            <Button size="sm" variant="outline" type="button" className="mt-4" onClick={() => setOpen('programme')}>Correct programme or year</Button>
+            {issue.step === 'canvas'
+              ? <Button size="sm" variant="outline" nativeButton={false} className="mt-4" render={<Link href="/app/settings/canvas-sync" />}>Review Canvas sync</Button>
+              : <Button size="sm" variant="outline" type="button" className="mt-4" onClick={() => setOpen('programme')}>Correct programme or year</Button>}
           </section>)}
 
           <div className="px-5 py-6 sm:px-7 sm:py-7">
             {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
             {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} onSaved={() => refreshFrom('programme')} />}
-            {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshFrom('electives')} />)}
+            {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} />)}
             {selected.id === 'record' && <><UploadField onRead={() => refreshFrom('record')} onSkip={() => void defer('record')} /><div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
             {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} onSkip={() => void defer('transcript')} />}
             {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}

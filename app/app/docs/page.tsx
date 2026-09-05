@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckIcon, CopyIcon, KeyRoundIcon, LockKeyholeIcon, TerminalIcon } from "lucide-react";
+import { type ReactNode, useMemo, useState } from "react";
+import Link from "next/link";
+import { CheckIcon, CopyIcon, ExternalLinkIcon, KeyRoundIcon, LockKeyholeIcon, TerminalIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,11 +11,13 @@ import type { CreatedApiKey } from "@/lib/workspace/account.mjs";
 
 type Client = "codex" | "claude";
 const MCP_PACKAGE = "wicker-study-mcp@2.7.0";
+const SECTIONS = [
+  ["quickstart", "Quickstart"], ["connect", "Connect an agent"], ["capabilities", "What it can do"],
+  ["tools", "Tool reference"], ["context", "How context works"], ["files", "Files and retrieval"],
+  ["permissions", "Permissions"], ["tokens", "Tokens and revocation"], ["troubleshooting", "Troubleshooting"], ["http", "HTTP API"],
+] as const;
 
-function quoted(value: string) {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
+function quoted(value: string) { return `'${value.replace(/'/g, `'\\''`)}'`; }
 function installCommand(client: Client, origin: string, secret: string) {
   const configure = `WICKER_STUDY_URL=${quoted(origin)} WICKER_STUDY_API_KEY=${quoted(secret)} npx -y ${MCP_PACKAGE} configure`;
   const register = client === "codex"
@@ -25,15 +28,15 @@ function installCommand(client: Client, origin: string, secret: string) {
 
 function CommandBlock({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
-  return <div className="border-t">
-    <div className="flex items-center justify-between gap-4 px-5 py-3 sm:px-6">
-      <span className="text-muted-foreground text-xs">One copy, then paste the complete block into your terminal</span>
-      <Button variant="ghost" size="sm" onClick={async () => { await navigator.clipboard.writeText(command); setCopied(true); }}>
-        {copied ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}{copied ? "Copied" : "Copy"}
-      </Button>
-    </div>
-    <pre className="bg-muted/25 overflow-x-auto border-t px-5 py-5 text-xs leading-6 sm:px-6"><code>{command}</code></pre>
-  </div>;
+  return <div><div className="flex items-center justify-between gap-4 border-b px-4 py-2.5 sm:px-5"><span className="text-muted-foreground text-xs">Paste the complete two-line block into your terminal</span><Button variant="ghost" size="sm" onClick={async () => { await navigator.clipboard.writeText(command); setCopied(true); }}>{copied ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}{copied ? "Copied" : "Copy block"}</Button></div><pre className="bg-muted/25 overflow-x-auto px-4 py-4 text-xs leading-6 sm:px-5"><code>{command}</code></pre></div>;
+}
+
+function DocSection({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
+  return <section id={id} className="scroll-mt-8 border-t pt-8 first:border-t-0 first:pt-0"><h2 className="font-heading text-[26px] leading-tight font-semibold tracking-[-0.025em]">{title}</h2>{intro && <p className="text-muted-foreground mt-2 max-w-[72ch] text-[15px] leading-7">{intro}</p>}<div className="mt-5">{children}</div></section>;
+}
+
+function ToolGroup({ title, detail, tools }: { title: string; detail: string; tools: string[] }) {
+  return <div className="grid gap-3 border-t py-4 first:border-t-0 sm:grid-cols-[10rem_minmax(0,1fr)]"><div><h3 className="text-sm font-semibold">{title}</h3><p className="text-muted-foreground mt-1 text-xs leading-relaxed">{detail}</p></div><div className="flex flex-wrap content-start gap-1.5">{tools.map((tool) => <code key={tool} className="bg-muted rounded px-2 py-1 text-xs">{tool}</code>)}</div></div>;
 }
 
 export default function WorkspaceDocsPage() {
@@ -41,71 +44,31 @@ export default function WorkspaceDocsPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const origin = typeof window === "undefined" ? "https://study.wicker.life" : window.location.origin;
-  const commands = useMemo(() => created ? {
-    codex: installCommand("codex", origin, created.secret),
-    claude: installCommand("claude", origin, created.secret),
-  } : null, [created, origin]);
-
+  const commands = useMemo(() => created ? { codex: installCommand("codex", origin, created.secret), claude: installCommand("claude", origin, created.secret) } : null, [created, origin]);
   async function createInstallation() {
     if (creating) return;
-    setCreating(true);
-    setError(null);
-    try {
-      setCreated(await readJson<CreatedApiKey>("/api/account/api-keys", {
-        method: "POST",
-        body: JSON.stringify({ name: "MCP terminal installation", scopes: ["read", "write"], lifetime: "1y" }),
-      }));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The installation key could not be created.");
-    } finally {
-      setCreating(false);
-    }
+    setCreating(true); setError(null);
+    try { setCreated(await readJson<CreatedApiKey>("/api/account/api-keys", { method: "POST", body: JSON.stringify({ name: "MCP terminal installation", scopes: ["read", "write"], lifetime: "1y" }) })); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "The installation key could not be created."); }
+    finally { setCreating(false); }
   }
 
-  return <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-    <header className="border-b pb-6">
-      <span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.11em] uppercase">Manage</span>
-      <h1 className="font-heading mt-2 text-[32px] leading-[1.08] font-semibold tracking-[-0.03em]">Docs &amp; agent access</h1>
-      <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">Connect Codex or Claude to your courses, documents, calendar, and planner through Wicker Study&apos;s authenticated MCP server.</p>
-    </header>
-
-    <section className="overflow-hidden rounded-xl border bg-card">
-      <div className="flex flex-wrap items-center gap-4 px-5 py-5 sm:px-6">
-        <span className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-lg"><TerminalIcon className="size-[18px]" /></span>
-        <div className="min-w-60 flex-1">
-          <h2 className="font-heading text-xl font-semibold tracking-[-0.025em]">Install Wicker MCP</h2>
-          <p className="text-muted-foreground mt-1 text-sm">Generate one copy-ready block. Your personal key is already embedded; there is no credential to copy or paste separately.</p>
-        </div>
-        {!created && <Button onClick={() => void createInstallation()} disabled={creating}><KeyRoundIcon data-icon="inline-start" />{creating ? "Creating…" : "Generate one-copy block"}</Button>}
-      </div>
-
-      {error && <p role="alert" className="border-t px-5 py-3 text-sm text-destructive sm:px-6">Nothing was installed. {error}</p>}
-      {commands ? <>
-        <Alert className="mx-5 mb-5 border-border sm:mx-6">
-          <LockKeyholeIcon />
-          <AlertTitle>This block contains a secret shown once</AlertTitle>
-          <AlertDescription>The first line stores the embedded key in <code>~/.config/wicker-study/config.json</code> with owner-only permissions; the second connects your agent. Run it only in your private terminal and clear that shell-history entry afterwards. Revoke or replace it under Settings → API access.</AlertDescription>
-        </Alert>
-        <Tabs defaultValue="codex" className="gap-0 border-t">
-          <TabsList variant="line" className="h-12 justify-start px-5 sm:px-6">
-            <TabsTrigger value="codex">Codex</TabsTrigger>
-            <TabsTrigger value="claude">Claude Code</TabsTrigger>
-          </TabsList>
-          <TabsContent value="codex" className="mt-0"><CommandBlock command={commands.codex} /></TabsContent>
-          <TabsContent value="claude" className="mt-0"><CommandBlock command={commands.claude} /></TabsContent>
-        </Tabs>
-      </> : <div className="grid border-t md:grid-cols-3">
-        {[
-          ["1", "Create a scoped key", "Read and write access only; account deletion and key management remain browser-only."],
-          ["2", "Copy one block", "Choose Codex or Claude Code and paste both lines into your own terminal."],
-          ["3", "Ask about your study", "The MCP reads the same reconciled planner and source-grounded context as Tutor."],
-        ].map(([step, title, copy]) => <div key={step} className="px-5 py-5 md:border-r md:last:border-r-0 sm:px-6"><span className="font-data text-primary text-xs font-semibold">{step}</span><h3 className="mt-2 text-sm font-semibold">{title}</h3><p className="text-muted-foreground mt-1 text-xs leading-relaxed">{copy}</p></div>)}
-      </div>}
-    </section>
-
-    <section className="grid gap-5 md:grid-cols-2">
-      <div className="rounded-xl border bg-card px-5 py-5 sm:px-6"><h2 className="text-base font-semibold">What the connection can do</h2><ul className="text-muted-foreground mt-3 space-y-2 text-sm"><li>Retrieve course material with source provenance</li><li>Read deadlines, announcements, attendance, and academic plans</li><li>Propose and apply planner or practice actions through scoped tools</li></ul></div>
-      <div className="rounded-xl border bg-card px-5 py-5 sm:px-6"><h2 className="text-base font-semibold">Credential safety</h2><ul className="text-muted-foreground mt-3 space-y-2 text-sm"><li>The API stores only a hash of the generated key</li><li>The local helper writes a 0600 file inside a 0700 directory</li><li>Revoking the key immediately disconnects every client using it</li></ul><a href="/app/settings?tab=api" className="text-primary mt-4 inline-flex text-sm font-semibold">Manage API access</a></div>
-    </section>
+  return <div className="mx-auto w-full max-w-[1320px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+    <header className="grid gap-5 border-b pb-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"><div><span className="text-muted-foreground text-[10.5px] font-semibold tracking-[0.12em] uppercase">Documentation</span><h1 className="font-heading mt-2 text-[36px] leading-none font-semibold tracking-[-0.035em]">Connect your study workspace</h1><p className="text-muted-foreground mt-3 max-w-[68ch] text-[15px] leading-6">Install Wicker once, then let Codex or Claude work with the same courses, private documents, calendar and saved plan you see here.</p></div><div className="flex gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/settings?tab=api" />}>Manage API keys</Button><Button variant="ghost" nativeButton={false} render={<a href="/api/agent/manifest" target="_blank" rel="noreferrer" />}>API manifest<ExternalLinkIcon data-icon="inline-end" /></Button></div></header>
+    <div className="grid items-start gap-10 py-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-14">
+      <aside className="sticky top-6 hidden lg:block"><p className="text-muted-foreground mb-3 text-[10.5px] font-semibold tracking-[0.12em] uppercase">On this page</p><nav aria-label="Documentation sections" className="border-l">{SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} className="text-muted-foreground hover:text-foreground hover:border-foreground -ml-px block border-l border-transparent px-4 py-2 text-sm">{label}</a>)}</nav></aside>
+      <article className="flex min-w-0 max-w-[900px] flex-col gap-12">
+        <DocSection id="quickstart" title="Quickstart" intro="The connection is local to your computer. Wicker creates a scoped key, embeds it in one terminal block, and the helper stores it with owner-only file permissions."><ol className="grid overflow-hidden rounded-xl border sm:grid-cols-3">{[["01", "Choose your agent", "Use the Codex or Claude Code command below."], ["02", "Copy one block", "The credential is already included; there is no second copy step."], ["03", "Verify in the agent", "Ask it to call wicker_status, then list your current courses."]].map(([n, title, copy], index) => <li key={n} className={`p-5 ${index ? "border-t sm:border-t-0 sm:border-l" : ""}`}><span className="font-data text-primary text-xs font-semibold">{n}</span><strong className="mt-3 block text-sm">{title}</strong><p className="text-muted-foreground mt-1 text-xs leading-relaxed">{copy}</p></li>)}</ol></DocSection>
+        <DocSection id="connect" title="Connect an agent" intro="Generate a fresh read/write key for this machine. Account deletion, data erasure and key management remain browser-only."><div className="overflow-hidden rounded-xl border"><div className="flex flex-wrap items-center gap-4 px-5 py-5"><span className="bg-muted grid size-10 place-items-center rounded-lg"><TerminalIcon className="size-[18px]" /></span><div className="min-w-60 flex-1"><h3 className="font-semibold">One-copy terminal setup</h3><p className="text-muted-foreground mt-1 text-sm">Node.js 20.11 or newer is required. No repository checkout is needed.</p></div>{!created && <Button onClick={() => void createInstallation()} disabled={creating}><KeyRoundIcon data-icon="inline-start" />{creating ? "Generating…" : "Generate command"}</Button>}</div>{error && <p role="alert" className="border-t px-5 py-3 text-sm text-destructive">Nothing was installed. {error}</p>}{commands ? <><Alert className="mx-5 mb-5 border-border"><LockKeyholeIcon /><AlertTitle>This command contains a secret shown once</AlertTitle><AlertDescription>Run it only in your own terminal. The helper writes <code>~/.config/wicker-study/config.json</code> inside an owner-only directory. Clear that shell-history entry afterwards.</AlertDescription></Alert><Tabs defaultValue="codex" className="gap-0 border-t"><TabsList variant="line" className="h-12 justify-start px-5"><TabsTrigger value="codex">Codex</TabsTrigger><TabsTrigger value="claude">Claude Code</TabsTrigger></TabsList><TabsContent value="codex" className="mt-0"><CommandBlock command={commands.codex} /></TabsContent><TabsContent value="claude" className="mt-0"><CommandBlock command={commands.claude} /></TabsContent></Tabs></> : <div className="border-t px-5 py-4 text-sm"><strong>Nothing is created until you click Generate command.</strong><p className="text-muted-foreground mt-1">The resulting key appears once and can be revoked independently from your account.</p></div>}</div><div className="mt-4 border-l-2 pl-4 text-sm"><strong>Confirm the connection</strong><p className="text-muted-foreground mt-1 leading-relaxed">Restart the agent if it was already open, then ask: <q>Call <code>wicker_status</code> and show which account and scopes are connected.</q></p></div></DocSection>
+        <DocSection id="capabilities" title="What the connection can do" intro="The MCP exposes the workspace as small, explicit tools. Reads are source-grounded; writes use the key’s scope and should still be confirmed in your conversation with the agent."><div className="overflow-hidden rounded-xl border">{[["Course work", "Search maintained and private course material, read chapters, questions, flashcards, mistakes and mocks."], ["Study situation", "Read deadlines, announcements, timetable blocks, attendance, progress and academic dates."], ["Planning", "Inspect exam sittings and electives, then update the saved plan through revision-checked operations."], ["Practice", "Submit answers, review cards, record chapter reading and maintain the student’s private practice state."], ["Canvas", "Inspect the connection and material collection status without ever returning the Canvas token to the agent."]].map(([title, copy]) => <div key={title} className="grid gap-1 border-t px-5 py-4 first:border-t-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-5"><strong className="text-sm">{title}</strong><p className="text-muted-foreground text-sm leading-relaxed">{copy}</p></div>)}</div></DocSection>
+        <DocSection id="tools" title="Tool reference" intro="Ask the agent to use the narrowest tool that answers the question. That keeps responses faster and prevents an unrelated workspace-wide search."><div className="border-y"><ToolGroup title="Connect" detail="Connection and local credential state." tools={["wicker_status", "wicker_authorize", "wicker_sign_out", "canvas_connect"]} /><ToolGroup title="Read" detail="Courses, material and current study state." tools={["list_courses", "get_course", "get_chapter", "search_course", "get_progress", "get_academic_plan", "get_activity", "get_account_summary"]} /><ToolGroup title="Practice" detail="Questions and personal learning queues." tools={["list_questions", "get_practice_queue", "list_flashcards", "list_due_cards", "list_mistakes", "list_mock_sessions", "get_mock_session"]} /><ToolGroup title="Write" detail="Requires write scope; actions update only this account." tools={["submit_answer", "set_mastery", "review_card", "create_flashcard", "resolve_mistake", "record_chapter_read", "save_academic_plan", "set_course_visibility"]} /><ToolGroup title="Documents" detail="Reviewable extraction and calendar changes." tools={["analyze_documents", "apply_changes", "get_calendar", "preview_calendar", "save_calendar_link", "sync_calendar_link", "remove_calendar_link"]} /></div></DocSection>
+        <DocSection id="context" title="How context works" intro="The MCP reads the active study workspace rather than a separate agent-only copy."><ul className="space-y-4 text-sm leading-relaxed"><li><strong>Course identity.</strong> Repeated Canvas editions of the same course are aggregated under one course while every source keeps its edition and year provenance.</li><li><strong>Course lens.</strong> A course code narrows retrieval to that course. Workspace-wide questions can cross courses, calendars, announcements and the planner.</li><li><strong>Planner context.</strong> Exam choices, expected grades, electives and what-if decisions are available to Tutor and MCP. Writes use revision checks so an older agent cannot overwrite a newer plan silently.</li><li><strong>Evidence.</strong> Answers can cite maintained material, your private Canvas corpus, uploads, academic record and calendars. Missing evidence should be reported as unknown, not guessed.</li></ul></DocSection>
+        <DocSection id="files" title="Files and retrieval" intro="Files uploaded in Tutor or Documents are processed, indexed and retained as private account sources so they can be retrieved in later conversations."><div className="grid gap-4 sm:grid-cols-2"><div className="rounded-xl border p-5"><h3 className="text-sm font-semibold">Supported study sources</h3><p className="text-muted-foreground mt-2 text-sm leading-relaxed">PDF, DOCX, images, screenshots, notes and supported course material are extracted into searchable passages while the original remains manageable under Documents → Other uploads.</p></div><div className="rounded-xl border p-5"><h3 className="text-sm font-semibold">Ownership and deletion</h3><p className="text-muted-foreground mt-2 text-sm leading-relaxed">Private uploads and retrieval indexes belong to your account and are removed by data erasure or account deletion. Material already accepted into a shared public library keeps its independent editorial record.</p></div></div></DocSection>
+        <DocSection id="permissions" title="Permissions" intro="A key acts as you, but only inside the scopes minted with it."><div className="overflow-hidden rounded-xl border"><div className="grid gap-1 px-5 py-4 sm:grid-cols-[7rem_minmax(0,1fr)]"><code>read</code><p className="text-muted-foreground text-sm">Courses, sources, questions, academic state, activity and connection status.</p></div><div className="grid gap-1 border-t px-5 py-4 sm:grid-cols-[7rem_minmax(0,1fr)]"><code>write</code><p className="text-muted-foreground text-sm">Study activity, flashcards, mistakes, mastery, calendars and plan changes.</p></div><div className="grid gap-1 border-t px-5 py-4 sm:grid-cols-[7rem_minmax(0,1fr)]"><code>browser only</code><p className="text-muted-foreground text-sm">Minting or revoking keys, Canvas credentials, data erasure and deleting the account.</p></div></div></DocSection>
+        <DocSection id="tokens" title="Tokens and revocation" intro="The API stores only a hash of each key. The full secret is shown once and kept locally by the helper."><p className="text-sm leading-relaxed">Use a separate key per computer or agent installation so one can be revoked without interrupting the others. Revocation takes effect on the next request. Removing a local connection does not revoke the server-side key; use API access settings for that.</p><Button className="mt-4" variant="outline" nativeButton={false} render={<Link href="/app/settings?tab=api" />}>Open API access</Button></DocSection>
+        <DocSection id="troubleshooting" title="Troubleshooting"><div className="border-y">{[["The agent cannot see Wicker", "Restart the agent after registration, then run wicker_status. Confirm Node.js is at least 20.11."], ["The key was rejected", "It may be revoked, expired or tied to another Wicker server. Generate a new block here and reconnect."], ["A course has no material", "Check Canvas sync first. A failed priority extraction does not mean the indexed material is missing; it only affects structured obligations."], ["The answer searches too broadly", "Name the course or pass its course code. Course-scoped tools should not widen to the full workspace unless the question crosses courses."], ["A write conflicts", "Reload the academic plan and retry. Revision conflicts protect a newer browser or agent edit from being overwritten."]].map(([title, copy]) => <details key={title} className="border-t first:border-t-0"><summary className="cursor-pointer px-1 py-4 text-sm font-semibold">{title}</summary><p className="text-muted-foreground px-1 pb-4 text-sm leading-relaxed">{copy}</p></details>)}</div></DocSection>
+        <DocSection id="http" title="HTTP API" intro="The web app and MCP use the same scoped JSON API. The live manifest is the versioned source of truth for endpoint paths, bodies and required scopes."><div className="flex flex-wrap gap-3"><Button variant="outline" nativeButton={false} render={<a href="/api/agent/manifest" target="_blank" rel="noreferrer" />}>Open live manifest<ExternalLinkIcon data-icon="inline-end" /></Button><Button variant="ghost" nativeButton={false} render={<a href="https://www.npmjs.com/package/wicker-study-mcp" target="_blank" rel="noreferrer" />}>View npm package<ExternalLinkIcon data-icon="inline-end" /></Button></div></DocSection>
+      </article>
+    </div>
   </div>;
 }
