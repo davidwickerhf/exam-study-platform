@@ -29,7 +29,10 @@ export type View = {
 }
 
 export async function json<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { ...init, headers: { accept: 'application/json', ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers } })
+  const response = await fetch(url, { ...init, signal: init?.signal ?? AbortSignal.timeout(90_000), headers: { accept: 'application/json', ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers } }).catch((error) => {
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') throw new Error('This request took too long. Please try again.')
+    throw error
+  })
   const body = await response.json().catch(() => null)
   if (!response.ok) throw new Error((body as { error?: string } | null)?.error ?? `Setup returned ${response.status}`)
   return body as T

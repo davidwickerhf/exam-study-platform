@@ -40,6 +40,7 @@ import { removePersonalCalendarEvent, savePersonalCalendarEvent } from './lib/pe
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
+import { rememberDocumentImport, removeOnboardingDocument } from './lib/onboarding-documents.mjs'
 import { AcademicWorkError, mergeAcademicWorkIntoWorkspace, parseAcademicWork } from './lib/academic-work.mjs'
 import { curriculumCourseIdentity, reconcileAcademicCourseIdentities } from './lib/course-identities.mjs'
 import { academicProgress, deleteAcademicSnapshot, latestAcademicSnapshot, recordAcademicSnapshot } from './lib/academic-snapshots.mjs'
@@ -1537,6 +1538,13 @@ async function analyseAcademicIntake(body, { workspace = null } = {}) {
     'STUDENT SOURCES:',
     sourceBlocks
   ].join('\n')
+
+  if (detectedKind === 'transcript' && effectiveKind === 'transcript' && !images.length) {
+    const draft = fallbackAcademicIntake(sourceText, editorialCourses, { kind: effectiveKind, identityCourses })
+    if (draft.courses.length && draft.warnings.some((warning) => warning.startsWith('Official transcript recognised:'))) {
+      return { draft, kind: effectiveKind, usedAi: false, sources: documents.map(({ name, type, pageCount }) => ({ name, type, pageCount })), usage: await getAiUsageSummary() }
+    }
+  }
 
   const imagePaths = await writeAttemptImages(images)
   let parsed
@@ -4603,6 +4611,16 @@ const server = createServer(async (req, res) => {
       } catch (error) { send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Electives could not be saved.' })) }
       return
     }
+    const onboardingDocument = url.pathname.match(/^\/api\/onboarding\/documents\/(record|transcript)$/)
+    if (onboardingDocument && req.method === 'DELETE') {
+      try {
+        const result = await removeOnboardingDocument(onboardingDocument[1])
+        // Old conversation/tool messages must not reintroduce removed evidence.
+        await resetConversation()
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message })) }
+      return
+    }
     if (url.pathname === '/api/onboarding' && req.method === 'DELETE') {
       await resetConversation()
       send(res, 200, JSON.stringify({ available: onboardingAvailable(), ...await onboardingView() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
@@ -4624,6 +4642,7 @@ const server = createServer(async (req, res) => {
         const source = documents.find((document) => String(document?.text || '').trim()) || (String(body?.text || '').trim() ? { name: body?.name, text: body.text } : null)
         if (!source) { send(res, 400, JSON.stringify({ error: 'Attach the Academic Work overview printed from the student portal. A scan or photograph has no text to read.' })); return }
         const parsed = parseAcademicWork(source.text)
+        const beforeImport = await readAcademicState()
         const result = await recordAcademicSnapshot({
           kind: parsed.kind,
           sourceLabel: source.name || 'Academic Work',
@@ -4632,6 +4651,7 @@ const server = createServer(async (req, res) => {
           summary: { ...parsed.summary, programme: parsed.programme }
         })
         const academicState = await readReconciledAcademicState({ snapshot: result.snapshot })
+        await rememberDocumentImport('record', beforeImport.workspace, academicState.workspace)
         // The student's name and number are read to confirm the document is
         // theirs; they are not stored and are not echoed back.
         send(res, 200, JSON.stringify({
@@ -4709,6 +4729,7 @@ const server = createServer(async (req, res) => {
         const saved = applied.length
           ? await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
           : state
+        if (body?.documentRecord?.kind === 'transcript') await rememberDocumentImport('transcript', state.workspace, saved.workspace)
         let documentRecord = null
         let documentRecordError = null
         if (body?.documentRecord) {

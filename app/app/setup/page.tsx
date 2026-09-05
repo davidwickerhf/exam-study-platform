@@ -33,6 +33,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   CheckIcon,
+  FileTextIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   AlertTriangleIcon,
@@ -137,6 +138,16 @@ async function loadPdfjs(): Promise<Pdfjs> {
 }
 
 async function academicWorkText(file: File): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      readAcademicWorkText(file),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Reading this file took too long. Try again with a freshly downloaded PDF or a text export.')), 30_000) })
+    ])
+  } finally { clearTimeout(timer) }
+}
+
+async function readAcademicWorkText(file: File): Promise<string> {
   if (file.size > MAX_UPLOAD_BYTES) throw new Error(`${file.name} is larger than 15 MB.`)
   if (file.type.startsWith('text/') || /\.(txt|csv)$/i.test(file.name)) return (await file.text()).slice(0, 120_000)
   if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
@@ -399,6 +410,32 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
   )
 }
 
+function AttachedDocument({ document, kind, onRemoved }: {
+  document: { name: string; createdAt: string | null; legacyContext?: boolean }
+  kind: 'record' | 'transcript'
+  onRemoved: () => Promise<unknown>
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  return <div className="flex flex-col gap-4">
+    <div className="flex items-start gap-3 rounded-lg border p-4">
+      <FileTextIcon className="text-primary mt-0.5 size-5 shrink-0" />
+      <div className="min-w-0 flex-1"><strong className="block break-words text-sm">{document.name}</strong><p className="text-muted-foreground mt-1 text-xs">Attached{document.createdAt ? ` · Imported ${new Date(document.createdAt).toLocaleDateString()}` : ''}</p></div>
+      <CheckIcon className="text-primary size-4 shrink-0" />
+    </div>
+    <p className="text-muted-foreground text-sm leading-relaxed">The study information from this document is connected. The original file is not stored. {document.legacyContext ? 'For this older document, removing the attachment leaves previously saved grades in place. Review those results in Planning to remove them.' : 'Remove it to clear its imported context and choose a new document.'}</p>
+    <Button variant="outline" className="w-fit" disabled={busy} onClick={async () => {
+      setBusy(true); setError(null)
+      try {
+        await json(`/api/onboarding/documents/${kind}`, { method: 'DELETE' })
+        await onRemoved()
+      } catch (cause) { setError(cause instanceof Error ? cause.message : 'The document could not be removed.') }
+      finally { setBusy(false) }
+    }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Removing…' : 'Remove document'}</Button>
+    {error && <p role="alert" className="text-sm">{error}</p>}
+  </div>
+}
+
 /** The upload control. Only the text the parser needs leaves this browser. */
 function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promise<void> | void; onSkip?: () => void }) {
   const [busy, setBusy] = useState(false)
@@ -455,7 +492,7 @@ type TranscriptReview = {
   warnings?: string[]
   source: { name: string; type: string; size: number; fingerprint: string }
 }
-function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?: () => void }) {
+function TranscriptField({ onApplied, onSkip }: { onApplied: () => Promise<unknown> | void; onSkip?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [review, setReview] = useState<TranscriptReview | null>(null)
@@ -482,10 +519,11 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => void; onSkip?
         } catch (cause) { setError(cause instanceof Error ? cause.message : 'That transcript could not be read.') } finally { setBusy(false) }
       }}
     /> : <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between border-b pb-2"><strong>Review transcript</strong><span className="text-muted-foreground text-xs">{selected.size} of {review.changes.length} selected</span></div>
+      <div className="flex items-baseline justify-between border-b pb-2"><strong className="min-w-0 break-words">{review.source.name}</strong><span className="text-muted-foreground text-xs">{selected.size} of {review.changes.length} selected</span></div>
+      {!review.changes.length && <p className="text-muted-foreground text-sm">This transcript matches your saved record. You can keep it connected without changing your results.</p>}
       {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
       <ul className="max-h-72 overflow-y-auto border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || !selected.size} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
     </div>}
     {error && <Alert variant="destructive"><AlertTriangleIcon /><AlertTitle>Transcript needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
     {onSkip && <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>Do this later</Button>}
@@ -891,7 +929,7 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
               <h2 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">{selected.title}</h2>
               <StatusLabel status={selected.status} />
             </div>
-            <p className="text-muted-foreground mt-3 max-w-[58ch] text-sm leading-relaxed">{PANEL_INTRO[selected.id] ?? selected.blurb}</p>
+            <p className="text-muted-foreground mt-3 max-w-[58ch] text-sm leading-relaxed">{(selected.id === 'record' && view?.state.recordDocument) || (selected.id === 'transcript' && view?.state.transcriptDocument) ? 'Your document is connected. Review it below or remove it to attach a replacement.' : PANEL_INTRO[selected.id] ?? selected.blurb}</p>
           </div>
 
           {issues.filter((issue) => issue.step === selected.id || issue.relatedStep === selected.id).map((issue) => (
@@ -1205,7 +1243,7 @@ function UnifiedSetup({
             <div>
               <p className="text-card/60 text-xs font-semibold tracking-[0.15em] uppercase">{activePhase.label}</p>
               <h2 className="font-heading mt-1 text-[32px] leading-tight font-semibold tracking-[-0.035em]">{selected.title}</h2>
-              <p className="text-card/70 mt-2 max-w-[64ch] text-sm leading-relaxed">{PANEL_INTRO[selected.id] ?? selected.blurb}</p>
+              <p className="text-card/70 mt-2 max-w-[64ch] text-sm leading-relaxed">{(selected.id === 'record' && view?.state.recordDocument) || (selected.id === 'transcript' && view?.state.transcriptDocument) ? 'Your document is connected. Review it below or remove it to attach a replacement.' : PANEL_INTRO[selected.id] ?? selected.blurb}</p>
             </div>
             <StatusLabel status={selected.status} inverse />
           </div>
@@ -1222,8 +1260,8 @@ function UnifiedSetup({
             {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
             {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} template={view.state.programmeTemplate} onSaved={() => refreshFrom('programme')} />}
             {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} onContinue={() => continueFrom('electives')} />)}
-            {selected.id === 'record' && <><UploadField onRead={() => refreshFrom('record')} onSkip={() => void defer('record')} /><div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
-            {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} onSkip={() => void defer('transcript')} />}
+            {selected.id === 'record' && <>{view.state.recordDocument ? <AttachedDocument document={view.state.recordDocument} kind="record" onRemoved={() => refreshInPlace('record')} /> : <UploadField onRead={() => refreshInPlace('record')} onSkip={() => void defer('record')} />}<div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
+            {selected.id === 'transcript' && (view.state.transcriptDocument ? <AttachedDocument document={view.state.transcriptDocument} kind="transcript" onRemoved={() => refreshInPlace('transcript')} /> : <TranscriptField onApplied={() => refreshInPlace('transcript')} onSkip={() => void defer('transcript')} />)}
             {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}
             {selected.id === 'timetable' && <form className="flex flex-col gap-5" onSubmit={async (event) => { event.preventDefault(); const url = timetable.trim(); if (!url || timetableBusy) return; setTimetableBusy(true); setTimetableError(null); try { await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) }); setTimetable(''); await refreshFrom('timetable') } catch (cause) { setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.') } finally { setTimetableBusy(false) } }}><TimetableGuide /><Field data-invalid={timetableError ? true : undefined}><FieldLabel htmlFor="guided-timetable">Timetable URL</FieldLabel><Input id="guided-timetable" type="url" required autoComplete="off" spellCheck={false} value={timetable} disabled={timetableBusy} placeholder="https://timetable.maastrichtuniversity.nl/ical?…" onChange={(event) => setTimetable(event.target.value)} /><FieldDescription className="flex items-center gap-1.5"><ShieldIcon className="size-3.5" />Stored on your account only, and read but never written to.</FieldDescription>{timetableError && <FieldError>{timetableError}</FieldError>}</Field><div className="flex flex-wrap items-center gap-2"><Button type="submit" disabled={timetableBusy || !timetable.trim()}>{timetableBusy && <Spinner data-icon="inline-start" />}{timetableBusy ? 'Checking the feed…' : 'Connect timetable'}</Button><Button type="button" variant="ghost" disabled={timetableBusy} onClick={() => void defer('timetable')}>Do this later</Button>{saved === 'timetable' && <SavedMark>{selected.detail}</SavedMark>}</div></form>}
             {selected.id === 'canvas' && <div className="flex flex-col gap-5"><div className="flex items-start gap-3"><SparklesIcon className="text-primary mt-0.5 size-5 shrink-0" /><div><p className="text-sm font-semibold">Priority detection is included</p><p className="text-muted-foreground mt-1 text-sm leading-relaxed">With material collection enabled, Wicker re-scans syllabi, slides and course manuals for assignments, attendance requirements, group work, submissions and deadlines. Claims are reconciled with Canvas assignments; conflicts stay unverified until you review them.</p></div></div><SecureField kind="canvas" onApplied={(fresh) => advanceFrom(fresh, 'canvas')} onSkip={() => void defer('canvas')} /></div>}
@@ -1328,6 +1366,8 @@ function SetupSurface() {
   // The deterministic onboarding is now the only public setup surface. The
   // legacy transcript remains below for one release solely so in-flight state
   // can still be read; no query parameter can reopen the parallel interview.
+  if (!view && error) return <div className="mx-auto max-w-xl p-6"><Alert variant="destructive"><AlertTriangleIcon /><AlertTitle>Setup could not load</AlertTitle><AlertDescription>{error}</AlertDescription></Alert><Button className="mt-4" onClick={() => { setError(null); void load() }}>Try again</Button></div>
+
   if (!legacySetupEnabled()) return <UnifiedSetup view={view} onRefresh={load} onApplied={setView} messages={messages} draft={draft} sending={sending} assistantError={error} onDraft={setDraft} onSend={send} />
 
   // Kept below during the migration for one release so an in-flight browser
