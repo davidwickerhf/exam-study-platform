@@ -59,6 +59,8 @@ export type SetupSourceState = {
   programmeTemplate?: { programmeId: string; versionId: string; currentStudyYear: string } | null
   customProgramme?: boolean
   courseCount: number
+  recordDocument?: { name: string; createdAt: string | null } | null
+  transcriptDocument?: { name: string; createdAt: string | null; legacyContext?: boolean } | null
   record: boolean
   recordSummary: RecordSummary | null
   transcript: boolean
