@@ -23,9 +23,13 @@ import { type CalendarEvent, type CalendarPayload, localIsoDate } from '@/lib/wo
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { CourseAttemptHistory } from '@/components/workspace/course-attempt-history'
-import { courseDetail, courseDetailTab, courseAttemptHistory, courseMaterialCodes, courseRequestRecord, type CourseTab } from '@/lib/workspace/course-detail.mjs'
+import { courseDetail, courseDetailTab, courseAttemptHistory, courseRequestRecord, type CourseTab } from '@/lib/workspace/course-detail.mjs'
 import type { Catalogue, ProgrammeTemplate, CorpusCourse, CurrentCourse } from '@/lib/workspace/course-ledger.mjs'
 import CourseLoading from './loading'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useCourseCanvas } from '@/components/workspace/use-course-canvas'
+import { CourseEditionCollection } from '@/components/workspace/course-edition-collection'
+import { academicCourseInEdition, courseEditionCodes, courseCanvasShells, courseEditions } from '@/lib/workspace/course-editions.mjs'
 import { CourseMaterialLibrary } from '@/components/workspace/course-material-library'
 
 const NUMERALS = 'font-data tabular-nums'
@@ -35,6 +39,8 @@ const isRated = (item: Item) => Boolean(item.masteryUpdatedAt)
 
 export default function CoursePage() {
   const params = useParams<{ courseId: string; itemId?: string }>()
+  const canvas = useCourseCanvas()
+  const [selectedYear, setSelectedYear] = useState<string | null>(null)
   const [courses, setCourses] = useState<StudyCourse[] | null>(null)
   const [academic, setAcademic] = useState<AcademicCourse[]>([])
   const [academicLoading, setAcademicLoading] = useState(true)
@@ -76,7 +82,7 @@ export default function CoursePage() {
   }, [reload])
 
   useEffect(() => {
-    const readTab = () => setTab(courseDetailTab(window.location.search, window.location.hash))
+    const readTab = () => { setTab(courseDetailTab(window.location.search, window.location.hash)); setSelectedYear(new URLSearchParams(window.location.search).get('year')) }
     readTab()
     window.addEventListener('popstate', readTab); window.addEventListener('hashchange', readTab)
     return () => { window.removeEventListener('popstate', readTab); window.removeEventListener('hashchange', readTab) }
@@ -88,8 +94,18 @@ export default function CoursePage() {
     url.searchParams.set('tab', value); url.hash = ''
     window.history.replaceState(null, '', url)
   }
-  const entry = useMemo(() => courseDetail(params.courseId, { editorial: courses, academic, catalogue, programmeTemplate, corpus, currentCourses }), [params.courseId, courses, academic, catalogue, programmeTemplate, corpus, currentCourses])
+  const entry = useMemo(() => courseDetail(params.courseId, { editorial: courses, academic, catalogue, programmeTemplate, corpus: canvas.status?.courses ?? corpus, currentCourses }), [params.courseId, courses, academic, catalogue, programmeTemplate, corpus, currentCourses, canvas.status])
   const course: StudyCourse | null = useMemo(() => entry ? { ...(entry.editorial ?? { id: entry.academic?.id || entry.code, chapters: [], items: [] }), code: entry.code, name: entry.name } : null, [entry])
+  const editionCodes = courseEditionCodes(entry, { catalogue, programmeTemplate })
+  const shells = courseCanvasShells(canvas.catalogue, editionCodes)
+  const editions = courseEditions({ entry, codes: editionCodes, shells, jobs: [...(canvas.status?.latestJobs || []), ...(canvas.status?.jobs || [])], queued: canvas.queued })
+  const year = selectedYear || editions[0]?.year || 'all'
+  const selectYear = (value: string) => {
+    setSelectedYear(value)
+    const url = new URL(window.location.href)
+    url.searchParams.set('year', value)
+    window.history.replaceState(null, '', url)
+  }
   const today = localIsoDate()
 
   useEffect(() => {
@@ -115,7 +131,7 @@ export default function CoursePage() {
   if (!course) return <CourseLoading />
 
   const progress = courseProgress(course, read)
-  const academicCourse = entry?.academic ?? null
+  const academicCourse = academicCourseInEdition(entry?.academic, year)
   const requestRecord = courseRequestRecord(entry, academic)
   const exam = nextExam(course, academicCourse ? [{ ...academicCourse, code: course.code }] : [], today)
   const attempts = courseAttemptHistory(academicCourse)
@@ -181,6 +197,7 @@ export default function CoursePage() {
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div className="min-w-0 flex-1"><p className={`text-primary mb-2 text-xs font-semibold tracking-[0.08em] ${NUMERALS}`}>{course.code}{course.archived ? ' · Archived' : ''}</p><h1 className="font-heading max-w-[28ch] text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">{course.name}</h1><p className="text-muted-foreground mt-2 text-sm">{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).join(' · ') || 'Study material and your personal course record'}</p></div>
             <div className="flex flex-wrap items-center gap-2">
+              <div className="mr-2 min-w-44"><span id="course-edition-label" className="text-muted-foreground mb-1 block text-[10px] font-semibold uppercase tracking-wide">Course edition</span><Select value={year} onValueChange={value => value && selectYear(value)}><SelectTrigger aria-labelledby="course-edition-label" className="w-full"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{selectedYear && selectedYear !== 'all' && !editions.some(e => e.year === selectedYear) && <SelectItem value={selectedYear}>{selectedYear}</SelectItem>}{editions.map(e => <SelectItem key={e.year} value={e.year}>{e.year === 'undated' ? 'Undated' : e.year}</SelectItem>)}</SelectContent></Select></div>
               {nextChapter && <Link className={buttonVariants({ size: 'sm' })} href={`/app/courses/${course.id}/${nextChapter.id}`}>{progress.done ? 'Continue reading' : 'Start reading'}<ArrowRightIcon data-icon="inline-end" /></Link>}
               {(course.mockExams?.length || course.mockExamPdf) ? <Link className={buttonVariants({ variant: 'outline', size: 'sm' })} href={`/app/courses/${course.id}/mock-exam`}>Past papers</Link> : null}
               {entry?.editorial && <Button variant="ghost" size="sm" onClick={() => void archive()} disabled={saving === 'archive'}>{saving === 'archive' ? 'Saving…' : course.archived ? 'Unarchive' : 'Archive'}</Button>}
@@ -193,7 +210,7 @@ export default function CoursePage() {
         {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
         <section className="overflow-hidden rounded-xl bg-foreground text-card" aria-label="Course overview">
           <div className="grid divide-y divide-white/15 md:grid-cols-[1.2fr_1fr_1fr] md:divide-x md:divide-y-0">
-            <div className="px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold tracking-[0.1em] text-white/65 uppercase">Latest recorded sitting</p><p className={`mt-2 text-2xl font-semibold ${NUMERALS}`}>{academicLoading || catalogueLoading ? 'Reading record…' : academicError ? 'Record unavailable' : latest?.academicYear || 'Not recorded'}</p><p className="mt-1 text-xs text-white/70">{academicError ? 'Retry from Attempt history' : latest ? [({passed:'Passed',failed:'Failed','no-show':'No show',upcoming:'Upcoming'} as Record<string,string>)[latest.status || ''] || 'Result not recorded', latest.grade == null ? null : `Grade ${latest.grade}`].filter(Boolean).join(' · ') : 'Your attempts will appear here'}</p></div>
+            <div className="px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold tracking-[0.1em] text-white/65 uppercase">{year === 'all' ? 'Latest recorded sitting' : 'Selected edition sitting'}</p><p className={`mt-2 text-2xl font-semibold ${NUMERALS}`}>{academicLoading || catalogueLoading ? 'Reading record…' : academicError ? 'Record unavailable' : latest?.academicYear || 'Not recorded'}</p><p className="mt-1 text-xs text-white/70">{academicError ? 'Retry from Attempt history' : latest ? [({passed:'Passed',failed:'Failed','no-show':'No show',upcoming:'Upcoming'} as Record<string,string>)[latest.status || ''] || 'Result not recorded', latest.grade == null ? null : `Grade ${latest.grade}`].filter(Boolean).join(' · ') : 'Your attempts will appear here'}</p></div>
             <div className="px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold tracking-[0.1em] text-white/65 uppercase">Reading progress</p><p className={`mt-2 text-2xl font-semibold ${NUMERALS}`}>{entry?.editorial ? `${progress.done} / ${progress.total}` : '—'}</p><p className="mt-1 text-xs text-white/70">{progress.total ? 'Published chapters marked read' : 'No published chapters yet'}</p></div>
             <div className="px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold tracking-[0.1em] text-white/65 uppercase">Next recorded exam</p><p className={`mt-2 text-2xl font-semibold ${NUMERALS}`}>{exam ? new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date)) : '—'}</p><p className="mt-1 text-xs text-white/70">{exam ? exam.days === 0 ? 'Today' : `In ${exam.days} days` : 'No future exam date recorded'}</p></div>
           </div>
@@ -209,7 +226,7 @@ export default function CoursePage() {
       {/* The register. The course is its chapters, so they come first. */}
       <section className="overflow-hidden rounded-xl border bg-card">
         <div className="flex items-baseline justify-between gap-3 border-b px-5 py-4 sm:px-6">
-          <h2 className="text-base font-semibold">Chapters</h2>
+          <div><h2 className="text-base font-semibold">Chapters</h2><p className="text-muted-foreground mt-1 text-xs">Shared study guide · not tied to an academic year</p></div>
           <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{progress.done} read of {progress.total}</span>
         </div>
         {!course.chapters?.length ? (
@@ -283,18 +300,19 @@ export default function CoursePage() {
 
               </div>
               <aside className="flex min-w-0 flex-col gap-5">
-                <CourseAttemptHistory compact course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} onExpand={() => selectTab('history')} />
+                <CourseEditionCollection editions={editions} selected={year} onSelect={selectYear} canvas={canvas} />
+                <CourseAttemptHistory compact course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} onExpand={() => { selectTab('history'); selectYear('all') }} />
                 <div className="rounded-xl border bg-card px-5 py-4"><h2 className="text-sm font-semibold">Original course material</h2><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Find documents and recordings by academic year, including earlier sittings.</p><Button variant="ghost" size="sm" className="text-primary -ml-3 mt-2" onClick={() => selectTab('materials')}>Browse material <ArrowRightIcon data-icon="inline-end" /></Button></div>
                 {!entry?.editorial && requestRecord?.id && <Link href={`/app/course-request/${encodeURIComponent(requestRecord.id)}`} className="text-primary inline-flex min-h-9 items-center gap-2 text-xs font-semibold"><BookOpenIcon className="size-4" />Request study chapters</Link>}
               </aside>
             </div>
           </TabsContent>
-          <TabsContent value="history" className="min-w-0"><CourseAttemptHistory course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} /></TabsContent>
-          <TabsContent value="materials" className="min-w-0"><div id="course-material" className="rounded-xl border bg-card p-5 sm:p-6"><CourseMaterialLibrary courseCode={course.code} courseCodes={courseMaterialCodes(entry)} /></div></TabsContent>
+          <TabsContent value="history" className="min-w-0"><p className="text-muted-foreground mb-4 text-sm">{year === 'all' ? 'All recorded academic years' : `Attempts in ${year === 'undated' ? 'an unrecorded year' : year}`} {year !== 'all' && <button className="text-primary ml-2 font-semibold" onClick={() => selectYear('all')}>Show all years</button>}</p><CourseAttemptHistory course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} /></TabsContent>
+          <TabsContent value="materials" className="min-w-0 space-y-6"><CourseEditionCollection editions={editions} selected={year} onSelect={selectYear} canvas={canvas} /><div id="course-material" className="rounded-xl border bg-card p-5 sm:p-6"><CourseMaterialLibrary courseCode={course.code} courseCodes={editionCodes} academicYear={year} revision={canvas.revision} /></div></TabsContent>
           <TabsContent value="attendance" className="min-w-0">
       <section id="attendance" className="scroll-mt-8 overflow-hidden rounded-xl border bg-card">
         <div className="flex flex-wrap items-baseline justify-between gap-3 border-b px-5 py-4">
-          <div><h2 className="text-base font-semibold">Attendance</h2><p className="text-muted-foreground mt-1 text-xs">Teaching sessions from your timetable, tied to this course.</p></div>
+          <div><h2 className="text-base font-semibold">Attendance</h2><p className="text-muted-foreground mt-1 text-xs">Teaching sessions from your connected timetable. Attendance is independent of the selected material edition.</p></div>
           <Link href="/app/calendar?view=timeGridWeek" className="text-primary text-xs font-semibold">Open calendar</Link>
         </div>
         {calendarLoading ? <p role="status" className="text-muted-foreground px-5 py-6 text-sm">Reading attendance…</p> : calendarError ? <div role="alert" className="px-5 py-6"><p className="text-sm">{calendarError}</p><Button variant="outline" size="sm" className="mt-3" onClick={retry}>Try again</Button></div> : attendance ? <>
@@ -318,7 +336,7 @@ export default function CoursePage() {
 
           </TabsContent>
           <TabsContent value="about" className="flex min-w-0 flex-col gap-6">
-      {profile && (profile.description || profile.learningOutcomes?.length || profile.assessment?.components?.length) && <section className="flex flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-base font-semibold">Course information</h2>{profile.assessment?.status && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold">{profile.assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span>}</div>{profile.description && <p className="text-muted-foreground leading-relaxed">{profile.description}</p>}{profile.assessment?.components?.length && <div className="flex flex-col">{profile.assessment.components.map((component, index) => <div key={`${component.name}-${index}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-b py-3"><strong className={`text-[21px] ${NUMERALS}`}>{component.weightPercent == null ? '—' : `${component.weightPercent}%`}</strong><div><h3 className="font-semibold">{component.name}</h3><p className="text-muted-foreground text-sm">{[component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : null, component.deadline || component.deadlineText].filter(Boolean).join(' · ')}</p></div></div>)}</div>}{profile.learningOutcomes?.length && <details><summary className="cursor-pointer text-sm font-semibold">Learning outcomes ({profile.learningOutcomes.length})</summary><ul className="mt-3 list-disc pl-5 text-sm leading-relaxed">{profile.learningOutcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul></details>}</section>}
+      {profile && (profile.description || profile.learningOutcomes?.length || profile.assessment?.components?.length) && <section className="flex flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-base font-semibold">Course information</h2>{profile.assessment?.status && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold">{profile.assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span>}</div><p className="text-muted-foreground text-xs">Shared course information · not tied to an academic year</p>{profile.description && <p className="text-muted-foreground leading-relaxed">{profile.description}</p>}{profile.assessment?.components?.length && <div className="flex flex-col">{profile.assessment.components.map((component, index) => <div key={`${component.name}-${index}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-b py-3"><strong className={`text-[21px] ${NUMERALS}`}>{component.weightPercent == null ? '—' : `${component.weightPercent}%`}</strong><div><h3 className="font-semibold">{component.name}</h3><p className="text-muted-foreground text-sm">{[component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : null, component.deadline || component.deadlineText].filter(Boolean).join(' · ')}</p></div></div>)}</div>}{profile.learningOutcomes?.length && <details><summary className="cursor-pointer text-sm font-semibold">Learning outcomes ({profile.learningOutcomes.length})</summary><ul className="mt-3 list-disc pl-5 text-sm leading-relaxed">{profile.learningOutcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul></details>}</section>}
 
       {/* Everything that leaves this course: one ruled row each, no boxes. */}
       <section className="flex flex-col rounded-xl border bg-card p-5 sm:p-6">

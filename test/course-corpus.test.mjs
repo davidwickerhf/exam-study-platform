@@ -27,6 +27,7 @@ test('Canvas course shells become stable courses with explicit yearly editions',
 
 test('academic year and period fall back to teaching dates and coded Maastricht periods', () => {
   assert.equal(academicYearFromCanvasCourse({ term: { startAt: '2026-09-01T00:00:00Z' } }), '2026-2027')
+  assert.equal(academicYearFromCanvasCourse({ term: { name: '2025–2026' } }), '2025-2026')
   assert.equal(periodFromCanvasCourse({ name: '2025-2026-400-BCS3000' }), '4')
 })
 
@@ -61,7 +62,7 @@ test('an explicit edition is ranked first while historical fallback stays labell
 test('retake editions collapse into one course without losing their provenance', () => {
   const [course] = aggregateCanvasCourseEditions([
     {
-      id: 'binding-old', editionId: 'edition-old', canonicalCourseId: 'canvas:BCS2140',
+      id: 'binding-old', origin: 'https://canvas.example.edu', canvasCourseId: '10', editionId: 'edition-old', canonicalCourseId: 'canvas:BCS2140',
       courseCode: 'BCS2140', courseName: 'Operating Systems (2024-2025-100-BCS2140)',
       academicYear: '2024-2025', period: '1', sources: 2, sourceAssetIds: ['shared', 'old-only']
     },
@@ -72,6 +73,8 @@ test('retake editions collapse into one course without losing their provenance',
     }
   ])
   assert.equal(course.courseCode, 'BCS2140')
+  assert.equal(course.editions.find(e => e.id === 'binding-old').origin, 'https://canvas.example.edu')
+  assert.equal(course.editions.find(e => e.id === 'binding-old').canvasCourseId, '10')
   assert.equal(course.editionCount, 2)
   assert.equal(course.sources, 3)
   assert.deepEqual(course.academicYears, ['2026-2027', '2024-2025'])

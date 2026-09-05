@@ -4,6 +4,8 @@ import type { AcademicCourse, StudyCourse } from './courses.mjs'
 import type { CourseStatus } from './academics.mjs'
 
 export type CorpusCourse = {
+  origin?: string
+  canvasCourseId?: string
   id: string
   canonicalCourseId?: string
   courseCode: string
@@ -13,7 +15,7 @@ export type CorpusCourse = {
   period?: string
   sources: number
   editionCount?: number
-  editions?: Array<{ id?: string; editionId?: string | null; academicYear?: string; period?: string; courseCode?: string; courseName?: string; sources?: number; lastSyncedAt?: string | null }>
+  editions?: Array<{ id?: string; origin?: string; canvasCourseId?: string; editionId?: string | null; academicYear?: string; period?: string; courseCode?: string; courseName?: string; sources?: number; lastSyncedAt?: string | null }>
   lastSyncedAt?: string | null
 }
 
