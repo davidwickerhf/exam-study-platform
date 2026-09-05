@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
+import { ArchiveIcon, MoreHorizontalIcon, ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { COURSE_RETURN_KEY, type AcademicCourse, type Item, type StudyCourse, canvasCourseQuery, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
 import { type CalendarEvent, type CalendarPayload, localIsoDate } from '@/lib/workspace/home.mjs'
@@ -26,6 +26,7 @@ import { CourseAttemptHistory } from '@/components/workspace/course-attempt-hist
 import { courseDetail, courseDetailTab, courseAttemptHistory, courseRequestRecord, type CourseTab } from '@/lib/workspace/course-detail.mjs'
 import type { Catalogue, ProgrammeTemplate, CorpusCourse, CurrentCourse } from '@/lib/workspace/course-ledger.mjs'
 import CourseLoading from './loading'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCourseCanvas } from '@/components/workspace/use-course-canvas'
 import { CourseEditionCollection } from '@/components/workspace/course-edition-collection'
@@ -193,14 +194,35 @@ export default function CoursePage() {
     <main className="flex w-full min-w-0 flex-col" data-course-detail>
       <header className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div className="mx-auto max-w-[1280px]">
-          <Link href="/app/courses" className="text-muted-foreground mb-4 inline-flex min-h-8 items-center gap-2 text-xs hover:text-foreground"><ArrowLeftIcon className="size-3.5" />All courses</Link>
-          <div className="flex flex-wrap items-end justify-between gap-5">
-            <div className="min-w-0 flex-1"><p className={`text-primary mb-2 text-xs font-semibold tracking-[0.08em] ${NUMERALS}`}>{course.code}{course.archived ? ' · Archived' : ''}</p><h1 className="font-heading max-w-[28ch] text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">{course.name}</h1><p className="text-muted-foreground mt-2 text-sm">{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).join(' · ') || 'Study material and your personal course record'}</p></div>
+          <div className="mb-5 flex min-h-8 items-center justify-between gap-4">
+            <Link href="/app/courses" className="text-muted-foreground inline-flex min-h-8 items-center gap-2 text-xs hover:text-foreground"><ArrowLeftIcon className="size-3.5" />All courses</Link>
+            {entry?.editorial && <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Course options" disabled={saving === 'archive'} />}><MoreHorizontalIcon /></DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-44">
+                <DropdownMenuItem onClick={() => void archive()}><ArchiveIcon />{course.archived ? 'Unarchive course' : 'Archive course'}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>}
+          </div>
+          <div className="min-w-0">
+            <p className={`text-primary mb-2 text-xs font-semibold tracking-[0.08em] ${NUMERALS}`}>{course.code}{course.archived ? ' · Archived' : ''}</p>
+            <h1 className="font-heading text-[28px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[32px]">{course.name}</h1>
+            <p className="text-muted-foreground mt-2 text-sm">{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).join(' · ') || 'Study material and your personal course record'}</p>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t pt-4">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span id="course-edition-label" className="text-muted-foreground text-xs font-medium">Course edition</span>
+              <Select value={year} onValueChange={value => value && selectYear(value)}>
+                <SelectTrigger size="sm" aria-labelledby="course-edition-label" className="w-40"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All years</SelectItem>
+                  {selectedYear && selectedYear !== 'all' && !editions.some(e => e.year === selectedYear) && <SelectItem value={selectedYear}>{selectedYear}</SelectItem>}
+                  {editions.map(e => <SelectItem key={e.year} value={e.year}>{e.year === 'undated' ? 'Undated' : e.year}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="mr-2 min-w-44"><span id="course-edition-label" className="text-muted-foreground mb-1 block text-[10px] font-semibold uppercase tracking-wide">Course edition</span><Select value={year} onValueChange={value => value && selectYear(value)}><SelectTrigger aria-labelledby="course-edition-label" className="w-full"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{selectedYear && selectedYear !== 'all' && !editions.some(e => e.year === selectedYear) && <SelectItem value={selectedYear}>{selectedYear}</SelectItem>}{editions.map(e => <SelectItem key={e.year} value={e.year}>{e.year === 'undated' ? 'Undated' : e.year}</SelectItem>)}</SelectContent></Select></div>
+              {(course.mockExams?.length || course.mockExamPdf) ? <Link className={buttonVariants({ variant: 'ghost', size: 'sm' })} href={`/app/courses/${course.id}/mock-exam`}>Past papers</Link> : null}
               {nextChapter && <Link className={buttonVariants({ size: 'sm' })} href={`/app/courses/${course.id}/${nextChapter.id}`}>{progress.done ? 'Continue reading' : 'Start reading'}<ArrowRightIcon data-icon="inline-end" /></Link>}
-              {(course.mockExams?.length || course.mockExamPdf) ? <Link className={buttonVariants({ variant: 'outline', size: 'sm' })} href={`/app/courses/${course.id}/mock-exam`}>Past papers</Link> : null}
-              {entry?.editorial && <Button variant="ghost" size="sm" onClick={() => void archive()} disabled={saving === 'archive'}>{saving === 'archive' ? 'Saving…' : course.archived ? 'Unarchive' : 'Archive'}</Button>}
             </div>
           </div>
         </div>

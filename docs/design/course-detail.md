@@ -13,3 +13,8 @@ History uses reconciled curriculum identities while preserving original attempt 
 Keep the existing course-page reference lock. Add a labelled academic-year selector at course-header level; use the same selection for attempt summaries and original material, with an explicit All years option. The chapter guide and course information remain clearly labelled as shared because the editorial store does not version them by academic year.
 
 The user's request owns the interaction: all accessible Canvas years are discoverable, with collection actions on the course page. Refero Acuity import preview/success screens (`2c65d68c-ca8c-44fa-bcb7-b3e68354884a`, `04c3eda8-9e4d-4854-9e00-3518dd08d9b3`) inform explicit action/status separation and visible success/error feedback. Wicker's quiet ruled registers remain the primary visual target. Collection status is per year, combining every accessible shell in that year; failed/partial jobs remain visible, and missing years can be queued individually or together. No new imagery or color roles.
+
+
+## Header hierarchy
+
+The user's September 5 header screenshot is the audit target. Course identity leads on its own row: small code, dominant title, quiet placement metadata. A thin divider separates the edition context from the title; the compact labelled selector sits left and study actions sit right. Start/Continue reading is the sole filled primary action, Past papers is secondary, and Archive moves into Course options beside the back navigation. This applies the existing Wicker design lock and keeps course management out of the study-action group. On narrow screens the toolbar wraps into two readable rows.
