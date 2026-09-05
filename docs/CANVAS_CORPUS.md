@@ -102,3 +102,18 @@ not require another upload or full download. Current-year scans feed priorities
 and attendance for every selected academic course, including courses without
 published Wicker chapters. Independently supported requirements contribute even
 when another source passage is disputed; conflicting passages stay excluded.
+
+### Controls for one course edition
+
+`POST /api/integrations/canvas/corpus/jobs/:id` accepts `action: "stop"` or
+`action: "retry"`. It requires an owned course job with retained corpus access;
+retry also requires current collection consent. Stop pauses that user's edition
+and revokes the running lease. Automatic catalogue, material and priority scans
+respect the pause. Retry, or an explicit material refresh, unpauses it and creates
+a new job with a `retryOf` reference, preserving the previous attempt.
+
+The worker releases a cancelled job slot on the next heartbeat (30 seconds),
+fences later completion/index writes, and retains stored material. An in-flight
+network operation may finish before its next ownership check. The sync page
+exposes Stop and Restart for active rows, Retry for stopped/failed rows and Sync
+again for completed rows. Controls target the selected edition, not every year.

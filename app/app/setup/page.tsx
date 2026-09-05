@@ -1,5 +1,7 @@
 'use client'
 
+import { DocumentCheck, type DocumentCheckResult } from "@/components/workspace/document-check"
+
 /**
  * Setup, migrated.
  *
@@ -126,7 +128,7 @@ const PROSE =
 type PdfjsItem = { str?: string; width?: number; transform?: number[] }
 type Pdfjs = {
   GlobalWorkerOptions: { workerSrc: string }
-  getDocument: (source: { data: Uint8Array }) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: PdfjsItem[] }> }> }> }
+  getDocument: (source: { data: Uint8Array }) => { promise: Promise<{ destroy: () => Promise<void>; numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: PdfjsItem[] }> }> }> }
 }
 
 async function loadPdfjs(): Promise<Pdfjs> {
@@ -143,28 +145,31 @@ async function academicWorkText(file: File): Promise<string> {
   try {
     return await Promise.race([
       readAcademicWorkText(file),
-      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Reading this file took too long. Try again with a freshly downloaded PDF or a text export.')), 30_000) })
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Reading this file took too long. Try again with a freshly downloaded PDF or a text export.')), 120_000) })
     ])
   } finally { clearTimeout(timer) }
 }
 
 async function readAcademicWorkText(file: File): Promise<string> {
   if (file.size > MAX_UPLOAD_BYTES) throw new Error(`${file.name} is larger than 15 MB.`)
-  if (file.type.startsWith('text/') || /\.(txt|csv)$/i.test(file.name)) return (await file.text()).slice(0, 120_000)
+  if (file.type.startsWith('text/') || /\.(txt|csv)$/i.test(file.name)) return await file.text()
   if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
     throw new Error('The Academic Work overview is a PDF printed from the student portal. Choose that file, or a text export of it.')
   }
   const pdfjs = await loadPdfjs()
   const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  try {
   const pages: string[] = []
-  for (let number = 1; number <= Math.min(pdf.numPages, 30); number += 1) {
+  for (let number = 1; number <= pdf.numPages; number += 1) {
     const content = await (await pdf.getPage(number)).getTextContent()
     const text = pdfPageText(content.items.map((item) => ({ text: String(item.str ?? ''), x: Number(item.transform?.[4]) || 0, y: Number(item.transform?.[5]) || 0, width: Number(item.width) || 0 })))
-    if (text) pages.push(`Page ${number}\n${text}`)
+    if (!text.trim()) throw new Error(`Page ${number} has no readable text. Use a text-based export so every page can be checked.`)
+    pages.push(`Page ${number}\n${text}`)
   }
   const all = pages.join('\n\n')
   if (!all.trim()) throw new Error('No text could be read from that file. Print the overview from the student portal rather than photographing it.')
   return all
+  } finally { await pdf.destroy() }
 }
 
 type WorkResult = {
@@ -486,9 +491,18 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
   )
 }
 
+function SavedDocumentCheck() {
+  const [value, setValue] = useState<DocumentCheckResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { let active = true; json<DocumentCheckResult>('/api/academics/document-check').then((result) => { if (active) setValue(result) }).catch(() => { if (active) setError('The document comparison could not be loaded. Reload to try again.') }); return () => { active = false } }, [])
+  return value ? <DocumentCheck value={value} /> : <p role="status" className="text-muted-foreground mt-6 text-sm">{error || 'Checking the attached documents…'}</p>
+}
+
 type TranscriptChange = { id: string; label: string; detail?: string; selectedByDefault?: boolean; requiresDecision?: boolean }
 type TranscriptReview = {
   changes: TranscriptChange[]
+  reviewIds?: string[]
+  documentCheck?: DocumentCheckResult
   revision: number
   warnings?: string[]
   source: { name: string; type: string; size: number; fingerprint: string }
@@ -521,10 +535,11 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => Promise<unkno
       }}
     /> : <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between border-b pb-2"><strong className="min-w-0 break-words">{review.source.name}</strong><span className="text-muted-foreground text-xs">{selected.size} of {review.changes.length} selected</span></div>
-      {!review.changes.length && <p className="text-muted-foreground text-sm">This transcript matches your saved record. You can keep it connected without changing your results.</p>}
+      {review.documentCheck && <DocumentCheck value={review.documentCheck} />}
+      {!review.changes.length && <p className="text-muted-foreground text-sm">No changes are proposed to your saved record. See the document comparison above for what has been corroborated.</p>}
       {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
       <ul className="max-h-72 overflow-y-auto border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, reviewIds: review.reviewIds, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
     </div>}
     {error && <Alert variant="destructive"><AlertTriangleIcon /><AlertTitle>Transcript needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
     {onSkip && <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>Do this later</Button>}
@@ -1280,6 +1295,7 @@ function UnifiedSetup({
             {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} onContinue={() => continueFrom('electives')} />)}
             {selected.id === 'record' && <>{view.state.recordDocument ? <AttachedDocument document={view.state.recordDocument} kind="record" onRemoved={() => refreshInPlace('record')} /> : <UploadField onRead={() => refreshInPlace('record')} onSkip={() => void defer('record')} />}<div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
             {selected.id === 'transcript' && (view.state.transcriptDocument ? <AttachedDocument document={view.state.transcriptDocument} kind="transcript" onRemoved={() => refreshInPlace('transcript')} /> : <TranscriptField onApplied={() => refreshInPlace('transcript')} onSkip={() => void defer('transcript')} />)}
+            {(selected.id === 'record' || selected.id === 'transcript' && view.state.transcriptDocument) && <SavedDocumentCheck key={JSON.stringify([view.state.recordDocument, view.state.transcriptDocument])} />}
             {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}
             {selected.id === 'timetable' && <form className="flex flex-col gap-5" onSubmit={async (event) => { event.preventDefault(); const url = timetable.trim(); if (!url || timetableBusy) return; setTimetableBusy(true); setTimetableError(null); try { await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) }); setTimetable(''); await refreshFrom('timetable') } catch (cause) { setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.') } finally { setTimetableBusy(false) } }}><TimetableGuide /><Field data-invalid={timetableError ? true : undefined}><FieldLabel htmlFor="guided-timetable">Timetable URL</FieldLabel><Input id="guided-timetable" type="url" required autoComplete="off" spellCheck={false} value={timetable} disabled={timetableBusy} placeholder="https://timetable.maastrichtuniversity.nl/ical?…" onChange={(event) => setTimetable(event.target.value)} /><FieldDescription className="flex items-center gap-1.5"><ShieldIcon className="size-3.5" />Stored on your account only, and read but never written to.</FieldDescription>{timetableError && <FieldError>{timetableError}</FieldError>}</Field><div className="flex flex-wrap items-center gap-2"><Button type="submit" disabled={timetableBusy || !timetable.trim()}>{timetableBusy && <Spinner data-icon="inline-start" />}{timetableBusy ? 'Checking the feed…' : 'Connect timetable'}</Button><Button type="button" variant="ghost" disabled={timetableBusy} onClick={() => void defer('timetable')}>Do this later</Button>{saved === 'timetable' && <SavedMark>{selected.detail}</SavedMark>}</div></form>}
             {selected.id === 'canvas' && <div className="flex flex-col gap-5"><div className="flex items-start gap-3"><SparklesIcon className="text-primary mt-0.5 size-5 shrink-0" /><div><p className="text-sm font-semibold">Priority detection is included</p><p className="text-muted-foreground mt-1 text-sm leading-relaxed">With material collection enabled, Wicker re-scans syllabi, slides and course manuals for assignments, attendance requirements, group work, submissions and deadlines. Claims are reconciled with Canvas assignments; conflicts stay unverified until you review them.</p></div></div><SecureField kind="canvas" onApplied={(fresh) => advanceFrom(fresh, 'canvas')} onSkip={() => void defer('canvas')} /></div>}

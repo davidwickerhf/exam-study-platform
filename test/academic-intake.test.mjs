@@ -89,7 +89,7 @@ BCS1520
   assert.equal(algorithmic.period, 'Period 5')
   assert.deepEqual(algorithmic.attempts.map((attempt) => [attempt.academicYear, attempt.type, attempt.grade, attempt.status]), [
     ['2024–2025', 'first', 2, 'failed'],
-    ['2025–2026', 'carry-over', null, 'failed'],
+    ['2025–2026', 'carry-over', null, 'no-show'],
     ['2026–2027', 'carry-over', null, 'upcoming']
   ])
   assert.equal(draft.courses.find((course) => course.code === 'BCS1520').programmeRequirement, 'historical')
@@ -114,7 +114,7 @@ BCS1520
   assert.equal(statistics.programmeRequirement, 'historical')
   assert.deepEqual(statistics.attempts.map((attempt) => [attempt.examDate, attempt.academicYear, attempt.grade, attempt.status]), [
     ['2024-06-05', '2023–2024', 3, 'failed'],
-    ['2025-05-23', '2024–2025', null, 'failed'],
+    ['2025-05-23', '2024–2025', null, 'no-show'],
     ['2026-06-18', '2025–2026', 7, 'passed']
   ])
 })

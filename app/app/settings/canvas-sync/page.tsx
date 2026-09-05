@@ -131,7 +131,7 @@ function AttemptLine({ job }: { job: CorpusJob }) {
   );
 }
 
-function CourseRow({ job, attempts, material }: { job: CorpusJob; attempts: CorpusJob[]; material?: CorpusCourseEdition }) {
+function CourseRow({ job, attempts, material, busy, onAction }: { job: CorpusJob; attempts: CorpusJob[]; material?: CorpusCourseEdition; busy: boolean; onAction: (job: CorpusJob, action: "stop" | "retry") => void }) {
   const stored = Math.max(0, Number(material?.sources) || 0);
   const editions = Math.max(1, Number(material?.editionCount) || 0);
   return (
@@ -157,6 +157,10 @@ function CourseRow({ job, attempts, material }: { job: CorpusJob; attempts: Corp
         <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{when(job)}</span>
         <span className="flex items-center justify-between gap-2 sm:justify-end">
           <JobStatus job={job} />
+          <span className="flex gap-1" onClick={(event) => { event.preventDefault(); event.stopPropagation() }}>
+            {ACTIVE.has(job.status) && <Button variant="ghost" size="sm" disabled={busy} aria-label={`Stop ${job.courseCode} ${job.academicYear} sync`} onClick={() => onAction(job, 'stop')}>Stop</Button>}
+            <Button variant="ghost" size="sm" disabled={busy} aria-label={`${ACTIVE.has(job.status) ? 'Restart' : 'Retry'} ${job.courseCode} ${job.academicYear} sync`} onClick={() => onAction(job, 'retry')}>{busy ? 'Updating…' : ACTIVE.has(job.status) ? 'Restart' : job.status === 'completed' ? 'Sync again' : 'Retry'}</Button>
+          </span>
           <ChevronDownIcon className="text-muted-foreground size-4 transition-transform group-open:rotate-180" />
         </span>
       </summary>
@@ -180,6 +184,7 @@ export default function CanvasSyncPage() {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<"refresh" | "retry" | "stop" | null>(null);
+  const [jobBusy, setJobBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -224,6 +229,16 @@ export default function CanvasSyncPage() {
     const fromConnections = connectionsResource.data?.connections.map((connection) => connection.origin) ?? [];
     return [...new Set([...corpus.jobs.map((job) => job.origin).filter((origin): origin is string => Boolean(origin)), ...fromConnections])];
   }, [connectionsResource.data, corpus.jobs]);
+
+  async function controlJob(job: CorpusJob, action: "stop" | "retry") {
+    if (jobBusy) return;
+    setJobBusy(job.id); setActionError(null); setNotice(null);
+    try {
+      const result = await readJson<{ stopped: boolean; queued: boolean }>(`/api/integrations/canvas/corpus/jobs/${encodeURIComponent(job.id)}`, { method: 'POST', body: JSON.stringify({ action }) });
+      setNotice(action === 'stop' ? `${job.courseCode} ${job.academicYear}: ${result.stopped ? 'stop requested. The worker checks within 30 seconds; an in-flight download may finish. Stored material remains available.' : 'this run already finished.'}` : `${job.courseCode} ${job.academicYear}: ${result.queued ? 'a new attempt is queued; previous attempts remain in history.' : 'an attempt is already queued or running.'}`);
+      statusResource.reload();
+    } catch (cause) { setActionError((cause as Error).message) } finally { setJobBusy(null) }
+  }
 
   async function refreshStatus() {
     setBusy("refresh");
@@ -425,7 +440,7 @@ export default function CanvasSyncPage() {
                     {visibleJobs.map((job) => {
                       const attempts = corpus.jobs.filter((candidate) => (job.bindingId ? candidate.bindingId === job.bindingId : candidate.courseCode === job.courseCode && candidate.academicYear === job.academicYear && candidate.origin === job.origin)).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
                       const material = job.courseCode ? materialByEdition.get(job.bindingId || "") || materialByEdition.get(`${job.courseCode.trim().toUpperCase()}:${job.academicYear || ""}`) : undefined;
-                      return <CourseRow key={job.id} job={job} attempts={attempts.length ? attempts : [job]} material={material} />;
+                      return <CourseRow key={job.id} busy={jobBusy !== null} onAction={(target, action) => void controlJob(target, action)} job={job} attempts={attempts.length ? attempts : [job]} material={material} />;
                     })}
                   </div>
                 ) : (
