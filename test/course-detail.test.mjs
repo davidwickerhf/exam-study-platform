@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { courseDetail, courseAttemptHistory, courseDetailTab } from '../lib/workspace/course-detail.mjs'
+import { courseDetail, courseAttemptHistory, courseDetailTab, courseMaterialCodes, courseRequestRecord } from '../lib/workspace/course-detail.mjs'
 
 const academic = [{ id: 'record-ai', code: 'BCS2120', name: 'Introduction to AI', ects: 4, attempts: [
   { id: 'first', academicYear: '2024-2025', status: 'failed', type: 'first', grade: 4.5, ects: 4 },
@@ -52,4 +52,17 @@ test('courses known only through a timetable or Canvas still have a detail page'
   assert.equal(courseDetail('EXTRA101', sources).name, 'Timetabled seminar')
   assert.equal(courseDetail('ARCH101', sources).corpus.courseCode, 'ARCH101')
   assert.deepEqual(courseAttemptHistory(courseDetail('EXTRA101', sources).academic), [])
+})
+
+
+test('material queries retain canonical, attempted and stored edition aliases', () => {
+  const entry = { code: 'BCS2140', academic: { id: 'os', code: 'BCS2140', attempts: [{ courseCode: 'BCS3420' }] }, corpus: { courseCode: 'BCS2140', editions: [{ courseCode: 'BCS3420' }, { courseCode: 'BCS2140' }] } }
+  assert.deepEqual(courseMaterialCodes(entry), ['BCS2140', 'BCS3420'])
+  assert.equal(courseRequestRecord(entry, [{ id: 'old-os', code: 'BCS3420' }]).id, 'old-os')
+})
+
+test('catalogue-only placements cannot create broken academic request links', () => {
+  const entry = { code: 'CAT101', academic: { id: 'catalogue-id', code: 'CAT101', attempts: [] } }
+  assert.equal(courseRequestRecord(entry, []), null)
+  assert.equal(courseRequestRecord(entry, [{ id: 'actual-record', code: 'CAT101' }]).id, 'actual-record')
 })
