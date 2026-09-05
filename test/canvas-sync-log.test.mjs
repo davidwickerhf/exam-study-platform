@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { safeSyncEvent, canvasSyncLog, recordCanvasSyncEvent } from '../lib/canvas-sync-log.mjs'
+import { safeSyncEvent, canvasSyncLog, createCanvasSyncLogger } from '../lib/canvas-sync-log.mjs'
 
 function database(jobs = [], events = []) {
   const calls = []
@@ -21,8 +21,10 @@ test('progress payloads bound counts and redact links, credentials and control c
 })
 test('log writes require the same account and current running lease', async () => {
   const { db, calls } = database()
-  await recordCanvasSyncEvent({ id: 'job', user_id: 'owner', lease_token: 'lease' }, { stage: 'indexing', message: 'Ready.', completed: 3, total: 3 }, db)
-  assert.match(calls[0].text, /user_id=\? AND lease_token=\? AND status='running'/)
+  const logger = createCanvasSyncLogger({ id: 'job', user_id: 'owner', lease_token: 'lease' }, { database: db })
+  logger.record({ stage: 'indexing', message: 'Ready.', completed: 3, total: 3 })
+  await logger.finish()
+  assert.match(calls[0].text, /j.user_id=\? AND j.lease_token=\? AND j.status='running'/)
   assert.deepEqual(calls[0].values.slice(-3), ['job', 'owner', 'lease'])
 })
 test('log reads enforce account and edition access, filter stages and paginate without numeric precision loss', async () => {
@@ -48,4 +50,64 @@ test('invalid requests fail before querying and local mode explains unavailable 
   }
   assert.equal(calls.length, 0)
   assert.equal((await canvasSyncLog({ accountId: 'local', database: null })).available, false)
+})
+
+
+test('hundreds of progress events enqueue synchronously and flush in one ordered batch', async () => {
+  const calls = []
+  let release
+  const database = (strings, ...values) => { calls.push({ text: strings.join('?'), values }); return new Promise(resolve => { release = resolve }) }
+  const logger = createCanvasSyncLogger({ id: 'job', user_id: 'owner', lease_token: 'lease' }, { database, flushMs: 60000 })
+  for (let i = 0; i < 500; i++) assert.equal(logger.record({ stage: 'indexing', message: `Passage ${i}`, completed: i }), undefined)
+  assert.equal(calls.length, 0)
+  const finishing = logger.finish()
+  assert.equal(calls.length, 1)
+  const batch = JSON.parse(calls[0].values[0])
+  assert.equal(batch.length, 500)
+  assert.equal(batch[499].sequence, 499)
+  assert.ok(batch.every(event => !Number.isNaN(Date.parse(event.createdAt))))
+  assert.match(calls[0].text, /ORDER BY e.sequence/)
+  release([])
+  await finishing
+})
+test('buffer overflow is bounded and represented by an explicit warning', async () => {
+  const { db, calls } = database()
+  const logger = createCanvasSyncLogger({ id: 'job' }, { database: db, maxBuffered: 2, flushMs: 60000 })
+  for (let i = 0; i < 5; i++) logger.record({ stage: 'download', message: 'Downloaded.' })
+  await logger.finish()
+  const batch = JSON.parse(calls[0].values[0])
+  assert.equal(batch.length, 3)
+  assert.equal(batch[2].level, 'warning')
+  assert.equal(batch[2].completed, 3)
+})
+test('closing a stopped worker discards buffered events and prevents late records', async () => {
+  const { db, calls } = database()
+  const logger = createCanvasSyncLogger({ id: 'job' }, { database: db, flushMs: 60000 })
+  logger.record({ stage: 'download', message: 'Downloaded.' })
+  logger.close()
+  logger.record({ stage: 'indexing', message: 'Late event.' })
+  await logger.finish()
+  assert.equal(calls.length, 0)
+})
+test('finish drains an in-flight write and the final buffered batch', async () => {
+  const calls = []
+  let release, started
+  const firstWrite = new Promise(resolve => { started = resolve })
+  const database = (strings, ...values) => {
+    calls.push(values)
+    if (calls.length === 1) { started(); return new Promise(resolve => { release = resolve }) }
+    return Promise.resolve([])
+  }
+  const logger = createCanvasSyncLogger({ id: 'job' }, { database, flushMs: 5 })
+  logger.record({ stage: 'download', message: 'First.' })
+  // Keep a referenced handle while the logger's production timer is unref'd.
+  const keepAlive = setTimeout(() => {}, 1000)
+  await firstWrite
+  logger.record({ stage: 'indexing', message: 'Last.' })
+  const finishing = logger.finish()
+  release([])
+  await finishing
+  clearTimeout(keepAlive)
+  assert.equal(calls.length, 2)
+  assert.equal(JSON.parse(calls[1][0])[0].message, 'Last.')
 })
