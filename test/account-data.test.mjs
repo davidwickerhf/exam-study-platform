@@ -3,13 +3,19 @@ import assert from 'node:assert/strict'
 import { exportPersonalData, deletePersonalData, deleteUploadedData } from '../lib/account-data.mjs'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { listDocuments, readDocument, writeDocument } from '../lib/user-store.mjs'
-import { editorialContributionDeletionDisposition } from '../lib/editorial-workflow.mjs'
+import { editorialAssetDeletionDisposition, editorialContributionDeletionDisposition } from '../lib/editorial-workflow.mjs'
 
 test('account erasure retains accepted public contributions but removes every private state', () => {
   assert.equal(editorialContributionDeletionDisposition('accepted'), 'retain-public')
   for (const status of ['private', 'candidate', 'rejected', 'withdrawn']) {
     assert.equal(editorialContributionDeletionDisposition(status), 'remove-private')
   }
+})
+
+test('account erasure detaches a reviewed policy asset instead of deleting shared regulation knowledge', () => {
+  assert.equal(editorialAssetDeletionDisposition({ remainingContributions: 0, policySources: 1 }), 'retain-shared')
+  assert.equal(editorialAssetDeletionDisposition({ remainingContributions: 1, policySources: 0 }), 'retain-shared')
+  assert.equal(editorialAssetDeletionDisposition({ remainingContributions: 0, policySources: 0 }), 'delete-orphan')
 })
 
 test('account export and deletion stay scoped to the authenticated user', async () => {
