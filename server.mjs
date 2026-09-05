@@ -11,6 +11,8 @@ import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 import next from 'next'
 import './lib/env.mjs'
+import { createDocumentReview, readDocumentReviews, academicDocumentCheck, academicDocumentEvidence, discardDocumentReviews } from './lib/academic-document-review.mjs'
+import { documentRows, validateDocumentRows, compareAcademicDocuments } from './lib/academic-document-check.mjs'
 import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
@@ -56,7 +58,7 @@ import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
-import { cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
+import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -1488,15 +1490,16 @@ function programmeIdentityCourses(workspace) {
 
 async function analyseAcademicIntake(body, { workspace = null } = {}) {
   const kind = DOCUMENT_KINDS[body?.kind] ? String(body.kind) : 'auto'
+  if ((body?.documents || []).length > 8 || (body?.documents || []).some((doc) => String(doc.text || '').length > 2_000_000) || (body?.documents || []).reduce((n, doc) => n + String(doc.text || '').length, 0) > 2_000_000) throw new Error('This document is too long to read completely. Split it into complete documents before importing; no truncated results have been saved.')
   const description = String(body?.description || '').trim().slice(0, 20_000)
   const documents = (Array.isArray(body?.documents) ? body.documents : []).slice(0, 8).map((document) => ({
     name: String(document?.name || 'Untitled source').trim().slice(0, 160),
     type: String(document?.type || 'text/plain').trim().slice(0, 100),
     pageCount: Math.max(0, Math.min(200, Number(document?.pageCount) || 0)),
-    text: String(document?.text || '').trim().slice(0, 80_000),
+    text: String(document?.text || '').trim(),
     images: (Array.isArray(document?.images) ? document.images : []).slice(0, 4)
   }))
-  let remainingText = 120_000
+  let remainingText = 2_000_000
   for (const document of documents) {
     document.text = document.text.slice(0, remainingText)
     remainingText -= document.text.length
@@ -1520,6 +1523,7 @@ async function analyseAcademicIntake(body, { workspace = null } = {}) {
     ].join('\n'))
   ].filter(Boolean).join('\n\n---\n\n')
   const detectedKind = detectAcademicDocumentKind(sourceText)
+  if (detectedKind === 'academic-overview' && /Transcript\s*\/\s*Resultatenoverzicht/i.test(sourceText)) throw new Error('Read the Academic Work overview and transcript separately so each document can be checked independently.')
   const effectiveKind = detectedKind === 'academic-overview' && (kind === 'auto' || kind === 'transcript') ? 'academic-overview' : kind === 'auto' && detectedKind ? detectedKind : kind
   const prompt = [
     'Extract a student-owned academic planning draft from the supplied curriculum, handbook, transcript, screenshots, and/or description.',
@@ -1546,13 +1550,14 @@ async function analyseAcademicIntake(body, { workspace = null } = {}) {
     sourceBlocks
   ].join('\n')
 
-  if (detectedKind === 'transcript' && effectiveKind === 'transcript' && !images.length) {
+  if (['transcript', 'academic-overview'].includes(detectedKind) && !images.length) {
     const draft = fallbackAcademicIntake(sourceText, editorialCourses, { kind: effectiveKind, identityCourses })
-    if (draft.courses.length && draft.warnings.some((warning) => warning.startsWith('Official transcript recognised:'))) {
+    if (draft.courses.length && draft.sourceEvidence) {
       return { draft, kind: effectiveKind, usedAi: false, sources: documents.map(({ name, type, pageCount }) => ({ name, type, pageCount })), usage: await getAiUsageSummary() }
     }
   }
 
+  if (sourceText.length > 120_000) throw new Error('This layout requires model-assisted review and exceeds its text capacity. No partial results were imported. Use the supported portal exports or read complete documents separately.')
   const imagePaths = await writeAttemptImages(images)
   let parsed
   let usedAi = false
@@ -1591,6 +1596,7 @@ async function analyseAcademicIntake(body, { workspace = null } = {}) {
     ? mergeAcademicIntakeDrafts(parsed, deterministic)
     : parsed
   const draft = normalizeAcademicIntakeDraft(supplemented, editorialCourses, { kind: effectiveKind, identityCourses })
+  draft.sourceEvidence = !images.length ? deterministic?.sourceEvidence || null : null
   return {
     draft,
     kind: effectiveKind,
@@ -3745,6 +3751,15 @@ const server = createServer(async (req, res) => {
       }
       return
     }
+    const corpusJobAction = url.pathname.match(/^\/api\/integrations\/canvas\/corpus\/jobs\/([^/]+)$/)
+    if (corpusJobAction && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 1024)
+        const result = await controlCanvasSyncJob({ accountId: currentAuth().userId, jobId: decodeURIComponent(corpusJobAction[1]), action: body?.action })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
+      return
+    }
     if (url.pathname === '/api/integrations/canvas/corpus/sync' && req.method === 'POST') {
       try {
         const body = await readBody(req, 8 * 1024)
@@ -4645,6 +4660,10 @@ const server = createServer(async (req, res) => {
     // is read by a parser rather than a model: free, instant, repeatable, and it
     // cannot invent a grade. Each reading is kept as a snapshot of the derived
     // record — never the document — so progress can be compared over time.
+    if (url.pathname === '/api/academics/document-check' && req.method === 'GET') {
+      send(res, 200, JSON.stringify(await academicDocumentCheck()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
     if (url.pathname === '/api/academics/work' && req.method === 'GET') {
       send(res, 200, JSON.stringify(await academicProgress()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
@@ -4653,16 +4672,20 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, MAX_ACADEMIC_INTAKE_BODY_BYTES)
         const documents = Array.isArray(body?.documents) ? body.documents : []
+        if (documents.length > 1) throw new AcademicWorkError('Read one complete Academic Work overview at a time.')
         const source = documents.find((document) => String(document?.text || '').trim()) || (String(body?.text || '').trim() ? { name: body?.name, text: body.text } : null)
         if (!source) { send(res, 400, JSON.stringify({ error: 'Attach the Academic Work overview printed from the student portal. A scan or photograph has no text to read.' })); return }
         const parsed = parseAcademicWork(source.text)
+        const { transcript } = await academicDocumentEvidence()
+        const documentCheck = compareAcademicDocuments({ rows: parsed.courses, validation: parsed.validation, sourceLabel: source.name }, transcript)
+        if (documentCheck.counts.conflict || documentCheck.counts.ambiguous) throw new AcademicWorkError('This overview disagrees with the attached transcript: ' + documentCheck.checks.filter((check) => ['conflict', 'ambiguous'].includes(check.status)).map((check) => `${check.course} (${check.academicYear}): transcript grade ${check.transcript?.grade ?? 'none'}, ${check.transcript?.creditsEarned} ECTS; Academic Work ${check.record.map((row) => `grade ${row.grade ?? 'none'}, ${row.creditsEarned} ECTS`).join(' / ')}`).join('; ') + '. Check both exports before replacing the saved record.')
         const beforeImport = await readAcademicState()
         const result = await recordAcademicSnapshot({
           kind: parsed.kind,
           sourceLabel: source.name || 'Academic Work',
           printedOn: parsed.printedOn,
           courses: parsed.courses,
-          summary: { ...parsed.summary, programme: parsed.programme }
+          summary: { ...parsed.summary, programme: parsed.programme, validation: parsed.validation }
         })
         const academicState = await readReconciledAcademicState({ snapshot: result.snapshot })
         await rememberDocumentImport('record', beforeImport.workspace, academicState.workspace)
@@ -4675,7 +4698,7 @@ const server = createServer(async (req, res) => {
           programme: parsed.programme,
           printedOn: parsed.printedOn,
           courses: parsed.courses,
-          summary: { ...parsed.summary, programme: parsed.programme },
+          summary: { ...parsed.summary, programme: parsed.programme, validation: parsed.validation },
           revision: academicState.workspace.revision
         }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
@@ -4700,7 +4723,7 @@ const server = createServer(async (req, res) => {
     if (url.pathname === '/api/academics/document-records' && req.method === 'POST') {
       try {
         const body = await readBody(req, 64 * 1024)
-        send(res, 200, JSON.stringify(await recordAcademicDocumentVersion(body)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        send(res, 200, JSON.stringify(await recordAcademicDocumentVersion({ ...body, evidence: null })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error instanceof AcademicDocumentRegisterError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The document version could not be recorded.' }))
       }
@@ -4713,6 +4736,7 @@ const server = createServer(async (req, res) => {
         const result = documentRecordMatch[2]
           ? await deleteAcademicDocumentVersion({ kind, versionId: decodeURIComponent(documentRecordMatch[2]) })
           : await deleteAcademicDocumentRecord({ kind })
+        await discardDocumentReviews()
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error instanceof AcademicDocumentRegisterError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The document could not be removed.' }))
@@ -4728,7 +4752,19 @@ const server = createServer(async (req, res) => {
         const analysis = await analyseAcademicIntake(body, { workspace })
         const sourceLabel = analysis.sources?.map((item) => item.name).filter(Boolean).join(', ') || (String(body?.description || '').trim() ? 'Supplied description' : 'Uploaded source')
         const changeSet = buildChangeSet(workspace, analysis.draft, { source: 'document', sourceLabel, kind: analysis.kind })
-        send(res, 200, JSON.stringify({ ...changeSet, usedAi: analysis.usedAi, sources: analysis.sources, revision: workspace.revision, usage: analysis.usage }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        let reviewIds = []
+        let documentCheck = null
+        if (['transcript', 'academic-overview'].includes(analysis.kind)) {
+          const evidence = { ...(analysis.draft.sourceEvidence || { kind: analysis.kind, rows: documentRows(analysis.draft), validation: validateDocumentRows(documentRows(analysis.draft), { supported: false }) }), sourceLabel }
+          const held = await academicDocumentEvidence()
+          documentCheck = compareAcademicDocuments(evidence.kind === 'academic-overview' ? evidence : held.record, evidence.kind === 'transcript' ? evidence : held.transcript)
+          if (evidence.validation.status === 'attention' || documentCheck.counts.conflict || documentCheck.counts.ambiguous) {
+            for (const change of changeSet.changes) { change.requiresDecision = true; change.selectedByDefault = false }
+          }
+          changeSet.warnings = [...changeSet.warnings, ...evidence.validation.issues]
+          reviewIds = [await createDocumentReview({ evidence, changes: changeSet.changes, revision: workspace.revision })]
+        }
+        send(res, 200, JSON.stringify({ ...changeSet, reviewIds, documentCheck, usedAi: analysis.usedAi, sources: analysis.sources, revision: workspace.revision, usage: analysis.usage }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         if (!sendAiError(res, error)) send(res, /too large/i.test(error.message) ? 413 : 400, JSON.stringify({ error: error.message }))
       }
@@ -4739,21 +4775,32 @@ const server = createServer(async (req, res) => {
         const body = await readBody(req, 4 * 1024 * 1024)
         const state = await readAcademicState()
         if (Number(body?.expectedRevision) !== state.workspace.revision) { send(res, 409, JSON.stringify({ error: 'This programme changed in another tab. Reload before applying again.' })); return }
+        const reviews = body?.reviewIds?.length || ['transcript', 'academic-overview'].includes(body?.documentRecord?.kind)
+          ? await readDocumentReviews(body?.reviewIds, body?.changes, state.workspace.revision) : []
         const { workspace, applied } = applyChanges(state.workspace, body?.changes)
         const saved = applied.length
           ? await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
           : state
-        if (body?.documentRecord?.kind === 'transcript') await rememberDocumentImport('transcript', state.workspace, saved.workspace)
+        if (reviews.some((review) => review.evidence.kind === 'transcript')) await rememberDocumentImport('transcript', state.workspace, saved.workspace)
+        if (reviews.some((review) => review.evidence.kind === 'academic-overview')) await rememberDocumentImport('record', state.workspace, saved.workspace)
         let documentRecord = null
         let documentRecordError = null
         if (body?.documentRecord) {
           try {
             documentRecord = await recordAcademicDocumentVersion({
               ...body.documentRecord,
+              evidence: reviews.find((review) => review.evidence.kind === body.documentRecord.kind)?.evidence || null,
               impact: { ...(body.documentRecord.impact || {}), applied: applied.length }
             })
           }
           catch (error) { documentRecordError = error instanceof Error ? error.message : 'Version history could not be updated.' }
+        }
+        if (body?.documentRecord && !documentRecordError) {
+          try {
+            for (const review of reviews.filter((item) => item.evidence.kind !== body.documentRecord.kind)) {
+              await recordAcademicDocumentVersion({ ...body.documentRecord, kind: review.evidence.kind, label: review.evidence.sourceLabel, fingerprint: `${body.documentRecord.fingerprint}:${review.evidence.kind}`, evidence: review.evidence })
+            }
+          } catch (error) { documentRecordError = error.message }
         }
         send(res, 200, JSON.stringify({ ...saved, applied, documentRecord, documentRecordError }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {

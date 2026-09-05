@@ -77,6 +77,8 @@ export type CalendarLink = {
 }
 
 export type ChangeSet = {
+  reviewIds?: string[]
+  documentCheck?: import('../../components/workspace/document-check').DocumentCheckResult
   kind: string
   sourceLabel?: string
   changes: Change[]

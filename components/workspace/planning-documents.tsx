@@ -1,5 +1,7 @@
 'use client'
 
+import { DocumentCheck } from '@/components/workspace/document-check'
+
 /**
  * Documents — supporting files at any time, read into a change set the student
  * ticks through.
@@ -96,7 +98,7 @@ type PdfLibrary = {
   GlobalWorkerOptions: { workerSrc: string }
   getDocument: (options: { data: Uint8Array }) => { promise: Promise<PdfDocument> }
 }
-type PdfDocument = { numPages: number; getPage: (page: number) => Promise<PdfPage> }
+type PdfDocument = { destroy: () => Promise<void>; numPages: number; getPage: (page: number) => Promise<PdfPage> }
 type PdfPage = {
   getTextContent: () => Promise<{ items: { str?: string; transform?: number[]; width?: number }[] }>
   getViewport: (options: { scale: number }) => { width: number; height: number }
@@ -128,9 +130,12 @@ function loadPdfLibrary() {
 async function extractPdf(file: File): Promise<Omit<SourceFile, 'name' | 'type' | 'size'>> {
   const library = await loadPdfLibrary()
   const pdf = await library.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  try {
+  const unreadPages: number[] = []
+  const imagePages: number[] = []
   const pages: string[] = []
   const images: string[] = []
-  const limit = Math.min(pdf.numPages, 30)
+  const limit = pdf.numPages
   for (let number = 1; number <= limit; number += 1) {
     const page = await pdf.getPage(number)
     const content = await page.getTextContent()
@@ -160,6 +165,7 @@ async function extractPdf(file: File): Promise<Omit<SourceFile, 'name' | 'type' 
       .join('\n')
       .trim()
     if (pageText) pages.push(`Page ${number}\n${pageText}`)
+    else unreadPages.push(number)
     // A scan has no text layer, so those pages are sent as images instead.
     const visualLimit = pageText.length < 80 ? 4 : 2
     if (images.length < visualLimit) {
@@ -174,10 +180,16 @@ async function extractPdf(file: File): Promise<Omit<SourceFile, 'name' | 'type' 
         context.fillRect(0, 0, canvas.width, canvas.height)
         await page.render({ canvasContext: context, viewport }).promise
         images.push(canvas.toDataURL('image/jpeg', 0.72))
+        imagePages.push(number)
       }
     }
   }
-  return { text: pages.join('\n\n').slice(0, 120_000), images, pageCount: pdf.numPages }
+  const text = pages.join('\n\n')
+  const structured = /Transcript\s*\/\s*Resultatenoverzicht|Academic overview|Current courses[\s\S]*Completed courses/i.test(text)
+  if (structured && unreadPages.length) throw new Error(`Pages ${unreadPages.join(', ')} have no readable text. Use a text-based export so every page can be checked.`)
+  if (unreadPages.some((number) => !imagePages.includes(number))) throw new Error('This scan has more image-only pages than can be reviewed in one reading. Use a searchable text export; no partial results have been imported.')
+  return { text, images: structured ? [] : images, pageCount: pdf.numPages }
+  } finally { await pdf.destroy() }
 }
 
 async function shrinkImage(file: File) {
@@ -281,6 +293,7 @@ function FeedSummary({ result, connected }: { result: ChangeSet; connected: bool
 // ── The review ───────────────────────────────────────────────────────────
 
 function CrossCheck({ result }: { result: ChangeSet }) {
+  if (result.documentCheck) return <DocumentCheck value={result.documentCheck} />
   const summary = reconciliationSummary(result)
   if (!summary) return null
   if (summary.status === 'aligned') {
@@ -629,7 +642,7 @@ export function PlanningDocuments({
       }
       const saved = await api<AcademicState & { applied: string[]; documentRecord?: { unchanged?: boolean } | null; documentRecordError?: string | null }>('/api/academics/documents/apply', {
         method: 'POST',
-        body: JSON.stringify({ changes, expectedRevision: workspace.revision, documentRecord })
+        body: JSON.stringify({ changes, expectedRevision: workspace.revision, documentRecord, reviewIds: result.reviewIds })
       })
       onWorkspace(saved)
       if (hasSource && !saved.documentRecordError) onRecorded?.()
