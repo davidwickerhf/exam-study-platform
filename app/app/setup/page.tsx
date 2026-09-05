@@ -68,6 +68,7 @@ import { FilePicker } from './file-picker'
 import { FinishSetup } from './finish-setup'
 import { json, type ElectiveGroup, type Message, type ProgrammeOption, type View } from './view'
 import { BrandMark } from '@/components/brand/brand-mark'
+import { useWorkspaceSession } from '@/components/workspace/require-auth'
 
 const CANVAS_SETTINGS = 'https://canvas.maastrichtuniversity.nl/profile/settings'
 const TIMETABLE_PORTAL = 'https://timetable.maastrichtuniversity.nl/m/#loggedin'
@@ -550,6 +551,10 @@ function SetupPicker({
 
 function ProgrammeEditor({ current, template, onSaved }: { current: string | null; template?: { programmeId: string; versionId: string; currentStudyYear: string } | null; onSaved: () => void | Promise<unknown> }) {
   const params = useSearchParams()
+  // The programme joined at sign-in (the multi-match picker) is the default
+  // here until an academic programme has been saved; before, the editor fell
+  // back to the first catalogue entry and the earlier choice looked ignored.
+  const joined = useWorkspaceSession().session?.programmes?.[0]?.programmeId ?? null
   const [saved, setSaved] = useState(false)
   const [programmes, setProgrammes] = useState<ProgrammeOption[]>([])
   const [programmeId, setProgrammeId] = useState('')
@@ -566,6 +571,7 @@ function ProgrammeEditor({ current, template, onSaved }: { current: string | nul
       setProgrammes(data.programmes ?? [])
       const selected = data.programmes?.find((programme) => programme.id === template?.programmeId)
         ?? data.programmes?.find((programme) => `${programme.degree} ${programme.name}` === current)
+        ?? data.programmes?.find((programme) => programme.id === joined)
         ?? data.programmes?.[0]
       if (selected) {
         setProgrammeId(selected.id)
@@ -573,7 +579,7 @@ function ProgrammeEditor({ current, template, onSaved }: { current: string | nul
         setStudyYear(String(template?.currentStudyYear || '').match(/(\d+)/)?.[1] ?? '1')
       }
     }).catch((cause: Error) => setError(cause.message))
-  }, [current, template?.programmeId, template?.versionId, template?.currentStudyYear])
+  }, [current, joined, template?.programmeId, template?.versionId, template?.currentStudyYear])
   const programme = programmes.find((entry) => entry.id === programmeId)
   if (custom) return <form className="flex flex-col gap-4" onSubmit={async (event) => {
     event.preventDefault(); if (!customName.trim() || busy) return; setBusy(true); setError(null); setSaved(false)
@@ -646,7 +652,7 @@ function ProgrammeEditor({ current, template, onSaved }: { current: string | nul
   </form>
 }
 
-function ElectivesEditor({ onSaved }: { onSaved: () => void | Promise<unknown> }) {
+function ElectivesEditor({ onSaved, onContinue }: { onSaved: () => void | Promise<unknown>; onContinue?: () => void }) {
   const [groups, setGroups] = useState<ElectiveGroup[] | null>(null)
   const [chosen, setChosen] = useState<Record<string, string[]>>({})
   const [baseline, setBaseline] = useState<Record<string, string[]>>({})
@@ -700,7 +706,12 @@ function ElectivesEditor({ onSaved }: { onSaved: () => void | Promise<unknown> }
     {error && <FieldError>{error}</FieldError>}
     <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t bg-background py-4">
       <p className="text-muted-foreground text-sm">{saved ? 'All elective choices are saved.' : changed.length ? `${changed.length} ${changed.length === 1 ? 'group has' : 'groups have'} unsaved choices.` : 'All elective choices are saved.'}</p>
-      <div className="flex items-center gap-2">{changed.length > 0 && <Button type="button" variant="ghost" disabled={busy} onClick={reset}>Discard changes</Button>}<Button type="button" disabled={busy || Boolean(invalid) || !changed.length} onClick={() => void save()}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving choices…' : 'Save all choices'}</Button></div>
+      <div className="flex items-center gap-2">
+        {changed.length > 0 && <Button type="button" variant="ghost" disabled={busy} onClick={reset}>Discard changes</Button>}
+        {!changed.length && onContinue && !busy
+          ? <Button type="button" onClick={onContinue}>Continue<ChevronRightIcon data-icon="inline-end" /></Button>
+          : <Button type="button" disabled={busy || Boolean(invalid) || !changed.length} onClick={() => void save()}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Saving choices…' : 'Save all choices'}</Button>}
+      </div>
     </div>
   </div>
 }
@@ -1115,6 +1126,12 @@ function UnifiedSetup({
     setSaved(step)
   }
 
+  // Leave a settled step for the next one that still needs attention.
+  const continueFrom = (completed: SetupStepId) => {
+    const following = steps.slice(steps.findIndex((step) => step.id === completed) + 1)
+    setOpen(((nextStep(following) ?? following[0])?.id ?? completed) as SetupStepId)
+  }
+
   const defer = async (step: SetupStepId) => {
     if (deferBusy) return
     setDeferBusy(step)
@@ -1204,7 +1221,7 @@ function UnifiedSetup({
           <div className="px-5 py-6 sm:px-7 sm:py-7">
             {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
             {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} template={view.state.programmeTemplate} onSaved={() => refreshFrom('programme')} />}
-            {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} />)}
+            {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} onContinue={() => continueFrom('electives')} />)}
             {selected.id === 'record' && <><UploadField onRead={() => refreshFrom('record')} onSkip={() => void defer('record')} /><div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
             {selected.id === 'transcript' && <TranscriptField onApplied={() => void refreshFrom('transcript')} onSkip={() => void defer('transcript')} />}
             {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}

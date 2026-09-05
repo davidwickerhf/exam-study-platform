@@ -26,6 +26,8 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { ChevronRightIcon } from "lucide-react";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -34,6 +36,8 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 import {
   browserStateSnapshot,
   mergeBrowserState,
@@ -53,6 +57,8 @@ export type WorkspaceSession = {
   email?: string | null;
   admin?: boolean;
   needsProgramme?: boolean;
+  /** Programme memberships, first joined first. */
+  programmes?: { programmeId: string; role?: string }[];
 };
 
 const WorkspaceSessionContext = createContext<{
@@ -111,6 +117,8 @@ function Gate({
           institution?: { name?: string; city?: string };
         }[];
         saving: boolean;
+        /** The programme whose save is in flight. */
+        choosing?: string;
         error?: string;
       }
     | { kind: "error"; message: string }
@@ -285,7 +293,12 @@ function Gate({
     );
   if (access.kind === "programme") {
     const choose = async (programmeId: string) => {
-      setAccess({ ...access, saving: true, error: undefined });
+      setAccess({
+        ...access,
+        saving: true,
+        choosing: programmeId,
+        error: undefined,
+      });
       try {
         const response = await window.fetch("/api/account/programme", {
           method: "POST",
@@ -295,57 +308,119 @@ function Gate({
         const body = await response.json().catch(() => ({}));
         if (!response.ok)
           throw new Error(body.error || "Could not join this programme.");
+        // The join returns the refreshed session, so the workspace (and
+        // setup's programme editor) sees the membership without a reload.
+        onSession(body);
         setAccess({ kind: "allowed" });
       } catch (cause) {
         setAccess({
           ...access,
           saving: false,
+          choosing: undefined,
           error: (cause as Error).message,
         });
       }
     };
+    const address = user?.primaryEmailAddress?.emailAddress;
+    // The same focused frame as /app/setup: a small brand bar with one quiet
+    // escape action, a flat page header, then a ruled register of choices.
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center gap-6 p-8">
-        <div>
-          <h1 className="font-heading text-4xl font-semibold">
-            Which programme are you in?
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Your address matches more than one maintained programme. Choose the
-            record that governs your courses and institution calendar.
-          </p>
-        </div>
-        <div className="flex flex-col">
-          {access.programmes.map((programme) => (
-            <button
-              key={programme.id}
-              disabled={access.saving}
-              onClick={() => void choose(programme.id)}
-              className="hover:bg-card flex flex-col gap-1 border-b p-4 text-left disabled:opacity-50"
-            >
-              <strong>
-                {programme.degree} {programme.name}
-              </strong>
-              <span className="text-muted-foreground text-sm">
-                {[programme.institution?.name, programme.institution?.city]
-                  .filter(Boolean)
-                  .join(" · ")}
+      <div className="mx-auto min-h-dvh w-full max-w-[1260px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <BrandMark className="size-9 rounded-lg" />
+            <div className="leading-none">
+              <strong className="block text-sm">Wicker Study</strong>
+              <span className="text-muted-foreground mt-1 block text-xs">
+                Programme selection
               </span>
-            </button>
-          ))}
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={access.saving}
+            onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}
+          >
+            Sign out
+          </Button>
         </div>
-        {access.error && (
-          <p role="alert" className="text-sm font-medium">
-            {access.error}
-          </p>
-        )}
-        <Button
-          variant="ghost"
-          className="w-fit"
-          onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}
-        >
-          Sign out
-        </Button>
+        <main className="flex min-w-0 max-w-[68ch] flex-col gap-6">
+          <header>
+            <h1 className="font-heading text-[clamp(2rem,4vw,3.25rem)] leading-[0.98] font-semibold tracking-[-0.045em]">
+              Which programme are you in?
+            </h1>
+            <p className="text-muted-foreground mt-3 max-w-[62ch] text-sm leading-relaxed">
+              {address ? (
+                <>
+                  <span className="text-foreground font-medium">{address}</span>{" "}
+                  matches more than one maintained programme.
+                </>
+              ) : (
+                "Your address matches more than one maintained programme."
+              )}{" "}
+              Choose the one that governs your courses and institution
+              calendar.
+            </p>
+          </header>
+          <ol
+            className="flex flex-col border-t"
+            aria-label="Eligible programmes"
+            aria-busy={access.saving || undefined}
+          >
+            {access.programmes.map((programme) => {
+              const chosen = access.choosing === programme.id;
+              const institution = [
+                programme.institution?.name,
+                programme.institution?.city,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <li key={programme.id} className="border-b">
+                  <button
+                    type="button"
+                    disabled={access.saving}
+                    aria-current={chosen ? "true" : undefined}
+                    onClick={() => void choose(programme.id)}
+                    className={cn(
+                      "focus-visible:ring-ring/50 -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 px-2 py-3 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-not-allowed",
+                      chosen ? "bg-card" : "hover:bg-card disabled:opacity-50",
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <strong className="text-sm font-medium">
+                        {programme.degree} {programme.name}
+                      </strong>
+                      {institution && (
+                        <small className="text-muted-foreground text-[13.5px] leading-relaxed">
+                          {institution}
+                        </small>
+                      )}
+                    </div>
+                    {chosen ? (
+                      <Spinner
+                        className="text-primary shrink-0"
+                        aria-label="Joining programme"
+                      />
+                    ) : (
+                      <ChevronRightIcon
+                        className="text-muted-foreground size-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+          {access.error && (
+            <p role="alert" className="text-destructive text-sm font-medium">
+              {access.error}
+            </p>
+          )}
+        </main>
       </div>
     );
   }
