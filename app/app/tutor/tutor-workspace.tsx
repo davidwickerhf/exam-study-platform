@@ -136,6 +136,7 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [loadingConversation, setLoadingConversation] = useState(true)
   const [elapsed, setElapsed] = useState(0)
   const requestRef = useRef<AbortController | null>(null)
   const creatingRef = useRef<string | null>(null)
@@ -159,19 +160,21 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
     const version = ++viewVersion.current
     requestRef.current?.abort(); requestRef.current = null; setSending(false); setError(null)
     setConversationLocation(id)
+    setConversationId(id || null); setMessages([]); setLoadingConversation(true)
     creatingRef.current = null
     try {
       const data = await api<Hub>(`/api/tutor${id ? `?conversation=${encodeURIComponent(id)}` : ''}`)
       if (viewVersion.current !== version) return
       setHub(data); setMessages(data.conversation?.messages || []); setConversationId(data.conversation?.id || id || null)
     } catch (cause) { if (viewVersion.current === version) setError(cause instanceof Error ? cause.message : 'Tutor could not be opened.') }
+    finally { if (viewVersion.current === version) setLoadingConversation(false) }
   }
   useEffect(() => { void load(embedded ? undefined : new URLSearchParams(window.location.search).get('conversation') || undefined); return () => { viewVersion.current++; requestRef.current?.abort() } }, [])
   useEffect(() => { if (!sending) return; const started = Date.now(); setElapsed(0); const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000); return () => clearInterval(timer) }, [sending])
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' }) }, [messages, sending])
   const ask = async (value: string, retrying = false) => {
     const message = value.trim()
-    if (!message || requestRef.current || hub?.available === false) return
+    if (!message || loadingConversation || requestRef.current || hub?.available === false) return
     const controller = new AbortController()
     requestRef.current = controller
     const version = viewVersion.current
@@ -217,7 +220,7 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
 
   const composer = <div className="border-t bg-card px-4 py-4 sm:px-6"><div className="mx-auto max-w-[1240px] rounded-[10px] border bg-card"><div className="text-muted-foreground flex items-center gap-2 border-b px-4 py-2.5 text-xs"><Globe2Icon className="size-3.5" /><strong className="text-foreground">{initialContext.courseCode ? `${initialContext.courseCode} lens` : 'Workspace-wide'}</strong><span>·</span><span>{initialContext.chapterName ? `starting from ${initialContext.chapterName}, with access to the full workspace` : 'checking every connected course and source'}</span></div>
     {tutorUnavailable ? <div role="status" className="flex items-start gap-3 px-4 py-4"><InfoIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" /><div><strong className="block text-sm">Tutor is not available yet</strong><p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">A language model has not been configured for this workspace.</p></div></div> : <>{activeAttachments.length > 0 && <div className="flex flex-wrap gap-2 border-b px-4 py-2.5">{activeAttachments.map((id) => { const source = hub?.attachments.find((item) => item.id === id); return <button key={id} type="button" onClick={() => setActiveAttachments((items) => items.filter((item) => item !== id))} className="bg-muted inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"><PaperclipIcon className="size-3" />{source?.name || 'Source'}<XIcon className="size-3" /></button> })}</div>}
-    <form data-tour="tutor-composer" className="flex items-end gap-3 p-3" onSubmit={(event) => { event.preventDefault(); void ask(draft) }}><input ref={fileRef} type="file" multiple className="sr-only" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.gif,.heic,.txt,.md,.csv,.ics,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,text/*" onChange={(event) => void upload(event.target.files)} /><Button type="button" variant="ghost" size="icon" disabled={uploading} aria-label="Add a private file or picture" onClick={() => fileRef.current?.click()}>{uploading ? <Spinner /> : <PaperclipIcon />}</Button><Textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void ask(draft) } }} rows={1} disabled={sending} placeholder={sending ? 'Checking your workspace…' : 'Ask anything about your studies…'} className="max-h-36 min-h-9 resize-none border-0 bg-transparent px-1 py-2 shadow-none focus-visible:ring-0" /><Button type="submit" size="icon" aria-label="Send question" disabled={!draft.trim() || sending}>{sending ? <Spinner /> : <SendIcon />}</Button></form></>}</div>{!tutorUnavailable && <p className="text-muted-foreground mx-auto mt-2 max-w-[1240px] text-center text-[11px]">Files are stored privately and indexed for future retrieval. Tutor proposes changes before it acts.</p>}</div>
+    <form data-tour="tutor-composer" className="flex items-end gap-3 p-3" onSubmit={(event) => { event.preventDefault(); void ask(draft) }}><input ref={fileRef} type="file" multiple className="sr-only" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.gif,.heic,.txt,.md,.csv,.ics,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,text/*" onChange={(event) => void upload(event.target.files)} /><Button type="button" variant="ghost" size="icon" disabled={uploading} aria-label="Add a private file or picture" onClick={() => fileRef.current?.click()}>{uploading ? <Spinner /> : <PaperclipIcon />}</Button><Textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void ask(draft) } }} rows={1} disabled={sending || loadingConversation} placeholder={sending ? 'Checking your workspace…' : 'Ask anything about your studies…'} className="max-h-36 min-h-9 resize-none border-0 bg-transparent px-1 py-2 shadow-none focus-visible:ring-0" /><Button type="submit" size="icon" aria-label="Send question" disabled={!draft.trim() || sending || loadingConversation}>{sending ? <Spinner /> : <SendIcon />}</Button></form></>}</div>{!tutorUnavailable && <p className="text-muted-foreground mx-auto mt-2 max-w-[1240px] text-center text-[11px]">Files are stored privately and indexed for future retrieval. Tutor proposes changes before it acts.</p>}</div>
 
   return <div className={`flex min-h-0 w-full flex-col overflow-hidden ${embedded ? 'h-full bg-background' : 'h-[calc(100dvh-7.5rem)] md:h-dvh'}`}>
     <header data-tour="tutor" className="flex shrink-0 items-center gap-2 border-b px-5 py-4 sm:gap-3 sm:px-8"><div className="min-w-0 flex-1"><h1 className="font-heading text-[32px] leading-none font-semibold tracking-[-0.03em]">Tutor</h1><p className="text-muted-foreground mt-1.5 text-sm max-sm:hidden">Course explanations, study decisions and approved actions, grounded in your private workspace.</p></div>{history}<Button variant="ghost" size="sm" onClick={() => { void load(); setDraft(''); setActiveAttachments([]) }}><PlusIcon data-icon="inline-start" />New</Button></header>
