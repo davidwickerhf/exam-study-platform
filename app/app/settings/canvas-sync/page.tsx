@@ -126,7 +126,7 @@ function AttemptLine({ job }: { job: CorpusJob }) {
         ) : null}
       </span>
       <span className={`text-muted-foreground ${NUMERALS}`}>{when(job)}</span>
-      <JobStatus job={job} />
+      <span className="flex items-center gap-3"><Link href={`/app/settings/canvas-sync/logs?job=${encodeURIComponent(job.id)}`} className="text-primary font-semibold hover:underline">Logs</Link><JobStatus job={job} /></span>
     </li>
   );
 }
@@ -309,6 +309,7 @@ export default function CanvasSyncPage() {
             <Button variant="outline" onClick={() => void refreshStatus()} disabled={busy !== null}>
               <RefreshCwIcon className={cn(busy === "refresh" && "animate-spin")} data-icon="inline-start" /> Refresh
             </Button>
+            <Link href="/app/settings/canvas-sync/logs" className="text-primary px-2 text-sm font-semibold hover:underline">Sync logs</Link>
             <Link href="/app/updates?tab=materials" className="text-primary px-2 text-sm font-semibold hover:underline">Course material</Link>
           </div>
         </div>

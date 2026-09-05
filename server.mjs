@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 import next from 'next'
 import './lib/env.mjs'
+import { canvasSyncLog } from './lib/canvas-sync-log.mjs'
 import { createDocumentReview, readDocumentReviews, academicDocumentCheck, academicDocumentEvidence, discardDocumentReviews } from './lib/academic-document-review.mjs'
 import { documentRows, validateDocumentRows, compareAcademicDocuments } from './lib/academic-document-check.mjs'
 import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
@@ -3722,6 +3723,13 @@ const server = createServer(async (req, res) => {
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Could not save the Canvas connection.' }))
       }
+      return
+    }
+    if (url.pathname === '/api/account/integrations/canvas/corpus/logs' && req.method === 'GET') {
+      try {
+        const result = await canvasSyncLog({ accountId: currentAuth().userId, jobId: url.searchParams.get('job') || '', before: url.searchParams.get('before') || '', stage: url.searchParams.get('stage') || '', level: url.searchParams.get('level') || '' })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
       return
     }
     if (url.pathname === '/api/account/integrations/canvas/corpus' && req.method === 'GET') {
