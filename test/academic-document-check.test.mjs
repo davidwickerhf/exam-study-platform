@@ -129,3 +129,14 @@ test('conflicting duplicate sitting rows are rejected before normalization can m
   assert.throws(() => fallbackAcademicIntake(transcript('Logic 7,0 18.06.2026 4,00 4,00 1\nLogic 8,0 18.06.2026 4,00 4,00 1'), [], { kind: 'transcript' }), /conflicting rows/)
   assert.throws(() => fallbackAcademicIntake(transcript('Logic 7,0 18.06.2026 4,00 4,00 1\nLogic 7,0 18.06.2026 4,00 2,00 1'), [], { kind: 'transcript' }), /conflicting rows/)
 })
+
+
+test('a matching pass does not hide an omitted failed attempt from the same academic year', () => {
+  const fail = row({ grade: 4, status: 'failed', creditsEarned: 0 })
+  const result = compareAcademicDocuments(evidence([fail, row()]), evidence([row({ examDate: '2026-06-18' })]))
+  assert.equal(result.status, 'attention')
+  assert.equal(result.counts.confirmed, 1)
+  assert.equal(result.counts['record-only'], 1)
+  assert.equal(result.checks.find((check) => check.status === 'record-only').record[0].grade, 4)
+  assert.deepEqual(result.checks.find((check) => check.status === 'confirmed').record.map((item) => item.grade), [7])
+})
