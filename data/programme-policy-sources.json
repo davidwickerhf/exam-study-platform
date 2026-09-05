@@ -9,9 +9,15 @@
       "institution": "Maastricht University · Faculty of Science and Engineering",
       "authority": "Faculty Board, Faculty of Science and Engineering",
       "academicYear": "2026-2027",
-      "visibility": "programme",
+      "visibility": "university",
       "rightsBasis": "institution-member-reference",
       "originalDownloadable": false,
+      "provenance": {
+        "kind": "canvas-course",
+        "courseCode": "BCS3300",
+        "courseName": "Project 3-1",
+        "courseEdition": "2026-2027-002-BCS3300"
+      },
       "programmes": [
         "maastricht-university-bsc-computer-science",
         "maastricht-university-bsc-data-science-and-artificial-intelligence"
@@ -25,9 +31,15 @@
       "institution": "Maastricht University · Faculty of Science and Engineering",
       "authority": "Board of Examiners, Department of Advanced Computing Sciences",
       "academicYear": "2026-2027",
-      "visibility": "programme",
+      "visibility": "university",
       "rightsBasis": "institution-member-reference",
       "originalDownloadable": false,
+      "provenance": {
+        "kind": "canvas-course",
+        "courseCode": "BCS3300",
+        "courseName": "Project 3-1",
+        "courseEdition": "2026-2027-002-BCS3300"
+      },
       "programmes": [
         "maastricht-university-bsc-computer-science",
         "maastricht-university-bsc-data-science-and-artificial-intelligence"

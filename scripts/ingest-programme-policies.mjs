@@ -44,7 +44,7 @@ async function ensureAsset(definition, bytes, sha256) {
     ;[asset] = await sql`INSERT INTO editorial_source_assets
       (id, sha256, filename, media_type, byte_size, source_kind, expected_chunks, is_complete, extraction_status, metadata, created_by)
       VALUES (${id}, ${sha256}, ${definition.filename}, 'application/pdf', ${bytes.length}, 'file', ${Math.ceil(bytes.length / (512 * 1024))}, true, 'processing',
-        ${JSON.stringify({ source: 'programme-policy', originalPrivate: true })}::jsonb, 'programme-policy-import')
+        ${JSON.stringify({ source: 'programme-policy', originalPrivate: true, provenance: definition.provenance || null })}::jsonb, 'programme-policy-import')
       RETURNING *`
   }
   const chunkSize = 512 * 1024
@@ -66,7 +66,7 @@ async function indexSource(definition, asset, pages, sha256) {
     (id, asset_id, title, document_kind, institution, academic_year, authority, source_url, visibility, rights_basis, original_downloadable, status, metadata, created_by, updated_at)
     VALUES (${sourceId}, ${asset.id}, ${definition.title}, ${definition.documentKind}, ${definition.institution || ''}, ${definition.academicYear || ''},
       ${definition.authority || ''}, ${publication.sourceUrl}, ${publication.visibility}, ${publication.rightsBasis}, ${publication.originalDownloadable}, 'draft',
-      ${JSON.stringify({ filename: definition.filename, sha256 })}::jsonb, 'programme-policy-import', now())
+      ${JSON.stringify({ filename: definition.filename, sha256, provenance: definition.provenance || null })}::jsonb, 'programme-policy-import', now())
     ON CONFLICT (id) DO UPDATE SET title=excluded.title, document_kind=excluded.document_kind, institution=excluded.institution,
       academic_year=excluded.academic_year, authority=excluded.authority, source_url=excluded.source_url, visibility=excluded.visibility,
       rights_basis=excluded.rights_basis, original_downloadable=excluded.original_downloadable, metadata=excluded.metadata, updated_at=now()`
@@ -86,12 +86,12 @@ async function indexSource(definition, asset, pages, sha256) {
         const literal = `[${vector.join(',')}]`
         await sql`INSERT INTO programme_policy_retrieval_chunks
           (source_id, asset_id, page_number, chunk_index, content, metadata, embedding, embedding_model, embedded_at)
-          VALUES (${sourceId}, ${asset.id}, ${record.page}, ${record.chunkIndex}, ${record.content}, ${JSON.stringify({ title: definition.title })}::jsonb,
+          VALUES (${sourceId}, ${asset.id}, ${record.page}, ${record.chunkIndex}, ${record.content}, ${JSON.stringify({ title: definition.title, provenance: definition.provenance || null })}::jsonb,
             ${literal}::vector, ${embedding.model}, now())`
       } else {
         await sql`INSERT INTO programme_policy_retrieval_chunks
           (source_id, asset_id, page_number, chunk_index, content, metadata)
-          VALUES (${sourceId}, ${asset.id}, ${record.page}, ${record.chunkIndex}, ${record.content}, ${JSON.stringify({ title: definition.title })}::jsonb)`
+          VALUES (${sourceId}, ${asset.id}, ${record.page}, ${record.chunkIndex}, ${record.content}, ${JSON.stringify({ title: definition.title, provenance: definition.provenance || null })}::jsonb)`
       }
     }
   }
