@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { runToolLoop, abortable } from '../lib/model-loop.mjs'
 import { createTutorToolRunner, tutorToolResultForModel } from '../lib/tutor-agent.mjs'
-import { conversationForTutorRetry } from '../lib/tutor-turns.mjs'
+import { conversationForTutorRetry, visibleTutorConversation } from '../lib/tutor-turns.mjs'
 
 const call = { id: 'lookup', type: 'function', function: { name: 'get_schedule', arguments: '{}' } }
 const question = () => [{ role: 'user', content: 'What did I miss last week?' }]
@@ -117,4 +117,16 @@ test('compact obligation context preserves claims and conflicts while removing r
   assert.deepEqual(compact.obligations[0].resitRules, ['Resit available'])
   assert.ok(JSON.stringify(compact).length < JSON.stringify(original).length / 10)
   assert.equal(original.obligations[0].attendanceRules[0].evidence.length, 2000)
+})
+
+
+test('legacy tool narration does not hide an unanswered question from recovery controls', () => {
+  const stored = { id: 'legacy', messages: [...question(), { role: 'assistant', content: 'Checking your schedule…', tool_calls: [call] }, { role: 'tool', content: '{}' }] }
+  const visible = visibleTutorConversation(stored)
+  assert.deepEqual(visible.messages.map(item => item.role), ['user'])
+  assert.deepEqual(conversationForTutorRetry(stored, visible.messages.at(-1).content).messages, [])
+  stored.messages.push({ role: 'assistant', content: 'The lab needs a catch-up.', evidence: [{ id: 'source' }] })
+  const answered = visibleTutorConversation(stored)
+  assert.equal(answered.messages.at(-1).content, 'The lab needs a catch-up.')
+  assert.equal(answered.messages.at(-1).evidence[0].id, 'source')
 })

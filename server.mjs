@@ -52,7 +52,7 @@ import { AcademicDocumentRegisterError, deleteAcademicDocumentRecord, deleteAcad
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
 import { applyProgramme, applySecureValue, chooseElectiveGroups, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingStatus, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
-import { conversationForTutorRetry } from './lib/tutor-turns.mjs'
+import { conversationForTutorRetry, visibleTutorConversation } from './lib/tutor-turns.mjs'
 import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
 import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
 import { TutorAttachmentError, deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment } from './lib/tutor-attachments.mjs'
@@ -3449,17 +3449,6 @@ async function runGenerateAllCoursesJob(masterJobId) {
   }
 }
 
-function visibleTutorConversation(conversation) {
-  if (!conversation) return null
-  return {
-    id: conversation.id,
-    title: conversation.title,
-    updatedAt: conversation.updatedAt,
-    messages: (conversation.messages || [])
-      .filter((message) => ['user', 'assistant'].includes(message.role) && String(message.content || '').trim())
-      .map(({ role, content, at, evidence, proposals, context }) => ({ role, content, at, evidence: evidence || [], proposals: proposals || [], context: context || null }))
-  }
-}
 
 function tutorProposalFromConversation(conversation, proposalId) {
   for (const message of [...(conversation?.messages || [])].reverse()) {
