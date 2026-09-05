@@ -52,6 +52,7 @@ import { AcademicDocumentRegisterError, deleteAcademicDocumentRecord, deleteAcad
 import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs'
 import { applyProgramme, applySecureValue, chooseElectiveGroups, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingStatus, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
+import { conversationForTutorRetry } from './lib/tutor-turns.mjs'
 import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
 import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
 import { TutorAttachmentError, deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment } from './lib/tutor-attachments.mjs'
@@ -4440,12 +4441,19 @@ const server = createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/api/tutor' && req.method === 'POST') {
+      const controller = new AbortController()
+      const disconnected = () => { if (!res.writableEnded) controller.abort() }
+      res.once('close', disconnected)
+      const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(180_000)])
       try {
         const body = await readBody(req, 32 * 1024)
         const message = String(body?.message || '').trim().slice(0, 4000)
         if (!message) { send(res, 400, JSON.stringify({ error: 'Ask something.' })); return }
-        const conversation = (body?.conversation && await readConversation(body.conversation)) || newConversation()
-        const turn = await runTutorTurn(conversation, { message, context: body?.context || {} })
+        const stored = body?.conversation ? await readConversation(body.conversation) : null
+        if (body?.conversation && !stored) throw new TutorStoreError('This conversation no longer exists. Start a new one.', 404)
+        const conversation = body?.retry ? conversationForTutorRetry(stored || newConversation(), message) : stored || newConversation()
+        const turn = await runTutorTurn(conversation, { message, context: body?.context || {}, signal })
+        signal.throwIfAborted()
         conversation.messages = [...(conversation.messages || []), ...turn.added]
         const saved = await saveConversation(conversation)
         send(res, 200, JSON.stringify({
@@ -4457,8 +4465,8 @@ const server = createServer(async (req, res) => {
           usage: turn.usage
         }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
-        send(res, error?.status || 400, JSON.stringify({ error: error instanceof Error ? error.message : 'That could not be sent.' }))
-      }
+        if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify({ error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }))
+      } finally { res.off('close', disconnected) }
       return
     }
     if (url.pathname === '/api/tutor/actions' && req.method === 'POST') {

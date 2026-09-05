@@ -54,6 +54,7 @@ async function api<T>(path: string, init: RequestInit = {}) {
   const response = await fetch(path, { ...init, headers: { accept: 'application/json', ...(init.body ? { 'content-type': 'application/json' } : {}), ...init.headers } })
   const data = await response.json().catch(() => null) as (T & { error?: string }) | null
   if (!response.ok) throw new Error(data?.error || `That request answered ${response.status}.`)
+  if (!data) throw new Error('Tutor returned an incomplete response. Please try again.')
   return data as T
 }
 function when(value?: string) {
@@ -135,6 +136,9 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const requestRef = useRef<AbortController | null>(null)
+  const viewVersion = useRef(0)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeAttachments, setActiveAttachments] = useState<string[]>([])
@@ -151,26 +155,39 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
     window.history.replaceState(null, '', url)
   }
   const load = async (id?: string) => {
+    const version = ++viewVersion.current
+    requestRef.current?.abort(); requestRef.current = null; setSending(false); setError(null)
     setConversationLocation(id)
     try {
       const data = await api<Hub>(`/api/tutor${id ? `?conversation=${encodeURIComponent(id)}` : ''}`)
+      if (viewVersion.current !== version) return
       setHub(data); setMessages(data.conversation?.messages || []); setConversationId(data.conversation?.id || id || null)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Tutor could not be opened.') }
+    } catch (cause) { if (viewVersion.current === version) setError(cause instanceof Error ? cause.message : 'Tutor could not be opened.') }
   }
-  useEffect(() => { void load(embedded ? undefined : new URLSearchParams(window.location.search).get('conversation') || undefined) }, [])
+  useEffect(() => { void load(embedded ? undefined : new URLSearchParams(window.location.search).get('conversation') || undefined); return () => { viewVersion.current++; requestRef.current?.abort() } }, [])
+  useEffect(() => { if (!sending) return; const started = Date.now(); setElapsed(0); const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000); return () => clearInterval(timer) }, [sending])
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' }) }, [messages, sending])
-  const ask = async (value: string) => {
+  const ask = async (value: string, retrying = false) => {
     const message = value.trim()
-    if (!message || sending || hub?.available === false) return
+    if (!message || requestRef.current || hub?.available === false) return
+    const controller = new AbortController()
+    requestRef.current = controller
+    const version = viewVersion.current
+    const isCurrent = () => viewVersion.current === version && requestRef.current === controller
     setDraft(''); setSending(true); setError(null)
-    setMessages((items) => [...items, { role: 'user', content: message, at: new Date().toISOString() }])
+    if (!retrying) setMessages((items) => [...items, { role: 'user', content: message, at: new Date().toISOString(), context }])
+    const previousQuestion = retrying ? [...messages].reverse().find(item => item.role === 'user') : null
+    const retryStored = retrying && hub?.conversation?.messages.at(-1)?.role === 'user'
     try {
-      const result = await api<{ conversation: Hub['conversation']; conversations: Conversation[]; memory: Hub['memory']; receipts: Receipt[]; attachments: Attachment[] }>('/api/tutor', { method: 'POST', body: JSON.stringify({ message, conversation: conversationId, context }) })
-      setConversationId(result.conversation?.id || null); setConversationLocation(result.conversation?.id); setMessages(result.conversation?.messages || [])
+      const result = await api<{ conversation: Hub['conversation']; conversations: Conversation[]; memory: Hub['memory']; receipts: Receipt[]; attachments: Attachment[] }>('/api/tutor', { method: 'POST', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(190_000)]), body: JSON.stringify({ message, conversation: conversationId, context: previousQuestion?.context || context, retry: retryStored }) })
+      if (!isCurrent()) return
+      if (!(result.conversation?.messages.at(-1)?.role === 'assistant' && result.conversation.messages.at(-1)?.content.trim())) throw new Error('Tutor did not return an answer. Please retry your question.')
+      setConversationId(result.conversation.id); setConversationLocation(result.conversation.id); setMessages(result.conversation.messages)
       setHub((previous) => previous && { ...previous, conversation: result.conversation, conversations: result.conversations, memory: result.memory, receipts: result.receipts, attachments: result.attachments })
       setActiveAttachments([])
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'That could not be sent.') }
-    finally { setSending(false) }
+    } catch (cause) {
+      if (isCurrent()) setError(controller.signal.aborted ? 'Reply stopped. You can retry this question.' : cause instanceof Error && cause.name === 'TimeoutError' ? 'Tutor took too long to respond. Please retry your question.' : cause instanceof Error ? cause.message : 'That could not be sent.')
+    } finally { if (isCurrent()) { requestRef.current = null; setSending(false) } }
   }
   const upload = async (files: FileList | null) => {
     if (!files?.length) return
@@ -198,8 +215,8 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
     <form data-tour="tutor-composer" className="flex items-end gap-3 p-3" onSubmit={(event) => { event.preventDefault(); void ask(draft) }}><input ref={fileRef} type="file" multiple className="sr-only" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.gif,.heic,.txt,.md,.csv,.ics,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,text/*" onChange={(event) => void upload(event.target.files)} /><Button type="button" variant="ghost" size="icon" disabled={uploading} aria-label="Add a private file or picture" onClick={() => fileRef.current?.click()}>{uploading ? <Spinner /> : <PaperclipIcon />}</Button><Textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void ask(draft) } }} rows={1} disabled={sending} placeholder={sending ? 'Checking your workspace…' : 'Ask anything about your studies…'} className="max-h-36 min-h-9 resize-none border-0 bg-transparent px-1 py-2 shadow-none focus-visible:ring-0" /><Button type="submit" size="icon" disabled={!draft.trim() || sending}>{sending ? <Spinner /> : <SendIcon />}</Button></form></>}</div>{!tutorUnavailable && <p className="text-muted-foreground mx-auto mt-2 max-w-[1240px] text-center text-[11px]">Files are stored privately and indexed for future retrieval. Tutor proposes changes before it acts.</p>}</div>
 
   return <div className={`flex min-h-0 w-full flex-col overflow-hidden ${embedded ? 'h-full bg-background' : 'h-[calc(100dvh-7.5rem)] md:h-dvh'}`}>
-    <header data-tour="tutor" className="flex shrink-0 items-center gap-2 border-b px-5 py-4 sm:gap-3 sm:px-8"><div className="min-w-0 flex-1"><h1 className="font-heading text-[32px] leading-none font-semibold tracking-[-0.03em]">Tutor</h1><p className="text-muted-foreground mt-1.5 text-sm max-sm:hidden">Course explanations, study decisions and approved actions, grounded in your private workspace.</p></div>{history}<Button variant="ghost" size="sm" onClick={() => { setMessages([]); setConversationId(null); setConversationLocation(null); setDraft('') }}><PlusIcon data-icon="inline-start" />New</Button></header>
-    <div className="flex min-h-0 flex-1 max-lg:flex-col"><main ref={threadRef} className="min-h-[360px] min-w-0 flex-1 overflow-y-auto">{!hub ? <div className="space-y-4 p-8"><Skeleton className="h-20 w-full" /><Skeleton className="h-64 w-full" /></div> : !started && !sending ? <div className="flex min-h-full items-center justify-center px-5 py-10"><div className="w-full max-w-[760px]"><span className="bg-primary/8 text-primary grid size-11 place-items-center rounded-[10px]"><SparklesIcon className="size-5" /></span><h2 className="font-heading mt-6 text-4xl font-semibold tracking-[-0.035em]">Bring me the whole situation.</h2><p className="text-muted-foreground mt-3 max-w-[64ch] text-[15px] leading-relaxed">Tutor can connect course material, requirements, Canvas, announcements, progress, timetable and academic dates. It can explain the result, then stage practice or planning changes for your approval.</p>{!tutorUnavailable && <><div className="mt-8 grid gap-2 sm:grid-cols-2">{OPENERS.map(([label, prompt]) => <button key={label} type="button" onClick={() => void ask(prompt)} className="hover:border-primary group rounded-[8px] border p-4 text-left transition-colors"><span className="text-primary text-xs font-semibold">{label}</span><span className="mt-1.5 block text-sm leading-relaxed">{prompt}</span></button>)}</div><button type="button" onClick={() => fileRef.current?.click()} className="text-muted-foreground hover:text-foreground mt-5 inline-flex items-center gap-2 text-sm"><PaperclipIcon className="size-4" />Or add a syllabus, slide, exercise, screenshot or photo</button></>}</div></div> : <>{messages.map((message, index) => message.role === 'user' ? <UserMessage key={`${message.at || index}-user`} message={message} /> : <Answer key={`${message.at || index}-assistant`} message={message} />)}{sending && <div className="text-muted-foreground flex items-center gap-3 px-8 py-7 text-sm"><span className="bg-primary size-2 animate-pulse rounded-full" />Checking the most relevant workspace evidence…</div>}</>}</main><ActionDocket proposals={proposals} receipts={hub?.receipts || []} conversationId={conversationId} onComplete={(result) => setHub((previous) => previous && { ...previous, receipts: result.receipts, memory: result.memory })} /></div>
+    <header data-tour="tutor" className="flex shrink-0 items-center gap-2 border-b px-5 py-4 sm:gap-3 sm:px-8"><div className="min-w-0 flex-1"><h1 className="font-heading text-[32px] leading-none font-semibold tracking-[-0.03em]">Tutor</h1><p className="text-muted-foreground mt-1.5 text-sm max-sm:hidden">Course explanations, study decisions and approved actions, grounded in your private workspace.</p></div>{history}<Button variant="ghost" size="sm" onClick={() => { void load(); setDraft(''); setActiveAttachments([]) }}><PlusIcon data-icon="inline-start" />New</Button></header>
+    <div className="flex min-h-0 flex-1 max-lg:flex-col"><main ref={threadRef} className="min-h-[360px] min-w-0 flex-1 overflow-y-auto">{!hub ? <div className="space-y-4 p-8"><Skeleton className="h-20 w-full" /><Skeleton className="h-64 w-full" /></div> : !started && !sending ? <div className="flex min-h-full items-center justify-center px-5 py-10"><div className="w-full max-w-[760px]"><span className="bg-primary/8 text-primary grid size-11 place-items-center rounded-[10px]"><SparklesIcon className="size-5" /></span><h2 className="font-heading mt-6 text-4xl font-semibold tracking-[-0.035em]">Bring me the whole situation.</h2><p className="text-muted-foreground mt-3 max-w-[64ch] text-[15px] leading-relaxed">Tutor can connect course material, requirements, Canvas, announcements, progress, timetable and academic dates. It can explain the result, then stage practice or planning changes for your approval.</p>{!tutorUnavailable && <><div className="mt-8 grid gap-2 sm:grid-cols-2">{OPENERS.map(([label, prompt]) => <button key={label} type="button" onClick={() => void ask(prompt)} className="hover:border-primary group rounded-[8px] border p-4 text-left transition-colors"><span className="text-primary text-xs font-semibold">{label}</span><span className="mt-1.5 block text-sm leading-relaxed">{prompt}</span></button>)}</div><button type="button" onClick={() => fileRef.current?.click()} className="text-muted-foreground hover:text-foreground mt-5 inline-flex items-center gap-2 text-sm"><PaperclipIcon className="size-4" />Or add a syllabus, slide, exercise, screenshot or photo</button></>}</div></div> : <>{messages.map((message, index) => message.role === 'user' ? <UserMessage key={`${message.at || index}-user`} message={message} /> : <Answer key={`${message.at || index}-assistant`} message={message} />)}{sending && <div role="status" className="text-muted-foreground flex flex-wrap items-center gap-3 px-8 py-7 text-sm"><Spinner /><span>{elapsed < 30 ? 'Preparing your answer from workspace evidence…' : 'Still working on your answer…'} <span className="font-data">{elapsed}s</span></span><Button variant="ghost" size="sm" onClick={() => requestRef.current?.abort()}>Stop</Button></div>}{!sending && messages.at(-1)?.role === 'user' && <div className="mx-5 my-6 rounded-lg border bg-card p-5 sm:mx-8"><p className="text-sm font-semibold">This question has no reply yet</p><p className="text-muted-foreground mt-1 text-sm">Retry it to have Tutor check your sources and finish an answer.</p><Button className="mt-3" variant="outline" size="sm" disabled={tutorUnavailable} onClick={() => void ask(messages.at(-1)!.content, true)}>Retry reply</Button></div>}</>}</main><ActionDocket proposals={proposals} receipts={hub?.receipts || []} conversationId={conversationId} onComplete={(result) => setHub((previous) => previous && { ...previous, receipts: result.receipts, memory: result.memory })} /></div>
     {error && <div role="alert" className="border-t bg-card px-6 py-2 text-center text-xs text-destructive">{error}</div>}{composer}
   </div>
 }
