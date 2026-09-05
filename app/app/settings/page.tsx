@@ -57,12 +57,12 @@ export default function SettingsPage() {
         className="items-stretch gap-0 lg:min-h-[calc(100dvh-6.5rem)]"
       >
         {isMobile ? (
-          <TabsList variant="line" className={`${TAB_LIST} px-4 pt-4 sm:px-6`}>
+          <TabsList data-tour="settings" variant="line" className={`${TAB_LIST} px-4 pt-4 sm:px-6`}>
             {TABS.map(([id, label]) => <TabsTrigger key={id} value={id} className={TAB_TRIGGER}>{label}</TabsTrigger>)}
           </TabsList>
         ) : (
           <div className="min-h-[calc(100dvh-6.5rem)] w-52 shrink-0 border-r">
-            <TabsList variant="line" className="w-full items-stretch gap-0 px-4 py-4">
+            <TabsList data-tour="settings" variant="line" className="w-full items-stretch gap-0 px-4 py-4">
               {TABS.map(([id, label]) => <TabsTrigger key={id} value={id} className="h-10 justify-start rounded-none px-3 after:right-[-17px]">{label}</TabsTrigger>)}
             </TabsList>
           </div>

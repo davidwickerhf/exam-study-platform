@@ -40,6 +40,7 @@ import { removePersonalCalendarEvent, savePersonalCalendarEvent } from './lib/pe
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
 import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from './lib/agent-authorization.mjs'
+import { workspaceTour, saveWorkspaceTour } from './lib/workspace-tour.mjs'
 import { rememberDocumentImport, removeOnboardingDocument } from './lib/onboarding-documents.mjs'
 import { AcademicWorkError, mergeAcademicWorkIntoWorkspace, parseAcademicWork } from './lib/academic-work.mjs'
 import { curriculumCourseIdentity, reconcileAcademicCourseIdentities } from './lib/course-identities.mjs'
@@ -4544,6 +4545,13 @@ const server = createServer(async (req, res) => {
     // calls `finish`; the checklist needs the same door, because the workspace
     // gate reads `finished` and without one a student who completed every step
     // manually is redirected straight back to setup.
+    if (url.pathname === '/api/onboarding/tour' && ['GET', 'PUT'].includes(req.method)) {
+      try {
+        const result = req.method === 'GET' ? await workspaceTour() : await saveWorkspaceTour((await readBody(req, 1024))?.status)
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
+      return
+    }
     if (url.pathname === '/api/onboarding/finish' && req.method === 'POST') {
       try {
         const body = await readBody(req, 4 * 1024)
