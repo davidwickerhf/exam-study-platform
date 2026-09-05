@@ -91,7 +91,7 @@ let canvasCorpusWorkerProcess = null
 let stoppingCanvasWorker = false
 let canvasWorkerRestart = null
 function startCanvasCorpusWorkerProcess() {
-  if (stoppingCanvasWorker || canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
+  if (process.env.VERCEL_ENV === 'preview' || stoppingCanvasWorker || canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
   canvasCorpusWorkerProcess = spawn(process.execPath, [join(__dirname, 'scripts/canvas-corpus-worker.mjs')], { cwd: __dirname, env: process.env, stdio: 'inherit' })
   canvasCorpusWorkerProcess.on('exit', () => {
     canvasCorpusWorkerProcess = null

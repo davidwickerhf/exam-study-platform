@@ -43,3 +43,9 @@ test('a long syllabus cannot starve introductory slides from the evidence budget
   rows.push({ chunkId: 121, filename: 'Introduction.pdf', sourceType: 'slides', content: 'Course organisation' })
   assert.ok(priorityEvidenceCandidates(rows).some(row => row.chunkId === 121))
 })
+test('confirmed editorial rules survive inconclusive Canvas scans', () => {
+  const workspace = { profile: { academicYear: '2026-2027' }, courses: [{ code: 'BCS3300', name: 'Project' }] }
+  const courseProfile = { assessment: { status: 'confirmed', components: [claim(1, 'Confirmed')] } }
+  const courses = programmePriorityCourses(workspace, [{ id: 'project', code: 'BCS3300', courseProfile }], [{ courseCode: 'BCS3300', academicYear: '2026-2027', courseProfile: { assessment: { status: 'not-found' } } }])
+  assert.equal(courses[0].courseProfile, courseProfile)
+})

@@ -46,3 +46,13 @@ test('removing the transcript also undoes a repaired dated result', () => {
   assert.equal(undone.courses.length, 1)
   assert.equal(undone.courses[0].attempts[0].examDate, null)
 })
+test('a numeric passing grade contributes even when an editor leaves an upcoming status', () => {
+  assert.equal(courseEarnedCredits({ ects: 10, passMark: 5.5, attempts: [{ status: 'upcoming', grade: 7, ects: 4 }] }), 4)
+  assert.equal(courseEarnedCredits({ ects: 10, passMark: 5.5, attempts: [{ status: 'passed', grade: 4, ects: 4 }] }), 0)
+})
+test('credit gates use earned sitting credits and future planned credits consistently', async () => {
+  const { gateResolved } = await import('../lib/workspace/planner.mjs')
+  const workspace = { courses: [{ id: 'a', ects: 10, attempts: [attempt(4)] }], planning: { objectives: {} } }
+  assert.equal(gateResolved({ type: 'credits', target: 10 }, workspace, true), false)
+  assert.equal(gateResolved({ type: 'credits', target: 4 }, workspace), true)
+})
