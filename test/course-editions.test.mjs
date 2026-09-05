@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { academicCourseInEdition, canvasEditionYear, courseCanvasShells, courseEditionCodes, courseEditions } from '../lib/workspace/course-editions.mjs'
+import { academicCourseInEdition, canvasEditionYear, courseCanvasShells, courseEditionCodes, courseEditions, editionYear } from '../lib/workspace/course-editions.mjs'
 const origin = 'https://canvas.example.edu'
 const shells = ['2024-2025', '2025-2026', '2026-2027'].map((year, i) => ({ id: String(i + 1), origin, name: `AI (${year}-100-BCS2120)`, courseCode: `${year}-100-BCS2120` }))
 
@@ -50,4 +50,16 @@ test('latest failure overrides old success and pending jobs prevent duplicate co
   const queued = courseEditions({ codes: ['BCS2120'], shells: options.shells, queued: [`${origin}:1`] })[0]
   assert.equal(queued.busy, true)
   assert.equal(queued.missing.length, 0)
+})
+
+
+test('abbreviated imported years join full Canvas years without losing attempts', () => {
+  assert.equal(editionYear('2030/31'), '2030-2031')
+  assert.equal(editionYear('2030 – 31'), '2030-2031')
+  assert.equal(editionYear('2099/00'), '2099-2100')
+  const course = { attempts: [{ academicYear: '2030/31', grade: 5 }] }
+  const rows = courseEditions({ entry: { academic: course }, codes: ['BCS2120'], shells: [{ id: 'future', origin, academicYear: '2030-2031' }] })
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].attempts, 1)
+  assert.equal(academicCourseInEdition(course, '2030-2031').attempts[0].grade, 5)
 })
