@@ -157,7 +157,7 @@ export type CorpusCourseEdition = {
   period?: string | null
   sources: number
   editionCount?: number
-  editions?: Array<{ id?: string; editionId?: string | null; academicYear?: string | null; period?: string | null; sources?: number; lastSyncedAt?: string | null }>
+  editions?: Array<{ id?: string; origin?: string; canvasCourseId?: string; editionId?: string | null; academicYear?: string | null; period?: string | null; sources?: number; lastSyncedAt?: string | null }>
   lastSyncedAt?: string | null
 }
 

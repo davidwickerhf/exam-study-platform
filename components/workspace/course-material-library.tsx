@@ -27,7 +27,7 @@ type Material = {
 const size = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
 const canPreview = (type: string) => /^(application\/pdf|video\/|audio\/|image\/|text\/)/.test(type);
 
-export function CourseMaterialLibrary({ courseCode, courseCodes = [] }: { courseCode: string; courseCodes?: string[] }) {
+export function CourseMaterialLibrary({ courseCode, courseCodes = [], academicYear, revision = 0 }: { courseCode: string; courseCodes?: string[]; academicYear?: string; revision?: number }) {
   const [materials, setMaterials] = useState<Material[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState("all");
@@ -38,13 +38,15 @@ export function CourseMaterialLibrary({ courseCode, courseCodes = [] }: { course
   const codeKey = JSON.stringify([...new Set([courseCode, ...courseCodes].map(code => code.trim().toUpperCase()).filter(Boolean))].sort());
   const load = () => setReload(value => value + 1);
 
+  useEffect(() => { setYear(academicYear || "all"); setKind("all"); }, [codeKey, academicYear]);
+
   useEffect(() => {
     let live = true;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15_000);
-    setError(null); setMaterials(null); setPreview(null); setYear("all"); setKind("all");
+    setError(null); setMaterials(null); setPreview(null);
     Promise.all((JSON.parse(codeKey) as string[]).map(code =>
-      fetch(`/api/corpus/materials?courseCode=${encodeURIComponent(code)}`, { headers: { accept: "application/json" }, signal: controller.signal })
+      fetch(`/api/corpus/materials?courseCode=${encodeURIComponent(code)}${academicYear && !['all', 'undated'].includes(academicYear) ? `&academicYear=${encodeURIComponent(academicYear)}` : ''}`, { headers: { accept: "application/json" }, signal: controller.signal })
         .then(async response => {
           const body = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(body.error || "Stored material could not be loaded.");
@@ -58,21 +60,21 @@ export function CourseMaterialLibrary({ courseCode, courseCodes = [] }: { course
       if (live) setError(cause.name === "AbortError" ? "Loading material timed out. Try refreshing the list." : cause.message);
     }).finally(() => clearTimeout(timer));
     return () => { live = false; clearTimeout(timer); controller.abort(); };
-  }, [codeKey, reload]);
-  const years = useMemo(() => [...new Set((materials || []).map((item) => item.academicYear || "Undated"))].sort().reverse(), [materials]);
+  }, [codeKey, reload, academicYear, revision]);
+  const years = useMemo(() => [...new Set((materials || []).map((item) => item.academicYear || "undated"))].sort().reverse(), [materials]);
   const kinds = useMemo(() => [...new Set((materials || []).map((item) => item.sourceType))].sort(), [materials]);
-  const shown = (materials || []).filter((item) => (year === "all" || (item.academicYear || "Undated") === year) && (kind === "all" || item.sourceType === kind));
+  const shown = (materials || []).filter((item) => (year === "all" || (item.academicYear || "undated") === year) && (kind === "all" || item.sourceType === kind));
 
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-2">
         <div>
           <h2 className="text-sm font-semibold">Course material</h2>
-          <p className="text-muted-foreground mt-0.5 text-sm">Original documents and recordings, kept here by course edition.</p>
+          <p className="text-muted-foreground mt-0.5 text-sm">{academicYear && academicYear !== 'all' ? `Original documents and recordings · ${academicYear === 'undated' ? 'year not recorded' : academicYear}` : 'Original documents and recordings, across all course editions.'}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {!!materials?.length && <>
-            <Select value={year} onValueChange={(value) => setYear(value || "all")}><SelectTrigger className="w-36"><SelectValue>{year === "all" ? "All years" : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{years.map((entry) => <SelectItem key={entry} value={entry}>{entry}</SelectItem>)}</SelectContent></Select>
+            {!academicYear && <Select value={year} onValueChange={(value) => setYear(value || "all")}><SelectTrigger className="w-36"><SelectValue>{year === "all" ? "All years" : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{years.map((entry) => <SelectItem key={entry} value={entry}>{entry}</SelectItem>)}</SelectContent></Select>}
             <Select value={kind} onValueChange={(value) => setKind(value || "all")}><SelectTrigger className="w-36"><SelectValue>{kind === "all" ? "All material" : `${kind[0]?.toUpperCase()}${kind.slice(1)}`}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All material</SelectItem>{kinds.map((entry) => <SelectItem key={entry} value={entry}>{entry[0]?.toUpperCase()}{entry.slice(1)}</SelectItem>)}</SelectContent></Select>
           </>}
           <Button variant="outline" size="sm" onClick={load}><RefreshCwIcon /> Refresh list</Button>
@@ -85,7 +87,7 @@ export function CourseMaterialLibrary({ courseCode, courseCodes = [] }: { course
         // between the same hairlines the material rows would have used.
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-y py-3">
           <p className="text-muted-foreground min-w-0 text-sm">
-            No stored material yet — authorise Canvas collection, refresh it, or choose an older course edition in Connections.
+            No stored material for this selection. Collect an available Canvas edition above, or switch academic years.
           </p>
           <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/app/settings?tab=connections">Open Canvas settings</Link>
         </div>
