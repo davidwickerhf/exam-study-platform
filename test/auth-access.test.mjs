@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { isMissingClerkSession } from '../lib/auth.mjs'
 import { accessPolicy, emailAllowed, isAccessAdministratorEmail, verifiedPrimaryEmail } from '../lib/access-policy.mjs'
 
 test('access policy is locked to exact Maastricht domains and the administrator exception', () => {
@@ -42,4 +43,20 @@ test('eligibility reads only a verified primary email', () => {
   assert.equal(verifiedPrimaryEmail(user), 'person@gmail.com')
   user.primaryEmailAddressId = 'secondary'
   assert.equal(verifiedPrimaryEmail(user), 'person@student.maastrichtuniversity.nl')
+})
+
+test('a deleted Clerk session or user is treated as signed out', () => {
+  assert.equal(isMissingClerkSession({
+    status: 404,
+    errors: [{ code: 'resource_not_found', message: 'No session was found with id sess_dead' }]
+  }), true)
+  assert.equal(isMissingClerkSession({
+    status: 404,
+    errors: [{ code: 'resource_not_found', message: 'No user was found with id user_dead' }]
+  }), true)
+  assert.equal(isMissingClerkSession({
+    status: 404,
+    errors: [{ code: 'resource_not_found', message: 'No organisation was found.' }]
+  }), false)
+  assert.equal(isMissingClerkSession({ status: 500, message: 'Clerk is unavailable.' }), false)
 })
