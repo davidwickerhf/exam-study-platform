@@ -73,7 +73,7 @@ export declare function comparePeriod(academicCourses: AcademicCourse[], today?:
 export declare function courseLedger(sources?: LedgerSources): LedgerCourse[]
 export declare function ledgerStatus(entry: LedgerCourse, currentCodes: Set<string>): LedgerStatus
 export declare function currentCodeSet(currentCourses: ({ code: string } | string)[]): Set<string>
-export declare function degreeRunwayYears(options?: { programme?: CatalogueProgramme | null; version?: CatalogueVersion | null; programmeTemplate?: ProgrammeTemplate; academic?: AcademicCourse[]; currentCodes?: Set<string> }): Array<{ label: string; targetEcts: number; mappedEcts: number; earnedEcts: number; openChoiceEcts: number; overplannedEcts: number; choiceOptions: number; selectedChoices: number; running: number; current: boolean }>
+export declare function degreeRunwayYears(options?: { programme?: CatalogueProgramme | null; version?: CatalogueVersion | null; programmeTemplate?: ProgrammeTemplate; academic?: AcademicCourse[]; currentCodes?: Set<string> }): Array<{ label: string; targetEcts: number; mappedEcts: number; earnedEcts: number; openChoiceEcts: number; overplannedEcts: number; choiceOptions: number; selectedChoices: number; historicalOptions: Array<{ code: string; name: string; ects: number }>; running: number; current: boolean }>
 export declare function rowDestination(entry: LedgerCourse): RowDestination
 export declare function materialSummary(entry: LedgerCourse): string | null
 export declare function courseMaterialCoverage(entry: LedgerCourse): { percent: number; available: number; total: 2; detail: string; library: boolean; canvas: boolean }

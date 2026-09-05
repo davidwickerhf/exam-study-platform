@@ -181,7 +181,7 @@ function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgres
             : <div className="bg-muted mt-3 h-1 overflow-hidden"><span className="bg-primary block h-full w-1/3 motion-safe:animate-[sync-travel_1.4s_ease-in-out_infinite]" /></div>}
           <p className="text-muted-foreground mt-2 text-xs">
             {progress.totalCourses
-              ? `${progress.settledCourses} of ${progress.totalCourses} courses settled · ${progress.indexedFiles} materials stored`
+              ? `${progress.settledCourses} of ${progress.totalCourses} course editions settled · ${progress.indexedFiles} materials stored`
               : 'Discovering current, upcoming, and related historical course shells.'}
           </p>
         </div>
@@ -216,7 +216,6 @@ export default function HomePage() {
   }, [refreshCorpus, syncProgress.active])
 
   const summary = academics?.summary ?? null
-  const requiredEcts = useMemo(() => (academics?.workspace?.courses ?? []).reduce((total, course) => total + (course.ects ?? 0), 0), [academics])
   const hasTimetable = (academics?.workspace?.calendars ?? []).length > 0
   const courses = useMemo(() => (shell?.courses ?? []).filter((course) => !course.archived), [shell])
   const events = calendar?.events ?? []
@@ -308,11 +307,11 @@ export default function HomePage() {
           {summary && (
             <dl className="grid grid-cols-2 border-b sm:grid-cols-4" data-study-summary>
               {[
-                ['Credits', `${summary.earnedEcts}/${requiredEcts || '—'}`],
-                ['Courses passed', `${summary.passedCourses}/${summary.totalCourses}`],
-                ['Streak', activity ? `${activity.streak}d` : activityError ? 'Unavailable' : '—'],
-                ['This week', activity ? `${activity.week.total} sessions` : activityError ? 'Unavailable' : '—']
-              ].map(([label, value], index) => <div key={label} className={cn('border-r px-3 py-4 first:pl-0 last:border-r-0 sm:px-5', index < 2 && 'max-sm:border-b', index % 2 === 1 && 'max-sm:border-r-0')}><dt className={LABEL}>{label}</dt><dd className={`mt-1 text-xl font-semibold tracking-tight ${NUMERALS}`}>{value}</dd></div>)}
+                ['Credits earned', `${summary.earnedEcts} ECTS`, 'From your academic record'],
+                ['Courses passed', `${summary.passedCourses}`, 'From your academic record'],
+                ['Study streak', activity ? `${activity.streak} ${activity.streak === 1 ? 'day' : 'days'}` : activityError ? 'Unavailable' : '—', 'Consecutive days in Wicker'],
+                ['Study actions', activity ? `${activity.week.total}` : activityError ? 'Unavailable' : '—', 'Last 7 days in Wicker']
+              ].map(([label, value, detail], index) => <div key={label} className={cn('border-r px-3 py-4 first:pl-0 last:border-r-0 sm:px-5', index < 2 && 'max-sm:border-b', index % 2 === 1 && 'max-sm:border-r-0')}><dt className={LABEL}>{label}</dt><dd className={`mt-1 text-xl font-semibold tracking-tight ${NUMERALS}`}>{value}</dd><dd className="text-muted-foreground mt-1 text-[11px] leading-relaxed">{detail}</dd></div>)}
             </dl>
           )}
 

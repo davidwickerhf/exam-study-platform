@@ -427,3 +427,29 @@ test('only real documents become a named source', () => {
   assert.equal(isMaterialPath(''), false)
   assert.equal(isMaterialPath('a\nb.pdf'), false)
 })
+
+test('repeated failed optional sittings stay in history when another module fills the plan', () => {
+  const courses = [
+    { id: 'core', code: 'CORE', name: 'Required courses', yearLevel: 'Year 2', requirement: 'required', ects: 50 },
+    { id: 'hpc', code: 'BCS2730', name: 'High Performance Computing', yearLevel: 'Year 2', requirement: 'choice', ects: 10 },
+    { id: 'security', code: 'BCS2740', name: 'Cybersecurity', yearLevel: 'Year 2', requirement: 'choice', ects: 10 },
+  ]
+  const academic = [
+    { id: 'core', code: 'CORE', ects: 50, attempts: [{ status: 'passed' }] },
+    { id: 'hpc', code: 'BCS2730', ects: 10, attempts: [{ status: 'failed', academicYear: '2023-2024' }, { status: 'failed', academicYear: '2024-2025' }] },
+    { id: 'security', code: 'BCS2740', ects: 10, attempts: [{ status: 'passed', academicYear: '2025-2026' }] },
+  ]
+  const before = structuredClone(academic)
+  const options = { programme: { durationYears: 3, totalEcts: 180 }, version: { courses }, academic }
+  const year = degreeRunwayYears(options).find(year => year.label === 'Year 2')
+  assert.equal(year.mappedEcts, 60)
+  assert.equal(year.earnedEcts, 60)
+  assert.equal(year.overplannedEcts, 0)
+  assert.deepEqual(year.historicalOptions.map(course => course.code), ['BCS2730'])
+  assert.deepEqual(academic, before, 'failed attempts must not be erased or rewritten')
+  const retaking = degreeRunwayYears({ ...options, programmeTemplate: { selectedChoices: { module: ['hpc'] } } }).find(year => year.label === 'Year 2')
+  assert.equal(retaking.mappedEcts, 70, 'an explicit choice to take an extra module is respected')
+  assert.equal(retaking.historicalOptions.length, 0)
+  const registered = degreeRunwayYears({ ...options, currentCodes: new Set(['BCS2730']) }).find(year => year.label === 'Year 2')
+  assert.equal(registered.mappedEcts, 70)
+})
