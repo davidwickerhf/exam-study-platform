@@ -131,6 +131,7 @@ export type KeyState = 'active' | 'revoked' | 'expired'
 
 export type CorpusJob = {
   id: string
+  bindingId?: string | null
   syncId?: string
   origin?: string
   type: string
@@ -160,13 +161,14 @@ export type CorpusCourseEdition = {
   lastSyncedAt?: string | null
 }
 
-export type CorpusStatus = { jobs?: CorpusJob[]; courses?: CorpusCourseEdition[] }
+export type CorpusStatus = { jobs?: CorpusJob[]; latestJobs?: CorpusJob[]; courses?: CorpusCourseEdition[] }
 
 export type CorpusSummary = {
   jobs: CorpusJob[]
   active: CorpusJob[]
   failed: CorpusJob[]
   latestByCourse: CorpusJob[]
+  latestByEdition: CorpusJob[]
   failureGroups: [string, CorpusJob[]][]
   courseEditions: number
   storedMaterials: number

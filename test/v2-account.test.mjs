@@ -329,3 +329,22 @@ test('Canvas sync progress ignores superseded active attempts and reports durabl
   assert.equal(progress.indexedFiles, 40)
   assert.match(progress.stage, /BCS3300/)
 })
+
+test('Canvas progress keeps every repeated sitting and supersedes retries within only that edition', () => {
+  const jobs = [
+    { id: 'old-year-done', bindingId: '2024', courseCode: 'BCS2120', academicYear: '2024-2025', type: 'course', status: 'completed' },
+    { id: 'current-running', bindingId: '2026', courseCode: 'BCS2120', academicYear: '2026-2027', type: 'course', status: 'running' },
+    { id: 'middle-failed', bindingId: '2025', courseCode: 'BCS2120', academicYear: '2025-2026', type: 'course', status: 'failed' },
+    { id: 'superseded', bindingId: '2026', courseCode: 'BCS2120', academicYear: '2026-2027', type: 'course', status: 'failed' },
+  ]
+  const summary = canvasCorpusSummary({ jobs })
+  assert.equal(summary.latestByEdition.length, 3)
+  assert.equal(summary.latestByEdition.some(job => job.id === 'superseded'), false)
+  const progress = canvasSyncProgress({ jobs })
+  assert.equal(progress.totalCourses, 3)
+  assert.equal(progress.completedCourses, 1)
+  assert.equal(progress.failedCourses, 1)
+  assert.equal(progress.activeJobs[0].id, 'current-running')
+  const truncated = canvasCorpusSummary({ jobs: jobs.slice(0, 1), latestJobs: jobs.slice(0, 3) })
+  assert.equal(truncated.latestByEdition.length, 3, 'bounded run history must not hide the current sitting')
+})

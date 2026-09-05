@@ -26,6 +26,7 @@ import {
   canvasCorpusSummary,
   canvasSyncProgress,
 } from "@/lib/workspace/account.mjs";
+import { cleanCanvasName } from "@/lib/workspace/course-ledger.mjs";
 import { NUMERALS, relative } from "../../account/shared";
 
 type CanvasConnection = { origin: string };
@@ -139,7 +140,7 @@ function CourseRow({ job, attempts, material }: { job: CorpusJob; attempts: Corp
         <span className="min-w-0">
           <span className="flex min-w-0 items-baseline gap-2">
             <strong className={`${NUMERALS} shrink-0 text-sm`}>{job.courseCode || "Canvas course"}</strong>
-            {job.courseName && <span className="text-muted-foreground truncate text-sm">{job.courseName}</span>}
+            {job.courseName && <span className="text-muted-foreground truncate text-sm">{cleanCanvasName(job.courseName, job.courseCode || "")}</span>}
           </span>
           {job.error && ACTIVE.has(job.status) ? <small className="text-muted-foreground mt-1 block truncate">Previous attempt: {failureCopy(job.error).title}</small> : null}
         </span>
@@ -184,10 +185,18 @@ export default function CanvasSyncPage() {
 
   const corpus = useMemo(() => canvasCorpusSummary(statusResource.data?.status), [statusResource.data]);
   const progress = useMemo(() => canvasSyncProgress(statusResource.data?.status), [statusResource.data]);
-  const courseJobs = useMemo(() => corpus.latestByCourse.filter((job) => job.type === "course" || Boolean(job.courseCode)), [corpus.latestByCourse]);
-  const materialByCourse = useMemo(() => new Map(
-    (statusResource.data?.status.courses ?? []).map((course) => [course.courseCode.trim().toUpperCase(), course]),
-  ), [statusResource.data]);
+  const courseJobs = useMemo(() => corpus.latestByEdition.filter((job) => job.type === "course" || Boolean(job.courseCode)).sort((a, b) => (a.courseCode || "").localeCompare(b.courseCode || "") || (b.academicYear || "").localeCompare(a.academicYear || "")), [corpus.latestByEdition]);
+  const materialByEdition = useMemo(() => {
+    const materials = new Map<string, CorpusCourseEdition>();
+    for (const course of statusResource.data?.status.courses ?? []) {
+      for (const edition of course.editions?.length ? course.editions : [course]) {
+        const material = { ...course, ...edition, id: edition.id || course.id, sources: edition.sources || 0, editionCount: 1 };
+        if (edition.id) materials.set(edition.id, material);
+        materials.set(`${course.courseCode.trim().toUpperCase()}:${edition.academicYear || ''}`, material);
+      }
+    }
+    return materials;
+  }, [statusResource.data]);
   const activeCourses = courseJobs.filter((job) => ACTIVE.has(job.status)).length;
   const completed = courseJobs.filter((job) => job.status === "completed").length;
   const attention = courseJobs.filter((job) => job.status === "failed").length;
@@ -265,9 +274,9 @@ export default function CanvasSyncPage() {
   const statusHeading = progress.active
     ? progress.stage || "Canvas material collection is running"
     : attention
-      ? `${attention} ${attention === 1 ? "course needs" : "courses need"} attention`
+      ? `${attention} ${attention === 1 ? "course edition needs" : "course editions need"} attention`
       : courseJobs.length
-        ? "Canvas material is up to date"
+        ? "No course editions are currently indexing"
         : "No material collection has run yet";
 
   return (
@@ -311,7 +320,7 @@ export default function CanvasSyncPage() {
                   <p className="text-muted-foreground mt-1 text-sm">{progress.active ? "Collection continues on the server if you leave this page." : attention ? "The rest of your stored material remains available while these imports are retried." : "The next refresh keeps attempt history and only replaces changed material."}</p>
                   {progress.active && progress.percent != null ? (
                     <div className="mt-4 max-w-3xl">
-                      <div className={`text-muted-foreground mb-2 flex justify-between text-xs ${NUMERALS}`}><span>{progress.completedCourses} of {progress.totalCourses} courses settled</span><span>{progress.percent}%</span></div>
+                      <div className={`text-muted-foreground mb-2 flex justify-between text-xs ${NUMERALS}`}><span>{progress.settledCourses} of {progress.totalCourses} course editions settled</span><span>{progress.percent}%</span></div>
                       <Progress value={progress.percent} className="h-1" />
                     </div>
                   ) : null}
@@ -381,10 +390,10 @@ export default function CanvasSyncPage() {
               <div className="flex flex-wrap items-end justify-between gap-4 px-4 pt-4 sm:px-5">
                 <div>
                   <h2 id="activity-title" className="font-heading text-xl font-semibold tracking-[-0.02em]">Activity</h2>
-                  <p className="text-muted-foreground mt-1 text-xs">Current state by course, with every server attempt retained underneath.</p>
+                  <p className="text-muted-foreground mt-1 text-xs">Each course edition has its own material and sync status. Newest academic years appear first within each course.</p>
                 </div>
                 <div className="flex" role="tablist" aria-label="Sync activity view">
-                  {([['courses', 'Course progress'], ['history', 'Run history']] as const).map(([value, label]) => (
+                  {([['courses', 'Course editions'], ['history', 'Run history']] as const).map(([value, label]) => (
                     <button key={value} type="button" role="tab" aria-selected={view === value} onClick={() => setView(value)} className={cn("border-b-2 px-3 py-2 text-xs font-semibold", view === value ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>{label}</button>
                   ))}
                 </div>
@@ -414,8 +423,8 @@ export default function CanvasSyncPage() {
                       <span>Course</span><span>Edition</span><span>Material</span><span>Updated</span><span className="text-right">Status</span>
                     </div>
                     {visibleJobs.map((job) => {
-                      const attempts = corpus.jobs.filter((candidate) => candidate.courseCode === job.courseCode).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-                      const material = job.courseCode ? materialByCourse.get(job.courseCode.trim().toUpperCase()) : undefined;
+                      const attempts = corpus.jobs.filter((candidate) => (job.bindingId ? candidate.bindingId === job.bindingId : candidate.courseCode === job.courseCode && candidate.academicYear === job.academicYear && candidate.origin === job.origin)).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+                      const material = job.courseCode ? materialByEdition.get(job.bindingId || "") || materialByEdition.get(`${job.courseCode.trim().toUpperCase()}:${job.academicYear || ""}`) : undefined;
                       return <CourseRow key={job.id} job={job} attempts={attempts.length ? attempts : [job]} material={material} />;
                     })}
                   </div>

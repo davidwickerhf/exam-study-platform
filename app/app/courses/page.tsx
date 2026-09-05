@@ -860,13 +860,17 @@ export default function CoursesPage() {
                         </div>
                         <p className="mt-3 min-h-5 text-xs text-white/62">
                           {year.openChoiceEcts
-                            ? `${year.mappedEcts} ECTS mapped · ${year.openChoiceEcts} ECTS still to choose`
+                            ? `${year.mappedEcts} ECTS in your plan · ${year.openChoiceEcts} ECTS still to choose`
                             : year.overplannedEcts
-                              ? `${year.mappedEcts} ECTS mapped · ${year.overplannedEcts} above the year target`
+                              ? `${year.mappedEcts} ECTS in your plan · ${year.overplannedEcts} above the year target`
                               : year.current && year.running
-                                ? `${year.running} ${year.running === 1 ? "course" : "courses"} active${currentPeriod ? ` in ${currentPeriod}` : ""} · full ${year.targetEcts} ECTS mapped`
-                                : `Full ${year.targetEcts} ECTS mapped`}
+                                ? `${year.running} ${year.running === 1 ? "course" : "courses"} active${currentPeriod ? ` in ${currentPeriod}` : ""} · ${year.targetEcts} ECTS in your plan`
+                                : `${year.targetEcts} ECTS in your plan`}
                         </p>
+                        {year.historicalOptions.length > 0 && <details className="mt-2 text-xs text-white/62">
+                          <summary className="cursor-pointer underline-offset-4 hover:underline">{year.historicalOptions.length} past {year.historicalOptions.length === 1 ? 'option' : 'options'} kept in your record</summary>
+                          <p className="mt-2 leading-relaxed">{year.historicalOptions.map((course) => `${course.name} (${course.ects} ECTS)`).join('; ')}. These have no pass or current selection, so they do not add credits to this plan. Select an option again if you intend to retake it.</p>
+                        </details>}
                       </div>
                     );
                   })}

@@ -33,10 +33,11 @@ test('academic year and period fall back to teaching dates and coded Maastricht 
 test('sync includes active courses and historical shells of those same courses only', () => {
   const courses = [
     { id: 'new', courseCode: 'BCS1540', current: true },
-    { id: 'old', courseCode: 'BCS1540', concluded: true },
+    { id: 'middle', courseCode: 'BCS1540', academicYear: '2025-2026', concluded: true },
+    { id: 'old', courseCode: 'BCS1540', academicYear: '2024-2025', concluded: true },
     { id: 'unrelated', courseCode: 'BCS1000', concluded: true }
   ]
-  assert.deepEqual(selectCanvasCorpusCourses(courses).map((course) => course.id), ['new', 'old'])
+  assert.deepEqual(selectCanvasCorpusCourses(courses).map((course) => course.id), ['new', 'middle', 'old'])
 })
 
 test('sync excludes active Canvas community and faculty shells', () => {
