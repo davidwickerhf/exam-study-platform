@@ -73,5 +73,7 @@ test('programme regulations have a programme-scoped, rights-gated retrieval corp
   assert.match(programmePolicyMigration, /CREATE TABLE IF NOT EXISTS programme_policy_source_programmes/)
   assert.match(programmePolicyMigration, /CREATE TABLE IF NOT EXISTS programme_policy_retrieval_chunks/)
   assert.match(institutionPolicyVisibilityMigration, /'programme', 'university', 'public'/)
+  assert.match(institutionPolicyVisibilityMigration, /Promote already-indexed, byte-identical Project 3-1 copies/)
+  assert.match(institutionPolicyVisibilityMigration, /editorial_source_retrieval_chunks/)
   assert.match(programmePolicyMigration, /embedding vector\(1536\)/)
 })

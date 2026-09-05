@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { chunkProgrammePolicyText, normaliseAcademicYear, PROGRAMME_POLICY_KINDS, validateProgrammePolicyPublication } from '../lib/programme-policy-sources.mjs'
+import { chunkProgrammePolicyText, normaliseAcademicYear, PROGRAMME_POLICY_KINDS, reviewedProgrammePolicyByHash, validateProgrammePolicyPublication } from '../lib/programme-policy-sources.mjs'
 import { TUTOR_TOOLS, tutorSystemPrompt } from '../lib/tutor-agent.mjs'
 import manifest from '../data/programme-policy-sources.json' with { type: 'json' }
 
@@ -67,4 +67,6 @@ test('reviewed regulation sources retain their Canvas provenance and are univers
       courseEdition: '2026-2027-002-BCS3300'
     })
   }
+  assert.equal(reviewedProgrammePolicyByHash(manifest.sources[0].sha256)?.title, manifest.sources[0].title)
+  assert.equal(reviewedProgrammePolicyByHash('0'.repeat(64)), null)
 })
