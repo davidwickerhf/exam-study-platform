@@ -63,7 +63,8 @@ import {
   isComplete,
   nextStep,
   pdfPageText,
-  setupSteps
+  setupSteps,
+  setupSettled
 } from '@/lib/workspace/setup.mjs'
 import { FilePicker } from './file-picker'
 import { FinishSetup } from './finish-setup'
@@ -1164,6 +1165,22 @@ function UnifiedSetup({
     setSaved(step)
   }
 
+  const completionAttempted = useRef(false)
+  const [leavingSetup, setLeavingSetup] = useState(false)
+  useEffect(() => {
+    if (!view || !setupSettled(steps) || completionAttempted.current || (requested && !saved)) return
+    completionAttempted.current = true
+    setLeavingSetup(true)
+    void json<View>('/api/onboarding/finish', { method: 'POST' }).then((fresh) => {
+      onApplied(fresh)
+      router.replace('/app')
+      router.refresh()
+    }).catch((cause) => {
+      setDeferError(cause instanceof Error ? cause.message : 'Your setup is saved. Use Finish setup to open your dashboard.')
+      setLeavingSetup(false)
+    })
+  }, [view, steps, requested, saved, onApplied, router])
+
   // Leave a settled step for the next one that still needs attention.
   const continueFrom = (completed: SetupStepId) => {
     const following = steps.slice(steps.findIndex((step) => step.id === completed) + 1)
@@ -1257,6 +1274,7 @@ function UnifiedSetup({
           </section>)}
 
           <div className="px-5 py-6 sm:px-7 sm:py-7">
+            {leavingSetup && <p role="status" className="mb-5 flex items-center gap-2 text-sm"><Spinner className="size-4" />Setup complete. Opening your dashboard…</p>}
             {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
             {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} template={view.state.programmeTemplate} onSaved={() => refreshFrom('programme')} />}
             {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} onContinue={() => continueFrom('electives')} />)}

@@ -386,7 +386,7 @@ export default function DocumentsPage() {
             Manage your academic records, keep every revision, and see what changed over time.
           </p>
         </div>
-        <Button onClick={() => openUpload()}><UploadIcon data-icon="inline-start" />Upload document</Button>
+        <Button data-tour="document-upload" onClick={() => openUpload()}><UploadIcon data-icon="inline-start" />Upload document</Button>
       </header>
 
       <section className="grid border-b xl:min-h-[calc(100dvh-8.25rem)] xl:grid-cols-[minmax(0,1.9fr)_minmax(21rem,1fr)]">

@@ -47,6 +47,7 @@ import {
   SidebarRail,
   SidebarTrigger
 } from '@/components/ui/sidebar'
+import { WorkspaceTour } from '@/components/workspace/dashboard-tour'
 import { WorkspaceSearch } from '@/components/workspace/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -245,6 +246,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                     return (
                       <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton
+                          data-tour={`nav-${item.href.split('/').at(-1)}`}
                           isActive={active}
                           tooltip={item.label}
                           render={<Link href={item.href} />}
@@ -279,7 +281,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
 
       <SidebarInset className="min-w-0 bg-background">
         <div className="border-border bg-background sticky top-0 z-20 flex h-14 items-center gap-3 border-b px-4 md:hidden">
-          <SidebarTrigger className="-ml-1" />
+          <SidebarTrigger data-tour="menu" className="-ml-1" />
           <BrandMark className="size-7 rounded" />
           <div className="ml-auto min-w-0 flex-1 max-w-60"><WorkspaceSearch shortcut={isMobile} /></div>
         </div>
@@ -291,6 +293,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={`nav-${item.href.split('/').at(-1)}`}
                 aria-current={active ? 'page' : undefined}
                 className={`flex min-w-0 flex-col items-center justify-center gap-1 text-[11px] font-medium ${active ? 'text-foreground' : 'text-muted-foreground'}`}
               >
@@ -302,6 +305,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           })}
         </nav>
       </SidebarInset>
+      <WorkspaceTour />
     </SidebarProvider>
   )
 }

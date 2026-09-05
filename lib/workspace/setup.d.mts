@@ -108,3 +108,5 @@ export declare function nextStep(steps: SetupStep[]): SetupStep | null
 export declare function isComplete(steps: SetupStep[]): boolean
 export declare function eventLine(content: string): string
 export declare function pdfPageText(items: PdfTextItem[], options?: { rowTolerance?: number; columnGap?: number }): string
+
+export declare function setupSettled(steps: SetupStep[]): boolean

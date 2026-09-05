@@ -1730,7 +1730,7 @@ export default function PlanningPage() {
         }}
         className="min-h-0 flex-1 gap-5"
       >
-        <TabsList
+        <TabsList data-tour="planning-modes"
           variant="line"
           className="h-10 w-full max-w-full justify-start gap-6 overflow-x-auto rounded-none border-b p-0"
         >

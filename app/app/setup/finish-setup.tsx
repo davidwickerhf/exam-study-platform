@@ -47,11 +47,10 @@ export function FinishSetup({
     setBusy(true)
     setError(null)
     try {
-      // Already finished once: nothing to record, just go.
-      if (!finished) {
-        const next = await json<View>('/api/onboarding/finish', { method: 'POST' })
-        onFinished?.(next)
-      }
+      // Also offers the dashboard tour to established accounts finishing
+      // explicitly; a previous dismissal is preserved by the server.
+      const next = await json<View>('/api/onboarding/finish', { method: 'POST' })
+      onFinished?.(next)
       router.replace('/app')
       // The redirect that guards /app is decided on the server, so the cached
       // segment has to be dropped or it sends us straight back here.

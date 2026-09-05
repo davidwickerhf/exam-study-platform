@@ -716,7 +716,7 @@ export default function CoursesPage() {
 
   return (
     <main data-impeccable-contract={DESIGN_CONTRACT} className="w-full">
-      <header className="bg-background border-b">
+      <header data-tour="courses" className="bg-background border-b">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-1 px-4 py-5 sm:px-6 sm:flex-row sm:items-end sm:justify-between lg:px-8 lg:py-7">
           <div>
             <h1 className="font-heading text-[2rem] leading-none font-semibold tracking-[-0.035em]">

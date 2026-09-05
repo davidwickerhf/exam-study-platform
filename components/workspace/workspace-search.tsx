@@ -85,7 +85,7 @@ export function WorkspaceSearch({ shortcut = true }: { shortcut?: boolean }) {
   }, [courseId, courses, query])
 
   return <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger render={<Button variant="outline" size="sm" className="w-full justify-start gap-2" />}>
+    <DialogTrigger data-tour="search" render={<Button variant="outline" size="sm" className="w-full justify-start gap-2" />}>
       <SearchIcon data-icon="inline-start" />
       Search material
       {/* The shortcut is only a hint if it is written where the field is. */}
