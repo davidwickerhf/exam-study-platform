@@ -9,7 +9,7 @@
  * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowRightIcon,
@@ -195,11 +195,11 @@ function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgres
 }
 
 export default function HomePage() {
-  const { data: calendar, error: calendarError } = useWorkspaceData<CalendarPayload>('/api/calendar/events')
+  const { data: calendar, error: calendarError, refresh: refreshCalendar } = useWorkspaceData<CalendarPayload>('/api/calendar/events')
   const { data: academics, error: academicsError, loading: academicsLoading } = useWorkspaceData<AcademicsPayload>('/api/academics')
   const { data: hub, error: hubError, loading: hubLoading } = useWorkspaceData<HubPayload>('/api/integrations/canvas/hub?scope=current&days=30')
   const { data: activity, error: activityError } = useWorkspaceData<Activity>('/api/activity?days=120')
-  const { data: shell, error: shellError, loading: shellLoading } = useWorkspaceData<WorkspaceShell>('/api/workspace-shell')
+  const { data: shell, error: shellError, loading: shellLoading, refresh: refreshShell } = useWorkspaceData<WorkspaceShell>('/api/workspace-shell')
   const { data: sr, error: srError } = useWorkspaceData<SrPayload>('/api/sr/due')
   const { data: mistakes, error: mistakesError } = useWorkspaceData<Mistake[]>('/api/mistakes?open=true')
   const { data: corpusPayload, refresh: refreshCorpus } = useWorkspaceData<CorpusPayload>('/api/account/integrations/canvas/corpus')
@@ -208,13 +208,18 @@ export default function HomePage() {
   useEffect(() => { setRead(readChapters(window.localStorage)) }, [])
 
   const syncProgress = useMemo(() => canvasSyncProgress(corpusPayload?.status), [corpusPayload])
+  const wasSyncing = useRef(false)
+  useEffect(() => {
+    if (wasSyncing.current && !syncProgress.active) { refreshShell(); refreshCalendar() }
+    wasSyncing.current = syncProgress.active
+  }, [syncProgress.active, refreshShell, refreshCalendar])
   useEffect(() => {
     if (!syncProgress.active) return
-    const poll = () => { if (document.visibilityState === 'visible') refreshCorpus() }
+    const poll = () => { if (document.visibilityState === 'visible') { refreshCorpus(); refreshShell() } }
     const timer = window.setInterval(poll, 6_000)
     document.addEventListener('visibilitychange', poll)
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', poll) }
-  }, [refreshCorpus, syncProgress.active])
+  }, [refreshCorpus, refreshShell, syncProgress.active])
 
   const summary = academics?.summary ?? null
   const hasTimetable = (academics?.workspace?.calendars ?? []).length > 0
