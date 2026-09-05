@@ -245,7 +245,7 @@ export default function HomePage() {
   const prioritySources = [
     { label: 'Timetable', ready: hasTimetable, detail: academicsError ? 'Unavailable' : academicsLoading ? 'Checking…' : hasTimetable ? 'Teaching events available' : 'Not connected', href: '/app/setup?checklist=1&step=timetable' },
     { label: 'Canvas', ready: Boolean(hub?.connected), detail: hubError ? 'Unavailable' : hubLoading ? 'Checking…' : hub?.connected ? 'Submission states available' : 'Not connected', href: '/app/settings?tab=connections' },
-    { label: 'Course rules', ready: verifiedRules > 0, detail: shellError ? 'Unavailable' : shellLoading ? 'Checking…' : verifiedRules ? `${verifiedRules} verified ${verifiedRules === 1 ? 'course' : 'courses'}` : syncProgress.active ? 'Reading course documents' : 'No supported rules yet', href: '/app/courses' }
+    { label: 'Course rules', ready: verifiedRules > 0, detail: shellError ? 'Unavailable' : shellLoading ? 'Checking…' : verifiedRules ? `${verifiedRules} ${verifiedRules === 1 ? 'course' : 'courses'} with supported rules` : syncProgress.active ? 'Reading course documents' : 'No supported rules yet', href: '/app/courses' }
   ]
   const priorityLoading = academicsLoading || hubLoading || shellLoading
   const priorityError = academicsError ?? hubError ?? shellError
@@ -384,7 +384,7 @@ export default function HomePage() {
           {syncProgress.active && <CanvasSyncWidget progress={syncProgress} className="hidden xl:block" />}
           <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
             <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} active${missingPrioritySources || priorityError ? ' · partial' : ''}` : missingPrioritySources ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
-            {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs leading-relaxed">Available evidence: {readyPrioritySources.join(', ') || 'none yet'}.{unavailablePrioritySources.length ? ` Could not read: ${unavailablePrioritySources.join(', ')}.` : ''}{disconnectedPrioritySources.length ? ` Still checking: ${disconnectedPrioritySources.join(', ')}.` : ''}</p></> : priorityLoading ? (
+            {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs leading-relaxed">Available evidence: {readyPrioritySources.join(', ') || 'none yet'}.{unavailablePrioritySources.length ? ` Could not read: ${unavailablePrioritySources.join(', ')}.` : ''}{disconnectedPrioritySources.length ? ` ${disconnectedPrioritySources.map(label => label === 'Course rules' ? `Course rules: ${prioritySources[2].detail.toLowerCase()}` : `${label}: not connected`).join('. ')}.` : ''}</p></> : priorityLoading ? (
               <div className="space-y-3 px-5 py-5"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-2/3" /></div>
             ) : priorityError ? (
               <div>

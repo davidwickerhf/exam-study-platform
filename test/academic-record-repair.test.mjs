@@ -1,3 +1,4 @@
+import { undoDocumentImport } from '../lib/onboarding-documents.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { repairTranscriptDuplicates, courseEarnedCredits } from '../lib/academic-record-repair.mjs'
@@ -35,4 +36,13 @@ test('passing sitting credit value is counted once even after catalogue credit c
 test('transcript page headings cannot become course-name prefixes', () => {
   const draft = fallbackAcademicIntake('Transcript / Resultatenoverzicht\nECTS ECTS\nBSc CS year 1 core courses\nProcedural Programming 9 26.10.2023 4 4\nECTS ECTS\nBSc CS year 2 Electives\nM2-1: AI and Machine Learning 8 10.12.2024 10 10\nEND OF TRANSCRIPT', [], { kind: 'transcript' })
   assert.deepEqual(draft.courses.map(c => c.name), ['Procedural Programming', 'M2-1: AI and Machine Learning'])
+})
+
+test('removing the transcript also undoes a repaired dated result', () => {
+  const before = { courses: [{ id: 'pp', code: 'BCS1120', name: 'Procedural Programming', attempts: [attempt(4)] }] }
+  const after = { courses: [...before.courses, { id: 'bad', name: 'ECTS ECTS BSc CS year 1 core courses Procedural Programming', attempts: [attempt(4, '2024-10-26')] }] }
+  const current = repairTranscriptDuplicates(after)
+  const undone = undoDocumentImport(current, repairTranscriptDuplicates(before), repairTranscriptDuplicates(after))
+  assert.equal(undone.courses.length, 1)
+  assert.equal(undone.courses[0].attempts[0].examDate, null)
 })
