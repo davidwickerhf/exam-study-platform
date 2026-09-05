@@ -15,6 +15,7 @@ const productionRunner = await readFile(new URL('../runner.mjs', import.meta.url
 const programmeScopedMigration = await readFile(new URL('../db/021_programme_scoped_study.sql', import.meta.url), 'utf8')
 const programmePolicyMigration = await readFile(new URL('../db/023_programme_policy_sources.sql', import.meta.url), 'utf8')
 const institutionPolicyVisibilityMigration = await readFile(new URL('../db/024_institution_policy_visibility.sql', import.meta.url), 'utf8')
+const reviewedCanvasPolicyMigration = await readFile(new URL('../db/025_promote_reviewed_canvas_policies.sql', import.meta.url), 'utf8')
 
 test('Next.js App Router owns the document and route runtime', async () => {
   assert.equal(packageJson.dependencies.next.startsWith('^16.'), true)
@@ -73,7 +74,8 @@ test('programme regulations have a programme-scoped, rights-gated retrieval corp
   assert.match(programmePolicyMigration, /CREATE TABLE IF NOT EXISTS programme_policy_source_programmes/)
   assert.match(programmePolicyMigration, /CREATE TABLE IF NOT EXISTS programme_policy_retrieval_chunks/)
   assert.match(institutionPolicyVisibilityMigration, /'programme', 'university', 'public'/)
-  assert.match(institutionPolicyVisibilityMigration, /Promote already-indexed, byte-identical Project 3-1 copies/)
-  assert.match(institutionPolicyVisibilityMigration, /editorial_source_retrieval_chunks/)
+  assert.match(reviewedCanvasPolicyMigration, /Promote already-indexed, byte-identical Project 3-1 copies/)
+  assert.match(reviewedCanvasPolicyMigration, /editorial_source_retrieval_chunks/)
+  assert.match(databaseMigration, /025_promote_reviewed_canvas_policies\.sql/)
   assert.match(programmePolicyMigration, /embedding vector\(1536\)/)
 })
