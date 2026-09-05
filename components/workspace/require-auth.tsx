@@ -128,6 +128,15 @@ function Gate({
     const original = window.fetch.bind(window);
     let heldToken: { value: string; expiresAt: number } | null = null;
     let tokenRequest: Promise<string | null> | null = null;
+    let recoveringSession = false;
+    const recoverSession = () => {
+      if (recoveringSession) return;
+      recoveringSession = true;
+      heldToken = null;
+      void clerk
+        .signOut({ redirectUrl: "/sign-in" })
+        .catch(() => window.location.assign("/sign-in"));
+    };
     const sessionToken = async () => {
       if (heldToken && heldToken.expiresAt > Date.now()) return heldToken.value;
       tokenRequest ??= getToken().then((value) => {
@@ -158,7 +167,12 @@ function Gate({
       // those lookups and briefly retain the same short-lived session token.
       const token = await sessionToken();
       if (token) headers.set("authorization", `Bearer ${token}`);
-      return original(input, { ...init, headers });
+      const response = await original(input, { ...init, headers });
+      // A Clerk identity can be deleted while this already-mounted workspace
+      // still holds its old token. Clear that client session immediately; all
+      // API calls otherwise keep retrying an identity Clerk no longer knows.
+      if (response.status === 401) recoverSession();
+      return response;
     };
     async function check() {
       try {

@@ -29,7 +29,7 @@ import { AiLimitError, AI_LIMITS, completeAiUsage, estimateTokens, failAiUsage, 
 import { DEFAULT_OPENAI_MODEL, DEFAULT_OPENAI_REASONING_EFFORT, openAiReasoningEffort, publicLlmConfiguration } from './lib/llm-config.mjs'
 import { AccountDeletionError, deletePersonalData, deleteStudyData, deleteUploadedData, exportPersonalData, summarisePersonalData } from './lib/account-data.mjs'
 import { getActivitySummary, recordActivity } from './lib/activity.mjs'
-import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
+import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, normalizeAcademicWorkspace, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { detectAcademicDocumentKind, fallbackAcademicIntake, mergeAcademicIntakeDrafts, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
 import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
