@@ -389,7 +389,7 @@ export async function listCanvasCourseModules({ courseUrl, accessToken, fetchImp
   }
 }
 
-export async function importCanvasCourse({ courseUrl, accessToken, outputFolder, moduleIds, maxResources = CANVAS_IMPORT_LIMITS.maxResources, maxFileBytes = CANVAS_IMPORT_LIMITS.maxFileBytes, fetchImpl = fetch } = {}) {
+export async function importCanvasCourse({ courseUrl, accessToken, outputFolder, moduleIds, maxResources = CANVAS_IMPORT_LIMITS.maxResources, maxFileBytes = CANVAS_IMPORT_LIMITS.maxFileBytes, fetchImpl = fetch, onProgress = async () => {} } = {}) {
   const canvas = parseCanvasCourseUrl(courseUrl)
   if (!text(accessToken, 20)) throw new CanvasCourseImportError('A Canvas Personal Access Token is required. Use the local hidden prompt or a local environment variable; never pass a password or OTP to this importer.')
   if (!outputFolder || !String(outputFolder).trim()) throw new CanvasCourseImportError('outputFolder is required and should be a dedicated local course folder.')
@@ -410,6 +410,7 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
   const nonImportEntries = entries.filter((entry) => !['.DS_Store', '.wicker-canvas-import.json'].includes(entry))
   if (nonImportEntries.length && !previousManifest) throw new CanvasCourseImportError('Choose a new empty output folder, or a folder created by an earlier Wicker Study Canvas import. This prevents overwriting unrelated files.')
   const api = createCanvasApi({ origin: canvas.origin, accessToken: String(accessToken), fetchImpl })
+  await onProgress({ stage: 'discovery', message: 'Connecting to Canvas and listing course resources.' })
   // Verify authentication independently before checking course-specific access. This
   // turns an opaque token error into a useful, non-sensitive diagnosis.
   await api.getJson('/api/v1/users/self/profile')
@@ -448,6 +449,7 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
       throw error
     }
   }
+  await onProgress({ stage: 'discovery', message: 'Module and file listings received.', completed: courseFiles.length })
   let resourceCount = 0
   const claimResource = (label) => {
     if (resourceCount >= maxResources) { skipped.push({ label, reason: `import limit (${maxResources})` }); return false }
@@ -484,12 +486,15 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
       const itemName = filename(detail.display_name || detail.filename || source.title || `file-${id}`)
       const extension = extname(itemName) || '.bin'
       const outputPath = pagePath(join(base, fileCategory(itemName)), position, itemName.replace(new RegExp(`${extension.replace('.', '\\.')}$`, 'i'), ''), `file-${id}`, extension)
+      await onProgress({ stage: 'download', message: 'Downloading file.', item: itemName })
       const bytes = await api.downloadToFile(detail.url, outputPath, maxFileBytes)
       const value = { id, name: itemName, relativePath: outputPath.slice(root.length + 1), bytes }
       downloadedFileIds.set(id, value)
+      await onProgress({ stage: 'download', message: 'File downloaded.', item: itemName, completed: downloadedFileIds.size })
       records.push({ kind: 'file', id, source, path: value.relativePath, bytes, mediaType: detail.content_type || null, canvasUrl: detail.url || null })
       return value
     } catch (error) {
+      await onProgress({ stage: 'download', level: 'warning', message: 'File could not be downloaded; continuing with accessible material.', item: source.title || `Canvas file ${id}` })
       skipped.push({ label: source.title || `Canvas file ${id}`, reason: error.message })
       return null
     }
@@ -504,6 +509,7 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
     // forever (a common pattern in Canvas navigation pages).
     importedPageSlugs.add(pageSlug)
     try {
+      await onProgress({ stage: 'download', message: 'Reading Canvas page.', item: title || pageSlug })
       const page = await api.getJson(`/api/v1/courses/${encodeURIComponent(canvas.courseId)}/pages/${encodeURIComponent(pageSlug)}`)
       const pageTitle = page.title || title || 'Canvas page'
       const pageUrl = `${canvas.origin}/courses/${canvas.courseId}/pages/${encodeURIComponent(pageSlug)}`

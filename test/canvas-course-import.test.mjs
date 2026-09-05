@@ -12,6 +12,7 @@ function json(value, headers = {}) {
 test('Canvas importer downloads and categorises accessible course material without leaking a token', async () => {
   const root = await mkdtemp(join(tmpdir(), 'wicker-canvas-import-'))
   const calls = []
+  const progress = []
   const fetchImpl = async (input, init = {}) => {
     const url = new URL(String(input))
     calls.push({ url: url.toString(), authorization: init.headers?.authorization || null })
@@ -49,8 +50,12 @@ test('Canvas importer downloads and categorises accessible course material witho
       courseUrl: 'https://canvas.test/courses/25806/modules',
       accessToken: 'local-token-only',
       outputFolder: root,
-      fetchImpl
+      fetchImpl, onProgress: event => progress.push(event)
     })
+    assert.equal(progress[0].stage, 'discovery')
+    assert.equal(progress.filter(event => event.message === 'File downloaded.').length, 2)
+    assert.ok(progress.some(event => event.message === 'Reading Canvas page.'))
+    assert.doesNotMatch(JSON.stringify(progress), /local-token-only|https:/)
     assert.equal(result.course.code, 'CS101')
     assert.equal(result.modules, 1)
     assert.equal(result.downloadedFiles, 2)
