@@ -67,6 +67,7 @@ import { formatRetrievalContext, retrieveCanvasCorpus, retrieveCourseContent, re
 import { listProgrammePolicySources, retrieveProgrammePolicies } from './lib/programme-policy-sources.mjs'
 import { applyWorkspaceEdit } from './lib/workspace/academics.mjs'
 import { planningContext, updatePlanningObjective } from './lib/workspace/planner.mjs'
+import { programmePriorityCourses } from './lib/priority-courses.mjs'
 import { canvasPriorityProfiles } from './lib/priority-evidence.mjs'
 import { CONTRIBUTION_LICENSES, COURSE_INGESTION_STAGES, COURSE_REQUEST_CATEGORIES, createCourseContentRequest, getCourseContentRequestFile, listAdminCourseContentRequests, listOwnCourseContentRequests, updateCourseContentRequest, uploadCourseContentRequestFileChunk } from './lib/course-content-requests.mjs'
 import { estimateEditorialGeneration, listEditorialWorkspace, prepareCourseContentRequest, processEditorialJobs, publishEditorialEdition, queueEditorialGeneration, registerEditorialSources, reviewEditorialContribution, updateEditorialArtifact, uploadEditorialSourceChunk, upsertEditorialEdition, withdrawCourseContentRequestContribution } from './lib/editorial-workflow.mjs'
@@ -87,17 +88,26 @@ const CANVAS_FILE_TIMEOUT_MS = 10 * 60_000
 const CORPUS_ASSET_CHUNK_BYTES = 512 * 1024
 
 let canvasCorpusWorkerProcess = null
+let stoppingCanvasWorker = false
+let canvasWorkerRestart = null
 function startCanvasCorpusWorkerProcess() {
-  if (canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
+  if (process.env.VERCEL_ENV === 'preview' || stoppingCanvasWorker || canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
   canvasCorpusWorkerProcess = spawn(process.execPath, [join(__dirname, 'scripts/canvas-corpus-worker.mjs')], { cwd: __dirname, env: process.env, stdio: 'inherit' })
-  canvasCorpusWorkerProcess.on('exit', () => { canvasCorpusWorkerProcess = null })
-  canvasCorpusWorkerProcess.on('error', (error) => console.error('Canvas corpus worker process could not start:', error))
-  const stop = () => { if (canvasCorpusWorkerProcess && !canvasCorpusWorkerProcess.killed) canvasCorpusWorkerProcess.kill('SIGTERM') }
-  process.once('SIGINT', () => { stop(); process.exit(0) })
-  process.once('SIGTERM', () => { stop(); process.exit(0) })
-  process.once('exit', stop)
+  canvasCorpusWorkerProcess.on('exit', () => {
+    canvasCorpusWorkerProcess = null
+    if (!stoppingCanvasWorker) canvasWorkerRestart = setTimeout(startCanvasCorpusWorkerProcess, 10_000)
+  })
+  canvasCorpusWorkerProcess.on('error', error => console.error('Canvas corpus worker process could not start:', error))
   return true
 }
+function stopCanvasCorpusWorker() {
+  stoppingCanvasWorker = true
+  clearTimeout(canvasWorkerRestart)
+  if (canvasCorpusWorkerProcess && !canvasCorpusWorkerProcess.killed) canvasCorpusWorkerProcess.kill('SIGTERM')
+}
+process.once('SIGINT', () => { stopCanvasCorpusWorker(); process.exit(0) })
+process.once('SIGTERM', () => { stopCanvasCorpusWorker(); process.exit(0) })
+process.once('exit', stopCanvasCorpusWorker)
 
 function canvasProxyError(response, path) {
   if (response.status === 401) return new CanvasConnectionError(`Canvas rejected the saved connection while requesting ${path}. Reconnect Canvas in Settings.`)
@@ -736,18 +746,14 @@ async function scopeStateToActiveProgramme(state) {
     canvasPriorityProfiles({ accountId: currentAuth().userId }).catch(() => [])
   ])
   const selected = new Set((academic.workspace?.courses || []).map((course) => String(course.code || '').trim().toUpperCase()).filter(Boolean))
-  const prioritiesByCode = new Map(priorityProfiles.map((profile) => [String(profile.courseCode || '').trim().toUpperCase(), profile]))
+  const priorityCourses = programmePriorityCourses(academic.workspace, state.courses, priorityProfiles)
+  const prioritiesByCode = new Map(priorityCourses.map(course => [course.code.toUpperCase(), course]))
   return {
     ...state,
-    courses: (state.courses || []).filter((course) => selected.has(String(course.code || '').trim().toUpperCase())).map((course) => {
-      const scan = prioritiesByCode.get(String(course.code || '').trim().toUpperCase())
-      if (!scan) return course
-      // A published, human-confirmed course profile remains authoritative.
-      // Otherwise the student's latest source-grounded scan fills the same
-      // compact shape; needs-review scans are visible but Home will not turn
-      // them into obligations until the conflict is resolved.
-      const published = course.courseProfile?.assessment?.status === 'confirmed'
-      return { ...course, courseProfile: published ? course.courseProfile : scan.courseProfile, priorityScan: { status: scan.status, conflicts: scan.conflicts, scannedAt: scan.scannedAt } }
+    priorityCourses,
+    courses: (state.courses || []).filter(course => selected.has(String(course.code || '').trim().toUpperCase())).map(course => {
+      const rules = prioritiesByCode.get(String(course.code || '').trim().toUpperCase())
+      return rules ? { ...course, courseProfile: rules.courseProfile, priorityScan: rules.priorityScan } : course
     }),
     meta: { ...state.meta, activeProgrammeId: academic.index?.activeProgrammeId || academic.workspace?.id || null, programme: academic.workspace?.profile?.programme || null }
   }
@@ -4282,7 +4288,7 @@ const server = createServer(async (req, res) => {
 
     // Unified calendar feed for the Calendar page.
     if (url.pathname === '/api/calendar/events' && req.method === 'GET') {
-      const [{ workspace }, state] = await Promise.all([readAcademicState(), readState()])
+      const [{ workspace }, state, scans] = await Promise.all([readAcademicState(), readState(), canvasPriorityProfiles({ accountId: currentAuth().userId }).catch(() => [])])
       const reference = academicReferenceFor(workspace)
       const problems = []
       // Every saved feed is a network round trip to a different university
@@ -4321,7 +4327,7 @@ const server = createServer(async (req, res) => {
         }
       }
       const [result, changes] = await Promise.all([
-        Promise.resolve(aggregateCalendar({ workspace, editorialCourses: state.courses || [], institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })),
+        Promise.resolve(aggregateCalendar({ workspace, editorialCourses: state.courses || [], ruleCourses: programmePriorityCourses(workspace, state.courses, scans), institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })),
         observeCalendarFeeds(workspace.id, feeds, { activeFeedIds: links.map((link) => link.id) }).catch((error) => {
           problems.push({ id: 'calendar-change-detection', label: 'Timetable changes', error: error instanceof Error ? error.message : String(error) })
           return []

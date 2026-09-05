@@ -9,7 +9,7 @@
  * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowRightIcon,
@@ -30,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { DashboardTour } from '@/components/workspace/dashboard-tour'
 import { DashboardSetupReminder } from '@/components/workspace/onboarding-resume'
 import { useWorkspaceData } from '@/hooks/use-workspace-data'
+import { supportedCourseAssessment } from '@/lib/course-rule-evidence.mjs'
 import { cn } from '@/lib/utils'
 import { type CanvasSyncProgress, type CorpusStatus, canvasSyncProgress } from '@/lib/workspace/account.mjs'
 import type { Assignment } from '@/lib/workspace/canvas'
@@ -63,7 +64,7 @@ type Activity = {
   series: { date: string; total: number }[]
 }
 type AcademicsPayload = { summary: AcademicSummary; workspace?: { courses?: { ects?: number }[]; calendars?: unknown[] } }
-type WorkspaceShell = { courses?: StudyCourse[] }
+type WorkspaceShell = { courses?: StudyCourse[]; priorityCourses?: StudyCourse[] }
 type HubPayload = { connected?: boolean; assignments?: Assignment[] }
 type CorpusPayload = { status?: CorpusStatus }
 type ActivityCell = (Activity['series'][number] & { future?: boolean; today?: boolean }) | null
@@ -194,11 +195,11 @@ function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgres
 }
 
 export default function HomePage() {
-  const { data: calendar, error: calendarError } = useWorkspaceData<CalendarPayload>('/api/calendar/events')
+  const { data: calendar, error: calendarError, refresh: refreshCalendar } = useWorkspaceData<CalendarPayload>('/api/calendar/events')
   const { data: academics, error: academicsError, loading: academicsLoading } = useWorkspaceData<AcademicsPayload>('/api/academics')
   const { data: hub, error: hubError, loading: hubLoading } = useWorkspaceData<HubPayload>('/api/integrations/canvas/hub?scope=current&days=30')
   const { data: activity, error: activityError } = useWorkspaceData<Activity>('/api/activity?days=120')
-  const { data: shell, error: shellError, loading: shellLoading } = useWorkspaceData<WorkspaceShell>('/api/workspace-shell')
+  const { data: shell, error: shellError, loading: shellLoading, refresh: refreshShell } = useWorkspaceData<WorkspaceShell>('/api/workspace-shell')
   const { data: sr, error: srError } = useWorkspaceData<SrPayload>('/api/sr/due')
   const { data: mistakes, error: mistakesError } = useWorkspaceData<Mistake[]>('/api/mistakes?open=true')
   const { data: corpusPayload, refresh: refreshCorpus } = useWorkspaceData<CorpusPayload>('/api/account/integrations/canvas/corpus')
@@ -207,13 +208,18 @@ export default function HomePage() {
   useEffect(() => { setRead(readChapters(window.localStorage)) }, [])
 
   const syncProgress = useMemo(() => canvasSyncProgress(corpusPayload?.status), [corpusPayload])
+  const wasSyncing = useRef(false)
+  useEffect(() => {
+    if (wasSyncing.current && !syncProgress.active) { refreshShell(); refreshCalendar() }
+    wasSyncing.current = syncProgress.active
+  }, [syncProgress.active, refreshShell, refreshCalendar])
   useEffect(() => {
     if (!syncProgress.active) return
-    const poll = () => { if (document.visibilityState === 'visible') refreshCorpus() }
+    const poll = () => { if (document.visibilityState === 'visible') { refreshCorpus(); refreshShell() } }
     const timer = window.setInterval(poll, 6_000)
     document.addEventListener('visibilitychange', poll)
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', poll) }
-  }, [refreshCorpus, syncProgress.active])
+  }, [refreshCorpus, refreshShell, syncProgress.active])
 
   const summary = academics?.summary ?? null
   const hasTimetable = (academics?.workspace?.calendars ?? []).length > 0
@@ -238,12 +244,13 @@ export default function HomePage() {
     const seen = new Set<string>()
     return [...due, ...events.filter((event) => event.category === 'exam' && event.start.slice(0, 10) >= today), ...institution].sort((left, right) => left.start.localeCompare(right.start)).filter((event) => !seen.has(event.id) && Boolean(seen.add(event.id))).slice(0, 2)
   }, [due, events, institution, today])
-  const priorities = useMemo(() => homePriorities({ events, assignments: hub?.assignments ?? [], courses, limit: 4 }), [events, hub, courses])
-  const verifiedRules = useMemo(() => courses.filter((course) => course.courseProfile?.assessment?.status === 'confirmed').length, [courses])
+  const ruleCourses = useMemo(() => (shell?.priorityCourses ?? courses).filter(course => !course.archived), [shell, courses])
+  const priorities = useMemo(() => homePriorities({ events, assignments: hub?.assignments ?? [], courses: ruleCourses, limit: 4 }), [events, hub, ruleCourses])
+  const verifiedRules = useMemo(() => ruleCourses.filter(course => supportedCourseAssessment(course)).length, [ruleCourses])
   const prioritySources = [
     { label: 'Timetable', ready: hasTimetable, detail: academicsError ? 'Unavailable' : academicsLoading ? 'Checking…' : hasTimetable ? 'Teaching events available' : 'Not connected', href: '/app/setup?checklist=1&step=timetable' },
     { label: 'Canvas', ready: Boolean(hub?.connected), detail: hubError ? 'Unavailable' : hubLoading ? 'Checking…' : hub?.connected ? 'Submission states available' : 'Not connected', href: '/app/settings?tab=connections' },
-    { label: 'Course rules', ready: verifiedRules > 0, detail: shellError ? 'Unavailable' : shellLoading ? 'Checking…' : verifiedRules ? `${verifiedRules} verified ${verifiedRules === 1 ? 'course' : 'courses'}` : 'No verified rules', href: '/app/courses' }
+    { label: 'Course rules', ready: verifiedRules > 0, detail: shellError ? 'Unavailable' : shellLoading ? 'Checking…' : verifiedRules ? `${verifiedRules} ${verifiedRules === 1 ? 'course' : 'courses'} with supported rules` : syncProgress.active ? 'Reading course documents' : 'No supported rules yet', href: '/app/courses' }
   ]
   const priorityLoading = academicsLoading || hubLoading || shellLoading
   const priorityError = academicsError ?? hubError ?? shellError
@@ -382,7 +389,7 @@ export default function HomePage() {
           {syncProgress.active && <CanvasSyncWidget progress={syncProgress} className="hidden xl:block" />}
           <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
             <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} active${missingPrioritySources || priorityError ? ' · partial' : ''}` : missingPrioritySources ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
-            {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs leading-relaxed">Available evidence: {readyPrioritySources.join(', ') || 'none yet'}.{unavailablePrioritySources.length ? ` Could not read: ${unavailablePrioritySources.join(', ')}.` : ''}{disconnectedPrioritySources.length ? ` Not contributing: ${disconnectedPrioritySources.join(', ')}.` : ''}</p></> : priorityLoading ? (
+            {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs leading-relaxed">Available evidence: {readyPrioritySources.join(', ') || 'none yet'}.{unavailablePrioritySources.length ? ` Could not read: ${unavailablePrioritySources.join(', ')}.` : ''}{disconnectedPrioritySources.length ? ` ${disconnectedPrioritySources.map(label => label === 'Course rules' ? `Course rules: ${prioritySources[2].detail.toLowerCase()}` : `${label}: not connected`).join('. ')}.` : ''}</p></> : priorityLoading ? (
               <div className="space-y-3 px-5 py-5"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-2/3" /></div>
             ) : priorityError ? (
               <div>

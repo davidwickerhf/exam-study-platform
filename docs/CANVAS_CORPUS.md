@@ -85,3 +85,20 @@ Private contributions never qualify for editorial mapping or generation.
 Community contributions enter as `candidate`; the existing administrator
 review must mark them `accepted` before source mapping, lesson generation,
 exercise generation, quality review, or publication can consume them.
+
+## Interrupted collection and derived rules
+
+Each job owns an expiring lease, renewed every 30 seconds. Running jobs with no
+heartbeat for 10 minutes return to the bounded retry queue; completion is fenced
+by the lease token. A job has a 30-minute execution limit, and the web supervisor
+restarts an exited worker. Partial retrieval indexes are checked against the
+expected extracted chunk count before reuse.
+
+Rule extraction reads syllabus/course-manual context and introductory slides,
+including DOCX/PPTX text. Evidence is spread across source files so a long
+assignment bank cannot exhaust the entire input budget. Extractor upgrades and
+unsuccessful scans schedule a derived-only pass over stored material; they do
+not require another upload or full download. Current-year scans feed priorities
+and attendance for every selected academic course, including courses without
+published Wicker chapters. Independently supported requirements contribute even
+when another source passage is disputed; conflicting passages stay excluded.
