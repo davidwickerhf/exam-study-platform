@@ -4689,7 +4689,6 @@ const server = createServer(async (req, res) => {
         })
         const academicState = await readReconciledAcademicState({ snapshot: result.snapshot })
         await rememberDocumentImport('record', beforeImport.workspace, academicState.workspace)
-        await recordAcademicDocumentVersion({ kind: 'academic-overview', label: source.name || 'Academic Work', fingerprint: result.snapshot.id, evidence: { kind: 'academic-overview', rows: parsed.courses, validation: parsed.validation, sourceLabel: source.name || 'Academic Work' } })
         // The student's name and number are read to confirm the document is
         // theirs; they are not stored and are not echoed back.
         send(res, 200, JSON.stringify({

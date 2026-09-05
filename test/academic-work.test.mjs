@@ -211,15 +211,17 @@ test('a snapshot records the derived record and never the document', async () =>
     // Printing the same record again changes the file but says nothing new.
     const reprint = parseAcademicWork(OVERVIEW.replace('30 Aug 2026', '14 Sep 2026'))
     assert.equal(snapshotHash(reprint.courses), snapshotHash(first.courses), 'the print date is not part of the record')
-    const again = await asOwner(() => recordAcademicSnapshot({ kind: reprint.kind, sourceLabel: 'Academic Work.pdf', printedOn: reprint.printedOn, courses: reprint.courses, summary: reprint.summary }))
+    const again = await asOwner(() => recordAcademicSnapshot({ kind: reprint.kind, sourceLabel: 'Academic Work.pdf', printedOn: reprint.printedOn, courses: reprint.courses, summary: { ...reprint.summary, validation: reprint.validation } }))
     assert.equal(again.unchanged, true)
     assert.equal(again.progress, null)
+    assert.equal((await asOwner(() => academicProgress())).latest.summary.validation.status, 'read', 're-reading verifies a legacy snapshot without creating a duplicate source')
 
     const passedRetake = parseAcademicWork(OVERVIEW
       .replace('2025-2026-500-BCS2220 Principles of Programming Languages 5,0 0,0/4,0', '')
       .replace('2023-2024-003-BCS1300 Project 1-2 7,0 10,0/10,0', '2023-2024-003-BCS1300 Project 1-2 7,0 10,0/10,0\n2025-2026-500-BCS2220 Principles of Programming Languages 6,0 4,0/4,0'))
     const second = await asOwner(() => recordAcademicSnapshot({ kind: passedRetake.kind, sourceLabel: 'Academic Work.pdf', printedOn: '14 Sep 2026', courses: passedRetake.courses, summary: passedRetake.summary }))
     assert.equal(second.unchanged, false)
+    await assert.rejects(() => asOwner(() => recordAcademicSnapshot({ kind: first.kind, courses: first.courses, summary: first.summary })), /older copy/)
     assert.equal(second.progress.ectsDelta, 4)
     assert.deepEqual(second.progress.newlyPassed.map((course) => course.code), ['BCS2220'])
 
