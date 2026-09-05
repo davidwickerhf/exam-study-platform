@@ -132,6 +132,7 @@ async function extractPdf(file: File): Promise<Omit<SourceFile, 'name' | 'type' 
   const pdf = await library.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
   try {
   const unreadPages: number[] = []
+  const imagePages: number[] = []
   const pages: string[] = []
   const images: string[] = []
   const limit = pdf.numPages
@@ -179,13 +180,14 @@ async function extractPdf(file: File): Promise<Omit<SourceFile, 'name' | 'type' 
         context.fillRect(0, 0, canvas.width, canvas.height)
         await page.render({ canvasContext: context, viewport }).promise
         images.push(canvas.toDataURL('image/jpeg', 0.72))
+        imagePages.push(number)
       }
     }
   }
   const text = pages.join('\n\n')
   const structured = /Transcript\s*\/\s*Resultatenoverzicht|Academic overview|Current courses[\s\S]*Completed courses/i.test(text)
   if (structured && unreadPages.length) throw new Error(`Pages ${unreadPages.join(', ')} have no readable text. Use a text-based export so every page can be checked.`)
-  if (unreadPages.length > 4) throw new Error('This scan has more image-only pages than can be reviewed in one reading. Use a searchable text export; no partial results have been imported.')
+  if (unreadPages.some((number) => !imagePages.includes(number))) throw new Error('This scan has more image-only pages than can be reviewed in one reading. Use a searchable text export; no partial results have been imported.')
   return { text, images: structured ? [] : images, pageCount: pdf.numPages }
   } finally { await pdf.destroy() }
 }

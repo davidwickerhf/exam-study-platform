@@ -113,3 +113,19 @@ test('reviews bind checked data to owner, revision and source removal; re-read e
     await rm(new URL(`../data/users/${owner}-other/`, import.meta.url), { recursive: true, force: true })
   }
 })
+
+
+test('code-less transcript courses never match an unrelated code-less saved course', () => {
+  const workspace = normalizeAcademicWorkspace({ courses: [{ id: 'old', name: 'Unrelated elective', code: '', ects: 10, attempts: [] }] })
+  const draft = fallbackAcademicIntake(transcript('Logic 7,0 18.06.2026 4,00 4,00 1'), [], { kind: 'transcript' })
+  const changes = buildChangeSet(workspace, draft, { kind: 'transcript' }).changes
+  assert.ok(changes.some((change) => change.kind === 'history' && change.payload.course.name === 'Logic'))
+  const saved = applyChanges(workspace, changes).workspace
+  assert.equal(saved.courses.find((course) => course.id === 'old').attempts.length, 0)
+  assert.equal(saved.courses.length, 2)
+})
+
+test('conflicting duplicate sitting rows are rejected before normalization can merge them', () => {
+  assert.throws(() => fallbackAcademicIntake(transcript('Logic 7,0 18.06.2026 4,00 4,00 1\nLogic 8,0 18.06.2026 4,00 4,00 1'), [], { kind: 'transcript' }), /conflicting rows/)
+  assert.throws(() => fallbackAcademicIntake(transcript('Logic 7,0 18.06.2026 4,00 4,00 1\nLogic 7,0 18.06.2026 4,00 2,00 1'), [], { kind: 'transcript' }), /conflicting rows/)
+})
