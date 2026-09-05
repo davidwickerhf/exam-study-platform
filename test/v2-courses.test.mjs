@@ -276,15 +276,15 @@ test('a row states its own destination rather than hiding three of them', () => 
   assert.equal(single.action, '1 chapter')
 
   const request = rowDestination({ key: 'C', code: 'C', name: 'C', academic: { id: 'rec-9', code: 'C' }, archived: false })
-  assert.deepEqual(request, { kind: 'request', href: '/app/course-request/rec-9', action: 'Request this course', chapters: 0 })
+  assert.deepEqual(request, { kind: 'study', href: '/app/courses/C', action: 'Open course', chapters: 0 })
 
   const canvas = rowDestination({ key: 'D E', code: 'D E', name: 'D', archived: false })
-  assert.equal(canvas.kind, 'canvas')
-  assert.equal(canvas.href, '/app/updates?tab=materials&courseCode=D%20E')
-  assert.equal(canvas.action, 'See Canvas material')
+  assert.equal(canvas.kind, 'study')
+  assert.equal(canvas.href, '/app/courses/D%20E')
+  assert.equal(canvas.action, 'Open course')
 
   const timetable = rowDestination({ key: 'F', code: 'F', name: 'Field lab', calendar: { code: 'F' }, archived: false })
-  assert.deepEqual(timetable, { kind: 'calendar', href: '/app/calendar', action: 'Open calendar', chapters: 0 })
+  assert.deepEqual(timetable, { kind: 'study', href: '/app/courses/F', action: 'Open course', chapters: 0 })
 })
 
 test('material summary names what is behind a row with no chapters', () => {

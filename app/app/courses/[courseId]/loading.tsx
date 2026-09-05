@@ -1,30 +1,12 @@
-/** A course page while its identity header and chapter register load. */
-
 import { Skeleton } from '@/components/ui/skeleton'
 
-const BAR = 'rounded-[4px] motion-reduce:animate-none'
-const ROWS = [0, 1, 2, 3, 4]
-const TABS = [0, 1, 2, 3]
-
 export default function CourseLoading() {
-  return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8" role="status" aria-busy="true" aria-label="Loading this course">
-      <header className="flex flex-col gap-2">
-        <Skeleton className={`h-3 w-24 ${BAR}`} />
-        <Skeleton className={`h-8 w-[26rem] max-w-full ${BAR}`} />
-      </header>
-      <div className="border-border flex gap-6 border-y py-3">
-        {TABS.map((tab) => <Skeleton key={tab} className={`h-3.5 w-20 ${BAR}`} />)}
-      </div>
-      <div className="flex flex-col">
-        {ROWS.map((row) => (
-          <div key={row} className="border-border grid grid-cols-[3rem_minmax(0,1fr)_5rem] items-center gap-x-6 border-b py-4">
-            <Skeleton className={`h-3.5 w-8 ${BAR}`} />
-            <Skeleton className={`h-3.5 w-full max-w-[26rem] ${BAR}`} />
-            <Skeleton className={`ml-auto h-3.5 w-12 ${BAR}`} />
-          </div>
-        ))}
-      </div>
+  return <div className="w-full" role="status" aria-busy="true" aria-label="Loading this course">
+    <header className="border-b px-4 py-6 sm:px-6 lg:px-8"><Skeleton className="mb-5 h-3 w-24" /><Skeleton className="h-9 w-full max-w-lg" /><Skeleton className="mt-3 h-4 w-48" /></header>
+    <div className="mx-auto max-w-[1280px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <Skeleton className="h-32 w-full rounded-xl" />
+      <div className="flex gap-5 overflow-hidden border-b pb-4">{[0,1,2,3,4].map(n=><Skeleton key={n} className="h-4 w-24 shrink-0" />)}</div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]"><Skeleton className="h-80 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div>
     </div>
-  )
+  </div>
 }
