@@ -23,7 +23,7 @@ import { type CalendarEvent, type CalendarPayload, localIsoDate } from '@/lib/wo
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { CourseAttemptHistory } from '@/components/workspace/course-attempt-history'
-import { courseDetail, courseDetailTab, courseAttemptHistory, type CourseTab } from '@/lib/workspace/course-detail.mjs'
+import { courseDetail, courseDetailTab, courseAttemptHistory, courseMaterialCodes, courseRequestRecord, type CourseTab } from '@/lib/workspace/course-detail.mjs'
 import type { Catalogue, ProgrammeTemplate, CorpusCourse, CurrentCourse } from '@/lib/workspace/course-ledger.mjs'
 import CourseLoading from './loading'
 import { CourseMaterialLibrary } from '@/components/workspace/course-material-library'
@@ -38,6 +38,7 @@ export default function CoursePage() {
   const [courses, setCourses] = useState<StudyCourse[] | null>(null)
   const [academic, setAcademic] = useState<AcademicCourse[]>([])
   const [academicLoading, setAcademicLoading] = useState(true)
+  const [catalogueError, setCatalogueError] = useState<string | null>(null)
   const [catalogueLoading, setCatalogueLoading] = useState(true)
   const [calendarLoading, setCalendarLoading] = useState(true)
   const [academicError, setAcademicError] = useState<string | null>(null)
@@ -60,7 +61,7 @@ export default function CoursePage() {
 
   useEffect(() => {
     let live = true
-    setPendingSources(5); setCorpusError(null); setAcademicLoading(true); setCatalogueLoading(true); setCalendarLoading(true); setAcademicError(null); setLoadError(null); setCalendarError(null)
+    setPendingSources(5); setCorpusError(null); setCatalogueError(null); setAcademicLoading(true); setCatalogueLoading(true); setCalendarLoading(true); setAcademicError(null); setLoadError(null); setCalendarError(null)
     setRead(readChapters(window.localStorage))
     const json = (path: string) => fetch(path, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15_000) })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('This source could not be loaded.')))
@@ -68,7 +69,7 @@ export default function CoursePage() {
     void json('/api/state').then(data => { if (live) setCourses(data.courses ?? []) }).catch(() => { if (live) setLoadError('Study material could not be loaded.') }).finally(settled)
     void json('/api/academics').then(data => { if (live) { setAcademic(data.workspace?.courses ?? []); setProgrammeTemplate(data.workspace?.programmeTemplate ?? null) } })
       .catch(() => { if (live) setAcademicError('Your academic record could not be loaded.') }).finally(() => { if (live) setAcademicLoading(false); settled() })
-    void json('/api/onboarding/programmes').then(data => { if (live) setCatalogue(data) }).catch(() => { if (live) setAcademicError('Course identities could not be checked. Try loading your record again.') }).finally(() => { if (live) setCatalogueLoading(false); settled() })
+    void json('/api/onboarding/programmes').then(data => { if (live) setCatalogue(data) }).catch(() => { if (live) setCatalogueError('Course identities could not be checked. History is shown using the available course codes.') }).finally(() => { if (live) setCatalogueLoading(false); settled() })
     void json('/api/account/integrations/canvas/corpus').then(data => { if (live) setCorpus(data.status?.courses ?? []) }).catch(() => { if (live) setCorpusError('Canvas course information could not be loaded.') }).finally(settled)
     void json('/api/calendar/events').then(data => { if (live) { setCalendar(data); setCurrentCourses(data.currentCourses ?? []) } }).catch(() => { if (live) setCalendarError('Attendance could not be loaded.') }).finally(() => { if (live) setCalendarLoading(false); settled() })
     return () => { live = false }
@@ -102,8 +103,8 @@ export default function CoursePage() {
       <div className="mx-auto w-full max-w-[1180px] p-5 sm:p-8">
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>{loadError || academicError || corpusError || calendarError ? 'That course could not be read' : 'No such course'}</EmptyTitle>
-            <EmptyDescription>{loadError ?? academicError ?? corpusError ?? calendarError ?? 'It may have been archived or renamed.'}</EmptyDescription>
+            <EmptyTitle>{loadError || academicError || catalogueError || corpusError || calendarError ? 'That course could not be read' : 'No such course'}</EmptyTitle>
+            <EmptyDescription>{loadError ?? academicError ?? catalogueError ?? corpusError ?? calendarError ?? 'It may have been archived or renamed.'}</EmptyDescription>
           </EmptyHeader>
           <Button variant="outline" onClick={() => setReload(value => value + 1)}>Try again</Button><Link href="/app/courses" className="text-primary text-sm font-semibold">Back to courses</Link>
         </Empty>
@@ -115,6 +116,7 @@ export default function CoursePage() {
 
   const progress = courseProgress(course, read)
   const academicCourse = entry?.academic ?? null
+  const requestRecord = courseRequestRecord(entry, academic)
   const exam = nextExam(course, academicCourse ? [{ ...academicCourse, code: course.code }] : [], today)
   const attempts = courseAttemptHistory(academicCourse)
   const latest = attempts[0]
@@ -187,6 +189,7 @@ export default function CoursePage() {
         </div>
       </header>
       <div className="mx-auto flex w-full max-w-[1280px] min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        {catalogueError && <p role="alert" className="text-muted-foreground text-sm">{catalogueError} <button className="text-primary underline" onClick={retry}>Try again</button></p>}
         {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
         <section className="overflow-hidden rounded-xl bg-foreground text-card" aria-label="Course overview">
           <div className="grid divide-y divide-white/15 md:grid-cols-[1.2fr_1fr_1fr] md:divide-x md:divide-y-0">
@@ -282,12 +285,12 @@ export default function CoursePage() {
               <aside className="flex min-w-0 flex-col gap-5">
                 <CourseAttemptHistory compact course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} onExpand={() => selectTab('history')} />
                 <div className="rounded-xl border bg-card px-5 py-4"><h2 className="text-sm font-semibold">Original course material</h2><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Find documents and recordings by academic year, including earlier sittings.</p><Button variant="ghost" size="sm" className="text-primary -ml-3 mt-2" onClick={() => selectTab('materials')}>Browse material <ArrowRightIcon data-icon="inline-end" /></Button></div>
-                {!entry?.editorial && academicCourse?.id && <Link href={`/app/course-request/${encodeURIComponent(academicCourse.id)}`} className="text-primary inline-flex min-h-9 items-center gap-2 text-xs font-semibold"><BookOpenIcon className="size-4" />Request study chapters</Link>}
+                {!entry?.editorial && requestRecord?.id && <Link href={`/app/course-request/${encodeURIComponent(requestRecord.id)}`} className="text-primary inline-flex min-h-9 items-center gap-2 text-xs font-semibold"><BookOpenIcon className="size-4" />Request study chapters</Link>}
               </aside>
             </div>
           </TabsContent>
           <TabsContent value="history" className="min-w-0"><CourseAttemptHistory course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} /></TabsContent>
-          <TabsContent value="materials" className="min-w-0"><div id="course-material" className="rounded-xl border bg-card p-5 sm:p-6"><CourseMaterialLibrary courseCode={course.code} /></div></TabsContent>
+          <TabsContent value="materials" className="min-w-0"><div id="course-material" className="rounded-xl border bg-card p-5 sm:p-6"><CourseMaterialLibrary courseCode={course.code} courseCodes={courseMaterialCodes(entry)} /></div></TabsContent>
           <TabsContent value="attendance" className="min-w-0">
       <section id="attendance" className="scroll-mt-8 overflow-hidden rounded-xl border bg-card">
         <div className="flex flex-wrap items-baseline justify-between gap-3 border-b px-5 py-4">

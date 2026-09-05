@@ -5,3 +5,5 @@ export type CourseAttemptRow = AcademicAttempt & { key: string; recordedIndex: n
 export declare function courseDetail(courseId: string, sources?: LedgerSources): LedgerCourse | null
 export declare function courseAttemptHistory(course?: AcademicCourse | null): CourseAttemptRow[]
 export declare function courseDetailTab(search?: string, hash?: string): CourseTab
+export declare function courseMaterialCodes(entry?: LedgerCourse | null): string[]
+export declare function courseRequestRecord(entry?: LedgerCourse | null, academic?: AcademicCourse[]): AcademicCourse | null

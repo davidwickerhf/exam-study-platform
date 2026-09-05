@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Material = {
+  snapshotId?: string;
   assetId: string;
   filename: string;
   sourcePath: string;
@@ -26,25 +27,38 @@ type Material = {
 const size = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
 const canPreview = (type: string) => /^(application\/pdf|video\/|audio\/|image\/|text\/)/.test(type);
 
-export function CourseMaterialLibrary({ courseCode }: { courseCode: string }) {
+export function CourseMaterialLibrary({ courseCode, courseCodes = [] }: { courseCode: string; courseCodes?: string[] }) {
   const [materials, setMaterials] = useState<Material[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState("all");
   const [kind, setKind] = useState("all");
   const [preview, setPreview] = useState<Material | null>(null);
 
-  const load = () => {
-    setError(null);
-    fetch(`/api/corpus/materials?courseCode=${encodeURIComponent(courseCode)}`, { headers: { accept: "application/json" } })
-      .then(async (response) => {
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(body.error || "Stored material could not be loaded.");
-        setMaterials(body.materials || []);
-      })
-      .catch((cause: Error) => setError(cause.message));
-  };
+  const [reload, setReload] = useState(0);
+  const codeKey = JSON.stringify([...new Set([courseCode, ...courseCodes].map(code => code.trim().toUpperCase()).filter(Boolean))].sort());
+  const load = () => setReload(value => value + 1);
 
-  useEffect(load, [courseCode]);
+  useEffect(() => {
+    let live = true;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    setError(null); setMaterials(null); setPreview(null); setYear("all"); setKind("all");
+    Promise.all((JSON.parse(codeKey) as string[]).map(code =>
+      fetch(`/api/corpus/materials?courseCode=${encodeURIComponent(code)}`, { headers: { accept: "application/json" }, signal: controller.signal })
+        .then(async response => {
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error || "Stored material could not be loaded.");
+          return (body.materials || []) as Material[];
+        })
+    )).then(groups => {
+      if (!live) return;
+      const unique = new Map(groups.flat().map(item => [(item.snapshotId || JSON.stringify([item.assetId, item.sourcePath, item.academicYear, item.period])), item]));
+      setMaterials([...unique.values()].sort((a, b) => (b.academicYear || "").localeCompare(a.academicYear || "") || a.filename.localeCompare(b.filename)));
+    }).catch((cause: Error) => {
+      if (live) setError(cause.name === "AbortError" ? "Loading material timed out. Try refreshing the list." : cause.message);
+    }).finally(() => clearTimeout(timer));
+    return () => { live = false; clearTimeout(timer); controller.abort(); };
+  }, [codeKey, reload]);
   const years = useMemo(() => [...new Set((materials || []).map((item) => item.academicYear || "Undated"))].sort().reverse(), [materials]);
   const kinds = useMemo(() => [...new Set((materials || []).map((item) => item.sourceType))].sort(), [materials]);
   const shown = (materials || []).filter((item) => (year === "all" || (item.academicYear || "Undated") === year) && (kind === "all" || item.sourceType === kind));
@@ -58,16 +72,14 @@ export function CourseMaterialLibrary({ courseCode }: { courseCode: string }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {!!materials?.length && <>
-            <Select value={year} onValueChange={(value) => setYear(value || "all")}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{years.map((entry) => <SelectItem key={entry} value={entry}>{entry}</SelectItem>)}</SelectContent></Select>
-            <Select value={kind} onValueChange={(value) => setKind(value || "all")}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All material</SelectItem>{kinds.map((entry) => <SelectItem key={entry} value={entry}>{entry[0]?.toUpperCase()}{entry.slice(1)}</SelectItem>)}</SelectContent></Select>
+            <Select value={year} onValueChange={(value) => setYear(value || "all")}><SelectTrigger className="w-36"><SelectValue>{year === "all" ? "All years" : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{years.map((entry) => <SelectItem key={entry} value={entry}>{entry}</SelectItem>)}</SelectContent></Select>
+            <Select value={kind} onValueChange={(value) => setKind(value || "all")}><SelectTrigger className="w-36"><SelectValue>{kind === "all" ? "All material" : `${kind[0]?.toUpperCase()}${kind.slice(1)}`}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All material</SelectItem>{kinds.map((entry) => <SelectItem key={entry} value={entry}>{entry[0]?.toUpperCase()}{entry.slice(1)}</SelectItem>)}</SelectContent></Select>
           </>}
           <Button variant="outline" size="sm" onClick={load}><RefreshCwIcon /> Refresh list</Button>
         </div>
       </div>
 
-      {!materials ? <div className="grid gap-2"><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : error ? (
-        <p role="alert" className="text-sm font-medium">{error}</p>
-      ) : !materials.length ? (
+      {error ? <p role="alert" className="text-sm font-medium">{error}</p> : !materials ? <div className="grid gap-2"><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : !materials.length ? (
         // Nothing stored is still a row of the register, not a box inside a
         // box: one line of what is missing with its action beside it, held
         // between the same hairlines the material rows would have used.
@@ -80,7 +92,7 @@ export function CourseMaterialLibrary({ courseCode }: { courseCode: string }) {
       ) : !shown.length ? <p className="text-muted-foreground py-8 text-center text-sm">No material matches these filters.</p> : (
         <ul className="border-t">
           {shown.map((item) => (
-            <li key={`${item.assetId}-${item.sourcePath}`} className="hover:bg-card grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-b py-3 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_5rem_auto]">
+            <li key={(item.snapshotId || JSON.stringify([item.assetId, item.sourcePath, item.academicYear, item.period]))} className="hover:bg-card grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-b py-3 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_5rem_auto]">
               <span className="text-muted-foreground grid size-8 place-items-center">{item.mediaType.startsWith("video/") ? <PlayIcon className="size-4" /> : <FileIcon className="size-4" />}</span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium" title={item.filename}>{item.filename}</p>
