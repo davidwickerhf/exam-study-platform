@@ -372,6 +372,10 @@ export default function DocumentsPage() {
     work.reload();
     supporting.reload();
   };
+  const uploadAction = (group: DocumentGroup) => {
+    if (group.kind === "transcript") return group.versions.length ? "Re-import transcript" : "Import transcript";
+    return group.versions.length ? "Add newer version" : "Add first version";
+  };
 
   return (
     <div className="flex w-full flex-col">
@@ -534,7 +538,7 @@ export default function DocumentsPage() {
                     <h2 className="text-[18px] font-semibold">{selected.label}</h2>
                     <p className="text-muted-foreground text-sm">{selected.versions.length} saved version{selected.versions.length === 1 ? "" : "s"}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => openUpload(selected.kind)}>{selected.versions.length ? "Replace" : "Add first version"}</Button>
+                  <Button variant="outline" size="sm" onClick={() => openUpload(selected.kind)}>{uploadAction(selected)}</Button>
                 </div>
 
                 {!selected.versions.length ? (
@@ -542,12 +546,20 @@ export default function DocumentsPage() {
                     <EmptyHeader>
                       <span className="bg-muted mx-auto flex size-12 items-center justify-center rounded-md"><FileClockIcon className="size-5" /></span>
                       <EmptyTitle>No {selected.label.toLowerCase()} versions yet</EmptyTitle>
-                      <EmptyDescription>Add the current document to create a dated baseline. The next reading will show what changed.</EmptyDescription>
+                      <EmptyDescription>{selected.kind === "transcript"
+                        ? "Import the current PDF to recover every dated result and repeated attempt. Wicker stores the derived record, not the original transcript."
+                        : "Add the current document to create a dated baseline. The next reading will show what changed."}</EmptyDescription>
                     </EmptyHeader>
-                    <Button onClick={() => openUpload(selected.kind)}><UploadIcon data-icon="inline-start" />Add {selected.label.toLowerCase()}</Button>
+                    <Button onClick={() => openUpload(selected.kind)}><UploadIcon data-icon="inline-start" />{uploadAction(selected)}</Button>
                   </Empty>
                 ) : <>
                 {selected.kind === "academic-work" && <ProgressPlot series={work.data?.series ?? []} />}
+                {selected.kind === "transcript" && (
+                  <div className="flex items-start gap-3 border-b px-6 py-4 text-sm">
+                    <RotateCcwIcon className="text-primary mt-0.5 size-4 shrink-0" />
+                    <p><strong>Missing a course or attempt?</strong> <span className="text-muted-foreground">Re-import the latest transcript. Its derived rows are reconciled with the saved record, so existing attempts are not duplicated and the original PDF is not retained.</span></p>
+                  </div>
+                )}
 
                 <div className="border-t first:border-t-0">
                   <div className="flex items-baseline justify-between gap-4 border-b px-6 py-3">

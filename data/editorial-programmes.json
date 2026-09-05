@@ -1491,6 +1491,587 @@
               "description": "Meet the published progression requirements and have at least 138 ECTS before starting the thesis."
             }
           ]
+        },
+        {
+          "id": "2023-2024",
+          "label": "2023–2024 entry cohort curriculum",
+          "status": "reference",
+          "lastVerified": "2026-09-05",
+          "grading": {
+            "passMark": 5.5
+          },
+          "sources": [
+            {
+              "label": "Official Computer Science courses, 2023–2024",
+              "url": "https://www.maastrichtuniversity.nl/file/fse-cs-curriculum-2023-2024pdf"
+            },
+            {
+              "label": "DACS Study Guide, 2024–2025",
+              "url": "https://www.maastrichtuniversity.nl/sites/default/files/2025-05/FSE-%20DACS-%20Study%20Guide.pdf"
+            },
+            {
+              "label": "Official Computer Science courses, 2025–2026",
+              "url": "https://www.maastrichtuniversity.nl/file/cs-2025en-9503pdf"
+            }
+          ],
+          "courses": [
+            {
+              "id": "bcs1110",
+              "code": "BCS1110",
+              "name": "Introduction to Computer Science",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1120",
+              "code": "BCS1120",
+              "name": "Procedural Programming",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1130",
+              "code": "BCS1130",
+              "name": "Discrete Mathematics",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1300",
+              "code": "BCS1300",
+              "name": "Project 1-1",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1220",
+              "code": "BCS1220",
+              "name": "Objects in Programming",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1440",
+              "code": "BCS1440",
+              "name": "Calculus",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1530",
+              "code": "BCS1530",
+              "name": "Logic",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1410",
+              "code": "BCS1410",
+              "name": "Linear Algebra",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1420",
+              "code": "BCS1420",
+              "name": "Data Structures and Algorithms",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1430",
+              "code": "BCS1430",
+              "name": "Object-Oriented Modelling",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1600",
+              "code": "BCS1600",
+              "name": "Project 1-2",
+              "ects": 6,
+              "yearLevel": "Year 1",
+              "period": "Semester 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1510",
+              "code": "BCS1510",
+              "name": "Databases",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1520",
+              "code": "BCS1520",
+              "name": "Statistics",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs1540",
+              "code": "BCS1540",
+              "name": "Algorithmic Design",
+              "ects": 4,
+              "yearLevel": "Year 1",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2110",
+              "code": "BCS2110",
+              "name": "Computer Networks",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2120",
+              "code": "BCS2120",
+              "name": "Introduction to Artificial Intelligence",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2130",
+              "code": "BCS2130",
+              "name": "Intelligent User Interfaces",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 1",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2710",
+              "code": "BCS2710",
+              "name": "M2-1: Intelligent Interaction",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "choice"
+            },
+            {
+              "id": "bcs2720",
+              "code": "BCS2720",
+              "name": "M2-1: Artificial Intelligence and Machine Learning",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 1",
+              "requirement": "choice"
+            },
+            {
+              "id": "bcs2210",
+              "code": "BCS2210",
+              "name": "Software Engineering and Architectures",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2220",
+              "code": "BCS2220",
+              "name": "Principles of Programming Languages",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 2",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2410",
+              "code": "BCS2410",
+              "name": "Embedded Programming",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2420",
+              "code": "BCS2420",
+              "name": "Computer Security",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2430",
+              "code": "BCS2430",
+              "name": "Parallel Programming",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2730",
+              "code": "BCS2730",
+              "name": "M2-2: High Performance Computing",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "choice"
+            },
+            {
+              "id": "bcs2740",
+              "code": "BCS2740",
+              "name": "M2-2: Cybersecurity & IoT – Information Security",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "choice"
+            },
+            {
+              "id": "bcs2750",
+              "code": "BCS2750",
+              "name": "M2-2: Cybersecurity & IoT – Ubiquitous Computing & IoT",
+              "ects": 10,
+              "yearLevel": "Year 2",
+              "period": "Semester 2",
+              "requirement": "choice"
+            },
+            {
+              "id": "bcs2510",
+              "code": "BCS2510",
+              "name": "IT Management and Privacy",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs2540",
+              "code": "BCS2540",
+              "name": "Numerical Methods",
+              "ects": 4,
+              "yearLevel": "Year 2",
+              "period": "Period 5",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs3300",
+              "code": "BCS3300",
+              "name": "Project 3-1",
+              "ects": 6,
+              "yearLevel": "Year 3",
+              "period": "Semester 1",
+              "requirement": "pathway",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3110",
+              "code": "BCS3110",
+              "name": "Graph Theory",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3111",
+              "code": "BCS3111",
+              "name": "Digital Society",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3120",
+              "code": "BCS3120",
+              "name": "Ubiquitous Computing & Internet of Things",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3130",
+              "code": "BCS3130",
+              "name": "Game Theory",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3236",
+              "code": "BCS3236",
+              "name": "Robotics and Embedded Systems",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3241",
+              "code": "BCS3241",
+              "name": "Introduction to Quantum Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 1",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3150",
+              "code": "BCS3150",
+              "name": "Software and Systems Verification",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3210",
+              "code": "BCS3210",
+              "name": "Block Chains",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3220",
+              "code": "BCS3220",
+              "name": "Startup Engineering: Building Scalable Tech Ventures",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3230",
+              "code": "BCS3230",
+              "name": "Cryptography",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3239",
+              "code": "BCS3239",
+              "name": "Large Scale IT and Cloud Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3240",
+              "code": "BCS3240",
+              "name": "Event-based Vision",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3440",
+              "code": "BCS3440",
+              "name": "Introduction to Bio-Informatics",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 2",
+              "requirement": "elective",
+              "choiceGroupId": "year-3-electives",
+              "pathwayId": "course-based"
+            },
+            {
+              "id": "bcs3410",
+              "code": "BCS3410",
+              "name": "The History and Philosophy of Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs3420",
+              "code": "BCS3420",
+              "name": "Operating Systems",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs3430",
+              "code": "BCS3430",
+              "name": "Theory of Computing",
+              "ects": 4,
+              "yearLevel": "Year 3",
+              "period": "Period 4",
+              "requirement": "required"
+            },
+            {
+              "id": "bcs3500",
+              "code": "BCS3500",
+              "name": "Bachelor's thesis",
+              "ects": 18,
+              "yearLevel": "Year 3",
+              "period": "Year",
+              "requirement": "required"
+            }
+          ],
+          "choiceGroups": [
+            {
+              "id": "year-2-semester-1-module",
+              "label": "Year 2 · Semester 1 module",
+              "description": "Choose one 10 ECTS module.",
+              "minSelections": 1,
+              "maxSelections": 1,
+              "courseIds": [
+                "bcs2710",
+                "bcs2720"
+              ]
+            },
+            {
+              "id": "year-2-semester-2-module",
+              "label": "Year 2 · Semester 2 module",
+              "description": "Choose one 10 ECTS module.",
+              "minSelections": 1,
+              "maxSelections": 1,
+              "courseIds": [
+                "bcs2730",
+                "bcs2740",
+                "bcs2750"
+              ]
+            },
+            {
+              "id": "year-3-electives",
+              "label": "Year 3 · Semester 1 electives",
+              "description": "Choose six 4 ECTS electives when following the course-based pathway.",
+              "minSelections": 6,
+              "maxSelections": 6,
+              "pathwayId": "course-based",
+              "courseIds": [
+                "bcs3110",
+                "bcs3111",
+                "bcs3120",
+                "bcs3130",
+                "bcs3236",
+                "bcs3241",
+                "bcs3150",
+                "bcs3210",
+                "bcs3220",
+                "bcs3230",
+                "bcs3239",
+                "bcs3240",
+                "bcs3440"
+              ]
+            }
+          ],
+          "pathways": [
+            {
+              "id": "course-based",
+              "label": "Six electives + Project 3-1",
+              "description": "Complete six listed electives and the 6 ECTS Brightlands project.",
+              "includedCourseIds": [
+                "bcs3300"
+              ],
+              "choiceGroupIds": [
+                "year-3-electives"
+              ]
+            },
+            {
+              "id": "minor",
+              "label": "Minor",
+              "description": "Complete an approved minor instead of the listed electives and project.",
+              "includedCourseIds": [],
+              "choiceGroupIds": []
+            },
+            {
+              "id": "semester-abroad",
+              "label": "Semester abroad",
+              "description": "Complete an approved study-abroad semester.",
+              "includedCourseIds": [],
+              "choiceGroupIds": []
+            },
+            {
+              "id": "cs-at-work",
+              "label": "CS@Work",
+              "description": "Follow the honours workplace pathway where approved.",
+              "includedCourseIds": [],
+              "choiceGroupIds": []
+            },
+            {
+              "id": "marble",
+              "label": "MaRBLe",
+              "description": "Follow the undergraduate research pathway where approved.",
+              "includedCourseIds": [],
+              "choiceGroupIds": []
+            }
+          ],
+          "requirements": [
+            {
+              "id": "year-2-entry",
+              "label": "Year 2 progression",
+              "description": "Earn at least 45 ECTS from Year 1 before entering Year 2."
+            },
+            {
+              "id": "year-3-entry",
+              "label": "Year 3 progression",
+              "description": "Complete all 60 ECTS from Year 1 and at least 40 ECTS from Year 2 before entering Year 3."
+            },
+            {
+              "id": "thesis-entry",
+              "label": "Bachelor's thesis entry",
+              "description": "Meet the published progression requirements and have at least 138 ECTS before starting the thesis."
+            }
+          ]
         }
       ],
       "calendar": [

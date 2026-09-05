@@ -56,6 +56,7 @@ export type CurriculumReconciliation = {
 export type SetupSourceState = {
   programme: boolean
   programmeName: string | null
+  programmeTemplate?: { programmeId: string; versionId: string; currentStudyYear: string } | null
   customProgramme?: boolean
   courseCount: number
   record: boolean

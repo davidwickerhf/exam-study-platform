@@ -122,6 +122,21 @@ BCS1120`
   ])
 })
 
+test('wrapped Academic Work descriptions are reassembled before the course code line', () => {
+  const printed = `Completed courses
+Course code Description Result Credits
+2024-2025-100- Introduction to Artificial
+Intelligence 7,5 4,0/4,0
+BCS2120
+2024-2025-200-BCS2210 Software Engineering and
+Architectures 8,0 4,0/4,0`
+  const result = parseAcademicWork(printed)
+  assert.deepEqual(result.courses.map(({ code, name, grade, status }) => ({ code, name, grade, status })), [
+    { code: 'BCS2120', name: 'Introduction to Artificial Intelligence', grade: 7.5, status: 'passed' },
+    { code: 'BCS2210', name: 'Software Engineering and Architectures', grade: 8, status: 'passed' }
+  ])
+})
+
 test('identities that are not a Maastricht course triple are refused', () => {
   assert.equal(parseCourseIdentity('BCS2120'), null)
   assert.equal(parseCourseIdentity('2026-2027-100'), null)

@@ -12,7 +12,7 @@ import assert from 'node:assert/strict'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { deleteAllDocuments } from '../lib/user-store.mjs'
 import { loadEditorialProgrammeCatalogue } from '../lib/editorial-programmes.mjs'
-import { applyProgramme, chooseElectives, electiveChoices, relevantElectiveGroups, setupState } from '../lib/onboarding-runtime.mjs'
+import { applyProgramme, chooseElectiveGroups, chooseElectives, electiveChoices, relevantElectiveGroups, setupState } from '../lib/onboarding-runtime.mjs'
 import { readAcademicState } from '../lib/academics.mjs'
 
 const CS = 'maastricht-university-bsc-computer-science'
@@ -158,6 +158,34 @@ test('setup counts an unanswered elective group as outstanding', async () => {
     // Answering "none of these" is an answer.
     assert.equal(after.electivesPending, 0)
     assert.equal(after.electives, true)
+  })
+})
+
+test('the onboarding questionnaire saves every visible elective group in one revision', async () => {
+  await asNewStudent(async () => {
+    await applyProgramme({ programmeId: CS, studyYear: 3 })
+    const offered = await electiveChoices({ scope: 'current' })
+    assert.ok(offered.groups.every((group) => group.answered === false))
+    const before = await readAcademicState()
+    await chooseElectiveGroups({ choices: offered.groups.map((group) => ({ groupId: group.id, courseIds: group.courses.slice(0, 1).map((course) => course.id) })) })
+    const after = await readAcademicState()
+    assert.equal(after.workspace.revision, before.workspace.revision + 1, 'one page save creates one workspace revision')
+    const refreshed = await electiveChoices({ scope: 'current' })
+    assert.ok(refreshed.groups.every((group) => group.answered === true))
+  })
+})
+
+test('a bad group leaves the entire elective questionnaire untouched', async () => {
+  await asNewStudent(async () => {
+    await applyProgramme({ programmeId: CS, studyYear: 3 })
+    const offered = await electiveChoices({ scope: 'current' })
+    const valid = offered.groups[0]
+    await assert.rejects(() => chooseElectiveGroups({ choices: [
+      { groupId: valid.id, courseIds: valid.courses.slice(0, 1).map((course) => course.id) },
+      { groupId: 'not-a-real-group', courseIds: [] }
+    ] }), /No elective group/)
+    const { workspace } = await readAcademicState()
+    assert.deepEqual(workspace.programmeTemplate.selectedChoices, {})
   })
 })
 

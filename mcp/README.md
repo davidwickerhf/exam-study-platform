@@ -17,7 +17,7 @@ the MCP server.
 For a manually supplied key, the same secure bootstrap is available as:
 
 ```sh
-WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.7.0 configure
+WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.8.0 configure
 ```
 
 ```jsonc
@@ -67,7 +67,7 @@ agent receives proxied course data and nothing else.
 `wicker_status`, `wicker_authorize`, `wicker_sign_out`, and `canvas_connect` work without a key —
 they are how a key is obtained. Everything else needs one.
 
-- **Reading** — `list_courses`, `get_course`, `get_chapter`, `get_course_outline`, `search_course`,
+- **Reading** — `list_courses`, `get_course`, `get_chapter`, `get_course_outline`, `search_course`, `list_regulation_sources`, `search_regulations`,
   `list_materials`, `list_questions`, `get_practice_queue`, `get_progress`, `list_flashcards`,
   `list_due_cards`, `list_mistakes`, `list_mock_sessions`, `get_mock_session`, `get_academic_plan`,
   `get_planning_context`, `list_known_programmes`, `get_calendar`, `get_activity`,

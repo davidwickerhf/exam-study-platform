@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "filename": "EER Bachelor FSE-DACS 2026-2027.pdf",
+      "sha256": "f644141aeee56c27c73773ee5fc902c124dd8c288318439c9dd10bf44552c609",
+      "title": "Education and Examination Regulations 2026–2027",
+      "documentKind": "education-examination-regulations",
+      "institution": "Maastricht University · Faculty of Science and Engineering",
+      "authority": "Faculty Board, Faculty of Science and Engineering",
+      "academicYear": "2026-2027",
+      "visibility": "university",
+      "rightsBasis": "institution-member-reference",
+      "originalDownloadable": false,
+      "provenance": {
+        "kind": "canvas-course",
+        "courseCode": "BCS3300",
+        "courseName": "Project 3-1",
+        "courseEdition": "2026-2027-002-BCS3300"
+      },
+      "programmes": [
+        "maastricht-university-bsc-computer-science",
+        "maastricht-university-bsc-data-science-and-artificial-intelligence"
+      ]
+    },
+    {
+      "filename": "RR BSc DSAI CS 2026 2027.pdf",
+      "sha256": "e4f48de50e1c0c1425686ca44b0146ed2094fb5176c859ef58f6f35605efca31",
+      "title": "Rules and Regulations BSc DSAI and CS 2026–2027",
+      "documentKind": "rules-regulations",
+      "institution": "Maastricht University · Faculty of Science and Engineering",
+      "authority": "Board of Examiners, Department of Advanced Computing Sciences",
+      "academicYear": "2026-2027",
+      "visibility": "university",
+      "rightsBasis": "institution-member-reference",
+      "originalDownloadable": false,
+      "provenance": {
+        "kind": "canvas-course",
+        "courseCode": "BCS3300",
+        "courseName": "Project 3-1",
+        "courseEdition": "2026-2027-002-BCS3300"
+      },
+      "programmes": [
+        "maastricht-university-bsc-computer-science",
+        "maastricht-university-bsc-data-science-and-artificial-intelligence"
+      ]
+    }
+  ]
+}

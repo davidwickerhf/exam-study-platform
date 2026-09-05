@@ -89,7 +89,7 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.7.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.8.0' })
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 
@@ -488,6 +488,15 @@ server.tool('search_course', 'Hybrid full-text and embedding retrieval across pu
   query: z.string(),
   limit: z.number().int().min(1).max(20).optional()
 }, run((args) => api('/api/retrieve', { method: 'POST', body: args })))
+server.tool('search_regulations', 'Focused retrieval from official regulations for the active programme. Use for the Education and Examination Regulations, Board of Examiners, exam and resit procedures, registration, inspections, appeals, exemptions, hardship, fraud, projects, internships and curriculum transition rules. Results include the governing document, academic year and exact page; programme-restricted originals are not exposed.', {
+  query: z.string(),
+  academicYear: z.string().optional().describe('Exact academic year such as 2026-2027. Defaults to the active programme year.'),
+  documentKind: z.enum(['education-examination-regulations', 'rules-regulations', 'board-of-examiners', 'exam-procedure', 'programme-policy', 'other']).optional(),
+  limit: z.number().int().min(1).max(20).optional()
+}, run((args) => api('/api/programme-policies/retrieve', { method: 'POST', body: args })))
+server.tool('list_regulation_sources', 'List the official regulation sources indexed for the active programme and academic year. Returns reviewed metadata and coverage counts, never a programme-restricted original.', {
+  academicYear: z.string().optional().describe('Exact academic year such as 2026-2027. Defaults to the active programme year.')
+}, run(({ academicYear }) => api('/api/programme-policies', { query: { academicYear } })))
 server.tool('canvas_corpus_status', 'Material collection consent, background sync jobs, versioned course editions, source counts, and last/next scrape times for the connected account.', {
   canvasUrl: z.string().url().optional()
 }, run(({ canvasUrl }) => api('/api/account/integrations/canvas/corpus', { query: { canvasUrl: canvasUrl || DEFAULT_CANVAS_URL } })))

@@ -291,7 +291,7 @@ test('the Canvas import ledger is grouped in one pass', () => {
   assert.equal(none.storedMaterials, 0)
 })
 
-test('Canvas sync progress follows a persisted batch rather than unrelated old jobs', () => {
+test('Canvas sync progress matches the current course ledger', () => {
   const progress = canvasSyncProgress({ jobs: [
     { id: 'old', syncId: 'old-batch', type: 'course', status: 'failed', courseCode: 'OLD1000' },
     { id: 'catalog', syncId: 'batch-2', type: 'catalog', status: 'completed' },
@@ -300,11 +300,32 @@ test('Canvas sync progress follows a persisted batch rather than unrelated old j
     { id: 'three', syncId: 'batch-2', type: 'course', status: 'pending', courseCode: 'BCS1130' }
   ] })
   assert.equal(progress.active, true)
-  assert.equal(progress.percent, 33)
-  assert.equal(progress.totalCourses, 3)
+  assert.equal(progress.percent, 50)
+  assert.equal(progress.totalCourses, 4)
+  assert.equal(progress.settledCourses, 2)
   assert.equal(progress.completedCourses, 1)
   assert.equal(progress.indexedFiles, 8)
   assert.match(progress.stage, /BCS1120/)
-  assert.equal(progress.jobs.some((job) => job.id === 'old'), false)
+  assert.equal(progress.jobs.some((job) => job.id === 'old'), true)
   assert.equal(canvasSyncProgress({ jobs: [] }).active, false)
+})
+
+test('Canvas sync progress ignores superseded active attempts and reports durable material', () => {
+  const progress = canvasSyncProgress({
+    jobs: [
+      { id: 'new-complete', syncId: 'new', type: 'course', status: 'completed', courseCode: 'BCS2120', result: { indexed: 0 } },
+      { id: 'new-running', syncId: 'new', type: 'course', status: 'running', courseCode: 'BCS3300' },
+      { id: 'old-running', syncId: 'old', type: 'course', status: 'running', courseCode: 'BCS2120' },
+      { id: 'old-catalog', syncId: 'old', type: 'catalog', status: 'running' }
+    ],
+    courses: [{ courseCode: 'BCS2120', sources: 28 }, { courseCode: 'BCS3300', sources: 12 }]
+  })
+
+  assert.equal(progress.active, true)
+  assert.deepEqual(progress.activeJobs.map((job) => job.id), ['new-running'])
+  assert.equal(progress.totalCourses, 2)
+  assert.equal(progress.settledCourses, 1)
+  assert.equal(progress.percent, 50)
+  assert.equal(progress.indexedFiles, 40)
+  assert.match(progress.stage, /BCS3300/)
 })

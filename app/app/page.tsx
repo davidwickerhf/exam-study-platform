@@ -180,7 +180,7 @@ function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgres
             : <div className="bg-muted mt-3 h-1 overflow-hidden"><span className="bg-primary block h-full w-1/3 motion-safe:animate-[sync-travel_1.4s_ease-in-out_infinite]" /></div>}
           <p className="text-muted-foreground mt-2 text-xs">
             {progress.totalCourses
-              ? `${progress.completedCourses} of ${progress.totalCourses} courses · ${progress.indexedFiles} files indexed`
+              ? `${progress.settledCourses} of ${progress.totalCourses} courses settled · ${progress.indexedFiles} materials stored`
               : 'Discovering current, upcoming, and related historical course shells.'}
           </p>
         </div>
@@ -248,7 +248,9 @@ export default function HomePage() {
   const priorityLoading = academicsLoading || hubLoading || shellLoading
   const priorityError = academicsError ?? hubError ?? shellError
   const missingPrioritySources = prioritySources.filter((source) => source.detail !== 'Checking…' && !source.ready).length
-  const unavailablePrioritySources = prioritySources.filter((source) => source.detail === 'Unavailable').length
+  const readyPrioritySources = prioritySources.filter((source) => source.ready).map((source) => source.label)
+  const unavailablePrioritySources = prioritySources.filter((source) => source.detail === 'Unavailable').map((source) => source.label)
+  const disconnectedPrioritySources = prioritySources.filter((source) => !source.ready && source.detail !== 'Unavailable' && source.detail !== 'Checking…').map((source) => source.label)
   const activityByWeek = useMemo(() => context?.start && context?.end && weeks
     ? periodActivityWeeks(context.start, context.end, weeks, activity?.series ?? [], today)
     : activityWeeks((activity?.series ?? []).slice(-28)), [activity, context, today, weeks])
@@ -379,7 +381,7 @@ export default function HomePage() {
           {syncProgress.active && <CanvasSyncWidget progress={syncProgress} className="hidden xl:block" />}
           <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
             <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} active${missingPrioritySources || priorityError ? ' · partial' : ''}` : missingPrioritySources ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
-            {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs">Evidence coverage: {prioritySources.filter((source) => source.ready).length} of 3 sources connected.{unavailablePrioritySources ? ` ${unavailablePrioritySources} ${unavailablePrioritySources === 1 ? 'source is' : 'sources are'} temporarily unavailable.` : ''}</p></> : priorityLoading ? (
+            {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs leading-relaxed">Available evidence: {readyPrioritySources.join(', ') || 'none yet'}.{unavailablePrioritySources.length ? ` Could not read: ${unavailablePrioritySources.join(', ')}.` : ''}{disconnectedPrioritySources.length ? ` Not contributing: ${disconnectedPrioritySources.join(', ')}.` : ''}</p></> : priorityLoading ? (
               <div className="space-y-3 px-5 py-5"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-2/3" /></div>
             ) : priorityError ? (
               <div>

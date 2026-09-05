@@ -44,7 +44,7 @@ test('a hosted programme keeps administrator edits while repository releases add
   const merged = mergeEditorialProgrammeSeed(stored, seeded)
 
   assert.equal(merged.name, 'Computer Science — hosted wording')
-  assert.deepEqual(merged.versions.map((version) => version.id), ['2026-2027', '2025-2026'])
+  assert.deepEqual(merged.versions.map((version) => version.id), ['2026-2027', '2025-2026', '2023-2024'])
   assert.equal(merged.versions[1].label, 'Administrator-edited 2025–2026 curriculum')
   assert.deepEqual(merged.calendar.map((event) => event.id), ['hosted-date'])
   assert.deepEqual(merged.institution.domains.sort(), ['maastrichtuniversity.nl', 'student.maastrichtuniversity.nl'])

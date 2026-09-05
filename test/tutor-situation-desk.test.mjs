@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { deletePersonalData } from '../lib/account-data.mjs'
-import { evidenceFromTool, normalizeTutorContext, proposalFromTool, TUTOR_TOOLS, tutorSystemPrompt } from '../lib/tutor-agent.mjs'
+import { evidenceFromTool, normalizeTutorContext, proposalFromTool, TUTOR_TOOLS, tutorSystemPrompt, tutorTurnNeedsBriefing } from '../lib/tutor-agent.mjs'
 import { deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment, searchTutorAttachments } from '../lib/tutor-attachments.mjs'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { readTutorMemory, rememberPlan, saveTutorActionReceipt, tutorActionReceipt } from '../lib/tutor-store.mjs'
@@ -81,9 +81,16 @@ test('Tutor can retrieve planning context and stages planning writes for approva
   const names = TUTOR_TOOLS.map((tool) => tool.function.name)
   assert.ok(names.includes('get_planning_context'))
   assert.ok(names.includes('propose_planning_update'))
+  assert.ok(names.includes('get_course_staff'))
   const prompt = tutorSystemPrompt({ memory: {}, briefing: null, planner: { revision: 4, courses: [{ code: 'BCS1540' }] }, context: {}, now: new Date('2026-09-04T10:00:00Z') })
   assert.match(prompt, /saved planning scenario/)
   assert.match(prompt, /exam-scenario changes are proposals/)
+  assert.match(prompt, /get_course_staff exactly once/)
+})
+
+test('Tutor skips the expensive weekly briefing for a narrow course fact', () => {
+  assert.equal(tutorTurnNeedsBriefing('Who teaches my Block Chains course?'), false)
+  assert.equal(tutorTurnNeedsBriefing('What do I need to take care of this Friday?'), true)
 })
 
 test('approved plans and action receipts are durable and idempotent', async () => {

@@ -119,6 +119,25 @@ BCS1520
   ])
 })
 
+test('an official transcript keeps a result whose long course title wraps', () => {
+  const draft = fallbackAcademicIntake(`
+Transcript / Resultatenoverzicht
+Bachelor of Science in Computer Science
+BSc CS year 2 core courses
+Introduction to Artificial
+Intelligence 7,0 18.06.2025 4,00 4,00 1
+END OF TRANSCRIPT
+Academic overview
+Completed courses
+2024-2025-100- Introduction to Artificial Intelligence 7,0 4,0/4,0
+BCS2120
+  `, [], { kind: 'auto' })
+
+  const course = draft.courses.find((entry) => entry.code === 'BCS2120')
+  assert.ok(course)
+  assert.equal(course.attempts.some((attempt) => attempt.examDate === '2025-06-18' && attempt.status === 'passed'), true)
+})
+
 test('a title-only old transcript does not borrow a code from the current catalogue', () => {
   const draft = fallbackAcademicIntake(`
 Transcript / Resultatenoverzicht
