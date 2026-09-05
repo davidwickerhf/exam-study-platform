@@ -15,7 +15,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { deleteAllDocuments, readDocument } from '../lib/user-store.mjs'
-import { applyProgramme, deferSetupStep, finishSetup, onboardingView } from '../lib/onboarding-runtime.mjs'
+import { applyProgramme, deferSetupStep, finishSetup, onboardingStatus, onboardingView } from '../lib/onboarding-runtime.mjs'
 import { emptyAcademicWorkspace, saveActiveAcademicWorkspace } from '../lib/academics.mjs'
 import { OnboardingError } from '../lib/onboarding-agent.mjs'
 
@@ -35,6 +35,7 @@ test('an account with nothing recorded cannot declare itself finished', async ()
       return true
     })
     assert.equal((await onboardingView()).finished, false)
+    assert.equal((await onboardingStatus()).finished, false)
   })
 })
 
@@ -42,6 +43,7 @@ test('a student may explicitly skip first-run setup without inventing a programm
   await asNewStudent(async () => {
     const view = await finishSetup({ allowEmpty: true })
     assert.equal(view.finished, true)
+    assert.equal((await onboardingStatus()).finished, true)
     assert.equal(view.state.programme, false)
     assert.match(view.summary, /skipped/i)
   })
@@ -56,9 +58,11 @@ test('a programme with no courses can still be finished explicitly, and it stick
     // Nothing was ever finished and there is no course ledger, so the account
     // is not grandfathered — it has to say so.
     assert.equal((await onboardingView()).finished, false)
+    assert.equal((await onboardingStatus()).finished, false)
 
     const view = await finishSetup()
     assert.equal(view.finished, true)
+    assert.equal((await onboardingStatus()).finished, true)
 
     // Written down, not merely returned: a reload must agree.
     assert.equal((await readDocument('onboarding', 'conversation', null))?.finished, true)
@@ -85,6 +89,7 @@ test('an existing account with a programme and courses is already finished', asy
 
     const view = await onboardingView()
     assert.equal(view.finished, true, 'a working record is not sent back to setup')
+    assert.equal((await onboardingStatus()).finished, true)
     assert.ok(view.state.courseCount > 0)
     assert.ok(view.state.programmeName)
   })
@@ -105,4 +110,10 @@ test('an optional source can be deferred and restored without changing academic 
       return true
     })
   })
+})
+
+
+test('the entry verdict does not read academic sources after explicit completion', async () => {
+  const result = await onboardingStatus({ readStored: async () => ({ finished: true }), readPresence: async () => { throw new Error('Full setup must not block returning users') } })
+  assert.deepEqual(result, { finished: true })
 })

@@ -1,7 +1,9 @@
 'use client'
 
-import { SignIn, SignUp } from '@clerk/nextjs'
-import { useEffect, useState } from 'react'
+import { SignIn, SignUp, useAuth } from '@clerk/nextjs'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { safeAuthDestination } from '@/lib/workspace/auth-session.mjs'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { contacts } from '@/lib/site-content'
 import { SiteIcon } from '@/components/site/icon'
@@ -29,6 +31,31 @@ const appearance = {
     formFieldInput: 'clerk-input'
   }
 } as const
+
+function AuthLoading({ opening = false }: { opening?: boolean }) {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => { const timer = setTimeout(() => setSlow(true), 10000); return () => clearTimeout(timer) }, [])
+  return <div className="py-5" role="status"><p className="text-sm text-muted-foreground">{opening ? 'Opening your workspace…' : 'Loading secure sign-in…'}</p>{slow && <p className="mt-3 text-sm">This is taking longer than expected. <button className="font-semibold text-primary underline" onClick={() => window.location.reload()}>Try again</button></p>}</div>
+}
+
+function HostedAuth({ signUp }: { signUp: boolean }) {
+  const { isLoaded, isSignedIn } = useAuth()
+  const router = useRouter()
+  const params = useSearchParams()
+  const destination = safeAuthDestination(params.get('redirect_url'), typeof window === 'undefined' ? 'https://study.wicker.life' : window.location.origin)
+  const switchQuery = `?redirect_url=${encodeURIComponent(destination)}`
+  useEffect(() => { if (isLoaded && isSignedIn) router.replace(destination) }, [isLoaded, isSignedIn, destination, router])
+  // Do not mount a second sign-in flow over an active session. Pending Clerk
+  // session tasks remain signed-out here and are completed inside the widget.
+  if (!isLoaded) return <AuthLoading />
+  if (isSignedIn) return <><AuthLoading opening /><a className="text-sm font-semibold text-primary" href={destination}>Continue to your workspace →</a></>
+  return <>
+    {signUp
+      ? <SignUp routing="hash" signInUrl={`/sign-in${switchQuery}`} forceRedirectUrl={destination} appearance={appearance} />
+      : <SignIn routing="hash" signUpUrl={`/sign-up${switchQuery}`} forceRedirectUrl={destination} appearance={appearance} />}
+    <p className="auth-switch">{signUp ? <>Already have an account? <a href={`/sign-in${switchQuery}`}>Sign in</a></> : <>New here? <a href={`/sign-up${switchQuery}`}>Create an account</a></>}</p>
+  </>
+}
 
 export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: { mode: 'sign-in' | 'sign-up'; enabled: boolean; allowedDomains: string[]; localAccounts?: string[] }) {
   const signUp = mode === 'sign-up'
@@ -71,9 +98,7 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
           )}
           <div id="clerk-sign-in">
             {enabled ? (
-              signUp
-                ? <SignUp routing="hash" signInUrl="/sign-in" fallbackRedirectUrl="/app" appearance={appearance} />
-                : <SignIn routing="hash" signUpUrl="/sign-up" fallbackRedirectUrl="/app" appearance={appearance} />
+              <Suspense fallback={<AuthLoading />}><HostedAuth signUp={signUp} /></Suspense>
             ) : localAccounts.length ? (
               <div className="next-local-access">
                 <p>Development test accounts</p>
@@ -84,7 +109,7 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
               <div className="next-local-access"><p>Authentication is disabled in this local environment.</p><a className="site-button site-button-primary" href="/app">Open local workspace <SiteIcon name="arrow" /></a></div>
             )}
           </div>
-          <p className="auth-switch">{signUp ? <>Already have an account? <a href="/sign-in">Sign in</a></> : <>New here? <a href="/sign-up">Create an account</a></>}</p>
+          {!enabled && <p className="auth-switch">{signUp ? <>Already have an account? <a href="/sign-in">Sign in</a></> : <>New here? <a href="/sign-up">Create an account</a></>}</p>}
           <p className="auth-legal">By continuing, you agree to the <a href="/terms">Terms</a> and acknowledge the <a href="/privacy">Privacy notice</a>. Need help? <a href={`mailto:${contacts.support}`}>{contacts.support}</a>.</p>
         </section>
         <aside className="auth-product-column" aria-label="Product overview">

@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { createAuthenticatedFetch } from "@/lib/workspace/auth-session.mjs";
 import { cn } from "@/lib/utils";
 import {
   browserStateSnapshot,
@@ -71,6 +72,8 @@ export function useWorkspaceSession() {
 }
 
 function Waiting() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const timer = setTimeout(() => setSlow(true), 12000); return () => clearTimeout(timer) }, []);
   return (
     <div
       className="flex flex-col gap-3 p-8"
@@ -79,6 +82,7 @@ function Waiting() {
     >
       <Skeleton className="h-14 w-72 motion-reduce:animate-none" />
       <Skeleton className="h-4 w-48 motion-reduce:animate-none" />
+      {slow && <p className="text-sm text-muted-foreground">This is taking longer than expected. <button className="font-semibold text-primary underline" onClick={() => window.location.reload()}>Try again</button></p>}
     </div>
   );
 }
@@ -90,12 +94,17 @@ function Gate({
   onSession: (session: WorkspaceSession) => void;
   children: ReactNode;
 }) {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
   const { user } = useUser();
   const clerk = useClerk();
   const router = useRouter();
   const pathname = usePathname();
-  const patched = useRef(false);
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+  const [retry, setRetry] = useState(0);
+  const [verifiedSessionId, setVerifiedSessionId] = useState<string | null>(null);
   // The route the onboarding verdict below was established for. Setup is
   // enforced per destination, so a later move to another route re-checks
   // rather than trusting a stale answer.
@@ -127,61 +136,30 @@ function Gate({
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
-      router.replace("/sign-in");
+      router.replace(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
-    if (patched.current) return;
-    patched.current = true;
-
-    const original = window.fetch.bind(window);
-    let heldToken: { value: string; expiresAt: number } | null = null;
-    let tokenRequest: Promise<string | null> | null = null;
+    let live = true;
     let recoveringSession = false;
-    const recoverSession = () => {
-      if (recoveringSession) return;
-      recoveringSession = true;
-      heldToken = null;
-      void clerk
-        .signOut({ redirectUrl: "/sign-in" })
-        .catch(() => window.location.assign("/sign-in"));
-    };
-    const sessionToken = async () => {
-      if (heldToken && heldToken.expiresAt > Date.now()) return heldToken.value;
-      tokenRequest ??= getToken().then((value) => {
-        if (value) heldToken = { value, expiresAt: Date.now() + 30_000 };
-        return value;
-      }).finally(() => { tokenRequest = null; });
-      return tokenRequest;
-    };
-    window.fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
-      const href =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.href
-            : input.url;
-      const target = new URL(href, window.location.href);
-      // Only this origin's API is ours to sign.
-      if (
-        target.origin !== window.location.origin ||
-        !target.pathname.startsWith("/api/")
-      )
-        return original(input, init);
-      const headers = new Headers(
-        init.headers || (input instanceof Request ? input.headers : undefined),
-      );
-      // Clerk token resolution is async and used to run once per API request.
-      // A page commonly starts three or four reads together, so deduplicate
-      // those lookups and briefly retain the same short-lived session token.
-      const token = await sessionToken();
-      if (token) headers.set("authorization", `Bearer ${token}`);
-      const response = await original(input, { ...init, headers });
-      // A Clerk identity can be deleted while this already-mounted workspace
-      // still holds its old token. Clear that client session immediately; all
-      // API calls otherwise keep retrying an identity Clerk no longer knows.
-      if (response.status === 401) recoverSession();
-      return response;
-    };
+    const controller = new AbortController();
+    const original = window.fetch;
+    setReady(false);
+    setAccess({ kind: "checking" });
+    setOnboardingFinished(null);
+    const authenticatedFetch = createAuthenticatedFetch({
+      fetchImpl: original.bind(window),
+      getToken: options => getTokenRef.current(options),
+      origin: window.location.origin,
+      isActive: () => live && sessionIdRef.current === sessionId,
+      onUnauthorized: failure => {
+        if (!live) return;
+        if (failure?.reason === "stale_session" && !recoveringSession) {
+          recoveringSession = true;
+          void clerk.signOut({ redirectUrl: "/sign-in" }).catch(() => window.location.assign("/sign-in"));
+        }
+      },
+    });
+    window.fetch = authenticatedFetch;
     async function check() {
       try {
         // Both endpoints only read the authenticated account. Starting them
@@ -189,13 +167,15 @@ function Gate({
         // refresh; previously onboarding did not begin until session had
         // completely returned and been decoded.
         const [response, onboardingResponse] = await Promise.all([
-          window.fetch("/api/auth/session"),
-          window.fetch("/api/onboarding"),
+          authenticatedFetch("/api/auth/session", { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]) }),
+          authenticatedFetch("/api/onboarding/status", { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]) }),
         ]);
         const [session, onboarding] = await Promise.all([
           response.json().catch(() => ({})),
           onboardingResponse.json().catch(() => ({})),
         ]);
+        if (!live) return;
+        setVerifiedSessionId(sessionId || null);
         if (response.status === 403) {
           setAccess({
             kind: "ineligible",
@@ -228,22 +208,31 @@ function Gate({
         else setAccess({ kind: "allowed" });
         setReady(true);
       } catch (cause) {
-        setAccess({ kind: "error", message: (cause as Error).message });
+        if (!live) return;
+        setVerifiedSessionId(sessionId || null);
+        setAccess({ kind: "error", message: (cause as Error).name === "TimeoutError" ? "Your workspace is taking longer than expected. Try again." : (cause as Error).message });
         setReady(true);
       }
     }
     void check();
-  }, [getToken, isLoaded, isSignedIn, onSession, router]);
+    return () => {
+      live = false;
+      controller.abort();
+      // Route changes/sign-out must not leave an old session's fetch wrapper
+      // underneath the next mount (including React Strict Mode's re-mount).
+      if (window.fetch === authenticatedFetch) window.fetch = original;
+    };
+  }, [clerk, isLoaded, isSignedIn, sessionId, onSession, router, retry]);
 
   // Setup stays compulsory: leaving it for another destination re-reads the
   // status once instead of reloading the document, and setup remains reachable
   // so the student can finish it.
-  const awaitingSetup = onboardingFinished === false && pathname !== "/app/setup";
+  const awaitingSetup = ready && verifiedSessionId === sessionId && onboardingFinished === false && pathname !== "/app/setup";
   useEffect(() => {
     if (!awaitingSetup || checkedPath.current === pathname) return;
     let live = true;
     void window
-      .fetch("/api/onboarding")
+      .fetch("/api/onboarding/status")
       .then((response) => (response.ok ? response.json() : null))
       .then((onboarding) => {
         if (!live) return;
@@ -259,7 +248,7 @@ function Gate({
     };
   }, [awaitingSetup, pathname, router]);
 
-  if (!isLoaded || !ready) return <Waiting />;
+  if (!isLoaded || !isSignedIn || !ready || verifiedSessionId !== sessionId) return <Waiting />;
   if (awaitingSetup) return <Waiting />;
   if (access.kind === "ineligible")
     return (
@@ -289,6 +278,7 @@ function Gate({
           <EmptyTitle>Unable to start your workspace</EmptyTitle>
           <EmptyDescription>{access.message}</EmptyDescription>
         </EmptyHeader>
+        <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => setRetry(value => value + 1)}>Try again</Button><Button variant="ghost" onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}>Use another account</Button></div>
       </Empty>
     );
   if (access.kind === "programme") {
