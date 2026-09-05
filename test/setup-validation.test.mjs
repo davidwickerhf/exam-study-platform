@@ -1,11 +1,25 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { findEditorialProgramme } from '../lib/editorial-programmes.mjs'
-import { programmesMatch, reconcileProgrammeCourses, validateSetupSources } from '../lib/setup-validation.mjs'
+import { inferEntryCurriculum, programmesMatch, reconcileProgrammeCourses, validateSetupSources } from '../lib/setup-validation.mjs'
 
 test('programme comparison ignores degree wording', () => {
   assert.equal(programmesMatch('Bachelor of Science Computer Science', 'BSc Computer Science'), true)
   assert.equal(programmesMatch('Bachelor of Science Computer Science', 'Master of Arts European Studies'), false)
+})
+
+test('the entry curriculum is inferred from the earliest Year 1 attempt, not a later retake', () => {
+  const found = findEditorialProgramme('maastricht-university-bsc-computer-science', '2023-2024')
+  const courses = [{
+    code: 'BCS1520',
+    name: 'Statistics',
+    yearLevel: 'Year 1',
+    attempts: [
+      { academicYear: '2023–2024', status: 'failed', courseCode: 'BCS1520', yearLevel: 'Year 1' },
+      { academicYear: '2025–2026', status: 'passed', courseCode: 'BCS1520', yearLevel: 'Year 1' }
+    ]
+  }]
+  assert.equal(inferEntryCurriculum(courses, found.programme.versions), '2023-2024')
 })
 
 test('setup validation reports an explicit transcript mismatch', () => {

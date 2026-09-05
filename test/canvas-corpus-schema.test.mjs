@@ -63,7 +63,8 @@ test('derived priority failures do not restart a completed course archive', () =
   assert.match(worker, /previous_error/)
   assert.match(worker, /reusedImport: true/)
   assert.match(worker, /error=null/)
-  assert.match(priorityEvidence, /responseFormat: \{ type: 'json_object' \}/)
+  assert.match(priorityEvidence, /responseFormat: PRIORITY_RESPONSE_SCHEMA/)
+  assert.match(priorityEvidence, /type: 'json_schema'/)
   assert.match(priorityEvidence, /stored course material remains available/i)
 })
 
