@@ -227,8 +227,8 @@ test('source-grounded study, persisted notes, exercises, mock exam and private s
   await page
     .getByLabel('Your answer', { exact: true })
     .fill('Subtract one group to check the other.')
-  await page.getByRole('button', { name: 'Next question', exact: true }).click()
-  await page.getByRole('button', { name: 'Next question', exact: true }).click()
+  for (let i = 0; i < 7; i++)
+    await page.getByRole('button', { name: 'Next question', exact: true }).click()
   await page
     .getByRole('button', { name: 'Finish and review solutions' })
     .click()

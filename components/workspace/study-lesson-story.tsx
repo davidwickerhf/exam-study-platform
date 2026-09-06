@@ -26,7 +26,8 @@ export function StudyLessonStory({ chapter, revision }: { chapter: StudyChapter;
     elements.forEach(el => observer.observe(el))
     return () => observer.disconnect()
   }, [chapter.id])
-  const visualIndex = chapter.sections[active]?.visual ? active : chapter.sections.findIndex(s => s.visual)
+  const priorVisual = chapter.sections.reduce((last, section, i) => i <= active && section.visual ? i : last, -1)
+  const visualIndex = priorVisual >= 0 ? priorVisual : chapter.sections.findIndex(s => s.visual)
   const visualSection = chapter.sections[visualIndex]
   return <div ref={root} className={hasVisual ? 'grid min-w-0 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-10' : ''}>
     <div className="min-w-0">

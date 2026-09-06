@@ -53,7 +53,7 @@ grant exemptions. Other production accounts retain the limits below. Costs and
 tokens are still recorded, while Settings displays “Unlimited AI usage” and hides
 spending-cap fields. Provider limits, job leases, finite context/output bounds,
 timeouts and general HTTP abuse protections remain. Personal keys still require
-explicit selection; preview workers remain disabled to avoid consuming shared jobs.
+explicit selection; preview workers require an isolated database and an explicit user allowlist (see below).
 
 
 Platform study generation defaults to 6 newly generated chapters per UTC day and
@@ -89,6 +89,30 @@ long-copy detection and simple constant-arithmetic checks. A separate model call
 reviews evidence support, solutions, contradictions and historical assessment rules.
 This is labeled AI checking, never editorial approval. Human subject review remains
 necessary to establish teaching quality across a full course.
+
+## Guided visual lessons
+
+New generations use `student-source-teaching-v2`; saved earlier revisions remain readable.
+The reader follows the supplied science-scrollytelling pattern: short sequential explanations
+and an active diagram beside them on desktop, inline diagrams on mobile, and optional deeper
+reasoning. It keeps the existing Wicker Study white/slate/indigo design. Refero references:
+Hashnode `001b4b2e-36c5-414f-943c-93047275fc18` for editorial hierarchy and spacing;
+Brilliant `41ec1c5f-02d9-4d90-9740-1afa2d3bbf64` for focused practice interactions.
+There is no forced empty scroll space or motion requirement.
+
+Each chapter has 3–6 learning goals, 4–7 concise sections, substantive takeaways,
+5–8 self-contained summary entries, 8–12 progressive questions with objectives/hints/reasoned
+solutions, and at least 10 varied atomic flashcards. Process diagrams, comparison tables,
+plots and set diagrams are generated as validated data, never executable model-authored UI.
+Source-backed and illustrative visuals are labelled separately. Deterministic checks reject
+broken graph relationships, invalid membership, mismatched tables, non-finite plot data,
+duplicate prompts and shallow practice; the independent reviewer checks semantic support.
+Original slide images remain explicitly unanalysed unless their meaning is independently
+established in extracted text. A generated teaching diagram does not imply vision analysis.
+
+PowerPoint extraction version 5 removes embedded image/base64 payloads from accessibility
+text while retaining legitimate descriptions. Existing originals are re-extracted during sync.
+Administrative slides and visual-coverage markers are excluded from teaching chapter maps.
 
 ## Validation and operations
 
