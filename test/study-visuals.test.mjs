@@ -37,6 +37,9 @@ test('teaching gate rejects dense prose, empty summaries and shallow repetitive 
   bad.flashcards.forEach(c => {c.front='What is addition?';c.kind='definition'})
   const issues=studyLessonQuality(bad).join(' ')
   for (const term of [/concise/,/visual/,/summary/,/progressive challenge/,/distinct prompts/,/exam-policy trivia/]) assert.match(issues,term)
+  const wrongCallout = structuredClone(good)
+  wrongCallout.sections[0].callouts[0].text = 'The rule is $2+3=6$.'
+  assert.match(studyLessonQuality(wrongCallout).join(' '), /arithmetic/)
   const contract=studyResponseSchema(teachingSchema,['e-1'])
   assert.deepEqual(contract.properties.sections.items.properties.visual.anyOf[0].properties.sourceIds.items.enum,['e-1'])
 })

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { StudyProse } from './study-prose'
 import { StudyEvidence } from './study-evidence'
+import { StudyCallout } from './study-callout'
 import { StudyVisual } from './study-visual'
 import type { StudyChapter, StudyRevision } from '@/lib/workspace/study-versions'
 
@@ -34,8 +35,9 @@ export function StudyLessonStory({ chapter, revision }: { chapter: StudyChapter;
       {chapter.sections.map((section, index) => <section key={`${chapter.id}-${index}`} data-story-section={index} className="mb-12 scroll-mt-8 last:mb-0">
         <p className="mb-3 text-xs font-medium tabular-nums text-muted-foreground">{String(index + 1).padStart(2, '0')} / {String(chapter.sections.length).padStart(2, '0')}</p>
         <h3 className="mb-4 text-xl font-semibold leading-snug tracking-tight">{section.title}</h3>
+        {!!section.callouts?.length && <div className="mb-5 space-y-4">{section.callouts.map((callout,i) => <StudyCallout key={i} callout={callout} revision={revision} />)}</div>}
         <div className="max-w-prose text-pretty"><StudyProse>{section.text}</StudyProse></div>
-        {section.takeaway && <p className="mt-5 border-l-2 border-primary pl-4 text-sm font-medium leading-relaxed">{section.takeaway}</p>}
+        {section.takeaway && (!section.callouts?.length ? <div className="mt-5"><StudyCallout callout={{kind:'takeaway',title:'Key idea',text:section.takeaway,sourceIds:[]}} revision={revision} /></div> : <p className="mt-5 text-sm font-medium leading-relaxed">{section.takeaway}</p>)}
         {section.detail && <details className="mt-5 border-y py-3"><summary className="cursor-pointer text-sm font-medium">Go deeper: {section.title}</summary><div className="mt-4 max-w-prose"><StudyProse>{section.detail}</StudyProse></div></details>}
         <StudyEvidence ids={section.sourceIds} revision={revision} />
         {section.visual && <div className="mt-6 xl:hidden"><StudyVisual visual={section.visual} /><StudyEvidence ids={section.visual.sourceIds} revision={revision} /></div>}

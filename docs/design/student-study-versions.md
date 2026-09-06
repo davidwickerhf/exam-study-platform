@@ -92,7 +92,7 @@ necessary to establish teaching quality across a full course.
 
 ## Guided visual lessons
 
-New generations use `student-source-teaching-v2`; saved earlier revisions remain readable.
+New generations use `student-source-teaching-v3`; saved earlier revisions remain readable.
 The reader follows the supplied science-scrollytelling pattern: short sequential explanations
 and an active diagram beside them on desktop, inline diagrams on mobile, and optional deeper
 reasoning. It keeps the existing Wicker Study white/slate/indigo design. Refero references:
@@ -101,6 +101,7 @@ Brilliant `41ec1c5f-02d9-4d90-9740-1afa2d3bbf64` for focused practice interactio
 There is no forced empty scroll space or motion requirement.
 
 Each chapter has 3–6 learning goals, 4–7 concise sections, substantive takeaways,
+dedicated definition/rule/formula/pitfall callouts with rendered mathematics and citations,
 5–8 self-contained summary entries, 8–12 progressive questions with objectives/hints/reasoned
 solutions, and at least 10 varied atomic flashcards. Process diagrams, comparison tables,
 plots and set diagrams are generated as validated data, never executable model-authored UI.

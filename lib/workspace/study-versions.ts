@@ -47,7 +47,7 @@ export type StudyChapter = {
   review: string
   formatVersion?: 2
   learningGoals?: string[]
-  sections: (GroundedText & { title: string; takeaway?: string; detail?: string | null; visual?: StudyVisualSpec | null })[]
+  sections: (GroundedText & { title: string; takeaway?: string; detail?: string | null; visual?: StudyVisualSpec | null; callouts?: { kind: 'definition' | 'rule' | 'formula' | 'pitfall'; title: string; text: string; sourceIds: string[] }[] })[]
   summary: GroundedText[]
   questions: StudyQuestion[]
   flashcards: { kind?: string; id: string; front: string; back: string; sourceIds: string[] }[]

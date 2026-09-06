@@ -19,6 +19,7 @@ export function lesson(ids, { wrong = false } = {}) {
     ].map((title) => ({
       title,
       text: paragraph,
+      callouts: title === 'Definition' ? [{kind:'definition',title:'Adding disjoint groups',text:'Addition combines quantities with matching units. Count each item once. For the illustrative groups:\n\n$$2+3=5$$',sourceIds:ids}] : [],
       takeaway: 'Count each quantity once and verify the result.',
       detail: title === 'Reasoning' ? 'Subtraction gives an independent check: after combining two disjoint groups, remove one group from the total. The remainder should match the group that was present before addition. This works only when each object is counted once and the groups use matching units.' : null,
       visual: title === 'Worked example' ? { title: 'Combine, then check', caption: 'Follow the illustrative total forward, then reverse the calculation to check it.', basis: 'illustrative', sourceIds: ids, diagram: {kind:'process',nodes:[{id:'start',label:'2 items',description:'Begin with the first disjoint group.'},{id:'add',label:'Add 3',description:'Combine the second group, counting every item once.'},{id:'total',label:'5 items',description:'The total combines both groups; subtract three to recover two.'}],edges:[{from:'start',to:'add',label:'Combine'},{from:'add',to:'total',label:'Total'},{from:'total',to:'start',label:'Subtract 3 to check'}]} } : null,
