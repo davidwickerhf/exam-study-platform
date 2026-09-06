@@ -9,6 +9,7 @@
  * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
  */
 
+import { PriorityRow } from '@/components/workspace/priority-row'
 import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -144,28 +145,6 @@ function ExternalOrInternalLink({ href, className, children }: { href: string; c
   return href.startsWith('http')
     ? <a href={href} target="_blank" rel="noopener noreferrer" className={className}>{children}</a>
     : <Link href={href} className={className}>{children}</Link>
-}
-
-function PriorityRow({ item }: { item: HomePriority }) {
-  return (
-    <li className="border-b last:border-b-0">
-      <ExternalOrInternalLink href={item.href} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-5 py-3.5">
-        <span className={cn('mt-0.5 grid size-8 place-items-center rounded-md', item.rank === 0 ? 'bg-destructive/10 text-destructive' : 'bg-accent text-primary')}>
-          {item.kind === 'attendance' || item.kind === 'exam' ? <CalendarDaysIcon className="size-4" /> : item.kind === 'project' ? <ListChecksIcon className="size-4" /> : <CircleAlertIcon className="size-4" />}
-        </span>
-        <span className="min-w-0">
-          <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <strong className="text-sm leading-snug">{item.title}</strong>
-            <span className={cn('text-[10px] font-semibold tracking-[0.08em] uppercase', item.rank === 0 ? 'text-destructive' : 'text-primary')}>{item.status}</span>
-          </span>
-          <span className="text-muted-foreground mt-0.5 block text-xs leading-relaxed">{[item.courseCode, item.source, item.dueText ?? (item.kind === 'attendance' ? `Next session ${distance(item.dueAt)}` : distance(item.dueAt))].filter(Boolean).join(' · ')}</span>
-          <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">{item.detail}</span>
-          {item.occurrences && item.occurrences > 1 ? <span className="text-muted-foreground mt-1 block text-xs">{item.occurrences - 1} later {item.occurrences === 2 ? 'session' : 'sessions'} in your timetable</span> : null}
-        </span>
-        <ChevronRightIcon className="text-muted-foreground mt-2 size-3.5 transition-transform group-hover:translate-x-0.5" />
-      </ExternalOrInternalLink>
-    </li>
-  )
 }
 
 function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgress; className?: string }) {
@@ -390,7 +369,7 @@ export default function HomePage() {
           <DashboardSetupReminder />
           {syncProgress.active && <CanvasSyncWidget progress={syncProgress} className="hidden xl:block" />}
           <section className="bg-accent/35 overflow-hidden rounded-xl border shadow-[var(--shadow-sheet)]">
-            <SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} shown${missingPrioritySources || priorityError || verifiedRules < ruleCourses.length ? ' · partial' : ''}` : missingPrioritySources || verifiedRules < ruleCourses.length ? 'Partial view' : 'Clear'} href="/app/updates?tab=assignments" />
+            <div><SectionHead title="Priorities" meta={priorities.length ? `${priorities.length} shown${missingPrioritySources || priorityError || verifiedRules < ruleCourses.length ? ' · partial' : ''}` : missingPrioritySources || verifiedRules < ruleCourses.length ? 'Partial view' : 'Clear'} href="/app/priorities" /><Link href="/app/priorities" className="block border-b px-5 py-2 text-xs font-semibold text-primary">View all priorities →</Link></div>
             {priorities.length ? <><ul>{priorities.map((item) => <PriorityRow key={item.id} item={item} />)}</ul><p className="text-muted-foreground border-t px-5 py-3 text-xs leading-relaxed">Available evidence: {readyPrioritySources.join(', ') || 'none yet'}. Course rules available for {verifiedRules} of {ruleCourses.length} courses.{verifiedRules < ruleCourses.length ? ' Missing rules do not mean there are no obligations.' : ''}{unavailablePrioritySources.length ? ` Could not read: ${unavailablePrioritySources.join(', ')}.` : ''}{disconnectedPrioritySources.length ? ` ${disconnectedPrioritySources.map(label => label === 'Course rules' ? `Course rules: ${prioritySources[2].detail.toLowerCase()}` : `${label}: not connected`).join('. ')}.` : ''}</p></> : priorityLoading ? (
               <div className="space-y-3 px-5 py-5"><Skeleton className="h-4 w-4/5" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-2/3" /></div>
             ) : priorityError ? (

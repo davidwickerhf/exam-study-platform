@@ -66,7 +66,7 @@ export function StudyBillingFields({
           </SelectContent>
         </Select>
         <FieldDescription>
-          {source === 'personal'
+          {budget?.unlimited ? 'No AI usage quota applies to this account or environment. Usage and cost are still recorded.' : source === 'personal'
             ? `Uses your ${budget?.personal.model || 'connected model'} key. $${budget?.personal.spentMonthUsd.toFixed(2) || '0.00'} of $${budget?.personal.monthlyLimitUsd || 0} monthly limit used.`
             : budget
               ? `${Math.max(0, budget.limits.chaptersDay - budget.platform.chaptersToday)} included chapters left today · ${Math.max(0, budget.limits.chaptersMonth - budget.platform.chaptersMonth)} this month. Token and spending limits also apply.`
@@ -79,7 +79,7 @@ export function StudyBillingFields({
           </Link>
         </FieldDescription>
       </Field>
-      <Field>
+      {!budget?.unlimited && <Field>
         <FieldLabel htmlFor="study-spending-cap">
           Spending cap for this generation (USD)
         </FieldLabel>
@@ -96,7 +96,7 @@ export function StudyBillingFields({
           Generation pauses before the next call would exceed this cap. Paid
           work stays saved. Billing never switches automatically.
         </FieldDescription>
-      </Field>
+      </Field>}
       {error && (
         <p role="alert" className="text-destructive text-sm">
           {error}

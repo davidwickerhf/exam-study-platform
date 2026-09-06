@@ -402,8 +402,7 @@ export function StudySourceForm({
               Approximately {estimate.chapterRange[0]}–
               {estimate.chapterRange[1]} chapters · estimated $
               {estimate.estimatedUsd[0].toFixed(2)}–$
-              {estimate.estimatedUsd[1].toFixed(2)}. Spending cap: $
-              {estimate.maxJobUsd.toFixed(2)}. Model: {estimate.model}.
+              {estimate.estimatedUsd[1].toFixed(2)}. {estimate.unlimited ? 'No usage cap.' : `Spending cap: $${estimate.maxJobUsd.toFixed(2)}.`} Model: {estimate.model}.
             </span>
             <span>{estimate.explanation}</span>
           </AlertDescription>

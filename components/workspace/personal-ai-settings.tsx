@@ -78,7 +78,7 @@ export function PersonalAiSettings() {
         <>
           <div className="rounded-xl border bg-card p-5">
             <h3 className="mb-3 text-sm font-semibold">
-              Included study allowance
+              {budget.unlimited ? 'Unlimited AI usage' : 'Included study allowance'}
             </h3>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -86,7 +86,7 @@ export function PersonalAiSettings() {
                   Chapters today
                 </dt>
                 <dd className="mt-1">
-                  {budget.platform.chaptersToday} / {budget.limits.chaptersDay}
+                  {budget.platform.chaptersToday}{!budget.unlimited && ` / ${budget.limits.chaptersDay}`}
                 </dd>
               </div>
               <div>
@@ -94,8 +94,7 @@ export function PersonalAiSettings() {
                   Chapters this month
                 </dt>
                 <dd className="mt-1">
-                  {budget.platform.chaptersMonth} /{' '}
-                  {budget.limits.chaptersMonth}
+                  {budget.platform.chaptersMonth}{!budget.unlimited && ` / ${budget.limits.chaptersMonth}`}
                 </dd>
               </div>
               <div>
@@ -103,8 +102,7 @@ export function PersonalAiSettings() {
                   Platform allowance used this month
                 </dt>
                 <dd className="mt-1">
-                  ${budget.platform.spentMonthUsd.toFixed(2)} / $
-                  {budget.limits.userMonthUsd.toFixed(2)}
+                  ${budget.platform.spentMonthUsd.toFixed(2)}{!budget.unlimited && ` / $${budget.limits.userMonthUsd.toFixed(2)}`}
                 </dd>
               </div>
               <div>
@@ -112,16 +110,15 @@ export function PersonalAiSettings() {
                   Your key usage this month
                 </dt>
                 <dd className="mt-1">
-                  ${budget.personal.spentMonthUsd.toFixed(2)} / $
-                  {budget.personal.monthlyLimitUsd.toFixed(2)}
+                  ${budget.personal.spentMonthUsd.toFixed(2)}{!budget.unlimited && ` / $${budget.personal.monthlyLimitUsd.toFixed(2)}`}
                 </dd>
               </div>
             </dl>
             <p className="text-muted-foreground mt-4 text-xs">
-              Reading, saved questions and unchanged chapter reuse do not
+              {budget.unlimited ? 'No spending, chapter, token or request quota applies. Actual costs are still recorded; execution and duplicate-job safeguards remain active.' : <>Reading, saved questions and unchanged chapter reuse do not
               trigger new AI calls. Mapping, writing, checks and retries count
               toward token and spending limits. The shared platform budget also
-              applies.
+              applies.</>}
             </p>
           </div>
           <FieldGroup>
@@ -175,7 +172,7 @@ export function PersonalAiSettings() {
                 Claude subscription is separate from API billing.
               </FieldDescription>
             </Field>
-            <Field>
+            {!budget.unlimited && <Field>
               <FieldLabel htmlFor="personal-ai-monthly-limit">
                 Monthly Wicker spending limit (USD)
               </FieldLabel>
@@ -193,7 +190,7 @@ export function PersonalAiSettings() {
                 using the configured rate card. Other apps and provider charges
                 are outside it.
               </FieldDescription>
-            </Field>
+            </Field>}
             <Field orientation="horizontal">
               <Checkbox
                 id="personal-ai-consent"

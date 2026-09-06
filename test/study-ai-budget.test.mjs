@@ -230,3 +230,16 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
     else process.env.AI_CONNECTION_ENCRYPTION_KEY = oldKey
   }
 })
+
+test('quota exemption bypasses usage ceilings while retaining metering and duplicate protection', () => {
+  const zero={platformDayUsd:0,platformMonthUsd:0,userDayUsd:0,userMonthUsd:0,chaptersDay:0,chaptersMonth:0,requestsMinute:0,tokensDay:0,personalTokensDay:0,maxJobUsd:0}
+  const input={user:'owner',jobKey:'uncapped',source:'platform',model:'gpt-5-mini',estimate:{micros:9000000,inputTokens:2000000,outputTokens:10000},chapterKey:'chapter',maxJobUsd:0,personalMonthUsd:0,quotaExempt:true}
+  for (const source of ['platform','personal']) {
+    const reserved=reserveStudyLedger(null,{...input,source},zero)
+    assert.equal(reserved.ledger.total,9000000)
+    assert.equal(reserved.reservation.quotaExempt,true)
+    assert.equal(reserved.ledger.users.owner.days[new Date().toISOString().slice(0,10)].chapters,1)
+    assert.throws(()=>reserveStudyLedger(reserved.ledger,{...input,source},zero),/Another chapter/)
+    assert.throws(()=>reserveStudyLedger(null,{...input,source,quotaExempt:false},zero),/allowance/)
+  }
+})

@@ -1,3 +1,4 @@
+import { aiQuotaExemption } from './lib/ai-quota-policy.mjs'
 import { renderCourseSlides } from './lib/course-slide-render.mjs'
 import { previewCourseAsset } from './lib/course-file-preview.mjs'
 import { feedbackMaintenance, recordQualityEvent } from './lib/feedback-store.mjs'
@@ -3786,7 +3787,7 @@ const server = createServer(async (req, res) => {
       // Per-identity budgets by route class (AI allowances apply on top).
       const identity = auth.keyId ? `key:${auth.keyId}` : `user:${auth.userId}`
       const policy = classifyRequest(req.method, url.pathname)
-      const budget = consume(`${policy}:${identity}`, RATE_POLICIES[policy])
+      const budget = policy === 'ai' && await aiQuotaExemption() ? {allowed:true} : consume(`${policy}:${identity}`, RATE_POLICIES[policy])
       if (!budget.allowed) { sendRateLimited(res, budget); return }
       if (policy !== 'user') {
         const overall = consume(`user:${identity}`, RATE_POLICIES.user)

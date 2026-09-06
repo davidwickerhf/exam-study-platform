@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import pg from 'pg'
 import * as neonModule from '@neondatabase/serverless'
+process.env.NODE_ENV = 'test' // Exercise ordinary account caps even on a development machine.
 const url = new URL(process.env.STUDY_TEST_DATABASE_URL || '')
 if (!['localhost', '127.0.0.1'].includes(url.hostname))
   throw new Error('Use a disposable localhost database.')
@@ -195,8 +196,25 @@ try {
   )
   assert.equal(paid, 1)
   assert.equal(outcomes.filter((r) => r.status === 'rejected').length, 1)
+  // Real SQL coverage for derived scans: unchanged evidence is reused, while
+  // edits create a new version. Disable model availability for this fixture.
+  process.env.LLM_PROVIDER = 'codex'
+  const { scanCanvasPriorityEvidence, PRIORITY_EXTRACTION_VERSION } = await import('../../lib/priority-evidence.mjs')
+  const { priorityBatchCache } = await import('../../lib/priority-scan-runtime.mjs')
+  await pool.query("UPDATE editorial_source_assets SET filename='course-manual.pdf'; UPDATE canvas_source_snapshots SET resource_type='syllabus',source_path='course-manual.pdf'; UPDATE editorial_source_retrieval_chunks SET content='Labs are mandatory.'")
+  const scan = await scanCanvasPriorityEvidence({accountId:'owner',bindingId:'binding'})
+  assert.equal(scan.cached,false)
+  assert.equal(scan.courseProfile.priorityExtractionVersion,PRIORITY_EXTRACTION_VERSION)
+  assert.ok(scan.courseProfile.assessment.attendanceRules.some(rule=>rule.includes('mandatory')))
+  assert.equal((await scanCanvasPriorityEvidence({accountId:'owner',bindingId:'binding'})).cached,true)
+  await pool.query("UPDATE editorial_source_retrieval_chunks SET content='Lab attendance is compulsory.'")
+  assert.equal((await scanCanvasPriorityEvidence({accountId:'owner',bindingId:'binding'})).cached,false)
+  const cache=priorityBatchCache('owner','binding')
+  await cache.save('fixture',{status:'confirmed'})
+  assert.deepEqual(await cache.load('fixture'),{status:'confirmed'})
+  assert.equal(await priorityBatchCache('peer','binding').load('fixture'),null)
   console.log(
-    'PostgreSQL: migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal and atomic shared spending passed.'
+    'PostgreSQL: migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal atomic shared spending, derived scan invalidation and private batch caching passed.'
   )
 } finally {
   await pool.end()

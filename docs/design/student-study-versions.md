@@ -43,6 +43,19 @@ and permitted source evidence into the existing review inbox.
 
 ## Cost and quality contract
 
+Development and Vercel preview environments have no application AI usage caps.
+Production accounts whose server-resolved, verified primary Clerk email is
+`davidwickerhf@gmail.com` or `d.wicker@student.maastrichtuniversity.nl` are also
+uncapped. This applies to study generation, private quality evaluations, background
+priority scans, tutor/exercise/import quotas and the AI-specific request bucket.
+Queued work resolves its owner's identity; submitted email or billing flags cannot
+grant exemptions. Other production accounts retain the limits below. Costs and
+tokens are still recorded, while Settings displays “Unlimited AI usage” and hides
+spending-cap fields. Provider limits, job leases, finite context/output bounds,
+timeouts and general HTTP abuse protections remain. Personal keys still require
+explicit selection; preview workers remain disabled to avoid consuming shared jobs.
+
+
 Platform study generation defaults to 6 newly generated chapters per UTC day and
 30 per UTC month, plus $0.50/day and $3/month per account. The shared study budget
 is $10/day and $100/month. All limits are configurable. Mapping, outline building,

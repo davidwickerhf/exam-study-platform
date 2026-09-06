@@ -114,7 +114,7 @@ a mandatory lab rule is not silently assigned to a tutorial or lecture. Mandator
 rules without matching timetable sessions remain visible on the attendance page.
 Undated or older editorial rules cannot override current-year source evidence.
 
-Priority extraction version 3 also retains narrow, explicit syllabus sentences
+Priority extraction version 4 also retains narrow, explicit syllabus sentences
 such as “Labs are mandatory”, with their source references, even when AI extraction
 misses them or is unavailable. Conditional or disputed rules are not inferred by
 this fallback. An attendance-only fallback does not establish complete assessment
@@ -135,6 +135,33 @@ lab names, practical aliases, academic-year scoping and conflicting evidence.
 The rail reports how many rows are shown and how many courses have supported rules.
 Partial source coverage must not be interpreted as absence of obligations in the other
 courses. Grouping and ranking are deterministic and make no AI calls.
+
+### Recurring scans, cost and full priorities view
+
+The existing queue scheduler checks derived course rules every 24 hours and retries
+incomplete scans after six hours, with the existing one-hour duplicate-job guard.
+It respects collection consent, auto-refresh, paused editions, current periods and
+active programmes. Material collection triggers scans too. Syllabi, introductory
+slides and stored announcements are considered; announcements enter when material
+collection refreshes, rather than on every lightweight Canvas hub refresh.
+
+A hash of the extraction version and all relevant evidence avoids repeat model
+calls. Successful batches are cached privately per account/course binding. A scan
+makes at most four new model calls including retries; later scans reuse completed
+batches. Background scans use platform billing only, share atomic study allowances,
+and have a $0.20 ceiling per evidence revision for capped accounts. Development,
+preview and the verified owner accounts use the quota exemption documented in
+[the study cost contract](design/student-study-versions.md). Concurrency and input
+bounds still apply. At most 100 passages are selected; exceeding that bound is an
+explicit coverage gap, not a claim that every source was analysed. Conflicting
+assessment facts remain flagged with references instead of silently taking a value.
+
+`/app/priorities` expands Home's four-row rail into a searchable list with course
+and type filters, undated rules, conflicts and scan coverage. Refreshing this list
+reads existing records without invoking AI. Calendar event labels distinguish
+mandatory attendance, explicit optional attendance and unknown requirements;
+mandatory labels remain after marking attendance. Exams and deadlines have a
+separate emphasis, and an obligations-only filter is available.
 
 ### Controls for one course edition
 

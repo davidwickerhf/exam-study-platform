@@ -12,7 +12,7 @@ import { studyRequest, type StudyChapter, type StudyRevision } from '@/lib/works
 type Evaluation = {
   id: string; revision: string; scenario: string; status: string; stage: number
   course: StudyRevision['course']; snapshot: StudyRevision['snapshot']; topic: StudyRevision['topics'][number]
-  billing: { model: string; source: string; maxJobUsd: number }
+  billing: { model: string; source: string; maxJobUsd: number; unlimited?: boolean }
   generated: StudyChapter | null; limitations: string; error?: string
   checks: { name: string; passed: boolean; issues: (string | { severity: string; detail: string })[] }[]
   calls: { chargedUsd: number; conservative: boolean; usage: { inputTokens: number; outputTokens: number } | null }[]
@@ -58,7 +58,7 @@ export default function QualityEvaluationPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold">{data.scenario === 'reference' ? 'Probability reference test' : data.topic.title}</h2>
-            <p className="text-muted-foreground mt-1 text-xs">{data.billing.model} · {data.billing.source === 'personal' ? 'Your AI key' : 'Platform allowance'} · ${data.billing.maxJobUsd.toFixed(2)} total cap</p>
+            <p className="text-muted-foreground mt-1 text-xs">{data.billing.model} · {data.billing.source === 'personal' ? 'Your AI key' : 'Platform allowance'} · {data.billing.unlimited ? 'No usage cap' : `$${data.billing.maxJobUsd.toFixed(2)} total cap`}</p>
             <p className="text-muted-foreground mt-1 text-xs">{data.calls.length} calls recorded · ${data.calls.reduce((n, c) => n + c.chargedUsd, 0).toFixed(4)} recorded cost · {data.status}</p>
           </div>
           {data.status === 'pending' && <Button disabled={busy} onClick={() => void nextStep()}>{busy ? 'Running…' : ['Generate test chapter', 'Review against sources', 'Test reviewer with known errors'][data.stage]}</Button>}

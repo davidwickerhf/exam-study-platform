@@ -67,3 +67,36 @@ test('setup groups failed priority extraction without pretending the programme i
   assert.match(issue.detail, /stored and searchable/)
   assert.match(issue.recovery, /Canvas sync/)
 })
+
+test('recurring scan has a hard call ceiling and reuses successful evidence batches', async () => {
+  const rows=Array.from({length:50},(_,i)=>({chunkId:i+1,sourceType:'syllabus',filename:'manual.pdf',content:`Assignment ${i} is due.`}))
+  const values=new Map(),cache={load:async key=>values.get(key),save:async(key,result)=>values.set(key,result)}
+  let calls=0
+  const model=async()=>{calls++;return {message:{content:JSON.stringify({status:'not-found',attendanceRules:[],components:[],conflicts:[]})}}}
+  const first=await extractPriorityEvidence({},rows,model,{cache,maxCalls:1})
+  assert.equal(calls,1)
+  assert.equal(first.status,'needs-review')
+  assert.ok(first.conflicts.every(c=>c.title==='Priority scan allowance reached'))
+  await extractPriorityEvidence({},rows,model,{cache,maxCalls:2})
+  assert.equal(calls,3)
+  await extractPriorityEvidence({},rows,model,{cache,maxCalls:2})
+  assert.equal(calls,3,'unchanged successful passages never call the model again')
+  await extractPriorityEvidence({},[{...rows[0],content:'A changed deadline.'},...rows.slice(1)],model,{cache,maxCalls:2})
+  assert.equal(calls,4,'only the changed batch is reanalysed')
+})
+
+test('malformed responses cannot multiply into an unbounded retry tree', async () => {
+  let calls=0
+  const result=await extractPriorityEvidence({},Array.from({length:100},(_,i)=>({chunkId:i,content:'Required attendance'})),async()=>{calls++;throw new Error('Malformed result')})
+  assert.equal(calls,4)
+  assert.equal(result.status,'needs-review')
+})
+
+test('announcements remain visible and cross-batch deadline conflicts are not silently merged', () => {
+  const selected=priorityEvidenceCandidates([{chunkId:1,sourcePath:'course-announcements/extension.md',filename:'extension.md',content:'The submission deadline has changed.',sourceType:'materials'}])
+  assert.equal(selected[0].sourceType,'announcements')
+  const result=mergePriorityExtractions(['2026-09-10','2026-09-17'].map((deadline,i)=>({status:'confirmed',components:[{name:'Project',type:'project',deadline,evidence:[{chunkId:i+1}]}]})))
+  assert.equal(result.status,'needs-review')
+  assert.deepEqual(result.conflicts[0].chunkIds,[1,2])
+  assert.match(result.conflicts[0].detail,/2026-09-10 \/ 2026-09-17/)
+})

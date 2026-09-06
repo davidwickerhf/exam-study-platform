@@ -273,9 +273,8 @@ test('refresh source selection and BYOK settings render on mobile without overfl
   await expect(
     page.getByRole('heading', { name: 'Update your source selection' })
   ).toBeVisible()
-  await expect(
-    page.getByLabel('Spending cap for this generation (USD)')
-  ).toHaveValue('1')
+  await expect(page.getByText('No AI usage quota applies to this account or environment.',{exact:false})).toBeVisible()
+  await expect(page.getByLabel('Spending cap for this generation (USD)')).toHaveCount(0)
   await page.evaluate(() => document.fonts.ready)
   const layout = await page.evaluate(() => ({
     width: innerWidth,
@@ -346,7 +345,9 @@ test('Home groups recurring rules and shows priorities from several courses with
   })
   await page.route('**/api/integrations/canvas/hub?*', route=>route.fulfill({json:{connected:true,assignments:[
     {id:'os-due',courseCode:'BCS2140',title:'OS assignment',status:'upcoming',dueAt:'2026-09-07T12:00:00Z'},
-    {id:'ai-due',courseCode:'BCS2120',title:'AI assignment',status:'upcoming',dueAt:'2026-09-10T12:00:00Z'}
+    {id:'ai-due',courseCode:'BCS2120',title:'AI assignment',status:'upcoming',dueAt:'2026-09-10T12:00:00Z'},
+    {id:'later-os',courseCode:'BCS2140',title:'Later OS assignment',status:'upcoming',dueAt:'2026-09-18T12:00:00Z'},
+    {id:'later-ai',courseCode:'BCS2120',title:'Later AI assignment',status:'upcoming',dueAt:'2026-09-20T12:00:00Z'}
   ]}}))
   await page.goto('/app')
   const priorities=page.locator('section').filter({has:page.getByRole('heading',{name:'Priorities',exact:true})})
@@ -358,6 +359,47 @@ test('Home groups recurring rules and shows priorities from several courses with
   await expect(priorities).toContainText('Course rules available for 1 of 4 courses.')
   await expect(priorities).toContainText('4 shown · partial')
   await priorities.screenshot({path:'/tmp/wicker-home-priorities.png'})
+  await priorities.getByRole('link',{name:'View all priorities →'}).click()
+  await expect(page.getByRole('heading',{name:'Your priorities'})).toBeVisible()
+  const all=page.getByRole('region',{name:'All priorities',exact:true})
+  await expect(all.getByRole('listitem')).toHaveCount(6)
+  await page.getByRole('combobox',{name:'Course',exact:true}).click()
+  await page.getByRole('option',{name:'BCS2140',exact:true}).click()
+  await expect(all.getByRole('listitem')).toHaveCount(2)
+  await page.getByLabel('Search priorities').fill('Later')
+  await expect(all.getByRole('listitem')).toHaveCount(1)
+  await expect(all).toContainText('Later OS assignment')
+  await page.screenshot({path:'/tmp/wicker-priorities-page.png',fullPage:true})
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+})
+
+test('calendar keeps mandatory attendance prominent and filters obligations in week and agenda', async ({page}) => {
+  await page.clock.setFixedTime(new Date('2026-09-07T08:00:00Z'))
+  await page.route('**/api/calendar/events',async route=>{
+    const response=await route.fetch(),body=await response.json()
+    const base={category:'timetable',courseCode:'BCS2140',courseName:'Operating Systems',allDay:false,attendanceEligible:true,notes:'Course timetable',source:'timetable'}
+    const events=[
+      {...base,id:'mandatory-lab',title:'OS practical',activity:'Practical',start:'2026-09-08T09:00:00Z',end:'2026-09-08T11:00:00Z',attendanceRequired:true,attendanceRule:'Labs are mandatory.',attendanceStatus:'attended',attendancePolicy:{source:'Verified course rule',allowedMisses:null,minimumAttendancePercent:null,excusedPolicy:'',evidence:[]}},
+      {...base,id:'unknown-tutorial',title:'Tutorial',activity:'Tutorial',start:'2026-09-09T09:00:00Z',end:'2026-09-09T11:00:00Z',attendanceRequired:null},
+      {...base,id:'dated-exam',title:'OS exam',category:'exam',attendanceEligible:false,start:'2026-09-10T09:00:00Z',end:'2026-09-10T11:00:00Z'}
+    ]
+    await route.fulfill({json:{...body,events}})
+  })
+  await page.goto('/app/calendar')
+  const required=page.locator('[data-calendar-event-id="mandatory-lab"]')
+  await expect(required).toContainText('Mandatory attendance')
+  await expect(required).toContainText('attended')
+  await expect(page.locator('[data-calendar-event-id="unknown-tutorial"]')).toContainText('Attendance requirement unknown')
+  await page.getByRole('button',{name:'Obligations only',exact:true}).click()
+  await expect(page.locator('[data-calendar-event-id="unknown-tutorial"]')).toHaveCount(0)
+  await expect(required).toBeVisible()
+  await expect(page.locator('[data-calendar-event-id="dated-exam"]')).toContainText('Exam')
+  await required.click()
+  await expect(page.getByRole('complementary',{name:'Day desk'}).getByText('Labs are mandatory.',{exact:true})).toBeVisible()
+  await page.screenshot({path:'/tmp/wicker-calendar-obligations.png'})
+  await page.getByRole('tab',{name:'Agenda',exact:true}).click()
+  await expect(required).toContainText('Mandatory attendance')
   await page.setViewportSize({width:390,height:844})
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
 })

@@ -58,7 +58,7 @@ export type StudyRevision = {
   review: string
 }
 export type StudyVersion = {
-  billing?: { source: string; model: string; maxJobUsd: number } | null
+  billing?: { source: string; model: string; maxJobUsd: number; unlimited?: boolean } | null
   id: string
   title: string
   course: StudyCourseIdentity
@@ -154,12 +154,14 @@ export function generationLabel(draft: StudyVersion['draft']) {
   return `Writing chapters · ${draft.chapters} of ${draft.total} ready`
 }
 export type StudyBudget = {
+  unlimited?: boolean
+  exemptionReason?: string | null
   limits: {
     chaptersDay: number
     chaptersMonth: number
     userDayUsd: number
     userMonthUsd: number
-    maxJobUsd: number
+    maxJobUsd: number; unlimited?: boolean
   }
   platform: {
     configured: boolean
@@ -182,7 +184,7 @@ export type StudyBudget = {
 export type StudyEstimate = {
   chapterRange: number[]
   estimatedUsd: number[]
-  maxJobUsd: number
+  maxJobUsd: number; unlimited?: boolean
   billingSource: string
   model: string
   explanation: string
