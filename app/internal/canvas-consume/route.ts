@@ -1,6 +1,6 @@
 import { queueWorkersEnabled } from '@/lib/queue-runtime.mjs'
 import { handleCallback } from '@vercel/queue'
-import { callCanvasService, wakeCurrentCanvasDispatcher, sendCanvasStep } from '@/lib/canvas-queue-client'
+import { callCanvasService, wakeCurrentCanvasDispatcher, continueCurrentCanvasStep } from '@/lib/canvas-queue-client'
 export const maxDuration = 300
 export const runtime = 'nodejs'
 export const POST = handleCallback(async (message: { version: number; jobId: string; probe?: string }) => {
@@ -17,7 +17,7 @@ export const POST = handleCallback(async (message: { version: number; jobId: str
   // Preview has no cron sweep. Persist the next delivery, including backoff,
   // before acknowledging this message. SQL leases make duplicates harmless.
   if (process.env.VERCEL_ENV === 'preview' && result.again) {
-    await sendCanvasStep(message.jobId, result.delay || 0)
+    await continueCurrentCanvasStep(message.jobId, result.delay || 0)
     return
   }
   await wakeCurrentCanvasDispatcher()

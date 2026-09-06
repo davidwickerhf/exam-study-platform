@@ -23,6 +23,9 @@ export async function sendCanvasStep(jobId: string, delaySeconds = 0) {
   // remain deliverable. SQL claims make duplicate notifications harmless.
   await send(queueTopicForJob(jobId), { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
 }
+
+export { continueCurrentCanvasStep } from './queue-runtime.mjs'
+
 export async function dispatchCanvasSteps() {
   if (!queueWorkersEnabled()) return { disabled: true, sent: 0 }
   const { ids = [] } = await callCanvasService({ action: 'dispatch' })

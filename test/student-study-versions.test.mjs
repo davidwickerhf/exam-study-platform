@@ -113,10 +113,10 @@ async function finish(f, { reviewIssues = [] } = {}) {
   const generate = async (prompt, options) => {
     calls++
     const expected = prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : lessonSchema
-    assert.deepEqual(options.responseSchema, studyResponseSchema(expected))
     const v = await ownStudyVersion(f.version.id),
       chunks = v.draft.snapshot.chunks,
       ids = chunks.map((c) => c.id)
+    assert.deepEqual(options.responseSchema, studyResponseSchema(expected, ids))
     if (prompt.includes('Map this evidence batch'))
       return {
         topics: [{ id: 'addition', title: 'Addition', sourceIds: ids }],
@@ -151,6 +151,7 @@ test('provider schemas preserve validation bounds and require defaults without i
     visit(contract)
   }
   const map = studyResponseSchema(mapSchema)
+  assert.deepEqual(studyResponseSchema(mapSchema, ['e-first', 'e-second']).properties.topics.items.properties.sourceIds.items.enum, ['e-first', 'e-second'])
   assert.equal(map.properties.topics.maxItems, 24)
   assert.equal(map.properties.gaps.type, 'array')
   assert.equal(map.properties.gaps.items.maxLength, 600)

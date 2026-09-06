@@ -15,7 +15,15 @@ function statement(strings,...values) {
 }
 statement.transaction=async queries=>{
   const client=await pool.connect()
-  try {await client.query('BEGIN');const results=[];for(const q of queries) results.push((await client.query(q.text,q.values)).rows);await client.query('COMMIT');return results}
+  try {await client.query('BEGIN');const results=[];for(const q of queries) {
+    // Neon infers unknown parameter types before binding. Exercise that phase
+    // explicitly for polymorphic concat rather than relying on pg wire types.
+    if (q.text.includes('SELECT concat(')) {
+      await client.query(`PREPARE retry_type_check AS ${q.text}`)
+      await client.query('DEALLOCATE retry_type_check')
+    }
+    results.push((await client.query(q.text,q.values)).rows)
+  }await client.query('COMMIT');return results}
   catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}
 }
 mock.module('../../lib/db.mjs',{namedExports:{...db,sql:statement}})
@@ -151,6 +159,7 @@ try {
   await withRequestContext({userId:'fixture'},async()=>{
     const matches=await retrieveCanvasCorpus({query:'paper list',courseCode:'BCS2120',sourceType:'materials',database:statement})
     assert.ok(matches.some(row=>row.content.includes('MindScape Study')))
+    assert.ok(matches.every(row=>row.score<=2/61+Number.EPSILON), 'a duplicate source path must not add another rank vote')
     const hit=matches.find(row=>row.content.includes('MindScape Study'))
     const page=await readCanvasSource({assetId:hit.assetId,courseCode:'BCS2120',database:statement})
     assert.equal(page.chunks.length,12)

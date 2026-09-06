@@ -4,3 +4,5 @@ export function queueWorkersEnabled(env?: Environment): boolean
 export function queueWorkerAllowsUser(userId: string, env?: Environment): boolean
 export function queueDispatcherOrigin(env?: Environment): string
 export function queueRequestHeaders(env?: Environment): Record<string, string>
+
+export function continueCurrentCanvasStep(jobId: string, delaySeconds?: number, options?: {env?: Environment; fetchImpl?: typeof fetch}): Promise<void>

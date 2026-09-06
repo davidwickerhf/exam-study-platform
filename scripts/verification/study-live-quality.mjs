@@ -67,7 +67,7 @@ async function generate(prompt, maxOutputTokens = 8000, schema = lessonSchema) {
         max_completion_tokens: maxOutputTokens,
         reasoning_effort: 'low',
         messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_schema', json_schema: { name: 'study_evaluation', strict: true, schema: studyResponseSchema(schema) } }
+        response_format: { type: 'json_schema', json_schema: { name: 'study_evaluation', strict: true, schema: studyResponseSchema(schema, evaluationChunks.map(c => c.id)) } }
       }),
       signal: AbortSignal.timeout(210000)
     })

@@ -26,7 +26,7 @@ test('browser evaluation runs generation, independent review and corruption chec
   const generate = async (prompt, options) => {
     assert.equal(options.billing.maxJobUsd, 0.25)
     assert.equal(options.jobKey, row.id)
-    assert.deepEqual(options.responseSchema, studyResponseSchema(calls === 0 ? lessonSchema : reviewSchema))
+    assert.deepEqual(options.responseSchema, studyResponseSchema(calls === 0 ? lessonSchema : reviewSchema, row.snapshot.chunks.map(c => c.id)))
     calls++
     if (calls === 1) return generated()
     if (calls === 2) return { text: '{"issues":[]}' }
