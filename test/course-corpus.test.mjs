@@ -7,6 +7,7 @@ import {
   periodFromCanvasCourse,
   retrievalEditionOrder,
   selectCanvasCorpusCourses,
+  selectScheduledCanvasCourses,
   supportedCanvasCourseCode
 } from '../lib/course-corpus.mjs'
 
@@ -79,4 +80,15 @@ test('retake editions collapse into one course without losing their provenance',
   assert.equal(course.sources, 3)
   assert.deepEqual(course.academicYears, ['2026-2027', '2024-2025'])
   assert.deepEqual(course.editions.map((edition) => edition.editionId), ['edition-new', 'edition-old'])
+})
+
+
+test('automatic refresh follows only the latest current-period edition, without removing historical access', () => {
+  const shell = (id, year, period = 1, extras = {}) => ({ id, courseCode: 'BCS2120', name: `AI (${year}-${period}00-BCS2120)`, current: true, ...extras })
+  const courses = [shell('1', '2024-2025'), shell('2', '2025-2026'), shell('9', '2026-2027'), shell('10', '2026-2027'), shell('11', '2026-2027', 2), shell('12', '2026-2027', 1, { current: false, upcoming: true }), { id: 'standing', courseCode: 'FACULTY', current: true }]
+  assert.deepEqual(selectScheduledCanvasCourses(courses, { academicYear: '2026-2027', periodNumber: 1 }).map(c => c.id), ['10'])
+  assert.ok(selectCanvasCorpusCourses(courses).some(c => c.id === '1'))
+  assert.deepEqual(selectScheduledCanvasCourses(courses, { academicYear: '2026-2027', periodNumber: 2 }).map(c => c.id), ['11'])
+  assert.deepEqual(selectScheduledCanvasCourses(courses, { now: new Date('2026-01-01') }).map(c => c.id), ['2'])
+  assert.deepEqual(selectScheduledCanvasCourses([shell('3', '2027-2028')], { now: new Date('2026-09-01') }), [])
 })

@@ -1,3 +1,5 @@
+import { fetchCanvasAssignmentDetail } from './lib/canvas-assignment-detail.mjs'
+import { openTutorStream } from './lib/tutor-progress.mjs'
 import { readStudyWork, studyWorkOverview, readDiagnostic, answerDiagnostic, applyStudyWorkProposal, applyStudyProjectProposal } from './lib/study-work-store.mjs'
 import { STUDY_CAPABILITIES } from './lib/tutor-study-tools.mjs'
 import { createServer } from 'node:http'
@@ -3926,10 +3928,20 @@ const server = createServer(async (req, res) => {
     // The Canvas board: announcements, assignments, Canvas events, and grades
     // for the courses in scope. Answers are cached per user for a few minutes,
     // so a page that refreshes itself does not re-poll Canvas each time.
-    if (url.pathname === '/api/integrations/canvas/hub' && req.method === 'GET') {
+    if (url.pathname === '/api/integrations/canvas/assignment' && req.method === 'GET') {
       try {
         const origin = canvasOrigin()
-        const connection = (await listCanvasConnections()).find((entry) => entry.origin === origin) || null
+        const { token } = await canvasAccessToken({ canvasUrl: origin })
+        const result = await fetchCanvasAssignmentDetail({ origin, token, courseId: url.searchParams.get('courseId'), assignmentId: url.searchParams.get('assignmentId'), force: url.searchParams.get('refresh') === '1' })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, 400, JSON.stringify({ error: error.message || 'Assignment details could not be loaded.' })) }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/hub' && req.method === 'GET') {
+      try {
+        const connections = await listCanvasConnections()
+        const origin = url.searchParams.get('canvasUrl') ? canvasOrigin() : connections[0]?.origin || canvasOrigin()
+        const connection = connections.find((entry) => entry.origin === origin) || null
         if (!connection) {
           send(res, 200, JSON.stringify({ connected: false, origin, courses: [], announcements: [], assignments: [], events: [], grades: [], problems: [] }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
           return
@@ -4532,10 +4544,15 @@ const server = createServer(async (req, res) => {
       res.once('close', disconnected)
       const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(180_000)])
       let activeTurn = null
+      let emit = null
       try {
         const body = await readBody(req, 32 * 1024)
         const message = String(body?.message || '').trim().slice(0, 4000)
         if (!message) { send(res, 400, JSON.stringify({ error: 'Ask something.' })); return }
+        if (String(req.headers.accept || '').includes('application/x-ndjson')) {
+          emit = openTutorStream(res)
+          emit('progress', { message: 'I’m checking your question…' })
+        }
         const stored = body?.conversation ? await readConversation(body.conversation) : null
         const canCreate = body?.create === true && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body?.conversation || ''))
         if (body?.conversation && !stored && !canCreate) throw new TutorStoreError('This conversation no longer exists. Start a new one.', 404)
@@ -4543,22 +4560,22 @@ const server = createServer(async (req, res) => {
         let usage = null
         if (!(body?.retry && completedTutorRetry(stored, message))) {
           activeTurn = await beginTutorTurn(stored, { message, context: body?.context || {}, retry: Boolean(body?.retry), id: canCreate ? body.conversation : undefined })
-          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, signal })
+          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, signal, onProgress: progress => emit?.('progress', progress) })
           signal.throwIfAborted()
           saved = await completeTutorTurn(activeTurn, turn)
           usage = turn.usage
           activeTurn = null
         }
         const [conversations, memory, receipts, attachments] = await Promise.all([listConversations(), readTutorMemory(), readTutorActionReceipts(), listTutorAttachments()])
-        send(res, 200, JSON.stringify({
-          conversation: visibleTutorConversation(saved),
-          conversations, memory, receipts, attachments,
-          usage
-        }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const result = { conversation: visibleTutorConversation(saved), conversations, memory, receipts, attachments, usage }
+        if (emit) { emit('result', { result }); res.end() }
+        else send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         let conversation = null
         if (activeTurn) conversation = await failTutorTurn(activeTurn, error, controller.signal.aborted).catch(() => null)
-        if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify({ conversation: visibleTutorConversation(conversation), error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }))
+        const failure = { conversation: visibleTutorConversation(conversation), error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }
+        if (emit) { emit('error', failure); res.end() }
+        else if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify(failure))
       } finally { res.off('close', disconnected) }
       return
     }
