@@ -27,7 +27,10 @@
     "test": "node --test",
     "verify": "npm run typecheck && npm test && npm run build",
     "mcp:sync": "node scripts/sync-mcp-vendor.mjs --write",
-    "mcp:pack": "npm run mcp:sync && npm pack ./mcp --pack-destination /tmp"
+    "mcp:pack": "npm run mcp:sync && npm pack ./mcp --pack-destination /tmp",
+    "start:api": "NODE_ENV=production WICKER_SERVICE=api node runner.mjs",
+    "start:web": "next start",
+    "dev:web": "next dev"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

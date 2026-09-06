@@ -11,7 +11,6 @@ import { promisify } from 'node:util'
 import { gzipSync } from 'node:zlib'
 import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
-import next from 'next'
 import './lib/env.mjs'
 import { canvasSyncLog } from './lib/canvas-sync-log.mjs'
 import { createDocumentReview, readDocumentReviews, academicDocumentCheck, academicDocumentEvidence, discardDocumentReviews } from './lib/academic-document-review.mjs'
@@ -87,6 +86,7 @@ const bundledContentDir = resolve(__dirname, 'content')
 const port = Number(process.env.PORT || 4177)
 const hostname = process.env.HOSTNAME || '0.0.0.0'
 const development = process.env.NODE_ENV !== 'production'
+const apiOnly = process.env.WICKER_SERVICE === 'api'
 const MAX_ACADEMIC_INTAKE_BODY_BYTES = 12 * 1024 * 1024
 const MAX_CANVAS_API_RESPONSE_BYTES = 4 * 1024 * 1024
 const MAX_CANVAS_FILE_BYTES = 1024 * 1024 * 1024
@@ -98,8 +98,8 @@ let canvasCorpusWorkerProcess = null
 let stoppingCanvasWorker = false
 let canvasWorkerRestart = null
 function startCanvasCorpusWorkerProcess() {
-  if (process.env.VERCEL_ENV === 'preview' || stoppingCanvasWorker || canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
-  canvasCorpusWorkerProcess = spawn(process.execPath, [join(__dirname, 'scripts/canvas-corpus-worker.mjs')], { cwd: __dirname, env: process.env, stdio: 'inherit' })
+  if (apiOnly || process.env.VERCEL || process.env.VERCEL_ENV || process.env.CANVAS_CORPUS_WORKER !== 'embedded' || stoppingCanvasWorker || canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
+  canvasCorpusWorkerProcess = spawn(process.execPath, [join(__dirname, 'scripts/canvas-corpus-worker.mjs')], { cwd: __dirname, env: { ...process.env, CANVAS_WORKER_HEALTH_PORT: '0' }, stdio: 'inherit' })
   canvasCorpusWorkerProcess.on('exit', () => {
     canvasCorpusWorkerProcess = null
     if (!stoppingCanvasWorker) canvasWorkerRestart = setTimeout(startCanvasCorpusWorkerProcess, 10_000)
@@ -267,11 +267,15 @@ function calendarConnectionSummary(workspace, events, link, date) {
   }
 }
 
-// Next.js owns page rendering and static assets. The established Node API
-// remains in this process while its routes are migrated independently.
-const nextApp = next({ dev: development, hostname, port })
-const nextHandler = nextApp.getRequestHandler()
-await nextApp.prepare()
+// Hosted API instances never import, build or prepare Next.js. The combined
+// server remains available for local development and self-hosted installs.
+let nextHandler
+if (!apiOnly) {
+  const { default: next } = await import('next')
+  const nextApp = next({ dev: development, hostname, port })
+  nextHandler = nextApp.getRequestHandler()
+  await nextApp.prepare()
+}
 
 // A local test user is an explicit, named development configuration rather
 // than a half-finished deployment, so it satisfies this pairing on its own.
@@ -3725,7 +3729,7 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, 8 * 1024)
         const connection = await saveCanvasConnection({ canvasUrl: body?.canvasUrl, accessToken: body?.accessToken })
-        clearCanvasHubCache()
+        await clearCanvasHubCache()
         const corpus = await canvasCorpusPermission({ accountId: currentAuth().userId, origin: connection.origin })
         send(res, 200, JSON.stringify({ connection: { ...connection, corpus }, consentRequired: !corpus.collectionEnabled }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
@@ -3832,7 +3836,7 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, 8 * 1024)
         const removed = await removeCanvasConnection({ canvasUrl: body?.canvasUrl })
-        clearCanvasHubCache()
+        await clearCanvasHubCache()
         send(res, removed ? 200 : 404, JSON.stringify(removed ? { removed: true } : { error: 'Canvas connection not found.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Could not remove the Canvas connection.' }))
@@ -6421,6 +6425,10 @@ const server = createServer(async (req, res) => {
     // The Claude skill is published so it can be installed with one curl.
     if (normalizedPagePath === '/skills/wicker-study/SKILL.md' && req.method === 'GET') {
       send(res, 200, await readFile(resolve(__dirname, '.claude/skills/wicker-study/SKILL.md'), 'utf8'), 'text/markdown; charset=utf-8', { 'Cache-Control': 'public, max-age=300' })
+      return
+    }
+    if (apiOnly) {
+      send(res, 404, JSON.stringify({ error: 'Unknown API route' }))
       return
     }
     const nonce = Buffer.from(randomUUID()).toString('base64')
