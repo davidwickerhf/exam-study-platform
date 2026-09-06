@@ -24,9 +24,13 @@ const File = dynamic(() => import('./course-file-viewer'), { ssr: false })
 export function StudySourceInspector({
   source,
   chunks,
+  label,
+  initialPage = 1,
 }: {
   source: StudySource
   chunks: Evidence[]
+  label?: string
+  initialPage?: number
 }) {
   const [open, setOpen] = useState(false)
   const url =
@@ -37,12 +41,12 @@ export function StudySourceInspector({
   return (
     <>
       <Button
-        size="icon-sm"
+        size={label ? "sm" : "icon-sm"}
         variant="ghost"
-        aria-label={`View ${source.title}`}
+        aria-label={label || `View ${source.title}`}
         onClick={() => setOpen(true)}
       >
-        <EyeIcon />
+        <EyeIcon />{label}
       </Button>
       {url && (
         <a
@@ -77,9 +81,9 @@ export function StudySourceInspector({
               className="flex min-h-0 flex-1 flex-col"
             >
               {/\.pdf$/i.test(source.title) && url ? (
-                <Pdf url={url} title={source.title} />
+                <Pdf url={url} title={source.title} initialPage={initialPage} />
               ) : /\.pptx?$/i.test(source.title) && source.assetId ? (
-                <Slides assetId={source.assetId} title={source.title} />
+                <Slides assetId={source.assetId} title={source.title} initialPage={initialPage} />
               ) : source.assetId ? (
                 <File assetId={source.assetId} />
               ) : url ? (

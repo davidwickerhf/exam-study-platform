@@ -188,13 +188,11 @@ Format conformance does not replace deterministic and independent evidence check
 
 ### Personal edits, feedback and revision history
 
-The chapter's **Edit chapter** side panel offers text-only edits and AI feedback.
-A direct edit selects one explanation, callout, takeaway, summary point, question,
-answer, hint or flashcard side. Before/after review precedes saving a new immutable
-revision. Evidence IDs and visual specifications are not client-editable. A changed
-chapter becomes `student-edited`, loses its inherited AI-check badge, and cannot be
-published as checked content. Changed practice items receive new IDs; old attempts
-retain their original question/answer snapshots. Notes and reading progress remain.
+The chapter's **Improve chapter** side panel accepts feedback and requests an AI
+proposal. The separate manual text editor and its public write endpoint were
+removed at the user's request. Existing personally edited revisions remain
+readable and restorable, with their original review labels and question history.
+Inline manual editing is deferred until it has an appropriate interaction design.
 
 AI feedback uses the same selected source snapshot, generates only the target
 chapter and runs its evidence review. Unchanged chapters are preserved byte for
@@ -261,4 +259,17 @@ Private `study-practice` documents retain immutable question/evidence snapshots,
 
 Existing mixed chapter exams can assess completed answers against their original revision. Previous ungraded chapter attempts remain visible. Personal attempts and questions needing review are discoverable from `/app/practice`, with links back to the saved course revision. This does not migrate personal flashcards into the old SM-2 deck or infer a syllabus-wide official exam blueprint.
 
-Validation: `npm run verify` passed 795 tests, type checking and production build. Full Chromium run passed 15/16, exposing duplicate navigation in the mixed-exam layout; replaced the stacked workspaces with separate tabs. Both the affected flow and the new paper/grading/tutor/source-inspector flow then passed. Live model/output checks are recorded separately after preview deployment. No production merge for this feature branch is authorized.
+Validation after the preference and feedback refinement: `npm run verify` passed 800 tests, type checking and production build. The study browser suite passed 12/13 in its full run; the last scenario hit the general request-rate limit after rapid navigation. That scenario passed in a fresh session, including saved enhanced-model preferences after reload, one-click answer-key grading, original PDF page 2, source text and the tutor panel. Earlier tutor/other browser checks remain recorded separately. Live written grading returned provider HTTP 429, so real-model grading and new paper extraction quality are not yet verified. No production merge for this feature branch is authorized.
+
+### Saved AI preferences and direct originals
+
+Model quality, payer and per-job cap are saved per account through
+`/api/account/ai/preferences`. Assessment buttons submit directly with those
+defaults; a compact Change AI preferences control and Settings expose the form.
+Existing accounts initially reuse their latest saved practice model/payer.
+Explicit job overrides remain supported; missing personal credentials never
+silently switch payment to the platform. Free answer-key scoring remains free.
+
+A View original button beside a practice question opens the original document
+in a side panel. PDF.js starts at the cited page, clamped to the file's page count;
+the separate Ingested text tab retains the actual retrieval passages.

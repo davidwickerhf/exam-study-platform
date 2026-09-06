@@ -10,6 +10,11 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  useStudyAiPreferences,
+  StudyAiPreferencesForm,
+  StudyAiPreferenceSummary,
+} from './study-ai-preferences'
 import { StudyBillingFields } from './study-billing-fields'
 import { StudySourceInspector } from './study-source-inspector'
 import { StudyProse } from './study-prose'
@@ -76,6 +81,18 @@ export function StudyPracticeWorkspace({
   legacyAttempts?: StudyProgress['attempts']
   onTutor?: (questionId?: string) => void
 }) {
+  const {
+    preferences,
+    error: preferenceError,
+    save: savePreferences,
+  } = useStudyAiPreferences()
+  useEffect(() => {
+    if (preferences) {
+      setBillingSource(preferences.billingSource)
+      setQuality(preferences.quality)
+      setCap(String(preferences.maxJobUsd))
+    }
+  }, [preferences])
   const [records, setRecords] = useState<PracticeRecord[]>([]),
     [selected, setSelected] = useState('chapter'),
     [index, setIndex] = useState(0),
@@ -160,6 +177,14 @@ export function StudyPracticeWorkspace({
   const questions: Question[] =
     set?.result?.questions || chapter?.questions || []
   const question = questions[index]
+  const questionEvidence = (set?.evidence || revision.snapshot.chunks).filter(
+    (c) => question?.sourceIds.includes(c.id),
+  )
+  const originalSource = (set?.sources || revision.snapshot.sources).find(
+    (s) =>
+      (s.url || s.assetId) &&
+      questionEvidence.some((c) => c.sourceKey === s.key),
+  )
   const answerKey = `${chapterId}:${selected}:${question?.id}`
   const answer = answers[answerKey] || ''
   const attempts = records.filter(
@@ -179,14 +204,15 @@ export function StudyPracticeWorkspace({
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
   const freeAssessment = Boolean(
     question?.needsOriginal ||
-      question?.answerBasis === 'unavailable' ||
-      ['mc', 'multi', 'tf'].includes(question?.type || ''),
+    question?.answerBasis === 'unavailable' ||
+    ['mc', 'multi', 'tf'].includes(question?.type || ''),
   )
   const billing = { billingSource, quality, maxJobUsd: Number(cap) }
   async function work(action: string, body: Record<string, unknown>) {
     setBusy(true)
     setError('')
     try {
+      if (action === 'practice') await savePreferences(billing)
       let r = await studyRequest<PracticeRecord>(`${base}/${action}`, body)
       upsert(r)
       if (r.kind === 'set') {
@@ -397,6 +423,18 @@ export function StudyPracticeWorkspace({
                   <StudyProse>{question.sharedContext}</StudyProse>
                 </div>
               )}
+              {originalSource && (
+                <div className="flex items-center gap-1">
+                  <StudySourceInspector
+                    source={originalSource}
+                    chunks={questionEvidence}
+                    label="View original"
+                    initialPage={
+                      question.page || questionEvidence[0]?.page || 1
+                    }
+                  />
+                </div>
+              )}
               <StudyProse>{question.question}</StudyProse>
               {question.needsOriginal && (
                 <p className="rounded-lg border p-3 text-sm">
@@ -482,8 +520,19 @@ export function StudyPracticeWorkspace({
                   Save answer
                 </Button>
                 <Button
-                  disabled={busy || !answer.trim()}
-                  onClick={() => setBillingOpen(true)}
+                  disabled={
+                    busy || !answer.trim() || (!freeAssessment && !preferences)
+                  }
+                  onClick={() =>
+                    void work('assess', {
+                      revisionId: set?.revisionId || revision.id,
+                      topicId: chapterId,
+                      setId: selected === 'chapter' ? undefined : selected,
+                      questionId: question.id,
+                      answer,
+                      ...preferences,
+                    })
+                  }
                 >
                   Check answer & save
                 </Button>
@@ -499,6 +548,23 @@ export function StudyPracticeWorkspace({
                   </Button>
                 )}
               </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {freeAssessment ? (
+                  <span className="text-xs text-muted-foreground">
+                    Saved answer key · No AI charge
+                  </span>
+                ) : (
+                  <StudyAiPreferenceSummary preferences={preferences} />
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setBillingOpen(true)}
+                >
+                  Change AI preferences
+                </Button>
+              </div>
+              {preferenceError && <p role="alert">{preferenceError}</p>}
               {question.hint && (
                 <details key={answerKey}>
                   <summary className="cursor-pointer text-sm font-medium">
@@ -682,12 +748,12 @@ export function StudyPracticeWorkspace({
         <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>
-              {form ? 'Add a practice set' : 'Assess your answer'}
+              {form ? 'Add a practice set' : 'AI preferences'}
             </SheetTitle>
             <SheetDescription>
               {form
                 ? 'Use your course’s existing questions or generate focused extra practice.'
-                : 'Your answer and the exact question are saved before assessment. AI feedback is formative and may need review.'}
+                : 'Choose your defaults once. You can change them here or in Settings.'}
             </SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-6">
@@ -831,7 +897,10 @@ export function StudyPracticeWorkspace({
                 )}
               </>
             )}
-            {(form || !freeAssessment) && (
+            {!form && (
+              <StudyAiPreferencesForm onSaved={() => setBillingOpen(false)} />
+            )}
+            {form && (
               <StudyBillingFields
                 source={billingSource}
                 setSource={setBillingSource}
@@ -854,49 +923,41 @@ export function StudyPracticeWorkspace({
               </p>
             )}
           </div>
-          <div className="border-t p-5">
-            <Button
-              className="w-full"
-              disabled={busy || (form && mode === 'extract' && !questionSource)}
-              onClick={() =>
-                void work(
-                  form ? 'practice' : 'assess',
-                  form
-                    ? {
-                        revisionId: revision.id,
-                        topicId: chapterId,
-                        mode,
-                        questionSourceKey: questionSource,
-                        solutionSourceKey: solutionSource,
-                        rubricSourceKey: rubricSource,
-                        includeHistorical: historical,
-                        fromPage,
-                        toPage,
-                        count: Number(count),
-                        difficulty,
-                        focus,
-                        ...billing,
-                      }
-                    : {
-                        revisionId: set?.revisionId || revision.id,
-                        topicId: chapterId,
-                        setId: selected === 'chapter' ? undefined : selected,
-                        questionId: question?.id,
-                        answer,
-                        ...billing,
-                      },
-                )
-              }
-            >
-              {busy
-                ? 'Working…'
-                : form
-                  ? mode === 'extract'
+          {form && (
+            <div className="border-t p-5">
+              <Button
+                className="w-full"
+                disabled={
+                  busy ||
+                  !preferences ||
+                  (mode === 'extract' && !questionSource)
+                }
+                onClick={() =>
+                  void work('practice', {
+                    revisionId: revision.id,
+                    topicId: chapterId,
+                    mode,
+                    questionSourceKey: questionSource,
+                    solutionSourceKey: solutionSource,
+                    rubricSourceKey: rubricSource,
+                    includeHistorical: historical,
+                    fromPage,
+                    toPage,
+                    count: Number(count),
+                    difficulty,
+                    focus,
+                    ...billing,
+                  })
+                }
+              >
+                {busy
+                  ? 'Working…'
+                  : mode === 'extract'
                     ? 'Extract and check questions'
-                    : 'Generate and check exercises'
-                  : 'Save and assess answer'}
-            </Button>
-          </div>
+                    : 'Generate and check exercises'}
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </section>

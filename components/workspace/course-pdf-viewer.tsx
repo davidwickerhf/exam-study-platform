@@ -4,7 +4,7 @@ import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import { Button } from '@/components/ui/button'
 import { ChevronLeftIcon, ChevronRightIcon, MinusIcon, PlusIcon, LoaderCircleIcon } from 'lucide-react'
 
-export default function CoursePdfViewer({ url, file, title, slides = false }: { url?: string; file?: File; title: string; slides?: boolean }) {
+export default function CoursePdfViewer({ url, file, title, slides = false, initialPage = 1 }: { url?: string; file?: File; title: string; slides?: boolean; initialPage?: number }) {
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null), [error, setError] = useState(''), [page, setPage] = useState(1)
   const [zoom, setZoom] = useState(1), [width, setWidth] = useState(800), [text, setText] = useState(''), [textView, setTextView] = useState(false), [rendering, setRendering] = useState(false), [retry, setRetry] = useState(0)
   const viewport = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null)
@@ -55,12 +55,12 @@ export default function CoursePdfViewer({ url, file, title, slides = false }: { 
         engine.GlobalWorkerOptions.workerSrc = `${assets}pdf.worker.min.mjs`
         task = engine.getDocument({ data: bytes, cMapUrl: `${assets}cmaps/`, cMapPacked: true, standardFontDataUrl: `${assets}standard_fonts/`, wasmUrl: `${assets}wasm/` })
         const document = await task.promise
-        if (active) setPdf(document)
+        if (active) {setPage(Math.min(document.numPages, Math.max(1, Math.floor(initialPage) || 1)));setPdf(document)}
       } catch (e) { if (active) setError(controller.signal.aborted ? 'Loading took too long. Try again or download the original.' : (e as Error).message) }
       finally { clearTimeout(timer) }
     })()
     return () => { active = false; clearTimeout(timer); controller.abort(); void task?.destroy() }
-  }, [url, file, retry])
+  }, [url, file, retry, initialPage])
   useEffect(() => {
     if (!pdf) return
     let active = true, render: RenderTask | undefined

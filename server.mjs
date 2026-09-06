@@ -3827,7 +3827,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (await handleFeedbackRoute(req,res,url,{readBody,send})) return
-    if (url.pathname.startsWith('/api/study-versions') || url.pathname === '/api/study-notes' || url.pathname === '/api/account/ai' || url.pathname.startsWith('/api/public/study-versions/')) {
+    if (url.pathname.startsWith('/api/study-versions') || url.pathname === '/api/study-notes' || url.pathname.startsWith('/api/account/ai') || url.pathname.startsWith('/api/public/study-versions/')) {
       try {
         const result = await studyVersionApi({ pathname: url.pathname, method: req.method,
           query: Object.fromEntries(url.searchParams), body: ['POST','PATCH'].includes(req.method) ? await readBody(req, 12 * 1024 * 1024) : {},

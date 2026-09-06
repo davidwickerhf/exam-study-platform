@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 const Pdf = dynamic(() => import('./course-pdf-viewer'), { ssr: false })
 const Text = dynamic(() => import('./course-file-viewer'), { ssr: false })
-export default function CoursePresentationViewer({ assetId, title }: { assetId: string; title: string }) {
+export default function CoursePresentationViewer({ assetId, title, initialPage = 1 }: { assetId: string; title: string; initialPage?: number }) {
   const [text, setText] = useState(false)
   return <div className="flex min-h-0 flex-1 flex-col gap-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -14,6 +14,6 @@ export default function CoursePresentationViewer({ assetId, title }: { assetId: 
       </div>
       <p className="text-xs text-muted-foreground">Static slide pages preserve graphics. Animations remain in the original.</p>
     </div>
-    {text ? <Text assetId={assetId} /> : <Pdf url={`/api/corpus/assets/${encodeURIComponent(assetId)}/slides.pdf`} title={title} slides />}
+    {text ? <Text assetId={assetId} /> : <Pdf url={`/api/corpus/assets/${encodeURIComponent(assetId)}/slides.pdf`} title={title} initialPage={initialPage} slides />}
   </div>
 }

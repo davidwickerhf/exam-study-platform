@@ -3,7 +3,7 @@ import { studyRevision } from '../lib/study-version-store.mjs'
 import { removeOriginal } from '../lib/academic-originals.mjs'
 import { test, expect } from '@playwright/test'
 import { withRequestContext } from '../lib/request-context.mjs'
-import { deleteAllDocuments, writeDocument } from '../lib/user-store.mjs'
+import { deleteAllDocuments, writeDocument, readDocument } from '../lib/user-store.mjs'
 import {
   addStudyNote,
   readStudySourceSnapshot
@@ -21,13 +21,16 @@ import { attendanceOverview } from '../lib/attendance.mjs'
 import { previewCourseBytes } from '../lib/course-file-preview.mjs'
 if (process.env.DATABASE_URL)
   throw new Error('Browser fixtures require local document storage.')
-function previewPdf(label) {
-  const stream=`BT /F1 16 Tf 30 230 Td (${label}) Tj ET`
-  const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>']
+function previewPdf(label, pageCount=1) {
+  const objects=['<< /Type /Catalog /Pages 2 0 R >>',`<< /Type /Pages /Kids [${Array.from({length:pageCount},(_,i)=>`${4+i*2} 0 R`).join(' ')}] /Count ${pageCount} >>`,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>']
+  for(let i=0;i<pageCount;i++){
+    const stream=`BT /F1 16 Tf 30 230 Td (${label}${pageCount>1 ? ` page ${i+1}` : ''}) Tj ET`
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5+i*2} 0 R >>`,`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`)
+  }
   let pdf='%PDF-1.4\n';const offsets=[0]
   objects.forEach((object,i)=>{offsets.push(Buffer.byteLength(pdf));pdf+=`${i+1} 0 obj\n${object}\nendobj\n`})
-  const xref=Buffer.byteLength(pdf)
-  pdf+=`xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(n=>`${String(n).padStart(10,'0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`
+  const xref=Buffer.byteLength(pdf),size=objects.length+1
+  pdf+=`xref\n0 ${size}\n0000000000 65535 f \n${offsets.slice(1).map(n=>`${String(n).padStart(10,'0')} 00000 n \n`).join('')}trailer\n<< /Size ${size} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`
   return pdf
 }
 const run = (fn) =>
@@ -667,29 +670,14 @@ test('guided lesson exposes interactive diagrams, optional depth and progressive
   await page.screenshot({path:'/tmp/wicker-guided-lesson-mobile.png',fullPage:true})
 })
 
-test('chapter edits review changes, preserve history, and apply an AI proposal explicitly', async ({ page }) => {
+test('chapter feedback proposes changes for review without a separate manual editor', async ({ page }) => {
   await page.goto(`/app/study/${versionId}`)
-  const base = await page.request.get(`/api/study-versions/${versionId}`).then(r => r.json())
-  await page.getByRole('button', { name: 'Edit chapter', exact: true }).click()
+  const edited = await page.request.get(`/api/study-versions/${versionId}`).then(r => r.json())
+  await expect(page.getByRole('button', { name: 'Edit chapter', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Improve chapter', exact: true }).click()
   const panel = page.getByRole('dialog')
-  await expect(panel.getByRole('heading', { name: 'Edit chapter' })).toBeVisible()
-  expect((await panel.boundingBox()).width).toBeGreaterThanOrEqual(650)
-  await panel.getByLabel('Text to edit').selectOption('sections.0.text')
-  const revised = `${base.revision.chapters[0].sections[0].text}\n\nMy own clarification: check that both quantities use the same unit.`
-  await panel.getByLabel('Your wording').fill(revised)
-  await panel.getByRole('button', { name: 'Review change', exact: true }).click()
-  await expect(panel.getByText('Your change', { exact: true })).toBeVisible()
-  await expect(panel.getByText('My own clarification:', { exact: false })).toBeVisible()
-  await panel.getByRole('button', { name: 'Apply change', exact: true }).click()
-  await expect(panel).not.toBeVisible()
-  await expect(page.getByText('Personally edited', { exact: true })).toBeVisible()
-  await page.reload()
-  await expect(page.getByText('My own clarification:', { exact: false })).toBeVisible()
-  let edited = await page.request.get(`/api/study-versions/${versionId}`).then(r => r.json())
-  expect(edited.version.history.length).toBe(base.version.history.length + 1)
-  expect(edited.revision.chapters[0].review).toBe('student-edited')
-  await page.getByRole('button', { name: 'Edit chapter', exact: true }).click()
-  await panel.getByRole('button', { name: 'Improve with AI', exact: true }).click()
+  await expect(panel.getByRole('heading', { name: 'Improve chapter' })).toBeVisible()
+  await expect(panel.getByLabel('Your wording')).toHaveCount(0)
   await panel.getByRole('button', { name: 'Add a worked example', exact: true }).click()
   await expect(panel.getByLabel('What should change?')).toHaveValue('Add a worked example')
   await panel.getByRole('button', { name: 'Cancel', exact: true }).click()
@@ -719,12 +707,12 @@ test('chapter edits review changes, preserve history, and apply an AI proposal e
   const applied = await page.request.get(`/api/study-versions/${versionId}`).then(r => r.json())
   expect(applied.version.activeRevisionId).toBe(pending.proposal.id)
   await page.getByRole('combobox', { name: 'Version history' }).click()
-  await page.getByRole('option').filter({ hasText: 'Explanation' }).first().click()
+  await page.getByRole('option').filter({ hasText: edited.version.history[0].edit?.label || 'Generated revision' }).first().click()
   await page.getByRole('button', { name: 'Restore this revision' }).click()
-  await expect(page.getByText('My own clarification:', { exact: false })).toBeVisible()
+  await expect(page.getByText('A newly proposed worked example', { exact: false })).toHaveCount(0)
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.getByRole('button', { name: 'Edit chapter', exact: true }).click()
-  await expect(panel.getByRole('button', { name: 'Review change', exact: true })).toBeInViewport()
+  await page.getByRole('button', { name: 'Improve chapter', exact: true }).click()
+  await expect(panel.getByRole('button', { name: 'Generate proposal', exact: true })).toBeInViewport()
   expect(Math.round((await panel.boundingBox()).width)).toBe(390)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
@@ -733,13 +721,18 @@ test('chapter workspace restores course papers, free answer-key grading, source 
   let setId
   await run(async()=>{
     const v=await ownStudyVersion(versionId),revision=await studyRevision(v)
-    const paper=await addStudyNote({...course,title:'Mock exam fixture'},[{page:1,text:'1(a) Select the result of 2 + 3. A: 4 B: 5 [2 marks]. Answer: B, five.'}])
+    const paper=await addStudyNote({...course,title:'Mock exam fixture'},[{page:2,text:'1(a) Select the result of 2 + 3. A: 4 B: 5 [2 marks]. Answer: B, five.'}])
     const set=await createStudyPractice(versionId,{revisionId:revision.id,topicId:revision.chapters[0].id,mode:'extract',questionSourceKey:paper.id},{billing:{source:'platform',model:'gpt-5-mini',maxJobUsd:1}})
     setId=set.id
     const snapshot=await readStudySourceSnapshot(course,[paper.id]),id=snapshot.chunks[0].id
-    await stepStudyPractice(versionId,set.id,{generate:async()=>JSON.stringify({title:'Arithmetic mock exam',questions:[{label:'1(a)',question:'Select the result of 2 + 3.',sharedContext:'',type:'mc',options:['4','5'],correctOptions:[1],marks:2,page:1,answer:'Five.',answerBasis:'source',hint:'',difficulty:'foundation',sourceIds:[id],answerSourceIds:[id],needsOriginal:false}],warnings:[]})})
+    await stepStudyPractice(versionId,set.id,{generate:async()=>JSON.stringify({title:'Arithmetic mock exam',questions:[{label:'1(a)',question:'Select the result of 2 + 3.',sharedContext:'',type:'mc',options:['4','5'],correctOptions:[1],marks:2,page:2,answer:'Five.',answerBasis:'source',hint:'',difficulty:'foundation',sourceIds:[id],answerSourceIds:[id],needsOriginal:false}],warnings:[]})})
     await stepStudyPractice(versionId,set.id,{generate:async()=>JSON.stringify({issues:[]})})
+    const record=await readDocument('study-practice',set.id)
+    record.snapshot.sources[0]={...record.snapshot.sources[0],title:'Mock exam fixture.pdf',url:'/api/test-original-paper.pdf'}
+    await writeDocument('study-practice',set.id,record)
   })
+  await page.route('**/api/account/ai',async route=>{const response=await route.fetch();const body=await response.json();await route.fulfill({json:{...body,platform:{...body.platform,provider:'openai'}}})})
+  await page.route('**/api/test-original-paper.pdf',route=>route.fulfill({contentType:'application/pdf',body:previewPdf('Original exam',2)}))
   await page.goto(`/app/study/${versionId}`)
   await page.getByRole('button',{name:'Ask AI tutor',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Chapter tutor',exact:true})).toBeVisible()
@@ -748,20 +741,42 @@ test('chapter workspace restores course papers, free answer-key grading, source 
   await page.getByRole('tab',{name:/^Practice \(\d+\)$/}).click()
   await page.getByRole('combobox',{name:'Exercise set',exact:true}).selectOption(setId)
   await expect(page.getByText('Extracted course paper',{exact:true})).toBeVisible()
-  await expect(page.getByText('2 marks · Page 1',{exact:true})).toBeVisible()
+  await expect(page.getByText('2 marks · Page 2',{exact:true})).toBeVisible()
   await page.getByRole('radio',{name:'5',exact:true}).check()
   await page.getByRole('button',{name:'Check answer & save',exact:true}).click()
-  await expect(page.getByText('This uses the saved answer key without an AI call.',{exact:false})).toBeVisible()
-  await page.getByRole('button',{name:'Save and assess answer',exact:true}).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'2 / 2 · Practice assessment',exact:true})).toBeVisible()
-  await page.getByRole('button',{name:'View Mock exam fixture',exact:true}).click()
+  await page.getByRole('button',{name:'View original',exact:true}).click()
+  await expect(page.getByRole('dialog').getByLabel('Page number')).toHaveValue('2')
+  await expect.poll(()=>page.getByRole('dialog').locator('canvas').evaluate(el=>el.width)).toBeGreaterThan(100)
+  await expect(page.getByRole('dialog').locator('canvas')).toBeVisible()
+  await page.getByRole('dialog').getByRole('tab',{name:'Ingested text',exact:true}).click()
   await expect(page.getByText('1(a) Select the result of 2 + 3. A: 4 B: 5 [2 marks]. Answer: B, five.',{exact:true})).toBeVisible()
   await page.keyboard.press('Escape')
   await page.reload()
   await page.getByRole('tab',{name:/^Practice \(\d+\)$/}).click()
   await page.getByRole('combobox',{name:'Exercise set',exact:true}).selectOption(setId)
   await expect(page.getByRole('heading',{name:'2 / 2 · Practice assessment',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Change AI preferences',exact:true}).click()
+  await page.getByRole('dialog').getByLabel('Generation quality').selectOption('enhanced')
+  await page.getByRole('dialog').getByRole('button',{name:'Save AI preferences',exact:true}).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  const saved=await page.request.get('/api/account/ai/preferences').then(r=>r.json())
+  expect(saved.revision).toBeTruthy()
+  expect(saved.quality).toBe('enhanced')
+  await page.reload()
+  const reloaded=await page.request.get('/api/account/ai/preferences').then(r=>r.json())
+  expect(reloaded).toEqual(saved)
+  await page.getByRole('tab',{name:/^Practice \(\d+\)$/}).click()
+  await page.getByRole('combobox',{name:'Exercise set',exact:true}).selectOption(setId)
+  await page.getByRole('radio',{name:'4',exact:true}).check()
+  const request=page.waitForRequest(r=>r.url().endsWith('/assess')&&r.method()==='POST')
+  await page.getByRole('button',{name:'Check answer & save',exact:true}).click()
+  expect((await request).postDataJSON().quality).toBe('enhanced')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'0 / 2 · Practice assessment',exact:true})).toBeVisible()
   await page.getByRole('button',{name:'Add practice set',exact:true}).click()
+  await expect(page.getByRole('dialog').getByLabel('Generation quality')).toHaveValue('enhanced')
   await expect(page.getByRole('radio',{name:'Course paper or exercise sheet',exact:true})).toBeChecked()
   await page.getByRole('radio',{name:'Generate additional exercises',exact:true}).check()
   await expect(page.getByRole('button',{name:'Generate and check exercises',exact:true})).toBeVisible()

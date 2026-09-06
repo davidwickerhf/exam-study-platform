@@ -8,7 +8,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
-import { StudyBillingFields } from './study-billing-fields'
+import {
+  useStudyAiPreferences,
+  StudyAiPreferencesForm,
+  StudyAiPreferenceSummary,
+} from './study-ai-preferences'
 import { StudyProse } from './study-prose'
 import { studyRequest } from '@/lib/workspace/study-versions'
 import type { PracticeRecord } from './study-practice-workspace'
@@ -27,9 +31,7 @@ export function StudyExamAssessment({
     [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('')
-  const [source, setSource] = useState('platform'),
-    [cap, setCap] = useState('1'),
-    [quality, setQuality] = useState('standard')
+  const { preferences } = useStudyAiPreferences()
   const base = `/api/study-versions/${versionId}`
   useEffect(() => {
     let live = true
@@ -60,9 +62,7 @@ export function StudyExamAssessment({
         examId,
         questionId,
         answer,
-        billingSource: source,
-        quality,
-        maxJobUsd: Number(cap),
+        ...preferences,
       })
       setRecord(r)
       setOpen(false)
@@ -100,7 +100,10 @@ export function StudyExamAssessment({
           </p>
         </div>
       ) : (
-        <Button disabled={busy || !answer.trim()} onClick={() => setOpen(true)}>
+        <Button
+          disabled={busy || !answer.trim() || !preferences}
+          onClick={() => void assess()}
+        >
           {busy
             ? 'Assessing…'
             : record
@@ -108,6 +111,12 @@ export function StudyExamAssessment({
               : 'Assess this exam answer'}
         </Button>
       )}
+      <div className="flex flex-wrap items-center gap-3">
+        <StudyAiPreferenceSummary preferences={preferences} />
+        <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>
+          Change AI preferences
+        </Button>
+      </div>
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -116,7 +125,7 @@ export function StudyExamAssessment({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Assess this exam answer</SheetTitle>
+            <SheetTitle>AI preferences</SheetTitle>
             <SheetDescription>
               AI feedback uses the question and reference from the revision this
               exam was built with. This is a practice score, not an official
@@ -124,17 +133,7 @@ export function StudyExamAssessment({
             </SheetDescription>
           </SheetHeader>
           <div className="space-y-5 overflow-y-auto px-5">
-            <StudyBillingFields
-              source={source}
-              setSource={setSource}
-              cap={cap}
-              setCap={setCap}
-              quality={quality}
-              setQuality={setQuality}
-            />
-            <Button disabled={busy} onClick={() => void assess()}>
-              Assess answer with AI
-            </Button>
+            <StudyAiPreferencesForm onSaved={() => setOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>

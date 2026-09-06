@@ -18,6 +18,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { StudyAiPreferencesForm } from './study-ai-preferences'
 import { Skeleton } from '@/components/ui/skeleton'
 import { studyRequest, type StudyBudget } from '@/lib/workspace/study-versions'
 export function PersonalAiSettings() {
@@ -66,6 +67,7 @@ export function PersonalAiSettings() {
   }
   return (
     <section className="flex max-w-2xl flex-col gap-6">
+      <section className="space-y-5 border-b pb-6"><h2 className="text-xl font-semibold">AI defaults</h2><StudyAiPreferencesForm/></section>
       <header>
         <h2 className="text-xl font-semibold">Your AI key</h2>
         <p className="text-muted-foreground mt-2 text-sm leading-6">
