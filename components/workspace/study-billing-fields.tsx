@@ -21,12 +21,16 @@ export function StudyBillingFields({
   source,
   setSource,
   cap,
-  setCap
+  setCap,
+  quality = 'standard',
+  setQuality
 }: {
   source: string
   setSource: (value: string) => void
   cap: string
   setCap: (value: string) => void
+  quality?: string
+  setQuality?: (value: string) => void
 }) {
   const [budget, setBudget] = useState<StudyBudget | null>(null),
     [error, setError] = useState('')
@@ -41,6 +45,14 @@ export function StudyBillingFields({
   }, [])
   return (
     <FieldGroup>
+      {setQuality && source === 'platform' && <Field>
+        <FieldLabel htmlFor="study-quality">Generation quality</FieldLabel>
+        <select id="study-quality" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={quality} onChange={e => setQuality(e.target.value)}>
+          <option value="standard">Standard · Configured platform model</option>
+          <option value="enhanced" disabled={budget?.platform.provider !== 'openai'}>Enhanced · GPT-5.4</option>
+        </select>
+        <FieldDescription>{quality === 'enhanced' ? 'A stronger model for explanations and evidence review. Higher cost; your spending limits still apply.' : 'Uses the configured model and the same evidence checks.'}</FieldDescription>
+      </Field>}
       <Field>
         <FieldLabel htmlFor="study-billing-source">AI billing</FieldLabel>
         <Select value={source} onValueChange={(v) => v && setSource(v)}>

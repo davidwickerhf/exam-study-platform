@@ -185,3 +185,36 @@ acceptance. The OpenAI adapter requests strict structured output, with citations
 restricted to the evidence IDs supplied to that exact generation step. Structural
 errors report field paths and validator codes without logging private source text.
 Format conformance does not replace deterministic and independent evidence checks.
+
+### Personal edits, feedback and revision history
+
+The chapter's **Edit chapter** side panel offers text-only edits and AI feedback.
+A direct edit selects one explanation, callout, takeaway, summary point, question,
+answer, hint or flashcard side. Before/after review precedes saving a new immutable
+revision. Evidence IDs and visual specifications are not client-editable. A changed
+chapter becomes `student-edited`, loses its inherited AI-check badge, and cannot be
+published as checked content. Changed practice items receive new IDs; old attempts
+retain their original question/answer snapshots. Notes and reading progress remain.
+
+AI feedback uses the same selected source snapshot, generates only the target
+chapter and runs its evidence review. Unchanged chapters are preserved byte for
+byte, including their existing review status. The resulting revision is a private
+proposal; it cannot be used for publishing, exams or saved practice until accepted.
+The reader stays on the current revision. A side panel shows textual changes and a
+full preview (including diagrams); Apply/Discard are explicit. An outstanding
+proposal blocks subsequent edits/refreshes until decided. Compare-and-swap checks
+reject stale tabs and conflicting changes. Source access is checked again on apply.
+
+Version history records edit type and label. Restore copies a prior revision into
+a new revision; it never erases history or rewrites a published release. Originals
+and citations remain those of the restored snapshot, subject to current access.
+
+Enhanced generation explicitly selects GPT-5.4 for OpenAI platform connections;
+standard continues to use the configured model. The same choice is offered for
+source generation, chapter feedback and retry. Personal keys use the model selected
+in AI settings (GPT-5.4 is also available there). Standard prices checked against
+https://developers.openai.com/api/docs/pricing on 2026-09-06: GPT-5.4 $2.50 input /
+$15 output per million tokens. Each call reserves at its actual model's price;
+existing token, chapter, personal, shared and job limits still apply. No automatic
+model or billing-source escalation. The model is an option to evaluate, not a claim
+that it has passed comparative teaching-quality acceptance.

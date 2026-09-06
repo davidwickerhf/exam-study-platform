@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { StudyBillingFields } from '@/components/workspace/study-billing-fields'
+import { StudyProposal } from '@/components/workspace/study-proposal'
 import { StudyReader } from '@/components/workspace/study-reader'
 import { StudySourceForm } from '@/components/workspace/study-source-form'
 import { StudySharingForm } from '@/components/workspace/study-sharing-form'
@@ -37,7 +38,8 @@ export default function StudentStudyPage() {
     [busy, setBusy] = useState(false)
   const [resume, setResume] = useState(false),
     [billingSource, setBillingSource] = useState('platform'),
-    [cap, setCap] = useState('1')
+    [cap, setCap] = useState('1'),
+    [quality, setQuality] = useState('standard')
   async function load() {
     const result = await studyRequest<StudyVersionPayload>(
       `/api/study-versions/${versionId}${selected ? `?revision=${encodeURIComponent(selected)}` : ''}`
@@ -69,7 +71,7 @@ export default function StudentStudyPage() {
     try {
       await studyRequest(
         `/api/study-versions/${versionId}/${action}`,
-        action === 'retry' ? { billingSource, maxJobUsd: Number(cap) } : {}
+        action === 'retry' ? { billingSource, maxJobUsd: Number(cap), quality } : {}
       )
       setResume(false)
       await load()
@@ -133,7 +135,7 @@ export default function StudentStudyPage() {
             <Button
               variant="outline"
               size="sm"
-              disabled={active}
+              disabled={active || Boolean(data.proposal)}
               onClick={() => {
                 setRefreshing(!refreshing)
                 setSharing(false)
@@ -211,10 +213,13 @@ export default function StudentStudyPage() {
           )}
         </section>
       )}
+      {data.proposal && data.revision && data.revision.id === version.activeRevisionId && <StudyProposal proposal={data.proposal} base={data.revision} onChanged={() => { setSelected(''); void load() }} />}
       {resume && (
         <section className="flex flex-col gap-4 rounded-xl border bg-card p-5">
           <h2 className="font-semibold">Resume generation</h2>
           <StudyBillingFields
+            quality={quality}
+            setQuality={setQuality}
             source={billingSource}
             setSource={setBillingSource}
             cap={cap}
@@ -241,7 +246,7 @@ export default function StudentStudyPage() {
             <Button
               variant="link"
               size="sm"
-              disabled={active}
+              disabled={active || Boolean(data.proposal)}
               onClick={() => setRefreshing(true)}
             >
               Review sources
@@ -277,7 +282,7 @@ export default function StudentStudyPage() {
             id="study-revision-label"
             className="text-muted-foreground text-xs"
           >
-            Saved revision
+            Version history
           </span>
           <Select
             value={selected || version.activeRevisionId}
@@ -293,7 +298,7 @@ export default function StudentStudyPage() {
                     (r) => r.id === (selected || version.activeRevisionId)
                   )
                   return r
-                    ? `${new Date(r.createdAt).toLocaleString()} · ${r.id === version.activeRevisionId ? 'Latest' : `${r.chapters} chapters`}`
+                    ? `${r.edit?.label || new Date(r.createdAt).toLocaleString()} · ${r.id === version.activeRevisionId ? 'Latest' : `${r.chapters} chapters`}`
                     : 'Choose a revision'
                 })()}
               </SelectValue>
@@ -302,13 +307,18 @@ export default function StudentStudyPage() {
               <SelectGroup>
                 {version.history.map((r, index) => (
                   <SelectItem key={r.id} value={r.id}>
-                    {new Date(r.createdAt).toLocaleString()} ·{' '}
+                    {r.edit?.label || 'Generated revision'} · {new Date(r.createdAt).toLocaleString()} ·{' '}
                     {index === 0 ? 'Latest' : `${r.chapters} chapters`}
                   </SelectItem>
                 ))}
               </SelectGroup>
             </SelectContent>
           </Select>
+          {selected && selected !== version.activeRevisionId && <Button variant="outline" size="sm" disabled={busy || active || Boolean(data.proposal)} onClick={async () => {
+            setBusy(true)
+            try { await studyRequest(`/api/study-versions/${versionId}/restore`, { baseRevisionId: version.activeRevisionId, revisionId: selected }); setSelected('') }
+            catch(e) { setError((e as Error).message) } finally { setBusy(false) }
+          }}>Restore this revision</Button>}
         </div>
       )}
       {revision && (
@@ -328,6 +338,8 @@ export default function StudentStudyPage() {
               revision={revision}
               progress={data.progress}
               personal={Boolean(data.revision)}
+              editable={Boolean(data.revision) && revision.id === version.activeRevisionId && !active && !data.proposal}
+              onEdited={() => { setSelected(''); void load() }}
               onSaved={(progress) =>
                 setData((old) =>
                   old

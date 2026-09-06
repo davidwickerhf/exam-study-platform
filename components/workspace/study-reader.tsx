@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Field, FieldLabel, FieldDescription } from '@/components/ui/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { StudyChapterEditor } from './study-chapter-editor'
 import { StudyLessonStory } from './study-lesson-story'
 import { StudyProse } from './study-prose'
 import { StudyEvidence } from './study-evidence'
@@ -20,12 +21,16 @@ export function StudyReader({
   revision,
   progress = [],
   personal = false,
-  onSaved = () => {}
+  onSaved = () => {},
+  onEdited,
+  editable = false
 }: {
   revision: StudyRevision
   progress?: StudyProgress[]
   personal?: boolean
   onSaved?: (progress: StudyProgress) => void
+  onEdited?: () => void
+  editable?: boolean
 }) {
   const [topicId, setTopicId] = useState(revision.chapters[0]?.id || ''),
     [tab, setTab] = useState('lesson')
@@ -133,8 +138,8 @@ export function StudyReader({
       <article className="min-w-0 rounded-xl border bg-card p-5 sm:p-7">
         <header className="mb-5 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">AI-generated</Badge>
-            <Badge variant="secondary">{chapter.review === 'passed' ? 'Evidence checked by AI' : 'Evidence review pending'}</Badge>
+            <Badge variant="outline">{chapter.review === 'student-edited' ? 'Personally edited' : 'AI-generated'}</Badge>
+            <Badge variant="secondary">{chapter.review === 'passed' ? 'Evidence checked by AI' : chapter.review === 'student-edited' ? 'Changes not AI checked' : 'Evidence review pending'}</Badge>
             {historical && (
               <Badge variant="outline">Includes supplements</Badge>
             )}
@@ -146,6 +151,7 @@ export function StudyReader({
             Not editorially reviewed. Source passages are available below each
             explanation.
           </p>
+          {editable && onEdited && <StudyChapterEditor key={`${revision.id}-${chapter.id}`} chapter={chapter} revision={revision} onChanged={onEdited} />}
           {!!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span>{goal}</li>)}</ul></div>}
         </header>
         <Tabs value={tab} onValueChange={setTab} className="min-w-0 gap-5">

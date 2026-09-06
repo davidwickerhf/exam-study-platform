@@ -243,3 +243,18 @@ test('quota exemption bypasses usage ceilings while retaining metering and dupli
     assert.throws(()=>reserveStudyLedger(null,{...input,source,quotaExempt:false},zero),/allowance/)
   }
 })
+
+test('enhanced generation explicitly selects its priced model without relaxing budget controls', async () => {
+  await withRequestContext({ userId: `model-choice-${randomUUID()}`, mode: 'hosted', email: 'student@example.test' }, async () => {
+    const platform = { configured: true, provider: 'openai', model: 'gpt-5-mini' }
+    assert.equal((await resolveStudyBilling({}, platform)).model, 'gpt-5-mini')
+    const enhanced = await resolveStudyBilling({ quality: 'enhanced', maxJobUsd: 0.5 }, platform)
+    assert.equal(enhanced.model, 'gpt-5.4')
+    assert.equal(enhanced.source, 'platform')
+    const mini = estimateStudyCall('Example', 10000, 'gpt-5-mini'), strong = estimateStudyCall('Example', 10000, enhanced.model)
+    assert.ok(strong.micros > mini.micros * 7)
+    assert.throws(() => reserveStudyLedger(null, { ...input, model: enhanced.model, estimate: strong, maxJobUsd: 0.05 }, limits), /cap|budget|spending/i)
+    await assert.rejects(resolveStudyBilling({ quality: 'enhanced' }, { ...platform, provider: 'anthropic' }), /OpenAI/)
+    await assert.rejects(resolveStudyBilling({ quality: 'unknown' }, platform), /standard or enhanced/)
+  })
+})

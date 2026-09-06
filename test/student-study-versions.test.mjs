@@ -764,3 +764,90 @@ test('outbox claims prevent fan-out while another course is waiting for delivery
     await second.cleanup()
   }
 })
+
+test('personal edits preserve immutable history and attempts, fence stale edits, and remove inherited review', async () => {
+  const { editStudyText, restoreStudyRevision } = await import('../lib/study-version-editing.mjs')
+  const f = await fixture()
+  try {
+    await finish(f)
+    await f.run(async () => {
+      let version = await ownStudyVersion(f.version.id)
+      const base = await studyRevision(version), chapter = base.chapters[0], question = chapter.questions[0]
+      await saveStudyProgress(version.id, { revisionId: base.id, topicId: chapter.id, attempt: { id: randomUUID(), answer: 'My earlier answer', questionId: question.id }, note: 'Keep this note' })
+      const request = { baseRevisionId: base.id, topicId: chapter.id, field: 'questions.0.answer', text: 'My corrected answer with a clearer explanation.' }
+      const edited = await editStudyText(version.id, request)
+      const revision = await studyRevision(edited)
+      assert.equal(revision.chapters[0].review, 'student-edited')
+      assert.equal(revision.review, 'student-edited')
+      assert.notEqual(revision.chapters[0].questions[0].id, question.id)
+      assert.equal((await studyRevision(edited, base.id)).chapters[0].questions[0].answer, question.answer)
+      assert.equal((await readStudyProgress(version.id))[0].note, 'Keep this note')
+      assert.equal((await readStudyProgress(version.id))[0].attempts[0].question.answer, question.answer)
+      await assert.rejects(editStudyText(version.id, request), /changed since/)
+      await assert.rejects(editStudyText(version.id, { ...request, baseRevisionId: revision.id, field: 'review', text: 'passed' }), /Choose a text block/)
+      await assert.rejects(editStudyText(version.id, { ...request, baseRevisionId: revision.id }, { checkAccess: async () => false }), /source is no longer/)
+      assert.throws(() => selectStudyPublication(revision, { topicIds: [chapter.id] }), /checked|chapter/i)
+      const restored = await restoreStudyRevision(version.id, { baseRevisionId: revision.id, revisionId: base.id })
+      assert.equal(restored.history.length, 3)
+      assert.deepEqual((await studyRevision(restored)).chapters, base.chapters)
+      assert.equal((await studyRevision(restored, revision.id)).chapters[0].review, 'student-edited')
+      await withRequestContext({ userId: 'not-the-edit-owner', mode: 'local' }, async () => {
+        await assert.rejects(editStudyText(version.id, request), /not found/)
+      })
+    })
+  } finally { await f.cleanup() }
+})
+
+test('targeted AI feedback reuses other chapters, waits for apply, and supports discarding proposals', async () => {
+  const { improveStudyChapter, decideStudyProposal, studyProposal, editStudyText } = await import('../lib/study-version-editing.mjs')
+  const f = await fixture()
+  try {
+    await finish(f)
+    await f.run(async () => {
+      let version = await ownStudyVersion(f.version.id)
+      const original = await studyRevision(version)
+      // Simulate a second, independently edited chapter. It must not be rewritten
+      // or granted a passed review just because another chapter is improved.
+      const second = { ...structuredClone(original.chapters[0]), id: 'unchanged', review: 'student-edited' }
+      const two = await saveStudyRevision(version, { ...original, id: `rev-${randomUUID()}`, chapters: [...original.chapters, second], topics: [...original.topics, { ...original.topics[0], id: 'unchanged' }] })
+      version = await mutateStudyVersion(version.id, v => { v.activeRevisionId = two.id; v.history.unshift({ id: two.id }) })
+      const input = { baseRevisionId: two.id, topicId: original.chapters[0].id, feedback: 'Explain this with a clearer worked example.' }
+      await improveStudyChapter(version.id, input, { billing: { source: 'platform', model: 'gpt-5.4' } })
+      await assert.rejects(editStudyText(version.id, { ...input, field: 'sections.0.text', text: 'Conflict' }), /finish or pause/)
+      let calls = 0
+      const generate = async (prompt, options) => {
+        calls++
+        assert.equal(options.billing.model, 'gpt-5.4')
+        assert.ok(!prompt.includes('Map this evidence batch'))
+        if (prompt.includes('Independently check')) return { issues: [] }
+        assert.ok(prompt.includes(input.feedback))
+        assert.ok(prompt.includes('Existing chapter:'))
+        const result = lesson(original.snapshot.chunks.map(c => c.id))
+        result.sections[0].text += ' This additional worked example clarifies the steps.'
+        return result
+      }
+      for (let i = 0; i < 6; i++) await processStudyStep(version.id, { generate })
+      version = await ownStudyVersion(version.id)
+      assert.equal(calls, 2)
+      assert.equal(version.activeRevisionId, two.id)
+      const proposal = await studyProposal(version)
+      assert.ok(proposal)
+      assert.deepEqual(proposal.chapters.find(c => c.id === 'unchanged'), second)
+      assert.equal(proposal.review, 'student-edited')
+      assert.equal(await studyRevision(version, proposal.id), null, 'unaccepted proposals cannot be published or used as saved revisions')
+      await assert.rejects(improveStudyChapter(version.id, input), /Apply or discard/)
+      await assert.rejects(decideStudyProposal(version.id, { revisionId: proposal.id, decision: 'apply' }, { checkAccess: async () => false }), /source is no longer/)
+      const applied = await decideStudyProposal(version.id, { revisionId: proposal.id, decision: 'apply' })
+      assert.equal(applied.activeRevisionId, proposal.id)
+      assert.equal(applied.proposal, null)
+      assert.ok(await studyRevision(applied, two.id))
+      await assert.rejects(decideStudyProposal(version.id, { revisionId: proposal.id, decision: 'apply' }), /no longer available/)
+      await improveStudyChapter(version.id, { ...input, baseRevisionId: proposal.id })
+      for (let i = 0; i < 6; i++) await processStudyStep(version.id, { generate: async prompt => prompt.includes('Independently check') ? { issues: [] } : lesson(original.snapshot.chunks.map(c => c.id)) })
+      const pending = await studyProposal(await ownStudyVersion(version.id))
+      const discarded = await decideStudyProposal(version.id, { revisionId: pending.id, decision: 'discard' })
+      assert.equal(discarded.activeRevisionId, proposal.id)
+      assert.equal(discarded.proposal, null)
+    })
+  } finally { await f.cleanup() }
+})

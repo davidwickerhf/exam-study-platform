@@ -54,7 +54,9 @@ export type StudyChapter = {
   walkthrough: { title: string; steps: GroundedText[] } | null
   caveats: string[]
 }
+export type StudyEdit = { kind: string; label: string; topicId?: string; feedback?: string; baseRevisionId: string }
 export type StudyRevision = {
+  edit?: StudyEdit
   id: string
   versionId: string
   course: StudyCourseIdentity
@@ -79,7 +81,7 @@ export type StudyVersion = {
   activeRevisionId: string | null
   createdAt: string
   updatedAt: string
-  history: { id: string; createdAt: string; chapters: number; reused: number }[]
+  history: { id: string; createdAt: string; chapters: number; reused: number; edit?: StudyEdit }[]
   draft: {
     id: string
     status: string
@@ -110,6 +112,7 @@ export type StudyProgress = {
 export type StudyVersionPayload = {
   version: StudyVersion
   revision: StudyRevision | null
+  proposal?: StudyRevision | null
   partial: StudyRevision | null
   progress: StudyProgress[]
   sourceKeys: string[]
@@ -178,6 +181,7 @@ export type StudyBudget = {
     maxJobUsd: number; unlimited?: boolean
   }
   platform: {
+    provider?: string
     configured: boolean
     model: string
     spentTodayUsd: number

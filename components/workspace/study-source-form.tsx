@@ -46,6 +46,7 @@ export function StudySourceForm({
 }) {
   const [billingSource, setBillingSource] = useState('platform'),
     [cap, setCap] = useState('1'),
+    [quality, setQuality] = useState('standard'),
     [estimate, setEstimate] = useState<StudyEstimate | null>(null)
   const [year, setYear] = useState(
     course.academicYear === 'all' ? '' : course.academicYear
@@ -138,7 +139,7 @@ export function StudySourceForm({
   }
   useEffect(() => {
     setEstimate(null)
-  }, [chosen.join(','), billingSource, cap, year])
+  }, [chosen.join(','), billingSource, cap, year, quality])
   async function generate() {
     setBusy(true)
     setError('')
@@ -149,6 +150,7 @@ export function StudySourceForm({
         sourceKeys: chosen,
         includeHistorical: historical,
         billingSource,
+        quality,
         maxJobUsd: Number(cap)
       }
       if (!estimate) {
@@ -390,6 +392,8 @@ export function StudySourceForm({
         )}
       </FieldGroup>
       <StudyBillingFields
+        quality={quality}
+        setQuality={setQuality}
         source={billingSource}
         setSource={setBillingSource}
         cap={cap}
