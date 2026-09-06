@@ -115,15 +115,20 @@ necessary to establish teaching quality across a full course.
   budget reservations; settings show the account total. An interrupted request is
   never retried automatically. Evaluations are private, exported with account data,
   and live in a separate namespace with no production queue or publication path.
-  Preview supports this diagnostic with a saved personal key while general preview
-  generation remains disabled. No key is returned to the browser or copied into CLI.
+  Preview supports this diagnostic with the configured platform provider or a saved
+  personal key. No key is returned to the browser or copied into CLI.
   For real material use `scenario:"sources"`, `course`, `sourceKeys`, `topic`, and
   explicit `includeHistorical` if needed. One chapter accepts at most 36,000 source
   characters, rejects oversized selections, and rechecks source access at each step.
   The fixed reference case additionally corrupts a solution and current exam rules
   to test reviewer sensitivity. A passing diagnostic is not a full-course evaluation.
 - Production uses the existing signed Canvas queue dispatcher and minute outbox sweep.
-  Preview generation is disabled so preview workers cannot consume production work.
+  Preview workers require a dedicated database hostname matching
+  `WICKER_PREVIEW_DATABASE_HOST` plus explicit `WICKER_PREVIEW_WORKER_USERS`.
+  Dispatch and worker leases enforce the account list. Automatic discovery stays
+  off in previews to avoid scheduling copied production accounts. Study generation
+  has its own queue capacity; delayed continuations hand off to the current branch
+  dispatcher instead of staying pinned to an obsolete deployment.
   Local mode uses resumable in-process steps and a 30-second recovery sweep.
 - Apply migration 033 through the normal migration runner. Configure a priced API
   provider (`LLM_PROVIDER=openai`, `OPENAI_MODEL=gpt-5-mini`, or Anthropic Sonnet 4.5).
@@ -136,7 +141,7 @@ necessary to establish teaching quality across a full course.
 
 ## Deliberate limits
 
-Selections are bounded to 100 files, 600k extracted characters and 40 chapters.
+Selections are bounded to 100 files, 600k extracted characters and 24 mapped chapters.
 Unreadable material and unmapped passages are listed explicitly; scanned notes need
 text extraction before generation. Historical and undated sources require opt-in.
 A different academic edition gets a separate version rather than overwriting history.
@@ -149,3 +154,9 @@ Admin submissions include selected teaching content and cited excerpts, not auto
 access to all of a contributor's original documents. Existing editorial intake/release
 review still determines publication. A shared release becomes unavailable if its
 sources change or sharing permission is withdrawn; private revision history remains.
+
+Generation output uses JSON Schema derived from the same Zod validators used for
+acceptance. The OpenAI adapter requests strict structured output, with citations
+restricted to the evidence IDs supplied to that exact generation step. Structural
+errors report field paths and validator codes without logging private source text.
+Format conformance does not replace deterministic and independent evidence checks.
