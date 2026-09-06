@@ -110,5 +110,21 @@ try {
   await query("UPDATE canvas_corpus_access SET sync_paused=false WHERE user_id='fixture'")
   await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type,queue_sent_at) VALUES('csj-expired-message','fixture','https://canvas.fixture','binding','course',now()-interval '8 days')")
   assert.ok((await dispatchCanvasQueue()).includes('csj-expired-message'))
-  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','stop fencing','expired-message recovery'],downloads,embeddingCalls,passages:Number(total.n)}))
+  // Three hard terminations leave persisted attempts, even with no catch block.
+  // The exhausted resource is isolated and another resource still publishes.
+  await query("INSERT INTO canvas_sync_checkpoints(job_id,key,value) VALUES('csj-expired-message','inventory','{}')")
+  await query(`INSERT INTO canvas_sync_resources(id,job_id,source_path,payload,stage,asset_id,failures)
+    SELECT 'fatal-fixture','csj-expired-message','a-fatal.txt','{}','index',r.asset_id,3
+    FROM canvas_sync_resources r JOIN editorial_source_assets a ON a.id=r.asset_id
+    WHERE r.stage='complete' AND length(a.extracted_text)>0 ORDER BY length(a.extracted_text) LIMIT 1`)
+  await query(`INSERT INTO canvas_sync_resources(id,job_id,source_path,payload,stage,asset_id,failures)
+    SELECT 'healthy-fixture','csj-expired-message','z-healthy.txt','{}','index',asset_id,0 FROM canvas_sync_resources WHERE id='fatal-fixture'`)
+  await processCanvasQueueStep('csj-expired-message')
+  assert.equal((await one("SELECT stage FROM canvas_sync_resources WHERE id='fatal-fixture'")).stage,'failed')
+  for(let i=0;i<10;i++) {
+    await processCanvasQueueStep('csj-expired-message')
+    if((await one("SELECT stage FROM canvas_sync_resources WHERE id='healthy-fixture'")).stage==='complete') break
+  }
+  assert.equal((await one("SELECT stage FROM canvas_sync_resources WHERE id='healthy-fixture'")).stage,'complete')
+  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','stop fencing','expired-message recovery','hard-timeout isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}
