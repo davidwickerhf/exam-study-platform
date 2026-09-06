@@ -68,7 +68,7 @@ import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
-import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
+import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { workspaceProgrammeCatalogue, loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -3805,6 +3805,17 @@ const server = createServer(async (req, res) => {
       const origin = parseCanvasOrigin(url.searchParams.get('canvasUrl') || 'https://canvas.maastrichtuniversity.nl').origin
       const [permission, status] = await Promise.all([canvasCorpusPermission({ accountId: currentAuth().userId, origin }), canvasCorpusStatus({ accountId: currentAuth().userId, summary: url.searchParams.get('view') === 'summary' })])
       send(res, 200, JSON.stringify({ permission, status }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/account/integrations/canvas/refresh' && req.method === 'PUT') {
+      if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Change automatic refresh in Settings → Connections.' })); return }
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
+        if (!(await listCanvasConnections()).some(connection => connection.origin === origin)) { send(res, 409, JSON.stringify({ error: 'Connect Canvas first.' })); return }
+        const permission = await setCanvasRefreshSettings({ accountId: currentAuth().userId, origin, settings: body?.settings })
+        send(res, 200, JSON.stringify({ permission }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
       return
     }
     if (url.pathname === '/api/account/integrations/canvas/corpus' && req.method === 'PUT') {

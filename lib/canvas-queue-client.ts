@@ -1,4 +1,4 @@
-import { QueueClient, send } from '@vercel/queue'
+import { send } from '@vercel/queue'
 import { CANVAS_QUEUE_TOPIC, signCanvasTask } from './canvas-queue-protocol.mjs'
 
 type StepResult = { again?: boolean; delay?: number; ids?: string[]; disabled?: boolean }
@@ -16,11 +16,11 @@ export async function callCanvasService(payload: Record<string, unknown>): Promi
   return response.json()
 }
 export async function sendCanvasStep(jobId: string, delaySeconds = 0) {
-  // Do not pin durable work to the deployment that first enqueued it.
-  // Preview probes below intentionally retain the SDK default pinning.
+  // The current production dispatcher owns pinning. Consumers request it
+  // through the stable production URL rather than pinning continuations here.
   // No deduplication key shared across steps: a new step of the same job must
   // remain deliverable. SQL claims make duplicate notifications harmless.
-  await new QueueClient({ deploymentId: null }).send(CANVAS_QUEUE_TOPIC, { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
+  await send(CANVAS_QUEUE_TOPIC, { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
 }
 export async function dispatchCanvasSteps() {
   if (process.env.VERCEL_ENV === 'preview') return { disabled: true, sent: 0 }
@@ -35,4 +35,22 @@ export async function sendCanvasProbe() {
   const id = crypto.randomUUID()
   await send(CANVAS_QUEUE_TOPIC, { version: 1, jobId: 'csj-probe', probe: id }, { retentionSeconds: 3600 })
   return { probe: id }
+}
+
+// A deployment can still receive its previously pinned notifications after a
+// release. Ask the current production dispatcher to publish the next steps.
+// Never grow a continuation chain on the obsolete deployment. The minute
+// outbox sweep is the fallback if this wake-up fails or run_after is in future.
+export async function wakeCurrentCanvasDispatcher() {
+  if (process.env.VERCEL_ENV !== 'production') return
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  if (!host) return
+  const body = JSON.stringify({ action: 'dispatch' })
+  try {
+    const response = await fetch(`https://${host}/internal/canvas-dispatch`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body) },
+      body, signal: AbortSignal.timeout(15_000), cache: 'no-store',
+    })
+    if (!response.ok) console.warn('Canvas dispatcher wake-up deferred to cron', response.status)
+  } catch { console.warn('Canvas dispatcher wake-up deferred to cron') }
 }

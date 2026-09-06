@@ -32,7 +32,7 @@ mock.module('../../lib/priority-evidence.mjs',{namedExports:{...priorities,scanC
 const policies=await import('../../lib/programme-policy-sources.mjs')
 mock.module('../../lib/programme-policy-sources.mjs',{namedExports:{...policies,promoteReviewedProgrammePolicyAsset:async()=>null}})
 const {processCanvasQueueStep,dispatchCanvasQueue}=await import('../../lib/canvas-queue-pipeline.mjs')
-const {controlCanvasSyncJob,observeCanvasCorpusCourses}=await import('../../lib/course-corpus.mjs')
+const {controlCanvasSyncJob,observeCanvasCorpusCourses,setCanvasRefreshSettings}=await import('../../lib/course-corpus.mjs')
 const file=Buffer.alloc(9*1024*1024+13,97)
 let downloads=0,fileVersion="2026-09-01T00:00:00Z"
 const originalFetch=globalThis.fetch
@@ -59,6 +59,7 @@ try {
   await query("INSERT INTO editorial_course_editions(id,canonical_course_id,course_name,edition_key,created_by) VALUES('edition','bcs2120','Fixture','fixture','fixture')")
   await query("INSERT INTO canvas_course_bindings(id,origin,canvas_course_id,edition_id,canonical_course_id,course_code,course_name) VALUES('binding','https://canvas.fixture','8','edition','bcs2120','BCS2120','Fixture')")
   await query("INSERT INTO canvas_corpus_permissions(user_id,origin,collection_enabled) VALUES('fixture','https://canvas.fixture',true)")
+  await query("INSERT INTO academic_programmes(user_id,id,is_active) VALUES('fixture','programme',true)")
   await query("INSERT INTO canvas_corpus_access(user_id,binding_id) VALUES('fixture','binding')")
   await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type) VALUES('csj-fixture','fixture','https://canvas.fixture','binding','course')")
   assert.equal((await processCanvasQueueStep('csj-fixture')).again,true)
@@ -163,11 +164,13 @@ try {
   // and does not resume paused collection or remove old edition access.
   const origin='https://policy.fixture',accountId='policy-student'
   await query("INSERT INTO canvas_corpus_permissions(user_id,origin,collection_enabled) VALUES($1,$2,true)",[accountId,origin])
+  await query("INSERT INTO academic_programmes(user_id,id,is_active) VALUES($1,'programme',true)",[accountId])
   const courses=[{id:'101',courseCode:'BCS2120',name:'AI 2025-2026-100-BCS2120',current:true},{id:'102',courseCode:'BCS2120',name:'AI 2026-2027-100-BCS2120',current:true},{id:'103',courseCode:'BCS2140',name:'OS 2026-2027-200-BCS2140',current:true}]
   await observeCanvasCorpusCourses({accountId,origin,courses,explicit:true})
   await query("UPDATE canvas_sync_jobs SET status='cancelled' WHERE user_id=$1",[accountId])
   await query("UPDATE canvas_course_bindings SET last_synced_at=now(),next_sync_at=now()+interval '6 hours' WHERE origin=$1",[origin])
   await observeCanvasCorpusCourses({accountId,origin,courses,automatic:true,refreshPolicy:true,timeContext:{academicYear:'2026-2027',periodNumber:1}})
+  await query("UPDATE canvas_sync_jobs SET status='cancelled' WHERE user_id=$1",[accountId])
   const access=await query("SELECT b.canvas_course_id,a.auto_refresh FROM canvas_corpus_access a JOIN canvas_course_bindings b ON b.id=a.binding_id WHERE a.user_id=$1 ORDER BY b.canvas_course_id",[accountId])
   assert.deepEqual(access,[{canvas_course_id:'101',auto_refresh:false},{canvas_course_id:'102',auto_refresh:true},{canvas_course_id:'103',auto_refresh:false}])
   await query(`INSERT INTO canvas_priority_scans(id,binding_id,user_id,evidence_hash,status,course_profile)
@@ -178,15 +181,35 @@ try {
   assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND job_type='course' AND status='pending'",[accountId])).n,'0')
   await query("UPDATE canvas_corpus_access SET sync_paused=false WHERE user_id=$1",[accountId])
   await scheduleDueRefreshes();await scheduleDueRefreshes()
+  await observeCanvasCorpusCourses({accountId,origin,courses,automatic:true,refreshPolicy:true,timeContext:{academicYear:'2026-2027',periodNumber:1}})
   const scheduled=await query("SELECT b.canvas_course_id FROM canvas_sync_jobs j JOIN canvas_course_bindings b ON b.id=j.binding_id WHERE j.user_id=$1 AND j.status='pending'",[accountId])
   assert.deepEqual(scheduled,[{canvas_course_id:'102'}])
   assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND job_type='catalog' AND status='pending'",[accountId])).n,'1')
   await query("UPDATE canvas_sync_jobs SET status='completed',finished_at=now() WHERE user_id=$1 AND status='pending'",[accountId])
   await scheduleDueRefreshes()
+  await observeCanvasCorpusCourses({accountId,origin,courses,automatic:true,refreshPolicy:true,timeContext:{academicYear:'2026-2027',periodNumber:1}})
   assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending'",[accountId])).n,'0')
   await query("UPDATE canvas_sync_jobs SET finished_at=now()-interval '7 hours',created_at=now()-interval '7 hours' WHERE user_id=$1",[accountId])
   await query("UPDATE canvas_corpus_permissions SET collection_enabled=false WHERE user_id=$1",[accountId])
   await scheduleDueRefreshes()
   assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending'",[accountId])).n,'0')
+  // Settings never cancel manual work, never change another account, and fence
+  // automatic notifications after opt-out/completion.
+  await query("UPDATE canvas_corpus_permissions SET collection_enabled=true WHERE user_id=$1",[accountId])
+  const settings={enabled:true,updatesMinutes:15,materialsMinutes:60,studyStatus:'studying'}
+  await setCanvasRefreshSettings({accountId,origin,settings})
+  const preferences=await one("SELECT refresh_updates_minutes,refresh_materials_minutes FROM canvas_corpus_permissions WHERE user_id=$1",[accountId])
+  assert.deepEqual(preferences,{refresh_updates_minutes:15,refresh_materials_minutes:60})
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,job_type,payload) VALUES('manual-settings',$1,$2,'course','{}')",[accountId,origin])
+  await setCanvasRefreshSettings({accountId,origin,settings:{...settings,enabled:false}})
+  await scheduleDueRefreshes()
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status IN ('pending','running') AND payload->>'scheduled'='true'",[accountId])).n,'0')
+  assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='manual-settings'")).status,'pending')
+  assert.equal((await one("SELECT refresh_enabled FROM canvas_corpus_permissions WHERE user_id='fixture'")).refresh_enabled,true)
+  await setCanvasRefreshSettings({accountId,origin,settings:{...settings,studyStatus:'completed'}})
+  await scheduleDueRefreshes()
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending' AND payload->>'scheduled'='true'",[accountId])).n,'0')
+  await setCanvasRefreshSettings({accountId,origin,settings})
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending' AND job_type='catalog'",[accountId])).n,'1')
   console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}
