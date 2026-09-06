@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { hasVerifiedHostedSchema } from '../lib/hosted-schema.mjs'
+import { hasVerifiedHostedSchema, migrationFiles } from '../lib/hosted-schema.mjs'
 
 test('one ledger read permits startup only when every tracked migration matches', async () => {
   const root = await mkdtemp(join(tmpdir(), 'wicker-schema-'))
@@ -23,6 +23,8 @@ test('one ledger read permits startup only when every tracked migration matches'
     assert.equal(await hasVerifiedHostedSchema(root, env, read), false)
     await writeFile(join(root, 'db/001.sql'), 'SELECT 1;')
     await writeFile(join(root, 'db/002.sql'), 'SELECT 2;')
+    await writeFile(join(root, 'db/README.md'), 'Not a migration')
+    assert.deepEqual(await migrationFiles(root), ['001.sql', '002.sql'])
     assert.equal(await hasVerifiedHostedSchema(root, env, read), false)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

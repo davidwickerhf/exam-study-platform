@@ -75,3 +75,21 @@ with zipfile.ZipFile(sys.argv[1],'w',compression=zipfile.ZIP_DEFLATED) as z:
     assert.match(result.text,/Classify the images/)
   } finally {await rm(root,{recursive:true,force:true})}
 })
+
+test('large image collections use a bounded filename profile while retaining all readable instructions',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'queue-image-inventory-'))
+  try {
+    await exec('python3',['-c',`import zipfile,sys
+with zipfile.ZipFile(sys.argv[1],'w') as z:
+ for i in range(3000): z.writestr('images/dog-'+str(i)+'.jpg',b'not expanded')
+ z.writestr('instructions.txt','Use all 3000 images for classification.')
+with zipfile.ZipFile(sys.argv[2],'w') as z:
+ for i in range(2001): z.writestr(str(i)+'.txt','a')`,join(root,'images.zip'),join(root,'too-many-texts.zip')])
+    const result=await extracted(await readFile(join(root,'images.zip')),'images.zip')
+    assert.equal(result.status,'complete');assert.match(result.text,/3000 binary members/)
+    assert.match(result.text,/2800 names omitted/);assert.match(result.text,/not a complete file listing/)
+    assert.match(result.text,/Use all 3000 images/);assert.ok(result.text.length<50000)
+    const limited=await extracted(await readFile(join(root,'too-many-texts.zip')),'too-many-texts.zip')
+    assert.equal(limited.status,'failed');assert.match(limited.error,/safe expansion limits/)
+  } finally {await rm(root,{recursive:true,force:true})}
+})

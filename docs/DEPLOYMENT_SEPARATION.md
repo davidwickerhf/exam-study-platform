@@ -48,7 +48,7 @@ streams bounded batches instead of allocating an entire video in memory.
 Text extraction is a separate task. Search embeddings are checkpointed in
 64-passage batches and published atomically when complete. Notebook cells are
 read without execution; XLSX formulas use saved values; archive expansion is
-bounded and unsafe/unreadable content is reported while retaining the original.
+bounded and unsafe/unreadable content is reported while retaining the original. Binary-only members are never expanded for text indexing. Large image collections produce an explicit profile with the first 200 filenames and the omitted count; readable instructions are still extracted. Cumulative guards allow at most 50,000 inventory entries and 2,000 expanded members across nested archives.
 CSV and XLSX files larger than 1 MB receive a labelled search profile (row/column counts and the first 20 rows, up to 40 columns and 200 characters per cell), rather than embeddings of every data cell. The complete original is preserved for exact analysis. Worksheets are streamed with a cumulative 1 GB expansion budget, a compression-ratio guard and entity rejection; ordinary archives retain the 128 MB expansion guard.
 No PDF pages are deliberately truncated by this pipeline. The existing 1 GB
 per-file and 2,000-resource importer safeguards remain explicit limitations.
@@ -116,3 +116,5 @@ changed or unversioned files are collected again. A forced refresh bypasses reus
 Default `CANVAS_MATERIAL_REFRESH_HOURS` is 6. Derived-only priority passes do not postpone
 material collection. The minute cron delivers work; it does not download every course
 once per minute. See [Canvas collection](CANVAS_CORPUS.md) for user controls.
+
+Startup verification and the migration runner share discovery of numbered `db/*.sql` files. Adding a migration no longer requires editing a separate allow-list. Checksums remain immutable once recorded.
