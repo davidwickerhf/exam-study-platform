@@ -3627,10 +3627,14 @@ async function wakeCanvasQueue() {
 
 // Editorial chapters are optional source inputs. Loading the published template
 // avoids carrying personal progress or another programme's user overlay into jobs.
+const studyEditorialSourceCache = new Map()
 const studySourceOptions = { editorialSources: async courseCode => {
   const state = await loadEditorialState(templatePath)
   const course = state.courses?.find(c => c.code?.toUpperCase() === courseCode)
   if (!course) return []
+  const cacheKey = studyDigest(course)
+  const cached = studyEditorialSourceCache.get(cacheKey)
+  if (cached?.until > Date.now()) return cached.sources
   const result = []
   for (const chapter of course.chapters || []) {
     const text = await readKbFile(state, course, chapter.file).catch(() => null)
@@ -3639,6 +3643,20 @@ const studySourceOptions = { editorialSources: async courseCode => {
       kind: 'editorial', academicYear: 'undated', period: '', sha256: studyDigest(text),
       url: `/app/courses/${encodeURIComponent(course.id)}/${encodeURIComponent(chapter.id)}`, pages: [{page:null,text}] })
   }
+  const paths = new Set()
+  for (const paper of [...getMockExams(course), ...getTutorials(course)]) {
+    for (const [role,path] of [['questions',paper.pdf],['solutions',paper.solutionsPdf]]) {
+      if (!path || paths.has(path)) continue
+      paths.add(path)
+      const pages = await loadPdfPages(state,course,path).catch(() => [])
+      if (!pages.some(p=>p.text?.trim())) continue
+      result.push({ key:`editorial-paper-${studyDigest([course.id,path]).slice(0,32)}`,
+        title:`${paper.label || paper.id} · ${role}.pdf`, kind:'editorial', academicYear:'undated',period:'',
+        sha256:studyDigest(pages), url:`/api/pdf/${encodeURIComponent(course.id)}/${encodeURIComponent(paper.id)}${role==='solutions'?'/solutions':''}`,pages })
+    }
+  }
+  if (studyEditorialSourceCache.size > 40) studyEditorialSourceCache.clear()
+  studyEditorialSourceCache.set(cacheKey,{until:Date.now()+60000,sources:result})
   return result
 } }
 async function budgetedStudyGenerate(prompt, options, telemetry) {
@@ -3813,7 +3831,7 @@ const server = createServer(async (req, res) => {
       try {
         const result = await studyVersionApi({ pathname: url.pathname, method: req.method,
           query: Object.fromEntries(url.searchParams), body: ['POST','PATCH'].includes(req.method) ? await readBody(req, 12 * 1024 * 1024) : {},
-          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()), platform: { ...llmConfiguration(), configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()) }, wake: wakeStudentStudy, generateEvaluation: generateStudyEvaluation })
+          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()), platform: { ...llmConfiguration(), configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()) }, wake: wakeStudentStudy, generateEvaluation: generateStudyEvaluation, generatePractice: budgetedStudyGenerate })
         send(res, result.status, JSON.stringify(result.data), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Study versions could not be loaded. Try again.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
       return
@@ -4709,7 +4727,7 @@ const server = createServer(async (req, res) => {
         let usage = null
         if (!(body?.retry && completedTutorRetry(stored, message))) {
           activeTurn = await beginTutorTurn(stored, { message, context: body?.context || {}, retry: Boolean(body?.retry), id: canCreate ? body.conversation : undefined })
-          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, signal, onProgress: progress => emit?.('progress', progress) })
+          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, sourceOptions: studySourceOptions, signal, onProgress: progress => emit?.('progress', progress) })
           signal.throwIfAborted()
           saved = await completeTutorTurn(activeTurn, turn)
           usage = turn.usage

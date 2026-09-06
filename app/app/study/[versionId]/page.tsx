@@ -18,9 +18,11 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { StudyBillingFields } from '@/components/workspace/study-billing-fields'
 import { StudyProposal } from '@/components/workspace/study-proposal'
+import { StudySourceMap } from '@/components/workspace/study-source-inspector'
 import { StudyReader } from '@/components/workspace/study-reader'
 import { StudySourceForm } from '@/components/workspace/study-source-form'
 import { StudySharingForm } from '@/components/workspace/study-sharing-form'
+import { StudyPracticeWorkspace } from '@/components/workspace/study-practice-workspace'
 import { StudyPracticeExam } from '@/components/workspace/study-practice-exam'
 import {
   studyRequest,
@@ -41,6 +43,7 @@ export default function StudentStudyPage() {
     [cap, setCap] = useState('1'),
     [quality, setQuality] = useState('standard'),
     [recheck, setRecheck] = useState(false)
+  useEffect(() => { setSelected(new URLSearchParams(window.location.search).get('revision') || '') }, [])
   async function load() {
     const result = await studyRequest<StudyVersionPayload>(
       `/api/study-versions/${versionId}${selected ? `?revision=${encodeURIComponent(selected)}` : ''}`
@@ -333,7 +336,7 @@ export default function StudentStudyPage() {
           >
             <TabsTrigger value="study">Study</TabsTrigger>
             {data.revision && (
-              <TabsTrigger value="exam">Practice exam</TabsTrigger>
+              <TabsTrigger value="exam">Mock exams & papers</TabsTrigger>
             )}
             <TabsTrigger value="sources">Sources & generation</TabsTrigger>
           </TabsList>
@@ -363,7 +366,7 @@ export default function StudentStudyPage() {
           </TabsContent>
           {data.revision && (
             <TabsContent value="exam">
-              <StudyPracticeExam revision={data.revision} />
+              <div className="rounded-xl border bg-card p-5 sm:p-7"><Tabs defaultValue="papers"><TabsList variant="line"><TabsTrigger value="papers">Course papers & sets</TabsTrigger><TabsTrigger value="mixed">Mixed chapter exams</TabsTrigger></TabsList><TabsContent value="papers"><StudyPracticeWorkspace revision={data.revision} /></TabsContent><TabsContent value="mixed"><StudyPracticeExam revision={data.revision} /></TabsContent></Tabs></div>
             </TabsContent>
           )}
           <TabsContent
@@ -387,24 +390,7 @@ export default function StudentStudyPage() {
               {revision.snapshot.sources.length} sources ·{' '}
               {revision.snapshot.chunks.length} passages
             </p>
-            <ul className="divide-y rounded-lg border">
-              {revision.snapshot.sources.map((s) => (
-                <li
-                  key={s.key}
-                  className="flex flex-wrap justify-between gap-2 p-3 text-sm"
-                >
-                  <span>{s.title}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {s.kind === 'notes'
-                      ? 'Student notes'
-                      : s.kind === 'editorial'
-                        ? 'Editorial guide'
-                        : 'Course material'}{' '}
-                    · {s.academicYear}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <StudySourceMap revision={revision} />
             {!!revision.gaps.length && (
               <div>
                 <h3 className="mb-2 text-sm font-semibold">

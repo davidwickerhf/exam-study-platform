@@ -1,5 +1,6 @@
 "use client";
 
+import { PersonalPracticeHistory } from "@/components/workspace/personal-practice-history";
 import { workspaceCache, cachedWorkspaceJson } from "@/hooks/use-workspace-data";
 
 /**
@@ -306,6 +307,7 @@ export default function PracticePage() {
           />
         </TabsContent>
       </Tabs>
+      {(tab === "questions" || tab === "mistakes") && <PersonalPracticeHistory mistakesOnly={tab === "mistakes"} />}
     </div>
   );
 }

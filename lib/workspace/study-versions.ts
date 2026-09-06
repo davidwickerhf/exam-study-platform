@@ -5,6 +5,7 @@ export type StudyCourseIdentity = {
   period: string
 }
 export type StudySource = {
+  assetId?: string
   key: string
   title: string
   kind: 'canvas' | 'editorial' | 'notes'

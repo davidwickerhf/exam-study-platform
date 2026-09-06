@@ -1,4 +1,7 @@
 'use client'
+import dynamic from 'next/dynamic'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { StudyPracticeWorkspace } from './study-practice-workspace'
 import { useEffect, useState } from 'react'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,6 +20,7 @@ import {
   type StudyProgress
 } from '@/lib/workspace/study-versions'
 
+const Tutor = dynamic(() => import('@/app/app/tutor/tutor-workspace').then(m => m.TutorWorkspace), { ssr:false, loading:() => <p className="p-6 text-sm text-muted-foreground">Opening tutor…</p> })
 export function StudyReader({
   revision,
   progress = [],
@@ -32,6 +36,7 @@ export function StudyReader({
   onEdited?: () => void
   editable?: boolean
 }) {
+  const [tutorOpen, setTutorOpen] = useState(false), [tutorQuestion, setTutorQuestion] = useState<string | undefined>()
   const [topicId, setTopicId] = useState(revision.chapters[0]?.id || ''),
     [tab, setTab] = useState('lesson')
   const [questionIndex, setQuestionIndex] = useState(0),
@@ -44,10 +49,13 @@ export function StudyReader({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('')
+  useEffect(() => { if (!personal) return; const params = new URLSearchParams(window.location.search); if (params.get('chapter')) setTopicId(params.get('chapter')!); if (params.has('practice')) setTab('questions') }, [personal])
   const chapter =
       revision.chapters.find((c) => c.id === topicId) || revision.chapters[0],
     record = progress.find((p) => p.topicId === chapter?.id)
   useEffect(() => {
+    setTutorOpen(false)
+    setTutorQuestion(undefined)
     setQuestionIndex(0)
     setShowAnswer(false)
     setAnswer('')
@@ -151,6 +159,7 @@ export function StudyReader({
             Not editorially reviewed. Source passages are available below each
             explanation.
           </p>
+          {personal && <div><Button variant="outline" onClick={() => { setTutorQuestion(undefined); setTutorOpen(true) }}>Ask AI tutor</Button></div>}
           {editable && onEdited && <StudyChapterEditor key={`${revision.id}-${chapter.id}`} chapter={chapter} revision={revision} onChanged={onEdited} />}
           {!!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span><StudyInline>{goal}</StudyInline></li>)}</ul></div>}
         </header>
@@ -267,7 +276,7 @@ export function StudyReader({
             </ul>
           </TabsContent>
           <TabsContent value="questions" className="flex flex-col gap-4">
-            {question && (
+            {personal ? <StudyPracticeWorkspace key={`${revision.id}-${chapter.id}`} revision={revision} topicId={chapter.id} legacyAttempts={record?.attempts} onTutor={id => { setTutorQuestion(id); setTutorOpen(true) }} /> : question && (
               <>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-muted-foreground text-xs">
@@ -430,6 +439,7 @@ export function StudyReader({
           </p>
         )}
       </article>
+      {personal && <Sheet open={tutorOpen} onOpenChange={setTutorOpen}><SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-6xl"><SheetHeader><SheetTitle>Chapter tutor</SheetTitle><SheetDescription>{chapter.title} · Using this saved revision and its source evidence</SheetDescription></SheetHeader><div className="min-h-0 flex-1">{tutorOpen && <Tutor key={`${revision.id}-${chapter.id}-${tutorQuestion || ''}`} embedded initialContext={{ courseCode:revision.course.courseCode, courseName:revision.course.courseName, chapterId:chapter.id, chapterName:chapter.title, studyVersionId:revision.versionId, studyRevisionId:revision.id, studyQuestionId:tutorQuestion }} />}</div></SheetContent></Sheet>}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 'use client'
+import { StudyExamAssessment } from './study-exam-assessment'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -130,7 +131,7 @@ export function StudyPracticeExam({ revision }: { revision: StudyRevision }) {
               </Field>
               {exam.status === 'complete' ? (
                 <div className="rounded-lg border bg-muted/20 p-4">
-                  <p className="mb-3 text-sm font-medium">Worked solution</p>
+                  <StudyExamAssessment key={`${exam.id}-${question.id}`} versionId={revision.versionId} examId={exam.id} questionId={question.id} answer={exam.answers[question.id] || ''} /><p className="my-3 text-sm font-medium">Worked solution</p>
                   <StudyProse>{question.answer}</StudyProse>
                 </div>
               ) : (

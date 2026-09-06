@@ -30,6 +30,7 @@ import { TutorWidgets, PreparedDraft, type TutorPresentation } from './tutor-wid
 export type TutorContext = {
   courseId?: string | null; courseCode?: string | null; courseName?: string | null
   chapterId?: string | null; chapterName?: string | null; sourcePath?: string | null
+  studyVersionId?: string | null; studyRevisionId?: string | null; studyQuestionId?: string | null
 }
 type Evidence = { id: string; sourceType: string; title: string; course?: string | null; location?: string; excerpt?: string; url?: string | null; status?: string }
 type Proposal = { id: string; type: 'attendance-update' | 'study-work' | 'study-project' | 'practice-set' | 'calendar-event' | 'remember-plan' | 'planning-objective'; title: string; summary: string; detail: string; reversible: boolean }

@@ -1,3 +1,5 @@
+import { createStudyPractice, stepStudyPractice } from '../lib/study-practice.mjs'
+import { studyRevision } from '../lib/study-version-store.mjs'
 import { removeOriginal } from '../lib/academic-originals.mjs'
 import { test, expect } from '@playwright/test'
 import { withRequestContext } from '../lib/request-context.mjs'
@@ -215,17 +217,18 @@ test('source-grounded study, persisted notes, exercises, mock exam and private s
   )
   await page.getByRole('tab', { name: /^Practice \(\d+\)$/ }).click()
   await page
-    .getByLabel('Your answer', { exact: true })
+    .getByLabel('Your practice answer', { exact: true })
     .fill('Five, because the groups do not overlap.')
-  await page.getByRole('button', { name: 'Save attempt', exact: true }).click()
+  await page.getByRole('button', { name: 'Save answer', exact: true }).click()
   await expect(
-    page.getByText('Attempt saved with this question and revision.')
+    page.getByRole('heading', {name:'Answer saved',exact:true})
   ).toBeVisible()
   await page.getByRole('button', { name: 'Show worked solution' }).click()
   await expect(
     page.getByText('Subtract three to verify', { exact: false })
   ).toBeVisible()
-  await page.getByRole('tab', { name: 'Practice exam', exact: true }).click()
+  await page.getByRole('tab', { name: 'Mock exams & papers', exact: true }).click()
+  await page.getByRole('tab', {name:'Mixed chapter exams',exact:true}).click()
   await page
     .getByRole('button', { name: 'Build a 10-question practice exam' })
     .click()
@@ -724,4 +727,44 @@ test('chapter edits review changes, preserve history, and apply an AI proposal e
   await expect(panel.getByRole('button', { name: 'Review change', exact: true })).toBeInViewport()
   expect(Math.round((await panel.boundingBox()).width)).toBe(390)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+test('chapter workspace restores course papers, free answer-key grading, source inspection and tutor panel', async ({page}) => {
+  let setId
+  await run(async()=>{
+    const v=await ownStudyVersion(versionId),revision=await studyRevision(v)
+    const paper=await addStudyNote({...course,title:'Mock exam fixture'},[{page:1,text:'1(a) Select the result of 2 + 3. A: 4 B: 5 [2 marks]. Answer: B, five.'}])
+    const set=await createStudyPractice(versionId,{revisionId:revision.id,topicId:revision.chapters[0].id,mode:'extract',questionSourceKey:paper.id},{billing:{source:'platform',model:'gpt-5-mini',maxJobUsd:1}})
+    setId=set.id
+    const snapshot=await readStudySourceSnapshot(course,[paper.id]),id=snapshot.chunks[0].id
+    await stepStudyPractice(versionId,set.id,{generate:async()=>JSON.stringify({title:'Arithmetic mock exam',questions:[{label:'1(a)',question:'Select the result of 2 + 3.',sharedContext:'',type:'mc',options:['4','5'],correctOptions:[1],marks:2,page:1,answer:'Five.',answerBasis:'source',hint:'',difficulty:'foundation',sourceIds:[id],answerSourceIds:[id],needsOriginal:false}],warnings:[]})})
+    await stepStudyPractice(versionId,set.id,{generate:async()=>JSON.stringify({issues:[]})})
+  })
+  await page.goto(`/app/study/${versionId}`)
+  await page.getByRole('button',{name:'Ask AI tutor',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Chapter tutor',exact:true})).toBeVisible()
+  await expect(page.getByText('Using this saved revision and its source evidence',{exact:false})).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('tab',{name:/^Practice \(\d+\)$/}).click()
+  await page.getByRole('combobox',{name:'Exercise set',exact:true}).selectOption(setId)
+  await expect(page.getByText('Extracted course paper',{exact:true})).toBeVisible()
+  await expect(page.getByText('2 marks · Page 1',{exact:true})).toBeVisible()
+  await page.getByRole('radio',{name:'5',exact:true}).check()
+  await page.getByRole('button',{name:'Check answer & save',exact:true}).click()
+  await expect(page.getByText('This uses the saved answer key without an AI call.',{exact:false})).toBeVisible()
+  await page.getByRole('button',{name:'Save and assess answer',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'2 / 2 · Practice assessment',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'View Mock exam fixture',exact:true}).click()
+  await expect(page.getByText('1(a) Select the result of 2 + 3. A: 4 B: 5 [2 marks]. Answer: B, five.',{exact:true})).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.reload()
+  await page.getByRole('tab',{name:/^Practice \(\d+\)$/}).click()
+  await page.getByRole('combobox',{name:'Exercise set',exact:true}).selectOption(setId)
+  await expect(page.getByRole('heading',{name:'2 / 2 · Practice assessment',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Add practice set',exact:true}).click()
+  await expect(page.getByRole('radio',{name:'Course paper or exercise sheet',exact:true})).toBeChecked()
+  await page.getByRole('radio',{name:'Generate additional exercises',exact:true}).check()
+  await expect(page.getByRole('button',{name:'Generate and check exercises',exact:true})).toBeVisible()
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
