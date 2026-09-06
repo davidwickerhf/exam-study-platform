@@ -14,6 +14,9 @@ export const POST = handleCallback(async (message: { version: number; jobId: str
   const result = await callCanvasService({ action: message.jobId.startsWith('sv-') ? 'study-step' : 'step', jobId: message.jobId })
   // Preview has no cron sweep. Persist the next delivery, including backoff,
   // before acknowledging this message. SQL leases make duplicates harmless.
-  if (process.env.VERCEL_ENV === 'preview' && result.again) await sendCanvasStep(message.jobId, result.delay || 0)
+  if (process.env.VERCEL_ENV === 'preview' && result.again) {
+    await sendCanvasStep(message.jobId, result.delay || 0)
+    return
+  }
   await wakeCurrentCanvasDispatcher()
 }, { visibilityTimeoutSeconds: 300, retry: (_error, metadata) => ({ afterSeconds: Math.min(300, 15 * metadata.deliveryCount) }) })

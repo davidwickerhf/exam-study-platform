@@ -3899,6 +3899,7 @@ const server = createServer(async (req, res) => {
         const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
         if (!(await listCanvasConnections()).some(connection => connection.origin === origin)) { send(res, 409, JSON.stringify({ error: 'Connect Canvas first.' })); return }
         const permission = await setCanvasRefreshSettings({ accountId: currentAuth().userId, origin, settings: body?.settings })
+        await wakeCanvasQueue()
         send(res, 200, JSON.stringify({ permission }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
       return
@@ -3927,6 +3928,7 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, 1024)
         const result = await controlCanvasSyncJob({ accountId: currentAuth().userId, jobId: decodeURIComponent(corpusJobAction[1]), action: body?.action })
+        if (body?.action === 'retry') await wakeCanvasQueue()
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
       return
