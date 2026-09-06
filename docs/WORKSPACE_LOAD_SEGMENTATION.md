@@ -2,7 +2,7 @@
 
 ## Problem and implementation
 
-Production logs included repeated web-container startup migration checks. Vercel already migrates during its build. The hosted build now writes a hash of the checked database target and tracked schema; only a matching runtime can skip the redundant check. Missing or mismatched markers retain the existing fail-closed migration path. Canvas worker lifecycle is unchanged.
+Production logs included repeated web-container startup migration processes. The Docker deployment bypasses the configured Vercel build command. Startup now compares tracked SQL hashes to the migration ledger in one read, without spawning the migration CLI when the schema is current. A missing/mismatched ledger or read failure retains the existing fail-closed migration path. Canvas worker lifecycle is unchanged.
 
 Sidebar links prefetch on hover/focus intent instead of prefetching every visible destination. Visited route payloads are reusable for five minutes. Stable authenticated browser reads last five minutes; live sync/calendar endpoints use at most 30 seconds and their existing polling. Account changes discard data and fence pending replies. Known source/Canvas writes invalidate their dependencies; unknown writes remain conservative.
 
@@ -33,6 +33,6 @@ The conversation and unsent draft survive view changes. History and Sources fetc
 
 ## Validation and limitations
 
-Automated regressions cover concurrent Canvas deduplication, nearby-time cache hits, narrow feed reads, per-resource TTLs, source-mutation dependencies, auth-scope fences and hosted schema-marker fallback. Full verify result and preview inspection are recorded in the PR.
+Automated regressions cover concurrent Canvas deduplication, nearby-time cache hits, narrow feed reads, per-resource TTLs, source-mutation dependencies, auth-scope fences and startup schema-ledger fallback. Full verify result and preview inspection are recorded in the PR.
 
 Local browser fixtures validate interaction/request reuse, not production latency. Production preview requires sign-in to inspect private data. This does not claim every endpoint is below a particular time budget: the all-course Practice bank remains available on its dedicated page, and cold Canvas reads still depend on Canvas latency.

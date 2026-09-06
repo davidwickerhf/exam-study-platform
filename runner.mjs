@@ -44,7 +44,7 @@ function start() {
 
 async function startProduction() {
   if (!process.env.DATABASE_URL) { start(); return }
-  if (await hasVerifiedHostedSchema(__dirname)) { console.log('Using build-verified database schema.'); start(); return }
+  if (await hasVerifiedHostedSchema(__dirname)) { console.log('Database schema verified from migration ledger.'); start(); return }
   console.log('Checking database migrations before accepting requests…')
   migrationChild = spawn('node', [migrationPath], { stdio: 'inherit', cwd: __dirname })
   migrationChild.on('exit', (code, signal) => {

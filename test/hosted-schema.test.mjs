@@ -1,24 +1,28 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { hostedSchemaFingerprint, hasVerifiedHostedSchema } from '../lib/hosted-schema.mjs'
+import { hasVerifiedHostedSchema } from '../lib/hosted-schema.mjs'
 
-test('only a matching hosted build can skip startup migration checks', async () => {
+test('one ledger read permits startup only when every tracked migration matches', async () => {
   const root = await mkdtemp(join(tmpdir(), 'wicker-schema-'))
   try {
-    for (const dir of ['db', 'scripts', '.next']) await mkdir(join(root, dir))
+    await mkdir(join(root, 'db'))
     await writeFile(join(root, 'db/001.sql'), 'SELECT 1;')
-    await writeFile(join(root, 'scripts/db-migrate.mjs'), 'migration implementation')
-    const env = { VERCEL: '1', DATABASE_URL: 'postgres://user:secret@example.test/study' }
-    assert.equal(await hasVerifiedHostedSchema(root, env), false)
-    const fingerprint = await hostedSchemaFingerprint(root, env.DATABASE_URL)
-    await writeFile(join(root, '.next/wicker-schema.json'), JSON.stringify({ fingerprint }))
-    assert.equal(await hasVerifiedHostedSchema(root, env), true)
-    assert.equal(await hasVerifiedHostedSchema(root, { ...env, VERCEL: '' }), false)
-    assert.equal(await hasVerifiedHostedSchema(root, { ...env, DATABASE_URL: 'postgres://user:secret@other.test/study' }), false)
+    const env = { DATABASE_URL: 'postgres://example.test/study' }
+    let calls = 0
+    const read = async () => { calls++; return [{ name: '001.sql', checksum: createHash('sha256').update('SELECT 1;').digest('hex') }] }
+    assert.equal(await hasVerifiedHostedSchema(root, env, read), true)
+    assert.equal(calls, 1)
+    assert.equal(await hasVerifiedHostedSchema(root, {}, read), false)
+    assert.equal(await hasVerifiedHostedSchema(root, env, async () => []), false)
+    assert.equal(await hasVerifiedHostedSchema(root, env, async () => { throw new Error('Ledger unavailable') }), false)
+    await writeFile(join(root, 'db/001.sql'), 'SELECT 9;')
+    assert.equal(await hasVerifiedHostedSchema(root, env, read), false)
+    await writeFile(join(root, 'db/001.sql'), 'SELECT 1;')
     await writeFile(join(root, 'db/002.sql'), 'SELECT 2;')
-    assert.equal(await hasVerifiedHostedSchema(root, env), false)
+    assert.equal(await hasVerifiedHostedSchema(root, env, read), false)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
