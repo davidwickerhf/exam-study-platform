@@ -33,9 +33,10 @@ test('teaching gate rejects dense prose, empty summaries and shallow repetitive 
   bad.sections.forEach(s => {s.visual=null;s.text += ' More text.'.repeat(80)})
   bad.summary.forEach(s => {s.text='This chapter covers addition and its topics.'})
   bad.questions.forEach(q => {q.skill='recall';q.difficulty='foundation';q.answer='Five.'})
+  bad.questions[0].question = 'Which exam rule applies this year?'
   bad.flashcards.forEach(c => {c.front='What is addition?';c.kind='definition'})
   const issues=studyLessonQuality(bad).join(' ')
-  for (const term of [/concise/,/visual/,/summary/,/progressive challenge/,/distinct prompts/]) assert.match(issues,term)
+  for (const term of [/concise/,/visual/,/summary/,/progressive challenge/,/distinct prompts/,/exam-policy trivia/]) assert.match(issues,term)
   const contract=studyResponseSchema(teachingSchema,['e-1'])
   assert.deepEqual(contract.properties.sections.items.properties.visual.anyOf[0].properties.sourceIds.items.enum,['e-1'])
 })
