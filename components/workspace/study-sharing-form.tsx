@@ -35,7 +35,7 @@ export function StudySharingForm({
   onClose: () => void
 }) {
   const [mode, setMode] = useState('course'),
-    [selected, setSelected] = useState(revision.chapters.map((c) => c.id)),
+    [selected, setSelected] = useState(revision.chapters.filter(c => c.review === 'passed').map((c) => c.id)),
     [consent, setConsent] = useState(false),
     [notesConsent, setNotesConsent] = useState(false),
     [attribution, setAttribution] = useState(''),
@@ -167,13 +167,14 @@ export function StudySharingForm({
                   <Checkbox
                     id={`share-${c.id}`}
                     checked={selected.includes(c.id)}
+                    disabled={c.review !== 'passed'}
                     onCheckedChange={(v) =>
                       setSelected((old) =>
                         v ? [...old, c.id] : old.filter((id) => id !== c.id)
                       )
                     }
                   />
-                  <FieldLabel htmlFor={`share-${c.id}`}>{c.title}</FieldLabel>
+                  <FieldLabel htmlFor={`share-${c.id}`}>{c.title}{c.review !== 'passed' && <span className="block text-xs font-normal text-muted-foreground">Personal edits need an AI evidence check before sharing. Use Improve with AI to request a check.</span>}</FieldLabel>
                 </Field>
               ))}
             </div>

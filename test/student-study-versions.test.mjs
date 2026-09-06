@@ -851,3 +851,26 @@ test('targeted AI feedback reuses other chapters, waits for apply, and supports 
     })
   } finally { await f.cleanup() }
 })
+
+test('editing HTTP routes bind ownership, billing and proposal decisions to the signed-in version', async () => {
+  const f = await fixture()
+  try {
+    await finish(f)
+    await f.run(async () => {
+      const version = await ownStudyVersion(f.version.id), base = await studyRevision(version)
+      let wakes = 0
+      const request = { pathname: `/api/study-versions/${version.id}/improve`, method: 'POST', query: {},
+        body: { baseRevisionId: base.id, topicId: base.chapters[0].id, feedback: 'Use a simpler worked example', quality: 'enhanced', billingSource: 'platform', maxJobUsd: 1 },
+        platform: { configured: true, provider: 'openai', model: 'gpt-5-mini' }, wake: async id => { assert.equal(id, version.id); wakes++ } }
+      const result = await studyVersionApi(request)
+      assert.equal(result.status, 202)
+      assert.equal(result.data.version.billing.model, 'gpt-5.4')
+      assert.equal(wakes, 1)
+      await assert.rejects(studyVersionApi(request), /finish or pause/)
+      assert.equal(wakes, 1)
+      await withRequestContext({ userId: 'api-edit-other', mode: 'local' }, async () => {
+        await assert.rejects(studyVersionApi(request), /not found/)
+      })
+    })
+  } finally { await f.cleanup() }
+})
