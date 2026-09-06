@@ -162,7 +162,7 @@ export default function CoursesPage() {
   const study = useWorkspaceData<{ courses: StudyCourse[] }>("/api/workspace-shell");
   const record = useWorkspaceData<{ workspace?: { courses?: AcademicCourse[]; programmeTemplate?: ProgrammeTemplate } }>("/api/academics");
   const materials = useWorkspaceData<{ status?: { courses?: CorpusCourse[] } }>("/api/account/integrations/canvas/corpus");
-  const programmes = useWorkspaceData<Catalogue>("/api/onboarding/programmes");
+  const programmes = useWorkspaceData<Catalogue>("/api/onboarding/programmes?view=workspace");
   const calendar = useWorkspaceData<{ academicContext?: { period?: string }; currentCourses?: CurrentCourse[] }>("/api/calendar/events");
   const courses = study.data?.courses ?? null;
   const academic = record.data?.workspace?.courses ?? [];

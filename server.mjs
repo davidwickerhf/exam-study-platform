@@ -65,7 +65,7 @@ import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from '.
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
 import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission } from './lib/course-corpus.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
-import { loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
+import { workspaceProgrammeCatalogue, loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
 import { editorialMode, editorialShellFromState, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialShell, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
@@ -3742,10 +3742,8 @@ const server = createServer(async (req, res) => {
     }
     if (url.pathname === '/api/account/integrations/canvas/corpus' && req.method === 'GET') {
       const origin = parseCanvasOrigin(url.searchParams.get('canvasUrl') || 'https://canvas.maastrichtuniversity.nl').origin
-      send(res, 200, JSON.stringify({
-        permission: await canvasCorpusPermission({ accountId: currentAuth().userId, origin }),
-        status: await canvasCorpusStatus({ accountId: currentAuth().userId })
-      }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      const [permission, status] = await Promise.all([canvasCorpusPermission({ accountId: currentAuth().userId, origin }), canvasCorpusStatus({ accountId: currentAuth().userId, summary: url.searchParams.get('view') === 'summary' })])
+      send(res, 200, JSON.stringify({ permission, status }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
     if (url.pathname === '/api/account/integrations/canvas/corpus' && req.method === 'PUT') {
@@ -4456,9 +4454,17 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/tutor' && req.method === 'GET') {
+      const view = url.searchParams.get('view')
+      if (view === 'history' || view === 'sources') {
+        const data = view === 'history' ? { conversations: await listConversations() } : { attachments: await listTutorAttachments(), memory: await readTutorMemory() }
+        send(res, 200, JSON.stringify(data), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        return
+      }
       const id = url.searchParams.get('conversation')
-      const [conversations, memory, receipts, attachments] = await Promise.all([listConversations(), readTutorMemory(), readTutorActionReceipts(), listTutorAttachments()])
-      const conversation = id ? await readConversation(id) : null
+      const [conversations, memory, receipts, attachments, conversation] = await Promise.all([
+        view === 'chat' ? [] : listConversations(), readTutorMemory(), readTutorActionReceipts(),
+        view === 'chat' ? [] : listTutorAttachments(), id ? readConversation(id) : null
+      ])
       send(res, 200, JSON.stringify({
         available: tutorAvailable(),
         conversations,
@@ -4684,7 +4690,11 @@ const server = createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/api/onboarding/programmes' && req.method === 'GET') {
-      send(res, 200, JSON.stringify(loadEditorialProgrammeCatalogue()), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      const catalogue = loadEditorialProgrammeCatalogue()
+      const result = url.searchParams.get('view') === 'workspace'
+        ? workspaceProgrammeCatalogue(catalogue, (await readAcademicState()).workspace?.programmeTemplate?.programmeId)
+        : catalogue
+      send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
       return
     }
     if (url.pathname === '/api/onboarding/electives' && req.method === 'PUT') {
@@ -5584,9 +5594,9 @@ const server = createServer(async (req, res) => {
     // caches, so opening Practice is predictable and does not consume AI quota.
     if (url.pathname === '/api/practice' && req.method === 'GET') {
       const state = await readState()
-      const active = (state.courses || []).filter((course) => !course.archived)
+      const active = (state.courses || []).filter((course) => !course.archived && (!url.searchParams.get('courseId') || course.id === url.searchParams.get('courseId')))
       const chapterEntries = active.flatMap((course) => (course.chapters || [])
-        .filter((chapter) => !isSupportChapter(chapter))
+        .filter((chapter) => !isSupportChapter(chapter) && (!url.searchParams.get('chapterId') || chapter.id === url.searchParams.get('chapterId')))
         .map((chapter) => ({ course, chapter })))
 
       const banks = await Promise.all(chapterEntries.map(async ({ course, chapter }) => {

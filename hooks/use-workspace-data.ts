@@ -5,7 +5,13 @@ import { createResourceCache } from '@/lib/workspace/resource-cache.mjs'
 
 export const workspaceCache = createResourceCache()
 export async function cachedWorkspaceJson<T>(key: string, force = false): Promise<T> {
-  const value = await workspaceCache.load(key, { force })
+  const requestUrl = key
+  if (force && key.includes('refresh=1')) {
+    const url = new URL(key, 'https://workspace.invalid')
+    url.searchParams.delete('refresh')
+    key = url.pathname + (url.search ? url.search : '')
+  }
+  const value = await workspaceCache.load(key, { force, requestUrl })
   if (workspaceCache.read(key).error) throw workspaceCache.read(key).error
   return value as T
 }
@@ -19,7 +25,7 @@ export type WorkspaceData<T> = {
   refresh: () => void
 }
 
-/** Reuse fresh reads for 30 seconds; keep known data visible during revalidation. */
+/** Reuse stable reads for five minutes (live feeds for 30 seconds); keep known data visible during revalidation. */
 export function useWorkspaceData<T>(key: string | null): WorkspaceData<T> {
   const subscribe = useCallback((notify: () => void) => key ? workspaceCache.subscribe(key, notify) : () => {}, [key])
   const read = useCallback(() => key ? workspaceCache.read(key) : workspaceCache.empty, [key])

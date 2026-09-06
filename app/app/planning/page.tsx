@@ -1,4 +1,5 @@
 "use client";
+import { cachedWorkspaceJson } from "@/hooks/use-workspace-data";
 
 /**
  * Planning, at editing density.
@@ -1544,12 +1545,8 @@ export default function PlanningPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const focused = useRef(false);
 
-  const read = useCallback(async () => {
-    const response = await fetch("/api/academics", {
-      headers: { accept: "application/json" },
-    });
-    if (!response.ok) throw new Error(`Your record returned ${response.status}`);
-    const data = (await response.json()) as { workspace: Workspace };
+  const read = useCallback(async (force = false) => {
+    const data = await cachedWorkspaceJson<{ workspace: Workspace }>("/api/academics", force);
     return data.workspace;
   }, []);
 
@@ -1562,7 +1559,7 @@ export default function PlanningPage() {
     }
     setFocus(params.get("focus"));
     setTab(planningTab(params.get("tab")));
-    read()
+    read(true)
       .then((next) => {
         if (live) setWorkspace(next);
       })
@@ -1645,7 +1642,7 @@ export default function PlanningPage() {
 
   const reload = useCallback(() => {
     setReloading(true);
-    read()
+    read(true)
       .then((next) => {
         setWorkspace(next);
         setSaveError(null);

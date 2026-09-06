@@ -197,12 +197,12 @@ function CanvasSyncWidget({ progress, className }: { progress: CanvasSyncProgres
 export default function HomePage() {
   const { data: calendar, error: calendarError, refresh: refreshCalendar } = useWorkspaceData<CalendarPayload>('/api/calendar/events')
   const { data: academics, error: academicsError, loading: academicsLoading } = useWorkspaceData<AcademicsPayload>('/api/academics')
-  const { data: hub, error: hubError, loading: hubLoading } = useWorkspaceData<HubPayload>('/api/integrations/canvas/hub?scope=current&days=30')
+  const { data: hub, error: hubError, loading: hubLoading } = useWorkspaceData<HubPayload>('/api/integrations/canvas/hub?scope=current&days=30&parts=assignments')
   const { data: activity, error: activityError } = useWorkspaceData<Activity>('/api/activity?days=120')
   const { data: shell, error: shellError, loading: shellLoading, refresh: refreshShell } = useWorkspaceData<WorkspaceShell>('/api/workspace-shell')
   const { data: sr, error: srError } = useWorkspaceData<SrPayload>('/api/sr/due')
   const { data: mistakes, error: mistakesError } = useWorkspaceData<Mistake[]>('/api/mistakes?open=true')
-  const { data: corpusPayload, refresh: refreshCorpus } = useWorkspaceData<CorpusPayload>('/api/account/integrations/canvas/corpus')
+  const { data: corpusPayload, refresh: refreshCorpus } = useWorkspaceData<CorpusPayload>('/api/account/integrations/canvas/corpus?view=summary')
   const [read, setRead] = useState<Set<string>>(() => new Set())
 
   useEffect(() => { setRead(readChapters(window.localStorage)) }, [])
@@ -215,7 +215,7 @@ export default function HomePage() {
   }, [syncProgress.active, refreshShell, refreshCalendar])
   useEffect(() => {
     if (!syncProgress.active) return
-    const poll = () => { if (document.visibilityState === 'visible') { refreshCorpus(); refreshShell() } }
+    const poll = () => { if (document.visibilityState === 'visible') { refreshCorpus() } }
     const timer = window.setInterval(poll, 6_000)
     document.addEventListener('visibilitychange', poll)
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', poll) }

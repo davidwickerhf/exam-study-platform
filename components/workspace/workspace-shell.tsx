@@ -8,9 +8,9 @@
  * shortcut.
  */
 
-import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useState } from 'react'
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   BellIcon,
   BookOpenIcon,
@@ -183,6 +183,11 @@ function LocalAccountMenu({ programmeIndex, email }: { programmeIndex: Programme
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const prefetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelPrefetch = () => { if (prefetchTimer.current) clearTimeout(prefetchTimer.current) }
+  useEffect(() => cancelPrefetch, [])
+  const prefetchIntent = (href: string) => { cancelPrefetch(); prefetchTimer.current = setTimeout(() => router.prefetch(href), 120) }
   const isMobile = useIsMobile()
   // The gate already read /api/auth/session; asking again would double every
   // workspace load, and Clerk is simply absent in the local modes.
@@ -250,7 +255,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                           data-tour={`nav-${item.href.split('/').at(-1)}`}
                           isActive={active}
                           tooltip={item.label}
-                          render={<Link href={item.href} />}
+                          render={<Link prefetch={false} href={item.href} onMouseEnter={() => prefetchIntent(item.href)} onMouseLeave={cancelPrefetch} onFocus={() => prefetchIntent(item.href)} onBlur={cancelPrefetch} />}
                           // Three separable states: the live destination carries
                           // the signal rule and a filled row, hover only tints,
                           // and the keyboard ring sits above both.

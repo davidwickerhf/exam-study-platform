@@ -3,6 +3,9 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   experimental: {
+    // Revisiting a client workspace page reuses its route payload. Private API
+    // data has independent session-scoped caching and mutation invalidation.
+    staleTimes: { dynamic: 300, static: 300 },
     // Barrel files: importing one icon from lucide-react pulls its whole index
     // into the module graph. Next rewrites these to per-module imports so a
     // page ships the two icons it names rather than the set.

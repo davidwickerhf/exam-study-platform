@@ -11,6 +11,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import './lib/env.mjs'
+import { hasVerifiedHostedSchema } from './lib/hosted-schema.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const serverPath = resolve(__dirname, 'server.mjs')
@@ -41,8 +42,9 @@ function start() {
   })
 }
 
-function startProduction() {
+async function startProduction() {
   if (!process.env.DATABASE_URL) { start(); return }
+  if (await hasVerifiedHostedSchema(__dirname)) { console.log('Database schema verified from migration ledger.'); start(); return }
   console.log('Checking database migrations before accepting requests…')
   migrationChild = spawn('node', [migrationPath], { stdio: 'inherit', cwd: __dirname })
   migrationChild.on('exit', (code, signal) => {
