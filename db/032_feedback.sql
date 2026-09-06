@@ -1,0 +1,22 @@
+CREATE TABLE feedback_preferences (user_id text PRIMARY KEY, diagnostics boolean NOT NULL DEFAULT true, performance boolean NOT NULL DEFAULT false, notifications boolean NOT NULL DEFAULT true, updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE feedback_roles (user_id text PRIMARY KEY, roles text[] NOT NULL DEFAULT '{}', updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE feedback_issues (id text PRIMARY KEY, fingerprint text UNIQUE NOT NULL, title text NOT NULL, category text NOT NULL, subject jsonb NOT NULL DEFAULT '{}', status text NOT NULL DEFAULT 'new', severity text NOT NULL DEFAULT 'normal', owner_id text, resolution text NOT NULL DEFAULT '', verification text NOT NULL DEFAULT '', revision integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX feedback_issues_queue ON feedback_issues(status,updated_at DESC,id DESC);
+CREATE TABLE feedback_drafts (id text PRIMARY KEY, user_id text NOT NULL, programme_id text NOT NULL, revision text NOT NULL, payload jsonb NOT NULL, expires_at timestamptz NOT NULL, report_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX feedback_drafts_owner ON feedback_drafts(user_id,created_at);
+CREATE TABLE feedback_reports (id text PRIMARY KEY, user_id text NOT NULL, programme_id text NOT NULL, issue_id text NOT NULL REFERENCES feedback_issues(id), channel text NOT NULL, category text NOT NULL, subject jsonb NOT NULL, note text NOT NULL DEFAULT '', ai_review boolean NOT NULL DEFAULT false, consent_version text NOT NULL, idempotency_key text NOT NULL, seen_at timestamptz, received_at timestamptz, contact_email_ciphertext text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(user_id,idempotency_key));
+CREATE INDEX feedback_reports_owner ON feedback_reports(user_id,created_at DESC,id DESC);
+CREATE INDEX feedback_reports_issue ON feedback_reports(issue_id);
+CREATE TABLE feedback_evidence (id text PRIMARY KEY, report_id text NOT NULL REFERENCES feedback_reports(id) ON DELETE CASCADE, label text NOT NULL, media_type text NOT NULL, byte_size integer NOT NULL, sha256 text NOT NULL, ciphertext text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE feedback_events (id text PRIMARY KEY, issue_id text REFERENCES feedback_issues(id) ON DELETE CASCADE, report_id text REFERENCES feedback_reports(id) ON DELETE CASCADE, actor_id text, visibility text NOT NULL CHECK(visibility IN ('internal','public')), kind text NOT NULL, body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX feedback_events_issue ON feedback_events(issue_id,created_at);
+CREATE INDEX feedback_events_report ON feedback_events(report_id,created_at);
+CREATE TABLE feedback_reactions (user_id text NOT NULL, answer_id text NOT NULL, answer_revision text NOT NULL, subject jsonb NOT NULL, value text NOT NULL CHECK(value IN ('helpful','not-helpful')), reason text NOT NULL DEFAULT '', updated_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(user_id,answer_id,answer_revision));
+CREATE TABLE quality_events (id text PRIMARY KEY, user_id text NOT NULL, issue_id text REFERENCES feedback_issues(id) ON DELETE SET NULL, fingerprint text NOT NULL, code text NOT NULL, stage text NOT NULL, route text NOT NULL, release text NOT NULL, duration_ms integer, outcome text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX quality_events_age ON quality_events(created_at);
+CREATE INDEX quality_events_issue ON quality_events(issue_id,created_at);
+CREATE TABLE feedback_jobs (id text PRIMARY KEY, report_id text REFERENCES feedback_reports(id) ON DELETE CASCADE, kind text NOT NULL CHECK(kind IN ('notification','classification')), payload jsonb NOT NULL DEFAULT '{}', status text NOT NULL DEFAULT 'pending', attempts integer NOT NULL DEFAULT 0, run_after timestamptz NOT NULL DEFAULT now(), lease_until timestamptz, lease_token text, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(report_id,kind));
+CREATE TABLE feedback_admin_audit (id text PRIMARY KEY, actor_id text NOT NULL, issue_id text, report_id text REFERENCES feedback_reports(id) ON DELETE CASCADE, action text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE INDEX feedback_jobs_ready ON feedback_jobs(status,run_after);
+CREATE INDEX quality_events_user_age ON quality_events(user_id,created_at);

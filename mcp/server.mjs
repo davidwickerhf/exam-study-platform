@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { registerFeedbackTools } from './feedback-tools.mjs'
 import { installWriteConfirmation, toolRequestContext } from './write-confirmation.mjs'
 import { registerStudyTools } from './study-tools.mjs'
 // Wicker Study MCP server — a thin stdio wrapper over the HTTP API so agents
@@ -65,7 +66,7 @@ async function apiResponse(path, { method = 'GET', body, query, timeoutMs } = {}
   const response = await fetch(url, {
     ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     method,
-    headers: { authorization: `Bearer ${requireKey()}`, accept: 'application/json', 'x-wicker-client': 'wicker-study-mcp 2.9.0', ...(toolRequestContext.getStore() ? { 'x-wicker-tool': toolRequestContext.getStore().tool, 'x-wicker-confirmed': String(toolRequestContext.getStore().confirmed) } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+    headers: { authorization: `Bearer ${requireKey()}`, accept: 'application/json', 'x-wicker-client': 'wicker-study-mcp 2.10.0', ...(toolRequestContext.getStore() ? { 'x-wicker-tool': toolRequestContext.getStore().tool, 'x-wicker-confirmed': String(toolRequestContext.getStore().confirmed) } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined
   })
   if (!response.ok) {
@@ -92,10 +93,11 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.9.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.10.0' })
 installWriteConfirmation(server, z)
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
+registerFeedbackTools(server, { z, run, api })
 registerStudyTools(server, { z, run, api, defaultCanvasUrl: DEFAULT_CANVAS_URL })
 
 const COURSE_SOURCE_EXTENSIONS = new Set(['.pdf', '.ppt', '.pptx', '.doc', '.docx', '.txt', '.md', '.csv', '.tex', '.m', '.py', '.r', '.html', '.htm', '.png', '.jpg', '.jpeg', '.webp'])

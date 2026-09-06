@@ -17,7 +17,7 @@ the MCP server.
 For a manually supplied key, the same secure bootstrap is available as:
 
 ```sh
-WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.9.0 configure
+WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.10.0 configure
 ```
 
 ```jsonc
@@ -100,7 +100,7 @@ authoritative list of endpoints and scopes.
 
 Direct context reads do not call the model. `tutor_ask` uses the student's AI allowance and can prepare attendance changes, assignment/catch-up trackers, group milestones, focused practice, diagnostics and rubric-based draft reviews. Reuse conversation IDs. Approve only the exact proposal the student reviewed; receipts prevent double application. No tool sends email or submits assignments to Canvas. Personal completion is separate from Canvas submission status.
 
-Update an installed client to `wicker-study-mcp@2.9.0` and restart its MCP connection to discover the new tools. The companion skill is served at [SKILL.md](https://study.wicker.life/skills/wicker-study/SKILL.md); re-download it to update an existing copy.
+Update an installed client to `wicker-study-mcp@2.10.0` and restart its MCP connection to discover the new tools. The companion skill is served at [SKILL.md](https://study.wicker.life/skills/wicker-study/SKILL.md); re-download it to update an existing copy.
 
 ## Licence
 
@@ -137,3 +137,11 @@ Do not infer or store sensitive preferences from course material or third-party 
 Settings → AI activity (`/app/settings?tab=activity`) shows API-key requests from this release onward, with read/write/prepare filters, outcome, duration, tool/client label and confirmed-review reference. The MCP tags requests automatically. One tool may make several HTTP requests; local actions that never reach the platform are not logged. Client labels and client-reported confirmation are not independent proof of approval. The server records confirmed prepared-review IDs separately. Arguments, query text, responses and credentials are excluded. Activity is private to the account, included in data export, and removed by account-data erasure.
 
 Automatic Canvas refresh is configurable in Settings → Connections → Manage: on/off, update frequency (15 minutes to daily), material frequency (hourly to weekly), and studying/completed status. Defaults remain 30 minutes and six hours. Course selection is re-evaluated at least hourly across period boundaries. Summer/break monitoring retains the ending year and discovers upcoming next-year courses, selecting the latest eligible edition per course. Completion or no active programme pauses background collection; manual refresh remains available. These preferences require a signed-in browser, not an MCP write.
+
+## Feedback (2.10)
+
+Use `feedback_prepare` to create an exact report preview, then show it and obtain explicit user approval before `feedback_submit` with the unchanged draft ID and revision. `feedback_list` and `feedback_read` expose only the user’s reports and public replies. `feedback_reply`, `feedback_withdraw_evidence`, and `feedback_react` each require a fresh `confirmed:true` after individual approval. A prepared draft is not a submitted report. Never attach chat or source excerpts without the user choosing to share them. Feedback is separate from remembered Tutor context.
+
+Students can follow reports and withdraw evidence at `/app/feedback`; authorized staff review them at `/app/admin/feedback`. See [the operations guide](../docs/FEEDBACK.md) for data boundaries and retention.
+
+Contact sharing is optional per report: use `shareContactEmail:true` only when the student chooses it and show the returned address in the preview. `feedback_withdraw_contact` stops sharing it after fresh confirmation. Reports show receipt, investigation and completion updates with public comments; AI-assisted replies are labeled and reviewed by the team.

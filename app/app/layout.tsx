@@ -1,3 +1,4 @@
+import { FeedbackProvider } from '@/components/feedback/feedback'
 import type { ReactNode } from 'react'
 import { AppProviders } from '@/components/app-providers'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -14,7 +15,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
       <AppProviders publishableKey={publishableKey}>
         <RequireAuth authEnabled={authEnabled} localLoginEnabled={localLoginEnabled}>
           <TooltipProvider>
-            <WorkspaceShell>{children}</WorkspaceShell>
+            <FeedbackProvider><WorkspaceShell>{children}</WorkspaceShell></FeedbackProvider>
           </TooltipProvider>
         </RequireAuth>
       </AppProviders>

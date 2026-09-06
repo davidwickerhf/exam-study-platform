@@ -13,6 +13,7 @@
  * chapter marked read in either half shows as read in both.
  */
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useWorkspaceData } from '@/hooks/use-workspace-data'
@@ -180,6 +181,7 @@ export default function CoursePage() {
   return (
     <main className="flex w-full min-w-0 flex-col" data-course-detail>
       <header className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
+        <div className="float-right"><FeedbackButton subject={{kind:"material",courseCode:course.code,academicYear:year}}/></div>
         <div className="mx-auto max-w-[1280px]">
           <div className="mb-2 flex min-h-8 items-center justify-between gap-4">
             <Link href="/app/courses" className="text-muted-foreground inline-flex min-h-8 items-center gap-2 text-xs hover:text-foreground"><ArrowLeftIcon className="size-3.5" />All courses</Link>

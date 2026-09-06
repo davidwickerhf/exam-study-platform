@@ -25,6 +25,7 @@
  * a chapter read here shows up there and on the course page.
  */
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import 'katex/dist/katex.min.css'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -255,6 +256,7 @@ export default function ChapterPage() {
       <div className="mx-auto flex w-full min-w-0 max-w-[calc(74ch+7rem)] flex-col gap-6">
         {/* Chrome stays on the ink, outside the window. */}
         <header className="flex flex-col gap-2 border-b px-5 pb-5 sm:px-0">
+          <div><FeedbackButton subject={{kind:"material",courseId:params.courseId,chapterId:params.chapterId}}>Report this chapter</FeedbackButton></div>
           <Link
             href={`/app/courses/${params.courseId}`}
             onClick={goBack}

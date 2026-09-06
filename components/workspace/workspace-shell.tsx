@@ -81,6 +81,7 @@ const SECTIONS = [
       { href: '/app/documents', label: 'Documents', icon: FileTextIcon },
       { href: '/app/docs', label: 'Docs', icon: BookMarkedIcon },
       { href: '/app/settings', label: 'Settings', icon: SettingsIcon },
+      { href: '/app/feedback', label: 'Feedback', icon: BellIcon },
       { href: '/app/admin', label: 'Admin', icon: LayersIcon, adminOnly: true }
     ]
   }

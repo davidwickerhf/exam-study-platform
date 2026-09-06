@@ -1,6 +1,8 @@
+> Implementation record: the reporting, review, diagnostics, consent and MCP infrastructure is now implemented. See [Feedback operations and limits](../FEEDBACK.md) for shipped routes, configuration and retention. Model triage is optional and disabled by default. Automated regression replay and cross-account repair remain governed by existing source/publication permissions; reports do not grant those powers. The original design below records the broader direction, not a promise that every suggested automation runs by default.
+
 # Feedback and quality operations — implementation plan
 
-Status: proposed, not implemented. This document is the concrete plan requested by the user; shipping the document does not enable feedback collection. Updated 6 September 2026.
+Status: implemented infrastructure, with the optional automations and operating targets distinguished in the implementation record above. Updated 6 September 2026.
 
 ## Outcome
 
@@ -8,13 +10,13 @@ Students can report a problem, suggest an improvement, or rate a Tutor answer wi
 
 Operational errors and user feedback share an investigation workflow, but retain different permissions and evidence rules. An error does not grant an administrator access to a private conversation or document. Feedback does not become Tutor memory or alter a student's academic record.
 
-## Existing foundations and gaps
+## Foundations recorded before implementation
 
 Reuse the authenticated API and account isolation in `server.mjs`, the workspace shell and components, and the existing administration area at `/app/admin`. Existing editorial intake, review and publishing remain authoritative for changes to maintained course material.
 
 Tutor conversations already persist (`lib/tutor-store.mjs`, `lib/tutor-turns.mjs`), but visible messages have no stable message ID. Add stable turn, message and answer-revision IDs before attaching ratings. Canvas already has course-edition bindings, source snapshots, checkpointed jobs and a log portal. The API activity log records bounded request metadata, not payloads; correlate by IDs without importing complete logs automatically.
 
-There is no unified student-feedback store or admin feedback workflow today. Assignment “feedback” in Updates is instructor feedback from Canvas and remains separate.
+The pre-implementation platform had no unified student-feedback store or admin feedback workflow. Assignment “feedback” in Updates is instructor feedback from Canvas and remains separate.
 
 ## Student entry points
 

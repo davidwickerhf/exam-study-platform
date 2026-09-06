@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import { dispatchCanvasSteps, sendCanvasProbe } from '@/lib/canvas-queue-client'
+import { dispatchCanvasSteps, sendCanvasProbe, callCanvasService } from '@/lib/canvas-queue-client'
 import { verifyCanvasTask } from '@/lib/canvas-queue-protocol.mjs'
 export const maxDuration = 60
 export const runtime = 'nodejs'
@@ -7,7 +7,9 @@ export async function GET(request: Request) {
   const expected = `Bearer ${process.env.CRON_SECRET || ''}`
   const actual = request.headers.get('authorization') || ''
   if (!process.env.CRON_SECRET || actual.length !== expected.length || !timingSafeEqual(Buffer.from(actual), Buffer.from(expected))) return new Response('Unauthorized', { status: 401 })
-  return Response.json(await dispatchCanvasSteps())
+  const result = await dispatchCanvasSteps()
+  await callCanvasService({ action: "feedback-maintenance" }).catch(() => {})
+  return Response.json(result)
 }
 export async function POST(request: Request) {
   const body = await request.text()

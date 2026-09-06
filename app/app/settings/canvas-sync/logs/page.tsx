@@ -1,5 +1,6 @@
 "use client";
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -64,7 +65,7 @@ function LogPortal() {
   return <div className="flex min-w-0 flex-1 flex-col">
     <header className="border-b px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-[1440px] flex-wrap items-start justify-between gap-4">
-        <div><Link href="/app/settings/canvas-sync" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs font-semibold"><ArrowLeftIcon className="size-3.5" /> Canvas sync</Link>
+        <div><FeedbackButton category="broken" subject={{kind:"sync",...(selected?{jobId:selected}:{})}}/><Link href="/app/settings/canvas-sync" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs font-semibold"><ArrowLeftIcon className="size-3.5" /> Canvas sync</Link>
           <h1 className="font-heading mt-3 text-[32px] font-semibold leading-tight tracking-[-0.035em]">Sync logs</h1>
           <p className="text-muted-foreground mt-2 text-sm">Follow each course edition from discovery to searchable material and course rules.</p></div>
         <div className="flex gap-2"><Button variant="outline" onClick={() => setLive(!live)}>{live ? <PauseIcon /> : <PlayIcon />}{live ? "Pause updates" : "Resume updates"}</Button><Button variant="ghost" aria-label="Refresh logs" onClick={() => setRefresh(v => v + 1)}><RefreshCwIcon /></Button></div>
