@@ -12,6 +12,10 @@ import {
 import { processStudyStep } from '../lib/study-version-pipeline.mjs'
 import { course, lesson } from '../scripts/verification/study-fixtures.mjs'
 import { createQualityEvaluation, stepQualityEvaluation } from '../lib/study-quality-evaluation.mjs'
+import { readFile } from 'node:fs/promises'
+import { renderSlideBytes } from '../lib/course-slide-render.mjs'
+import { attendanceOverview } from '../lib/attendance.mjs'
+import { previewCourseBytes } from '../lib/course-file-preview.mjs'
 if (process.env.DATABASE_URL)
   throw new Error('Browser fixtures require local document storage.')
 const run = (fn) =>
@@ -87,6 +91,79 @@ test('private quality report renders real persisted checks, costs, citations and
   await expect(page.getByText('Subtract three to verify the original two items.', { exact: false }).first()).toBeVisible()
   await page.setViewportSize({ width: 390, height: 844 })
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+test('material viewers render PDF and slide graphics, preserve extracted text, and show code and notebook outputs', async ({ page }) => {
+  test.setTimeout(120000)
+  const name = 'content/BCS1540 Algorithmic Design Knowledge Base/Materials/02 Lecture Slides/DP - Floyd-Warshall.pptx'
+  const deck = await readFile(name), pdf = await renderSlideBytes(deck, name)
+  const notebook = Buffer.from(JSON.stringify({ cells: [
+    { cell_type:'markdown', source:['# Probability lab'] },
+    { cell_type:'code', source:['print(3 / 6)'], outputs:[{text:['0.5'], data:{'text/html':'<script>window.notebookExecuted=true</script>'}}] }
+  ], metadata:{language_info:{name:'python'}} }))
+  const entries = [
+    { assetId:'viewer-pdf', filename:'Course manual.pdf', mediaType:'application/pdf', bytes:pdf },
+    { assetId:'viewer-ppt', filename:'Lecture slides.pptx', mediaType:'application/vnd.openxmlformats-officedocument.presentationml.presentation', bytes:deck },
+    { assetId:'viewer-code', filename:'exercise.py', mediaType:'text/plain', bytes:Buffer.from('def probability(even, total):\n    return even / total\n') },
+    { assetId:'viewer-notebook', filename:'Probability lab.ipynb', mediaType:'application/x-ipynb+json', bytes:notebook }
+  ]
+  // Browser routing replaces storage discovery only. The actual file parser,
+  // LibreOffice conversion, PDF.js worker and viewer components all run.
+  await page.route('**/api/calendar/events', async route => {
+    const response=await route.fetch(), calendar=await response.json()
+    const events=['Practical','Lecture','Tutorial'].map((activity,i)=>({id:`attendance-viewer-${i}`,courseCode:'BCS1520',title:activity,activity,start:`2026-09-0${i+1}T09:00:00Z`,end:`2026-09-0${i+1}T11:00:00Z`,attendanceEligible:true,category:'timetable'}))
+    const report=attendanceOverview(events,[],[{code:'BCS1520',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[{activity:'lab',text:'Labs are mandatory.',evidence:[{chunkId:1}]},{activity:'lecture',text:'Lectures are optional.',evidence:[{chunkId:2}]}]}}}])
+    await route.fulfill({json:{...calendar,events:report.events,attendance:{summary:report.summary,courses:report.courses}}})
+  })
+  await page.route('**/api/state', async route => {
+    const response = await route.fetch(), state = await response.json()
+    await route.fulfill({ json: { ...state, courses: [{id:'stats',code:'BCS1520',name:'Statistics',chapters:[],items:[]}] } })
+  })
+  await page.route('**/api/corpus/materials?*', route => route.fulfill({ json:{materials:entries.map(({bytes,...entry})=>({...entry,byteSize:bytes.length,academicYear:'2026-2027',period:'1',current:true,sourceType:'file',sourcePath:entry.filename,url:`/api/corpus/assets/${entry.assetId}`,downloadUrl:`/api/corpus/assets/${entry.assetId}?download=1`}))} }))
+  await page.route('**/api/corpus/assets/**', async route => {
+    const url=new URL(route.request().url()), id=url.pathname.split('/')[4], entry=entries.find(e=>e.assetId===id)
+    if (!entry) return route.abort()
+    if (url.pathname.endsWith('/preview')) return route.fulfill({ json:await previewCourseBytes(entry.bytes,entry.filename) })
+    return route.fulfill({ body:url.pathname.endsWith('/slides.pdf') ? pdf : entry.bytes, contentType:url.pathname.endsWith('/slides.pdf') ? 'application/pdf' : entry.mediaType,
+      headers:{'X-Frame-Options':'DENY','Content-Security-Policy':"frame-ancestors 'none'"} })
+  })
+  await page.goto('/app/courses/stats?year=2026-2027')
+  await page.getByRole('tab',{name:'Materials',exact:true}).click()
+  await page.getByRole('button',{name:/^Course manual /}).click()
+  const dialog=page.getByRole('dialog')
+  await expect(dialog.getByRole('spinbutton',{name:'Page number'})).toHaveValue('1')
+  await expect.poll(()=>dialog.locator('canvas').evaluate(c=>c.width)).toBeGreaterThan(100)
+  await dialog.getByRole('button',{name:'Next page',exact:true}).click()
+  await expect(dialog.getByRole('spinbutton',{name:'Page number'})).toHaveValue('2')
+  await dialog.getByRole('button',{name:'Page text',exact:true}).click()
+  await expect(dialog.getByText('Floyd-Warshall',{exact:false}).last()).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.getByRole('button',{name:/^Lecture slides /}).click()
+  await expect(dialog.getByRole('spinbutton',{name:'Slide number'})).toHaveValue('1')
+  await dialog.getByRole('spinbutton',{name:'Slide number'}).fill('7')
+  await expect(dialog.getByRole('status')).toHaveCount(0)
+  await page.screenshot({path:'/tmp/wicker-slide-viewer.png'})
+  await dialog.getByRole('button',{name:'Text and notes',exact:true}).click()
+  await expect(dialog.getByText('The Floyd-Warshall algorithm',{exact:false}).first()).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.getByRole('button',{name:/^exercise /}).click()
+  await expect(dialog.getByText('def probability(even, total):',{exact:false})).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.getByRole('button',{name:/^Probability lab /}).click()
+  await expect(dialog.getByRole('heading',{name:'Probability lab',exact:true}).last()).toBeVisible()
+  await expect(dialog.getByText('0.5',{exact:true})).toBeVisible()
+  expect(await page.evaluate(()=>window.notebookExecuted)).toBeUndefined()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.getByRole('tab',{name:'Attendance',exact:true}).click()
+  await expect(page.getByText('Requirement unknown',{exact:true})).toBeVisible()
+  await expect(page.getByText('Not required (source confirmed)',{exact:true})).toBeVisible()
+  await expect(page.getByText('Required',{exact:true})).toBeVisible()
+
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
 })
 test('source-grounded study, persisted notes, exercises, mock exam and private sharing', async ({
   page,

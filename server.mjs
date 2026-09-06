@@ -1,3 +1,4 @@
+import { renderCourseSlides } from './lib/course-slide-render.mjs'
 import { previewCourseAsset } from './lib/course-file-preview.mjs'
 import { feedbackMaintenance, recordQualityEvent } from './lib/feedback-store.mjs'
 import { handleFeedbackRoute } from './lib/feedback-routes.mjs'
@@ -3966,6 +3967,14 @@ const server = createServer(async (req, res) => {
         courseCode: url.searchParams.get('courseCode') || '',
         academicYear: url.searchParams.get('academicYear') || ''
       }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
+    }
+    const corpusSlidesMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)\/slides\.pdf$/)
+    if (corpusSlidesMatch && req.method === 'GET') {
+      const asset = await canvasCorpusAsset({ accountId: currentAuth().userId, assetId: decodeURIComponent(corpusSlidesMatch[1]) })
+      if (!asset) { send(res, 404, JSON.stringify({ error: 'Course material not found or not available to this account.' })); return }
+      try { send(res, 200, await renderCourseSlides(asset), 'application/pdf', { 'Cache-Control': 'private, no-store' }) }
+      catch (error) { send(res, error.status || 503, JSON.stringify({ error: error.message || 'Slide preview unavailable.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' }) }
       return
     }
     const corpusPreviewMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)\/preview$/)

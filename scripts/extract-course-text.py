@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read course notebooks/spreadsheets/archives without executing their content."""
-import csv, io, json, pathlib, sys, zipfile, xml.etree.ElementTree as ET, subprocess
+import csv, io, json, pathlib, sys, zipfile, xml.etree.ElementTree as ET, subprocess, re, posixpath
 FORMATS = json.loads((pathlib.Path(__file__).resolve().parent.parent / 'lib/course-file-formats.json').read_text())
 TEXT_EXTENSIONS = tuple('.'+e for e in FORMATS['code']+FORMATS['text']+['csv','tsv'])
 MAX_BYTES = 128 * 1024 * 1024
@@ -27,6 +27,80 @@ def xml(data):
     if b'<!DOCTYPE' in data.replace(b'\0', b'').upper() or b'<!ENTITY' in data.replace(b'\0', b'').upper():
         raise ValueError('XML entities are not allowed; original preserved.')
     return ET.fromstring(data)
+
+def office_text(node):
+    """Formatting runs are adjacent text, not words or paragraphs."""
+    paragraphs = [p for p in node.iter() if p.tag.split('}')[-1] == 'p']
+    if not paragraphs:
+        return ''.join(n.text or '' for n in node.iter() if n.tag.split('}')[-1] == 't')
+    def tokens(n):
+        tag = n.tag.split('}')[-1]
+        if tag in ('oMath', 'oMathPara'): return '[Equation: inspect the rendered slide for its notation.]'
+        if tag == 't': return n.text or ''
+        if tag == 'br': return '\n'
+        if tag == 'tab': return '\t'
+        return ''.join(tokens(child) for child in n)
+    return '\n'.join(tokens(p).strip() for p in paragraphs).strip()
+
+def slide_pages(data):
+    """Preserve slide order, table cells, notes and explicit visual coverage gaps."""
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        names = set(z.namelist())
+        def member(name): return xml(read_member(z, z.getinfo(name)))
+        def relationships(name):
+            rel = posixpath.join(posixpath.dirname(name), '_rels', posixpath.basename(name)+'.rels')
+            if rel not in names: return {}
+            result = {}
+            for n in member(rel):
+                if n.attrib.get('TargetMode') == 'External': continue
+                target = n.attrib.get('Target','')
+                target = target.lstrip('/') if target.startswith('/') else posixpath.normpath(posixpath.join(posixpath.dirname(name), target))
+                if target.startswith('../') or target not in names: continue
+                result[n.attrib.get('Id')] = (target, n.attrib.get('Type',''))
+            return result
+        order = []
+        if 'ppt/presentation.xml' in names:
+            rels = relationships('ppt/presentation.xml')
+            for n in member('ppt/presentation.xml').iter():
+                if n.tag.split('}')[-1] == 'sldId':
+                    rid = next((v for k,v in n.attrib.items() if k.endswith('}id')), None)
+                    if rid not in rels: raise ValueError('Slide order references a missing slide; original preserved.')
+                    order.append(rels[rid][0])
+        if not order: order = sorted((n for n in names if re.fullmatch(r'ppt/slides/slide\d+\.xml',n)), key=lambda n:int(re.search(r'slide(\d+)', n)[1]))
+        pages = []
+        for index, name in enumerate(order):
+            root = member(name); parts = []; visuals = {'images':0,'charts':0,'diagrams':0,'equations':sum(n.tag.split('}')[-1]=='oMath' for n in root.iter())}
+            def walk(node):
+                tag = node.tag.split('}')[-1]
+                if tag == 'tbl':
+                    rows = []
+                    for row in node:
+                        if row.tag.split('}')[-1] == 'tr': rows.append(' | '.join(office_text(cell).replace('\n',' / ') for cell in row if cell.tag.split('}')[-1] == 'tc'))
+                    parts.append('\n'.join(rows)); return
+                if tag == 'p':
+                    value = office_text(node)
+                    if value: parts.append(value)
+                    return
+                if tag == 'pic': visuals['images'] += 1
+                if tag == 'chart': visuals['charts'] += 1
+                if tag in ('relIds','cxnSp','custGeom'): visuals['diagrams'] += 1
+                if tag == 'cNvPr' and node.attrib.get('descr'): parts.append('Visual description supplied in original: '+node.attrib['descr'])
+                for child in node: walk(child)
+            walk(root)
+            if not parts and office_text(root): parts.append(office_text(root))
+            notes = []
+            for target, relation in relationships(name).values():
+                if relation.endswith('/notesSlide'):
+                    for shape in member(target).iter():
+                        if shape.tag.split('}')[-1] != 'sp': continue
+                        placeholders = [n.attrib.get('type') for n in shape.iter() if n.tag.split('}')[-1]=='ph']
+                        if any(t in ('sldNum','sldImg','dt','hdr','ftr') for t in placeholders): continue
+                        value = office_text(shape)
+                        if value: notes.append(value)
+            if notes: parts.append('Speaker notes from original:\n'+'\n'.join(notes))
+            if any(visuals.values()): parts.append('[Visual coverage: this slide contains images, charts or diagrams. Their visual meaning has not been analyzed; inspect the rendered slide. Do not infer plotted values or relationships from text alone.]')
+            pages.append({'page':index+1, 'text':'\n'.join(parts), 'visualCoverage':{'status':'not-analyzed' if any(visuals.values()) else 'text-extracted', **visuals}})
+        return pages
 
 # Large datasets are indexed by structure and explicit samples; the complete
 # original remains downloadable. Do not embed millions of numeric cells.
@@ -93,6 +167,8 @@ def workbook_rows(z, target, strings):
 def read_text(data, name, depth=0):
     global inventory_entries
     if depth > 3: raise ValueError('Nested archive limit exceeded; original preserved.')
+    if pathlib.PurePosixPath(name).suffix.lower() == '.pptx':
+        return '\n\n'.join(f"Slide {p['page']}\n{p['text']}" for p in slide_pages(data))
     ext = pathlib.PurePosixPath(name).suffix.lower()
     if ext in ('.csv', '.tsv') and len(data) > DATASET_THRESHOLD:
         csv.field_size_limit(8 * 1024 * 1024)
@@ -159,7 +235,7 @@ def read_text(data, name, depth=0):
                         parts.append(f'File: {info.filename[:240]}\n[Binary member retained in original archive; {info.file_size} bytes. No text extraction required.]')
                     continue
                 contents = read_member(z, info)
-                text = ' '.join(xml(contents).itertext()) if ext in ('.docx', '.pptx') else read_text(contents, info.filename, depth+1)
+                text = office_text(xml(contents)) if ext in ('.docx', '.pptx') else read_text(contents, info.filename, depth+1)
                 parts.append(f'File: {info.filename}\n{text or "[Binary member retained in original archive]"}')
             if binary_count > BINARY_SAMPLE:
                 parts.insert(0, f'Archive profile: {binary_count} binary members. Filename sample shows the first {BINARY_SAMPLE}; {binary_count - BINARY_SAMPLE} names omitted. This is not a complete file listing. All original bytes remain in the archive; binary members were not expanded.')
@@ -174,7 +250,8 @@ def read_text(data, name, depth=0):
 if __name__ == "__main__":
     try:
         data = pathlib.Path(sys.argv[1]).read_bytes()
-        text = read_text(data, sys.argv[2])
-        print(json.dumps({'text': text, 'pages': None, 'status': 'complete' if text else 'unsupported', 'error': None}))
+        pages = slide_pages(data) if pathlib.PurePosixPath(sys.argv[2]).suffix.lower() == '.pptx' else None
+        text = '\n\n'.join(p['text'] for p in pages) if pages is not None else read_text(data, sys.argv[2])
+        print(json.dumps({'text': text, 'pages': pages, 'status': 'complete' if text else 'unsupported', 'error': None}))
     except Exception as error:
         print(json.dumps({'text': None, 'pages': None, 'status': 'failed', 'error': str(error)[:500]}))

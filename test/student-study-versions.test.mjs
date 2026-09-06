@@ -51,6 +51,18 @@ import {
 import { studyVersionApi } from '../lib/study-version-api.mjs'
 
 import { course, lesson } from '../scripts/verification/study-fixtures.mjs'
+test('source snapshots change when extraction improves but the original checksum stays identical', async () => {
+  const userId = `study-extraction-${randomUUID()}`
+  await withRequestContext({ userId, mode: 'local' }, async () => {
+    let text = 'Course material: Written exam 6 0%.'
+    const options = { editorialSources: async () => [{ key:'editorial-extraction-test', title:'Course slides', kind:'editorial', academicYear:course.academicYear, period:course.period, sha256:'unchanged-original', pages:[{page:1,text}] }] }
+    const first = await readStudySourceSnapshot(course, ['editorial-extraction-test'], options)
+    text = 'Course material: Written exam 60%. Speaker notes clarify the assessment.'
+    const second = await readStudySourceSnapshot(course, ['editorial-extraction-test'], options)
+    assert.equal(first.sources[0].sha256, second.sources[0].sha256)
+    assert.notEqual(first.sourceHash, second.sourceHash)
+  })
+})
 async function fixture() {
   const userId = `study-test-${randomUUID()}`
   const context = { userId, mode: 'local', email: 'student@example.test' }

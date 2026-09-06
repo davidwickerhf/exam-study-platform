@@ -30,6 +30,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Install document rendering dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress libreoffice-writer poppler-utils fonts-liberation fonts-dejavu-core
       - run: npm run verify
       - run: npm run test:study:postgres
         env:

@@ -33,7 +33,10 @@
     "dev:web": "next dev",
     "test:e2e": "playwright test",
     "test:study:live": "node scripts/verification/study-live-quality.mjs",
-    "test:study:postgres": "node --experimental-test-module-mocks scripts/verification/study-postgres.mjs"
+    "test:study:postgres": "node --experimental-test-module-mocks scripts/verification/study-postgres.mjs",
+    "prebuild": "node scripts/prepare-pdf-viewer.mjs",
+    "predev": "node scripts/prepare-pdf-viewer.mjs",
+    "pretest:e2e": "node scripts/prepare-pdf-viewer.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -56,6 +59,7 @@
     "lucide-react": "^1.39.0",
     "mammoth": "^1.12.2",
     "next": "^16.3.3",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.8",

@@ -65,7 +65,9 @@ const size = (bytes: number) =>
   bytes < 1024 * 1024
     ? `${Math.max(1, Math.round(bytes / 1024))} KB`
     : `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
-const CourseFileViewer = dynamic(() => import("./course-file-viewer"));
+const CoursePdfViewer = dynamic(() => import('./course-pdf-viewer'), { ssr: false });
+const CoursePresentationViewer = dynamic(() => import('./course-presentation-viewer'), { ssr: false });
+const CourseFileViewer = dynamic(() => import("./course-file-viewer"), { ssr: false });
 const iconFor = (kind: string) =>
   ({
     notebook: NotebookIcon,
@@ -110,6 +112,7 @@ export function CourseMaterialLibrary({
   useEffect(() => {
     setYear(academicYear || "all");
     setKind("all");
+    setPreview(null);
   }, [codeKey, academicYear]);
 
   useEffect(() => {
@@ -118,7 +121,6 @@ export function CourseMaterialLibrary({
     const timer = setTimeout(() => controller.abort(), 15_000);
     setError(null);
     setMaterials(null);
-    setPreview(null);
     Promise.all(
       (JSON.parse(codeKey) as string[]).map((code) =>
         fetch(
@@ -160,6 +162,7 @@ export function CourseMaterialLibrary({
               a.filename.localeCompare(b.filename),
           ),
         );
+        setPreview(current => current && ![...unique.values()].some(item => item.assetId === current.assetId) ? null : current);
       })
       .catch((cause: Error) => {
         if (live)
@@ -448,15 +451,10 @@ export function CourseMaterialLibrary({
               src={preview.url}
               alt={preview.filename}
             />
-          ) : preview?.mediaType === "application/pdf" ||
-            (preview &&
-              ["html", "htm"].includes(fileExtension(preview.filename))) ? (
-            <iframe
-              sandbox={preview?.mediaType === "application/pdf" ? undefined : ""}
-              className="min-h-0 flex-1 rounded-md border"
-              src={preview.url}
-              title={preview.filename}
-            />
+          ) : preview && (preview.mediaType === "application/pdf" || fileExtension(preview.filename) === "pdf") ? (
+            <CoursePdfViewer url={preview.url} title={preview.filename} />
+          ) : preview && ["ppt", "pptx"].includes(fileExtension(preview.filename)) ? (
+            <CoursePresentationViewer assetId={preview.assetId} title={preview.filename} />
           ) : preview ? (
             <CourseFileViewer assetId={preview.assetId} />
           ) : null}

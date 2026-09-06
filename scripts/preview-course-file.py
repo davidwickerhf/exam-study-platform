@@ -85,15 +85,12 @@ def preview(data,name,member=None):
             return {'kind':'spreadsheet','sheets':sheets,'limited':book.nsheets>12 or any(s.nrows>100 or s.ncols>40 for s in book.sheets()),'notice':'Saved cell values; formulas are not recalculated.'}
         finally: book.release_resources()
     if ext=='.pptx':
-        with zipfile.ZipFile(io.BytesIO(data)) as z:
-            slides=sorted([i for i in z.infolist() if re.match(r'ppt/slides/slide\d+\.xml$',i.filename)],key=lambda i:int(re.search(r'slide(\d+)',i.filename)[1]))
-            pages=[]; used=0
-            for info in slides[:100]:
-                text='\n'.join(n.text for n in extract.xml(extract.read_member(z,info)).iter() if n.tag.split('}')[-1]=='t' and n.text)[:16000]
-                used+=len(text)
-                if used>MAX_TEXT: break
-                pages.append(text)
-            return {'kind':'slides','pages':pages,'limited':len(pages)<len(slides),'notice':'Slide text preview. Download the original for diagrams, animation and exact slide layout.'}
+        source=extract.slide_pages(data); pages=[]; used=0
+        for slide in source[:100]:
+            text=slide['text'][:16000]; used+=len(text)
+            if used>MAX_TEXT: break
+            pages.append(text)
+        return {'kind':'slides','pages':pages,'visualCoverage':[p['visualCoverage'] for p in source[:len(pages)]],'limited':len(pages)<len(source),'notice':'Extracted text and speaker notes. Graphs and diagrams need visual inspection; switch to Slides for their layout.'}
     text=extract.read_text(data,name)
     if not text: return {'kind':'unsupported','text':'This file has no readable text preview. Download the original to open it in its application.'}
     return {'kind':'text','text':text[:MAX_TEXT],'limited':len(text)>MAX_TEXT}
