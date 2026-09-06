@@ -3,8 +3,11 @@
 import csv, io, json, pathlib, sys, zipfile, xml.etree.ElementTree as ET, subprocess
 MAX_BYTES = 128 * 1024 * 1024
 MAX_ENTRIES = 2000
+MAX_INVENTORY_ENTRIES = 50000
+BINARY_SAMPLE = 200
 used = 0
 entries = 0
+inventory_entries = 0
 
 def read_member(z, info):
     global used, entries
@@ -86,6 +89,7 @@ def workbook_rows(z, target, strings):
             stack.pop()
 
 def read_text(data, name, depth=0):
+    global inventory_entries
     if depth > 3: raise ValueError('Nested archive limit exceeded; original preserved.')
     ext = pathlib.PurePosixPath(name).suffix.lower()
     if ext in ('.csv', '.tsv') and len(data) > DATASET_THRESHOLD:
@@ -103,6 +107,10 @@ def read_text(data, name, depth=0):
         return '\n\n'.join(parts)
     if ext in ('.xlsx', '.docx', '.pptx', '.zip'):
         with zipfile.ZipFile(io.BytesIO(data)) as z:
+            infos = z.infolist()
+            inventory_entries += len(infos)
+            if inventory_entries > MAX_INVENTORY_ENTRIES:
+                raise ValueError('Archive inventory entry limit exceeded; original preserved.')
             if ext == '.xlsx':
                 def member(name): return read_member(z, z.getinfo(name))
                 strings = []
@@ -124,19 +132,23 @@ def read_text(data, name, depth=0):
                         parts.extend(' | '.join(row) for row in rows if row)
                 return '\n'.join(parts)
             parts = []
-            if len(z.infolist()) > MAX_ENTRIES: raise ValueError('Archive entry limit exceeded; original preserved.')
-            for info in z.infolist():
+            binary_count = 0
+            for info in infos:
                 if info.is_dir(): continue
                 if '..' in pathlib.PurePosixPath(info.filename).parts or info.filename.startswith('/'):
                     raise ValueError('Invalid archive member path; original preserved.')
                 if ext == '.docx' and info.filename != 'word/document.xml': continue
                 if ext == '.pptx' and not (info.filename.startswith('ppt/slides/slide') and info.filename.endswith('.xml')): continue
                 if ext == '.zip' and pathlib.PurePosixPath(info.filename).suffix.lower() not in ('.ipynb','.xlsx','.docx','.pptx','.zip','.pdf','.txt','.md','.csv','.tsv','.py','.r','.m','.tex','.json','.html','.htm','.js','.ts','.java','.c','.cpp','.h'):
-                    parts.append(f'File: {info.filename}\n[Binary member retained in original archive; {info.file_size} bytes. No text extraction required.]')
+                    binary_count += 1
+                    if binary_count <= BINARY_SAMPLE:
+                        parts.append(f'File: {info.filename[:240]}\n[Binary member retained in original archive; {info.file_size} bytes. No text extraction required.]')
                     continue
                 contents = read_member(z, info)
                 text = ' '.join(xml(contents).itertext()) if ext in ('.docx', '.pptx') else read_text(contents, info.filename, depth+1)
                 parts.append(f'File: {info.filename}\n{text or "[Binary member retained in original archive]"}')
+            if binary_count > BINARY_SAMPLE:
+                parts.insert(0, f'Archive profile: {binary_count} binary members. Filename sample shows the first {BINARY_SAMPLE}; {binary_count - BINARY_SAMPLE} names omitted. This is not a complete file listing. All original bytes remain in the archive; binary members were not expanded.')
             return '\n\n'.join(parts)
     if ext == '.pdf':
         result = subprocess.run(['pdftotext', '-', '-'], input=data, capture_output=True, timeout=45, check=True)

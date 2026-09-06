@@ -1,4 +1,4 @@
-import { send } from '@vercel/queue'
+import { QueueClient, send } from '@vercel/queue'
 import { CANVAS_QUEUE_TOPIC, signCanvasTask } from './canvas-queue-protocol.mjs'
 
 type StepResult = { again?: boolean; delay?: number; ids?: string[]; disabled?: boolean }
@@ -16,9 +16,11 @@ export async function callCanvasService(payload: Record<string, unknown>): Promi
   return response.json()
 }
 export async function sendCanvasStep(jobId: string, delaySeconds = 0) {
+  // Do not pin durable work to the deployment that first enqueued it.
+  // Preview probes below intentionally retain the SDK default pinning.
   // No deduplication key shared across steps: a new step of the same job must
   // remain deliverable. SQL claims make duplicate notifications harmless.
-  await send(CANVAS_QUEUE_TOPIC, { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
+  await new QueueClient({ deploymentId: null }).send(CANVAS_QUEUE_TOPIC, { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
 }
 export async function dispatchCanvasSteps() {
   if (process.env.VERCEL_ENV === 'preview') return { disabled: true, sent: 0 }

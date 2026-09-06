@@ -1,3 +1,5 @@
+import { migrationFiles } from '../lib/hosted-schema.mjs'
+import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { access, readFile } from 'node:fs/promises'
@@ -67,7 +69,7 @@ test('production applies tracked, repeatable migrations before accepting request
   assert.doesNotMatch(productionRunner, /Applying database migrations in the background/)
 })
 
-test('programme regulations have a programme-scoped, rights-gated retrieval corpus', () => {
+test('programme regulations have a programme-scoped, rights-gated retrieval corpus', async () => {
   assert.match(programmePolicyMigration, /CREATE TABLE IF NOT EXISTS programme_policy_sources/)
   assert.match(programmePolicyMigration, /visibility IN \('programme', 'public'\)/)
   assert.match(programmePolicyMigration, /official-publication', 'written-permission'/)
@@ -76,6 +78,7 @@ test('programme regulations have a programme-scoped, rights-gated retrieval corp
   assert.match(institutionPolicyVisibilityMigration, /'programme', 'university', 'public'/)
   assert.match(reviewedCanvasPolicyMigration, /Promote already-indexed, byte-identical Project 3-1 copies/)
   assert.match(reviewedCanvasPolicyMigration, /editorial_source_retrieval_chunks/)
-  assert.match(databaseMigration, /025_promote_reviewed_canvas_policies\.sql/)
+  assert.ok((await migrationFiles(fileURLToPath(new URL('..', import.meta.url)))).includes('025_promote_reviewed_canvas_policies.sql'))
+  assert.ok((await migrationFiles(fileURLToPath(new URL('..', import.meta.url)))).includes('030_canvas_current_refresh.sql'))
   assert.match(programmePolicyMigration, /embedding vector\(1536\)/)
 })
