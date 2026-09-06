@@ -30,7 +30,10 @@
     "mcp:pack": "npm run mcp:sync && npm pack ./mcp --pack-destination /tmp",
     "start:api": "NODE_ENV=production WICKER_SERVICE=api node runner.mjs",
     "start:web": "next start",
-    "dev:web": "next dev"
+    "dev:web": "next dev",
+    "test:e2e": "playwright test",
+    "test:study:live": "node scripts/verification/study-live-quality.mjs",
+    "test:study:postgres": "node --experimental-test-module-mocks scripts/verification/study-postgres.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -67,6 +70,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",

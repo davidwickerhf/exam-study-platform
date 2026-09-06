@@ -65,3 +65,7 @@ data/cache/questions/cyber-*.json
 data/cache/questions/it-*.json
 .vercel
 .env*
+
+# Browser verification artifacts
+playwright-report/
+test-results/

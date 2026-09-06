@@ -192,3 +192,11 @@ Human review remains the publication gate.
 - `npm run content:extract` reports no PDFs remaining without text.
 - `npm run content:index` completes and retrieval smoke tests return citations.
 - Hosted `/api/materials` reports `source: "neon"`.
+
+## Student-owned generation
+
+Students can now generate private study versions from their authorized collected
+materials, uploaded notes and optional editorial guides without an editorial request.
+Source selection, edition handling, refreshes, explicit sharing, spending reservations
+and validation are documented in [Student study versions](design/student-study-versions.md).
+The editorial workflow above remains the route for reviewed institutional releases.

@@ -250,3 +250,11 @@ coordinators at Maastricht; please don't redistribute beyond your study
 group.
 
 Feedback-system proposal: [implementation plan](docs/plans/FEEDBACK_SYSTEM.md) (planned, not shipped). Automatic Canvas scheduling and its Settings controls are documented in [Canvas collection](docs/CANVAS_CORPUS.md#recurring-refresh).
+
+### Student study versions
+
+On a course page, choose **Create version** to generate source-grounded chapters,
+summaries, exercises and flashcards privately. Refresh selected sources as lectures
+arrive, keep revision history, and explicitly publish a selected community version or
+submit it for editorial review. Settings → **AI key** supports personal OpenAI or
+Anthropic billing beyond the included allowance. See [generation, limits and tests](docs/design/student-study-versions.md).

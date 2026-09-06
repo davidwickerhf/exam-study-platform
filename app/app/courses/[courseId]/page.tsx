@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCourseCanvas } from '@/components/workspace/use-course-canvas'
 import { CourseEditionCollection } from '@/components/workspace/course-edition-collection'
 import { academicCourseInEdition, courseEditionCodes, courseCanvasShells, courseEditions } from '@/lib/workspace/course-editions.mjs'
+import { CourseStudyVersions } from '@/components/workspace/course-study-versions'
 import { CourseMaterialLibrary } from '@/components/workspace/course-material-library'
 
 const NUMERALS = 'font-data tabular-nums'
@@ -232,17 +233,18 @@ export default function CoursePage() {
             <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
               <div className="flex min-w-0 flex-col gap-6">
                 {loadError && <p role="alert" className="text-sm">{loadError} <button className="text-primary underline" onClick={retry}>Try again</button></p>}
+      <CourseStudyVersions key={course.code} courseCode={course.code || course.id} courseName={course.name} academicYear={year} period={String(academicCourse?.period || '')} />
       {/* The register. The course is its chapters, so they come first. */}
       <section className="overflow-hidden rounded-xl border bg-card">
         <div className="flex items-baseline justify-between gap-3 border-b px-5 py-4 sm:px-6">
-          <div><h2 className="text-base font-semibold">Chapters</h2><p className="text-muted-foreground mt-1 text-xs">Shared study guide · not tied to an academic year</p></div>
+          <div><h2 className="text-base font-semibold">Editorial chapters</h2><p className="text-muted-foreground mt-1 text-xs">Maintained study guide · academic year not recorded</p></div>
           <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{progress.done} read of {progress.total}</span>
         </div>
         {!course.chapters?.length ? (
           <Empty>
             <EmptyHeader>
               <EmptyTitle>No study chapters yet</EmptyTitle>
-              <EmptyDescription>Published chapters will appear when study material is added. You can still view your academic record and original course material using the tabs above.</EmptyDescription>
+              <EmptyDescription>You can generate your own study version above. Editorial chapters will appear here when a reviewed guide is available.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (

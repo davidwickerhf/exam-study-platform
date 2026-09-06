@@ -28,7 +28,14 @@ export async function dispatchCanvasSteps() {
   const sent: string[] = []
   for (const id of ids) { await sendCanvasStep(id); sent.push(id) }
   if (sent.length) await callCanvasService({ action: 'sent', ids: sent })
-  return { sent: sent.length }
+  try {
+    const { ids: studyIds = [] } = await callCanvasService({ action: 'study-dispatch' })
+    for (const id of studyIds) await sendCanvasStep(id)
+    return { sent: sent.length, studySent: studyIds.length }
+  } catch {
+    console.warn('Study dispatch deferred to the next outbox sweep')
+    return { sent: sent.length, studySent: 0, studyDeferred: true }
+  }
 }
 
 export async function sendCanvasProbe() {

@@ -21,3 +21,10 @@ data/mistakes/
 data/mocks/
 data/users/
 *.log
+
+# Local browser and quality evaluation harnesses
+e2e/
+test-results/
+playwright-report/
+scripts/verification/
+playwright.config.ts

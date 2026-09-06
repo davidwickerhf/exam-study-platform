@@ -27,6 +27,11 @@ import { documentRows, validateDocumentRows, compareAcademicDocuments } from './
 import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
 import { currentAuth, setRequestContext } from './lib/request-context.mjs'
+import { runBudgetedStudyCall } from './lib/study-ai-budget.mjs'
+import { studyVersionApi } from './lib/study-version-api.mjs'
+import { processStudyStep } from './lib/study-version-pipeline.mjs'
+import { pendingStudyVersions, resolveStudyJob, asStudyOwner } from './lib/study-version-store.mjs'
+import { digest as studyDigest } from './lib/study-version-content.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { storeImportedProgramme } from './lib/academics.mjs'
 import {
@@ -1376,8 +1381,8 @@ async function runClaudeCli(prompt, { schemaPath, images = [], model = '' } = {}
   })
 }
 
-async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000 } = {}) {
-  if (!ANTHROPIC_API_KEY) {
+async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
+  if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY is not set. Either set the env var, add anthropicApiKey to data/llm-config.json, or switch provider to codex/claude.')
   }
   // If a schema was supplied, append a "must return JSON conforming to this schema"
@@ -1404,7 +1409,7 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
       })
     }
     const body = {
-      model: ANTHROPIC_MODEL,
+      model,
       max_tokens: maxOutputTokens,
       messages: [{ role: 'user', content }]
     }
@@ -1412,10 +1417,10 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
     })
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '')
@@ -1442,8 +1447,8 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
 }
 
 // OpenAI Chat Completions with JSON-schema structured output and image inputs.
-async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000 } = {}) {
-  if (!OPENAI_API_KEY) {
+async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
+  if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
   }
   let schema = null
@@ -1458,10 +1463,10 @@ async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens =
       content.push({ type: 'image_url', image_url: { url: `data:${mediaType};base64,${(await readFile(imagePath)).toString('base64')}`, detail: 'high' } })
     }
     const body = {
-      model: OPENAI_MODEL,
+      model,
       max_completion_tokens: maxOutputTokens,
-      ...(openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT)
-        ? { reasoning_effort: openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) }
+      ...(openAiReasoningEffort(model, OPENAI_REASONING_EFFORT)
+        ? { reasoning_effort: openAiReasoningEffort(model, OPENAI_REASONING_EFFORT) }
         : {}),
       messages: [
         { role: 'system', content: schema ? 'You extract academic facts and answer only with JSON that conforms to the supplied schema. Never include prose outside the JSON.' : 'You are a precise academic study assistant.' },
@@ -1469,10 +1474,10 @@ async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens =
       ],
       ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: false } } } : {})
     }
-    const resp = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${OPENAI_API_KEY}` },
-      body: JSON.stringify(body)
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
     })
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '')
@@ -3616,6 +3621,47 @@ async function wakeCanvasQueue() {
   } catch { /* The durable outbox is retried by the scheduled dispatcher. */ }
 }
 
+// Editorial chapters are optional source inputs. Loading the published template
+// avoids carrying personal progress or another programme's user overlay into jobs.
+const studySourceOptions = { editorialSources: async courseCode => {
+  const state = await loadEditorialState(templatePath)
+  const course = state.courses?.find(c => c.code?.toUpperCase() === courseCode)
+  if (!course) return []
+  const result = []
+  for (const chapter of course.chapters || []) {
+    const text = await readKbFile(state, course, chapter.file).catch(() => null)
+    if (!text?.trim()) continue
+    result.push({ key: `editorial-${studyDigest([course.id, chapter.id]).slice(0,32)}`, title: chapter.name,
+      kind: 'editorial', academicYear: 'undated', period: '', sha256: studyDigest(text),
+      url: `/app/courses/${encodeURIComponent(course.id)}/${encodeURIComponent(chapter.id)}`, pages: [{page:null,text}] })
+  }
+  return result
+} }
+async function runStudentStudyJob(id) {
+  const record = await resolveStudyJob(id)
+  if (!record || (localTestUserId() && record.owner !== localTestUserId())) return { again: false }
+  return asStudyOwner(record.owner, () => processStudyStep(id, {
+    generate: (prompt, options) => runBudgetedStudyCall(prompt, options, { billing: options.billing, jobKey: options.jobKey,
+      callPlatform: (text, opts) => {
+        if (opts.billing.provider === 'openai' && OPENAI_BASE_URL !== 'https://api.openai.com/v1') throw new Error('Budgeted study generation requires the priced first-party provider endpoint.')
+        return opts.billing.provider === 'openai' ? runOpenAiApi(text, opts) : runAnthropicApi(text, opts)
+      },
+      callPersonal: (text, opts) => opts.provider === 'openai' ? runOpenAiApi(text, { ...opts, baseUrl: 'https://api.openai.com/v1' }) : runAnthropicApi(text, opts)
+    }), sourceOptions: studySourceOptions
+  }))
+}
+const localStudyJobs = new Set()
+async function wakeStudentStudy(id) {
+  if (process.env.VERCEL || process.env.VERCEL_ENV) { await wakeCanvasQueue(); return }
+  if (localStudyJobs.has(id)) return
+  localStudyJobs.add(id)
+  setImmediate(async () => {
+    try { while ((await runStudentStudyJob(id)).again) { /* Each step checkpoints before continuing. */ } }
+    catch (error) { console.error('Study generation paused:', error.message) }
+    finally { localStudyJobs.delete(id) }
+  })
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
@@ -3626,6 +3672,8 @@ const server = createServer(async (req, res) => {
       }
       if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
       if (process.env.VERCEL_ENV === 'preview') { send(res, 200, JSON.stringify({ disabled: true })); return }
+      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: (await pendingStudyVersions()).map(r => r.key) })); return }
+      if (body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result
       if (body.action === 'feedback-maintenance') { await feedbackMaintenance(); result = { ok: true } }
@@ -3743,6 +3791,15 @@ const server = createServer(async (req, res) => {
     }
 
     if (await handleFeedbackRoute(req,res,url,{readBody,send})) return
+    if (url.pathname.startsWith('/api/study-versions') || url.pathname === '/api/study-notes' || url.pathname === '/api/account/ai' || url.pathname.startsWith('/api/public/study-versions/')) {
+      try {
+        const result = await studyVersionApi({ pathname: url.pathname, method: req.method,
+          query: Object.fromEntries(url.searchParams), body: ['POST','PATCH'].includes(req.method) ? await readBody(req, 12 * 1024 * 1024) : {},
+          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview', platform: { ...llmConfiguration(), configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview' }, wake: wakeStudentStudy })
+        send(res, result.status, JSON.stringify(result.data), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Study versions could not be loaded. Try again.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
+      return
+    }
 
     if (url.pathname === '/api/account/agent-activity' && req.method === 'GET') { send(res, 200, JSON.stringify(await readAgentActivity(Object.fromEntries(url.searchParams))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); return }
 
@@ -6607,3 +6664,12 @@ server.listen(port, hostname, () => {
   if (LLM_PROVIDER === 'openai') console.log(`Model: ${OPENAI_MODEL} (reasoning ${openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) || 'not applicable'}; OpenAI key ${OPENAI_API_KEY ? 'set' : 'MISSING'})`)
   if (startCanvasCorpusWorkerProcess()) console.log('Canvas corpus worker: separate process running')
 })
+
+// Local recovery uses the same durable outbox as Vercel Cron. No browser worker.
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  const recovery = setInterval(async () => {
+    try { for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key) }
+    catch (error) { console.error('Study recovery deferred:', error.message) }
+  }, 30000)
+  recovery.unref()
+}
