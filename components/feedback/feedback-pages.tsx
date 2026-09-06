@@ -53,6 +53,8 @@ type Evidence = {
 type Report = Item & {
   issueId: string;
   receivedAt?: string;
+  canRetryReview?: boolean;
+  reviewJobs?: { id: string; status: string; attempts: number }[];
   contactShared?: boolean;
   contactEmail?: string;
   events: Event[];
@@ -613,6 +615,36 @@ export function FeedbackReport({
           </section>
           <section className="rounded-xl border p-5">
             <h2 className="font-semibold">Conversation & updates</h2>
+            {admin &&
+              report.reviewJobs?.map((job) => (
+                <div
+                  key={job.id}
+                  className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
+                >
+                  <span>
+                    Automatic review: {job.status} · {job.attempts} attempts
+                  </span>
+                  {job.status === "failed" && report.canRetryReview && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await feedbackApi(
+                            base + "/jobs/" + job.id + "/retry",
+                            { confirmed: true },
+                          );
+                          await load();
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      Retry automatic review
+                    </Button>
+                  )}
+                </div>
+              ))}
             {report.events.length ? (
               report.events.map((event) => (
                 <div key={event.id} className="mt-4 border-t pt-4">

@@ -7,9 +7,10 @@ export async function GET(request: Request) {
   const expected = `Bearer ${process.env.CRON_SECRET || ''}`
   const actual = request.headers.get('authorization') || ''
   if (!process.env.CRON_SECRET || actual.length !== expected.length || !timingSafeEqual(Buffer.from(actual), Buffer.from(expected))) return new Response('Unauthorized', { status: 401 })
-  const result = await dispatchCanvasSteps()
-  await callCanvasService({ action: "feedback-maintenance" }).catch(() => {})
-  return Response.json(result)
+  const [canvas, feedback] = await Promise.allSettled([dispatchCanvasSteps(), callCanvasService({ action: 'feedback-maintenance' })])
+  const feedbackStatus = feedback.status === 'fulfilled' ? 'processed' : 'deferred'
+  if(canvas.status === 'rejected') return Response.json({ error: 'Canvas dispatch failed.', feedback: feedbackStatus }, {status:503})
+  return Response.json({...canvas.value,feedback:feedbackStatus})
 }
 export async function POST(request: Request) {
   const body = await request.text()

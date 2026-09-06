@@ -1,5 +1,6 @@
 'use client'
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -113,7 +114,7 @@ function AttendanceButtons({ event, saving, onMark }: { event: CalendarEvent; sa
   return (
     <section className="border-b px-5 py-5">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold">Attendance</h3>
+        <h3 className="text-sm font-semibold">Attendance</h3><FeedbackButton subject={{kind:"attendance",recordId:event.id,courseCode:event.courseCode || undefined}}>Report a record issue</FeedbackButton>
         <span className={cn('rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.07em] uppercase', event.attendanceRequired ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>{event.attendanceRequired ? 'Required' : 'Personal record'}</span>
       </div>
       <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-md border">

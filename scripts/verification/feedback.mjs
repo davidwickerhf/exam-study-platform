@@ -325,6 +325,12 @@ try {
       "PRIVATE",
     ),
   );
+  const other=await user('bob',()=>store.prepareFeedback({category:'other',note:'Bob private subject'}));
+  const receipt=await user('bob',()=>store.submitFeedback({...other,confirmed:true}));
+  const b=await user('bob',()=>store.readFeedback(receipt.reportId));
+  await user('admin',()=>store.mergeFeedbackIssues(issue,b.issueId),true);
+  assert.ok(!JSON.stringify(await user('alice',()=>store.readFeedback(id))).includes('Bob private subject'));
+  assert.ok(!JSON.stringify(await user('bob',()=>store.readFeedback(receipt.reportId))).includes('Expected 92'));
   await user("alice", () => store.eraseFeedback());
   assert.equal(
     (
