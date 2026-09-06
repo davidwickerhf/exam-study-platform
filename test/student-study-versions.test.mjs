@@ -381,7 +381,19 @@ test('failed independent evidence review cannot activate or publish a revision',
         /completed revision/
       )
       await controlStudyGeneration(v.id, 'retry')
-      assert.equal((await ownStudyVersion(v.id)).draft.chapters.length, 0)
+      const retry = await ownStudyVersion(v.id)
+      assert.equal(retry.draft.chapters.length, 0)
+      assert.deepEqual(retry.draft.repair.chapter, v.draft.chapters[0])
+      await processStudyStep(v.id, {generate: async prompt => {
+        assert.match(prompt, /smallest coherent changes/)
+        assert.ok(prompt.includes(JSON.stringify(v.draft.chapters[0])))
+        assert.match(prompt, /Solution contradicts the supplied source/)
+        return lesson(f.snapshot.chunks.map(c => c.id))
+      }})
+      const corrected = await ownStudyVersion(v.id)
+      assert.equal(corrected.draft.repair, undefined)
+      assert.equal(corrected.draft.stage, 'review')
+      assert.equal(corrected.activeRevisionId, null)
     })
   } finally {
     await f.cleanup()
