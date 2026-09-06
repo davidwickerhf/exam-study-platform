@@ -3613,6 +3613,7 @@ const server = createServer(async (req, res) => {
       if (req.method !== 'POST' || !verifyCanvasTask(JSON.stringify(body), req.headers['x-canvas-task'])) {
         send(res, 401, JSON.stringify({ error: 'Unauthorized' })); return
       }
+      if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
       if (process.env.VERCEL_ENV === 'preview') { send(res, 200, JSON.stringify({ disabled: true })); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result
