@@ -1,4 +1,5 @@
 "use client";
+import { cachedWorkspaceJson } from "@/hooks/use-workspace-data";
 
 /**
  * THESIS: Updates is a dispatch desk, not four unrelated Canvas lists.
@@ -175,6 +176,7 @@ const deadlineLabel = (value?: string) => {
 };
 
 async function json<T>(path: string, init: RequestInit = {}): Promise<T> {
+  if (!init.method || init.method === 'GET') return cachedWorkspaceJson<T>(path, path.includes('refresh=1'));
   const response = await fetch(path, {
     ...init,
     headers: {
@@ -194,13 +196,15 @@ function hubPath({
   days,
   origin,
   refresh = false,
+  tab = "announcements",
 }: {
   scope: string;
   days: string;
   origin?: string;
   refresh?: boolean;
+  tab?: string;
 }) {
-  const params = new URLSearchParams({ scope, days });
+  const params = new URLSearchParams({ scope, days, parts: tab === "assignments" ? "assignments" : tab === "announcements" ? "announcements" : tab === "courses" ? "grades" : "catalogue" });
   if (origin) params.set("canvasUrl", origin);
   if (refresh) params.set("refresh", "1");
   return `/api/integrations/canvas/hub?${params}`;
@@ -1154,13 +1158,13 @@ export default function UpdatesPage() {
           if (account.connections[0]?.origin) setCanvasUrl(origin);
         }
         return json<Hub>(
-          hubPath({ scope: prefs.scope, days: prefs.days, origin }),
+          hubPath({ scope: prefs.scope, days: prefs.days, origin, tab }),
         );
       })
       .then((value) => {
         if (live) {
           setHub(value);
-          if (canRecordAnnouncementVisit(value) && !seenRecorded.current) {
+          if (tab === "announcements" && canRecordAnnouncementVisit(value) && !seenRecorded.current) {
             markSeen(value.fetchedAt || new Date().toISOString());
             seenRecorded.current = true;
           }
@@ -1175,7 +1179,7 @@ export default function UpdatesPage() {
     return () => {
       live = false;
     };
-  }, [prefs.scope, prefs.days]);
+  }, [prefs.scope, prefs.days, tab]);
   useEffect(() => {
     writePreferences(prefs);
   }, [prefs]);
@@ -1229,10 +1233,11 @@ export default function UpdatesPage() {
           days: prefs.days,
           origin,
           refresh: true,
+          tab,
         }),
       );
       setHub(value);
-      if (canRecordAnnouncementVisit(value) && !seenRecorded.current) {
+      if (tab === "announcements" && canRecordAnnouncementVisit(value) && !seenRecorded.current) {
         markSeen(value.fetchedAt || new Date().toISOString());
         seenRecorded.current = true;
       }
@@ -1284,10 +1289,11 @@ export default function UpdatesPage() {
           days: prefs.days,
           origin,
           refresh: true,
+          tab,
         }),
       );
       setHub(value);
-      if (canRecordAnnouncementVisit(value) && !seenRecorded.current) {
+      if (tab === "announcements" && canRecordAnnouncementVisit(value) && !seenRecorded.current) {
         markSeen(value.fetchedAt || new Date().toISOString());
         seenRecorded.current = true;
       }
@@ -1560,7 +1566,7 @@ export default function UpdatesPage() {
               >
                 <TabsTrigger value="announcements">
                   Announcements{" "}
-                  <span className={NUMERALS}>
+                  <span className={NUMERALS} hidden={tab !== "announcements" || refreshing}>
                     {failedParts.has("announcements")
                       ? "Partial"
                       : hub.truncated
@@ -1570,7 +1576,7 @@ export default function UpdatesPage() {
                 </TabsTrigger>
                 <TabsTrigger value="assignments">
                   Assignments{" "}
-                  <span className={NUMERALS}>
+                  <span className={NUMERALS} hidden={tab !== "assignments" || refreshing}>
                     {failedParts.has("assignments")
                       ? "Partial"
                       : hub.truncated

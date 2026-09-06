@@ -44,7 +44,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { neighbours, outlineOf, readingMinutes } from '@/lib/workspace/chapter.mjs'
 import { COURSE_RETURN_KEY, type StudyCourse, isMaterialPath, materialName, readKey } from '@/lib/workspace/courses.mjs'
 import { type PracticeQuestion, gradeRequest, usableOptions } from '@/lib/workspace/practice.mjs'
-import { TutorWorkspace } from '@/app/app/tutor/tutor-workspace'
+import { cachedWorkspaceJson } from '@/hooks/use-workspace-data'
+import dynamic from 'next/dynamic'
+const TutorWorkspace = dynamic(() => import('@/app/app/tutor/tutor-workspace').then(module => module.TutorWorkspace), { loading: () => <p className="p-5 text-sm text-muted-foreground">Opening Tutor…</p> })
 
 type Payload = { title: string; content: string; examples?: string | null }
 
@@ -129,9 +131,7 @@ export default function ChapterPage() {
     let live = true
     setPayload(null)
     setError(null)
-    const json = (path: string) =>
-      fetch(path, { headers: { accept: 'application/json' } })
-        .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${path} returned ${response.status}`))))
+    const json = (path: string) => cachedWorkspaceJson<any>(path)
 
     const suffix = params.relPath?.length ? `/${params.relPath.map(encodeURIComponent).join('/')}` : ''
     json(`/api/chapter/${encodeURIComponent(params.courseId)}/${encodeURIComponent(params.chapterId)}${suffix}`)
@@ -140,7 +140,7 @@ export default function ChapterPage() {
     json('/api/state')
       .then((data) => { if (live) setCourse((data.courses ?? []).find((entry: StudyCourse) => entry.id === params.courseId) ?? null) })
       .catch(() => {})
-    json('/api/practice').then((data: { questions?: PracticeQuestion[] }) => { if (live) setQuestions((data.questions ?? []).filter((question) => question.courseId === params.courseId && question.chapterId === params.chapterId)) }).catch((cause: Error) => { if (live) setPracticeError(cause.message) })
+    json(`/api/practice?courseId=${encodeURIComponent(params.courseId)}&chapterId=${encodeURIComponent(params.chapterId)}`).then((data: { questions?: PracticeQuestion[] }) => { if (live) setQuestions((data.questions ?? []).filter((question) => question.courseId === params.courseId && question.chapterId === params.chapterId)) }).catch((cause: Error) => { if (live) setPracticeError(cause.message) })
     json('/api/sr/due').then((data: { allIds?: string[] }) => { if (live) setDeck(new Set(data.allIds ?? [])) }).catch(() => {})
 
     visits.current += 1

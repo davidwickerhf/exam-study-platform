@@ -45,8 +45,8 @@ export default function CoursePage() {
   const [selectedYear, setSelectedYear] = useState<string | null>(null)
   const study = useWorkspaceData<{ courses: StudyCourse[] }>('/api/state')
   const record = useWorkspaceData<{ workspace?: { courses?: AcademicCourse[]; programmeTemplate?: ProgrammeTemplate } }>('/api/academics')
-  const programmes = useWorkspaceData<Catalogue>('/api/onboarding/programmes')
-  const materials = useWorkspaceData<{ status?: { courses?: CorpusCourse[] } }>('/api/account/integrations/canvas/corpus')
+  const programmes = useWorkspaceData<Catalogue>('/api/onboarding/programmes?view=workspace')
+  const materials = useWorkspaceData<{ status?: { courses?: CorpusCourse[] } }>('/api/account/integrations/canvas/corpus?view=summary')
   const timetable = useWorkspaceData<CalendarPayload & { currentCourses?: CurrentCourse[] }>('/api/calendar/events')
   const courses = study.data?.courses ?? null
   const academic = record.data?.workspace?.courses ?? []
@@ -179,9 +179,9 @@ export default function CoursePage() {
 
   return (
     <main className="flex w-full min-w-0 flex-col" data-course-detail>
-      <header className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <header className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-[1280px]">
-          <div className="mb-5 flex min-h-8 items-center justify-between gap-4">
+          <div className="mb-2 flex min-h-8 items-center justify-between gap-4">
             <Link href="/app/courses" className="text-muted-foreground inline-flex min-h-8 items-center gap-2 text-xs hover:text-foreground"><ArrowLeftIcon className="size-3.5" />All courses</Link>
             {entry?.editorial && <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Course options" disabled={saving === 'archive'} />}><MoreHorizontalIcon /></DropdownMenuTrigger>
@@ -190,14 +190,14 @@ export default function CoursePage() {
               </DropdownMenuContent>
             </DropdownMenu>}
           </div>
-          <div className="min-w-0">
-            <p className={`text-primary mb-2 text-xs font-semibold tracking-[0.08em] ${NUMERALS}`}>{course.code}{course.archived ? ' · Archived' : ''}</p>
-            <h1 className="font-heading text-[28px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[32px]">{course.name}</h1>
-            <p className="text-muted-foreground mt-2 text-sm">{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).join(' · ') || 'Study material and your personal course record'}</p>
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3"><div className="min-w-0 flex-1 basis-[320px]">
+            <p className={`text-primary mb-1 text-xs font-semibold tracking-[0.08em] ${NUMERALS}`}>{course.code}{course.archived ? ' · Archived' : ''}</p>
+            <h1 className="font-heading text-[22px] leading-tight font-semibold tracking-[-0.025em] sm:text-[24px]">{course.name}</h1>
+            <p className="text-muted-foreground mt-1 text-xs">{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).join(' · ') || 'Study material and your personal course record'}</p>
           </div>
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t pt-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span id="course-edition-label" className="text-muted-foreground text-xs font-medium">Course edition</span>
+              <span id="course-edition-label" className="sr-only">Course edition</span>
               <Select value={year} onValueChange={value => value && selectYear(value)}>
                 <SelectTrigger size="sm" aria-labelledby="course-edition-label" className="w-40"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger>
                 <SelectContent>
@@ -211,19 +211,17 @@ export default function CoursePage() {
               {(course.mockExams?.length || course.mockExamPdf) ? <Link className={buttonVariants({ variant: 'ghost', size: 'sm' })} href={`/app/courses/${course.id}/mock-exam`}>Past papers</Link> : null}
               {nextChapter && <Link className={buttonVariants({ size: 'sm' })} href={`/app/courses/${course.id}/${nextChapter.id}`}>{progress.done ? 'Continue reading' : 'Start reading'}<ArrowRightIcon data-icon="inline-end" /></Link>}
             </div>
+          </div></div>
+          <div aria-label="Course overview" className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-xs">
+            <span><span className="mr-1.5">Result</span><strong className="text-foreground font-medium">{academicLoading || catalogueLoading ? 'Loading…' : academicError ? 'Record unavailable' : latest ? [({passed:'Passed',failed:'Failed','no-show':'No show',upcoming:'Upcoming'} as Record<string,string>)[latest.status || ''] || 'Not recorded', latest.grade == null ? null : `Grade ${latest.grade}`, year === 'all' ? latest.academicYear : null].filter(Boolean).join(' · ') : 'Not recorded'}</strong></span>
+            <span><span className="mr-1.5">Reading</span><strong className="text-foreground font-medium">{progress.total ? `${progress.done} / ${progress.total} chapters` : 'No chapters published'}</strong></span>
+            <span><span className="mr-1.5">Next exam</span><strong className="text-foreground font-medium">{exam ? new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date)) : 'Not recorded'}</strong></span>
           </div>
         </div>
       </header>
       <div className="mx-auto flex w-full max-w-[1280px] min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {catalogueError && <p role="alert" className="text-muted-foreground text-sm">{catalogueError} <button className="text-primary underline" onClick={retry}>Try again</button></p>}
         {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
-        <section className="overflow-hidden rounded-xl bg-foreground text-card" aria-label="Course overview">
-          <div className="grid divide-y divide-white/15 md:grid-cols-[1.2fr_1fr_1fr] md:divide-x md:divide-y-0">
-            <div className="px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold tracking-[0.1em] text-white/65 uppercase">{year === 'all' ? 'Latest recorded sitting' : 'Selected edition sitting'}</p><p className={`mt-2 text-2xl font-semibold ${NUMERALS}`}>{academicLoading || catalogueLoading ? 'Reading record…' : academicError ? 'Record unavailable' : latest?.academicYear || 'Not recorded'}</p><p className="mt-1 text-xs text-white/70">{academicError ? 'Retry from Attempt history' : latest ? [({passed:'Passed',failed:'Failed','no-show':'No show',upcoming:'Upcoming'} as Record<string,string>)[latest.status || ''] || 'Result not recorded', latest.grade == null ? null : `Grade ${latest.grade}`].filter(Boolean).join(' · ') : 'Your attempts will appear here'}</p></div>
-            <div className="px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold tracking-[0.1em] text-white/65 uppercase">Reading progress</p><p className={`mt-2 text-2xl font-semibold ${NUMERALS}`}>{entry?.editorial ? `${progress.done} / ${progress.total}` : '—'}</p><p className="mt-1 text-xs text-white/70">{progress.total ? 'Published chapters marked read' : 'No published chapters yet'}</p></div>
-            <div className="px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold tracking-[0.1em] text-white/65 uppercase">Next recorded exam</p><p className={`mt-2 text-2xl font-semibold ${NUMERALS}`}>{exam ? new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date)) : '—'}</p><p className="mt-1 text-xs text-white/70">{exam ? exam.days === 0 ? 'Today' : `In ${exam.days} days` : 'No future exam date recorded'}</p></div>
-          </div>
-        </section>
         <Tabs value={tab} onValueChange={value => selectTab(value as CourseTab)} className="min-w-0 gap-6">
           <TabsList variant="line" className="h-11 w-full max-w-full justify-start gap-5 overflow-x-auto rounded-none border-b p-0">
             {([['study','Study'],['history','Attempt history'],['materials','Materials'],['attendance','Attendance'],['about','Course details']] as const).map(([value,label]) => <TabsTrigger key={value} value={value} className="h-11 flex-none px-0 text-[13px] after:bg-primary group-data-horizontal/tabs:after:-bottom-px">{label}{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}

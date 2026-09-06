@@ -40,7 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { createAuthenticatedFetch } from "@/lib/workspace/auth-session.mjs";
 import { workspaceCache } from "@/hooks/use-workspace-data";
-import { workspaceWriteAffectsReads } from "@/lib/workspace/resource-cache.mjs";
+import { workspaceWriteAffectsReads, workspaceInvalidationTargets } from "@/lib/workspace/resource-cache.mjs";
 import { cn } from "@/lib/utils";
 import {
   browserStateSnapshot,
@@ -534,7 +534,7 @@ function WorkspaceFetchBoundary({ children }: { children: ReactNode }) {
       const response = await original(input, init);
       const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
       const method = init?.method || (input instanceof Request ? input.method : "GET");
-      if (response.ok && url.origin === window.location.origin && workspaceWriteAffectsReads(url.pathname, method)) workspaceCache.invalidate();
+      if (response.ok && url.origin === window.location.origin && workspaceWriteAffectsReads(url.pathname, method)) workspaceCache.invalidate(workspaceInvalidationTargets(url.pathname));
       return response;
     };
     window.fetch = observed;
@@ -574,7 +574,7 @@ function AuthenticatedWorkspace({
     return (
       <>
         <OpenSession onSession={setSession} />
-        {workspace}
+        {session ? workspace : <Waiting />}
       </>
     );
   return <Gate onSession={setSession}>{workspace}</Gate>;

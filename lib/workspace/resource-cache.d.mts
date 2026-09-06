@@ -3,8 +3,10 @@ export function createResourceCache(options?: { fetchImpl?: typeof fetch; now?: 
   empty: ResourceEntry
   read: (key: string) => ResourceEntry
   subscribe: (key: string, notify: () => void) => () => void
-  load: (key: string, options?: { force?: boolean }) => Promise<unknown>
-  invalidate: (key?: string | null, options?: { discard?: boolean }) => void
+  load: (key: string, options?: { force?: boolean; requestUrl?: string }) => Promise<unknown>
+  invalidate: (key?: string | null | ((key: string) => boolean), options?: { discard?: boolean }) => void
   setScope: (scope: string | null) => void
 }
 export function workspaceWriteAffectsReads(path: string, method: string): boolean
+
+export function workspaceInvalidationTargets(path: string): ((key: string) => boolean) | null

@@ -221,3 +221,23 @@ test('parts limits which Canvas resources are requested at all', async () => {
   assert.ok(!calls.some((call) => call.startsWith('/api/v1/users/self/enrollments')))
   clearCanvasHubCache({ all: true })
 })
+
+test('concurrent page loads share Canvas reads and nearby timestamps reuse feeds', async () => {
+  clearCanvasHubCache({ all: true })
+  const stub = canvasStub()
+  const args = { origin: ORIGIN, token: 'test-token', now: NOW, fetchImpl: stub.fetchImpl }
+  await Promise.all([fetchCanvasHub(args), fetchCanvasHub(args)])
+  const calls = stub.calls.length
+  assert.equal(stub.calls.filter(path => path.startsWith('/api/v1/announcements')).length, 1)
+  await fetchCanvasHub({ ...args, now: new Date(NOW.getTime() + 45_000) })
+  assert.equal(stub.calls.length, calls)
+})
+
+test('requesting assignments does not load announcements, grades or calendar', async () => {
+  clearCanvasHubCache({ all: true })
+  const stub = canvasStub()
+  const hub = await fetchCanvasHub({ origin: ORIGIN, token: 'test-token', now: NOW, fetchImpl: stub.fetchImpl, parts: ['assignments'] })
+  assert.equal(hub.assignments.length, 2)
+  assert.equal(hub.announcements.length, 0)
+  assert.ok(stub.calls.every(path => !/announcements|calendar_events|enrollments/.test(path.split('?')[0])))
+})
