@@ -459,7 +459,7 @@ This is not an official document issued by Maastricht University.`
   await expect(panel.getByRole('heading',{name:'Your timetable',exact:true})).toBeVisible()
 })
 
-test('long transcript changes and comparisons use page scrolling', async ({page})=>{
+test('transcript side panels keep setup compact, preserve selection and render the original PDF', async ({page})=>{
   await page.route('**/api/onboarding',async route=>{
     const response=await route.fetch(),body=await response.json()
     await route.fulfill({json:{...body,state:{...body.state,programme:true,electives:true,transcript:false,transcriptDocument:null,timetable:false,canvas:false}}})
@@ -471,20 +471,49 @@ test('long transcript changes and comparisons use page scrolling', async ({page}
     changes:Array.from({length:40},(_,i)=>({id:`layout:${i}`,label:`Course ${i+1}: exam date`,detail:'Reviewed transcript date'})),
     documentCheck:{status:'confirmed',message:'Results agree.',recordCredits:160,transcriptCredits:160,counts:{confirmed:40},issues:[],checks:Array.from({length:40},(_,i)=>({status:'confirmed',course:`COURSE${i+1}`,name:`Course ${i+1}`,academicYear:'2025-2026',transcript:result,record:[result]}))}
   }}))
+  const stream='BT /F1 16 Tf 30 230 Td (Transcript preview fixture) Tj ET'
+  const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>']
+  let pdf='%PDF-1.4\n';const offsets=[0]
+  objects.forEach((object,i)=>{offsets.push(Buffer.byteLength(pdf));pdf+=`${i+1} 0 obj\n${object}\nendobj\n`})
+  const xref=Buffer.byteLength(pdf)
+  pdf+=`xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(n=>`${String(n).padStart(10,'0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`
   await page.goto('/app/setup?step=transcript')
-  await page.getByRole('main').locator('input[type=file]').setInputFiles({name:'Long transcript.txt',mimeType:'text/plain',buffer:Buffer.from('Transcript layout fixture')})
-  const changes=page.getByRole('list',{name:'Proposed transcript changes'})
-  await expect(changes.getByRole('listitem')).toHaveCount(40)
-  await page.getByText('40 results agree · Inspect all 40 comparisons',{exact:true}).click()
-  const comparisons=page.getByRole('list',{name:'Compared results'})
-  await expect(comparisons.getByRole('listitem')).toHaveCount(40)
+  const main=page.getByRole('main')
+  await main.locator('input[type=file]').setInputFiles({name:'Long transcript.pdf',mimeType:'application/pdf',buffer:Buffer.from(pdf)})
+  await expect(main.getByRole('button',{name:'Apply 40 changes',exact:true})).toBeEnabled()
+  await expect(main.getByRole('list',{name:'Proposed transcript changes'})).toHaveCount(0)
+  await expect(main.getByRole('list',{name:'Compared results'})).toHaveCount(0)
   for (const width of [1280,390]) {
     await page.setViewportSize({width,height:844})
-    for (const list of [changes,comparisons]) {
-      await expect.poll(()=>list.evaluate(element=>element.scrollHeight<=element.clientHeight+1)).toBe(true)
-      await list.getByRole('listitem').last().scrollIntoViewIfNeeded()
-      await expect(list.getByRole('listitem').last()).toBeVisible()
-    }
+    await main.getByRole('button',{name:'Review 40 changes',exact:true}).click()
+    const drawer=page.getByRole('dialog',{name:'Review transcript changes',exact:true})
+    await expect(drawer.getByRole('listitem')).toHaveCount(40)
+    await drawer.getByRole('checkbox').first().uncheck()
+    await drawer.getByRole('listitem').last().scrollIntoViewIfNeeded()
+    await expect(drawer.getByRole('listitem').last()).toBeVisible()
+    await expect(drawer.getByRole('button',{name:'Done reviewing',exact:true})).toBeInViewport()
+    if(width===390) await page.screenshot({path:'/tmp/wicker-transcript-drawer-mobile.png'})
+    await drawer.getByRole('button',{name:'Done reviewing',exact:true}).click()
+    await expect(main.getByRole('button',{name:'Apply 39 changes',exact:true})).toBeEnabled()
+    await main.getByRole('button',{name:'Compare 40 results',exact:true}).click()
+    const comparison=page.getByRole('dialog',{name:'Compare document results',exact:true})
+    await expect(comparison.getByRole('listitem')).toHaveCount(40)
+    await comparison.getByRole('listitem').last().scrollIntoViewIfNeeded()
+    await expect(comparison.getByRole('listitem').last()).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(main.getByRole('button',{name:'Compare 40 results',exact:true})).toBeFocused()
+    await main.getByRole('button',{name:'View document',exact:true}).click()
+    const original=page.getByRole('dialog',{name:'Long transcript.pdf',exact:true})
+    await expect(original.getByRole('img',{name:'Long transcript.pdf, page 1',exact:true})).toBeVisible()
+    await expect.poll(()=>original.locator('canvas').evaluate(element=>element.width)).toBeGreaterThan(0)
+    if(width===1280) await page.screenshot({path:'/tmp/wicker-transcript-original-pdf.png'})
+    await original.getByRole('button',{name:'Page text',exact:true}).click()
+    await expect(original.getByText('Transcript preview fixture',{exact:true})).toBeVisible()
+    await original.getByRole('button',{name:'Done reviewing',exact:true}).click()
+    await expect(original).not.toBeVisible()
     await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+    // Forty rows should not increase the height of the setup card.
+    expect(await main.evaluate(element=>element.getBoundingClientRect().height)).toBeLessThan(1000)
+    if(width===1280) await page.screenshot({path:'/tmp/wicker-transcript-compact.png',fullPage:true})
   }
 })

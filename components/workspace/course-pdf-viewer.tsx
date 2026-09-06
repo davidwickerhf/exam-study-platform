@@ -4,7 +4,7 @@ import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import { Button } from '@/components/ui/button'
 import { ChevronLeftIcon, ChevronRightIcon, MinusIcon, PlusIcon, LoaderCircleIcon } from 'lucide-react'
 
-export default function CoursePdfViewer({ url, title, slides = false }: { url: string; title: string; slides?: boolean }) {
+export default function CoursePdfViewer({ url, file, title, slides = false }: { url?: string; file?: File; title: string; slides?: boolean }) {
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null), [error, setError] = useState(''), [page, setPage] = useState(1)
   const [zoom, setZoom] = useState(1), [width, setWidth] = useState(800), [text, setText] = useState(''), [textView, setTextView] = useState(false), [rendering, setRendering] = useState(false), [retry, setRetry] = useState(0)
   const viewport = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null)
@@ -23,25 +23,32 @@ export default function CoursePdfViewer({ url, title, slides = false }: { url: s
       try {
         // The app's authenticated fetch wrapper supplies the session. PDF.js
         // receives bytes only, so no cookie, key or token enters its worker.
-        const response = await fetch(url, { signal: controller.signal, cache: 'no-store' })
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}))
-          throw new Error(body.error || `Document unavailable (HTTP ${response.status}).`)
-        }
         const max = 64 * 1024 * 1024
-        if (Number(response.headers.get('content-length')) > max) throw new Error('This document exceeds the 64 MB preview limit. Download the original to inspect it.')
-        const reader = response.body?.getReader()
-        if (!reader) throw new Error('The document response was empty.')
-        const parts: Uint8Array[] = []; let total = 0
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          total += value.length
-          if (total > max) { await reader.cancel(); throw new Error('This document exceeds the 64 MB preview limit. Download the original to inspect it.') }
-          parts.push(value)
+        let bytes: Uint8Array
+        if (file) {
+          if (file.size > max) throw new Error('This file exceeds the 64 MB preview limit.')
+          bytes = new Uint8Array(await file.arrayBuffer())
+        } else {
+          if (!url) throw new Error('Choose a document to preview.')
+          const response = await fetch(url, { signal: controller.signal, cache: 'no-store' })
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}))
+            throw new Error(body.error || `Document unavailable (HTTP ${response.status}).`)
+          }
+          if (Number(response.headers.get('content-length')) > max) throw new Error('This document exceeds the 64 MB preview limit. Download the original to inspect it.')
+          const reader = response.body?.getReader()
+          if (!reader) throw new Error('The document response was empty.')
+          const parts: Uint8Array[] = []; let total = 0
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            total += value.length
+            if (total > max) { await reader.cancel(); throw new Error('This document exceeds the 64 MB preview limit. Download the original to inspect it.') }
+            parts.push(value)
+          }
+          bytes = new Uint8Array(total); let offset = 0
+          for (const part of parts) { bytes.set(part, offset); offset += part.length }
         }
-        const bytes = new Uint8Array(total); let offset = 0
-        for (const part of parts) { bytes.set(part, offset); offset += part.length }
         if (!active) return
         const engine = await import('pdfjs-dist')
         const assets = `/vendor/pdfjs/${engine.version}/`
@@ -53,7 +60,7 @@ export default function CoursePdfViewer({ url, title, slides = false }: { url: s
       finally { clearTimeout(timer) }
     })()
     return () => { active = false; clearTimeout(timer); controller.abort(); void task?.destroy() }
-  }, [url, retry])
+  }, [url, file, retry])
   useEffect(() => {
     if (!pdf) return
     let active = true, render: RenderTask | undefined

@@ -39,19 +39,23 @@ Inspect `/app/setup?step=record`, `/app/setup?step=transcript`, and the document
 review in `/app/planning`. `GET /api/academics/document-check` returns the saved
 source comparison. The UI uses Wicker's DESIGN.md canvas, type and hairline rules;
 Refero's Vectary document reference informs only the compact metadata hierarchy.
-Comparison details expand into paired source results with disagreements first.
+Comparison details open in a side panel with disagreements first.
 
 Setup keeps document collection independent of comparison. A saved Academic Work
 record offers Continue to transcript; a saved transcript offers the next outstanding
 step. Either document can be skipped. A single source supplies its own credit total
 but produces no cross-document comparisons or artificial unmatched-result counts.
 The saved comparison is shown after both attachments exist and never gates Continue.
-Proposed transcript changes and expanded comparisons use normal page scrolling,
-including long reviews on mobile, rather than independently scrolling lists.
+Proposed changes and comparisons open in separate side panels with a fixed close
+action. The setup card retains its file summary, Apply and Continue actions without
+expanding a long list. Selections survive closing a panel. The original PDF or text
+file can be previewed from View document during the review; its bytes stay in the
+browser and are released when leaving the step. The shared PDF renderer accepts a
+local File directly, and setup parsing uses the same installed PDF.js worker.
 
 Review validation compares nested values with strict structural equality. PostgreSQL
 JSONB can reorder object keys, so serialized JSON text is not a valid integrity check.
 Values, types, array order, owner/programme scope, revision and expiry remain checked.
 Regression coverage includes the real browser record-to-transcript import/apply flow,
-optional transcript skip/resume, a 40-result scrolling fixture, and a PostgreSQL JSONB
+optional transcript skip/resume, a 40-result side-panel fixture with a real local PDF preview, and a PostgreSQL JSONB
 round trip that accepts unchanged changes and rejects altered or stale submissions.

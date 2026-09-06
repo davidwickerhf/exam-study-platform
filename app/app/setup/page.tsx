@@ -1,5 +1,7 @@
 'use client'
 
+import { ReviewPanel } from "@/components/workspace/review-panel"
+import { UploadedDocumentPreview } from "@/components/workspace/uploaded-document-preview"
 import { DocumentCheck, type DocumentCheckResult } from "@/components/workspace/document-check"
 
 /**
@@ -77,7 +79,6 @@ import { useWorkspaceSession } from '@/components/workspace/require-auth'
 const CANVAS_SETTINGS = 'https://canvas.maastrichtuniversity.nl/profile/settings'
 const TIMETABLE_PORTAL = 'https://timetable.maastrichtuniversity.nl/m/#loggedin'
 const STUDENT_PORTAL = 'https://studentportal.maastrichtuniversity.nl/group/guest/my-study'
-const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs'
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
 function CurriculumMatch({ value }: { value?: CurriculumReconciliation }) {
@@ -123,19 +124,20 @@ const PROSE =
 // ── The Academic Work overview ────────────────────────────────────────────
 // The portal prints a text PDF and the server parses it as a table, so only
 // the text is sent: the file itself never leaves the browser. pdf.js is loaded
-// from a pinned CDN build and cached on the window for subsequent uploads.
+// from the installed build and cached on the window for subsequent uploads.
 
 type PdfjsItem = { str?: string; width?: number; transform?: number[] }
 type Pdfjs = {
   GlobalWorkerOptions: { workerSrc: string }
-  getDocument: (source: { data: Uint8Array }) => { promise: Promise<{ destroy: () => Promise<void>; numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: PdfjsItem[] }> }> }> }
+  getDocument: (source: { data: Uint8Array }) => { destroy: () => Promise<void>; promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: PdfjsItem[] }> }> }> }
 }
 
 async function loadPdfjs(): Promise<Pdfjs> {
   const held = (window as unknown as { __pdfjs?: Pdfjs }).__pdfjs
   if (held) return held
-  const library = (await import(/* webpackIgnore: true */ PDFJS)) as unknown as Pdfjs
-  library.GlobalWorkerOptions.workerSrc = PDFJS.replace('pdf.min.mjs', 'pdf.worker.min.mjs')
+  const engine = await import('pdfjs-dist')
+  const library = engine as unknown as Pdfjs
+  library.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/${engine.version}/pdf.worker.min.mjs`
   ;(window as unknown as { __pdfjs?: Pdfjs }).__pdfjs = library
   return library
 }
@@ -157,8 +159,9 @@ async function readAcademicWorkText(file: File): Promise<string> {
     throw new Error('The Academic Work overview is a PDF printed from the student portal. Choose that file, or a text export of it.')
   }
   const pdfjs = await loadPdfjs()
-  const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  const loading = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
   try {
+  const pdf = await loading.promise
   const pages: string[] = []
   for (let number = 1; number <= pdf.numPages; number += 1) {
     const content = await (await pdf.getPage(number)).getTextContent()
@@ -169,7 +172,7 @@ async function readAcademicWorkText(file: File): Promise<string> {
   const all = pages.join('\n\n')
   if (!all.trim()) throw new Error('No text could be read from that file. Print the overview from the student portal rather than photographing it.')
   return all
-  } finally { await pdf.destroy() }
+  } finally { await loading.destroy() }
 }
 
 type WorkResult = {
@@ -511,6 +514,7 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => Promise<unkno
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [review, setReview] = useState<TranscriptReview | null>(null)
+  const [sourceFile, setSourceFile] = useState<File | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   return <div className="flex flex-col gap-6">
     <p className="text-muted-foreground max-w-[68ch] text-[13.5px] leading-relaxed">Use the transcript that lists individual results and dates, not the Academic Work overview. It is read in this browser and never stored.</p>
@@ -529,17 +533,17 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => Promise<unkno
           const result = await json<Omit<TranscriptReview, 'source'>>('/api/academics/documents/analyze', { method: 'POST', body: JSON.stringify({ kind: 'transcript', documents: [{ name: file.name, type: 'application/pdf', text, images: [], pageCount: 1 }] }) })
           const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
           const fingerprint = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+          setSourceFile(file)
           setReview({ ...result, source: { name: file.name, type: file.type || 'application/pdf', size: file.size, fingerprint } })
           setSelected(new Set(result.changes.filter((change) => change.selectedByDefault !== false && !change.requiresDecision).map((change) => change.id)))
         } catch (cause) { setError(cause instanceof Error ? cause.message : 'That transcript could not be read.') } finally { setBusy(false) }
       }}
     /> : <div className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between border-b pb-2"><strong className="min-w-0 break-words">{review.source.name}</strong><span className="text-muted-foreground text-xs">{selected.size} of {review.changes.length} selected</span></div>
-      {review.documentCheck && <DocumentCheck value={review.documentCheck} />}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"><div className="flex min-w-0 items-start gap-3"><FileTextIcon className="mt-0.5 size-5 shrink-0 text-primary"/><div className="min-w-0"><strong className="block break-words">{review.source.name}</strong><p className="mt-1 text-xs text-muted-foreground">Read successfully · {selected.size} of {review.changes.length} changes selected</p></div></div>{sourceFile && <UploadedDocumentPreview file={sourceFile}/>}</div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, reviewIds: review.reviewIds, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button>{review.changes.length > 0 && <ReviewPanel trigger={`Review ${review.changes.length} changes`} title="Review transcript changes" description={`${selected.size} of ${review.changes.length} changes selected. Choose what to keep, then save from the setup step.`}><ul aria-label="Proposed transcript changes" className="border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul></ReviewPanel>}<Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSourceFile(null); setSelected(new Set()) }}>Choose another file</Button></div>
+      {review.documentCheck && <DocumentCheck value={review.documentCheck} compact />}
       {!review.changes.length && <p className="text-muted-foreground text-sm">No changes are proposed to your saved record. See the document comparison above for what has been corroborated.</p>}
       {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
-      <ul aria-label="Proposed transcript changes" className="border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, reviewIds: review.reviewIds, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button><Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSelected(new Set()) }}>Choose another file</Button></div>
     </div>}
     {error && <Alert variant="destructive"><AlertTriangleIcon /><AlertTitle>Transcript needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
     {onSkip && <Button type="button" variant="ghost" size="sm" className="w-fit" disabled={busy} onClick={onSkip}>Do this later</Button>}
