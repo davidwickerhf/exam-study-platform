@@ -17,8 +17,25 @@ job IDs, never Canvas tokens, source bytes or signed download URLs.
 `/internal/canvas-dispatch` runs every minute with Vercel Cron. `CRON_SECRET`
 protects it. This sweeps the durable SQL outbox and reconciles course selection at least hourly and respects each account’s update/material frequency settings (defaults: 30 minutes / six hours).
 An authenticated sync request also wakes the dispatcher. A lost publish or a
-message that expires after seven days remains recoverable from Neon. Previews
-acknowledge queue probes but never process production jobs.
+message that expires after seven days remains recoverable from Neon.
+
+Preview workers require a dedicated Neon branch. Configure `DATABASE_URL`,
+`WICKER_PREVIEW_DATABASE_HOST` (the exact database hostname), and
+`WICKER_PREVIEW_WORKER_USERS` (comma-separated Clerk test-user IDs) as overrides
+for the preview Git branch. A hostname mismatch disables processing. Both
+outbox selection and job leasing restrict processing to those test accounts.
+Automatic refresh sweeps are disabled in previews, since database snapshots can
+contain other accounts. Keep the preview's existing Canvas encryption key and
+Clerk settings when branching its database so saved connections remain readable.
+
+Preview wake-ups use `VERCEL_BRANCH_URL`, falling back only to `VERCEL_URL`, never
+the production alias. Automation bypass headers are included on protected
+preview requests. Since Vercel Cron only runs in production, preview consumers
+publish their next bounded step (including retry delay) before acknowledging the
+current message, and wake their branch dispatcher for newly discovered jobs.
+Production consumers continue waking the stable production alias so old
+releases do not grow continuation chains. `/api/health` reports the queue's
+configured state, deployment environment and revision without secrets.
 
 The same existing `CANVAS_CONNECTION_ENCRYPTION_KEY` must be available to both
 services. Do not rotate it during migration. Vercel supplies queue OIDC

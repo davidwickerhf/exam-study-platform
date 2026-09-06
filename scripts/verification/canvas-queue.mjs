@@ -231,5 +231,26 @@ try {
   assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-credentials'")).status,'pending')
   await processCanvasQueueStep('csj-credentials')
   assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-credentials'")).status,'completed')
-  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
+  // Preview snapshots contain production rows. Only the configured test account
+  // may dispatch or acquire leases; automatic schedules must not fan out.
+  await query("UPDATE canvas_sync_jobs SET status='cancelled',lease_token=null WHERE user_id='fixture' AND status IN ('pending','running')")
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type) VALUES('csj-preview-allowed','fixture','https://canvas.fixture','binding','course')")
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,job_type) VALUES('csj-preview-denied','credential-student','https://credentials.fixture','catalog')")
+  process.env.VERCEL_ENV='preview'
+  process.env.DATABASE_URL='postgres://test:fixture@preview.test/db'
+  process.env.WICKER_PREVIEW_DATABASE_HOST='preview.test'
+  process.env.WICKER_PREVIEW_WORKER_USERS='fixture'
+  const jobsBefore=(await one('SELECT count(*) n FROM canvas_sync_jobs')).n
+  const previewIds=await dispatchCanvasQueue()
+  assert.ok(previewIds.includes('csj-preview-allowed'))
+  assert.ok(!previewIds.includes('csj-preview-denied'))
+  assert.equal((await one('SELECT count(*) n FROM canvas_sync_jobs')).n,jobsBefore)
+  assert.equal((await processCanvasQueueStep('csj-preview-denied')).again,false)
+  assert.equal((await one("SELECT attempts FROM canvas_sync_jobs WHERE id='csj-preview-denied'")).attempts,0)
+  await processCanvasQueueStep('csj-preview-allowed')
+  assert.equal((await one("SELECT attempts FROM canvas_sync_jobs WHERE id='csj-preview-allowed'")).attempts,1)
+  process.env.DATABASE_URL='postgres://test:fixture@production.test/db'
+  assert.deepEqual(await dispatchCanvasQueue(),[])
+  assert.equal((await processCanvasQueueStep('csj-preview-allowed')).disabled,true)
+  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation','preview database guard','preview account isolation','preview manual-only scheduling'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}

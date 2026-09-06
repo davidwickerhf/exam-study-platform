@@ -1,3 +1,4 @@
+import { queueWorkersEnabled, queueDispatcherOrigin, queueRequestHeaders } from './queue-runtime.mjs'
 import { send } from '@vercel/queue'
 import { CANVAS_QUEUE_TOPIC, signCanvasTask } from './canvas-queue-protocol.mjs'
 
@@ -23,7 +24,7 @@ export async function sendCanvasStep(jobId: string, delaySeconds = 0) {
   await send(CANVAS_QUEUE_TOPIC, { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
 }
 export async function dispatchCanvasSteps() {
-  if (process.env.VERCEL_ENV === 'preview') return { disabled: true, sent: 0 }
+  if (!queueWorkersEnabled()) return { disabled: true, sent: 0 }
   const { ids = [] } = await callCanvasService({ action: 'dispatch' })
   const sent: string[] = []
   for (const id of ids) { await sendCanvasStep(id); sent.push(id) }
@@ -49,13 +50,12 @@ export async function sendCanvasProbe() {
 // Never grow a continuation chain on the obsolete deployment. The minute
 // outbox sweep is the fallback if this wake-up fails or run_after is in future.
 export async function wakeCurrentCanvasDispatcher() {
-  if (process.env.VERCEL_ENV !== 'production') return
-  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL
-  if (!host) return
+  const origin = queueDispatcherOrigin()
+  if (!origin) return
   const body = JSON.stringify({ action: 'dispatch' })
   try {
-    const response = await fetch(`https://${host}/internal/canvas-dispatch`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body) },
+    const response = await fetch(`${origin}/internal/canvas-dispatch`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body), ...queueRequestHeaders() },
       body, signal: AbortSignal.timeout(15_000), cache: 'no-store',
     })
     if (!response.ok) console.warn('Canvas dispatcher wake-up deferred to cron', response.status)

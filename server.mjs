@@ -1,3 +1,4 @@
+import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queueRequestHeaders } from './lib/queue-runtime.mjs'
 import { activeProgrammeId } from './lib/programme-scope.mjs'
 import { originalContext, originalStatus, beginOriginal, putOriginalChunk, completeOriginal, readOriginalChunk } from './lib/academic-originals.mjs'
 import { aiQuotaExemption } from './lib/ai-quota-policy.mjs'
@@ -30,7 +31,7 @@ import { createDocumentReview, readDocumentReviews, academicDocumentCheck, acade
 import { documentRows, validateDocumentRows, compareAcademicDocuments } from './lib/academic-document-check.mjs'
 import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
-import { currentAuth, setRequestContext } from './lib/request-context.mjs'
+import { currentUserId, currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { runBudgetedStudyCall } from './lib/study-ai-budget.mjs'
 import { studyVersionApi } from './lib/study-version-api.mjs'
 import { processStudyStep } from './lib/study-version-pipeline.mjs'
@@ -3613,13 +3614,12 @@ async function readReconciledAcademicState({ snapshot = null } = {}) {
 async function enqueueAndWake(promise) { const result = await promise; await wakeCanvasQueue(); return result }
 
 async function wakeCanvasQueue() {
-  if (process.env.VERCEL_ENV !== 'production') return
-  const base = process.env.WICKER_WEB_SERVICE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '')
+  const base = queueDispatcherOrigin()
   if (!base) return
   const body = JSON.stringify({ action: 'dispatch' })
   try {
     await fetch(new URL('internal/canvas-dispatch', `${base.replace(/\/$/, '')}/`), {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body) },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body), ...queueRequestHeaders() },
       body, signal: AbortSignal.timeout(5000)
     })
   } catch { /* The durable outbox is retried by the scheduled dispatcher. */ }
@@ -3658,7 +3658,7 @@ async function generateStudyEvaluation(prompt, options) {
 }
 async function runStudentStudyJob(id) {
   const record = await resolveStudyJob(id)
-  if (!record || (localTestUserId() && record.owner !== localTestUserId())) return { again: false }
+  if (!record || !queueWorkerAllowsUser(record.owner) || (localTestUserId() && record.owner !== localTestUserId())) return { again: false }
   return asStudyOwner(record.owner, () => processStudyStep(id, {
     generate: budgetedStudyGenerate, sourceOptions: studySourceOptions
   }))
@@ -3684,7 +3684,7 @@ const server = createServer(async (req, res) => {
         send(res, 401, JSON.stringify({ error: 'Unauthorized' })); return
       }
       if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
-      if (process.env.VERCEL_ENV === 'preview') { send(res, 200, JSON.stringify({ disabled: true })); return }
+      if (!queueWorkersEnabled()) { send(res, 200, JSON.stringify({ disabled: true })); return }
       if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: await claimStudyDispatch() })); return }
       if (body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
@@ -3733,7 +3733,7 @@ const server = createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/api/health' && req.method === 'GET') {
-      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured() } })) }
+      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured(), queue: { enabled: queueWorkersEnabled(), environment: process.env.VERCEL_ENV || 'local', revision: (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 12) } } })) }
       catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
       return
     }
@@ -3813,7 +3813,7 @@ const server = createServer(async (req, res) => {
       try {
         const result = await studyVersionApi({ pathname: url.pathname, method: req.method,
           query: Object.fromEntries(url.searchParams), body: ['POST','PATCH'].includes(req.method) ? await readBody(req, 12 * 1024 * 1024) : {},
-          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview', platform: { ...llmConfiguration(), configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview' }, wake: wakeStudentStudy, generateEvaluation: generateStudyEvaluation })
+          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()), platform: { ...llmConfiguration(), configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()) }, wake: wakeStudentStudy, generateEvaluation: generateStudyEvaluation })
         send(res, result.status, JSON.stringify(result.data), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Study versions could not be loaded. Try again.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
       return
