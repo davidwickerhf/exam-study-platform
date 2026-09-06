@@ -87,6 +87,7 @@ export type StudyVersion = {
     status: string
     stage: string
     error?: string
+    canRecheck?: boolean
     runAfter?: number
     chapters: number
     total: number

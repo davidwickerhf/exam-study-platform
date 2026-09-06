@@ -218,3 +218,26 @@ $15 output per million tokens. Each call reserves at its actual model's price;
 existing token, chapter, personal, shared and job limits still apply. No automatic
 model or billing-source escalation. The model is an option to evaluate, not a claim
 that it has passed comparative teaching-quality acceptance.
+
+### Live acceptance, 7 September 2026
+
+GPT-5.4 reference artifact `sqe-3a59c93d-0ece-4a89-888c-601c417fe793`
+contains ten worked questions, twelve cards and four structured visuals. Generation
+cost $0.092180. Recheck `sqe-c5571ca4-725d-468c-ba22-79efab9d9a5c`
+reuses that exact artifact: structural checks, independent source review and the
+three-error adversarial check all passed. Its two review calls cost $0.128271.
+Earlier reviews/costs remain in the original report and
+`sqe-ad1d1e03-6da5-40b9-8a45-07adbde5ee26`; total recorded cost across these
+three linked reference reports is $0.484775, including calibration calls.
+
+Calibration corrected reviewer false positives about string-only caveats, valid
+consequences of cited equations and conventional mathematical definitions. It did
+not relax checks for wrong answers, incorrect diagram membership, invented original
+image readings or outdated course rules. A recheck creates a linked diagnostic and
+preserves the original results; it does not regenerate an artifact to seek a pass.
+This is a small reference test, not comparative proof of model quality across courses.
+
+Live slide-deck testing also exposed title-only pages being expanded into unsupported
+teaching. Those passages now appear only as coverage limits; their original source
+snapshots are unchanged, and they are excluded from generation citation choices.
+A topic with no explanatory evidence stops before any provider call is charged.

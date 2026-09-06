@@ -893,3 +893,19 @@ test('a title-only topic stops before reserving or calling an AI provider', asyn
     })
   } finally { await f.cleanup() }
 })
+
+test('review-only retry keeps the failed chapter and charges no generation call', async () => {
+  const f = await fixture()
+  try {
+    await finish(f, {reviewIssues:[{topicId:'addition',severity:'error',detail:'A finding that needs a second evidence check.'}]})
+    await f.run(async () => {
+      const before = await ownStudyVersion(f.version.id), saved = structuredClone(before.draft.chapters[0])
+      await controlStudyGeneration(before.id, 'retry', null, {recheck:true})
+      let calls = 0
+      await processStudyStep(before.id, {generate: async prompt => { calls++; assert.match(prompt, /Independently check/); return {issues:[]} }})
+      const next = await ownStudyVersion(before.id)
+      assert.equal(calls, 1)
+      assert.deepEqual(next.draft.chapters[0], {...saved, review:'passed'})
+    })
+  } finally { await f.cleanup() }
+})

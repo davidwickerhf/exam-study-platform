@@ -39,7 +39,8 @@ export default function StudentStudyPage() {
   const [resume, setResume] = useState(false),
     [billingSource, setBillingSource] = useState('platform'),
     [cap, setCap] = useState('1'),
-    [quality, setQuality] = useState('standard')
+    [quality, setQuality] = useState('standard'),
+    [recheck, setRecheck] = useState(false)
   async function load() {
     const result = await studyRequest<StudyVersionPayload>(
       `/api/study-versions/${versionId}${selected ? `?revision=${encodeURIComponent(selected)}` : ''}`
@@ -71,7 +72,7 @@ export default function StudentStudyPage() {
     try {
       await studyRequest(
         `/api/study-versions/${versionId}/${action}`,
-        action === 'retry' ? { billingSource, maxJobUsd: Number(cap), quality } : {}
+        action === 'retry' ? { billingSource, maxJobUsd: Number(cap), quality, recheck } : {}
       )
       setResume(false)
       await load()
@@ -189,6 +190,8 @@ export default function StudentStudyPage() {
                 else {
                   setBillingSource(version.billing?.source || 'platform')
                   setCap(String(version.billing?.maxJobUsd || 1))
+                  setQuality(version.billing?.model === 'gpt-5.4' ? 'enhanced' : 'standard')
+                  setRecheck(false)
                   setResume(!resume)
                 }
               }}
@@ -225,6 +228,7 @@ export default function StudentStudyPage() {
             cap={cap}
             setCap={setCap}
           />
+          {draft?.canRecheck && <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={recheck} onChange={e => setRecheck(e.target.checked)} className="mt-1 size-4" /><span>Recheck the saved chapter without rewriting it<span className="mt-1 block text-xs text-muted-foreground">Useful when a finding appears mistaken. Runs only the paid evidence check; it does not correct content.</span></span></label>}
           <div className="flex gap-2">
             <Button disabled={busy} onClick={() => void control('retry')}>
               Resume with this billing choice

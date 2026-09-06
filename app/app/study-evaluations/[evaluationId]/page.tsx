@@ -70,6 +70,7 @@ export default function QualityEvaluationPage() {
         {data.error && <p role="status" className="text-sm text-muted-foreground">{data.error}</p>}
         {data.checks.length > 0 && <ul className="divide-y">{data.checks.map((check, i) => <li className="py-3" key={i}>
           <div className="flex flex-wrap items-center gap-2"><Badge variant={check.passed ? 'secondary' : 'destructive'}>{check.passed ? 'Passed' : 'Needs attention'}</Badge><span className="text-sm font-medium">{check.name}</span></div>
+          {i === 2 && <p className="mt-2 text-sm text-muted-foreground">These errors were deliberately inserted into a test copy to check the reviewer. The study chapter below is unchanged.</p>}
           {check.issues.length > 0 && <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">{check.issues.map((issue, j) => <li key={j}>{typeof issue === 'string' ? issue : `${issue.severity}: ${issue.detail}`}</li>)}</ul>}
         </li>)}</ul>}
         <p className="text-muted-foreground text-xs leading-5">{data.limitations}</p>
