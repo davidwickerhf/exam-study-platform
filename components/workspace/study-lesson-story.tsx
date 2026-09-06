@@ -13,16 +13,16 @@ export function StudyLessonStory({ chapter, revision }: { chapter: StudyChapter;
     setActive(0)
     const elements = root.current?.querySelectorAll<HTMLElement>('[data-story-section]')
     if (!elements || !('IntersectionObserver' in window)) return
-    const visible = new Map<number, number>()
-    const observer = new IntersectionObserver(entries => {
-      for (const entry of entries) {
-        const index = Number((entry.target as HTMLElement).dataset.storySection)
-        if (entry.isIntersecting) visible.set(index, entry.boundingClientRect.top)
-        else visible.delete(index)
-      }
-      const candidate = [...visible].sort((a, b) => a[1] - b[1])[0]
-      if (candidate) setActive(candidate[0])
-    }, { rootMargin: '-10% 0px -50% 0px', threshold: 0 })
+    const observer = new IntersectionObserver(() => {
+      const bandTop = window.innerHeight * .15, bandBottom = window.innerHeight * .65
+      let best = 0, candidate = 0
+      elements.forEach(element => {
+        const rect = element.getBoundingClientRect()
+        const overlap = Math.max(0, Math.min(rect.bottom, bandBottom) - Math.max(rect.top, bandTop))
+        if (overlap > best) { best = overlap; candidate = Number(element.dataset.storySection) }
+      })
+      if (best > 0) setActive(candidate)
+    }, { rootMargin: '-15% 0px -35% 0px', threshold: [0, .1, .25, .5, .75, 1] })
     elements.forEach(el => observer.observe(el))
     return () => observer.disconnect()
   }, [chapter.id])
