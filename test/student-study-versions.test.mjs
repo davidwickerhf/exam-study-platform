@@ -9,6 +9,7 @@ import {
 } from '../lib/user-store.mjs'
 import {
   addStudyNote,
+  studyCourse,
   listStudySources,
   readStudySourceSnapshot
 } from '../lib/study-version-sources.mjs'
@@ -51,6 +52,22 @@ import {
 import { studyVersionApi } from '../lib/study-version-api.mjs'
 
 import { course, lesson } from '../scripts/verification/study-fixtures.mjs'
+test('display period labels match source periods without opting into historical materials', async () => {
+  await withRequestContext({ userId: `study-period-${randomUUID()}`, mode: 'local' }, async () => {
+    try {
+      const target = { ...course, period: 'Period 1' }
+      assert.equal(studyCourse(target).period, '1')
+      const note = await addStudyNote({ ...course, period: '1', title: 'Current lecture' }, [{ page: 1, text: 'A rational agent selects actions using its performance measure and available evidence.' }])
+      const other = await addStudyNote({ ...course, period: '2', title: 'Other period' }, [{ page: 1, text: 'Material from another period.' }])
+      const sources = await listStudySources(target)
+      assert.equal(sources.find(s => s.key === note.id).periodMismatch, false)
+      assert.equal(sources.find(s => s.key === other.id).periodMismatch, true)
+      const snapshot = await readStudySourceSnapshot(target, [note.id])
+      assert.equal(snapshot.sources.length, 1)
+      await assert.rejects(readStudySourceSnapshot(target, [other.id]), /another or unspecified edition/i)
+    } finally { await deleteAllDocuments() }
+  })
+})
 test('source snapshots change when extraction improves but the original checksum stays identical', async () => {
   const userId = `study-extraction-${randomUUID()}`
   await withRequestContext({ userId, mode: 'local' }, async () => {
