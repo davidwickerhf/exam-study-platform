@@ -28,15 +28,7 @@
     "api": {
       "root": ".",
       "runtime": "container",
-      "entrypoint": "Containerfile",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "web",
-          "format": "url",
-          "env": "WICKER_WEB_SERVICE_URL"
-        }
-      ]
+      "entrypoint": "Containerfile"
     }
   },
   "rewrites": [

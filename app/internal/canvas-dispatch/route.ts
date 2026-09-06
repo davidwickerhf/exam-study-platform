@@ -11,7 +11,9 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   const body = await request.text()
-  if (!verifyCanvasTask(body, request.headers.get('x-canvas-task'))) return new Response('Unauthorized', { status: 401 })
-  if (JSON.parse(body).probe === true) return Response.json(await sendCanvasProbe())
+  const probe = JSON.parse(body).probe === true
+  const signature = request.headers.get('x-canvas-task')
+  if (!verifyCanvasTask(body, signature) && !(probe && verifyCanvasTask(body, signature, { key: process.env.CRON_SECRET }))) return new Response('Unauthorized', { status: 401 })
+  if (probe) return Response.json(await sendCanvasProbe())
   return Response.json(await dispatchCanvasSteps())
 }
