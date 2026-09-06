@@ -30,7 +30,7 @@ test('the durable worker versions sources and schedules freshness checks', () =>
   assert.match(worker, /sha256/)
   assert.match(priorityMigration, /ON canvas_sync_jobs \(user_id, binding_id\)/)
   assert.match(worker, /recent\.user_id=access\.user_id/)
-  assert.match(worker, /failed\.status='failed'.+FAILURE_COOLDOWN_HOURS/)
+  assert.match(corpus, /recent\.status='failed'.+CANVAS_CORPUS_FAILURE_COOLDOWN_HOURS/)
 })
 
 test('revoking material collection removes derived priority scans from the workspace', () => {

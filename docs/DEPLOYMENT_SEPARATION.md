@@ -15,7 +15,7 @@ it cannot be invoked with a student's browser credentials. Queue payloads carry
 job IDs, never Canvas tokens, source bytes or signed download URLs.
 
 `/internal/canvas-dispatch` runs every minute with Vercel Cron. `CRON_SECRET`
-protects it. This sweeps the durable SQL outbox and schedules current-course discovery and update refresh every 30 minutes. Materials are eligible every six hours.
+protects it. This sweeps the durable SQL outbox and reconciles course selection at least hourly and respects each account’s update/material frequency settings (defaults: 30 minutes / six hours).
 An authenticated sync request also wakes the dispatcher. A lost publish or a
 message that expires after seven days remains recoverable from Neon. Previews
 acknowledge queue probes but never process production jobs.
@@ -113,10 +113,10 @@ remain on demand. Pause and revoked collection consent win over scheduling.
 Discovery can reuse identical generated documents and complete versioned files from the
 same account/binding. Reuse requires matching payload and a complete active original;
 changed or unversioned files are collected again. A forced refresh bypasses reuse.
-Default `CANVAS_MATERIAL_REFRESH_HOURS` is 6. Derived-only priority passes do not postpone
+`CANVAS_MATERIAL_REFRESH_HOURS` remains a legacy shared-binding freshness hint; automatic eligibility uses account preferences from migration 031. Derived-only priority passes do not postpone
 material collection. The minute cron delivers work; it does not download every course
 once per minute. See [Canvas collection](CANVAS_CORPUS.md) for user controls.
 
 Startup verification and the migration runner share discovery of numbered `db/*.sql` files. Adding a migration no longer requires editing a separate allow-list. Checksums remain immutable once recorded.
 
-Production Canvas step messages use an unpinned QueueClient (`deploymentId: null`), so a chain of continuations does not keep selecting the original deployment. Preview probes remain pinned. SQL checkpoints and leases remain authoritative across releases; an already pinned legacy chain may require retiring its obsolete deployment and re-dispatching the durable job.
+Production messages retain the SDK's deployment pinning. After a step, consumers wake the dispatcher through `VERCEL_PROJECT_PRODUCTION_URL`, so the current release owns subsequent notifications rather than letting an obsolete deployment grow an indefinite continuation chain. A delayed job or failed wake-up is recovered by the minute SQL-outbox sweep. Preview probes remain pinned and previews cannot process real work. A legacy pinned chain may require retiring its obsolete deployment and re-dispatching the durable job. Unpinned sends were not observed to trigger production delivery during live recovery, so they are not used.

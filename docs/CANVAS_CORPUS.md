@@ -121,10 +121,10 @@ again for completed rows. Controls target the selected edition, not every year.
 
 ## Recurring refresh
 
-With collection consent, current-course announcements and assignments refresh every
-30 minutes; materials every six hours. Current period comes from the programme
-calendar with personal overrides. Retakes refresh only the latest current edition.
-Historical editions remain searchable and manually refreshable. Paused editions are
-excluded. Unchanged versioned files reuse complete originals/indexes; unversioned or
-changed files are collected again. These are scheduling intervals, not a promise that
-upstream Canvas or a large course completes within that time.
+With collection consent, default frequencies are 30 minutes for announcements and assignments and six hours for materials. Settings → Connections → Manage → Automatic refresh has an enable switch, separate update/material frequencies, and explicit studying/completed status. Updates allow 15/30/60/180/360/1440 minutes; materials allow 60/360/720/1440/10080 minutes. These preferences are account + Canvas-host scoped and browser-only. They do not change sharing consent.
+
+Every catalogue pass resolves today's programme calendar with personal overrides. Discovery runs at the shorter selected interval, capped at one hour, so even a weekly material schedule detects period boundaries. Metadata is fetched only when its own frequency is due; material eligibility uses the student's most recent completed full sync, not another student's shared binding timestamp. Failed full syncs retain the deployment's failure cooldown. Repeated dispatch is protected by unique active-job indexes.
+
+During dated teaching/exam/resit periods, select that period's eligible editions. During breaks, watch the recent ending academic year (within 120 days) and the next year approaching within 60 days. August retains the ending year even if next year's calendar is unpublished. Upcoming Canvas terms must begin within 60 days in a break (14 days during a period). Retakes select only the latest eligible edition per course. Old calendars are not extrapolated indefinitely: use the current Canvas academic year when dated coverage is unavailable. Missing active programme or explicit completed status pauses automatic work; graduation is never inferred from age, earned credits or failed attempts. The stored policy reason/time is visible in Settings.
+
+Turning automation off or marking completed cancels automatic jobs and revokes their leases while preserving originals/checkpoints and manual jobs. Individual course pauses and withdrawn consent remain authoritative. Manual historical collection is still available. A network operation already in flight can finish before its next lease check. Unchanged versioned files reuse complete originals/indexes; changed and unversioned files are collected again. Frequency is a scheduling target, not a guarantee of Canvas or worker completion time.

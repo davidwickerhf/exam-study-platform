@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CanvasRefreshSettings, type RefreshSettings } from "./canvas-refresh-settings";
 
 /**
  * Canvas connections.
@@ -47,6 +48,7 @@ type CanvasConnection = {
   lastUsedAt: string | null;
   corpus?: {
     collectionEnabled: boolean;
+    refresh?: RefreshSettings;
     sharingMode: "private" | "community";
     consentedAt?: string | null;
   };
@@ -693,6 +695,7 @@ export function ConnectionsTab() {
                       Hide
                     </span>
                   </summary>
+                  <CanvasRefreshSettings origin={connection.origin} saved={connection.corpus?.refresh} collectionEnabled={Boolean(connection.corpus?.collectionEnabled)} onSaved={connections.reload} />
                   <div className="mt-4 flex flex-col gap-2 border-t pt-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <Select

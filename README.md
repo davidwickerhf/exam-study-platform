@@ -248,3 +248,5 @@ the bundled `content/` directory while developing.
 Personal study material. Course PDFs belong to their respective course
 coordinators at Maastricht; please don't redistribute beyond your study
 group.
+
+Feedback-system proposal: [implementation plan](docs/plans/FEEDBACK_SYSTEM.md) (planned, not shipped). Automatic Canvas scheduling and its Settings controls are documented in [Canvas collection](docs/CANVAS_CORPUS.md#recurring-refresh).
