@@ -274,3 +274,5 @@ Do not infer or store sensitive preferences from course material or third-party 
 ## AI activity log
 
 Settings → AI activity (`/app/settings?tab=activity`) shows API-key requests from this release onward, with read/write/prepare filters, outcome, duration, tool/client label and confirmed-review reference. The MCP tags requests automatically. One tool may make several HTTP requests; local actions that never reach the platform are not logged. Client labels and client-reported confirmation are not independent proof of approval. The server records confirmed prepared-review IDs separately. Arguments, query text, responses and credentials are excluded. Activity is private to the account, included in data export, and removed by account-data erasure.
+
+For request-log fields, durability, privacy and limitations, see [AI activity](AGENT_ACTIVITY.md). In-app Docs at `/app/docs` includes the same prepare/confirm, refresh and upgrade workflows.

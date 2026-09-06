@@ -111,3 +111,19 @@ Additional browser check: approved a real catch-up proposal, opened its persiste
 checklist beside project milestones, answered a diagnostic (1/2 with corrective
 feedback), and recovered the saved attempt in Study work. Fixture content was
 explicitly labelled and never written to the student's production account.
+
+## Focused answers and connected assistants
+
+Tutor now streams public activity labels and partial summary text before replacing
+those with its saved final answer. Secondary catch-up guidance is collapsed; a
+narrow follow-up should not repeat the full plan. Drafts use stable identities and
+conservative legacy matching; equivalent prepared actions are deduplicated across
+turns. Urgent facts remain visible, while the action sidebar keeps concrete writes
+reviewable. Sources include relevant announcements and document passages, with
+explicit later course-team amendments checked against older rules.
+
+MCP 2.9 exposes these saved conversations, sources and proposals. Local assistants
+can prepare attendance or remembered preferences/availability directly, without a
+hosted model call, then confirm the exact stored update after the student's
+approval. Context is shared by account/programme and removable in Tutor → Sources.
+See [Agent access](AGENT_ACCESS.md) and [AI activity](AGENT_ACTIVITY.md).

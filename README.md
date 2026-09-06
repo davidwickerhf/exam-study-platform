@@ -1,20 +1,17 @@
 # Exam Study Platform
 
-A hosted or local study platform for the Maastricht BCS June 2026 resit window.
-With editorial chapter notes, prepared mock exams, question banks, and
-flashcards for five courses:
+Wicker Study connects a student's programme, academic results, timetable and Canvas
+courses to a private study workspace. It includes versioned course material,
+practice, assignment briefs, attendance, project progress and a persistent Tutor.
+The maintained editorial library includes Statistics, Algorithmic Design,
+Embedded Programming, Computer Security and Numerical Methods; connected Canvas
+editions extend that library without mixing historical retakes into current rules.
 
-- **BCS1520** — Statistics
-- **BCS1540** — Algorithmic Design
-- **BCS2410** — Embedded Programming
-- **BCS2420** — Computer Security
-- **BCS2540** — Numerical Methods
-
-Built with Next.js App Router, React, TypeScript, and an established Node API.
-It publishes versioned editorial material to Neon, stores private progress
-there behind Clerk authentication, and limits student AI access to
-retrieval-grounded tutor chat plus explicitly requested personal extra
-exercises. Answer checks run locally against published references.
+Built with Next.js App Router, React, TypeScript and a Node API, with Clerk
+authentication and Neon storage. Vercel runs the web/API deployment and durable
+Canvas queue tasks. Local AI clients use the same account through MCP 2.9;
+individual writes require explicit confirmation. Preferences and availability
+can be shared with Tutor, and API-key requests are visible in Settings → AI activity.
 
 The public site is available at `/`, with product information at `/about`, the
 maintained catalogue at `/courses`, and the current privacy notice and terms at
@@ -23,7 +20,11 @@ signed-in product lives at `/app`.
 
 For production setup and the content authoring workflow, see
 [Hosted architecture](docs/HOSTED_ARCHITECTURE.md) and
-[Content pipeline](docs/CONTENT_PIPELINE.md).
+[Content pipeline](docs/CONTENT_PIPELINE.md). Current deployment and agent workflows:
+[Deployment separation](docs/DEPLOYMENT_SEPARATION.md),
+[MCP and confirmed writes](docs/AGENT_ACCESS.md),
+[Canvas collection](docs/CANVAS_CORPUS.md), and
+[AI activity](docs/AGENT_ACTIVITY.md).
 
 ---
 
@@ -48,7 +49,7 @@ npm start
 
 ## Prerequisites
 
-- **Node.js 18+** — the server uses ESM and the global `fetch`. macOS users
+- **Node.js 22+** — the server uses ESM and the global `fetch`. macOS users
   with [Volta](https://volta.sh/) or [nvm](https://github.com/nvm-sh/nvm) are
   set; otherwise grab a build from [nodejs.org](https://nodejs.org).
 - **One LLM provider** — pick at setup time:
