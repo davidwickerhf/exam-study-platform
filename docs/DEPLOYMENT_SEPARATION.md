@@ -118,3 +118,5 @@ material collection. The minute cron delivers work; it does not download every c
 once per minute. See [Canvas collection](CANVAS_CORPUS.md) for user controls.
 
 Startup verification and the migration runner share discovery of numbered `db/*.sql` files. Adding a migration no longer requires editing a separate allow-list. Checksums remain immutable once recorded.
+
+Production Canvas step messages use an unpinned QueueClient (`deploymentId: null`), so a chain of continuations does not keep selecting the original deployment. Preview probes remain pinned. SQL checkpoints and leases remain authoritative across releases; an already pinned legacy chain may require retiring its obsolete deployment and re-dispatching the durable job.
