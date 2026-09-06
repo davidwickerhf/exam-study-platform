@@ -36,6 +36,10 @@ jobs:
       - run: npm run test:study:postgres
         env:
           STUDY_TEST_DATABASE_URL: postgres://postgres:fixture@localhost:5432/postgres
+      - name: Verify Canvas queue recovery and credential failures
+        run: node --experimental-test-module-mocks scripts/verification/canvas-queue.mjs
+        env:
+          QUEUE_TEST_DATABASE_URL: postgres://postgres:fixture@localhost:5432/postgres
       - name: Build and boot the production API container
         run: |
           docker build -f Containerfile -t study-api-check .

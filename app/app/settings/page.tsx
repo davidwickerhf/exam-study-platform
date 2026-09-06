@@ -10,7 +10,7 @@ import type { AccountSummary } from "@/lib/workspace/account.mjs";
 import { TAB_LIST, TAB_TRIGGER } from "../account/shared";
 
 function TabLoading() {
-  return <div className="flex flex-col gap-4" aria-hidden="true"><Skeleton className="h-6 w-48" /><Skeleton className="h-48 w-full" /></div>;
+  return <div data-tour-loading="true" className="flex flex-col gap-4" aria-hidden="true"><Skeleton className="h-6 w-48" /><Skeleton className="h-48 w-full" /></div>;
 }
 
 const PersonalAiSettings = dynamic(() => import("@/components/workspace/personal-ai-settings").then((module) => module.PersonalAiSettings), { loading: TabLoading, ssr: false });

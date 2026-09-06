@@ -1341,7 +1341,7 @@ export default function UpdatesPage() {
       data-impeccable-contract={DESIGN_CONTRACT}
       className="flex min-h-0 w-full flex-col xl:h-dvh xl:overflow-hidden"
     >
-      <header data-tour="updates" className="shrink-0 border-b bg-background">
+      <header data-tour="updates" data-tour-ready={Boolean(hub || error)} className="shrink-0 border-b bg-background">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-4 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:px-8 lg:py-7">
           <div>
             <h1 className="font-heading text-[32px] leading-[1.05] font-semibold tracking-[-0.035em]">

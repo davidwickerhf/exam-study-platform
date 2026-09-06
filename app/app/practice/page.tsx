@@ -217,7 +217,7 @@ export default function PracticePage() {
         }}
         className="min-w-0 gap-6"
       >
-        <TabsList data-tour="practice-modes"
+        <TabsList data-tour="practice-modes" data-tour-ready={Boolean(practice || practiceError)}
           variant="line"
           className="max-w-full justify-start overflow-x-auto"
         >

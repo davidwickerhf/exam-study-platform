@@ -7,7 +7,7 @@ import { ArrowRightIcon, CompassIcon, XIcon } from 'lucide-react'
 import { cachedWorkspaceJson } from '@/hooks/use-workspace-data'
 import { Button } from '@/components/ui/button'
 import { useWorkspaceSession } from '@/components/workspace/require-auth'
-import { TOUR_STEPS, tourPosition, type TourRect } from '@/lib/workspace/tour.mjs'
+import { TOUR_STEPS, TOUR_PREFETCH, tourPosition, type TourRect } from '@/lib/workspace/tour.mjs'
 
 type TourStatus = 'pending' | 'dismissed' | 'completed' | 'unoffered'
 type TourState = { status: TourStatus }
@@ -46,6 +46,9 @@ export function WorkspaceTour() {
   const [index, setIndex] = useState(0)
   const [anchor, setAnchor] = useState<TourRect | null>(null)
   const [fallback, setFallback] = useState(false)
+  const [readyStep, setReadyStep] = useState<string | null>(null)
+  const [slowStep, setSlowStep] = useState<string | null>(null)
+  const moving = useRef(false)
   const [position, setPosition] = useState({ left: 16, top: 96, width: 352 })
   const [saveError, setSaveError] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<TourStatus | null>(null)
@@ -55,6 +58,9 @@ export function WorkspaceTour() {
   const maskId = useId().replace(/:/g, '')
   const step = TOUR_STEPS[index]
   const routeReady = pathname === step.route
+  const stepReady = routeReady && readyStep === step.id
+  const slow = slowStep === step.id && !stepReady
+  const spotlight = stepReady ? anchor : null
 
   useEffect(() => {
     let live = true
@@ -87,6 +93,10 @@ export function WorkspaceTour() {
   }
 
   const goToStep = (next: number) => {
+    if (moving.current || next < 0 || next >= TOUR_STEPS.length) return
+    moving.current = true
+    setReadyStep(null)
+    setSlowStep(null)
     setAnchor(null)
     setIndex(next)
     const route = TOUR_STEPS[next].route
@@ -96,6 +106,9 @@ export function WorkspaceTour() {
   useEffect(() => {
     const replay = () => {
       interacted.current = true
+      moving.current = false
+      setReadyStep(null)
+      setSlowStep(null)
       setIndex(0)
       setAnchor(null)
       setOpen(true)
@@ -106,45 +119,69 @@ export function WorkspaceTour() {
   }, [pathname, router])
 
   useEffect(() => {
-    if (!open || !routeReady) return
-    // Next.js focuses the new page after navigation; keep keyboard users in
-    // the active coachmark instead of leaving focus behind the modal.
-    const frame = requestAnimationFrame(() => nextRef.current?.focus({ preventScroll: true }))
-    return () => cancelAnimationFrame(frame)
-  }, [open, routeReady, step])
+    if (!open) return
+    // Warm only the next stop, sharing the same deduplicated reads as the page.
+    const next = TOUR_STEPS[index + 1]
+    if (next) {
+      router.prefetch(next.route)
+      for (const path of TOUR_PREFETCH[next.route] ?? []) void cachedWorkspaceJson(path).catch(() => {})
+    }
+  }, [open, index, router])
 
   useEffect(() => {
-    if (!open) return
-    if (!routeReady) { setAnchor(null); return }
-    let target = visibleTarget(step.target) ?? (step.fallback ? visibleTarget(step.fallback) : null)
-    setFallback(Boolean(target && target.dataset.tour !== step.target))
-    target?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })
+    if (!open || stepReady) return
+    const timer = window.setTimeout(() => {
+      moving.current = false
+      setSlowStep(step.id)
+    }, 10_000)
+    return () => window.clearTimeout(timer)
+  }, [open, step.id, stepReady])
+
+  useEffect(() => {
+    if (!open || !stepReady) return
+    moving.current = false
+    // Route focus must not escape the coachmark after the page becomes usable.
+    const frame = requestAnimationFrame(() => nextRef.current?.focus({ preventScroll: true }))
+    return () => cancelAnimationFrame(frame)
+  }, [open, stepReady])
+
+  useEffect(() => {
+    if (!open || !routeReady) return
+    let target: HTMLElement | null = null
     let frame = 0
     const measure = () => {
       const found = visibleTarget(step.target) ?? (step.fallback ? visibleTarget(step.fallback) : null)
+      const ready = Boolean(found && found.dataset.tourReady !== 'false'
+        && !document.querySelector('[data-tour-loading="true"]'))
+      if (!ready) {
+        setReadyStep(null)
+        return
+      }
       if (found !== target) {
+        if (target) observer.unobserve(target)
         target = found
         target?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })
         if (target) observer.observe(target)
       }
       setFallback(Boolean(target && target.dataset.tour !== step.target))
       const viewport = { width: window.innerWidth, height: window.innerHeight }
-      const rect = target?.getBoundingClientRect()
-      const nextAnchor = rect && rect.bottom > 0 && rect.top < viewport.height ? {
-        left: Math.max(8, rect.left - 12), top: Math.max(8, rect.top - 12),
-        right: Math.min(viewport.width - 8, rect.right + 12), bottom: Math.min(viewport.height - 8, rect.bottom + 12),
-        width: Math.min(viewport.width - 8, rect.right + 12) - Math.max(8, rect.left - 12),
-        height: Math.min(viewport.height - 8, rect.bottom + 12) - Math.max(8, rect.top - 12)
-      } : null
-      setAnchor(nextAnchor)
-      setPosition(tourPosition(nextAnchor, { width: 352, height: panelRef.current?.offsetHeight || 290 }, viewport))
+      const rect = target!.getBoundingClientRect()
+      const left = Math.max(8, rect.left - 8), top = Math.max(8, rect.top - 8)
+      const right = Math.min(viewport.width - 8, rect.right + 8), bottom = Math.min(viewport.height - 8, rect.bottom + 8)
+      const nextAnchor = right > left && bottom > top ? { left, top, right, bottom, width: right - left, height: bottom - top } : null
+      setAnchor(previous => JSON.stringify(previous) === JSON.stringify(nextAnchor) ? previous : nextAnchor)
+      const nextPosition = tourPosition(nextAnchor, { width: 352, height: panelRef.current?.offsetHeight || 380 }, viewport)
+      setPosition(previous => previous.left === nextPosition.left && previous.top === nextPosition.top && previous.width === nextPosition.width ? previous : nextPosition)
+      setReadyStep(step.id)
     }
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure) }
     const observer = new ResizeObserver(schedule)
-    if (target) observer.observe(target)
     if (panelRef.current) observer.observe(panelRef.current)
-    const mutations = new MutationObserver(schedule)
-    mutations.observe(document.body, { childList: true, subtree: true })
+    // Ignore the tour's own DOM changes so measurement cannot trigger itself.
+    const mutations = new MutationObserver(records => {
+      if (records.some(record => !(record.target instanceof Element ? record.target : record.target.parentElement)?.closest('[data-dashboard-tour], [data-tour-backdrop]'))) schedule()
+    })
+    mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-tour-ready', 'data-tour-loading', 'hidden'] })
     schedule()
     window.addEventListener('resize', schedule)
     window.addEventListener('scroll', schedule, true)
@@ -159,13 +196,13 @@ export function WorkspaceTour() {
     {saveError && <p role="status" className="fixed bottom-20 right-4 z-40 max-w-80 rounded-lg border bg-background p-3 text-xs text-muted-foreground">Tour closed on this browser. <button type="button" className="text-primary underline underline-offset-2" onClick={() => pendingStatus && save(pendingStatus)}>Retry saving to your account</button></p>}
     <Dialog.Root open={open} onOpenChange={(value) => { if (!value) finish('dismissed') }}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50">
+        <Dialog.Backdrop data-tour-backdrop className="fixed inset-0 z-50">
           <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full">
-            <defs><filter id={`${maskId}-feather`} x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="6" /></filter><mask id={maskId}><rect width="100%" height="100%" fill="white" />{anchor && <rect x={anchor.left} y={anchor.top} width={anchor.width} height={anchor.height} rx="16" fill="black" filter={`url(#${maskId}-feather)`} />}</mask></defs>
+            <defs><mask id={maskId}><rect width="100%" height="100%" fill="white" />{spotlight && <rect data-tour-spotlight x={spotlight.left} y={spotlight.top} width={spotlight.width} height={spotlight.height} rx="10" fill="black" />}</mask></defs>
             <rect width="100%" height="100%" fill="rgb(15 23 42 / 0.40)" mask={`url(#${maskId})`} />
           </svg>
         </Dialog.Backdrop>
-        <Dialog.Popup ref={panelRef} initialFocus={nextRef} finalFocus={() => document.querySelector<HTMLElement>('[data-tour-replay]') ?? visibleTarget(step.target)} style={position} className="fixed z-50 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border bg-popover text-popover-foreground shadow-xl outline-none" data-dashboard-tour>
+        <Dialog.Popup ref={panelRef} initialFocus={nextRef} finalFocus={() => document.querySelector<HTMLElement>('[data-tour-replay]') ?? visibleTarget(step.target)} style={position} className="fixed z-50 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl border bg-popover text-popover-foreground shadow-xl outline-none" data-dashboard-tour data-tour-state={stepReady ? "ready" : slow ? "slow" : "loading"}>
           <div className="px-5 pt-5 pb-4">
             <div className="mb-4 flex items-center justify-between gap-3">
               <span className="text-primary text-[11px] font-semibold tracking-[0.1em] uppercase">Your study desk</span>
@@ -177,15 +214,15 @@ export function WorkspaceTour() {
               <Dialog.Description className="text-muted-foreground mt-2 text-sm leading-relaxed">{step.body}</Dialog.Description>
               {(fallback ? step.mobileHint : step.hint) && <p className="text-muted-foreground mt-3 text-xs leading-relaxed">{fallback ? step.mobileHint : step.hint}</p>}
             </div>
-            {!routeReady && <p role="status" className="text-muted-foreground mt-3 text-xs">Opening the next page…</p>}
-            {routeReady && index > 0 && index < TOUR_STEPS.length - 1 && <button type="button" className="text-primary mt-3 min-h-9 text-xs font-semibold underline-offset-4 hover:underline" onClick={() => finish('dismissed')}>Explore this page</button>}
+            {!stepReady && <p role="status" className="text-muted-foreground mt-3 text-xs">{slow ? "This page is taking longer than expected. You can skip this stop or close the tour." : "Loading this page…"}</p>}
+            {stepReady && index > 0 && index < TOUR_STEPS.length - 1 && <button type="button" className="text-primary mt-3 min-h-9 text-xs font-semibold underline-offset-4 hover:underline" onClick={() => finish('dismissed')}>Explore this page</button>}
             <div aria-hidden="true" className="mt-5 flex gap-1">{TOUR_STEPS.map((item, n) => <span key={item.id} className={`h-1 flex-1 rounded-full ${n <= index ? 'bg-primary' : 'bg-muted'}`} />)}</div>
           </div>
           <div className="flex items-center justify-between gap-2 border-t px-3 py-3">
             <Button size="sm" variant="ghost" onClick={() => finish('dismissed')}>Skip tour</Button>
             <div className="flex gap-1">
-              {index > 0 && <Button size="sm" variant="ghost" onClick={() => goToStep(index - 1)}>Back</Button>}
-              <Button ref={nextRef} size="sm" disabled={!routeReady} onClick={() => index === TOUR_STEPS.length - 1 ? finish('completed') : goToStep(index + 1)}>{index === TOUR_STEPS.length - 1 ? 'Start studying' : 'Next'}<ArrowRightIcon data-icon="inline-end" /></Button>
+              {index > 0 && <Button size="sm" variant="ghost" disabled={!stepReady && !slow} onClick={() => goToStep(index - 1)}>Back</Button>}
+              <Button ref={nextRef} size="sm" disabled={!stepReady && !slow} onClick={() => index === TOUR_STEPS.length - 1 ? finish('completed') : goToStep(index + 1)}>{index === TOUR_STEPS.length - 1 ? 'Start studying' : slow ? 'Skip this stop' : stepReady ? 'Next' : 'Loading…'}<ArrowRightIcon data-icon="inline-end" /></Button>
             </div>
           </div>
         </Dialog.Popup>

@@ -287,7 +287,7 @@ export default function HomePage() {
 
       <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-7 px-4 py-6 sm:px-6 lg:px-8 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.58fr)_minmax(19rem,0.72fr)] xl:overflow-hidden xl:py-0">
         <section className="min-w-0 xl:overflow-y-auto xl:overscroll-contain xl:py-6 xl:pr-3 xl:[scrollbar-gutter:stable]" aria-labelledby="route-heading" data-route-scroll-region>
-          <div data-tour="today" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b pb-3">
+          <div data-tour="today" data-tour-ready={Boolean((calendar || calendarError) && !academicsLoading && !shellLoading)} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b pb-3">
             <h2 id="route-heading" className="text-lg font-semibold tracking-tight">Your study route</h2>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
               <FeedbackButton subject={{kind:"credits"}}>Report a record issue</FeedbackButton>

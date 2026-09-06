@@ -1559,7 +1559,7 @@ export default function PlanningPage() {
     }
     setFocus(params.get("focus"));
     setTab(planningTab(params.get("tab")));
-    read(true)
+    read()
       .then((next) => {
         if (live) setWorkspace(next);
       })
@@ -1727,7 +1727,7 @@ export default function PlanningPage() {
         }}
         className="min-h-0 flex-1 gap-5"
       >
-        <TabsList data-tour="planning-modes"
+        <TabsList data-tour="planning-modes" data-tour-ready={Boolean(workspace)}
           variant="line"
           className="h-10 w-full max-w-full justify-start gap-6 overflow-x-auto rounded-none border-b p-0"
         >
