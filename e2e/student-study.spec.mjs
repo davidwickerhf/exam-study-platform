@@ -325,3 +325,39 @@ test('refresh source selection and BYOK settings render on mobile without overfl
     )
   ).toBeVisible()
 })
+
+test('Home groups recurring rules and shows priorities from several courses with coverage', async ({page}) => {
+  await page.clock.setFixedTime(new Date('2026-09-06T08:00:00Z'))
+  const priorityCourses = [
+    {id:'block',code:'BCS3210',name:'Block Chains',ruleAcademicYear:'2026-2027',courseProfile:{assessment:{status:'confirmed',attendanceRules:['Labs are mandatory.']}}},
+    {id:'os',code:'BCS2140',name:'Operating Systems'},
+    {id:'stats',code:'BCS1520',name:'Statistics'},
+    {id:'ai',code:'BCS2120',name:'Artificial Intelligence'}
+  ]
+  await page.route('**/api/workspace-shell', async route => {
+    const response=await route.fetch(), body=await response.json()
+    await route.fulfill({json:{...body,priorityCourses}})
+  })
+  await page.route('**/api/calendar/events', async route => {
+    const response=await route.fetch(),body=await response.json()
+    const events=[9,16,23,30].map(day=>({id:`block-${day}`,category:'timetable',courseCode:'BCS3210',courseName:'Block Chains',title:'Lab',activity:'Lab',start:`2026-09-${day.toString().padStart(2,'0')}T09:00:00Z`,end:`2026-09-${day.toString().padStart(2,'0')}T11:00:00Z`}))
+    events.push({id:'stats-exam',category:'exam',courseCode:'BCS1520',title:'Statistics exam',start:'2026-09-08T09:00:00Z'})
+    await route.fulfill({json:{...body,events}})
+  })
+  await page.route('**/api/integrations/canvas/hub?*', route=>route.fulfill({json:{connected:true,assignments:[
+    {id:'os-due',courseCode:'BCS2140',title:'OS assignment',status:'upcoming',dueAt:'2026-09-07T12:00:00Z'},
+    {id:'ai-due',courseCode:'BCS2120',title:'AI assignment',status:'upcoming',dueAt:'2026-09-10T12:00:00Z'}
+  ]}}))
+  await page.goto('/app')
+  const priorities=page.locator('section').filter({has:page.getByRole('heading',{name:'Priorities',exact:true})})
+  await expect(priorities.getByRole('listitem')).toHaveCount(4)
+  await expect(priorities.getByText('Block Chains',{exact:true})).toHaveCount(1)
+  await expect(priorities.getByRole('listitem').nth(0)).toContainText('OS assignment')
+  await expect(priorities.getByRole('listitem').nth(1)).toContainText('Statistics exam')
+  await expect(priorities.getByText('3 later sessions in your timetable')).toBeVisible()
+  await expect(priorities).toContainText('Course rules available for 1 of 4 courses.')
+  await expect(priorities).toContainText('4 shown · partial')
+  await priorities.screenshot({path:'/tmp/wicker-home-priorities.png'})
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+})

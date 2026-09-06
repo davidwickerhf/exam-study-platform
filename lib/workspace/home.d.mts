@@ -77,6 +77,7 @@ export type CalendarChange = {
 }
 
 export type HomePriority = {
+  occurrences?: number
   id: string
   kind: 'attendance' | 'assignment' | 'exam' | 'project'
   title: string

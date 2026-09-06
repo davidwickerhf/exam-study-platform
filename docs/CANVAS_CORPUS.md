@@ -122,6 +122,20 @@ coverage. Existing accounts need the next derived-rule scan (or an explicit Canv
 sync/retry) to replace cached extraction; this change does not rewrite stored user
 course data during deployment.
 
+### Home priority selection
+
+Home considers source-backed obligations across programme courses, Canvas assignments
+and dated exams. Repeated upcoming attendance sessions for the same course/rule share
+one row with the next date and the number of later sessions. Missing/overdue submissions
+remain first; other obligations compete by due date, with type only breaking ties.
+The four-row limit applies after grouping. Distinct rules and distinct courses remain
+separate. Home uses the same attendance matcher as the course page, including plural
+lab names, practical aliases, academic-year scoping and conflicting evidence.
+
+The rail reports how many rows are shown and how many courses have supported rules.
+Partial source coverage must not be interpreted as absence of obligations in the other
+courses. Grouping and ranking are deterministic and make no AI calls.
+
 ### Controls for one course edition
 
 `POST /api/integrations/canvas/corpus/jobs/:id` accepts `action: "stop"` or
