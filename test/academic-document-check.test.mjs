@@ -25,6 +25,18 @@ test('independent sources agree on results, with current enrolments separate', (
   assert.equal(compareAcademicDocuments(record, null).status, 'awaiting-document')
 })
 
+test('one document provides credits but no premature result comparisons', () => {
+  for (const [record, transcript] of [[evidence([row()]), null], [null, evidence([row()])], [null, null]]) {
+    const result = compareAcademicDocuments(record, transcript)
+    assert.equal(result.status, 'awaiting-document')
+    assert.deepEqual(result.checks, [])
+    assert.ok(Object.values(result.counts).every(count => count === 0))
+    assert.equal(result.recordCredits, record ? 4 : null)
+    assert.equal(result.transcriptCredits, transcript ? 4 : null)
+    assert.match(result.message, /continue setup/)
+  }
+})
+
 test('a repeated year and swapped failed elective stay in history and earn no duplicate credits', () => {
   const history = [row({ academicYear: '2024-2025', grade: 4, status: 'failed', creditsEarned: 0 }), row(), row({ code: 'HPC101', name: 'High Performance Computing', grade: 3, status: 'failed', creditsTotal: 10, creditsEarned: 0 }), row({ code: 'SEC101', name: 'Computer Security', grade: 8, creditsTotal: 10, creditsEarned: 10 })]
   const result = compareAcademicDocuments(evidence(history), evidence(history))
@@ -96,6 +108,7 @@ test('reviews bind checked data to owner, revision and source removal; re-read e
       const changes = [{ id: 'result:1', payload: { grade: 7 } }]
       const id = await createDocumentReview({ evidence: source, changes, revision: 1 })
       assert.equal((await readDocumentReviews([id], changes, 1)).length, 1)
+      assert.equal((await readDocumentReviews([id], [{ payload: { grade: 7 }, id: 'result:1' }], 1)).length, 1)
       await assert.rejects(() => readDocumentReviews([id], [{ id: 'result:1', payload: { grade: 9 } }], 1), /changed after/)
       await assert.rejects(() => readDocumentReviews([id], changes, 2), /programme changed/)
       await withRequestContext({ userId: `${owner}-other`, mode: 'clerk' }, async () => { await assert.rejects(() => readDocumentReviews([id], changes, 1), /expired/) })

@@ -403,3 +403,88 @@ test('calendar keeps mandatory attendance prominent and filters obligations in w
   await page.setViewportSize({width:390,height:844})
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
 })
+
+test('setup saves the record, continues to transcript, applies reordered reviewed results and moves on', async ({page}) => {
+  // Real parsing, review/apply APIs and persistence. Only the unrelated source
+  // connection flags are fixed to reproduce a partially completed setup.
+  await page.route('**/api/onboarding',async route=>{
+    const response=await route.fetch(),body=await response.json()
+    await route.fulfill({json:{...body,state:{...body.state,programme:true,electives:true,calendar:true,timetable:false,canvas:false}}})
+  })
+  const reorder=value=>Array.isArray(value) ? value.map(reorder) : value&&typeof value==='object' ? Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reorder(item)])) : value
+  await page.route('**/api/academics/documents/analyze',async route=>{
+    const response=await route.fetch(),body=await response.json()
+    await route.fulfill({response,json:{...body,changes:body.changes?.map(reorder)}})
+  })
+  await page.goto('/app/setup?step=record')
+  const panel=page.getByRole('main')
+  const record=`Maastricht University
+printed on 30 Aug 2026
+Example, Student (Stud. DACS)
+i0000000
+Bachelor of Science in Computer Science
+Current courses
+Course code Description Result Credits
+2026-2027-100-BCS2140 Operating Systems - 0,0/4,0
+Completed courses
+Course code Description Result Credits
+2024-2025-100-BCS1110 Foundations of Computing 8,0 4,0/4,0
+This is not an official document issued by Maastricht University.`
+  await panel.locator('input[type=file]').setInputFiles({name:'Academic Work.txt',mimeType:'text/plain',buffer:Buffer.from(record)})
+  await expect(panel.getByText('Academic Work.txt',{exact:true})).toBeVisible()
+  await expect(panel.getByRole('region',{name:'Document comparison'})).toHaveCount(0)
+  await expect(panel.getByText(/Next, you can add a transcript/)).toBeVisible()
+  await panel.getByRole('button',{name:'Continue to transcript',exact:true}).click()
+  await expect(panel.getByRole('heading',{name:'Your transcript',exact:true})).toBeVisible()
+  await expect(panel.getByRole('button',{name:'Do this later',exact:true})).toBeEnabled()
+  await panel.getByRole('button',{name:'Do this later',exact:true}).click()
+  await expect(panel.getByRole('heading',{name:'The academic calendar',exact:true})).toBeVisible()
+  await panel.getByRole('button',{name:'Do this later',exact:true}).click()
+  await expect(panel.getByRole('heading',{name:'Your timetable',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:/^Your transcript/}).click()
+  const transcript='Transcript / Resultatenoverzicht\nBSc CS year 1 core courses\nFoundations of Computing 8,0 18.06.2025 4,00 4,00 1\nEND OF TRANSCRIPT'
+  await panel.locator('input[type=file]').setInputFiles({name:'Transcript Example.txt',mimeType:'text/plain',buffer:Buffer.from(transcript)})
+  await expect(panel.getByText('Results corroborated',{exact:true})).toBeVisible()
+  const applied=page.waitForResponse(r=>r.url().endsWith('/api/academics/documents/apply')&&r.request().method()==='POST')
+  await panel.getByRole('button',{name:/Apply \d+ changes?/}).click()
+  const response=await applied
+  expect(response.status(),await response.text()).toBe(200)
+  await expect(panel.getByText('Transcript Example.txt',{exact:true}).first()).toBeVisible()
+  await expect(panel.getByRole('button',{name:'Remove document',exact:true})).toBeVisible()
+  await expect(panel.getByRole('button',{name:'Continue to timetable',exact:true})).toBeEnabled()
+  await page.screenshot({path:'/tmp/wicker-setup-transcript-saved.png',fullPage:true})
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+  await panel.getByRole('button',{name:'Continue to timetable',exact:true}).click()
+  await expect(panel.getByRole('heading',{name:'Your timetable',exact:true})).toBeVisible()
+})
+
+test('long transcript changes and comparisons use page scrolling', async ({page})=>{
+  await page.route('**/api/onboarding',async route=>{
+    const response=await route.fetch(),body=await response.json()
+    await route.fulfill({json:{...body,state:{...body.state,programme:true,electives:true,transcript:false,transcriptDocument:null,timetable:false,canvas:false}}})
+  })
+  // A long review fixture isolates the layout without changing real grades.
+  const result={grade:8,status:'passed',creditsEarned:4,creditsTotal:4}
+  await page.route('**/api/academics/documents/analyze',route=>route.fulfill({json:{
+    revision:1,reviewIds:['layout-only'],warnings:[],
+    changes:Array.from({length:40},(_,i)=>({id:`layout:${i}`,label:`Course ${i+1}: exam date`,detail:'Reviewed transcript date'})),
+    documentCheck:{status:'confirmed',message:'Results agree.',recordCredits:160,transcriptCredits:160,counts:{confirmed:40},issues:[],checks:Array.from({length:40},(_,i)=>({status:'confirmed',course:`COURSE${i+1}`,name:`Course ${i+1}`,academicYear:'2025-2026',transcript:result,record:[result]}))}
+  }}))
+  await page.goto('/app/setup?step=transcript')
+  await page.getByRole('main').locator('input[type=file]').setInputFiles({name:'Long transcript.txt',mimeType:'text/plain',buffer:Buffer.from('Transcript layout fixture')})
+  const changes=page.getByRole('list',{name:'Proposed transcript changes'})
+  await expect(changes.getByRole('listitem')).toHaveCount(40)
+  await page.getByText('40 results agree · Inspect all 40 comparisons',{exact:true}).click()
+  const comparisons=page.getByRole('list',{name:'Compared results'})
+  await expect(comparisons.getByRole('listitem')).toHaveCount(40)
+  for (const width of [1280,390]) {
+    await page.setViewportSize({width,height:844})
+    for (const list of [changes,comparisons]) {
+      await expect.poll(()=>list.evaluate(element=>element.scrollHeight<=element.clientHeight+1)).toBe(true)
+      await list.getByRole('listitem').last().scrollIntoViewIfNeeded()
+      await expect(list.getByRole('listitem').last()).toBeVisible()
+    }
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+  }
+})

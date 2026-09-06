@@ -33,8 +33,8 @@ export function DocumentCheck({ value }: { value: DocumentCheckResult }) {
     </dl>
     {value.issues.length > 0 && <ul className="text-muted-foreground mb-4 list-disc space-y-1 pl-4 text-sm">{value.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul>}
     {value.checks.length > 0 && <details>
-      <summary className="w-fit cursor-pointer text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-4">{value.counts.confirmed || 0} results agree · Inspect all {value.checks.length} comparisons</summary>
-      <ul className="mt-3 max-h-96 overflow-y-auto border-t">
+      <summary className="w-fit cursor-pointer text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-4">{value.counts.confirmed || 0} {value.counts.confirmed === 1 ? 'result agrees' : 'results agree'} · Inspect all {value.checks.length} {value.checks.length === 1 ? 'comparison' : 'comparisons'}</summary>
+      <ul aria-label="Compared results" className="mt-3 border-t">
         {[...value.checks].sort((a, b) => Number(a.status === 'confirmed') - Number(b.status === 'confirmed')).map((check, index) => <li key={`${check.course}-${check.academicYear}-${index}`} className="border-b py-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2"><strong className="text-sm font-medium">{check.name || check.course}</strong><span className="text-muted-foreground text-xs">{labels[check.status] || check.status}</span></div>
           <p className="text-muted-foreground mt-0.5 text-xs">{check.course !== check.name ? `${check.course} · ` : ''}{check.academicYear}</p>

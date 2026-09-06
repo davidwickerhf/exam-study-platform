@@ -213,8 +213,23 @@ try {
   await cache.save('fixture',{status:'confirmed'})
   assert.deepEqual(await cache.load('fixture'),{status:'confirmed'})
   assert.equal(await priorityBatchCache('peer','binding').load('fixture'),null)
+  // JSONB changes key order, including nested fields. HTTP clients send the
+  // original review order; valid selected changes must survive that round trip.
+  const { createDocumentReview, readDocumentReviews } = await import('../../lib/academic-document-review.mjs')
+  const { readDocument } = await import('../../lib/user-store.mjs')
+  const { activeProgrammeId } = await import('../../lib/programme-scope.mjs')
+  await as('owner', async () => {
+    const changes=[{id:'date:1',label:'Exam date',payload:{courseId:'logic',examDate:'2026-06-18',attempt:{grade:7,creditsEarned:4}},selectedByDefault:true}]
+    const reviewId=await createDocumentReview({evidence:{kind:'transcript',rows:[]},changes,revision:9})
+    const held=await readDocument('academic-document-reviews',`${await activeProgrammeId()}:${reviewId}`,null)
+    assert.notEqual(JSON.stringify(held.changes),JSON.stringify(changes))
+    assert.equal((await readDocumentReviews([reviewId],JSON.parse(JSON.stringify(changes)),9)).length,1)
+    const tampered=structuredClone(changes);tampered[0].payload.attempt.grade=9
+    await assert.rejects(()=>readDocumentReviews([reviewId],tampered,9),/changed after/)
+    await assert.rejects(()=>readDocumentReviews([reviewId],changes,10),/programme changed/)
+  })
   console.log(
-    'PostgreSQL: migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal atomic shared spending, derived scan invalidation and private batch caching passed.'
+    'PostgreSQL: migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal, atomic shared spending, derived scan invalidation, private batch caching and JSONB document review validation passed.'
   )
 } finally {
   await pool.end()
