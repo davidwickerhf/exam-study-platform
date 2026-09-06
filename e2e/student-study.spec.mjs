@@ -102,6 +102,10 @@ test('private quality report renders real persisted checks, costs, citations and
   await expect(page.getByText('Subtract three to verify the original two items.', { exact: false }).first()).toBeVisible()
   await page.setViewportSize({ width: 390, height: 844 })
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.getByRole('button', {name:'Recheck this chapter'}).click()
+  await expect(page.getByText('Reuses the exact chapter from', {exact:false})).toBeVisible()
+  await expect(page.getByText('0 calls recorded · $0.0000 recorded cost · pending')).toBeVisible()
+  await expect(page.getByRole('button', {name:'Review against sources'})).toBeVisible()
 })
 test('material viewers render PDF and slide graphics, preserve extracted text, and show code and notebook outputs', async ({ page }) => {
   test.setTimeout(120000)
