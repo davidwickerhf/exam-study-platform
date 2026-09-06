@@ -162,3 +162,17 @@ Roll out behind separate flags for submission, diagnostics and AI-assisted triag
 ## Documentation deliverables
 
 Public and signed-in docs: where to report, exact shared data, report status and withdrawal. Settings/privacy: diagnostics, optional analytics/AI review, retention and evidence access. Admin handbook: severity rubric, triage, response tone, investigation, escalation, publishing boundaries and resolution verification. Developer docs: event schema, fingerprinting, consent contract, integration helpers and example failure fixtures. MCP README, manifest and companion skill: prepare/read/confirm feedback tools with one-confirmation-per-write examples. Mark proposed features as planned until their routes ship.
+
+## First-release defaults and realistic examples
+
+Severity rubric: critical for account isolation/security or widespread inability to study; high for incorrect credits, mandatory-attendance advice or a blocked deadline workflow; normal for localized retrieval/material/UI defects; low for non-blocking polish and suggestions. Severity suggestions require review. Proposed operating targets are same-day triage for critical/high issues and three working days for normal reports, subject to actual support staffing; do not advertise an SLA until it can be staffed.
+
+Examples to build as acceptance fixtures:
+
+- “You ignored the Blockchain announcement.” The user selects the answer and optionally shares the announcement excerpt. The issue links both editions/dates, recommends checking amendment precedence, and offers a regression replay after correction. A simple contradiction is flagged for review, not automatically resolved in favour of whichever text is newest.
+- “My transcript says 92, the dashboard says 106.” Feedback attaches the calculation ID by default; the user chooses whether to share relevant document rows. An admin can inspect the calculation/extraction versions, request missing evidence, and link a parser/reconciliation fix. Filing the report never overwrites the credit total.
+- “This paper list is missing.” The issue links the exact source, page and edition and distinguishes not downloaded, not extracted, not indexed, not retrieved and not used in the answer. An authorized admin can retry the failed stage rather than scraping the whole course again.
+- “Tutor took 40 seconds.” A diagnostic timeline shows request acceptance, source retrieval, first visible activity, first answer text and completion, with no prompt body. Admins compare the relevant release and stage before changing models or caching.
+- “This practice answer is marked wrong.” A question/rubric version is attached; the student's answer is separately shared. Editorial review fixes the maintained item through normal versioned publication, and affected private attempts are not silently regraded.
+
+Issue detail should present a compact “Next useful action” block: suggested action, supporting evidence, permission required, expected effect, and a confirmation control when the action mutates state. Admin AI suggestions cannot cross consent boundaries, send messages, or publish changes on their own. In-app notifications are sufficient for launch; external issue trackers or messaging integrations require a separate explicit setup and evidence-sharing policy.
