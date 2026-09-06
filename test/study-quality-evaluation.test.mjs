@@ -122,3 +122,22 @@ test('a pre-provider concurrency rejection preserves evaluation results and can 
   assert.equal(row.error, undefined)
   assert.equal(row.calls.length, 2)
 }))
+
+test('rechecking preserves the exact artifact and prior failures without another generation call', () => fixture(async () => {
+  const original = await step(await start(), async () => generated())
+  const reviewed = await step(original, async () => ({ text: JSON.stringify({ issues: [{ topicId:'probability', severity:'error', detail:'A reviewer finding to preserve for audit.' }] }) }))
+  const next = (await api(`/api/study-versions/evaluations/${reviewed.id}/recheck`, 'POST', { revision:reviewed.revision })).data
+  assert.notEqual(next.id, reviewed.id)
+  assert.deepEqual(next.generated, reviewed.generated)
+  assert.equal(next.reusedFrom, reviewed.id)
+  assert.equal(next.stage, 1)
+  assert.equal(next.calls.length, 0)
+  assert.equal(next.checks.length, 1)
+  const old = (await api(`/api/study-versions/evaluations/${reviewed.id}`, 'GET')).data
+  assert.deepEqual(old.checks, reviewed.checks)
+  assert.deepEqual(old.calls, reviewed.calls)
+  const result = await step(next, async prompt => { assert.match(prompt, /SCHEMA AND REASONING CONTRACT/); assert.match(prompt, /Independently check/); return { text:'{"issues":[]}' } })
+  assert.equal(result.stage, 2)
+  assert.equal(result.calls.length, 1)
+  await assert.rejects(api(`/api/study-versions/evaluations/${reviewed.id}/recheck`, 'POST', {revision:original.revision}), /current check/)
+}))
