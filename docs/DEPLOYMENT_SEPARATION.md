@@ -1,98 +1,102 @@
-# Web, API and processing deployments
+# Vercel web, API and durable Canvas tasks
 
-The public domain routes to two Vercel services. `web` builds Next.js normally;
-`api` builds `Containerfile` and runs the existing authenticated
-Node API without importing or preparing Next.js. `/api/*` and the published
-`/skills/*` document go to `api`; pages, route payloads and assets go to `web`.
-Cookies, bearer API keys, URLs, upload chunks, streamed downloads and API
-response shapes retain the same origin and contracts.
+The public domain routes pages/assets to native Next.js (`web`), and `/api/*`
+and `/skills/*` to the existing Node API container (`api`). Keeping the API
+container preserves native extraction tools and existing upload/download
+contracts. No continuously running worker or external worker host is required.
 
-A third deployment runs `deploy/worker/Dockerfile` on an always-running Docker
-host. It consumes the existing Neon `canvas_sync_jobs` queue. Neither web
-traffic nor a browser tab is needed for scheduled collection, OCR, indexing,
-rule extraction or job recovery. The Canvas sync page still observes the same
-jobs, materials and logs and uses the same stop/retry controls.
+## Canvas queue
 
-## Why the API remains a container in this cutover
+`/internal/canvas-consume` is a private Vercel Queues push consumer for
+`canvas-sync-v1`, with two concurrent callbacks. Each callback invokes one
+bounded API task, then publishes the continuation only after its checkpoint is
+committed. The API call is authenticated with a timestamped, payload-bound HMAC;
+it cannot be invoked with a student's browser credentials. Queue payloads carry
+job IDs, never Canvas tokens, source bytes or signed download URLs.
 
-Several APIs accept large bodies, stream large files or invoke Poppler,
-Tesseract and unzip. Moving every API into a native function at once would
-change body limits and remove required binaries. This split moves rendering
-and static assets to native Next.js, retains those API contracts in their own
-service, and removes workers from both request-serving services. It does not
-claim that every API is now a native Next.js route.
+`/internal/canvas-dispatch` runs every minute with Vercel Cron. `CRON_SECRET`
+protects it. This sweeps the durable SQL outbox and schedules daily discovery.
+An authenticated sync request also wakes the dispatcher. A lost publish or a
+message that expires after seven days remains recoverable from Neon. Previews
+acknowledge queue probes but never process production jobs.
 
-## Worker deployment
+The same existing `CANVAS_CONNECTION_ENCRYPTION_KEY` must be available to both
+services. Do not rotate it during migration. Vercel supplies queue OIDC
+credentials automatically. Keep the existing database and AI settings.
 
-Build from repository root, using `deploy/worker/Dockerfile`. It installs no
-frontend build output. Run one replica initially; the queue uses fenced leases
-and `FOR UPDATE SKIP LOCKED` to support multiple consumers safely.
+## Persistence and recovery
 
-Set runtime variables through the host's secret manager:
+Migration 029 adds per-job API checkpoints, a resource inventory, original-byte
+staging and index-batch staging. Foreign keys tie these to the existing job and
+account erasure lifecycle. Vercel Queues transports notifications; SQL is the
+source of truth. All pipeline mutations lock and check the parent job lease in
+the same transaction, so stale workers cannot commit after Stop or Retry.
 
-- `DATABASE_URL`: the same Neon database as the production API.
-- `CANVAS_CONNECTION_ENCRYPTION_KEY`: the exact existing API encryption key.
-  Do not generate a replacement: it would make saved connections unreadable.
-- Existing AI/embedding provider keys and model settings needed for indexing
-  and course-rule extraction. Match the production API's settings.
-- `PORT`: supplied by the host, default 8080. Health check: `GET /healthz`.
-- Optional `CANVAS_CORPUS_WORKER_INTERVAL_MS` (default 5000).
+Discovery replays the existing importer against persisted API responses. This
+preserves recursive links, modules (including paginated module items), syllabus,
+standalone Pages, assignments, quizzes and accessible question banks,
+discussions, announcements and file listings. A checkpoint yield or transient
+failure is never converted into a silently skipped resource. Explicit Canvas
+403/404 restrictions remain visible in the inventory.
 
-Do not copy Vercel environment markers into the worker. It refuses to start on
-Vercel, without its database/key, without extraction tools, or with an
-unverified migration ledger. Migrations remain the API runner's responsibility.
-The image runs as the unprivileged `node` user, with disposable assets in
-`/tmp/corpus-assets`; the database holds persistent assets and job state.
+Downloads request 8 MB ranges and checkpoint 512 KB chunks. Resumption verifies
+size and ETag, or compares saved prefix bytes if a server ignores Range. Full
+byte count and SHA-256 are checked before an atomic promotion marks the original
+complete. Audio/video use the same durable storage as other originals; the API
+streams bounded batches instead of allocating an entire video in memory.
 
-SIGTERM stops claiming jobs, fences late writes, releases the current job for
-immediate retry without spending a failure attempt, and exits within 25 seconds.
-The host should allow at least 30 seconds for shutdown and restart on failure.
-Only a minimal health response is exposed; there is no public processing API.
+Text extraction is a separate task. Search embeddings are checkpointed in
+64-passage batches and published atomically when complete. Notebook cells are
+read without execution; XLSX formulas use saved values; archive expansion is
+bounded and unsafe/unreadable content is reported while retaining the original.
+No PDF pages are deliberately truncated by this pipeline. The existing 1 GB
+per-file and 2,000-resource importer safeguards remain explicit limitations.
+
+Retries reuse original bytes and completed resource/index stages. A failed
+resource does not prevent other discovered resources from finishing. Missing
+resources in partial scans never automatically retire earlier material. A
+changed file at the same path replaces its active snapshot only after the new
+original and search index are complete. Old versions remain in history.
+
+## Existing local media
+
+Earlier deployments stored some videos only on container disk. They cannot be
+made durable by a schema migration alone: their course needs a fresh collection.
+A missing legacy original returns an explicit retry response, not a broken
+stream. The first queue refresh downloads it into shared storage. Material
+removed from Canvas before that download may be unrecoverable; do not claim a
+lossless migration of bytes that were already lost on an old container.
+
+## Validation
+
+- `npm run verify`: typecheck, unit/regression suite and production Next build.
+- `node --test test/canvas-queue.test.mjs test/course-structured-text.test.mjs`.
+- Disposable local pgvector database:
+  `QUEUE_TEST_DATABASE_URL=postgres://...@127.0.0.1:55439/postgres node --experimental-test-module-mocks scripts/verification/canvas-queue.mjs`.
+  The script refuses non-local hosts. It recreates the fixture schema and tests
+  byte-exact interrupted downloads, duplicate notifications, lease recovery,
+  interrupted embeddings, retry reuse, Stop and expired-message recovery.
+- Signed POST `{ "probe": true }` to `/internal/canvas-dispatch` publishes a
+  harmless queue probe. Verify its identifier in consumer runtime logs.
+- Inspect `/sign-in`, `/app/tutor/work`, `/app/settings/canvas-sync`,
+  `/app/settings/canvas-sync/logs` and a course material download in T3 preview.
+
+Deploy the additive migration and verify the queue trigger in preview before
+merging. After production deployment verify the cron, queue delivery and real
+job checkpoints before retiring the old deployment. Rollback to the preceding
+Vercel deployment remains available. The old worker ignores new checkpoint
+rows; it may repeat collection work, so prefer fixing forward once jobs use the
+new pipeline. Never run the old continuous worker alongside queue consumers.
 
 ## Shared Canvas response cache
 
-Sanitised Hub responses use the existing account-scoped `user_documents`
-storage, under `canvas-response-cache-v1`, with ten-minute freshness. Keys
-include the account, a connection fingerprint, requested parts, course selection
-and calendar day. Tokens and raw Canvas API payloads are not persisted.
-Revocation/reconnection and forced refresh advance a stored generation. Old
-in-flight work cannot become the current cache, including in another instance.
-The generation also partitions the existing in-memory request caches.
-Partial failures are not persisted. Cache failures fall back to live Canvas.
-Account erasure removes these documents with the rest of the account data.
+Sanitised Hub responses use account-scoped `user_documents` with ten-minute
+freshness. Keys include the account, connection fingerprint, requested parts,
+course selection and calendar day. Revocation/reconnection and forced refresh
+advance a durable generation, fencing stale in-flight cache writes. Partial
+failures are not cached. Account erasure deletes the cache with other documents.
 
-## Local verification
-
-`npm run dev` retains the combined local server. To test the deployed boundary,
-run the API with `WICKER_SERVICE=api node server.mjs` on a separate port and
-Next with `WICKER_API_ORIGIN=http://127.0.0.1:<api-port> npm run dev:web`.
-For a local worker, configure its database/key and run
-`npm run canvas:corpus-worker` separately. Existing self-hosted installations
-can opt into `CANVAS_CORPUS_WORKER=embedded`; hosted API instances never do so.
-
-Run `npm run verify`, build both Dockerfiles, then inspect in T3 preview:
-`/sign-in`, `/app`, `/app/tutor`, `/app/courses`, `/app/settings/canvas-sync`.
-Check API health and authentication, upload/download paths, same-origin CSP
-hydration, and that API startup contains no Next preparation or worker spawn.
-Use an isolated database for worker processing tests; a preview must never
-consume production jobs.
-
-## Production cutover and rollback
-
-1. Verify the two-service Vercel preview and both container images.
-2. Deploy the independent worker against the existing schema; check `/healthz`
-   and verify a queue job and its log entries progress without web traffic.
-3. Only after the worker is healthy, promote the split web/API deployment.
-   Existing workers may finish concurrently; database leases prevent duplicate
-   ownership. Do not cancel jobs just to migrate deployment topology.
-4. Verify sign-in, page navigation, Tutor, course files and sync controls.
-
-If verification fails, keep the existing production deployment serving traffic.
-Vercel can roll back to its preceding deployment. The queue and cache changes
-are backward-compatible and require no destructive database migration. When
-rolling back to an embedded-worker version, stop the independent worker after
-confirming the old deployment is serving, to avoid unnecessary concurrency.
-
-An always-running worker host and runtime secrets must be configured before
-production cutover. A successful web preview alone does not prove background
-processing is deployed.
+`deploy/worker/Dockerfile` remains an optional self-hosted alternative; it is
+not used by the Vercel deployment. Local split verification uses
+`WICKER_SERVICE=api node server.mjs` and
+`WICKER_API_ORIGIN=http://127.0.0.1:<api-port> npm run dev:web`.

@@ -11,7 +11,9 @@ import { promisify } from 'node:util'
 import { gzipSync } from 'node:zlib'
 import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
+import { once } from 'node:events'
 import './lib/env.mjs'
+import { verifyCanvasTask, signCanvasTask } from './lib/canvas-queue-protocol.mjs'
 import { canvasSyncLog } from './lib/canvas-sync-log.mjs'
 import { createDocumentReview, readDocumentReviews, academicDocumentCheck, academicDocumentEvidence, discardDocumentReviews } from './lib/academic-document-review.mjs'
 import { documentRows, validateDocumentRows, compareAcademicDocuments } from './lib/academic-document-check.mjs'
@@ -577,20 +579,34 @@ async function sendCorpusAsset(req, res, asset, { download = false } = {}) {
     ETag: `"${asset.sha256}"`
   }
   if (match) headers['Content-Range'] = `bytes ${start}-${end}/${size}`
-  res.writeHead(match ? 206 : 200, headers)
   if (asset.localObjectKey) {
     const objectPath = resolve(process.env.CANVAS_CORPUS_ASSET_DIR || join(__dirname, 'data/corpus-assets'), asset.localObjectKey)
     const root = resolve(process.env.CANVAS_CORPUS_ASSET_DIR || join(__dirname, 'data/corpus-assets'))
     if (!objectPath.startsWith(`${root}${sep}`)) { res.destroy(); return }
-    createReadStream(objectPath, { start, end }).pipe(res)
+    if (!existsSync(objectPath)) { send(res, 503, JSON.stringify({ error: 'This original needs to be collected again. Retry its course sync.' })); return }
+    res.writeHead(match ? 206 : 200, headers)
+    createReadStream(objectPath, { start, end }).on('error', () => res.destroy()).pipe(res)
     return
   }
   const firstChunk = Math.floor(start / CORPUS_ASSET_CHUNK_BYTES)
   const lastChunk = Math.floor(end / CORPUS_ASSET_CHUNK_BYTES)
-  const rows = await canvasCorpusAssetChunks({ assetId: asset.id, first: firstChunk, last: lastChunk })
-  const joined = Buffer.concat(rows.map((row) => Buffer.from(row.data)))
-  const body = joined.subarray(start - firstChunk * CORPUS_ASSET_CHUNK_BYTES, end - firstChunk * CORPUS_ASSET_CHUNK_BYTES + 1)
-  res.end(body)
+  // Stream bounded batches; a video must not allocate its full size in the API.
+  for (let first = firstChunk; first <= lastChunk; first += 16) {
+    const last = Math.min(lastChunk, first + 15)
+    const rows = await canvasCorpusAssetChunks({ assetId: asset.id, first, last })
+    if (rows.length !== last - first + 1) {
+      if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This original is incomplete. Retry its course sync.' }))
+      else res.destroy()
+      return
+    }
+    if (!res.headersSent) res.writeHead(match ? 206 : 200, headers)
+    const joined = Buffer.concat(rows.map(row => Buffer.from(row.data)))
+    const from = Math.max(0, start - first * CORPUS_ASSET_CHUNK_BYTES)
+    const to = Math.min(joined.length, end - first * CORPUS_ASSET_CHUNK_BYTES + 1)
+    if (!res.write(joined.subarray(from, to))) await once(res, 'drain')
+    if (res.destroyed) return
+  }
+  res.end()
 }
 
 function sendAiError(res, error) {
@@ -3574,9 +3590,36 @@ async function readReconciledAcademicState({ snapshot = null } = {}) {
   }
 }
 
+async function enqueueAndWake(promise) { const result = await promise; await wakeCanvasQueue(); return result }
+
+async function wakeCanvasQueue() {
+  if (process.env.VERCEL_ENV !== 'production' || !process.env.VERCEL_PROJECT_PRODUCTION_URL) return
+  const body = JSON.stringify({ action: 'dispatch' })
+  try {
+    await fetch(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/internal/canvas-dispatch`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body) },
+      body, signal: AbortSignal.timeout(5000)
+    })
+  } catch { /* The durable outbox is retried by the scheduled dispatcher. */ }
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
+    if (url.pathname === '/api/internal/canvas-queue') {
+      const body = await readBody(req, 16 * 1024)
+      if (req.method !== 'POST' || !verifyCanvasTask(JSON.stringify(body), req.headers['x-canvas-task'])) {
+        send(res, 401, JSON.stringify({ error: 'Unauthorized' })); return
+      }
+      if (process.env.VERCEL_ENV === 'preview') { send(res, 200, JSON.stringify({ disabled: true })); return }
+      const queue = await import('./lib/canvas-queue-pipeline.mjs')
+      let result
+      if (body.action === 'dispatch') result = { ids: await queue.dispatchCanvasQueue() }
+      else if (body.action === 'sent' && Array.isArray(body.ids) && body.ids.length <= 50) { await queue.noteCanvasQueueSent(body.ids); result = { ok: true } }
+      else if (body.action === 'step' && /^csj-[a-zA-Z0-9-]+$/.test(body.jobId || '')) result = await queue.processCanvasQueueStep(body.jobId)
+      else { send(res, 400, JSON.stringify({ error: 'Unknown task' })); return }
+      send(res, 200, JSON.stringify(result)); return
+    }
     if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) gzipCapable.add(res)
     const ip = clientIp(req)
     const isApi = url.pathname.startsWith('/api/')
@@ -3784,7 +3827,7 @@ const server = createServer(async (req, res) => {
         const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
         const permission = await canvasCorpusPermission({ accountId: currentAuth().userId, origin })
         if (!permission.collectionEnabled) { send(res, 409, JSON.stringify({ error: 'Enable Canvas material collection first.' })); return }
-        send(res, 202, JSON.stringify(await enqueueCanvasCatalogSync({ accountId: currentAuth().userId, origin, force: body?.force === true })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        send(res, 202, JSON.stringify(await enqueueAndWake(enqueueCanvasCatalogSync({ accountId: currentAuth().userId, origin, force: body?.force === true }))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas material sync could not be queued.' }))
       }
@@ -3810,7 +3853,7 @@ const server = createServer(async (req, res) => {
         const catalog = await listCanvasCourses({ canvasUrl: origin, accessToken: token })
         const course = catalog.courses.find((candidate) => String(candidate.id) === String(body?.canvasCourseId || ''))
         if (!course) { send(res, 404, JSON.stringify({ error: 'That Canvas course is not available to this account.' })); return }
-        send(res, 202, JSON.stringify(await enqueueCanvasCourseSync({ accountId: currentAuth().userId, origin, course, force: body?.force !== false })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        send(res, 202, JSON.stringify(await enqueueAndWake(enqueueCanvasCourseSync({ accountId: currentAuth().userId, origin, course, force: body?.force !== false }))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The selected Canvas course could not be queued.' }))
       }

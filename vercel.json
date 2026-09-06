@@ -31,5 +31,22 @@
         "service": "web"
       }
     }
+  ],
+  "functions": {
+    "app/internal/canvas-consume/route.ts": {
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "canvas-sync-v1",
+          "maxConcurrency": 2
+        }
+      ]
+    }
+  },
+  "crons": [
+    {
+      "path": "/internal/canvas-dispatch",
+      "schedule": "* * * * *"
+    }
   ]
 }
