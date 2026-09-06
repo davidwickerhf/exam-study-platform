@@ -1,5 +1,5 @@
 "use client";
-import { cachedWorkspaceJson } from "@/hooks/use-workspace-data";
+import { cachedWorkspaceJson, useWorkspaceData } from "@/hooks/use-workspace-data";
 
 /**
  * THESIS: Updates is a dispatch desk, not four unrelated Canvas lists.
@@ -106,6 +106,11 @@ type Assignment = {
   courseName?: string;
   title: string;
   description?: string;
+  descriptionHtml?: string;
+  submittedAt?: string; unlockAt?: string; lockAt?: string; grade?: string; submissionAttempts?: number;
+  feedbackAvailable?: boolean;
+  comments?: { id: string; author: string; at: string; text: string; attachments: { name: string }[] }[];
+  rubric?: { id: string; description: string; detail: string; points: number; score: number | null; feedback: string }[];
   dueAt?: string;
   pointsPossible?: number;
   score?: number;
@@ -195,17 +200,20 @@ function hubPath({
   scope,
   days,
   origin,
+  courseId = "",
   refresh = false,
   tab = "announcements",
 }: {
   scope: string;
   days: string;
   origin?: string;
+  courseId?: string;
   refresh?: boolean;
   tab?: string;
 }) {
   const params = new URLSearchParams({ scope, days, parts: tab === "assignments" ? "assignments" : tab === "announcements" ? "announcements" : tab === "courses" ? "grades" : "catalogue" });
   if (origin) params.set("canvasUrl", origin);
+  if (courseId && courseId !== "all") params.set("courseIds", courseId);
   if (refresh) params.set("refresh", "1");
   return `/api/integrations/canvas/hub?${params}`;
 }
@@ -541,15 +549,21 @@ function AnnouncementDesk({
 
 function AssignmentDesk({
   rows,
-  selected,
+  selected: summary,
+  origin,
   onSelect,
   partial,
 }: {
   rows: Assignment[];
   selected: Assignment | null;
+  origin: string;
   onSelect: (id: string) => void;
   partial: boolean;
 }) {
+  const [courseId, assignmentId] = summary?.id.split(':') || [];
+  const detailPath = courseId && assignmentId ? `/api/integrations/canvas/assignment?${new URLSearchParams({courseId, assignmentId, canvasUrl: origin})}` : null;
+  const { data: detail, loading: detailLoading, error: detailError, refresh: retryDetail } = useWorkspaceData<{ assignment: Assignment; problems: { error: string }[] }>(detailPath);
+  const selected = summary ? { ...summary, ...(detail?.assignment || {}), courseCode: summary.courseCode, courseName: summary.courseName } : null;
   const detailRef = useRef<HTMLElement>(null);
   const select = (id: string) => {
     onSelect(id);
@@ -564,7 +578,7 @@ function AssignmentDesk({
         }),
       );
   };
-  if (!rows.length)
+  if (!rows.length && !selected)
     return (
       <DeskEmpty
         title={partial ? "Assignment results are partial" : "No assignments match"}
@@ -700,12 +714,22 @@ function AssignmentDesk({
                   </dd>
                 </div>
               </dl>
-              <section className="mt-7">
-                <h3 className="text-sm font-semibold">Assignment brief</h3>
-                <p className="text-muted-foreground mt-3 whitespace-pre-wrap text-base leading-7">
-                  {selected.description ||
-                    "Canvas did not provide a written description for this assignment."}
-                </p>
+              {detailLoading && <p role="status" className="text-muted-foreground mt-5 text-sm">Loading the full brief and feedback…</p>}
+              {detailError && <div role="alert" className="mt-5 text-sm"><p>{detailError.message}</p><Button variant="outline" size="sm" onClick={retryDetail}>Retry details</Button></div>}
+              <section className="mt-7"><h3 className="text-sm font-semibold">Assignment brief</h3>
+                {selected.descriptionHtml ? <iframe title="Assignment instructions" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" className="mt-3 min-h-24 w-full border-0" onLoad={event => { const frame = event.currentTarget; frame.style.height = `${Math.min(720, Math.max(96, frame.contentDocument?.body?.scrollHeight || 96))}px`; }} srcDoc={`<!doctype html><html><head><base target="_blank"><style>body{font:15px/1.65 system-ui;color:#20263b;margin:0}a{color:#4549dc}img{max-width:100%}table{border-collapse:collapse}td,th{padding:6px;border:1px solid #ddd}</style></head><body>${selected.descriptionHtml}</body></html>`} /> : <p className="text-muted-foreground mt-3 whitespace-pre-wrap text-base leading-7">{selected.description || (detailLoading ? 'Reading instructions…' : 'Canvas did not provide a written description.')}</p>}
+              </section>
+              <section className="mt-7 border-t pt-5"><h3 className="text-sm font-semibold">Your submission</h3><dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div><dt className="text-muted-foreground">Submitted</dt><dd>{selected.submittedAt ? when(selected.submittedAt) : 'No submission recorded'}</dd></div>
+                <div><dt className="text-muted-foreground">Grade</dt><dd>{selected.grade || (selected.score != null ? selected.score : 'Not graded')}</dd></div>
+                {selected.unlockAt && <div><dt className="text-muted-foreground">Available from</dt><dd>{when(selected.unlockAt)}</dd></div>}
+                {selected.lockAt && <div><dt className="text-muted-foreground">Closes</dt><dd>{when(selected.lockAt)}</dd></div>}
+              </dl></section>
+              <section className="mt-7 border-t pt-5"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold">Comments &amp; feedback</h3><Button size="sm" variant="ghost" onClick={() => { if (detailPath) void cachedWorkspaceJson(`${detailPath}&refresh=1`, true).catch(() => {}); }}>Refresh details</Button></div>
+                {detail?.problems.map((problem, index) => <p key={index} className="mt-3 text-sm">{problem.error}</p>)}
+                {selected.comments?.map(comment => <div key={comment.id} className="border-b py-4 text-sm"><div className="flex flex-wrap gap-2"><strong>{comment.author}</strong><span className="text-muted-foreground">{when(comment.at)}</span></div><p className="mt-2 whitespace-pre-wrap">{comment.text}</p>{comment.attachments.map((file, index) => <p key={index} className="text-muted-foreground mt-2 text-xs">Attachment: {file.name} · available in Canvas</p>)}</div>)}
+                {selected.feedbackAvailable && !selected.comments?.length && <p className="text-muted-foreground mt-3 text-sm">No submission comments yet.</p>}
+                {!!selected.rubric?.length && <div className="mt-5"><h4 className="text-sm font-semibold">Rubric</h4>{selected.rubric.map(item => <div key={item.id} className="border-b py-3 text-sm"><div className="flex justify-between gap-3"><strong>{item.description}</strong><span>{item.score ?? '—'} / {item.points}</span></div><p className="text-muted-foreground mt-1">{item.detail}</p>{item.feedback && <p className="mt-2">{item.feedback}</p>}</div>)}</div>}
               </section>
             </div>
           </>
@@ -1112,6 +1136,7 @@ function DeskEmpty({ title, detail }: { title: string; detail: string }) {
 export default function UpdatesPage() {
   const [prefs, setPrefs] = useState(() => readPreferences());
   const [tab, setTab] = useState("announcements");
+  const [ready, setReady] = useState(false);
   const [hub, setHub] = useState<Hub | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -1135,7 +1160,11 @@ export default function UpdatesPage() {
   const seenRecorded = useRef(false);
 
   useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("tab");
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("tab");
+    const assignment = params.get('assignment');
+    if (assignment) { setSelectedAssignmentId(assignment); setCourse(assignment.split(':')[0]); setPrefs(previous => ({ ...previous, scope: 'all', assignmentState: 'all' })); }
+    setReady(true);
     if (
       ["announcements", "assignments", "materials", "courses"].includes(
         requested || "",
@@ -1144,26 +1173,15 @@ export default function UpdatesPage() {
       setTab(requested as string);
   }, []);
   useEffect(() => {
+    if (!ready) return;
     let live = true;
     setRefreshing(true);
     setError(null);
-    json<{ connections: { origin: string }[] }>(
-      "/api/account/integrations/canvas",
-    )
-      .then((account) => {
-        const origin =
-          account.connections[0]?.origin || connectionOrigin(canvasUrl) || "";
-        if (live) {
-          setActiveOrigin(origin);
-          if (account.connections[0]?.origin) setCanvasUrl(origin);
-        }
-        return json<Hub>(
-          hubPath({ scope: prefs.scope, days: prefs.days, origin, tab }),
-        );
-      })
+    json<Hub>(hubPath({ scope: prefs.scope, days: prefs.days, tab, courseId: course }))
       .then((value) => {
         if (live) {
           setHub(value);
+          if (value.origin) { setActiveOrigin(value.origin); setCanvasUrl(value.origin); }
           if (tab === "announcements" && canRecordAnnouncementVisit(value) && !seenRecorded.current) {
             markSeen(value.fetchedAt || new Date().toISOString());
             seenRecorded.current = true;
@@ -1179,7 +1197,7 @@ export default function UpdatesPage() {
     return () => {
       live = false;
     };
-  }, [prefs.scope, prefs.days, tab]);
+  }, [prefs.scope, prefs.days, tab, ready, course]);
   useEffect(() => {
     writePreferences(prefs);
   }, [prefs]);
@@ -1217,10 +1235,9 @@ export default function UpdatesPage() {
     announcements.find((item) => item.id === selectedAnnouncementId) ||
     announcements[0] ||
     null;
-  const selectedAssignment =
-    assignments.find((item) => item.id === selectedAssignmentId) ||
-    assignments[0] ||
-    null;
+  const selectedAssignment: Assignment | null = selectedAssignmentId
+    ? hub?.assignments.find(item => item.id === selectedAssignmentId) || (/^\d{1,12}:\d{1,12}$/.test(selectedAssignmentId) ? { id: selectedAssignmentId, courseId: selectedAssignmentId.split(':')[0], title: 'Loading assignment…', status: 'unknown' } : null)
+    : assignments[0] || null;
 
   async function refresh() {
     setRefreshing(true);
@@ -1234,6 +1251,7 @@ export default function UpdatesPage() {
           origin,
           refresh: true,
           tab,
+          courseId: course,
         }),
       );
       setHub(value);
@@ -1290,6 +1308,7 @@ export default function UpdatesPage() {
           origin,
           refresh: true,
           tab,
+          courseId: course,
         }),
       );
       setHub(value);
@@ -1686,7 +1705,8 @@ export default function UpdatesPage() {
                   <AssignmentDesk
                     rows={assignments}
                     selected={selectedAssignment}
-                    onSelect={setSelectedAssignmentId}
+                    origin={activeOrigin}
+                    onSelect={id => { setSelectedAssignmentId(id); history.replaceState(null, '', `/app/updates?tab=assignments&assignment=${encodeURIComponent(id)}`); }}
                     partial={assignmentsPartial}
                   />
                 </DispatchShell>

@@ -8,7 +8,7 @@
  * shortcut.
  */
 
-import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -47,6 +47,7 @@ import {
   SidebarRail,
   SidebarTrigger
 } from '@/components/ui/sidebar'
+import WorkspaceLoading from '@/app/app/loading'
 import { WorkspaceTour } from '@/components/workspace/dashboard-tour'
 import { WorkspaceSearch } from '@/components/workspace/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
@@ -184,6 +185,19 @@ function LocalAccountMenu({ programmeIndex, email }: { programmeIndex: Programme
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [navigating, startNavigation] = useTransition()
+  const [destination, setDestination] = useState(pathname)
+  const activePath = navigating ? destination : pathname
+  const navigate = (event: React.MouseEvent) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const anchor = (event.target as Element).closest('a[href]')
+    if (!anchor || anchor.hasAttribute('download') || (anchor.getAttribute('target') && anchor.getAttribute('target') !== '_self')) return
+    const url = new URL(anchor.getAttribute('href')!, window.location.href)
+    if (url.origin !== window.location.origin || !url.pathname.startsWith('/app') || url.pathname === pathname) return
+    event.preventDefault()
+    setDestination(url.pathname)
+    startNavigation(() => router.push(url.pathname + url.search + url.hash))
+  }
   const prefetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cancelPrefetch = () => { if (prefetchTimer.current) clearTimeout(prefetchTimer.current) }
   useEffect(() => cancelPrefetch, [])
@@ -225,7 +239,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   if (pathname === '/app/setup') return <div className="min-h-dvh bg-background">{children}</div>
 
   return (
-    <SidebarProvider style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
+    <SidebarProvider onClickCapture={navigate} style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}>
       <Sidebar collapsible="icon" className="bg-sidebar">
         <SidebarHeader className="gap-0 p-0">
           <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -248,14 +262,14 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {section.items.filter((item) => !('adminOnly' in item) || !item.adminOnly || isAdmin).map((item) => {
-                    const active = item.href === '/app' ? pathname === item.href : pathname.startsWith(item.href)
+                    const active = item.href === '/app' ? activePath === item.href : activePath.startsWith(item.href)
                     return (
                       <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton
                           data-tour={`nav-${item.href.split('/').at(-1)}`}
                           isActive={active}
                           tooltip={item.label}
-                          render={<Link prefetch={false} href={item.href} onMouseEnter={() => prefetchIntent(item.href)} onMouseLeave={cancelPrefetch} onFocus={() => prefetchIntent(item.href)} onBlur={cancelPrefetch} />}
+                          render={<Link prefetch={null} href={item.href} onMouseEnter={() => prefetchIntent(item.href)} onMouseLeave={cancelPrefetch} onFocus={() => prefetchIntent(item.href)} onBlur={cancelPrefetch} />}
                           // Three separable states: the live destination carries
                           // the signal rule and a filled row, hover only tints,
                           // and the keyboard ring sits above both.
@@ -291,10 +305,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           <BrandMark className="size-7 rounded" />
           <div className="ml-auto min-w-0 flex-1 max-w-60"><WorkspaceSearch shortcut={isMobile} /></div>
         </div>
-        <div className="min-h-svh pb-20 md:pb-0">{children}</div>
+        <div className="min-h-svh pb-20 md:pb-0" aria-busy={navigating}>{navigating && destination !== pathname ? <WorkspaceLoading /> : children}</div>
         <nav className="border-border bg-background fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t md:hidden" aria-label="Primary navigation">
           {MOBILE_ITEMS.map((item) => {
-            const active = item.href === '/app' ? pathname === item.href : pathname.startsWith(item.href)
+            const active = item.href === '/app' ? activePath === item.href : activePath.startsWith(item.href)
             return (
               <Link
                 key={item.href}

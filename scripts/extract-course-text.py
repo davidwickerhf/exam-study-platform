@@ -124,12 +124,16 @@ def read_text(data, name, depth=0):
                         parts.extend(' | '.join(row) for row in rows if row)
                 return '\n'.join(parts)
             parts = []
+            if len(z.infolist()) > MAX_ENTRIES: raise ValueError('Archive entry limit exceeded; original preserved.')
             for info in z.infolist():
                 if info.is_dir(): continue
                 if '..' in pathlib.PurePosixPath(info.filename).parts or info.filename.startswith('/'):
                     raise ValueError('Invalid archive member path; original preserved.')
                 if ext == '.docx' and info.filename != 'word/document.xml': continue
                 if ext == '.pptx' and not (info.filename.startswith('ppt/slides/slide') and info.filename.endswith('.xml')): continue
+                if ext == '.zip' and pathlib.PurePosixPath(info.filename).suffix.lower() not in ('.ipynb','.xlsx','.docx','.pptx','.zip','.pdf','.txt','.md','.csv','.tsv','.py','.r','.m','.tex','.json','.html','.htm','.js','.ts','.java','.c','.cpp','.h'):
+                    parts.append(f'File: {info.filename}\n[Binary member retained in original archive; {info.file_size} bytes. No text extraction required.]')
+                    continue
                 contents = read_member(z, info)
                 text = ' '.join(xml(contents).itertext()) if ext in ('.docx', '.pptx') else read_text(contents, info.filename, depth+1)
                 parts.append(f'File: {info.filename}\n{text or "[Binary member retained in original archive]"}')

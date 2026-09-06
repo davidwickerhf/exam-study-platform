@@ -32,9 +32,9 @@ mock.module('../../lib/priority-evidence.mjs',{namedExports:{...priorities,scanC
 const policies=await import('../../lib/programme-policy-sources.mjs')
 mock.module('../../lib/programme-policy-sources.mjs',{namedExports:{...policies,promoteReviewedProgrammePolicyAsset:async()=>null}})
 const {processCanvasQueueStep,dispatchCanvasQueue}=await import('../../lib/canvas-queue-pipeline.mjs')
-const {controlCanvasSyncJob}=await import('../../lib/course-corpus.mjs')
+const {controlCanvasSyncJob,observeCanvasCorpusCourses}=await import('../../lib/course-corpus.mjs')
 const file=Buffer.alloc(9*1024*1024+13,97)
-let downloads=0
+let downloads=0,fileVersion="2026-09-01T00:00:00Z"
 const originalFetch=globalThis.fetch
 let failDownload=false
 fetch=async(value,options={})=>{
@@ -45,10 +45,10 @@ fetch=async(value,options={})=>{
     const match=/bytes=(\d+)-(\d+)/.exec(options.headers.Range),start=Number(match[1]),end=Math.min(file.length-1,Number(match[2]))
     return new Response(file.subarray(start,end+1),{status:206,headers:{'content-range':`bytes ${start}-${end}/${file.length}`,etag:'"fixture-v1"'}})
   }
-  if(url.pathname.endsWith('/files/7'))return Response.json({id:7,url:'https://files.fixture/7',size:file.length})
+  if(url.pathname.endsWith('/files/7'))return Response.json({id:7,url:'https://files.fixture/7',size:file.length,updated_at:fileVersion})
   if(url.pathname==='/api/v1/users/self/profile')return Response.json({id:1})
   if(url.pathname==='/api/v1/courses/8')return Response.json({id:8,name:'Fixture',syllabus_body:'Weekly attendance. '.repeat(12000)})
-  if(url.pathname==='/api/v1/courses/8/files')return Response.json([{id:7,url:'https://files.fixture/7',filename:'lecture.mp4',content_type:'video/mp4',size:file.length}])
+  if(url.pathname==='/api/v1/courses/8/files')return Response.json([{id:7,url:'https://files.fixture/7',filename:'lecture.mp4',content_type:'video/mp4',size:file.length,updated_at:fileVersion}])
   return Response.json([])
 }
 const query=(text,values=[])=>pool.query(text,values).then(result=>result.rows)
@@ -99,10 +99,26 @@ try {
   assert.ok(Number(total.n)>64)
   await processCanvasQueueStep('csj-fixture')
   assert.equal((await one('SELECT count(*) n FROM editorial_source_retrieval_chunks')).n,total.n)
+  // Recurring refresh reuses versioned files and identical HTML. Changed or
+  // unversioned files must still download; size alone is not version evidence.
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type,payload) VALUES('csj-refresh','fixture','https://canvas.fixture','binding','course','{\"scheduled\":true}')")
+  for(let i=0;i<10;i++){ const result=await processCanvasQueueStep('csj-refresh'); if(!result.again)break }
+  assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-refresh'")).status,'completed')
+  assert.equal(downloads,3)
+  assert.equal((await one('SELECT count(*) n FROM editorial_source_retrieval_chunks')).n,total.n)
+  for(const [id,version] of [['csj-changed','2026-09-02T00:00:00Z'],['csj-unversioned',undefined]]) {
+    fileVersion=version
+    await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type) VALUES($1,'fixture','https://canvas.fixture','binding','course')",[id])
+    await processCanvasQueueStep(id)
+    assert.equal((await one("SELECT stage FROM canvas_sync_resources WHERE job_id=$1 AND payload->>'fileId'='7'",[id])).stage,'download')
+    await query("UPDATE canvas_sync_jobs SET status='cancelled' WHERE id=$1",[id])
+  }
+  fileVersion='2026-09-01T00:00:00Z'
+  const beforeRetryDownloads=downloads
   // A student retry reuses saved originals and finished indexes. Stop prevents further writes.
   const retry=await controlCanvasSyncJob({accountId:'fixture',jobId:'csj-fixture',action:'retry',database:statement})
   await processCanvasQueueStep(retry.jobId)
-  assert.equal(downloads,3)
+  assert.equal(downloads,beforeRetryDownloads)
   assert.equal((await one('SELECT count(*) n FROM editorial_source_retrieval_chunks')).n,total.n)
   const stopped=await controlCanvasSyncJob({accountId:'fixture',jobId:retry.jobId,action:'retry',database:statement})
   await controlCanvasSyncJob({accountId:'fixture',jobId:stopped.jobId,action:'stop',database:statement})
@@ -143,5 +159,34 @@ try {
       assert.equal((await retrieveCanvasCorpus({query:'paper list',courseCode:'BCS2120',sourceType:'materials',database:statement})).length,0)
     })
   })
-  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
+  // Current-edition policy is per student, refreshes at most once per interval,
+  // and does not resume paused collection or remove old edition access.
+  const origin='https://policy.fixture',accountId='policy-student'
+  await query("INSERT INTO canvas_corpus_permissions(user_id,origin,collection_enabled) VALUES($1,$2,true)",[accountId,origin])
+  const courses=[{id:'101',courseCode:'BCS2120',name:'AI 2025-2026-100-BCS2120',current:true},{id:'102',courseCode:'BCS2120',name:'AI 2026-2027-100-BCS2120',current:true},{id:'103',courseCode:'BCS2140',name:'OS 2026-2027-200-BCS2140',current:true}]
+  await observeCanvasCorpusCourses({accountId,origin,courses,explicit:true})
+  await query("UPDATE canvas_sync_jobs SET status='cancelled' WHERE user_id=$1",[accountId])
+  await query("UPDATE canvas_course_bindings SET last_synced_at=now(),next_sync_at=now()+interval '6 hours' WHERE origin=$1",[origin])
+  await observeCanvasCorpusCourses({accountId,origin,courses,automatic:true,refreshPolicy:true,timeContext:{academicYear:'2026-2027',periodNumber:1}})
+  const access=await query("SELECT b.canvas_course_id,a.auto_refresh FROM canvas_corpus_access a JOIN canvas_course_bindings b ON b.id=a.binding_id WHERE a.user_id=$1 ORDER BY b.canvas_course_id",[accountId])
+  assert.deepEqual(access,[{canvas_course_id:'101',auto_refresh:false},{canvas_course_id:'102',auto_refresh:true},{canvas_course_id:'103',auto_refresh:false}])
+  await query(`INSERT INTO canvas_priority_scans(id,binding_id,user_id,evidence_hash,status,course_profile)
+    SELECT concat('scan-',binding_id),binding_id,user_id,'fixture','confirmed','{"priorityExtractionVersion":"2"}' FROM canvas_corpus_access WHERE user_id=$1`,[accountId])
+  const {scheduleDueRefreshes}=await import('../../lib/canvas-corpus-worker.mjs')
+  await query("UPDATE canvas_corpus_access SET sync_paused=true WHERE user_id=$1 AND auto_refresh=true",[accountId])
+  await scheduleDueRefreshes()
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND job_type='course' AND status='pending'",[accountId])).n,'0')
+  await query("UPDATE canvas_corpus_access SET sync_paused=false WHERE user_id=$1",[accountId])
+  await scheduleDueRefreshes();await scheduleDueRefreshes()
+  const scheduled=await query("SELECT b.canvas_course_id FROM canvas_sync_jobs j JOIN canvas_course_bindings b ON b.id=j.binding_id WHERE j.user_id=$1 AND j.status='pending'",[accountId])
+  assert.deepEqual(scheduled,[{canvas_course_id:'102'}])
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND job_type='catalog' AND status='pending'",[accountId])).n,'1')
+  await query("UPDATE canvas_sync_jobs SET status='completed',finished_at=now() WHERE user_id=$1 AND status='pending'",[accountId])
+  await scheduleDueRefreshes()
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending'",[accountId])).n,'0')
+  await query("UPDATE canvas_sync_jobs SET finished_at=now()-interval '7 hours',created_at=now()-interval '7 hours' WHERE user_id=$1",[accountId])
+  await query("UPDATE canvas_corpus_permissions SET collection_enabled=false WHERE user_id=$1",[accountId])
+  await scheduleDueRefreshes()
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending'",[accountId])).n,'0')
+  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}

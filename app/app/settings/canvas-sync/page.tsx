@@ -303,7 +303,7 @@ export default function CanvasSyncPage() {
               <ArrowLeftIcon className="size-3.5" /> Connections
             </Link>
             <h1 className="font-heading mt-3 text-[32px] leading-[1.05] font-semibold tracking-[-0.035em]">Canvas sync</h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl text-sm">Track collection by course, understand failures, and keep every retry inspectable.</p>
+            <p className="text-muted-foreground mt-2 max-w-2xl text-sm">Current-course updates refresh every 30 minutes; materials every 6 hours. Retakes follow the latest edition. Paused courses stay paused.</p>
           </div>
           <div className="flex items-center gap-2 pt-1">
             <Button variant="outline" onClick={() => void refreshStatus()} disabled={busy !== null}>

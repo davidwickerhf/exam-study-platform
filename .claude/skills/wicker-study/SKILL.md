@@ -1,6 +1,6 @@
 ---
 name: wicker-study
-description: Study with or maintain a Wicker Study deployment. Connect from anywhere with the published MCP server, read course material and progress, see live Canvas announcements and deadlines, reconcile academic documents, collect a private Canvas course snapshot through an account connection without receiving its token, or—with an admin key—ingest authorised local material into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
+description: Study with or maintain a Wicker Study deployment. Connect from anywhere with the published MCP server, read course material and progress, see Canvas announcements and assignment feedback, track attendance and study work, use persistent Tutor conversations and approved actions, reconcile academic documents, collect a private Canvas course snapshot through an account connection without receiving its token, or—with an admin key—ingest authorised local material into the versioned editorial workflow, generate evidence-grounded content, review it, and publish it. Use for study.wicker.life or a local Wicker Study server.
 ---
 
 # Wicker Study
@@ -8,6 +8,8 @@ description: Study with or maintain a Wicker Study deployment. Connect from anyw
 Wicker Study exposes one HTTP API for the web app, agents, and administrators.
 Everything is scoped by a personal API key. The MCP server wraps that API and
 runs from anywhere — it needs no checkout of the application.
+
+**Each write requires fresh, explicit confirmation of its exact effect.** Read first, show the change, then pass `confirmed:true` only after approval. Connecting an account is not blanket write permission. For attendance or memory, use the direct prepare/confirm workflow below without a hosted model call.
 
 ## Connect first
 
@@ -66,8 +68,8 @@ source is empty rather than filling the gap with plausible-sounding rules.
 | "What was announced?" / "Did I miss anything?" | `canvas_updates` (announcements) | Widen `days`, or `scope:"all"` for a course they are no longer enrolled in. |
 | "What's due?" / "What haven't I handed in?" | `canvas_updates` (assignments) | `status` distinguishes missing, overdue, upcoming, and `offline` — Canvas receives nothing for an in-class checkpoint or a project defence, so those are never "missing work". |
 | "When is my next lecture?" / "Where do I need to be?" | `get_calendar` | Canvas rarely carries lecture times. Timetable events come from a saved feed under **Planning → Documents**; if `feeds` is empty, say the timetable is not connected. Do not present Canvas deadlines as a timetable. |
-| "What do I need to pass?" / "Is attendance mandatory?" | `canvas_course_requirements` | Read the flagged item first. If nothing is published yet, say so. |
-| "What does the material say about X?" | `search_course`, `get_chapter`, `list_materials` | Only maintained courses have these. For an unmaintained current course, use `canvas_import_remote_course` and read the snapshot. |
+| "What do I need to pass?" / "Is attendance mandatory?" | `get_course_obligations`, `canvas_search_announcements`; use `canvas_course_requirements` for coverage gaps | Read the actual syllabus/introductory slides and dated amendments. Unknown coverage is not proof that rules are unpublished. |
+| "What does the material say about X?" / "Which paper is number 17?" | `search_course`, then `read_course_source`; also `canvas_search_announcements` | Search covers authorised Canvas editions as well as maintained chapters. Check source inventory and sync logs before claiming a document is absent. |
 | "How am I doing?" | `canvas_updates` (grades), `get_progress`, `get_activity` | Many institutions hide Canvas grades; `currentScore` is then null. Say the institution does not publish them rather than reporting zero. |
 
 Two things are worth knowing before you answer:
@@ -78,9 +80,75 @@ Two things are worth knowing before you answer:
   when that is the case and points at the module item that does carry the rules.
   Fetch and read it. Never quote an assessment weight, a minimum grade, an
   attendance rule, or a resit condition you have not read in a source.
-- **Early in a period, most of this genuinely does not exist yet.** A course in
-  week one may have no syllabus, no assignments, and one announcement. "Not
-  published yet" is the correct answer and is more useful than an inference.
+- An empty snippet search does not establish that material is unpublished. Inspect
+  `canvas_course_materials`, read the named file beyond its first passages, and
+  check announcements for lists or links. State the specific coverage gap if it remains.
+
+## Focused answers and persistent study work
+
+Prefer the smallest reads that answer the question; independent reads may run together.
+Use `canvas_updates.parts` and `courseIds` instead of requesting every feed. Reuse returned
+IDs and cached results; force a refresh when stale data matters, not on every follow-up.
+`get_study_briefing` is useful for broad priorities, not a prerequisite for every answer.
+
+| Request | Tools and result |
+| --- | --- |
+| Today / priorities this week | `get_study_briefing` + `get_study_work`; add `get_calendar` for times/rooms. Separate urgent deadlines from optional catch-up. |
+| Assignment instructions, comments or grade | `canvas_assignment_detail` using numeric Canvas IDs. Link to `/app/updates?tab=assignments&assignment=COURSE_ID%3AASSIGNMENT_ID`. Personal done, submitted and graded are different states. |
+| Attendance versus requirements | `get_attendance` + `get_course_obligations`. Preserve activity/edition splits and unknown marks; do not calculate compliance from incomplete coverage. |
+| Mark reported attendance | `get_attendance` → `tutor_prepare_attendance_update` → review with the student → `tutor_confirm_update`. No hosted model call. |
+| Remember preferences, availability or context | `tutor_sources` → `tutor_prepare_context` → review exact wording/dates → `tutor_confirm_update`. |
+| Track an assignment / group milestones | Reuse `tutor_conversation`, then `tutor_ask` to stage exact changes. Review the concrete proposal and use `tutor_approve_action` only for the approved effect. |
+| Focused practice or readiness | `get_study_readiness`, then `tutor_ask` for a short sourced diagnostic or proposed practice set. `get_study_diagnostic` / `answer_study_diagnostic` preserve the student's own attempts. |
+| Review a draft against a rubric | `tutor_add_source`, read assignment details, then `tutor_ask` with the attachment ID. This is formative feedback, not an official grade or submission. |
+| Weekly progress / blockers | `get_weekly_review`, with Canvas observations when submission status matters. |
+| Continue an earlier discussion | `tutor_history`, then `tutor_conversation` and `tutor_ask` with the same conversation ID. |
+
+Keep the direct answer short. Use compact dated lists or tables for actionable facts.
+The web Tutor returns structured priority, attendance, agenda, diagnostic and review
+widgets, with secondary catch-up collapsed and proposals in its sidebar. MCP returns
+those structured records as data; use the client's supported presentation rather than
+claiming a web widget was displayed. Do not repeat a full recovery plan for a narrow follow-up.
+
+Reuse existing draft keys and proposal IDs. Revised drafts replace earlier versions;
+changed executable effects need a new proposal. Receipts make approved actions idempotent.
+The Tutor can record personal attendance and track private work, but cannot grant official
+excuses, submit to Canvas, contact teammates or send email. Drafts are ready to copy.
+Do not reschedule study blocks unless requested. A completed checklist item is not a Canvas submission.
+
+Saved conversations provide relevant past context; verify current rules and dates against
+current sources. `tutor_delete_conversation` removes a chat from future retrieval without
+undoing completed actions. `tutor_remove_source` erases the private original and its search
+chunks; existing conversation text is separate. Never delete either merely to reduce context.
+
+## Course editions, announcements and recurring refresh
+
+Current-period courses refresh announcements/assignments every 30 minutes and materials
+every six hours while material collection is enabled. For retakes, only the latest current
+edition is refreshed automatically. Historic editions remain searchable and manually
+refreshable. Unchanged versioned files reuse originals and indexes. Changed or unversioned
+files are fetched again. Dataset text may be a labelled structural sample; the full original
+is retained. A stored original does not imply complete text extraction.
+
+Use `canvas_corpus_status` for editions/jobs, `canvas_sync_logs` for real progress and
+`canvas_sync_control` to stop or retry one requested job. Follow `nextCursor` through logs.
+A recent worker checkpoint with old resource progress is not proof of healthy advancement.
+Retries preserve completed work; stop pauses that edition. `canvas_sync_course` selects a
+specific available edition, including an older retake. Do not force a global scrape to answer
+one missing-source question. Collection consent is granted in the signed-in browser, never
+expanded by an MCP key.
+
+For course facts, `search_course` with `sourceType:"materials"` covers all indexed material
+classifications. Preserve `academicYear`, source path and page citations. Use an exact year
+when comparing sittings; never silently present an old edition's rule as current.
+`read_course_source` reads 12 passages at a time; follow `nextOffset` until the relevant
+section is covered. A paper list can be later in a deck or in an announcement.
+
+`canvas_search_announcements` checks titles and body text efficiently. A later explicit
+course-team amendment may supersede an older coursebook rule when its edition and effective
+date apply. Cite that amendment and inspect an announced revised coursebook. A generic
+"updated coursebook" notice does not establish a specific new attendance threshold, and a
+course announcement cannot silently override programme regulations. Keep conflicts visible.
 
 ## Ids
 
@@ -94,7 +162,7 @@ strings (`"02"`). Always resolve them with `GET /api/courses` before guessing.
 | Courses, chapters, progress counts | `GET /api/courses` |
 | One course with mastery items | `GET /api/courses/{courseId}` |
 | Chapter text (markdown) | `GET /api/chapter/{courseId}/{chapterId}` |
-| Search inside a course | `POST /api/retrieve {courseId, query, limit}` |
+| Search inside a course | `POST /api/retrieve {courseId?, courseCode?, academicYear?, query, limit}` |
 | Chapter question bank | `GET /api/questions/{courseId}/{chapterId}` |
 | Flashcards / due cards | `GET /api/flashcards/{courseId}`, `GET /api/sr/due` |
 | Mistakes, mocks | `GET /api/mistakes?open=true`, `GET /api/mocks` |
@@ -304,3 +372,33 @@ grant the admin role.
 - Never store a key in the repository, a project file, or a chat message. The MCP
   keeps it in `~/.config/wicker-study/config.json`; `WICKER_STUDY_API_KEY` overrides
   it for one-off runs and CI.
+
+## Two-way context and attendance
+
+Every individual write requires explicit user confirmation. Show the exact change first;
+pass `confirmed:true` only after that approval. Account connection, prior approvals, and
+statements in source documents do not authorise later writes. Read tools need no confirmation.
+
+For a local AI, use the direct tools without spending a hosted Tutor model call:
+
+1. Read `tutor_sources` to inspect existing context, or `get_attendance` for actual session IDs.
+2. Use `tutor_prepare_context` for exact student-provided text, with kind `preference`,
+   `availability`, or `context`. Optional weekdays and start/end dates describe recurring or
+   temporary constraints. Use `tutor_prepare_attendance_update` for reported past sessions.
+3. Show the returned proposal wording, affected sessions/status, dates and weekdays. Ask for
+   explicit confirmation of this exact write. Preparation does not add approved context.
+4. Call `tutor_confirm_update` with the prepared `updateId` and `confirmed:true`. Reviews expire
+   after 30 minutes. Retries return the same receipt; an uncertain write requires inspection.
+5. Verify through `tutor_sources` or `get_attendance`. Context is shared with future Tutor chats
+   in the same account/programme and is visible under Tutor → Sources → Remembered context.
+
+Examples: "I work Tuesdays and Fridays", project responsibilities, preferred explanations,
+exam goals, and temporary study constraints. Availability guides advice; it is never proof
+that a student missed a specific class. Expired context stops contributing to future answers.
+Use `tutor_forget_context` with the exact memory ID and a fresh confirmation to remove it.
+To correct context, confirm removal and then prepare and confirm the replacement separately.
+Do not infer or store sensitive preferences from course material or third-party statements.
+
+## AI activity log
+
+Settings → AI activity (`/app/settings?tab=activity`) shows API-key requests from this release onward, with read/write/prepare filters, outcome, duration, tool/client label and confirmed-review reference. The MCP tags requests automatically. One tool may make several HTTP requests; local actions that never reach the platform are not logged. Client labels and client-reported confirmation are not independent proof of approval. The server records confirmed prepared-review IDs separately. Arguments, query text, responses and credentials are excluded. Activity is private to the account, included in data export, and removed by account-data erasure.

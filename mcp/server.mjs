@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { installWriteConfirmation, toolRequestContext } from './write-confirmation.mjs'
+import { registerStudyTools } from './study-tools.mjs'
 // Wicker Study MCP server — a thin stdio wrapper over the HTTP API so agents
 // (Claude Desktop, Claude Code, Codex, Cursor, …) can read course material and
 // a student's record, record study activity, collect a private Canvas course
@@ -57,12 +59,13 @@ function requireKey() {
   return credential.apiKey
 }
 
-async function apiResponse(path, { method = 'GET', body, query } = {}) {
+async function apiResponse(path, { method = 'GET', body, query, timeoutMs } = {}) {
   const url = new URL(baseUrl + path)
   for (const [key, value] of Object.entries(query || {})) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value))
   const response = await fetch(url, {
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     method,
-    headers: { authorization: `Bearer ${requireKey()}`, accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+    headers: { authorization: `Bearer ${requireKey()}`, accept: 'application/json', 'x-wicker-client': 'wicker-study-mcp 2.9.0', ...(toolRequestContext.getStore() ? { 'x-wicker-tool': toolRequestContext.getStore().tool, 'x-wicker-confirmed': String(toolRequestContext.getStore().confirmed) } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined
   })
   if (!response.ok) {
@@ -89,9 +92,11 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.8.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.9.0' })
+installWriteConfirmation(server, z)
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
+registerStudyTools(server, { z, run, api, defaultCanvasUrl: DEFAULT_CANVAS_URL })
 
 const COURSE_SOURCE_EXTENSIONS = new Set(['.pdf', '.ppt', '.pptx', '.doc', '.docx', '.txt', '.md', '.csv', '.tex', '.m', '.py', '.r', '.html', '.htm', '.png', '.jpg', '.jpeg', '.webp'])
 const SOURCE_MIME = { '.pdf': 'application/pdf', '.ppt': 'application/vnd.ms-powerpoint', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.txt': 'text/plain', '.md': 'text/markdown', '.csv': 'text/csv', '.tex': 'text/x-tex', '.m': 'text/x-matlab', '.py': 'text/x-python', '.r': 'text/x-r', '.html': 'text/html', '.htm': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }
@@ -614,7 +619,7 @@ server.tool('canvas_import_remote_course_set', 'Find every remotely connected Ca
   canvasUrl: z.string().url().default('https://canvas.maastrichtuniversity.nl'), query: z.string().min(1).max(240), outputFolder: z.string().min(1), maxCourses: z.number().int().min(1).max(100).default(25), maxResources: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxResources).default(CANVAS_IMPORT_LIMITS.maxResources), maxFileBytes: z.number().int().min(1).max(CANVAS_IMPORT_LIMITS.maxFileBytes).default(CANVAS_IMPORT_LIMITS.maxFileBytes)
 }, run(importRemoteCanvasCourseSet))
 
-server.tool('analyze_documents', 'Analyse supporting documents (transcript, exam schedule, timetable, academic calendar, curriculum) with AI and return a reviewable change set against the student’s plan. Uses the student’s intake allowance. Follow with apply_changes.', { kind: z.enum(['auto', 'transcript', 'exam-schedule', 'timetable', 'academic-calendar', 'curriculum']).optional(), description: z.string().optional(), documents: z.array(z.object({ name: z.string(), type: z.string().optional(), text: z.string().optional(), images: z.array(z.string()).optional() })) },
+server.tool('analyze_documents', 'Analyse supporting documents (transcript, exam schedule, timetable, academic calendar, curriculum) with AI and return a reviewable change set against the student’s plan. Uses the student’s intake allowance. Follow with apply_changes.', { kind: z.enum(['auto', 'academic-overview', 'transcript', 'exam-schedule', 'timetable', 'academic-calendar', 'curriculum']).optional(), description: z.string().optional(), documents: z.array(z.object({ name: z.string(), type: z.string().optional(), text: z.string().optional(), images: z.array(z.string()).optional() })) },
   run((body) => api('/api/academics/documents/analyze', { method: 'POST', body })))
 server.tool('apply_changes', 'Apply accepted change objects (from analyze_documents or a calendar preview) to the active plan.', { changes: z.array(z.record(z.any())), expectedRevision: z.number().int() },
   run((body) => api('/api/academics/documents/apply', { method: 'POST', body })))

@@ -15,7 +15,7 @@ it cannot be invoked with a student's browser credentials. Queue payloads carry
 job IDs, never Canvas tokens, source bytes or signed download URLs.
 
 `/internal/canvas-dispatch` runs every minute with Vercel Cron. `CRON_SECRET`
-protects it. This sweeps the durable SQL outbox and schedules daily discovery.
+protects it. This sweeps the durable SQL outbox and schedules current-course discovery and update refresh every 30 minutes. Materials are eligible every six hours.
 An authenticated sync request also wakes the dispatcher. A lost publish or a
 message that expires after seven days remains recoverable from Neon. Previews
 acknowledge queue probes but never process production jobs.
@@ -101,3 +101,18 @@ failures are not cached. Account erasure deletes the cache with other documents.
 not used by the Vercel deployment. Local split verification uses
 `WICKER_SERVICE=api node server.mjs` and
 `WICKER_API_ORIGIN=http://127.0.0.1:<api-port> npm run dev:web`.
+
+## Current-period refresh policy
+
+Migration 030 adds per-account `canvas_corpus_access.auto_refresh`. Discovery resolves
+current academic year/period from the shared programme calendar plus personal overrides;
+an empty personal calendar must not disable programme scheduling. Automatic collection
+selects the newest current-period edition per course code. Historical retake editions
+remain on demand. Pause and revoked collection consent win over scheduling.
+
+Discovery can reuse identical generated documents and complete versioned files from the
+same account/binding. Reuse requires matching payload and a complete active original;
+changed or unversioned files are collected again. A forced refresh bypasses reuse.
+Default `CANVAS_MATERIAL_REFRESH_HOURS` is 6. Derived-only priority passes do not postpone
+material collection. The minute cron delivers work; it does not download every course
+once per minute. See [Canvas collection](CANVAS_CORPUS.md) for user controls.

@@ -1,3 +1,7 @@
+import { beginAgentActivity, readAgentActivity } from './lib/agent-activity.mjs'
+import { prepareExternalTutorUpdate, confirmExternalTutorUpdate } from './lib/tutor-external-updates.mjs'
+import { fetchCanvasAssignmentDetail } from './lib/canvas-assignment-detail.mjs'
+import { openTutorStream } from './lib/tutor-progress.mjs'
 import { readStudyWork, studyWorkOverview, readDiagnostic, answerDiagnostic, applyStudyWorkProposal, applyStudyProjectProposal } from './lib/study-work-store.mjs'
 import { STUDY_CAPABILITIES } from './lib/tutor-study-tools.mjs'
 import { createServer } from 'node:http'
@@ -57,8 +61,8 @@ import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs
 import { applyProgramme, applySecureValue, chooseElectiveGroups, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingStatus, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
 import { beginTutorTurn, completeTutorTurn, completedTutorRetry, failTutorTurn, visibleTutorConversation } from './lib/tutor-turns.mjs'
-import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
-import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
+import { runTutorTurn, tutorAvailable, TUTOR_HANDLERS } from './lib/tutor-agent.mjs'
+import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberFact, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
 import { TutorAttachmentError, deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment } from './lib/tutor-attachments.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
@@ -71,7 +75,7 @@ import { joinProgramme, setMembership, removeMembership, listMembers, membership
 import { editorialMode, editorialShellFromState, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialShell, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
-import { formatRetrievalContext, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
+import { formatRetrievalContext, readCanvasSource, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 import { listProgrammePolicySources, retrieveProgrammePolicies } from './lib/programme-policy-sources.mjs'
 import { applyWorkspaceEdit } from './lib/workspace/academics.mjs'
 import { planningContext, updatePlanningObjective } from './lib/workspace/planner.mjs'
@@ -3497,6 +3501,10 @@ async function executeTutorProposal(proposal) {
     await saveActiveAcademicWorkspace(workspace, current.workspace.revision)
     return { kind: 'attendance-update', label: 'Attendance updated', href: '/app/calendar' }
   }
+  if (proposal.type === 'remember-context') {
+    const result = await rememberFact(proposal.payload.fact, proposal.payload)
+    return { kind: 'remember-context', label: result.duplicate ? 'Context already remembered' : 'Context remembered', memoryId: result.stored.id, href: '/app/tutor?view=sources' }
+  }
   if (proposal.type === 'remember-plan') {
     const result = await rememberPlan(proposal.payload)
     return { kind: 'remember-plan', label: result.duplicate ? 'Plan already remembered' : 'Plan remembered', href: '/app/tutor' }
@@ -3697,6 +3705,7 @@ const server = createServer(async (req, res) => {
         send(res, 401, JSON.stringify({ error: auth.mode === 'api-key' ? 'Invalid or revoked API key' : 'Sign in required', reason: auth.reason || 'unauthenticated' }))
         return
       }
+      await beginAgentActivity(req, res, auth, url)
       if (url.pathname === '/api/auth/session' && req.method === 'GET') {
         send(res, 200, JSON.stringify(await sessionPayload(auth, { autoScope: true })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
         return
@@ -3724,6 +3733,8 @@ const server = createServer(async (req, res) => {
       if (url.pathname.startsWith('/api/admin/') && req.method !== 'GET') console.info(`[admin] ${auth.userId}${auth.keyId ? ` key=${auth.keyId}` : ''} ${req.method} ${url.pathname}${url.search}`)
       setRequestContext(auth)
     }
+
+    if (url.pathname === '/api/account/agent-activity' && req.method === 'GET') { send(res, 200, JSON.stringify(await readAgentActivity(Object.fromEntries(url.searchParams))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); return }
 
     if (url.pathname === '/api/account/api-keys' && req.method === 'GET') {
       send(res, 200, JSON.stringify({ keys: await listApiKeys(), scopes: API_SCOPES, admin: Boolean(currentAuth().admin) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
@@ -3926,10 +3937,20 @@ const server = createServer(async (req, res) => {
     // The Canvas board: announcements, assignments, Canvas events, and grades
     // for the courses in scope. Answers are cached per user for a few minutes,
     // so a page that refreshes itself does not re-poll Canvas each time.
-    if (url.pathname === '/api/integrations/canvas/hub' && req.method === 'GET') {
+    if (url.pathname === '/api/integrations/canvas/assignment' && req.method === 'GET') {
       try {
         const origin = canvasOrigin()
-        const connection = (await listCanvasConnections()).find((entry) => entry.origin === origin) || null
+        const { token } = await canvasAccessToken({ canvasUrl: origin })
+        const result = await fetchCanvasAssignmentDetail({ origin, token, courseId: url.searchParams.get('courseId'), assignmentId: url.searchParams.get('assignmentId'), force: url.searchParams.get('refresh') === '1' })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, 400, JSON.stringify({ error: error.message || 'Assignment details could not be loaded.' })) }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/hub' && req.method === 'GET') {
+      try {
+        const connections = await listCanvasConnections()
+        const origin = url.searchParams.get('canvasUrl') ? canvasOrigin() : connections[0]?.origin || canvasOrigin()
+        const connection = connections.find((entry) => entry.origin === origin) || null
         if (!connection) {
           send(res, 200, JSON.stringify({ connected: false, origin, courses: [], announcements: [], assignments: [], events: [], grades: [], problems: [] }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
           return
@@ -4019,6 +4040,7 @@ const server = createServer(async (req, res) => {
         if (sendAccountDeletionError(res, error)) return
         throw error
       }
+      if (scope === 'everything') res.agentActivityErased = true
       send(res, 200, JSON.stringify({ ok: true, scope, removed }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
@@ -4481,8 +4503,33 @@ const server = createServer(async (req, res) => {
     }
 
     // The permanent tutor. Conversations, the facts it has been asked to
-    // remember, and how the student wants to be answered all persist; nothing
-    // said in one conversation reaches another unless it was remembered.
+    // remember, and how the student wants to be answered all persist; relevant past
+    // conversations can be retrieved as clearly labelled historical context.
+    if (url.pathname === '/api/tutor/updates/prepare' && req.method === 'POST') {
+      try { send(res, 200, JSON.stringify(await prepareExternalTutorUpdate(await readBody(req, 8192))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); }
+      catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
+    if (url.pathname === '/api/tutor/updates/confirm' && req.method === 'POST') {
+      try { const body = await readBody(req, 1024); const result = await confirmExternalTutorUpdate(body, executeTutorProposal); res.agentActivityConfirmation = body.updateId; send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); }
+      catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
+    if (url.pathname === '/api/tutor/context' && req.method === 'GET') {
+      const reads = { attendance: 'get_attendance', obligations: 'get_course_obligations', readiness: 'get_study_readiness', 'weekly-review': 'get_weekly_review', announcements: 'get_announcements' }
+      const name = reads[url.searchParams.get('view')]
+      if (!name) { send(res, 400, JSON.stringify({ error: 'Choose attendance, obligations, readiness, weekly-review or announcements.' })); return }
+      try {
+        const args = { courseCode: (url.searchParams.get('courseCode') || '').slice(0, 40), from: url.searchParams.get('from') || '', to: url.searchParams.get('to') || '', query: (url.searchParams.get('query') || '').slice(0, 500), days: Math.min(365, Math.max(1, Number(url.searchParams.get('days')) || 120)), limit: Math.min(12, Math.max(1, Number(url.searchParams.get('limit')) || 8)), rulesOnly: url.searchParams.get('rulesOnly') === 'true' }
+        send(res, 200, JSON.stringify(await TUTOR_HANDLERS[name](args)), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      } catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
+    if (url.pathname === '/api/retrieve/source' && req.method === 'GET') {
+      try { send(res, 200, JSON.stringify(await readCanvasSource({ assetId: url.searchParams.get('assetId'), courseCode: url.searchParams.get('courseCode') || '', offset: Number(url.searchParams.get('offset')) || 0 })), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' }); }
+      catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
     if (url.pathname === '/api/tutor/work' && req.method === 'GET') {
       send(res, 200, JSON.stringify({ ...studyWorkOverview(await readStudyWork()), capabilities: STUDY_CAPABILITIES }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
@@ -4532,10 +4579,15 @@ const server = createServer(async (req, res) => {
       res.once('close', disconnected)
       const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(180_000)])
       let activeTurn = null
+      let emit = null
       try {
         const body = await readBody(req, 32 * 1024)
         const message = String(body?.message || '').trim().slice(0, 4000)
         if (!message) { send(res, 400, JSON.stringify({ error: 'Ask something.' })); return }
+        if (String(req.headers.accept || '').includes('application/x-ndjson')) {
+          emit = openTutorStream(res)
+          emit('progress', { message: 'I’m checking your question…' })
+        }
         const stored = body?.conversation ? await readConversation(body.conversation) : null
         const canCreate = body?.create === true && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body?.conversation || ''))
         if (body?.conversation && !stored && !canCreate) throw new TutorStoreError('This conversation no longer exists. Start a new one.', 404)
@@ -4543,22 +4595,22 @@ const server = createServer(async (req, res) => {
         let usage = null
         if (!(body?.retry && completedTutorRetry(stored, message))) {
           activeTurn = await beginTutorTurn(stored, { message, context: body?.context || {}, retry: Boolean(body?.retry), id: canCreate ? body.conversation : undefined })
-          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, signal })
+          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, signal, onProgress: progress => emit?.('progress', progress) })
           signal.throwIfAborted()
           saved = await completeTutorTurn(activeTurn, turn)
           usage = turn.usage
           activeTurn = null
         }
         const [conversations, memory, receipts, attachments] = await Promise.all([listConversations(), readTutorMemory(), readTutorActionReceipts(), listTutorAttachments()])
-        send(res, 200, JSON.stringify({
-          conversation: visibleTutorConversation(saved),
-          conversations, memory, receipts, attachments,
-          usage
-        }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const result = { conversation: visibleTutorConversation(saved), conversations, memory, receipts, attachments, usage }
+        if (emit) { emit('result', { result }); res.end() }
+        else send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         let conversation = null
         if (activeTurn) conversation = await failTutorTurn(activeTurn, error, controller.signal.aborted).catch(() => null)
-        if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify({ conversation: visibleTutorConversation(conversation), error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }))
+        const failure = { conversation: visibleTutorConversation(conversation), error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }
+        if (emit) { emit('error', failure); res.end() }
+        else if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify(failure))
       } finally { res.off('close', disconnected) }
       return
     }

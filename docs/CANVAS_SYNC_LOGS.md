@@ -4,7 +4,7 @@ Open `/app/settings/canvas-sync/logs` from **Sync logs** on the Canvas sync page
 
 The portal reads durable account-scoped events for queue transitions, course discovery, downloads, document text extraction, retrieval indexing and course-rule analysis. It refreshes every five seconds while visible; Pause updates freezes the view without stopping collection. Older events use an ID cursor and stop automatic refresh while being inspected. Stage and warning/error filters apply on the server. The process selector lists the latest 100 syncs with active work first; a direct link also retrieves older owned jobs.
 
-Worker heartbeats and progress events are separate. After five minutes without a progress event, the portal explains that a large file or analysis might still be processing. A running worker whose heartbeat is over 90 seconds old is flagged as potentially interrupted. Neither timer proves a process has failed. Stop and retry remain on Canvas sync.
+Worker heartbeats and progress events are separate. After five minutes without a progress event, the portal explains that a large file or analysis might still be processing. A running worker whose heartbeat is over six minutes old is flagged as potentially interrupted. Neither timer proves a process has failed. Stop and retry remain on Canvas sync.
 
 ## Storage and access
 

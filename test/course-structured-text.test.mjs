@@ -61,3 +61,17 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
     assert.match(result.text,/sample, not the full dataset/);assert.ok(result.text.length<12000)
   } finally {await rm(root,{recursive:true,force:true})}
 })
+
+test('image archives retain a searchable inventory without expanding binary members',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'queue-binary-archive-'))
+  try {
+    await exec('python3',['-c',`import zipfile,sys
+with zipfile.ZipFile(sys.argv[1],'w',compression=zipfile.ZIP_DEFLATED) as z:
+ with z.open('large-image.png','w') as f:
+  for i in range(129): f.write(b'0'*(1024*1024))
+ z.writestr('instructions.txt','Classify the images.')`,join(root,'images.zip')])
+    const result=await extracted(await readFile(join(root,'images.zip')),'images.zip')
+    assert.equal(result.status,'complete');assert.match(result.text,/Binary member retained/)
+    assert.match(result.text,/Classify the images/)
+  } finally {await rm(root,{recursive:true,force:true})}
+})
