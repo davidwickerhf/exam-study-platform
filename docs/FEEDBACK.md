@@ -70,7 +70,7 @@ Choose **Attach Tutor conversation text or another excerpt** to paste relevant q
 
 ## Report experience
 
-My feedback separates reports from diagnostics preferences. A report opens as a
+My feedback keeps reports as the main view. The header’s Feedback preferences control opens a compact popover for diagnostics and update settings. A report opens as a
 conversation with its original note, review updates and a reply composer.
 Progress and collapsible sharing controls remain alongside the conversation.
 Email consent and attachment withdrawal are available under Shared details.

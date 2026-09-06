@@ -3,17 +3,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover } from "@base-ui/react/popover";
 import {
   ArrowLeftIcon,
-  ArrowUpRightIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  MessageSquareIcon,
   PlusIcon,
   RefreshCwIcon,
   Settings2Icon,
+  XIcon,
   ShieldCheckIcon,
 } from "lucide-react";
 import {
@@ -179,8 +178,7 @@ export function FeedbackInbox({ admin = false }: { admin?: boolean }) {
     [cursor, setCursor] = useState<string | null>(null),
     [status, setStatus] = useState(""),
     [category, setCategory] = useState(""),
-    [owner, setOwner] = useState(""),
-    [view, setView] = useState("reports");
+    [owner, setOwner] = useState("");
   const open = useFeedback(),
     params = useSearchParams(),
     draft = params.get("draft");
@@ -217,6 +215,34 @@ export function FeedbackInbox({ admin = false }: { admin?: boolean }) {
       }
       actions={
         <>
+          {!admin && (
+            <Popover.Root>
+              <Popover.Trigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Feedback preferences"
+                    title="Feedback preferences"
+                  />
+                }
+              >
+                <Settings2Icon className="size-4" />
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Positioner
+                  side="bottom"
+                  align="end"
+                  sideOffset={8}
+                  className="z-50"
+                >
+                  <Popover.Popup className="w-[360px] max-w-[calc(100vw-2rem)] max-h-[var(--available-height)] overflow-y-auto rounded-xl border bg-popover p-5 text-popover-foreground shadow-lg outline-none">
+                    <FeedbackPreferences />
+                  </Popover.Popup>
+                </Popover.Positioner>
+              </Popover.Portal>
+            </Popover.Root>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -238,144 +264,123 @@ export function FeedbackInbox({ admin = false }: { admin?: boolean }) {
         </>
       }
     >
-      {!admin && (
-        <Tabs value={view} onValueChange={(value) => setView(String(value))}>
-          <TabsList
-            variant="line"
-            className="w-full justify-start border-b pb-1"
-          >
-            <TabsTrigger value="reports">
-              <MessageSquareIcon className="size-4" />
-              Your reports
-            </TabsTrigger>
-            <TabsTrigger value="preferences">
-              <Settings2Icon className="size-4" />
-              Preferences
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-      {!admin && view === "preferences" ? (
-        <FeedbackPreferences />
-      ) : (
-        <>
-          {admin && <FeedbackReviewOverview />}
-          {admin && (
-            <div className="flex flex-wrap gap-3">
-              <label className="text-sm">
-                Status
-                <select
-                  className={field}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  {statuses.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm">
-                Category
-                <select
-                  className={field}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  <option value="">All categories</option>
-                  {categories.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm">
-                Owner
-                <select
-                  className={field}
-                  value={owner}
-                  onChange={(e) => setOwner(e.target.value)}
-                >
-                  <option value="">Everyone</option>
-                  <option value="me">Assigned to me</option>
-                </select>
-              </label>
-            </div>
-          )}
-          {error && (
-            <p role="alert" className="text-destructive">
-              {error}
-            </p>
-          )}
-          {loading && !items.length ? (
-            <div
-              role="status"
-              className="rounded-xl border p-8 text-muted-foreground"
+      {admin && <FeedbackReviewOverview />}
+      {admin && (
+        <div className="flex flex-wrap gap-3">
+          <label className="text-sm">
+            Status
+            <select
+              className={field}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
             >
-              Loading feedback…
-            </div>
-          ) : !items.length && !error ? (
-            <div className="rounded-xl border bg-card p-8">
-              <h2 className="font-heading text-xl font-semibold">
-                {admin
-                  ? "No reports match these filters"
-                  : "A direct line to the team"}
-              </h2>
-              <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-                {admin
-                  ? "New reports and technical incidents will appear here."
-                  : "Share a suggestion or report something that is not working. You choose the details to include and can follow the review here."}
-              </p>
-              {!admin && (
-                <div className="mt-4">
-                  <FeedbackButton />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y overflow-hidden rounded-lg border bg-card">
-              {items.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`${admin ? "/app/admin/feedback" : "/app/feedback"}/${item.id}`}
-                  className="group flex items-center gap-4 px-5 py-5 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-primary"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <h2 className="line-clamp-2 text-sm font-semibold">
-                        {item.unread && (
-                          <span className="mr-2 inline-block size-2 rounded-full bg-primary" />
-                        )}
-                        {admin ? item.title : item.note || item.title}
-                      </h2>
-                      <State value={item.status} />
-                    </div>
-                    {admin && item.note && item.note.trim() !== item.title.trim() && (
-                      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                        {item.note}
-                      </p>
-                    )}
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {label(item.category || "other")} ·{" "}
-                      {when(item.createdAt || item.created_at)}
-                      {admin &&
-                        ` · ${item.reports} reports · ${item.occurrences} diagnostic events · ${label(item.severity || "normal")}`}
-                    </p>
-                  </div>
-                  <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </Link>
+              <option value="">All statuses</option>
+              {statuses.map((s) => (
+                <option key={s}>{s}</option>
               ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            Category
+            <select
+              className={field}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="">All categories</option>
+              {categories.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            Owner
+            <select
+              className={field}
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+            >
+              <option value="">Everyone</option>
+              <option value="me">Assigned to me</option>
+            </select>
+          </label>
+        </div>
+      )}
+      {error && (
+        <p role="alert" className="text-destructive">
+          {error}
+        </p>
+      )}
+      {loading && !items.length ? (
+        <div
+          role="status"
+          className="rounded-xl border p-8 text-muted-foreground"
+        >
+          Loading feedback…
+        </div>
+      ) : !items.length && !error ? (
+        <div className="rounded-xl border bg-card p-8">
+          <h2 className="font-heading text-xl font-semibold">
+            {admin
+              ? "No reports match these filters"
+              : "A direct line to the team"}
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            {admin
+              ? "New reports and technical incidents will appear here."
+              : "Share a suggestion or report something that is not working. You choose the details to include and can follow the review here."}
+          </p>
+          {!admin && (
+            <div className="mt-4">
+              <FeedbackButton />
             </div>
           )}
-          {cursor && (
-            <Button
-              variant="outline"
-              disabled={loading}
-              onClick={() => void load(cursor)}
+        </div>
+      ) : (
+        <div className="divide-y overflow-hidden rounded-lg border bg-card">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              href={`${admin ? "/app/admin/feedback" : "/app/feedback"}/${item.id}`}
+              className="group flex items-center gap-4 px-5 py-5 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-primary"
             >
-              Load more
-            </Button>
-          )}
-        </>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="line-clamp-2 text-sm font-semibold">
+                    {item.unread && (
+                      <span className="mr-2 inline-block size-2 rounded-full bg-primary" />
+                    )}
+                    {admin ? item.title : item.note || item.title}
+                  </h2>
+                  <State value={item.status} />
+                </div>
+                {admin &&
+                  item.note &&
+                  item.note.trim() !== item.title.trim() && (
+                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                      {item.note}
+                    </p>
+                  )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {label(item.category || "other")} ·{" "}
+                  {when(item.createdAt || item.created_at)}
+                  {admin &&
+                    ` · ${item.reports} reports · ${item.occurrences} diagnostic events · ${label(item.severity || "normal")}`}
+                </p>
+              </div>
+              <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          ))}
+        </div>
+      )}
+      {cursor && (
+        <Button
+          variant="outline"
+          disabled={loading}
+          onClick={() => void load(cursor)}
+        >
+          Load more
+        </Button>
       )}
     </Shell>
   );
@@ -394,14 +399,34 @@ export function FeedbackPreferences() {
       .catch((e) => setError(e.message));
   }, []);
   return (
-    <section className="max-w-2xl py-2">
-      <h2 className="font-heading text-xl font-semibold">Privacy & updates</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <section>
+      <div className="flex items-center justify-between gap-3">
+        <Popover.Title className="text-sm font-semibold">
+          Privacy & updates
+        </Popover.Title>
+        <Popover.Close
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Close preferences"
+            />
+          }
+        >
+          <XIcon className="size-4" />
+        </Popover.Close>
+      </div>
+      <Popover.Description className="mt-2 text-xs leading-relaxed text-muted-foreground">
         Technical diagnostics contain an error code, page category, timing and
         release. They never include messages, documents or credentials.
-      </p>
+      </Popover.Description>
+      {!prefs && !error && (
+        <p role="status" className="mt-4 text-xs text-muted-foreground">
+          Loading preferences…
+        </p>
+      )}
       {prefs && (
-        <div className="mt-6 divide-y border-y">
+        <div className="mt-4 divide-y border-y">
           {(
             [
               [
@@ -423,11 +448,11 @@ export function FeedbackPreferences() {
           ).map(([key, title, description]) => (
             <label
               key={key}
-              className="flex cursor-pointer items-center justify-between gap-5 py-5 text-sm"
+              className="flex cursor-pointer items-center justify-between gap-4 py-3 text-sm"
             >
               <span>
                 <span className="block font-semibold">{title}</span>
-                <span className="mt-1 block text-muted-foreground">
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
                   {description}
                 </span>
               </span>
