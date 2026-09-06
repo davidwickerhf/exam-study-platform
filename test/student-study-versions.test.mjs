@@ -876,3 +876,20 @@ test('editing HTTP routes bind ownership, billing and proposal decisions to the 
     })
   } finally { await f.cleanup() }
 })
+
+test('a title-only topic stops before reserving or calling an AI provider', async () => {
+  const f = await fixture()
+  try {
+    await f.run(async () => {
+      await mutateStudyVersion(f.version.id, v => {
+        v.draft.stage = 'chapters'
+        v.draft.snapshot.chunks[0].text = 'Welsh room'
+        v.draft.topics = [{id:'title-only',title:'Welsh room',sourceIds:[v.draft.snapshot.chunks[0].id]}]
+      })
+      let calls = 0
+      await processStudyStep(f.version.id, { generate: async () => { calls++; throw new Error('Must not call') } })
+      assert.equal(calls, 0)
+      assert.match((await ownStudyVersion(f.version.id)).draft.error, /only slide titles/)
+    })
+  } finally { await f.cleanup() }
+})
