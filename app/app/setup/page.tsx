@@ -100,15 +100,14 @@ function CurriculumMatch({ value }: { value?: CurriculumReconciliation }) {
         </span>
       </div>
       {value.otherYearCount > 0 && <p className="text-muted-foreground mt-2 text-xs leading-relaxed">{value.otherYearCount} recognised {value.otherYearCount === 1 ? 'course belongs' : 'courses belong'} to another curriculum year, so it is treated as an elective, carry-over, or changed placement—not as a programme conflict.</p>}
-      {value.changes.length > 0 && <details className="mt-3">
-        <summary className="focus-visible:ring-primary w-fit cursor-pointer text-sm font-semibold outline-none hover:underline focus-visible:ring-2">{value.changes.length} historical {value.changes.length === 1 ? 'change' : 'changes'} recognised</summary>
-        <ul className="mt-3 space-y-3">
+      {value.changes.length > 0 && <div className="mt-3"><ReviewPanel trigger={`Review ${value.changes.length} historical ${value.changes.length === 1 ? 'change' : 'changes'}`} title="Curriculum changes" description="How recognised courses moved between curriculum editions.">
+        <ul aria-label="Historical curriculum changes" className="space-y-3">
           {value.changes.map((change) => <li key={change.id} className="text-sm">
             <strong>{change.name}</strong>
             <p className="text-muted-foreground mt-1 leading-relaxed">{change.placements.map((item) => [item.versionId, item.code, item.yearLevel, item.period].filter(Boolean).join(' · ')).join(' → ')}</p>
           </li>)}
         </ul>
-      </details>}
+      </ReviewPanel></div>}
     </section>
   )
 }
@@ -419,20 +418,30 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
   )
 }
 
-function AttachedDocument({ document, kind, onRemoved }: {
+function AttachedDocument({ document, kind, sourceFile, onRemoved }: {
   document: { name: string; createdAt: string | null; legacyContext?: boolean }
   kind: 'record' | 'transcript'
+  sourceFile?: File | null
   onRemoved: () => Promise<unknown>
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [previewFile, setPreviewFile] = useState<File | null>(sourceFile ?? null)
+  const input = useRef<HTMLInputElement>(null)
   return <div className="flex flex-col gap-4">
-    <div className="flex items-start gap-3 rounded-lg border p-4">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4">
       <FileTextIcon className="text-primary mt-0.5 size-5 shrink-0" />
       <div className="min-w-0 flex-1"><strong className="block break-words text-sm">{document.name}</strong><p className="text-muted-foreground mt-1 text-xs">Attached{document.createdAt ? ` · Imported ${new Date(document.createdAt).toLocaleDateString()}` : ''}</p></div>
-      <CheckIcon className="text-primary size-4 shrink-0" />
+      {previewFile ? <UploadedDocumentPreview file={previewFile}/> : <Button type="button" variant="outline" size="sm" onClick={() => input.current?.click()}>Choose file to preview</Button>}
+      <input ref={input} type="file" className="hidden" aria-label="Choose original document for local preview" accept="application/pdf,.pdf,.txt" onChange={(event) => {
+        const file = event.target.files?.[0]; event.target.value = ''
+        if (!file) return
+        if (file.size > MAX_UPLOAD_BYTES) { setError('Choose a file smaller than 15 MB to preview.'); return }
+        if (!/\.(pdf|txt)$/i.test(file.name) && !['application/pdf', 'text/plain'].includes(file.type)) { setError('Choose a PDF or text file to preview.'); return }
+        setError(null); setPreviewFile(file)
+      }}/>
     </div>
-    <p className="text-muted-foreground text-sm leading-relaxed">The study information from this document is connected. The original file is not stored. {document.legacyContext ? 'For this older document, removing the attachment leaves previously saved grades in place. Review those results in Planning to remove them.' : 'Remove it to clear its imported context and choose a new document.'}</p>
+    <p className="text-muted-foreground text-sm leading-relaxed">{previewFile ? 'Results are saved. The preview uses a local file in this browser; it does not change your imported results.' : 'Results are saved. The original file is not stored; choose it from your device to preview it without changing your imported results.'} {document.legacyContext ? 'For this older document, removing the attachment leaves previously saved grades in place. Review those results in Planning to remove them.' : 'Remove it to clear its imported context and choose a new document.'}</p>
     <Button variant="outline" className="w-fit" disabled={busy} onClick={async () => {
       setBusy(true); setError(null)
       try {
@@ -446,7 +455,7 @@ function AttachedDocument({ document, kind, onRemoved }: {
 }
 
 /** The upload control. Only the text the parser needs leaves this browser. */
-function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promise<void> | void; onSkip?: () => void }) {
+function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult, file: File) => Promise<void> | void; onSkip?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -462,7 +471,7 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
         hint={
           <>
             {busy ? <Spinner className="size-3.5" /> : <ShieldIcon className="size-3.5 shrink-0" />}
-            {busy ? 'Reading your overview…' : 'Read for its results, then discarded. The file is never stored.'}
+            {busy ? 'Reading your overview…' : 'Results are imported. The original stays in this browser for preview.'}
           </>
         }
         onFile={async (file) => {
@@ -470,7 +479,7 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult) => Promi
           setBusy(true)
           setError(null)
           try {
-            await onRead(await uploadAcademicWork(file))
+            await onRead(await uploadAcademicWork(file), file)
           } catch (cause) {
             setError(cause instanceof Error ? cause.message : 'That file could not be read.')
           } finally {
@@ -510,7 +519,7 @@ type TranscriptReview = {
   warnings?: string[]
   source: { name: string; type: string; size: number; fingerprint: string }
 }
-function TranscriptField({ onApplied, onSkip }: { onApplied: () => Promise<unknown> | void; onSkip?: () => void }) {
+function TranscriptField({ onApplied, onSkip }: { onApplied: (file: File | null) => Promise<unknown> | void; onSkip?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [review, setReview] = useState<TranscriptReview | null>(null)
@@ -540,7 +549,7 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: () => Promise<unkno
       }}
     /> : <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"><div className="flex min-w-0 items-start gap-3"><FileTextIcon className="mt-0.5 size-5 shrink-0 text-primary"/><div className="min-w-0"><strong className="block break-words">{review.source.name}</strong><p className="mt-1 text-xs text-muted-foreground">Read successfully · {selected.size} of {review.changes.length} changes selected</p></div></div>{sourceFile && <UploadedDocumentPreview file={sourceFile}/>}</div>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, reviewIds: review.reviewIds, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button>{review.changes.length > 0 && <ReviewPanel trigger={`Review ${review.changes.length} changes`} title="Review transcript changes" description={`${selected.size} of ${review.changes.length} changes selected. Choose what to keep, then save from the setup step.`}><ul aria-label="Proposed transcript changes" className="border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul></ReviewPanel>}<Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSourceFile(null); setSelected(new Set()) }}>Choose another file</Button></div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, reviewIds: review.reviewIds, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied(sourceFile) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button>{review.changes.length > 0 && <ReviewPanel trigger={`Review ${review.changes.length} changes`} title="Review transcript changes" description={`${selected.size} of ${review.changes.length} changes selected. Choose what to keep, then save from the setup step.`}><ul aria-label="Proposed transcript changes" className="border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul></ReviewPanel>}<Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSourceFile(null); setSelected(new Set()) }}>Choose another file</Button></div>
       {review.documentCheck && <DocumentCheck value={review.documentCheck} compact />}
       {!review.changes.length && <p className="text-muted-foreground text-sm">No changes are proposed to your saved record. See the document comparison above for what has been corroborated.</p>}
       {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
@@ -1145,6 +1154,7 @@ function UnifiedSetup({
   const requested = params.get('step')
   const [open, setOpen] = useState<SetupStepId | null>((requested as SetupStepId | null) ?? null)
   const [saved, setSaved] = useState<SetupStepId | null>(null)
+  const [localDocuments, setLocalDocuments] = useState<Partial<Record<'record' | 'transcript', File>>>({})
   const [timetable, setTimetable] = useState('')
   const [timetableBusy, setTimetableBusy] = useState(false)
   const [timetableError, setTimetableError] = useState<string | null>(null)
@@ -1288,7 +1298,7 @@ function UnifiedSetup({
 
           {selectedIssues.map((issue) => <section key={issue.id} role="alert" className="border-b px-5 py-5 sm:px-7">
             <div className="flex items-start gap-3"><AlertTriangleIcon className="text-primary mt-0.5 size-5 shrink-0" /><div className="min-w-0"><strong>{issue.title}</strong><p className="text-muted-foreground mt-1 text-sm leading-relaxed">{issue.detail}</p><p className="mt-2 text-sm">{issue.recovery}</p></div></div>
-            {(issue.unexpectedCourses?.length || issue.expectedCourses?.length) && <details className="mt-4 border-t pt-4"><summary className="cursor-pointer text-sm font-semibold">Compare the evidence</summary><div className="mt-3 grid gap-5 sm:grid-cols-2"><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Current record</p>{issue.unexpectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data text-primary">{course.code}</span> {course.name}</p>)}</div><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Selected plan</p>{issue.expectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data">{course.code}</span> {course.name}</p>)}</div></div></details>}
+            {(issue.unexpectedCourses?.length || issue.expectedCourses?.length) && <div className="mt-4"><ReviewPanel trigger="Compare the evidence" title="Compare curriculum evidence" description="Current record and selected plan, shown separately for review."><div className="mt-3 grid gap-5 sm:grid-cols-2"><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Current record</p>{issue.unexpectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data text-primary">{course.code}</span> {course.name}</p>)}</div><div><p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">Selected plan</p>{issue.expectedCourses?.map((course) => <p key={`${course.code}-${course.name}`} className="text-sm"><span className="font-data">{course.code}</span> {course.name}</p>)}</div></div></ReviewPanel></div>}
             {issue.step === 'canvas'
               ? <Button size="sm" variant="outline" nativeButton={false} className="mt-4" render={<Link href="/app/settings/canvas-sync" />}>Review Canvas sync</Button>
               : <Button size="sm" variant="outline" type="button" className="mt-4" onClick={() => setOpen('programme')}>Correct programme or year</Button>}
@@ -1299,15 +1309,16 @@ function UnifiedSetup({
             {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
             {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} template={view.state.programmeTemplate} onSaved={() => refreshFrom('programme')} />}
             {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} onContinue={() => continueFrom('electives')} />)}
-            {selected.id === 'record' && <>{view.state.recordDocument ? <AttachedDocument document={view.state.recordDocument} kind="record" onRemoved={() => refreshInPlace('record')} /> : <UploadField onRead={() => refreshInPlace('record')} onSkip={() => void defer('record')} />}<div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
-            {selected.id === 'transcript' && (view.state.transcriptDocument ? <AttachedDocument document={view.state.transcriptDocument} kind="transcript" onRemoved={() => refreshInPlace('transcript')} /> : <TranscriptField onApplied={() => refreshInPlace('transcript')} onSkip={() => void defer('transcript')} />)}
+            {selected.id === 'record' && <>{view.state.recordDocument ? <AttachedDocument key="record" document={view.state.recordDocument} kind="record" sourceFile={localDocuments.record} onRemoved={async () => { setLocalDocuments(held => ({...held, record: undefined})); await refreshInPlace('record') }} /> : <UploadField onRead={async (_result, file) => { setLocalDocuments(held => ({...held, record: file})); await refreshInPlace('record') }} onSkip={() => void defer('record')} />}{selected.done && continueTo && <div className="mt-5"><Button type="button" onClick={() => continueFrom(selected.id)}>Continue to {continueTo.title.replace(/^Your |^The /, '').toLowerCase()}<ChevronRightIcon data-icon="inline-end" /></Button></div>}<div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
+            {selected.id === 'transcript' && (view.state.transcriptDocument ? <AttachedDocument key="transcript" document={view.state.transcriptDocument} kind="transcript" sourceFile={localDocuments.transcript} onRemoved={async () => { setLocalDocuments(held => ({...held, transcript: undefined})); await refreshInPlace('transcript') }} /> : <TranscriptField onApplied={async (file) => { if (file) setLocalDocuments(held => ({...held, transcript: file})); await refreshInPlace('transcript') }} onSkip={() => void defer('transcript')} />)}
+            {selected.id === 'transcript' && selected.done && continueTo && <div className="mt-5"><Button type="button" onClick={() => continueFrom(selected.id)}>Continue to {continueTo.title.replace(/^Your |^The /, '').toLowerCase()}<ChevronRightIcon data-icon="inline-end" /></Button></div>}
             {['record', 'transcript'].includes(selected.id) && view.state.recordDocument && view.state.transcriptDocument && <SavedDocumentCheck key={JSON.stringify([view.state.recordDocument, view.state.transcriptDocument])} />}
             {selected.id === 'record' && view.state.recordDocument && !view.state.transcriptDocument && <p className="mt-5 text-sm text-muted-foreground">Your academic record is saved. Next, you can add a transcript to cross-check your results, or skip it.</p>}
             {selected.id === 'calendar' && <div className="flex flex-col gap-4"><strong className="font-data text-[32px] tabular-nums">{view.state.calendarDates ?? 0} maintained dates</strong><p className="text-muted-foreground max-w-[60ch] text-sm leading-relaxed">Teaching periods, exam weeks and holidays come from your selected programme. We use these dates to place each week and show the next exam in context.</p><div className="flex flex-wrap gap-2"><Button variant="outline" nativeButton={false} render={<Link href="/app/calendar" />}>Review calendar</Button><Button variant="ghost" onClick={() => void defer('calendar')}>Do this later</Button></div></div>}
             {selected.id === 'timetable' && <form className="flex flex-col gap-5" onSubmit={async (event) => { event.preventDefault(); const url = timetable.trim(); if (!url || timetableBusy) return; setTimetableBusy(true); setTimetableError(null); try { await json('/api/academics/calendars', { method: 'POST', body: JSON.stringify({ url, label: 'University timetable' }) }); setTimetable(''); await refreshFrom('timetable') } catch (cause) { setTimetableError(cause instanceof Error ? cause.message : 'That feed could not be read.') } finally { setTimetableBusy(false) } }}><TimetableGuide /><Field data-invalid={timetableError ? true : undefined}><FieldLabel htmlFor="guided-timetable">Timetable URL</FieldLabel><Input id="guided-timetable" type="url" required autoComplete="off" spellCheck={false} value={timetable} disabled={timetableBusy} placeholder="https://timetable.maastrichtuniversity.nl/ical?…" onChange={(event) => setTimetable(event.target.value)} /><FieldDescription className="flex items-center gap-1.5"><ShieldIcon className="size-3.5" />Stored on your account only, and read but never written to.</FieldDescription>{timetableError && <FieldError>{timetableError}</FieldError>}</Field><div className="flex flex-wrap items-center gap-2"><Button type="submit" disabled={timetableBusy || !timetable.trim()}>{timetableBusy && <Spinner data-icon="inline-start" />}{timetableBusy ? 'Checking the feed…' : 'Connect timetable'}</Button><Button type="button" variant="ghost" disabled={timetableBusy} onClick={() => void defer('timetable')}>Do this later</Button>{saved === 'timetable' && <SavedMark>{selected.detail}</SavedMark>}</div></form>}
             {selected.id === 'canvas' && <div className="flex flex-col gap-5"><div className="flex items-start gap-3"><SparklesIcon className="text-primary mt-0.5 size-5 shrink-0" /><div><p className="text-sm font-semibold">Priority detection is included</p><p className="text-muted-foreground mt-1 text-sm leading-relaxed">With material collection enabled, Wicker re-scans syllabi, slides and course manuals for assignments, attendance requirements, group work, submissions and deadlines. Claims are reconciled with Canvas assignments; conflicts stay unverified until you review them.</p></div></div><SecureField kind="canvas" onApplied={(fresh) => advanceFrom(fresh, 'canvas')} onSkip={() => void defer('canvas')} /></div>}
             {selected.id === 'electives' && <Button type="button" variant="ghost" className="mt-5" disabled={deferBusy === 'electives'} onClick={() => void defer('electives')}>{deferBusy === 'electives' && <Spinner data-icon="inline-start" />}Do this later</Button>}
-            {['record', 'transcript', 'calendar'].includes(selected.id) && selected.done && continueTo && <div className="mt-6 border-t pt-5"><Button type="button" onClick={() => continueFrom(selected.id)}>Continue to {continueTo.title.replace(/^Your |^The /, '').toLowerCase()}<ChevronRightIcon data-icon="inline-end" /></Button></div>}
+            {selected.id === 'calendar' && selected.done && continueTo && <div className="mt-6 border-t pt-5"><Button type="button" onClick={() => continueFrom(selected.id)}>Continue to {continueTo.title.replace(/^Your |^The /, '').toLowerCase()}<ChevronRightIcon data-icon="inline-end" /></Button></div>}
           </div>
         </main>
 

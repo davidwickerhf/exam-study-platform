@@ -50,7 +50,7 @@ Proposed changes and comparisons open in separate side panels with a fixed close
 action. The setup card retains its file summary, Apply and Continue actions without
 expanding a long list. Selections survive closing a panel. The original PDF or text
 file can be previewed from View document during the review; its bytes stay in the
-browser and are released when leaving the step. The shared PDF renderer accepts a
+browser for the setup session, including after saving. Existing imports offer a local-file chooser for preview without reimporting or changing saved results. Reloading releases local files. Academic Work historical curriculum changes and conflict evidence also open in side panels, and Continue appears before reconciliation details. The shared PDF renderer accepts a
 local File directly, and setup parsing uses the same installed PDF.js worker.
 
 Review validation compares nested values with strict structural equality. PostgreSQL

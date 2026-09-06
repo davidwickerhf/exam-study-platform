@@ -3698,9 +3698,14 @@ const server = createServer(async (req, res) => {
     const ip = clientIp(req)
     const isApi = url.pathname.startsWith('/api/')
 
-    // Per-IP ceiling on everything, plus a tight budget for repeated auth failures.
-    const ipBudget = consume(`ip:${ip}`, RATE_POLICIES.ip)
-    if (!ipBudget.allowed) { sendRateLimited(res, ipBudget); return }
+    // Development emits hundreds of separate module chunks on a reload. Those
+    // read-only assets must not exhaust the request budget before setup loads.
+    // Production traffic and all API requests retain the per-IP ceiling.
+    const devAsset = development && ['GET', 'HEAD'].includes(req.method) && url.pathname.startsWith('/_next/static/')
+    if (!devAsset) {
+      const ipBudget = consume(`ip:${ip}`, RATE_POLICIES.ip)
+      if (!ipBudget.allowed) { sendRateLimited(res, ipBudget); return }
+    }
     if (isApi && !consume(`authfail:${ip}`, { ...RATE_POLICIES.authFailure, dryRun: true }).allowed) {
       sendRateLimited(res, consume(`authfail:${ip}`, { ...RATE_POLICIES.authFailure, dryRun: true }), 'Too many failed authentication attempts.')
       return

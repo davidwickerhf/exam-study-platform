@@ -434,6 +434,24 @@ This is not an official document issued by Maastricht University.`
   await expect(panel.getByText('Academic Work.txt',{exact:true})).toBeVisible()
   await expect(panel.getByRole('region',{name:'Document comparison'})).toHaveCount(0)
   await expect(panel.getByText(/Next, you can add a transcript/)).toBeVisible()
+  await panel.getByRole('button',{name:'View document',exact:true}).click()
+  const recordPreview=page.getByRole('dialog',{name:'Academic Work.txt',exact:true})
+  await expect(recordPreview.locator('pre')).toContainText('Operating Systems')
+  await recordPreview.getByRole('button',{name:'Done reviewing',exact:true}).click()
+  await expect(recordPreview).not.toBeVisible()
+  // Reload loses local bytes, while the saved results remain connected.
+  await page.reload()
+  await expect(panel.getByRole('button',{name:'Choose file to preview',exact:true})).toBeVisible()
+  const writes=[]
+  const observe=request=>{if(request.method()!=='GET' && /\/api\/(academics|onboarding)/.test(request.url()))writes.push(request.url())}
+  page.on('request',observe)
+  await panel.getByLabel('Choose original document for local preview').setInputFiles({name:'Academic Work.txt',mimeType:'text/plain',buffer:Buffer.from(record)})
+  await panel.getByRole('button',{name:'View document',exact:true}).click()
+  await expect(recordPreview.locator('pre')).toContainText('Operating Systems')
+  await recordPreview.getByRole('button',{name:'Done reviewing',exact:true}).click()
+  await expect(recordPreview).not.toBeVisible()
+  expect(writes).toEqual([])
+  page.off('request',observe)
   await panel.getByRole('button',{name:'Continue to transcript',exact:true}).click()
   await expect(panel.getByRole('heading',{name:'Your transcript',exact:true})).toBeVisible()
   await expect(panel.getByRole('button',{name:'Do this later',exact:true})).toBeEnabled()
@@ -516,4 +534,31 @@ test('transcript side panels keep setup compact, preserve selection and render t
     expect(await main.evaluate(element=>element.getBoundingClientRect().height)).toBeLessThan(1000)
     if(width===1280) await page.screenshot({path:'/tmp/wicker-transcript-compact.png',fullPage:true})
   }
+})
+
+
+test('saved Academic Work keeps forty curriculum changes in a side panel before continuing', async ({page})=>{
+  await page.route('**/api/onboarding',async route=>{
+    const response=await route.fetch(),body=await response.json()
+    await route.fulfill({json:{...body,skipped:[],state:{...body.state,programme:true,electives:true,record:true,recordDocument:{name:'Academic Work.pdf',createdAt:'2026-09-06T12:00:00Z'},transcript:false,transcriptDocument:null,issues:[],curriculumReconciliation:{currentCount:40,recognizedCount:40,outsideCount:0,otherYearCount:0,historicalCount:40,changes:Array.from({length:40},(_,i)=>({id:`history-${i}`,name:`Historical course ${i+1}`,placements:[{versionId:'2025-2026',code:`BCS${i}`,yearLevel:2,period:1}]}))}}}})
+  })
+  await page.goto('/app/setup?step=record')
+  const main=page.getByRole('main')
+  for(const width of [1280,390]) {
+    await page.setViewportSize({width,height:844})
+    await expect(main.getByRole('button',{name:'Continue to transcript',exact:true})).toBeEnabled()
+    await expect(main.getByRole('list',{name:'Historical curriculum changes'})).toHaveCount(0)
+    await main.getByRole('button',{name:'Review 40 historical changes',exact:true}).click()
+    const drawer=page.getByRole('dialog',{name:'Curriculum changes',exact:true})
+    await expect(drawer.getByRole('listitem')).toHaveCount(40)
+    await drawer.getByRole('listitem').last().scrollIntoViewIfNeeded()
+    await expect(drawer.getByRole('button',{name:'Done reviewing',exact:true})).toBeInViewport()
+    await drawer.getByRole('button',{name:'Done reviewing',exact:true}).click()
+    await expect(drawer).not.toBeVisible()
+    expect(await main.evaluate(element=>element.getBoundingClientRect().height)).toBeLessThan(1000)
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+    if(width===1280) await page.screenshot({path:'/tmp/wicker-academic-work-compact.png',fullPage:true})
+  }
+  await main.getByRole('button',{name:'Continue to transcript',exact:true}).click()
+  await expect(main.getByRole('heading',{name:'Your transcript',exact:true})).toBeVisible()
 })
