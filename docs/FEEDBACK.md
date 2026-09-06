@@ -66,3 +66,14 @@ MCP supports `shareContactEmail:true` in `feedback_prepare` only after the stude
 Every report composer accepts up to four PNG, JPEG or WebP screenshots (5 MB each, at most 4096 × 4096 pixels) plus one text excerpt of up to 12,000 characters. Screenshot totals must fit the existing attachment payload limit; the form explains when smaller images are needed. Images are converted to PNG and metadata is removed. Screenshots can be removed individually before preview.
 
 Choose **Attach Tutor conversation text or another excerpt** to paste relevant questions and replies. Reporting a Tutor answer pre-fills that answer for editing, with sharing still off by default. Users can add surrounding conversation or remove private details. No entire conversation is fetched or shared automatically. The exact attachment text and images appear before confirmed submission, and attachments can be withdrawn from the report afterward.
+
+
+## Report experience
+
+My feedback separates reports from diagnostics preferences. A report opens as a
+conversation with its original note, review updates and a reply composer.
+Progress and collapsible sharing controls remain alongside the conversation.
+Email consent and attachment withdrawal are available under Shared details.
+Tutor answer revisions use canonical JSON object ordering so a database JSONB
+round-trip does not invalidate Helpful, Not helpful or Report an issue controls;
+actual edits to answer text or widgets still invalidate stale feedback.

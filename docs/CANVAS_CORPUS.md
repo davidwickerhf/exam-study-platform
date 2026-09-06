@@ -128,3 +128,38 @@ Every catalogue pass resolves today's programme calendar with personal overrides
 During dated teaching/exam/resit periods, select that period's eligible editions. During breaks, watch the recent ending academic year (within 120 days) and the next year approaching within 60 days. August retains the ending year even if next year's calendar is unpublished. Upcoming Canvas terms must begin within 60 days in a break (14 days during a period). Retakes select only the latest eligible edition per course. Old calendars are not extrapolated indefinitely: use the current Canvas academic year when dated coverage is unavailable. Missing active programme or explicit completed status pauses automatic work; graduation is never inferred from age, earned credits or failed attempts. The stored policy reason/time is visible in Settings.
 
 Turning automation off or marking completed cancels automatic jobs and revokes their leases while preserving originals/checkpoints and manual jobs. Individual course pauses and withdrawn consent remain authoritative. Manual historical collection is still available. A network operation already in flight can finish before its next lease check. Unchanged versioned files reuse complete originals/indexes; changed and unversioned files are collected again. Frequency is a scheduling target, not a guarantee of Canvas or worker completion time.
+
+
+## Material browser and structured formats
+
+Course material uses readable titles, search and file-type filters. Select a title
+to preview it, use the download icon for the unchanged original, or the More menu
+to report a problem. Previews load on demand; switching worksheets is local and
+the viewer caches its last eight inspected archive members while open.
+
+- Jupyter notebooks: Markdown, code cells, saved text output and bounded PNG plots.
+  No code, HTML output or interactive widget is executed.
+- Code files: searchable text and read-only source previews, including Python,
+  JavaScript/TypeScript, Java/C/C++, R, Julia, SQL and common shell/config files.
+  The shared supported-format registry is `lib/course-file-formats.json`.
+- XLSX and legacy XLS: sheet selection and saved cell values. XLSX also retains
+  formula text. No formula recalculation, macros or exact Office layout.
+- CSV/TSV: quoted delimiters are respected. The preview shows at most 100 rows
+  and 40 columns; large files are indexed as labelled dataset profiles, not as
+  an exhaustive searchable copy of every cell.
+- ZIP: a searchable inventory and previews of supported members. Indexing retains
+  readable member paths and content; binary members remain in the original.
+- PPTX: numbered slide text; download the original for diagrams and exact layout.
+  PDF, image, audio and video retain their native viewers.
+
+Interactive previews accept originals up to 64 MB and have a 20-second processing
+budget. Notebook, sheet and archive previews explicitly disclose display limits.
+Preview failure never deletes the original or marks collection as failed.
+The preview endpoint applies the same per-account corpus access check as downloads.
+
+Previously unsupported, now-supported originals and ZIPs indexed with the older
+format registry are re-extracted on the next fresh course sync without downloading
+unchanged bytes again. A retry resumes its existing checkpoints; use a fresh scan
+to upgrade already-completed resources. Legacy XLS parsing uses pinned
+`xlrd==2.0.2` in the API and worker images; for local Python installs, provide the
+same module on `PYTHONPATH`.

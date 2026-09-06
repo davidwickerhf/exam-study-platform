@@ -101,3 +101,40 @@ test("MCP feedback mutations require one explicit confirmation per write", () =>
   for (const name of ["feedback_prepare", "feedback_read", "feedback_list"])
     assert.equal(requiresWriteConfirmation(name), false);
 });
+
+test("answer revisions survive JSONB property reordering but detect visible changes", () => {
+  const message = {
+    id: "answer",
+    role: "assistant",
+    content: "Hello",
+    presentation: {
+      version: 1,
+      widgets: [{ title: "Read", body: "Chapter 1" }],
+    },
+  };
+  const revision = (item) =>
+    stableTutorMessages({ id: "conversation", messages: [item] })[0]
+      .answerRevision;
+  const stored = {
+    ...message,
+    presentation: {
+      widgets: [{ body: "Chapter 1", title: "Read" }],
+      version: 1,
+    },
+  };
+  assert.equal(revision(message), revision(stored));
+  assert.notEqual(
+    revision(message),
+    revision({ ...stored, content: "Edited" }),
+  );
+  assert.notEqual(
+    revision(message),
+    revision({
+      ...stored,
+      presentation: {
+        ...stored.presentation,
+        widgets: [{ body: "Chapter 2", title: "Read" }],
+      },
+    }),
+  );
+});
