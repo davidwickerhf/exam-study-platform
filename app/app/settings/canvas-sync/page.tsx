@@ -1,5 +1,6 @@
 "use client";
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -126,7 +127,7 @@ function AttemptLine({ job }: { job: CorpusJob }) {
         ) : null}
       </span>
       <span className={`text-muted-foreground ${NUMERALS}`}>{when(job)}</span>
-      <span className="flex items-center gap-3"><Link href={`/app/settings/canvas-sync/logs?job=${encodeURIComponent(job.id)}`} className="text-primary font-semibold hover:underline">Logs</Link><JobStatus job={job} /></span>
+      <span className="flex items-center gap-3"><Link href={`/app/settings/canvas-sync/logs?job=${encodeURIComponent(job.id)}`} className="text-primary font-semibold hover:underline">Logs</Link><FeedbackButton category="broken" subject={{kind:"sync",jobId:job.id}}/><JobStatus job={job} /></span>
     </li>
   );
 }

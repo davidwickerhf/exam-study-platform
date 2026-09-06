@@ -10,6 +10,7 @@
  * would otherwise push the whole canvas sideways.
  */
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -170,7 +171,7 @@ function QuestionCard({
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-[900px] flex-col gap-5 sm:gap-6">
       <div className="flex flex-col gap-2 sm:gap-3">
-        <TypeLine question={question} />
+        <div className="flex flex-wrap justify-between gap-2"><TypeLine question={question} /><FeedbackButton subject={{kind:"practice",courseId:question.courseId,questionId:question.id}} excerpt={question.question}>Report question</FeedbackButton></div>
         <Prose
           source={question.question}
           className={`${PROSE} font-heading text-[21px] leading-[1.45] font-semibold tracking-[-0.015em]`}

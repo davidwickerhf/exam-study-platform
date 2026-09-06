@@ -9,6 +9,7 @@
  * FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
  */
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
@@ -307,7 +308,7 @@ export default function HomePage() {
       <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-7 px-4 py-6 sm:px-6 lg:px-8 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.58fr)_minmax(19rem,0.72fr)] xl:overflow-hidden xl:py-0">
         <section className="min-w-0 xl:overflow-y-auto xl:overscroll-contain xl:py-6 xl:pr-3 xl:[scrollbar-gutter:stable]" aria-labelledby="route-heading" data-route-scroll-region>
           <div data-tour="today" className="flex items-baseline justify-between gap-4 border-b pb-3">
-            <h2 id="route-heading" className="text-lg font-semibold tracking-tight">Your study route</h2>
+            <FeedbackButton subject={{kind:"credits"}}>Report a record issue</FeedbackButton><h2 id="route-heading" className="text-lg font-semibold tracking-tight">Your study route</h2>
             <Link href="/app/calendar" className="text-primary text-xs font-semibold">Full calendar</Link>
           </div>
 

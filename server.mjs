@@ -1,3 +1,5 @@
+import { feedbackMaintenance, recordQualityEvent } from './lib/feedback-store.mjs'
+import { handleFeedbackRoute } from './lib/feedback-routes.mjs'
 import { beginAgentActivity, readAgentActivity } from './lib/agent-activity.mjs'
 import { prepareExternalTutorUpdate, confirmExternalTutorUpdate } from './lib/tutor-external-updates.mjs'
 import { fetchCanvasAssignmentDetail } from './lib/canvas-assignment-detail.mjs'
@@ -3625,7 +3627,8 @@ const server = createServer(async (req, res) => {
       if (process.env.VERCEL_ENV === 'preview') { send(res, 200, JSON.stringify({ disabled: true })); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result
-      if (body.action === 'dispatch') result = { ids: await queue.dispatchCanvasQueue() }
+      if (body.action === 'feedback-maintenance') { await feedbackMaintenance(); result = { ok: true } }
+      else if (body.action === 'dispatch') result = { ids: await queue.dispatchCanvasQueue() }
       else if (body.action === 'sent' && Array.isArray(body.ids) && body.ids.length <= 50) { await queue.noteCanvasQueueSent(body.ids); result = { ok: true } }
       else if (body.action === 'step' && /^csj-[a-zA-Z0-9-]+$/.test(body.jobId || '')) result = await queue.processCanvasQueueStep(body.jobId)
       else { send(res, 400, JSON.stringify({ error: 'Unknown task' })); return }
@@ -3732,7 +3735,13 @@ const server = createServer(async (req, res) => {
       }
       if (url.pathname.startsWith('/api/admin/') && req.method !== 'GET') console.info(`[admin] ${auth.userId}${auth.keyId ? ` key=${auth.keyId}` : ''} ${req.method} ${url.pathname}${url.search}`)
       setRequestContext(auth)
+      const feedbackStarted = Date.now()
+      if(!url.pathname.startsWith('/api/feedback')&&!url.pathname.startsWith('/api/admin/feedback')&&url.pathname!=='/api/tutor')res.once('finish',()=>{
+        if(res.statusCode>=500)void recordQualityEvent({code:'API_FAILURE',stage:'request',route:url.pathname,durationMs:Date.now()-feedbackStarted},{userId:auth.userId}).catch(()=>{})
+      })
     }
+
+    if (await handleFeedbackRoute(req,res,url,{readBody,send})) return
 
     if (url.pathname === '/api/account/agent-activity' && req.method === 'GET') { send(res, 200, JSON.stringify(await readAgentActivity(Object.fromEntries(url.searchParams))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); return }
 
@@ -4617,6 +4626,7 @@ const server = createServer(async (req, res) => {
         if (emit) { emit('result', { result }); res.end() }
         else send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
+        void recordQualityEvent({code:controller.signal.aborted?'TUTOR_INTERRUPTED':'TUTOR_FAILURE',stage:'generation',route:'/app/tutor',outcome:controller.signal.aborted?'interrupted':'failed'}).catch(()=>{})
         let conversation = null
         if (activeTurn) conversation = await failTutorTurn(activeTurn, error, controller.signal.aborted).catch(() => null)
         const failure = { conversation: visibleTutorConversation(conversation), error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }

@@ -47,7 +47,7 @@ test('standalone MCP publishes the new tools and schemas over stdio', async () =
   const transport = new StdioClientTransport({ command: process.execPath, args: [new URL('../mcp/server.mjs', import.meta.url).pathname], env: { PATH: process.env.PATH, WICKER_STUDY_URL: 'http://127.0.0.1:4177', WICKER_STUDY_API_KEY: 'wsk_fixture_never_sent' }, stderr: 'pipe' })
   try {
     await client.connect(transport)
-    assert.equal(client.getServerVersion().version, '2.9.0')
+    assert.equal(client.getServerVersion().version, '2.10.0')
     const listed = await client.listTools()
     for (const name of fixture().tools.keys()) assert.ok(listed.tools.some(tool => tool.name === name), name)
     const approval = listed.tools.find(tool => tool.name === 'tutor_approve_action')

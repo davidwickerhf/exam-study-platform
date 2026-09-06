@@ -1,5 +1,6 @@
 "use client";
 
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DownloadIcon, FileIcon, PlayIcon, RefreshCwIcon } from "lucide-react";
@@ -103,6 +104,7 @@ export function CourseMaterialLibrary({ courseCode, courseCodes = [], academicYe
               <span className="text-muted-foreground hidden text-xs tabular-nums sm:block">{item.academicYear || "Undated"}{item.period ? ` · P${item.period}` : ""}</span>
               <span className="text-muted-foreground hidden text-right text-xs tabular-nums sm:block">{size(item.byteSize)}</span>
               <span className="col-span-3 flex items-center justify-end gap-1 sm:col-span-1">
+                <FeedbackButton subject={{kind:"material",assetId:item.assetId,courseCode,academicYear:item.academicYear || undefined}}/>
                 {!item.current && <Badge variant="outline">Older</Badge>}
                 {canPreview(item.mediaType) && <Button variant="ghost" size="sm" onClick={() => setPreview(item)}>Open</Button>}
                 <a className={buttonVariants({ variant: "ghost", size: "icon-sm" })} href={item.downloadUrl} title="Download original" aria-label={`Download ${item.filename}`}><DownloadIcon /></a>

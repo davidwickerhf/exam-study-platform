@@ -1,4 +1,5 @@
 "use client";
+import { FeedbackButton } from '@/components/feedback/feedback'
 import { cachedWorkspaceJson, useWorkspaceData } from "@/hooks/use-workspace-data";
 
 /**
@@ -512,6 +513,7 @@ function AnnouncementDesk({
                   </p>
                 </div>
               </div>
+              <FeedbackButton subject={{kind:"announcement",itemId:selected.id,courseCode:selected.courseCode}}/>
               <OpenCanvas href={selected.url} />
             </header>
             <div className="mx-auto max-w-[70ch] px-5 py-7 sm:px-7">
@@ -675,6 +677,7 @@ function AssignmentDesk({
                   {courseName(selected)}
                 </p>
               </div>
+              <FeedbackButton subject={{kind:"assignment",itemId:selected.id,courseCode:selected.courseCode}}/>
               <OpenCanvas href={selected.url} />
             </header>
             <div className="mx-auto max-w-[70ch] px-5 py-7 sm:px-7">
