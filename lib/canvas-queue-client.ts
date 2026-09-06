@@ -1,6 +1,6 @@
 import { queueWorkersEnabled, queueDispatcherOrigin, queueRequestHeaders } from './queue-runtime.mjs'
 import { send } from '@vercel/queue'
-import { CANVAS_QUEUE_TOPIC, signCanvasTask } from './canvas-queue-protocol.mjs'
+import { CANVAS_QUEUE_TOPIC, queueTopicForJob, signCanvasTask } from './canvas-queue-protocol.mjs'
 
 type StepResult = { again?: boolean; delay?: number; ids?: string[]; disabled?: boolean }
 export async function callCanvasService(payload: Record<string, unknown>): Promise<StepResult> {
@@ -21,7 +21,7 @@ export async function sendCanvasStep(jobId: string, delaySeconds = 0) {
   // through the stable production URL rather than pinning continuations here.
   // No deduplication key shared across steps: a new step of the same job must
   // remain deliverable. SQL claims make duplicate notifications harmless.
-  await send(CANVAS_QUEUE_TOPIC, { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
+  await send(queueTopicForJob(jobId), { version: 1, jobId }, { retentionSeconds: 604800, delaySeconds })
 }
 export async function dispatchCanvasSteps() {
   if (!queueWorkersEnabled()) return { disabled: true, sent: 0 }

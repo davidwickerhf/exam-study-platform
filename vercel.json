@@ -14,6 +14,15 @@
               "maxConcurrency": 2
             }
           ]
+        },
+        "app/internal/study-consume/route.ts": {
+          "experimentalTriggers": [
+            {
+              "type": "queue/v2beta",
+              "topic": "study-generation-v1",
+              "maxConcurrency": 1
+            }
+          ]
         }
       },
       "bindings": [

@@ -41,6 +41,12 @@ The same existing `CANVAS_CONNECTION_ENCRYPTION_KEY` must be available to both
 services. Do not rotate it during migration. Vercel supplies queue OIDC
 credentials automatically. Keep the existing database and AI settings.
 
+`/internal/study-consume` consumes `study-generation-v1` with one concurrent
+callback. Study and Canvas retain the same signed API/SQL-lease contract but use
+independent queue capacity, so a large import cannot occupy every generation
+slot. Already-published study notifications on the old Canvas topic remain
+compatible during rollout. Budget reservations still guard each model call.
+
 ## Persistence and recovery
 
 Migration 029 adds per-job API checkpoints, a resource inventory, original-byte

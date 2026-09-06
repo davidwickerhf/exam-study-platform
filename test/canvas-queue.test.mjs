@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createCanvasApi, importCanvasCourse } from '../lib/canvas-course-import.mjs'
-import { signCanvasTask, verifyCanvasTask, validateDownloadRange, CanvasCheckpointYield } from '../lib/canvas-queue-protocol.mjs'
+import { queueTopicForJob, CANVAS_QUEUE_TOPIC, STUDY_QUEUE_TOPIC, signCanvasTask, verifyCanvasTask, validateDownloadRange, CanvasCheckpointYield } from '../lib/canvas-queue-protocol.mjs'
 
 test('queue service signatures bind payload, time and service key',()=>{
   const time='1788700000000',key='fixture-key',body='{"jobId":"one"}'
@@ -53,4 +53,10 @@ test('durable importer replays discovery after interruption without dropping nes
   const before=texts.size
   await importCanvasCourse(args)
   assert.equal(texts.size,before);assert.equal(files.size,2)
+})
+
+test('student generation uses independent capacity from Canvas imports', () => {
+  assert.equal(queueTopicForJob('sv-123'), STUDY_QUEUE_TOPIC)
+  assert.equal(queueTopicForJob('csj-123'), CANVAS_QUEUE_TOPIC)
+  assert.notEqual(STUDY_QUEUE_TOPIC, CANVAS_QUEUE_TOPIC)
 })

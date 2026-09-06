@@ -11,7 +11,9 @@ export const POST = handleCallback(async (message: { version: number; jobId: str
     return
   }
   if (!queueWorkersEnabled()) return
+  if (message.jobId.startsWith('sv-')) console.info('Study queue step started', message.jobId)
   const result = await callCanvasService({ action: message.jobId.startsWith('sv-') ? 'study-step' : 'step', jobId: message.jobId })
+  if (message.jobId.startsWith('sv-')) console.info('Study queue step finished', message.jobId, result)
   // Preview has no cron sweep. Persist the next delivery, including backoff,
   // before acknowledging this message. SQL leases make duplicates harmless.
   if (process.env.VERCEL_ENV === 'preview' && result.again) {
