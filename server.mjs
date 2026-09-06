@@ -36,7 +36,8 @@ import { runBudgetedStudyCall } from './lib/study-ai-budget.mjs'
 import { studyVersionApi } from './lib/study-version-api.mjs'
 import { processStudyStep } from './lib/study-version-pipeline.mjs'
 import { pendingStudyVersions, claimStudyDispatch, resolveStudyJob, asStudyOwner } from './lib/study-version-store.mjs'
-import { digest as studyDigest } from './lib/study-version-content.mjs'
+import { openAiResponseText } from './lib/study-provider-output.mjs'
+import { digest as studyDigest, StudyVersionError } from './lib/study-version-content.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { storeImportedProgramme } from './lib/academics.mjs'
 import {
@@ -1486,15 +1487,11 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
       body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
     })
     if (!resp.ok) {
-      const errText = await resp.text().catch(() => '')
-      throw new Error(`OpenAI API ${resp.status}: ${errText.slice(0, 500)}`)
+      await resp.body?.cancel()
+      throw new StudyVersionError(`The AI provider returned HTTP ${resp.status}. Check the model connection and retry the unfinished step.`, 502)
     }
     const data = await resp.json()
-    const choice = data.choices?.[0]
-    if (choice?.finish_reason === 'length') throw new Error('The AI response reached its output limit before completing. Reduce the chapter scope and retry.')
-    if (choice?.message?.refusal) throw new Error('The AI provider declined this generation request. Review the selected sources before retrying.')
-    const text = (typeof choice?.message?.content === 'string' ? choice.message.content : (choice?.message?.content || []).map((part) => part.text || '').join('')).trim()
-    if (!text) throw new Error(`OpenAI API returned no content (finish_reason=${choice?.finish_reason})`)
+    const text = openAiResponseText(data)
     return {
       text,
       usage: {
