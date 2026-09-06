@@ -31,7 +31,7 @@ export function StudyChapterEditor({ chapter, revision, onChanged }: { chapter: 
   return <>
     <Button variant="outline" size="sm" className="self-start" onClick={() => { setOpen(true); setReview(false); setError('') }}><PencilIcon />Edit chapter</Button>
     <Sheet open={open} onOpenChange={value => { if (!busy) setOpen(value) }}>
-      <SheetContent className="w-full gap-0 sm:max-w-2xl">
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
         <SheetHeader className="border-b p-6 pr-12">
           <SheetTitle>Edit chapter</SheetTitle>
           <SheetDescription>{chapter.title}</SheetDescription>

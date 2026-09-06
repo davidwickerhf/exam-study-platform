@@ -25,9 +25,10 @@ export function StudyProposal({ proposal, base, onChanged }: { proposal: StudyRe
       <Button onClick={() => setOpen(true)}>Review proposed changes</Button>
     </section>
     <Sheet open={open} onOpenChange={value => { if (!busy) setOpen(value) }}>
-      <SheetContent className="w-full gap-0 sm:max-w-4xl">
-        <SheetHeader className="border-b p-6 pr-12"><SheetTitle>Review proposed changes</SheetTitle><SheetDescription>{proposal.edit?.feedback}</SheetDescription></SheetHeader>
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-4xl">
+        <SheetHeader className="border-b p-6 pr-12"><SheetTitle>Review proposed changes</SheetTitle><SheetDescription>Compare the update before replacing this chapter. Your current revision stays saved.</SheetDescription></SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          <details className="mb-5 rounded-lg border p-3 text-sm"><summary className="cursor-pointer font-medium">Your request</summary><p className="mt-3 whitespace-pre-wrap leading-relaxed text-muted-foreground">{proposal.edit?.feedback}</p></details>
           <Tabs defaultValue="changes"><TabsList><TabsTrigger value="changes">Text changes ({changes.length})</TabsTrigger><TabsTrigger value="preview">Full chapter preview</TabsTrigger></TabsList>
             <TabsContent value="changes" className="space-y-5 pt-4"><p className="text-sm text-muted-foreground">Review the full preview for diagrams, learning goals and any structural changes. Applying replaces this chapter only.</p>{changes.map(c => <section key={c.key} className="border-b pb-5"><h3 className="mb-3 font-medium">{c.label}</h3><div className="grid gap-5 md:grid-cols-2"><div><p className="mb-2 text-xs font-medium text-muted-foreground">BEFORE</p><StudyProse>{c.before || 'Not present'}</StudyProse></div><div><p className="mb-2 text-xs font-medium text-primary">PROPOSED</p><StudyProse>{c.after || 'Removed'}</StudyProse></div></div></section>)}</TabsContent>
             <TabsContent value="preview" className="pt-4"><StudyReader revision={{ ...proposal, chapters: [after], topics: proposal.topics.filter(t => t.id === after.id) }} /></TabsContent>

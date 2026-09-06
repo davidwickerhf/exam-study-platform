@@ -670,6 +670,7 @@ test('chapter edits review changes, preserve history, and apply an AI proposal e
   await page.getByRole('button', { name: 'Edit chapter', exact: true }).click()
   const panel = page.getByRole('dialog')
   await expect(panel.getByRole('heading', { name: 'Edit chapter' })).toBeVisible()
+  expect((await panel.boundingBox()).width).toBeGreaterThanOrEqual(650)
   await panel.getByLabel('Text to edit').selectOption('sections.0.text')
   const revised = `${base.revision.chapters[0].sections[0].text}\n\nMy own clarification: check that both quantities use the same unit.`
   await panel.getByLabel('Your wording').fill(revised)
@@ -704,6 +705,7 @@ test('chapter edits review changes, preserve history, and apply an AI proposal e
   await page.reload()
   await page.getByRole('button', { name: 'Review proposed changes', exact: true }).click()
   await expect(panel.getByRole('heading', { name: 'Review proposed changes' })).toBeVisible()
+  expect((await panel.boundingBox()).width).toBeGreaterThanOrEqual(850)
   await panel.getByRole('tab', { name: 'Full chapter preview' }).click()
   await expect(panel.getByText('A newly proposed worked example', { exact: false })).toBeVisible()
   const pending = await page.request.get(`/api/study-versions/${versionId}`).then(r => r.json())
@@ -720,5 +722,6 @@ test('chapter edits review changes, preserve history, and apply an AI proposal e
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: 'Edit chapter', exact: true }).click()
   await expect(panel.getByRole('button', { name: 'Review change', exact: true })).toBeInViewport()
+  expect(Math.round((await panel.boundingBox()).width)).toBe(390)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })

@@ -241,3 +241,12 @@ Live slide-deck testing also exposed title-only pages being expanded into unsupp
 teaching. Those passages now appear only as coverage limits; their original source
 snapshots are unchanged, and they are excluded from generation citation choices.
 A topic with no explanatory evidence stops before any provider call is charged.
+
+
+### September 7 live acceptance follow-up
+
+The real BCS2120 slide-deck version completed three checked chapters. A targeted GPT-5.4 proposal revised the Turing Test chapter after student feedback, with explicit browser review and Apply. Two residual source-framed flashcards were corrected manually at no AI cost; this chapter is therefore correctly labelled personally edited. The other chapters remained byte-for-byte unchanged. The saved practice answer and ten-question exam retained their original revision and question snapshots across all edits.
+
+Quality failures now permit at most one automatic focused correction per chapter using the saved draft and review findings. All calls use the existing billing reservations and limits. A recheck-only request never triggers a rewrite. Persistent problems still block the affected chapter. Deterministic checks reject slide/lecture recall framing before a paid evidence review; lessons are prompted to teach concepts directly and place source-coverage qualifications in caveats.
+
+The isolated transcript JSONB comparison fix was backported to main in PR #51 with explicit merge authorization. Production deployment dpl_2tXYSsttaWbRQUMhVPcFBQacHuz4 is Ready and serves study.wicker.life. Its standalone regression reproduced the original error, and its verification passed 711 tests. The broader study-generation PR remains unmerged.

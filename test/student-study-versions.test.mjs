@@ -507,6 +507,8 @@ test('content quality gates reject unsupported citations, arithmetic mistakes, t
   assert.doesNotMatch(studyLessonQuality(meta).join(' '), /academic concept directly/)
   meta.questions[0].question = 'Which limitations do the slides list?'
   assert.match(studyLessonQuality(meta).join(' '), /academic concept directly/)
+  meta.questions[0].question = 'Why does the lecture say the Turing Test avoids discussion of consciousness?'
+  assert.match(studyLessonQuality(meta).join(' '), /academic concept directly/)
   assert.equal(arithmeticValue('-2^2'), -4)
   assert.equal(arithmeticValue('2^-2'), 0.25)
   assert.equal(arithmeticValue('2 + 3 * 4'), 14)
