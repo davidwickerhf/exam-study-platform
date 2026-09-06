@@ -25,6 +25,6 @@ export function useWorkspaceData<T>(key: string | null): WorkspaceData<T> {
   const read = useCallback(() => key ? workspaceCache.read(key) : workspaceCache.empty, [key])
   const entry = useSyncExternalStore(subscribe, read, () => workspaceCache.empty)
   useEffect(() => { if (key) void workspaceCache.load(key) }, [key, entry.version])
-  const refresh = useCallback(() => { if (key) { workspaceCache.invalidate(key); void workspaceCache.load(key, { force: true }) } }, [key])
+  const refresh = useCallback(() => { if (key) void workspaceCache.load(key, { force: true }) }, [key])
   return { data: entry.data as T | undefined, error: entry.error, loading: !!key && entry.data === undefined && entry.error === null, refresh }
 }
