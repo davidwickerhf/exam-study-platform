@@ -2,7 +2,7 @@ FROM node:20-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production CANVAS_CORPUS_ASSET_DIR=/tmp/corpus-assets
 RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr unzip && rm -rf /var/lib/apt/lists/*
-COPY package.json package-lock.json ./
+COPY deploy/runtime/package.json deploy/runtime/package-lock.json ./
 RUN npm ci --omit=dev
 COPY lib ./lib
 COPY scripts ./scripts
