@@ -88,6 +88,7 @@ export type StudyVersion = {
     stage: string
     error?: string
     canRecheck?: boolean
+    repairing?: boolean
     runAfter?: number
     chapters: number
     total: number
@@ -169,6 +170,7 @@ export function generationLabel(draft: StudyVersion['draft']) {
   if (draft.stage === 'review')
     return `Checking evidence · ${draft.chapters} of ${draft.total} chapters ready`
   if (draft.stage === 'finish') return 'Saving your revision'
+  if (draft.repairing) return `Correcting chapter · ${draft.chapters} of ${draft.total} ready`
   return `Writing chapters · ${draft.chapters} of ${draft.total} ready`
 }
 export type StudyBudget = {

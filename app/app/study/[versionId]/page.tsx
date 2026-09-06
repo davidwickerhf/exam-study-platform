@@ -202,7 +202,7 @@ export default function StudentStudyPage() {
           {draft.error && (
             <p className="text-destructive text-sm">{draft.error}</p>
           )}
-          {draft.issues
+          {!active && draft.issues
             ?.filter((i) => i.severity === 'error')
             .map((i, index) => (
               <p key={index} className="text-muted-foreground text-sm">

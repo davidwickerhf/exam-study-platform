@@ -375,6 +375,7 @@ test('failed independent evidence review cannot activate or publish a revision',
     await f.run(async () => {
       const v = await ownStudyVersion(f.version.id)
       assert.equal(v.draft.status, 'failed')
+      assert.equal(v.draft.automaticRepairs.addition, 1)
       assert.equal(v.activeRevisionId, null)
       await assert.rejects(
         publishStudyVersion(v.id, { revisionId: v.draft.id }),
@@ -398,6 +399,29 @@ test('failed independent evidence review cannot activate or publish a revision',
   } finally {
     await f.cleanup()
   }
+})
+
+test('a source-recall card receives one automatic correction before the paid evidence review', async () => {
+  const f = await fixture()
+  try {
+    await f.run(async () => {
+      const ids = f.snapshot.chunks.map(c => c.id)
+      await mutateStudyVersion(f.version.id, v => { v.draft.stage = 'chapters'; v.draft.topics = [{id:'addition',title:'Addition',sourceIds:ids}] })
+      let generated = 0, reviewed = 0
+      const generate = async prompt => {
+        if (prompt.includes('Independently check')) { reviewed++; return {issues:[]} }
+        generated++
+        const value = lesson(ids)
+        if (generated === 1) value.flashcards[0].front = 'What question summarizes addition on the slide?'
+        else { assert.match(prompt, /smallest coherent changes/); assert.match(prompt, /academic concept directly/) }
+        return value
+      }
+      for (let i = 0; i < 6; i++) { await processStudyStep(f.version.id, {generate}); if ((await ownStudyVersion(f.version.id)).activeRevisionId) break }
+      assert.equal(generated, 2)
+      assert.equal(reviewed, 1)
+      assert.ok((await ownStudyVersion(f.version.id)).activeRevisionId)
+    })
+  } finally { await f.cleanup() }
 })
 
 test('public release is an explicit selected snapshot, checks source consent, and can be withdrawn', async () => {
@@ -476,6 +500,13 @@ test('content quality gates reject unsupported citations, arithmetic mistakes, t
   const unsafe = lesson(ids)
   unsafe.sections[0].text += '<script>alert(1)</script>'
   assert.match(studyLessonQuality(unsafe).join(' '), /safe text/)
+  const meta = lesson(ids)
+  meta.flashcards[0].front = 'What question summarizes the Turing Test on the slide?'
+  assert.match(studyLessonQuality(meta).join(' '), /academic concept directly/)
+  meta.flashcards[0].front = 'What does the Turing Test evaluate?'
+  assert.doesNotMatch(studyLessonQuality(meta).join(' '), /academic concept directly/)
+  meta.questions[0].question = 'Which limitations do the slides list?'
+  assert.match(studyLessonQuality(meta).join(' '), /academic concept directly/)
   assert.equal(arithmeticValue('-2^2'), -4)
   assert.equal(arithmeticValue('2^-2'), 0.25)
   assert.equal(arithmeticValue('2 + 3 * 4'), 14)
@@ -918,6 +949,16 @@ test('review-only retry keeps the failed chapter and charges no generation call'
       const next = await ownStudyVersion(before.id)
       assert.equal(calls, 1)
       assert.deepEqual(next.draft.chapters[0], {...saved, review:'passed'})
+      await mutateStudyVersion(before.id, v => { v.draft.status = 'failed'; v.draft.chapters[0].review = 'failed'; v.draft.automaticRepairs = {} })
+      await controlStudyGeneration(before.id, 'retry', null, {recheck:true})
+      const result = await processStudyStep(before.id, {generate: async prompt => {
+        assert.match(prompt, /Independently check/)
+        return {issues:[{topicId:saved.id,severity:'error',detail:'Still needs a correction.'}]}
+      }})
+      assert.equal(result.again, false)
+      const rejected = await ownStudyVersion(before.id)
+      assert.equal(rejected.draft.status, 'failed')
+      assert.equal(rejected.draft.repair, undefined)
     })
   } finally { await f.cleanup() }
 })
