@@ -9,7 +9,7 @@ import { Field, FieldLabel, FieldDescription } from '@/components/ui/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StudyChapterEditor } from './study-chapter-editor'
 import { StudyLessonStory } from './study-lesson-story'
-import { StudyProse } from './study-prose'
+import { StudyProse, StudyInline } from './study-prose'
 import { StudyEvidence } from './study-evidence'
 import {
   studyRequest,
@@ -152,7 +152,7 @@ export function StudyReader({
             explanation.
           </p>
           {editable && onEdited && <StudyChapterEditor key={`${revision.id}-${chapter.id}`} chapter={chapter} revision={revision} onChanged={onEdited} />}
-          {!!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span>{goal}</li>)}</ul></div>}
+          {!!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span><StudyInline>{goal}</StudyInline></li>)}</ul></div>}
         </header>
         <Tabs value={tab} onValueChange={setTab} className="min-w-0 gap-5">
           <TabsList
@@ -275,7 +275,7 @@ export function StudyReader({
                   </p>
                   <div className="flex flex-wrap gap-2"><Badge variant="outline">{question.skill || question.kind}</Badge>{question.difficulty && <Badge variant="secondary">{question.difficulty}</Badge>}</div>
                 </div>
-                {question.objective && <p className="text-xs text-muted-foreground">Practising: {question.objective}</p>}
+                {question.objective && <p className="text-xs text-muted-foreground">Practising: <StudyInline>{question.objective}</StudyInline></p>}
                 <StudyProse>{question.question}</StudyProse>
                 {question.hint && <details key={question.id} className="rounded-lg border px-4 py-3"><summary className="cursor-pointer text-sm font-medium">Need a hint?</summary><div className="mt-3"><StudyProse>{question.hint}</StudyProse></div></details>}
                 <Field>
@@ -387,7 +387,7 @@ export function StudyReader({
             <p className="mb-5 text-sm text-muted-foreground">Recall the answer before revealing it. Explain the reasoning aloud.</p>
             {chapter.flashcards[cardIndex] && <div className="rounded-xl border p-6 sm:p-8">
               <div className="mb-6 flex justify-between gap-3 text-xs text-muted-foreground"><span>Card {cardIndex+1} of {chapter.flashcards.length}</span><span>{chapter.flashcards[cardIndex].kind}</span></div>
-              <p className="max-w-prose text-lg font-medium leading-relaxed">{chapter.flashcards[cardIndex].front}</p>
+              <p className="max-w-prose text-lg font-medium leading-relaxed"><StudyInline>{chapter.flashcards[cardIndex].front}</StudyInline></p>
               {cardRevealed ? <div className="mt-6 border-t pt-6"><StudyProse>{chapter.flashcards[cardIndex].back}</StudyProse><StudyEvidence ids={chapter.flashcards[cardIndex].sourceIds} revision={revision} /></div> : <Button className="mt-6" variant="outline" onClick={() => setCardRevealed(true)}>Reveal answer</Button>}
               <div className="mt-8 flex justify-between gap-3"><Button variant="ghost" disabled={!cardIndex} onClick={() => { setCardIndex(i => i-1); setCardRevealed(false) }}>Previous card</Button><Button variant="ghost" disabled={cardIndex === chapter.flashcards.length-1} onClick={() => { setCardIndex(i => i+1); setCardRevealed(false) }}>Next card</Button></div>
             </div>}

@@ -10,7 +10,7 @@ export function lesson(ids, { wrong = false } = {}) {
   return {
     title: 'Addition',
     formatVersion: 2,
-    learningGoals: ['Combine disjoint quantities with matching units.', 'Diagnose double counting and unit errors.', 'Check a total using subtraction.'],
+    learningGoals: ['Combine disjoint quantities with matching units using $T=A+B$.', 'Diagnose double counting and unit errors.', 'Check a total using subtraction.'],
     sections: [
       'Definition',
       'Reasoning',
@@ -22,7 +22,7 @@ export function lesson(ids, { wrong = false } = {}) {
       callouts: title === 'Definition' ? [{kind:'definition',title:'Adding disjoint groups',text:'Addition combines quantities with matching units. Count each item once. An overlap is written A \\cap B. For the illustrative groups:\n\n$$2+3=5$$',sourceIds:ids}] : [],
       takeaway: 'Count each quantity once and verify the result.',
       detail: title === 'Reasoning' ? 'Subtraction gives an independent check: after combining two disjoint groups, remove one group from the total. The remainder should match the group that was present before addition. This works only when each object is counted once and the groups use matching units.' : null,
-      visual: title === 'Worked example' ? { title: 'Combine, then check', caption: 'Follow the illustrative total forward, then reverse the calculation to check it.', basis: 'illustrative', sourceIds: ids, diagram: {kind:'process',nodes:[{id:'start',label:'2 items',description:'Begin with the first disjoint group.'},{id:'add',label:'Add 3',description:'Combine the second group, counting every item once.'},{id:'total',label:'5 items',description:'The total combines both groups; subtract three to recover two.'}],edges:[{from:'start',to:'add',label:'Combine'},{from:'add',to:'total',label:'Total'},{from:'total',to:'start',label:'Subtract 3 to check'}]} } : null,
+      visual: title === 'Worked example' ? { title: 'Combine, then check', caption: 'Follow $T=A+B$ forward, then reverse the calculation to check it.', basis: 'illustrative', sourceIds: ids, diagram: {kind:'process',nodes:[{id:'start',label:'$2$ items',description:'Begin with the first disjoint group.'},{id:'add',label:'Add 3',description:'Combine the second group, counting every item once.'},{id:'total',label:'5 items',description:'The total combines both groups; subtract three to recover two.'}],edges:[{from:'start',to:'add',label:'Combine'},{from:'add',to:'total',label:'Total'},{from:'total',to:'start',label:'Subtract 3 to check'}]} } : null,
       sourceIds: ids
     })),
     summary: [
@@ -66,7 +66,7 @@ export function lesson(ids, { wrong = false } = {}) {
       {question:'A student adds metres to centimetres without conversion. Explain the error and repair the method.',answer:'The numerical terms use incompatible units, so their direct sum lacks a consistent meaning. Convert to a common unit first, combine the terms, and preserve that unit.',kind:'application'},
       {question:'Design a test that distinguishes an incorrect total from a double-counted input.',answer:'First verify which objects belong to each group and identify any shared members. Then count distinct objects once and reverse the proposed operation to check the total.',kind:'exam-style'},
       {question:'Transfer the counting method to two inventories when some products belong to both lists.',answer:'Match product identities across the inventories before adding counts. Count shared products once rather than twice, then check the result by reconstructing the separate and shared groups.',kind:'exam-style'}
-    ].map((q,i) => ({...q, answer:q.answer+' State the disjoint-group and matching-unit assumptions explicitly so the calculation can be checked independently.', sourceIds:ids, objective:['Combine disjoint quantities with matching units.','Diagnose double counting and unit errors.','Check a total using subtraction.'][i%3], skill:['apply','compare','recall','diagnose','apply','diagnose','transfer','transfer'][i], difficulty:i>=6?'challenge':i<2?'foundation':'standard',hint:'Check which items and units are being combined before calculating.'})),
+    ].map((q,i) => ({...q, answer:q.answer+' State the disjoint-group and matching-unit assumptions explicitly so the calculation can be checked independently.', sourceIds:ids, objective:['Combine disjoint quantities with matching units using $T=A+B$.','Diagnose double counting and unit errors.','Check a total using subtraction.'][i%3], skill:['apply','compare','recall','diagnose','apply','diagnose','transfer','transfer'][i], difficulty:i>=6?'challenge':i<2?'foundation':'standard',hint:'Check which items and units are being combined before calculating.'})),
     flashcards: [
       ['What does addition combine?', 'Quantities expressed in matching units.', 'definition'],
       ['Why require disjoint groups?', 'Otherwise shared items are counted twice.', 'misconception'],

@@ -1,5 +1,6 @@
 'use client'
 import { useId, useState } from 'react'
+import { StudyInline } from './study-prose'
 import { Button } from '@/components/ui/button'
 import type { StudyVisualSpec } from '@/lib/workspace/study-versions'
 
@@ -29,14 +30,14 @@ export function StudyVisual({ visual }: { visual: StudyVisualSpec }) {
       })}
       {d.nodes.map((node, i) => { const p = pos(i); return <g key={node.id}>
         <rect x={p.x-78} y={p.y-28} width="156" height="56" rx="10" fill={i === index ? 'var(--primary)' : 'var(--background)'} stroke={i === index ? 'var(--primary)' : 'var(--border)'} />
-        <text x={p.x} y={p.y+4} textAnchor="middle" fill={i === index ? 'var(--primary-foreground)' : 'var(--foreground)'} fontSize="13" fontWeight="500">{node.label.length > 23 ? `${node.label.slice(0,21)}…` : node.label}</text>
+        <foreignObject x={p.x-73} y={p.y-26} width="146" height="52"><div className="flex h-full items-center justify-center text-center text-[13px] font-medium" style={{color: i === index ? 'var(--primary-foreground)' : 'var(--foreground)'}}><StudyInline>{node.label}</StudyInline></div></foreignObject>
       </g> })}
     </svg>
-    controls = <div className="mt-3 flex flex-wrap gap-2" aria-label="Explore diagram nodes">{d.nodes.map((node, i) => <Button key={node.id} size="sm" variant={i === index ? 'secondary' : 'ghost'} aria-pressed={i === index} onClick={() => setSelected(i)} className="h-auto max-w-full whitespace-normal text-left">{i+1}. {node.label}</Button>)}</div>
-    description = <div className="mt-4 border-l-2 border-primary pl-4" aria-live="polite"><p className="text-sm font-medium">{d.nodes[index].label}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{d.nodes[index].description}</p><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{d.edges.filter(e => e.from === d.nodes[index].id).map((e,i) => <li key={i}>{e.label || 'Leads to'} → {d.nodes.find(n => n.id === e.to)?.label}</li>)}</ul></div>
-    fallback = <ol className="space-y-2">{d.nodes.map(n => <li key={n.id}><strong>{n.label}:</strong> {n.description}</li>)}{d.edges.map((e,i) => <li key={`edge-${i}`}>{d.nodes.find(n => n.id === e.from)?.label} → {d.nodes.find(n => n.id === e.to)?.label}: {e.label}</li>)}</ol>
+    controls = <div className="mt-3 flex flex-wrap gap-2" aria-label="Explore diagram nodes">{d.nodes.map((node, i) => <Button key={node.id} size="sm" variant={i === index ? 'secondary' : 'ghost'} aria-pressed={i === index} onClick={() => setSelected(i)} className="h-auto max-w-full whitespace-normal text-left">{i+1}. <StudyInline>{node.label}</StudyInline></Button>)}</div>
+    description = <div className="mt-4 border-l-2 border-primary pl-4" aria-live="polite"><p className="text-sm font-medium"><StudyInline>{d.nodes[index].label}</StudyInline></p><p className="mt-1 text-sm leading-relaxed text-muted-foreground"><StudyInline>{d.nodes[index].description}</StudyInline></p><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{d.edges.filter(e => e.from === d.nodes[index].id).map((e,i) => <li key={i}>{e.label || 'Leads to'} → {d.nodes.find(n => n.id === e.to)?.label}</li>)}</ul></div>
+    fallback = <ol className="space-y-2">{d.nodes.map(n => <li key={n.id}><strong><StudyInline>{n.label}</StudyInline>:</strong> <StudyInline>{n.description}</StudyInline></li>)}{d.edges.map((e,i) => <li key={`edge-${i}`}>{d.nodes.find(n => n.id === e.from)?.label} → {d.nodes.find(n => n.id === e.to)?.label}: {e.label}</li>)}</ol>
   } else if (d.kind === 'comparison') {
-    graphic = <div className="overflow-x-auto"><table className="w-full border-collapse text-left text-sm"><thead><tr><th scope="col" className="p-3 pl-0 text-muted-foreground">Compare</th>{d.columns.map(c => <th scope="col" className="border-b p-3 font-semibold" key={c}>{c}</th>)}</tr></thead><tbody>{d.rows.map((r,i) => <tr key={i} className="border-b last:border-0"><th scope="row" className="py-4 pr-3 align-top font-medium">{r.label}</th>{r.cells.map((cell,j) => <td key={j} className="px-3 py-4 align-top leading-relaxed text-muted-foreground">{cell}</td>)}</tr>)}</tbody></table></div>
+    graphic = <div className="overflow-x-auto"><table className="w-full border-collapse text-left text-sm"><thead><tr><th scope="col" className="p-3 pl-0 text-muted-foreground">Compare</th>{d.columns.map(c => <th scope="col" className="border-b p-3 font-semibold" key={c}><StudyInline>{c}</StudyInline></th>)}</tr></thead><tbody>{d.rows.map((r,i) => <tr key={i} className="border-b last:border-0"><th scope="row" className="py-4 pr-3 align-top font-medium"><StudyInline>{r.label}</StudyInline></th>{r.cells.map((cell,j) => <td key={j} className="px-3 py-4 align-top leading-relaxed text-muted-foreground"><StudyInline>{cell}</StudyInline></td>)}</tr>)}</tbody></table></div>
   } else if (d.kind === 'plot') {
     const points = [...d.points].sort((a,b) => d.style === 'line' ? a.x-b.x : 0)
     const minX = Math.min(...points.map(p=>p.x)), maxX = Math.max(...points.map(p=>p.x))
@@ -69,5 +70,5 @@ export function StudyVisual({ visual }: { visual: StudyVisualSpec }) {
     description = <p className="mt-4 text-sm leading-relaxed" aria-live="polite">Selected {chosen.length} of {d.universe.length} items: <strong>{chosen.join(', ') || '∅ (empty set)'}</strong></p>
     fallback = <div className="space-y-2"><p>Universe: {d.universe.join(', ')}</p><p>{d.aLabel}: {d.a.join(', ') || '∅'}</p><p>{d.bLabel}: {d.b.join(', ') || '∅'}</p><p>The circles show membership, not areas proportional to probability.</p></div>
   }
-  return <figure className="rounded-xl border bg-muted/20 p-5 sm:p-6" data-study-visual={d.kind}>{heading}{graphic}{controls}{description}<figcaption className="mt-5 text-sm leading-relaxed text-muted-foreground">{visual.caption}</figcaption>{fallback && <details className="mt-4 border-t pt-3 text-xs leading-relaxed"><summary className="cursor-pointer font-medium">Read diagram as text</summary><div className="mt-3">{fallback}</div></details>}</figure>
+  return <figure className="rounded-xl border bg-muted/20 p-5 sm:p-6" data-study-visual={d.kind}>{heading}{graphic}{controls}{description}<figcaption className="mt-5 text-sm leading-relaxed text-muted-foreground"><StudyInline>{visual.caption}</StudyInline></figcaption>{fallback && <details className="mt-4 border-t pt-3 text-xs leading-relaxed"><summary className="cursor-pointer font-medium">Read diagram as text</summary><div className="mt-3">{fallback}</div></details>}</figure>
 }

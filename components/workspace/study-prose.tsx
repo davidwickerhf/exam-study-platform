@@ -20,3 +20,14 @@ export function StudyProse({ children }: { children: string }) {
     </div>
   )
 }
+
+// Compact labels, goals and diagram/table text need math too, but must inherit
+// the surrounding typography and stay valid inside a button or table heading.
+export function StudyInline({ children }: { children: string }) {
+  return <span className="break-words [&_.katex]:text-[1em]">
+    <Markdown skipHtml remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false, trust: false }]]}
+      components={{ p: ({ children }) => <span>{children}</span>, img: () => null, a: ({ children }) => <>{children}</> }}>
+      {children.replace(/\$\$([\s\S]+?)\$\$/g, (_, math: string) => `$${math.trim()}$`)}
+    </Markdown>
+  </span>
+}
