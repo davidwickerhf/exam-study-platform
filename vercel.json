@@ -4,12 +4,13 @@
     "web": {
       "root": ".",
       "framework": "nextjs",
-      "buildCommand": "npm run build"
+      "buildCommand": "npm run build",
+      "runtime": "nodejs24.x"
     },
     "api": {
       "root": ".",
       "runtime": "container",
-      "entrypoint": "Dockerfile.api"
+      "entrypoint": "Containerfile"
     }
   },
   "rewrites": [

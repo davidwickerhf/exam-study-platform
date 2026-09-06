@@ -1,7 +1,7 @@
 # Web, API and processing deployments
 
 The public domain routes to two Vercel services. `web` builds Next.js normally;
-`api` builds `Dockerfile.api` and runs the existing authenticated
+`api` builds `Containerfile` and runs the existing authenticated
 Node API without importing or preparing Next.js. `/api/*` and the published
 `/skills/*` document go to `api`; pages, route payloads and assets go to `web`.
 Cookies, bearer API keys, URLs, upload chunks, streamed downloads and API
