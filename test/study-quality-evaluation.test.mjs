@@ -8,6 +8,8 @@ import { addStudyNote } from '../lib/study-version-sources.mjs'
 import { runBudgetedStudyCall } from '../lib/study-ai-budget.mjs'
 import { lesson, course } from '../scripts/verification/study-fixtures.mjs'
 
+import { lessonSchema, reviewSchema, studyResponseSchema } from '../lib/study-version-content.mjs'
+
 const platform = { configured: true, provider: 'openai', model: 'gpt-5-mini' }
 async function fixture(fn) {
   return withRequestContext({ userId: `evaluation-test-${randomUUID()}`, mode: 'local' }, async () => {
@@ -24,6 +26,7 @@ test('browser evaluation runs generation, independent review and corruption chec
   const generate = async (prompt, options) => {
     assert.equal(options.billing.maxJobUsd, 0.25)
     assert.equal(options.jobKey, row.id)
+    assert.deepEqual(options.responseSchema, studyResponseSchema(calls === 0 ? lessonSchema : reviewSchema))
     calls++
     if (calls === 1) return generated()
     if (calls === 2) return { text: '{"issues":[]}' }
