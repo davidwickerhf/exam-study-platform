@@ -27,7 +27,10 @@
     "test": "node --test",
     "verify": "npm run typecheck && npm test && npm run build",
     "mcp:sync": "node scripts/sync-mcp-vendor.mjs --write",
-    "mcp:pack": "npm run mcp:sync && npm pack ./mcp --pack-destination /tmp"
+    "mcp:pack": "npm run mcp:sync && npm pack ./mcp --pack-destination /tmp",
+    "start:api": "NODE_ENV=production WICKER_SERVICE=api node runner.mjs",
+    "start:web": "next start",
+    "dev:web": "next dev"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -41,6 +44,7 @@
     "@fullcalendar/timegrid": "^6.1.21",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@vercel/queue": "^0.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -68,6 +72,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "ajv": "^8.20.0",
+    "pg": "^8.23.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },

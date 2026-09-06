@@ -1,5 +1,60 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "fluid": true,
-  "buildCommand": "npm run db:migrate && npm run build"
+  "services": {
+    "web": {
+      "root": ".",
+      "framework": "nextjs",
+      "buildCommand": "npm run build",
+      "functions": {
+        "app/internal/canvas-consume/route.ts": {
+          "experimentalTriggers": [
+            {
+              "type": "queue/v2beta",
+              "topic": "canvas-sync-v1",
+              "maxConcurrency": 2
+            }
+          ]
+        }
+      },
+      "bindings": [
+        {
+          "type": "service",
+          "service": "api",
+          "format": "url",
+          "env": "WICKER_API_SERVICE_URL"
+        }
+      ]
+    },
+    "api": {
+      "root": ".",
+      "runtime": "container",
+      "entrypoint": "Containerfile"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/skills/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
+  ],
+  "crons": [
+    {
+      "path": "/internal/canvas-dispatch",
+      "schedule": "* * * * *"
+    }
+  ]
 }
