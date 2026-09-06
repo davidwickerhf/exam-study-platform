@@ -4,6 +4,7 @@ import {
   aggregateCanvasCourseEditions,
   academicYearFromCanvasCourse,
   canonicalCanvasCourse,
+  canvasRefreshCalendar,
   periodFromCanvasCourse,
   retrievalEditionOrder,
   selectCanvasCorpusCourses,
@@ -91,4 +92,15 @@ test('automatic refresh follows only the latest current-period edition, without 
   assert.deepEqual(selectScheduledCanvasCourses(courses, { academicYear: '2026-2027', periodNumber: 2 }).map(c => c.id), ['11'])
   assert.deepEqual(selectScheduledCanvasCourses(courses, { now: new Date('2026-01-01') }).map(c => c.id), ['2'])
   assert.deepEqual(selectScheduledCanvasCourses([shell('3', '2027-2028')], { now: new Date('2026-09-01') }), [])
+})
+
+
+test('recurring refresh uses the programme calendar even without a personal override', async () => {
+  const { resolveAcademicTimeContext } = await import('../lib/calendar-feed.mjs')
+  const calendar = canvasRefreshCalendar({ template_programme_id: 'maastricht-university-bsc-computer-science', template_version_id: '2023-2024', planning_objectives: { academicPeriods: [] } })
+  const context = resolveAcademicTimeContext(calendar, { date: new Date('2026-09-06T12:00:00Z') })
+  assert.equal(context.academicYear, '2026-2027')
+  assert.equal(context.periodNumber, 1)
+  const personal = { title: 'Period override', date: '2026-09-01', period: 1 }
+  assert.ok(canvasRefreshCalendar({ planning_objectives: { academicPeriods: [personal] } }).includes(personal))
 })

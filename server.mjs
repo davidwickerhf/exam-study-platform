@@ -1,3 +1,5 @@
+import { beginAgentActivity, readAgentActivity } from './lib/agent-activity.mjs'
+import { prepareExternalTutorUpdate, confirmExternalTutorUpdate } from './lib/tutor-external-updates.mjs'
 import { fetchCanvasAssignmentDetail } from './lib/canvas-assignment-detail.mjs'
 import { openTutorStream } from './lib/tutor-progress.mjs'
 import { readStudyWork, studyWorkOverview, readDiagnostic, answerDiagnostic, applyStudyWorkProposal, applyStudyProjectProposal } from './lib/study-work-store.mjs'
@@ -59,8 +61,8 @@ import { OnboardingError, onboardingAvailable } from './lib/onboarding-agent.mjs
 import { applyProgramme, applySecureValue, chooseElectiveGroups, chooseElectives, deferSetupStep, electiveChoices, finishSetup, onboardingStatus, onboardingView, resetConversation, sendOnboardingMessage } from './lib/onboarding-runtime.mjs'
 import { studyBriefing } from './lib/study-briefing.mjs'
 import { beginTutorTurn, completeTutorTurn, completedTutorRetry, failTutorTurn, visibleTutorConversation } from './lib/tutor-turns.mjs'
-import { runTutorTurn, tutorAvailable } from './lib/tutor-agent.mjs'
-import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
+import { runTutorTurn, tutorAvailable, TUTOR_HANDLERS } from './lib/tutor-agent.mjs'
+import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberFact, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
 import { TutorAttachmentError, deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment } from './lib/tutor-attachments.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
@@ -73,7 +75,7 @@ import { joinProgramme, setMembership, removeMembership, listMembers, membership
 import { editorialMode, editorialShellFromState, getEditorialFlashcards, getMaterial, getMaterialText, getPublishedQuestions, listMaterials, loadEditorialShell, loadEditorialState, resolveChapterFromDatabase } from './lib/editorial-store.mjs'
 import * as admin from './lib/editorial-admin.mjs'
 import { AGENT_MANIFEST } from './lib/agent-manifest.mjs'
-import { formatRetrievalContext, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
+import { formatRetrievalContext, readCanvasSource, retrieveCanvasCorpus, retrieveCourseContent, retrievalMode } from './lib/retrieval-store.mjs'
 import { listProgrammePolicySources, retrieveProgrammePolicies } from './lib/programme-policy-sources.mjs'
 import { applyWorkspaceEdit } from './lib/workspace/academics.mjs'
 import { planningContext, updatePlanningObjective } from './lib/workspace/planner.mjs'
@@ -3499,6 +3501,10 @@ async function executeTutorProposal(proposal) {
     await saveActiveAcademicWorkspace(workspace, current.workspace.revision)
     return { kind: 'attendance-update', label: 'Attendance updated', href: '/app/calendar' }
   }
+  if (proposal.type === 'remember-context') {
+    const result = await rememberFact(proposal.payload.fact, proposal.payload)
+    return { kind: 'remember-context', label: result.duplicate ? 'Context already remembered' : 'Context remembered', memoryId: result.stored.id, href: '/app/tutor?view=sources' }
+  }
   if (proposal.type === 'remember-plan') {
     const result = await rememberPlan(proposal.payload)
     return { kind: 'remember-plan', label: result.duplicate ? 'Plan already remembered' : 'Plan remembered', href: '/app/tutor' }
@@ -3699,6 +3705,7 @@ const server = createServer(async (req, res) => {
         send(res, 401, JSON.stringify({ error: auth.mode === 'api-key' ? 'Invalid or revoked API key' : 'Sign in required', reason: auth.reason || 'unauthenticated' }))
         return
       }
+      await beginAgentActivity(req, res, auth, url)
       if (url.pathname === '/api/auth/session' && req.method === 'GET') {
         send(res, 200, JSON.stringify(await sessionPayload(auth, { autoScope: true })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
         return
@@ -3726,6 +3733,8 @@ const server = createServer(async (req, res) => {
       if (url.pathname.startsWith('/api/admin/') && req.method !== 'GET') console.info(`[admin] ${auth.userId}${auth.keyId ? ` key=${auth.keyId}` : ''} ${req.method} ${url.pathname}${url.search}`)
       setRequestContext(auth)
     }
+
+    if (url.pathname === '/api/account/agent-activity' && req.method === 'GET') { send(res, 200, JSON.stringify(await readAgentActivity(Object.fromEntries(url.searchParams))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); return }
 
     if (url.pathname === '/api/account/api-keys' && req.method === 'GET') {
       send(res, 200, JSON.stringify({ keys: await listApiKeys(), scopes: API_SCOPES, admin: Boolean(currentAuth().admin) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
@@ -4031,6 +4040,7 @@ const server = createServer(async (req, res) => {
         if (sendAccountDeletionError(res, error)) return
         throw error
       }
+      if (scope === 'everything') res.agentActivityErased = true
       send(res, 200, JSON.stringify({ ok: true, scope, removed }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
@@ -4493,8 +4503,33 @@ const server = createServer(async (req, res) => {
     }
 
     // The permanent tutor. Conversations, the facts it has been asked to
-    // remember, and how the student wants to be answered all persist; nothing
-    // said in one conversation reaches another unless it was remembered.
+    // remember, and how the student wants to be answered all persist; relevant past
+    // conversations can be retrieved as clearly labelled historical context.
+    if (url.pathname === '/api/tutor/updates/prepare' && req.method === 'POST') {
+      try { send(res, 200, JSON.stringify(await prepareExternalTutorUpdate(await readBody(req, 8192))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); }
+      catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
+    if (url.pathname === '/api/tutor/updates/confirm' && req.method === 'POST') {
+      try { const body = await readBody(req, 1024); const result = await confirmExternalTutorUpdate(body, executeTutorProposal); res.agentActivityConfirmation = body.updateId; send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); }
+      catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
+    if (url.pathname === '/api/tutor/context' && req.method === 'GET') {
+      const reads = { attendance: 'get_attendance', obligations: 'get_course_obligations', readiness: 'get_study_readiness', 'weekly-review': 'get_weekly_review', announcements: 'get_announcements' }
+      const name = reads[url.searchParams.get('view')]
+      if (!name) { send(res, 400, JSON.stringify({ error: 'Choose attendance, obligations, readiness, weekly-review or announcements.' })); return }
+      try {
+        const args = { courseCode: (url.searchParams.get('courseCode') || '').slice(0, 40), from: url.searchParams.get('from') || '', to: url.searchParams.get('to') || '', query: (url.searchParams.get('query') || '').slice(0, 500), days: Math.min(365, Math.max(1, Number(url.searchParams.get('days')) || 120)), limit: Math.min(12, Math.max(1, Number(url.searchParams.get('limit')) || 8)), rulesOnly: url.searchParams.get('rulesOnly') === 'true' }
+        send(res, 200, JSON.stringify(await TUTOR_HANDLERS[name](args)), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      } catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
+    if (url.pathname === '/api/retrieve/source' && req.method === 'GET') {
+      try { send(res, 200, JSON.stringify(await readCanvasSource({ assetId: url.searchParams.get('assetId'), courseCode: url.searchParams.get('courseCode') || '', offset: Number(url.searchParams.get('offset')) || 0 })), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' }); }
+      catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
+      return
+    }
     if (url.pathname === '/api/tutor/work' && req.method === 'GET') {
       send(res, 200, JSON.stringify({ ...studyWorkOverview(await readStudyWork()), capabilities: STUDY_CAPABILITIES }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return

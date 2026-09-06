@@ -9,6 +9,7 @@
  * failure path reports that copying failed without echoing what it held.
  */
 
+import Link from "next/link";
 import { useState } from "react";
 import { CheckIcon, CopyIcon, KeyIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -202,6 +203,7 @@ export function ApiTab() {
             A key acts as you, limited to its scopes. Send it as{" "}
             <code className="text-xs">Authorization: Bearer wsk_…</code>. Keys
             cannot manage other keys, reset data, or delete your account.
+            <Link href="/app/settings?tab=activity" className="text-primary mt-2 block text-sm font-semibold">View AI activity →</Link>
           </>
         }
         action={
