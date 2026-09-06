@@ -60,3 +60,9 @@ The report form offers **Share my account email for this investigation**, off by
 The student sees Submitted → Received → In progress → Completed. A browser reviewer opening the report records the first received timestamp once. Every changed review status creates a public timeline event; private investigation text remains private. Completion requires a shared comment and, for resolved issues, verification evidence. A reviewer may turn an AI triage suggestion into a reply draft, edit it and explicitly send it. Such comments are labeled **AI-assisted reply · reviewed by the team**. No AI comment is sent autonomously. An open report refreshes its status and public comments every 15 seconds while the page is visible.
 
 MCP supports `shareContactEmail:true` in `feedback_prepare` only after the student opts in. The returned preview shows the actual address. `feedback_withdraw_contact` removes it after fresh confirmation.
+
+## Screenshots and conversation excerpts
+
+Every report composer accepts up to four PNG, JPEG or WebP screenshots (5 MB each, at most 4096 × 4096 pixels) plus one text excerpt of up to 12,000 characters. Screenshot totals must fit the existing attachment payload limit; the form explains when smaller images are needed. Images are converted to PNG and metadata is removed. Screenshots can be removed individually before preview.
+
+Choose **Attach Tutor conversation text or another excerpt** to paste relevant questions and replies. Reporting a Tutor answer pre-fills that answer for editing, with sharing still off by default. Users can add surrounding conversation or remove private details. No entire conversation is fetched or shared automatically. The exact attachment text and images appear before confirmed submission, and attachments can be withdrawn from the report afterward.
