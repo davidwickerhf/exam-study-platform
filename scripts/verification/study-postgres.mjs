@@ -32,6 +32,7 @@ const {
   createStudyVersion,
   ownStudyVersion,
   studyRevision,
+  claimStudyDispatch,
   pendingStudyVersions
 } = await import('../../lib/study-version-store.mjs')
 const { processStudyStep } = await import(
@@ -67,6 +68,11 @@ try {
     const v = await createStudyVersion(course, 'programme', snapshot)
     id = v.id
     assert.ok((await pendingStudyVersions()).some((r) => r.key === id))
+    const deliveries = (
+      await Promise.all([claimStudyDispatch(), claimStudyDispatch()])
+    ).flat()
+    assert.equal(deliveries.filter((key) => key === id).length, 1)
+    assert.equal((await claimStudyDispatch()).includes(id), false)
     let mappingCalls = 0
     const generate = async (prompt) => {
       const ids = snapshot.chunks.map((c) => c.id)

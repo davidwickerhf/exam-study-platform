@@ -30,7 +30,7 @@ import { currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { runBudgetedStudyCall } from './lib/study-ai-budget.mjs'
 import { studyVersionApi } from './lib/study-version-api.mjs'
 import { processStudyStep } from './lib/study-version-pipeline.mjs'
-import { pendingStudyVersions, resolveStudyJob, asStudyOwner } from './lib/study-version-store.mjs'
+import { pendingStudyVersions, claimStudyDispatch, resolveStudyJob, asStudyOwner } from './lib/study-version-store.mjs'
 import { digest as studyDigest } from './lib/study-version-content.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { storeImportedProgramme } from './lib/academics.mjs'
@@ -3672,7 +3672,7 @@ const server = createServer(async (req, res) => {
       }
       if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
       if (process.env.VERCEL_ENV === 'preview') { send(res, 200, JSON.stringify({ disabled: true })); return }
-      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: (await pendingStudyVersions()).map(r => r.key) })); return }
+      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: await claimStudyDispatch() })); return }
       if (body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result

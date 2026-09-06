@@ -285,7 +285,7 @@ export default function StudentStudyPage() {
           >
             <SelectTrigger
               aria-labelledby="study-revision-label"
-              className="w-72"
+              className="w-full max-w-72"
             >
               <SelectValue>
                 {(() => {
@@ -313,7 +313,10 @@ export default function StudentStudyPage() {
       )}
       {revision && (
         <Tabs defaultValue="study" className="min-w-0 gap-5">
-          <TabsList variant="line">
+          <TabsList
+            variant="line"
+            className="max-w-full justify-start overflow-x-auto"
+          >
             <TabsTrigger value="study">Study</TabsTrigger>
             {data.revision && (
               <TabsTrigger value="exam">Practice exam</TabsTrigger>

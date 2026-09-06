@@ -13,6 +13,7 @@ import {
   readStudySourceSnapshot
 } from '../lib/study-version-sources.mjs'
 import {
+  claimStudyDispatch,
   createStudyVersion,
   ownStudyVersion,
   studyRevision,
@@ -656,5 +657,44 @@ test('revision writes recover after a crash before activation without changing t
     })
   } finally {
     await f.cleanup()
+  }
+})
+
+test('outbox claims prevent fan-out while another course is waiting for delivery', async () => {
+  const first = await fixture(),
+    second = await fixture()
+  try {
+    const claims = (
+      await Promise.all([claimStudyDispatch(), claimStudyDispatch()])
+    ).flat()
+    assert.equal(claims.filter((id) => id === first.version.id).length, 1)
+    assert.equal(claims.filter((id) => id === second.version.id).length, 1)
+    assert.equal((await claimStudyDispatch()).includes(first.version.id), false)
+    await first.run(() =>
+      processStudyStep(first.version.id, {
+        generate: async () => ({
+          topics: [
+            {
+              id: 'addition',
+              title: 'Addition',
+              sourceIds: first.snapshot.chunks.map((c) => c.id)
+            }
+          ],
+          gaps: []
+        })
+      })
+    )
+    const next = await claimStudyDispatch()
+    assert.equal(next.includes(first.version.id), true)
+    assert.equal(next.includes(second.version.id), false)
+    await second.run(() =>
+      mutateStudyVersion(second.version.id, (v) => {
+        v.queueDeliveryUntil = Date.now() - 1
+      })
+    )
+    assert.equal((await claimStudyDispatch()).includes(second.version.id), true)
+  } finally {
+    await first.cleanup()
+    await second.cleanup()
   }
 })

@@ -133,7 +133,10 @@ export async function studyRequest<T>(
   const result = await response.json().catch(() => null)
   if (!response.ok)
     throw new Error(
-      result?.error || `Study request returned ${response.status}`
+      (typeof result?.error === 'string'
+        ? result.error
+        : result?.error?.message) ||
+        `Study service is unavailable (HTTP ${response.status}). Please try again.`
     )
   return result
 }

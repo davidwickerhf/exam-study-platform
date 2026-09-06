@@ -177,11 +177,27 @@ test('refresh source selection and BYOK settings render on mobile without overfl
   await expect(
     page.getByLabel('Spending cap for this generation (USD)')
   ).toHaveValue('1')
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth
-    )
-  ).toBe(true)
+  await page.evaluate(() => document.fonts.ready)
+  const layout = await page.evaluate(() => ({
+    width: innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    overflow: [...document.querySelectorAll('main *')]
+      .filter((el) => {
+        const r = el.getBoundingClientRect()
+        return (
+          r.right > innerWidth + 1 && getComputedStyle(el).position !== 'fixed'
+        )
+      })
+      .slice(0, 15)
+      .map((el) => ({
+        tag: el.tagName,
+        classes: el.className,
+        text: el.textContent?.slice(0, 60)
+      }))
+  }))
+  expect(layout.scrollWidth, JSON.stringify(layout)).toBeLessThanOrEqual(
+    layout.width
+  )
   await page.goto('/app/settings?tab=ai-key')
   await expect(
     page.getByRole('heading', { name: 'Your AI key', exact: true }).first()
