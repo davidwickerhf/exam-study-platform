@@ -27,10 +27,12 @@ export default function ReportDialog({
   const [category, setCategory] = useState(options.category || "other"),
     [note, setNote] = useState(""),
     [include, setInclude] = useState(false),
+    [excerpt, setExcerpt] = useState(options.excerpt || ""),
     [aiReview, setAiReview] = useState(false),
     [shareContactEmail, setShareContactEmail] = useState(false),
     [accountEmail, setAccountEmail] = useState<string | null>(null),
-    [image, setImage] = useState<Evidence | null>(null),
+    [images, setImages] = useState<Evidence[]>([]),
+    [processingImages, setProcessingImages] = useState(false),
     [draft, setDraft] = useState<Draft | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -61,16 +63,19 @@ export default function ReportDialog({
           shareContactEmail,
           subject: options.subject,
           evidence: [
-            ...(include && options.excerpt
+            ...(include && excerpt.trim()
               ? [
                   {
-                    label: "Selected answer or excerpt",
+                    label:
+                      options.subject?.kind === "answer"
+                        ? "Tutor conversation excerpt"
+                        : "Shared text excerpt",
                     mediaType: "text/plain",
-                    content: options.excerpt,
+                    content: excerpt,
                   },
                 ]
               : []),
-            ...(image ? [image] : []),
+            ...images,
           ],
         }),
       );
@@ -97,39 +102,60 @@ export default function ReportDialog({
       setBusy(false);
     }
   }
-  async function screenshot(file?: File) {
-    if (!file) return;
+  async function screenshots(files: File[]) {
+    if (!files.length) return;
     setError("");
+    setProcessingImages(true);
     try {
-      if (
-        file.size > 5 * 1024 * 1024 ||
-        !["image/png", "image/jpeg", "image/webp"].includes(file.type)
-      )
-        throw new Error("Choose an image under 5 MB.");
-      const bitmap = await createImageBitmap(file);
-      if (bitmap.width > 4096 || bitmap.height > 4096) {
+      if (images.length + files.length > 4)
+        throw new Error(
+          "Attach up to four screenshots. Remove one before adding another.",
+        );
+      const additions: Evidence[] = [];
+      for (const file of files) {
+        if (
+          file.size > 5 * 1024 * 1024 ||
+          !["image/png", "image/jpeg", "image/webp"].includes(file.type)
+        )
+          throw new Error("Choose PNG, JPEG or WebP images under 5 MB each.");
+        const bitmap = await createImageBitmap(file);
+        if (bitmap.width > 4096 || bitmap.height > 4096) {
+          bitmap.close();
+          throw new Error("Choose images up to 4096 × 4096 pixels.");
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
         bitmap.close();
-        throw new Error("Choose an image up to 4096 × 4096 pixels.");
+        const content = canvas.toDataURL("image/png");
+        if (content.length > 7_000_000)
+          throw new Error(
+            "A screenshot is too large after conversion. Choose a smaller image.",
+          );
+        additions.push({
+          label: `Screenshot ${images.length + additions.length + 1}`,
+          mediaType: "image/png",
+          content,
+        });
       }
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
-      bitmap.close();
-      setImage({
-        label: "Screenshot",
-        mediaType: "image/png",
-        content: canvas.toDataURL("image/png"),
-      });
+      const next = [...images, ...additions];
+      if (JSON.stringify(next).length > 19_900_000)
+        throw new Error(
+          "These screenshots are too large together. Choose smaller images or fewer screenshots.",
+        );
+      setImages(next);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setProcessingImages(false);
     }
   }
   return (
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open && !busy) close();
+        if (!open && !busy && !processingImages) close();
       }}
     >
       <DialogContent className="max-h-[90dvh] overflow-y-auto p-6 sm:max-w-xl">
@@ -274,16 +300,35 @@ export default function ReportDialog({
                     </span>
                   </span>
                 </label>
-                {options.excerpt && (
+                <div className="space-y-3">
                   <label className="flex items-start gap-2 text-sm">
                     <input
                       type="checkbox"
                       checked={include}
                       onChange={(e) => setInclude(e.target.checked)}
                     />
-                    Include this answer or selected excerpt
+                    Attach Tutor conversation text or another excerpt
                   </label>
-                )}
+                  {include && (
+                    <label className="block text-sm font-medium">
+                      Text to share
+                      <textarea
+                        className={field}
+                        rows={6}
+                        maxLength={12000}
+                        value={excerpt}
+                        onChange={(e) => setExcerpt(e.target.value)}
+                        placeholder="Paste the relevant question and Tutor reply. Remove anything you do not want the team to see."
+                      />
+                      <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                        {excerpt.length.toLocaleString()} / 12,000 characters.{" "}
+                        {excerpt.length > 12000
+                          ? "Shorten this excerpt before continuing."
+                          : "Edit or paste only the parts that explain the issue."}
+                      </span>
+                    </label>
+                  )}
+                </div>
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -295,34 +340,64 @@ export default function ReportDialog({
                   records are excluded.
                 </label>
                 <label className="text-sm">
-                  Screenshot (optional)
+                  Screenshots (optional)
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Up to four PNG, JPEG or WebP images. 5 MB each, up to 4096 ×
+                    4096 pixels.
+                  </span>
                   <input
                     className={field}
                     type="file"
+                    multiple
+                    disabled={busy || processingImages || images.length >= 4}
                     accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => void screenshot(e.target.files?.[0])}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      e.target.value = "";
+                      void screenshots(files);
+                    }}
                   />
                 </label>
-                {image && (
-                  <div>
-                    <img
-                      src={image.content}
-                      alt="Selected screenshot"
-                      className="max-h-40"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setImage(null)}
-                    >
-                      Remove screenshot
-                    </Button>
+                {processingImages && (
+                  <p role="status" className="text-sm text-muted-foreground">
+                    Preparing screenshots…
+                  </p>
+                )}
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {images.map((image, index) => (
+                      <div key={index} className="min-w-0">
+                        <img
+                          src={image.content}
+                          alt={`Selected screenshot ${index + 1}`}
+                          className="h-28 w-full rounded-md border object-contain"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={processingImages || busy}
+                          onClick={() =>
+                            setImages(
+                              images
+                                .filter((_, i) => i !== index)
+                                .map((item, i) => ({
+                                  ...item,
+                                  label: `Screenshot ${i + 1}`,
+                                })),
+                            )
+                          }
+                        >
+                          Remove screenshot {index + 1}
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
                   Check screenshots for personal information before sharing. The
-                  next step shows the exact report. Your full chat, private
-                  documents and credentials are not included.
+                  next step shows the exact report. Only the text and
+                  screenshots you attach are shared; the rest of your chat and
+                  private files stay private.
                 </p>
                 <div className="flex items-center justify-between">
                   <Link
@@ -332,7 +407,14 @@ export default function ReportDialog({
                   >
                     My feedback
                   </Link>
-                  <Button disabled={busy} onClick={() => void preview()}>
+                  <Button
+                    disabled={
+                      busy ||
+                      processingImages ||
+                      (include && (!excerpt.trim() || excerpt.length > 12000))
+                    }
+                    onClick={() => void preview()}
+                  >
                     {busy ? "Preparing preview…" : "Review submission"}
                   </Button>
                 </div>
