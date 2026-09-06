@@ -1,5 +1,8 @@
 'use client'
 
+import { SavedDocumentOriginal } from '@/components/workspace/saved-document-original'
+import type { ImportedFile } from '@/lib/workspace/academic-originals'
+
 import { ReviewPanel } from "@/components/workspace/review-panel"
 import { UploadedDocumentPreview } from "@/components/workspace/uploaded-document-preview"
 import { DocumentCheck, type DocumentCheckResult } from "@/components/workspace/document-check"
@@ -122,7 +125,7 @@ const PROSE =
 
 // ── The Academic Work overview ────────────────────────────────────────────
 // The portal prints a text PDF and the server parses it as a table, so only
-// the text is sent: the file itself never leaves the browser. pdf.js is loaded
+// the text is sent for parsing; the original is stored separately for the viewer. pdf.js is loaded
 // from the installed build and cached on the window for subsequent uploads.
 
 type PdfjsItem = { str?: string; width?: number; transform?: number[] }
@@ -175,6 +178,7 @@ async function readAcademicWorkText(file: File): Promise<string> {
 }
 
 type WorkResult = {
+  originalBinding: string
   unchanged?: boolean
   summary: { earnedEcts: number; passedCourses: number; currentCourses: number; weightedAverage: number | null }
   progress?: { ectsDelta: number; newlyPassed: { code: string }[] } | null
@@ -294,7 +298,7 @@ function RecordGuide() {
         It lists your current courses, everything you have passed, and every failed attempt.
       </Step>
       <Step number={3} title="Choose the PDF below">
-        It is read for its results in this browser and only those results are sent. The file itself is never uploaded or stored.
+        Your results are imported and the original is saved privately for viewing and download.
       </Step>
     </Steps>
   )
@@ -421,27 +425,17 @@ function SecureField({ kind, onApplied, onSkip }: { kind: 'timetable' | 'canvas'
 function AttachedDocument({ document, kind, sourceFile, onRemoved }: {
   document: { name: string; createdAt: string | null; legacyContext?: boolean }
   kind: 'record' | 'transcript'
-  sourceFile?: File | null
+  sourceFile?: ImportedFile
   onRemoved: () => Promise<unknown>
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [previewFile, setPreviewFile] = useState<File | null>(sourceFile ?? null)
-  const input = useRef<HTMLInputElement>(null)
-  return <div className="flex flex-col gap-4">
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4">
-      <FileTextIcon className="text-primary mt-0.5 size-5 shrink-0" />
-      <div className="min-w-0 flex-1"><strong className="block break-words text-sm">{document.name}</strong><p className="text-muted-foreground mt-1 text-xs">Attached{document.createdAt ? ` · Imported ${new Date(document.createdAt).toLocaleDateString()}` : ''}</p></div>
-      {previewFile ? <UploadedDocumentPreview file={previewFile}/> : <Button type="button" variant="outline" size="sm" onClick={() => input.current?.click()}>Choose file to preview</Button>}
-      <input ref={input} type="file" className="hidden" aria-label="Choose original document for local preview" accept="application/pdf,.pdf,.txt" onChange={(event) => {
-        const file = event.target.files?.[0]; event.target.value = ''
-        if (!file) return
-        if (file.size > MAX_UPLOAD_BYTES) { setError('Choose a file smaller than 15 MB to preview.'); return }
-        if (!/\.(pdf|txt)$/i.test(file.name) && !['application/pdf', 'text/plain'].includes(file.type)) { setError('Choose a PDF or text file to preview.'); return }
-        setError(null); setPreviewFile(file)
-      }}/>
+  return <div className="flex flex-col gap-3">
+    <div className="flex items-start gap-3 rounded-lg border p-4">
+      <FileTextIcon className="text-primary mt-1 size-5 shrink-0" />
+      <div className="min-w-0 flex-1"><strong className="block break-words text-sm">{document.name}</strong><p className="text-muted-foreground mt-1 text-xs">Imported{document.createdAt ? ` · ${new Date(document.createdAt).toLocaleDateString()}` : ''}</p></div>
+      <SavedDocumentOriginal name={document.name} kind={kind} source={sourceFile}/>
     </div>
-    <p className="text-muted-foreground text-sm leading-relaxed">{previewFile ? 'Results are saved. The preview uses a local file in this browser; it does not change your imported results.' : 'Results are saved. The original file is not stored; choose it from your device to preview it without changing your imported results.'} {document.legacyContext ? 'For this older document, removing the attachment leaves previously saved grades in place. Review those results in Planning to remove them.' : 'Remove it to clear its imported context and choose a new document.'}</p>
     <Button variant="outline" className="w-fit" disabled={busy} onClick={async () => {
       setBusy(true); setError(null)
       try {
@@ -454,7 +448,7 @@ function AttachedDocument({ document, kind, sourceFile, onRemoved }: {
   </div>
 }
 
-/** The upload control. Only the text the parser needs leaves this browser. */
+/** Parse locally, import results, then privately retain the original for the viewer. */
 function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult, file: File) => Promise<void> | void; onSkip?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -471,7 +465,7 @@ function UploadField({ onRead, onSkip }: { onRead: (result: WorkResult, file: Fi
         hint={
           <>
             {busy ? <Spinner className="size-3.5" /> : <ShieldIcon className="size-3.5 shrink-0" />}
-            {busy ? 'Reading your overview…' : 'Results are imported. The original stays in this browser for preview.'}
+            {busy ? 'Reading your overview…' : 'Results are imported. The original is saved privately to your account.'}
           </>
         }
         onFile={async (file) => {
@@ -519,14 +513,14 @@ type TranscriptReview = {
   warnings?: string[]
   source: { name: string; type: string; size: number; fingerprint: string }
 }
-function TranscriptField({ onApplied, onSkip }: { onApplied: (file: File | null) => Promise<unknown> | void; onSkip?: () => void }) {
+function TranscriptField({ onApplied, onSkip }: { onApplied: (file: ImportedFile | null) => Promise<unknown> | void; onSkip?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [review, setReview] = useState<TranscriptReview | null>(null)
   const [sourceFile, setSourceFile] = useState<File | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   return <div className="flex flex-col gap-6">
-    <p className="text-muted-foreground max-w-[68ch] text-[13.5px] leading-relaxed">Use the transcript that lists individual results and dates, not the Academic Work overview. It is read in this browser and never stored.</p>
+    <p className="text-muted-foreground max-w-[68ch] text-[13.5px] leading-relaxed">Use the transcript that lists individual results and dates, not the Academic Work overview. Your original is saved privately for viewing and download.</p>
     {!review ? <FilePicker
       label="Transcript PDF"
       accept="application/pdf,.pdf,.txt"
@@ -549,7 +543,7 @@ function TranscriptField({ onApplied, onSkip }: { onApplied: (file: File | null)
       }}
     /> : <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"><div className="flex min-w-0 items-start gap-3"><FileTextIcon className="mt-0.5 size-5 shrink-0 text-primary"/><div className="min-w-0"><strong className="block break-words">{review.source.name}</strong><p className="mt-1 text-xs text-muted-foreground">Read successfully · {selected.size} of {review.changes.length} changes selected</p></div></div>{sourceFile && <UploadedDocumentPreview file={sourceFile}/>}</div>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); await json('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, reviewIds: review.reviewIds, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied(sourceFile) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button>{review.changes.length > 0 && <ReviewPanel trigger={`Review ${review.changes.length} changes`} title="Review transcript changes" description={`${selected.size} of ${review.changes.length} changes selected. Choose what to keep, then save from the setup step.`}><ul aria-label="Proposed transcript changes" className="border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul></ReviewPanel>}<Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSourceFile(null); setSelected(new Set()) }}>Choose another file</Button></div>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy || (review.changes.length > 0 && !selected.size)} onClick={async () => { setBusy(true); setError(null); try { const changes = review.changes.filter((change) => selected.has(change.id)); const applied = await json<{originalBinding?:string;documentRecordError?:string}>('/api/academics/documents/apply', { method: 'POST', body: JSON.stringify({ expectedRevision: review.revision, changes, reviewIds: review.reviewIds, documentRecord: { kind: 'transcript', label: review.source.name, fingerprint: review.source.fingerprint, sources: [{ name: review.source.name, type: review.source.type, size: review.source.size }], impact: { proposed: changes.length, warnings: review.warnings?.length ?? 0 } } }) }); await onApplied(sourceFile && applied.originalBinding ? {file:sourceFile,binding:applied.originalBinding} : null) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Those changes could not be saved.') } finally { setBusy(false) } }}>{busy && <Spinner data-icon="inline-start" />}{busy ? 'Applying…' : !review.changes.length ? 'Keep document connected' : `Apply ${selected.size} ${selected.size === 1 ? 'change' : 'changes'}`}</Button>{review.changes.length > 0 && <ReviewPanel trigger={`Review ${review.changes.length} changes`} title="Review transcript changes" description={`${selected.size} of ${review.changes.length} changes selected. Choose what to keep, then save from the setup step.`}><ul aria-label="Proposed transcript changes" className="border-y">{review.changes.map((change) => <li key={change.id} className="border-b last:border-0"><label className="hover:bg-card flex cursor-pointer items-start gap-3 px-1 py-3 transition-colors"><Checkbox checked={selected.has(change.id)} onCheckedChange={(checked) => setSelected((held) => { const next = new Set(held); checked ? next.add(change.id) : next.delete(change.id); return next })} /><span><strong className="text-sm font-medium">{change.label}</strong>{change.detail && <small className="text-muted-foreground mt-0.5 block">{change.detail}</small>}</span></label></li>)}</ul></ReviewPanel>}<Button variant="ghost" disabled={busy} onClick={() => { setReview(null); setSourceFile(null); setSelected(new Set()) }}>Choose another file</Button></div>
       {review.documentCheck && <DocumentCheck value={review.documentCheck} compact />}
       {!review.changes.length && <p className="text-muted-foreground text-sm">No changes are proposed to your saved record. See the document comparison above for what has been corroborated.</p>}
       {review.warnings?.map((warning) => <p key={warning} className="text-muted-foreground text-sm">{warning}</p>)}
@@ -958,7 +952,7 @@ function Checklist({ view, onRefresh, onApplied }: { view: View | null; onRefres
               <h2 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">{selected.title}</h2>
               <StatusLabel status={selected.status} />
             </div>
-            <p className="text-muted-foreground mt-3 max-w-[58ch] text-sm leading-relaxed">{(selected.id === 'record' && view?.state.recordDocument) || (selected.id === 'transcript' && view?.state.transcriptDocument) ? 'Your document is connected. Review it below or remove it to attach a replacement.' : PANEL_INTRO[selected.id] ?? selected.blurb}</p>
+            <p className="text-muted-foreground mt-3 max-w-[58ch] text-sm leading-relaxed">{(selected.id === 'record' && view?.state.recordDocument) || (selected.id === 'transcript' && view?.state.transcriptDocument) ? 'Your document is connected. View or download the original below.' : PANEL_INTRO[selected.id] ?? selected.blurb}</p>
           </div>
 
           {issues.filter((issue) => issue.step === selected.id || issue.relatedStep === selected.id).map((issue) => (
@@ -1154,7 +1148,7 @@ function UnifiedSetup({
   const requested = params.get('step')
   const [open, setOpen] = useState<SetupStepId | null>((requested as SetupStepId | null) ?? null)
   const [saved, setSaved] = useState<SetupStepId | null>(null)
-  const [localDocuments, setLocalDocuments] = useState<Partial<Record<'record' | 'transcript', File>>>({})
+  const [localDocuments, setLocalDocuments] = useState<Partial<Record<'record' | 'transcript', ImportedFile>>>({})
   const [timetable, setTimetable] = useState('')
   const [timetableBusy, setTimetableBusy] = useState(false)
   const [timetableError, setTimetableError] = useState<string | null>(null)
@@ -1291,7 +1285,7 @@ function UnifiedSetup({
             <div>
               <p className="text-card/60 text-xs font-semibold tracking-[0.15em] uppercase">{activePhase.label}</p>
               <h2 className="font-heading mt-1 text-[32px] leading-tight font-semibold tracking-[-0.035em]">{selected.title}</h2>
-              <p className="text-card/70 mt-2 max-w-[64ch] text-sm leading-relaxed">{(selected.id === 'record' && view?.state.recordDocument) || (selected.id === 'transcript' && view?.state.transcriptDocument) ? 'Your document is connected. Review it below or remove it to attach a replacement.' : PANEL_INTRO[selected.id] ?? selected.blurb}</p>
+              <p className="text-card/70 mt-2 max-w-[64ch] text-sm leading-relaxed">{(selected.id === 'record' && view?.state.recordDocument) || (selected.id === 'transcript' && view?.state.transcriptDocument) ? 'Your document is connected. View or download the original below.' : PANEL_INTRO[selected.id] ?? selected.blurb}</p>
             </div>
             <StatusLabel status={selected.status} inverse />
           </div>
@@ -1309,7 +1303,7 @@ function UnifiedSetup({
             {deferError && <Alert variant="destructive" className="mb-5"><AlertTriangleIcon /><AlertTitle>That choice was not saved</AlertTitle><AlertDescription>{deferError}</AlertDescription></Alert>}
             {selected.id === 'programme' && <ProgrammeEditor current={view.state.programmeName ?? null} template={view.state.programmeTemplate} onSaved={() => refreshFrom('programme')} />}
             {selected.id === 'electives' && (view.state.customProgramme ? <div className="flex flex-col gap-3"><p className="text-muted-foreground text-sm">This personal programme has no maintained elective groups. Add the courses you take directly to your plan.</p><Button variant="outline" className="w-fit" nativeButton={false} render={<Link href="/app/planning?tab=courses" />}>Manage my courses</Button></div> : <ElectivesEditor onSaved={() => refreshInPlace('electives')} onContinue={() => continueFrom('electives')} />)}
-            {selected.id === 'record' && <>{view.state.recordDocument ? <AttachedDocument key="record" document={view.state.recordDocument} kind="record" sourceFile={localDocuments.record} onRemoved={async () => { setLocalDocuments(held => ({...held, record: undefined})); await refreshInPlace('record') }} /> : <UploadField onRead={async (_result, file) => { setLocalDocuments(held => ({...held, record: file})); await refreshInPlace('record') }} onSkip={() => void defer('record')} />}{selected.done && continueTo && <div className="mt-5"><Button type="button" onClick={() => continueFrom(selected.id)}>Continue to {continueTo.title.replace(/^Your |^The /, '').toLowerCase()}<ChevronRightIcon data-icon="inline-end" /></Button></div>}<div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
+            {selected.id === 'record' && <>{view.state.recordDocument ? <AttachedDocument key="record" document={view.state.recordDocument} kind="record" sourceFile={localDocuments.record} onRemoved={async () => { setLocalDocuments(held => ({...held, record: undefined})); await refreshInPlace('record') }} /> : <UploadField onRead={async (result, file) => { setLocalDocuments(held => ({...held, record: {file,binding:result.originalBinding}})); await refreshInPlace('record') }} onSkip={() => void defer('record')} />}{selected.done && continueTo && <div className="mt-5"><Button type="button" onClick={() => continueFrom(selected.id)}>Continue to {continueTo.title.replace(/^Your |^The /, '').toLowerCase()}<ChevronRightIcon data-icon="inline-end" /></Button></div>}<div className="mt-6"><CurriculumMatch value={view.state.curriculumReconciliation} /></div></>}
             {selected.id === 'transcript' && (view.state.transcriptDocument ? <AttachedDocument key="transcript" document={view.state.transcriptDocument} kind="transcript" sourceFile={localDocuments.transcript} onRemoved={async () => { setLocalDocuments(held => ({...held, transcript: undefined})); await refreshInPlace('transcript') }} /> : <TranscriptField onApplied={async (file) => { if (file) setLocalDocuments(held => ({...held, transcript: file})); await refreshInPlace('transcript') }} onSkip={() => void defer('transcript')} />)}
             {selected.id === 'transcript' && selected.done && continueTo && <div className="mt-5"><Button type="button" onClick={() => continueFrom(selected.id)}>Continue to {continueTo.title.replace(/^Your |^The /, '').toLowerCase()}<ChevronRightIcon data-icon="inline-end" /></Button></div>}
             {['record', 'transcript'].includes(selected.id) && view.state.recordDocument && view.state.transcriptDocument && <SavedDocumentCheck key={JSON.stringify([view.state.recordDocument, view.state.transcriptDocument])} />}

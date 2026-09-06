@@ -228,8 +228,24 @@ try {
     await assert.rejects(()=>readDocumentReviews([reviewId],tampered,9),/changed after/)
     await assert.rejects(()=>readDocumentReviews([reviewId],changes,10),/programme changed/)
   })
+  const originals = await import('../../lib/academic-originals.mjs')
+  const {recordAcademicDocumentVersion} = await import('../../lib/academic-document-register.mjs')
+  const {removeOnboardingDocument} = await import('../../lib/onboarding-documents.mjs')
+  const {createHash} = await import('node:crypto')
+  await as('original-owner',async()=>{
+    await recordAcademicDocumentVersion({kind:'transcript',label:'Transcript.pdf',fingerprint:'original-test'})
+    const bytes=Buffer.from('%PDF-1.4\nprivate original'),binding=(await originals.originalStatus('transcript')).binding
+    const file=await originals.beginOriginal('transcript',{binding,name:'Transcript.pdf',size:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')})
+    await originals.putOriginalChunk('transcript',file.id,0,bytes.toString('base64'))
+    await originals.putOriginalChunk('transcript',file.id,0,bytes.toString('base64'))
+    await originals.completeOriginal('transcript',file.id)
+    assert.deepEqual(await originals.readOriginalChunk('transcript',file.id,0),bytes)
+    await as('original-peer',async()=>{assert.equal((await originals.originalStatus('transcript')).original,null);await assert.rejects(originals.readOriginalChunk('transcript',file.id,0),{status:404})})
+    await removeOnboardingDocument('transcript')
+    assert.equal((await sql`SELECT count(*)::int AS count FROM user_documents WHERE user_id='original-owner' AND namespace IN ('academic-originals','academic-original-chunks')`)[0].count,0)
+  })
   console.log(
-    'PostgreSQL: migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal, atomic shared spending, derived scan invalidation, private batch caching and JSONB document review validation passed.'
+    'PostgreSQL: migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal, atomic shared spending, derived scan invalidation, private batch caching JSONB document review validation and private original-file persistence/isolation/deletion passed.'
   )
 } finally {
   await pool.end()

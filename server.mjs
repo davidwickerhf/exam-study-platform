@@ -1,3 +1,5 @@
+import { activeProgrammeId } from './lib/programme-scope.mjs'
+import { originalContext, originalStatus, beginOriginal, putOriginalChunk, completeOriginal, readOriginalChunk } from './lib/academic-originals.mjs'
 import { aiQuotaExemption } from './lib/ai-quota-policy.mjs'
 import { renderCourseSlides } from './lib/course-slide-render.mjs'
 import { previewCourseAsset } from './lib/course-file-preview.mjs'
@@ -4920,6 +4922,20 @@ const server = createServer(async (req, res) => {
       } catch (error) { send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Electives could not be saved.' })) }
       return
     }
+    const originalRoute = url.pathname.match(/^\/api\/onboarding\/documents\/(record|transcript)\/original(?:\/([a-f0-9-]{36})\/(complete|chunks\/(\d+)))?$/)
+    if (originalRoute) {
+      const [,kind,id,action,index] = originalRoute
+      try {
+        const headers = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' }
+        if (!id && req.method === 'GET') send(res,200,JSON.stringify(await originalStatus(kind)),'application/json; charset=utf-8',headers)
+        else if (!id && req.method === 'POST') send(res,200,JSON.stringify(await beginOriginal(kind,await readBody(req,4096))),'application/json; charset=utf-8',headers)
+        else if (action === 'complete' && req.method === 'POST') send(res,200,JSON.stringify(await completeOriginal(kind,id)),'application/json; charset=utf-8',headers)
+        else if (index !== undefined && req.method === 'PUT') send(res,200,JSON.stringify(await putOriginalChunk(kind,id,Number(index),(await readBody(req,710000)).data)),'application/json; charset=utf-8',headers)
+        else if (index !== undefined && req.method === 'GET') send(res,200,await readOriginalChunk(kind,id,Number(index)),'application/octet-stream',headers)
+        else send(res,405,JSON.stringify({error:'Method not allowed.'}))
+      } catch(error) { send(res,error.status || 400,JSON.stringify({error:error.message}),'application/json; charset=utf-8',{'Cache-Control':'no-store'}) }
+      return
+    }
     const onboardingDocument = url.pathname.match(/^\/api\/onboarding\/documents\/(record|transcript)$/)
     if (onboardingDocument && req.method === 'DELETE') {
       try {
@@ -4974,6 +4990,7 @@ const server = createServer(async (req, res) => {
         send(res, 200, JSON.stringify({
           unchanged: result.unchanged,
           snapshot: result.snapshot,
+          originalBinding: `${await activeProgrammeId()}:record:${result.snapshot.id}`,
           progress: result.progress,
           programme: parsed.programme,
           printedOn: parsed.printedOn,
@@ -5082,7 +5099,7 @@ const server = createServer(async (req, res) => {
             }
           } catch (error) { documentRecordError = error.message }
         }
-        send(res, 200, JSON.stringify({ ...saved, applied, documentRecord, documentRecordError }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        send(res, 200, JSON.stringify({ ...saved, applied, documentRecord, documentRecordError, originalBinding: body?.documentRecord?.kind === 'transcript' && !documentRecordError ? (await originalContext('transcript')).binding : null }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
       }

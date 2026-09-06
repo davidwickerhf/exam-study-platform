@@ -1,3 +1,4 @@
+import { removeOriginal } from '../lib/academic-originals.mjs'
 import { test, expect } from '@playwright/test'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { deleteAllDocuments, writeDocument } from '../lib/user-store.mjs'
@@ -18,6 +19,15 @@ import { attendanceOverview } from '../lib/attendance.mjs'
 import { previewCourseBytes } from '../lib/course-file-preview.mjs'
 if (process.env.DATABASE_URL)
   throw new Error('Browser fixtures require local document storage.')
+function previewPdf(label) {
+  const stream=`BT /F1 16 Tf 30 230 Td (${label}) Tj ET`
+  const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>']
+  let pdf='%PDF-1.4\n';const offsets=[0]
+  objects.forEach((object,i)=>{offsets.push(Buffer.byteLength(pdf));pdf+=`${i+1} 0 obj\n${object}\nendobj\n`})
+  const xref=Buffer.byteLength(pdf)
+  pdf+=`xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(n=>`${String(n).padStart(10,'0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`
+  return pdf
+}
 const run = (fn) =>
   withRequestContext({ userId: 'study-e2e-fixture', mode: 'local' }, fn)
 let versionId, evaluationId
@@ -439,17 +449,22 @@ This is not an official document issued by Maastricht University.`
   await expect(recordPreview.locator('pre')).toContainText('Operating Systems')
   await recordPreview.getByRole('button',{name:'Done reviewing',exact:true}).click()
   await expect(recordPreview).not.toBeVisible()
-  // Reload loses local bytes, while the saved results remain connected.
+  await expect.poll(async()=>{const response=await page.request.get('/api/onboarding/documents/record/original');return Boolean((await response.json()).original)}).toBe(true)
+  // Reload proves the original comes from private storage, not component memory.
   await page.reload()
-  await expect(panel.getByRole('button',{name:'Choose file to preview',exact:true})).toBeVisible()
+  await expect(panel.getByRole('button',{name:'View document',exact:true})).toBeEnabled()
   const writes=[]
   const observe=request=>{if(request.method()!=='GET' && /\/api\/(academics|onboarding)/.test(request.url()))writes.push(request.url())}
   page.on('request',observe)
-  await panel.getByLabel('Choose original document for local preview').setInputFiles({name:'Academic Work.txt',mimeType:'text/plain',buffer:Buffer.from(record)})
   await panel.getByRole('button',{name:'View document',exact:true}).click()
   await expect(recordPreview.locator('pre')).toContainText('Operating Systems')
   await recordPreview.getByRole('button',{name:'Done reviewing',exact:true}).click()
   await expect(recordPreview).not.toBeVisible()
+  const downloadEvent=page.waitForEvent('download')
+  await panel.getByRole('button',{name:'Download document',exact:true}).click()
+  const download=await downloadEvent
+  expect(download.suggestedFilename()).toBe('Academic Work.txt')
+  expect((await readFile(await download.path())).toString()).toBe(record)
   expect(writes).toEqual([])
   page.off('request',observe)
   await panel.getByRole('button',{name:'Continue to transcript',exact:true}).click()
@@ -489,12 +504,7 @@ test('transcript side panels keep setup compact, preserve selection and render t
     changes:Array.from({length:40},(_,i)=>({id:`layout:${i}`,label:`Course ${i+1}: exam date`,detail:'Reviewed transcript date'})),
     documentCheck:{status:'confirmed',message:'Results agree.',recordCredits:160,transcriptCredits:160,counts:{confirmed:40},issues:[],checks:Array.from({length:40},(_,i)=>({status:'confirmed',course:`COURSE${i+1}`,name:`Course ${i+1}`,academicYear:'2025-2026',transcript:result,record:[result]}))}
   }}))
-  const stream='BT /F1 16 Tf 30 230 Td (Transcript preview fixture) Tj ET'
-  const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>']
-  let pdf='%PDF-1.4\n';const offsets=[0]
-  objects.forEach((object,i)=>{offsets.push(Buffer.byteLength(pdf));pdf+=`${i+1} 0 obj\n${object}\nendobj\n`})
-  const xref=Buffer.byteLength(pdf)
-  pdf+=`xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(n=>`${String(n).padStart(10,'0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`
+  const pdf=previewPdf('Transcript preview fixture')
   await page.goto('/app/setup?step=transcript')
   const main=page.getByRole('main')
   await main.locator('input[type=file]').setInputFiles({name:'Long transcript.pdf',mimeType:'application/pdf',buffer:Buffer.from(pdf)})
@@ -513,6 +523,11 @@ test('transcript side panels keep setup compact, preserve selection and render t
     if(width===390) await page.screenshot({path:'/tmp/wicker-transcript-drawer-mobile.png'})
     await drawer.getByRole('button',{name:'Done reviewing',exact:true}).click()
     await expect(main.getByRole('button',{name:'Apply 39 changes',exact:true})).toBeEnabled()
+    if(width===1280) {
+      const downloaded=page.waitForEvent('download')
+      await main.getByRole('button',{name:'Download document',exact:true}).click()
+      expect(await readFile(await (await downloaded).path())).toEqual(Buffer.from(pdf))
+    }
     await main.getByRole('button',{name:'Compare 40 results',exact:true}).click()
     const comparison=page.getByRole('dialog',{name:'Compare document results',exact:true})
     await expect(comparison.getByRole('listitem')).toHaveCount(40)
@@ -561,4 +576,39 @@ test('saved Academic Work keeps forty curriculum changes in a side panel before 
   }
   await main.getByRole('button',{name:'Continue to transcript',exact:true}).click()
   await expect(main.getByRole('heading',{name:'Your transcript',exact:true})).toBeVisible()
+})
+
+
+test('legacy original restoration persists a real PDF for view and download, and removal erases it',async({page})=>{
+  await run(()=>removeOriginal('record'))
+  await page.route('**/api/onboarding',async route=>{
+    const response=await route.fetch(),body=await response.json()
+    await route.fulfill({json:{...body,state:{...body.state,programme:true,electives:true}}})
+  })
+  await page.goto('/app/setup?step=record')
+  const main=page.getByRole('main')
+  await expect(main.getByRole('button',{name:'View document',exact:true})).toBeDisabled()
+  await expect(main.getByRole('button',{name:'Download document',exact:true})).toBeDisabled()
+  await expect(main.getByRole('button',{name:'Restore original',exact:true})).toBeVisible()
+  const pdf=Buffer.from(previewPdf('Saved Academic Work original'))
+  const mutations=[]
+  page.on('request',request=>{if(request.method()!=='GET'&&/\/api\/(academics|onboarding)/.test(request.url())&&!request.url().includes('/original'))mutations.push(request.url())})
+  await main.getByLabel('Restore original document').setInputFiles({name:'Academic Work.pdf',mimeType:'application/pdf',buffer:pdf})
+  await expect(main.getByRole('button',{name:'Download document',exact:true})).toBeEnabled()
+  expect(mutations).toEqual([])
+  await page.reload()
+  await main.getByRole('button',{name:'View document',exact:true}).click()
+  const drawer=page.getByRole('dialog',{name:'Academic Work.pdf',exact:true})
+  await expect(drawer.getByRole('img',{name:'Academic Work.pdf, page 1',exact:true})).toBeVisible()
+  await page.screenshot({path:'/tmp/wicker-saved-original-panel.png'})
+  await drawer.getByRole('button',{name:'Done reviewing',exact:true}).click()
+  await expect(drawer).not.toBeVisible()
+  const downloaded=page.waitForEvent('download')
+  await main.getByRole('button',{name:'Download document',exact:true}).click()
+  expect(await readFile(await (await downloaded).path())).toEqual(pdf)
+  await page.screenshot({path:'/tmp/wicker-document-icon-actions.png',fullPage:true})
+  const original=(await (await page.request.get('/api/onboarding/documents/record/original')).json()).original
+  await main.getByRole('button',{name:'Remove document',exact:true}).click()
+  await expect(main.getByLabel('Your Academic Work PDF',{exact:true})).toBeVisible()
+  expect((await page.request.get(`/api/onboarding/documents/record/original/${original.id}/chunks/0`)).status()).toBe(404)
 })
