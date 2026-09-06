@@ -34,3 +34,30 @@ with zipfile.ZipFile(os.path.join(root,'unsafe.zip'),'w') as z: z.writestr('../o
     assert.equal(unsafe.status,'failed');assert.match(unsafe.error,/original preserved/)
   } finally {await rm(root,{recursive:true,force:true})}
 })
+
+test('large numeric text chunks in bounded time and large CSV indexes an explicit profile',async()=>{
+  const {stdout}=await exec(process.execPath,['--input-type=module','-e',`import {retrievalRecords} from './lib/canvas-corpus-worker.mjs'; const rows=retrievalRecords({text:'0123456789,'.repeat(3_700_000)}); console.log(rows.length);`],{timeout:8000,maxBuffer:1024})
+  assert.ok(Number(stdout)>25000)
+  const csv=Buffer.from('age,value\n'+'42,123456789\n'.repeat(100000))
+  const result=await extracted(csv,'measurements.csv')
+  assert.equal(result.status,'complete');assert.match(result.text,/100001 rows/)
+  assert.match(result.text,/sample, not the full dataset/);assert.match(result.text,/age \| value/)
+  assert.ok(result.text.length<12000)
+})
+
+test('large worksheets are streamed into a labelled profile, retaining late row counts',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'queue-large-sheet-'))
+  try {
+    await exec('python3',['-c',`import zipfile,sys
+with zipfile.ZipFile(sys.argv[1],'w') as z:
+ z.writestr('xl/workbook.xml','<workbook xmlns:r="urn:r"><sheets><sheet name="Measurements" r:id="r1"/></sheets></workbook>')
+ z.writestr('xl/_rels/workbook.xml.rels','<Relationships><Relationship Id="r1" Target="worksheets/sheet1.xml"/></Relationships>')
+ with z.open('xl/worksheets/sheet1.xml','w') as f:
+  f.write(b'<worksheet><sheetData>')
+  for i in range(50000): f.write(('<row><c r="A'+str(i+1)+'"><v>'+str(i)+'</v></c></row>').encode())
+  f.write(b'</sheetData></worksheet>')`,join(root,'large.xlsx')])
+    const result=await extracted(await readFile(join(root,'large.xlsx')),'large.xlsx')
+    assert.equal(result.status,'complete');assert.match(result.text,/50000 rows/)
+    assert.match(result.text,/sample, not the full dataset/);assert.ok(result.text.length<12000)
+  } finally {await rm(root,{recursive:true,force:true})}
+})

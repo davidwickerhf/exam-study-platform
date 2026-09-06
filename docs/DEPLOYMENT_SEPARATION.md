@@ -49,10 +49,11 @@ Text extraction is a separate task. Search embeddings are checkpointed in
 64-passage batches and published atomically when complete. Notebook cells are
 read without execution; XLSX formulas use saved values; archive expansion is
 bounded and unsafe/unreadable content is reported while retaining the original.
+CSV and XLSX files larger than 1 MB receive a labelled search profile (row/column counts and the first 20 rows, up to 40 columns and 200 characters per cell), rather than embeddings of every data cell. The complete original is preserved for exact analysis. Worksheets are streamed with a cumulative 1 GB expansion budget, a compression-ratio guard and entity rejection; ordinary archives retain the 128 MB expansion guard.
 No PDF pages are deliberately truncated by this pipeline. The existing 1 GB
 per-file and 2,000-resource importer safeguards remain explicit limitations.
 
-Retries reuse original bytes and completed resource/index stages. A failed
+Retries reuse original bytes and completed resource/index stages. Resource attempts are recorded before execution, so repeated hard runtime termination is isolated after three attempts. Permanent unsafe archive errors are not repeatedly retried. A failed
 resource does not prevent other discovered resources from finishing. Missing
 resources in partial scans never automatically retire earlier material. A
 changed file at the same path replaces its active snapshot only after the new

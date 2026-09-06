@@ -60,7 +60,7 @@ function LogPortal() {
   const jobs = data?.jobs.filter(row => `${title(row)} ${row.courseName || ""}`.toLowerCase().includes(query.toLowerCase())) || [];
   const choose = (id: string) => { setCursors([]); router.replace(`/app/settings/canvas-sync/logs${id ? `?job=${encodeURIComponent(id)}` : ""}`, { scroll: false }); };
   const quiet = job?.status === "running" && job.lastEventAt && Date.now() - new Date(job.lastEventAt).getTime() > 5 * 60_000;
-  const stale = job?.status === "running" && (!job.heartbeatAt || Date.now() - new Date(job.heartbeatAt).getTime() > 90_000);
+  const stale = job?.status === "running" && (!job.heartbeatAt || Date.now() - new Date(job.heartbeatAt).getTime() > 6 * 60_000);
   return <div className="flex min-w-0 flex-1 flex-col">
     <header className="border-b px-4 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-[1440px] flex-wrap items-start justify-between gap-4">
@@ -88,11 +88,11 @@ function LogPortal() {
         </aside>
         <section className="min-w-0 overflow-hidden rounded-xl border bg-card" aria-label="Event timeline">
           <div className="border-b px-4 py-5 sm:px-6">
-            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">{job ? title(job) : selected ? "Sync details" : "All activity"}</h2><p className="mt-1 text-xs text-muted-foreground">{job ? `${states[job.status]} · ${job.attempts} worker attempt${job.attempts === 1 ? "" : "s"}` : "Discovery and course syncs, newest events first."}</p></div>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">{job ? title(job) : selected ? "Sync details" : "All activity"}</h2><p className="mt-1 text-xs text-muted-foreground">{job ? `${states[job.status]} · ${job.attempts} sync attempt${job.attempts === 1 ? "" : "s"}` : "Discovery and course syncs, newest events first."}</p></div>
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className={cn("size-1.5 rounded-full", live && !before && !error ? "bg-primary" : "bg-muted-foreground")} />{before ? "Older events" : !live ? "Updates paused" : error ? "Connection interrupted" : "Updates every 5s"}</span>
             </div>
-            {job && <><dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 text-xs"><div><dt className="text-muted-foreground">Last progress</dt><dd className="mt-1 font-medium">{elapsed(job.lastEventAt)}</dd><dd className="mt-1 text-muted-foreground">{job.lastMessage || "Detailed logging was not available for this run."}</dd></div><div><dt className="text-muted-foreground">Last worker update</dt><dd className="mt-1 font-medium">{elapsed(job.heartbeatAt)}</dd><dd className="mt-1 text-muted-foreground">{job.status === "running" ? "The most recent task checkpoint. Work resumes automatically between tasks." : job.status === "pending" ? `Scheduled after ${time(job.runAfter || job.createdAt)}` : "This process is no longer running."}</dd></div></dl>
-              {(quiet || stale) && <p className="mt-4 border-l-2 border-amber-600 pl-3 text-xs leading-relaxed">{stale ? "The worker heartbeat is late. The process may be interrupted." : "No new progress event for over 5 minutes. A large file or course-rule analysis may still be processing."} <Link href="/app/settings/canvas-sync" className="font-semibold underline">Open sync controls</Link></p>}
+            {job && <><dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 text-xs"><div><dt className="text-muted-foreground">Last progress</dt><dd className="mt-1 font-medium">{elapsed(job.lastEventAt)}</dd><dd className="mt-1 text-muted-foreground">{job.lastMessage || "Detailed logging was not available for this run."}</dd></div><div><dt className="text-muted-foreground">Last task activity</dt><dd className="mt-1 font-medium">{elapsed(job.heartbeatAt)}</dd><dd className="mt-1 text-muted-foreground">{job.status === "running" ? "A task started or checked in. This does not confirm file progress." : job.status === "pending" ? `Scheduled after ${time(job.runAfter || job.createdAt)}` : "This process is no longer running."}</dd></div></dl>
+              {(quiet || stale) && <p className="mt-4 border-l-2 border-amber-600 pl-3 text-xs leading-relaxed">{stale ? "No task activity for over 6 minutes. The queue may need recovery." : "No saved progress for over 5 minutes. This sync may be stalled, even if task activity is recent."} <Link href="/app/settings/canvas-sync" className="font-semibold underline">Open sync controls</Link></p>}
             </>}
           </div>
           <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3 sm:px-6">
