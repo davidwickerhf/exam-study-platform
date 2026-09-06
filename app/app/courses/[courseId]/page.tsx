@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { useParams } from 'next/navigation'
 import { ArchiveIcon, MoreHorizontalIcon, ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
@@ -42,45 +43,31 @@ export default function CoursePage() {
   const params = useParams<{ courseId: string; itemId?: string }>()
   const canvas = useCourseCanvas()
   const [selectedYear, setSelectedYear] = useState<string | null>(null)
-  const [courses, setCourses] = useState<StudyCourse[] | null>(null)
-  const [academic, setAcademic] = useState<AcademicCourse[]>([])
-  const [academicLoading, setAcademicLoading] = useState(true)
-  const [catalogueError, setCatalogueError] = useState<string | null>(null)
-  const [catalogueLoading, setCatalogueLoading] = useState(true)
-  const [calendarLoading, setCalendarLoading] = useState(true)
-  const [academicError, setAcademicError] = useState<string | null>(null)
-  const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
-  const [programmeTemplate, setProgrammeTemplate] = useState<ProgrammeTemplate>(null)
-  const [corpus, setCorpus] = useState<CorpusCourse[]>([])
-  const [currentCourses, setCurrentCourses] = useState<CurrentCourse[]>([])
-  const [corpusError, setCorpusError] = useState<string | null>(null)
-  const [pendingSources, setPendingSources] = useState(5)
-  const [reload, setReload] = useState(0)
+  const study = useWorkspaceData<{ courses: StudyCourse[] }>('/api/state')
+  const record = useWorkspaceData<{ workspace?: { courses?: AcademicCourse[]; programmeTemplate?: ProgrammeTemplate } }>('/api/academics')
+  const programmes = useWorkspaceData<Catalogue>('/api/onboarding/programmes')
+  const materials = useWorkspaceData<{ status?: { courses?: CorpusCourse[] } }>('/api/account/integrations/canvas/corpus')
+  const timetable = useWorkspaceData<CalendarPayload & { currentCourses?: CurrentCourse[] }>('/api/calendar/events')
+  const courses = study.data?.courses ?? null
+  const academic = record.data?.workspace?.courses ?? []
+  const programmeTemplate = record.data?.workspace?.programmeTemplate ?? null
+  const catalogue = programmes.data ?? null
+  const corpus = materials.data?.status?.courses ?? []
+  const calendar = timetable.data ?? null
+  const currentCourses = timetable.data?.currentCourses ?? []
+  const academicLoading = record.loading, catalogueLoading = programmes.loading, calendarLoading = timetable.loading
+  const academicError = record.error?.message ?? null, catalogueError = programmes.error?.message ?? null, corpusError = materials.error?.message ?? null, calendarError = timetable.error?.message ?? null
+  const pendingSources = [study, record, programmes, materials, timetable].filter(resource => resource.loading).length
+  const reloadSources = () => { for (const resource of [study, record, programmes, materials, timetable]) resource.refresh() }
   const [tab, setTab] = useState<CourseTab>('study')
-  const [calendarError, setCalendarError] = useState<string | null>(null)
-  const [calendar, setCalendar] = useState<CalendarPayload | null>(null)
   const [read, setRead] = useState<Set<string>>(new Set())
   // A failed save is not a failed page: the two are kept apart so a mastery
   // click that loses the network does not replace the course with an error.
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const loadError = study.error?.message
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
 
-  useEffect(() => {
-    let live = true
-    setPendingSources(5); setCorpusError(null); setCatalogueError(null); setAcademicLoading(true); setCatalogueLoading(true); setCalendarLoading(true); setAcademicError(null); setLoadError(null); setCalendarError(null)
-    setRead(readChapters(window.localStorage))
-    const json = (path: string) => fetch(path, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15_000) })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('This source could not be loaded.')))
-    const settled = () => { if (live) setPendingSources(value => value - 1) }
-    void json('/api/state').then(data => { if (live) setCourses(data.courses ?? []) }).catch(() => { if (live) setLoadError('Study material could not be loaded.') }).finally(settled)
-    void json('/api/academics').then(data => { if (live) { setAcademic(data.workspace?.courses ?? []); setProgrammeTemplate(data.workspace?.programmeTemplate ?? null) } })
-      .catch(() => { if (live) setAcademicError('Your academic record could not be loaded.') }).finally(() => { if (live) setAcademicLoading(false); settled() })
-    void json('/api/onboarding/programmes').then(data => { if (live) setCatalogue(data) }).catch(() => { if (live) setCatalogueError('Course identities could not be checked. History is shown using the available course codes.') }).finally(() => { if (live) setCatalogueLoading(false); settled() })
-    void json('/api/account/integrations/canvas/corpus').then(data => { if (live) setCorpus(data.status?.courses ?? []) }).catch(() => { if (live) setCorpusError('Canvas course information could not be loaded.') }).finally(settled)
-    void json('/api/calendar/events').then(data => { if (live) { setCalendar(data); setCurrentCourses(data.currentCourses ?? []) } }).catch(() => { if (live) setCalendarError('Attendance could not be loaded.') }).finally(() => { if (live) setCalendarLoading(false); settled() })
-    return () => { live = false }
-  }, [reload])
+  useEffect(() => { setRead(readChapters(window.localStorage)) }, [])
 
   useEffect(() => {
     const readTab = () => { setTab(courseDetailTab(window.location.search, window.location.hash)); setSelectedYear(new URLSearchParams(window.location.search).get('year')) }
@@ -123,7 +110,7 @@ export default function CoursePage() {
             <EmptyTitle>{loadError || academicError || catalogueError || corpusError || calendarError ? 'That course could not be read' : 'No such course'}</EmptyTitle>
             <EmptyDescription>{loadError ?? academicError ?? catalogueError ?? corpusError ?? calendarError ?? 'It may have been archived or renamed.'}</EmptyDescription>
           </EmptyHeader>
-          <Button variant="outline" onClick={() => setReload(value => value + 1)}>Try again</Button><Link href="/app/courses" className="text-primary text-sm font-semibold">Back to courses</Link>
+          <Button variant="outline" onClick={() => reloadSources()}>Try again</Button><Link href="/app/courses" className="text-primary text-sm font-semibold">Back to courses</Link>
         </Empty>
       </div>
     )
@@ -138,7 +125,7 @@ export default function CoursePage() {
   const attempts = courseAttemptHistory(academicCourse)
   const latest = attempts[0]
   const nextChapter = course.chapters?.find(chapter => !read.has(`${course.id}/${chapter.id}`)) ?? course.chapters?.[0]
-  const retry = () => setReload(value => value + 1)
+  const retry = () => reloadSources()
   const profile = course.courseProfile
   const items = course.items ?? []
   const rated = items.filter(isRated).length
@@ -152,7 +139,7 @@ export default function CoursePage() {
       const response = await fetch(`/api/items/${encodeURIComponent(itemId)}`, { method: 'PATCH', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ mastery }) })
       const data = await response.json().catch(() => null)
       if (!response.ok) throw new Error(data?.error || `Mastery returned ${response.status}`)
-      setCourses((current) => current?.map((entry) => entry.id === course.id ? { ...entry, items: entry.items?.map((item) => item.id === itemId ? { ...item, ...data.item } : item) } : entry) ?? null)
+      study.refresh()
     } catch (cause) { setSaveError((cause as Error).message) } finally { setSaving(null) }
   }
 
@@ -162,7 +149,7 @@ export default function CoursePage() {
       const response = await fetch(`/api/courses/${encodeURIComponent(course.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ archived: !course.archived }) })
       const data = await response.json().catch(() => null)
       if (!response.ok) throw new Error(data?.error || `Course update returned ${response.status}`)
-      setCourses((current) => current?.map((entry) => entry.id === course.id ? { ...entry, archived: data.course.archived } : entry) ?? null)
+      study.refresh()
     } catch (cause) { setSaveError((cause as Error).message) } finally { setSaving(null) }
   }
 

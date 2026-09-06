@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 /**
  * Canvas connections.
  *
@@ -622,12 +624,12 @@ export function ConnectionsTab() {
         title="Canvas management"
         note="Removing one deletes its encrypted token here and changes nothing in Canvas."
         action={
-          <a
+          <Link
             href="/app/updates?tab=materials"
             className="text-primary text-sm font-semibold hover:underline"
           >
             Open course material
-          </a>
+          </Link>
         }
       >
         {corpusStatus.data?.status && (
@@ -639,7 +641,7 @@ export function ConnectionsTab() {
                 <small className="text-muted-foreground mt-0.5 block text-xs">{activeCount ? syncProgress.stage : `${corpus.courseEditions} course editions · ${corpus.storedMaterials} materials stored`}</small>
               </span>
               <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{activeCount ? `${syncProgress.settledCourses}/${syncProgress.totalCourses || "—"} courses settled` : `${corpus.failed.length} issues`}</span>
-              <a href="/app/settings/canvas-sync" className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold hover:underline">Open sync activity <ArrowRightIcon className="size-3.5" /></a>
+              <Link href="/app/settings/canvas-sync" className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold hover:underline">Open sync activity <ArrowRightIcon className="size-3.5" /></Link>
             </div>
             {activeCount > 0 && syncProgress.percent != null && <Progress value={syncProgress.percent} className="h-1 rounded-none" />}
           </div>

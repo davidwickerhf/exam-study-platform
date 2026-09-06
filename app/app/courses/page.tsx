@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useWorkspaceData } from "@/hooks/use-workspace-data";
 import {
   ArchiveIcon,
   ArrowRightIcon,
@@ -158,15 +159,19 @@ function examFacts(
 }
 
 export default function CoursesPage() {
-  const [courses, setCourses] = useState<StudyCourse[] | null>(null);
-  const [academic, setAcademic] = useState<AcademicCourse[]>([]);
+  const study = useWorkspaceData<{ courses: StudyCourse[] }>("/api/workspace-shell");
+  const record = useWorkspaceData<{ workspace?: { courses?: AcademicCourse[]; programmeTemplate?: ProgrammeTemplate } }>("/api/academics");
+  const materials = useWorkspaceData<{ status?: { courses?: CorpusCourse[] } }>("/api/account/integrations/canvas/corpus");
+  const programmes = useWorkspaceData<Catalogue>("/api/onboarding/programmes");
+  const calendar = useWorkspaceData<{ academicContext?: { period?: string }; currentCourses?: CurrentCourse[] }>("/api/calendar/events");
+  const courses = study.data?.courses ?? null;
+  const academic = record.data?.workspace?.courses ?? [];
+  const programmeTemplate = record.data?.workspace?.programmeTemplate ?? null;
+  const corpus = materials.data?.status?.courses ?? [];
+  const catalogue = programmes.data ?? null;
+  const currentPeriod = calendar.data?.academicContext?.period ?? null;
+  const currentCourses = calendar.data?.currentCourses ?? [];
   const [read, setRead] = useState<Set<string>>(new Set());
-  const [corpus, setCorpus] = useState<CorpusCourse[]>([]);
-  const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
-  const [programmeTemplate, setProgrammeTemplate] =
-    useState<ProgrammeTemplate>(null);
-  const [currentPeriod, setCurrentPeriod] = useState<string | null>(null);
-  const [currentCourses, setCurrentCourses] = useState<CurrentCourse[]>([]);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState("current");
   const [sort, setSort] = useState("period");
@@ -176,77 +181,11 @@ export default function CoursesPage() {
   const [railLimit, setRailLimit] = useState(COURSE_RAIL_MAX);
   const [canSplitRail, setCanSplitRail] = useState(false);
   const [resizingRail, setResizingRail] = useState(false);
-  const [sourcePhase, setSourcePhase] = useState<
-    Record<CourseSource, SourcePhase>
-  >({
-    academics: "loading",
-    canvas: "loading",
-    catalogue: "loading",
-    calendar: "loading",
-  });
-  const [error, setError] = useState<string | null>(null);
+  const phase = (resource: { data: unknown; error: Error | null }): SourcePhase => resource.data ? "ready" : resource.error ? "error" : "loading";
+  const sourcePhase: Record<CourseSource, SourcePhase> = { academics: phase(record), canvas: phase(materials), catalogue: phase(programmes), calendar: phase(calendar) };
+  const error = study.data ? null : study.error?.message;
   const splitRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let live = true;
-    const settle = (source: CourseSource, phase: SourcePhase) => {
-      if (live) setSourcePhase((current) => ({ ...current, [source]: phase }));
-    };
-    setRead(
-      readChapters(typeof window === "undefined" ? null : window.localStorage),
-    );
-    const json = (path: string) =>
-      fetch(path, { headers: { accept: "application/json" } }).then(
-        (response) =>
-          response.ok
-            ? response.json()
-            : Promise.reject(new Error(`${path} returned ${response.status}`)),
-      );
-    json("/api/state")
-      .then((data) => {
-        if (live) setCourses(data.courses ?? []);
-      })
-      .catch((cause: Error) => {
-        if (live) setError(cause.message);
-      });
-    json("/api/academics")
-      .then((data) => {
-        if (live) {
-          setAcademic(data.workspace?.courses ?? []);
-          setProgrammeTemplate(data.workspace?.programmeTemplate ?? null);
-          settle("academics", "ready");
-        }
-      })
-      .catch(() => settle("academics", "error"));
-    json("/api/account/integrations/canvas/corpus")
-      .then((data) => {
-        if (live) {
-          setCorpus(data.status?.courses ?? []);
-          settle("canvas", "ready");
-        }
-      })
-      .catch(() => settle("canvas", "error"));
-    json("/api/onboarding/programmes")
-      .then((data) => {
-        if (live) {
-          setCatalogue(data);
-          settle("catalogue", "ready");
-        }
-      })
-      .catch(() => settle("catalogue", "error"));
-    json("/api/calendar/events")
-      .then((data) => {
-        if (live) {
-          setCurrentPeriod(data.academicContext?.period ?? null);
-          setCurrentCourses(data.currentCourses ?? []);
-          settle("calendar", "ready");
-        }
-      })
-      .catch(() => settle("calendar", "error"));
-    return () => {
-      live = false;
-    };
-  }, []);
+  useEffect(() => { setRead(readChapters(window.localStorage)); }, []);
 
   useEffect(() => {
     if (!courses || !splitRef.current) return;

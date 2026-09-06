@@ -26,9 +26,10 @@ const TABS = [
 ] as const;
 
 export default function SettingsPage() {
-  const summary = useJson<AccountSummary>("/api/account/summary");
+
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<string>("connections");
+  const summary = useJson<AccountSummary>(tab === "data" ? "/api/account/summary" : null);
 
   useEffect(() => {
     const readTab = () => {

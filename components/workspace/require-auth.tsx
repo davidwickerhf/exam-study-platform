@@ -17,6 +17,7 @@
 
 import {
   type ReactNode,
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -38,6 +39,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { createAuthenticatedFetch } from "@/lib/workspace/auth-session.mjs";
+import { workspaceCache } from "@/hooks/use-workspace-data";
+import { workspaceWriteAffectsReads } from "@/lib/workspace/resource-cache.mjs";
 import { cn } from "@/lib/utils";
 import {
   browserStateSnapshot,
@@ -136,9 +139,11 @@ function Gate({
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
+      workspaceCache.setScope(null);
       router.replace(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
+    workspaceCache.setScope(sessionId || null);
     let live = true;
     let recoveringSession = false;
     const controller = new AbortController();
@@ -521,7 +526,25 @@ function OpenSession({ onSession }: { onSession: (session: WorkspaceSession) => 
   return null;
 }
 
-export function RequireAuth({
+function WorkspaceFetchBoundary({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const original = window.fetch;
+    const observed: typeof fetch = async (input, init) => {
+      const response = await original(input, init);
+      const url = new URL(input instanceof Request ? input.url : String(input), window.location.origin);
+      const method = init?.method || (input instanceof Request ? input.method : "GET");
+      if (response.ok && url.origin === window.location.origin && workspaceWriteAffectsReads(url.pathname, method)) workspaceCache.invalidate();
+      return response;
+    };
+    window.fetch = observed;
+    setReady(true);
+    return () => { workspaceCache.setScope(null); if (window.fetch === observed) window.fetch = original };
+  }, []);
+  return ready ? children : <Waiting />;
+}
+
+function AuthenticatedWorkspace({
   authEnabled,
   localLoginEnabled,
   children,
@@ -530,7 +553,11 @@ export function RequireAuth({
   localLoginEnabled: boolean;
   children: ReactNode;
 }) {
-  const [session, setSession] = useState<WorkspaceSession | null>(null);
+  const [session, updateSession] = useState<WorkspaceSession | null>(null);
+  const setSession = useCallback((next: WorkspaceSession) => {
+    if (!authEnabled) workspaceCache.setScope(next.userId || "local");
+    updateSession(next);
+  }, [authEnabled]);
   const value = useMemo(
     () => ({ clerkEnabled: authEnabled, session }),
     [authEnabled, session],
@@ -551,4 +578,8 @@ export function RequireAuth({
       </>
     );
   return <Gate onSession={setSession}>{workspace}</Gate>;
+}
+
+export function RequireAuth(props: { authEnabled: boolean; localLoginEnabled: boolean; children: ReactNode }) {
+  return <WorkspaceFetchBoundary><AuthenticatedWorkspace {...props} /></WorkspaceFetchBoundary>;
 }

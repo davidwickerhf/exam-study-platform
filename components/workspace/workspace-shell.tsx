@@ -52,6 +52,7 @@ import { WorkspaceSearch } from '@/components/workspace/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useClerk, useUser } from '@clerk/nextjs'
+import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { useWorkspaceSession } from '@/components/workspace/require-auth'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
@@ -187,13 +188,13 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   // workspace load, and Clerk is simply absent in the local modes.
   const { clerkEnabled, session } = useWorkspaceSession()
   const [sidebarWidth, setSidebarWidth] = useState(248)
-  const [programmeIndex, setProgrammeIndex] = useState<ProgrammeIndex | null>(null)
+  const { data: academic } = useWorkspaceData<{ index: ProgrammeIndex }>('/api/academics')
+  const programmeIndex = academic?.index ?? null
   const isAdmin = Boolean(session?.admin)
 
   useEffect(() => {
     const stored = Number(window.localStorage.getItem('wicker-sidebar-width'))
     if (Number.isFinite(stored)) setSidebarWidth(Math.min(320, Math.max(224, stored)))
-    fetch('/api/academics', { headers: { accept: 'application/json' } }).then((response) => response.ok ? response.json() : null).then((data) => setProgrammeIndex(data?.index ?? null)).catch(() => undefined)
   }, [])
 
   const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {

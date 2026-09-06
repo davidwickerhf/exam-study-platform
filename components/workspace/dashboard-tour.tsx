@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Dialog } from '@base-ui/react/dialog'
 import { ArrowRightIcon, CompassIcon, XIcon } from 'lucide-react'
+import { cachedWorkspaceJson } from '@/hooks/use-workspace-data'
 import { Button } from '@/components/ui/button'
 import { useWorkspaceSession } from '@/components/workspace/require-auth'
 import { TOUR_STEPS, tourPosition, type TourRect } from '@/lib/workspace/tour.mjs'
@@ -12,6 +13,7 @@ type TourStatus = 'pending' | 'dismissed' | 'completed' | 'unoffered'
 type TourState = { status: TourStatus }
 
 async function tourRequest(status?: TourStatus): Promise<TourState> {
+  if (!status) return cachedWorkspaceJson<TourState>('/api/onboarding/tour')
   const response = await fetch('/api/onboarding/tour', {
     method: status ? 'PUT' : 'GET',
     headers: { accept: 'application/json', ...(status ? { 'Content-Type': 'application/json' } : {}) },

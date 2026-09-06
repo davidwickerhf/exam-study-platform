@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useMemo } from "react";
 import { ActivityIcon, DatabaseIcon, GraduationCapIcon, ShieldCheckIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -98,7 +100,7 @@ export function ProfileTab({ summary, summaryError, reload }: { summary: Account
             <Stat label="Active days" value={activity.data?.activeDays ?? "—"} detail="Last 28 days" />
             <Stat label="Stored records" value={summary ? formatCount(summary.totals.documents) : "—"} detail={summary ? approximateBytes(summary.totals.bytes) || "Private record" : "Reading storage"} />
           </div>
-          <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 border-t px-5 py-3 text-xs sm:px-6"><span>{library.error ? "Course library unavailable" : `${libraryActive ?? "—"} maintained courses available`}</span><a className="text-primary font-semibold hover:underline" href="/app/courses">Open Course Desk</a></div>
+          <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 border-t px-5 py-3 text-xs sm:px-6"><span>{library.error ? "Course library unavailable" : `${libraryActive ?? "—"} maintained courses available`}</span><Link className="text-primary font-semibold hover:underline" href="/app/courses">Open Course Desk</Link></div>
         </section>
 
         <section className="overflow-hidden rounded-xl border bg-card">

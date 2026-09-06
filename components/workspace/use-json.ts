@@ -9,7 +9,7 @@
  * a status code, and a component that unmounts mid-flight does not set state.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useWorkspaceData } from '@/hooks/use-workspace-data'
 
 export async function readJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -40,28 +40,8 @@ export async function readJson<T>(path: string, init?: RequestInit): Promise<T> 
 
 export type Resource<T> = { data: T | null; error: string | null; reload: () => void }
 
-/** Reads `path` once, and again whenever `reload()` is called. */
+/** Shares reads across pages and tabs; reload explicitly revalidates after edits. */
 export function useJson<T>(path: string | null): Resource<T> {
-  const [data, setData] = useState<T | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [nonce, setNonce] = useState(0)
-  const reload = useCallback(() => setNonce((value) => value + 1), [])
-
-  useEffect(() => {
-    if (!path) return
-    let live = true
-    setError(null)
-    readJson<T>(path)
-      .then((payload) => {
-        if (live) setData(payload)
-      })
-      .catch((cause: Error) => {
-        if (live) setError(cause.message)
-      })
-    return () => {
-      live = false
-    }
-  }, [path, nonce])
-
-  return { data, error, reload }
+  const { data, error, refresh } = useWorkspaceData<T>(path)
+  return { data: data ?? null, error: error?.message ?? null, reload: refresh }
 }
