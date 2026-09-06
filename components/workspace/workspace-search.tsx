@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { ArrowRightIcon, BookOpenIcon, SearchIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type SearchResult, searchable, searchHref, searchLabel } from '@/lib/workspace/search.mjs'
 
 type Course = { id: string; code: string; name: string }
+const NO_COURSES: Course[] = []
 type SearchHit = SearchResult & { courseId: string; courseCode: string; score?: number }
 
 /**
@@ -41,7 +43,8 @@ function useSearchShortcut(onOpen: () => void, enabled: boolean) {
 
 export function WorkspaceSearch({ shortcut = true }: { shortcut?: boolean }) {
   const [open, setOpen] = useState(false)
-  const [courses, setCourses] = useState<Course[]>([])
+  const library = useWorkspaceData<{ courses: Course[] }>(open ? '/api/workspace-shell' : null)
+  const courses = library.data?.courses ?? NO_COURSES
   const [courseId, setCourseId] = useState('all')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchHit[]>([])
@@ -51,17 +54,7 @@ export function WorkspaceSearch({ shortcut = true }: { shortcut?: boolean }) {
   useSearchShortcut(useCallback(() => setOpen(true), []), shortcut)
 
   useEffect(() => {
-    let live = true
-    fetch('/api/state').then(async (response) => {
-      const body = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(body?.error || `Courses returned ${response.status}`)
-      if (live) setCourses(body.courses ?? [])
-    }).catch((cause: Error) => { if (live) setError(cause.message) })
-    return () => { live = false }
-  }, [])
-
-  useEffect(() => {
-    if (!searchable(query)) { setResults([]); setLoading(false); return }
+    if (!open || !searchable(query)) { setResults([]); setLoading(false); return }
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
       setLoading(true)
@@ -82,7 +75,7 @@ export function WorkspaceSearch({ shortcut = true }: { shortcut?: boolean }) {
       }
     }, 180)
     return () => { window.clearTimeout(timer); controller.abort() }
-  }, [courseId, courses, query])
+  }, [courseId, courses, query, open])
 
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger data-tour="search" render={<Button variant="outline" size="sm" className="w-full justify-start gap-2" />}>
@@ -115,7 +108,7 @@ export function WorkspaceSearch({ shortcut = true }: { shortcut?: boolean }) {
       <ScrollArea className="min-h-48 flex-1">
         <div className="flex flex-col">
           {loading && <p className="text-muted-foreground flex items-center gap-2 px-6 py-6 text-sm"><Spinner />Searching headings, explanations, formulas, and examples…</p>}
-          {error && <p role="alert" className="px-6 py-6 text-sm">Search unavailable: {error}</p>}
+          {(error || library.error) && <p role="alert" className="px-6 py-6 text-sm">Search unavailable: {error || library.error?.message}</p>}
           {!loading && !error && !searchable(query) && <div className="grid grid-cols-[1fr_1.5fr] gap-8 px-7 py-7 max-sm:grid-cols-1">
             <div className="flex flex-col gap-2"><BookOpenIcon className="text-primary" /><strong className="text-base">Start with the thing you remember</strong><p className="text-muted-foreground text-sm leading-relaxed">A theorem name, a formula fragment, an exercise topic, or even wording from a definition.</p></div>
             <div className="flex flex-col gap-2"><span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Try searching</span>{['interval scheduling greedy rule', 'Bayes theorem worked example', 'buffer overflow mitigation', 'Euler method error'].map((suggestion) => <button type="button" key={suggestion} onClick={() => setQuery(suggestion)} className="group flex items-center justify-between border-b py-2 text-left text-sm hover:text-primary"><span>{suggestion}</span><ArrowRightIcon className="text-muted-foreground transition-transform group-hover:translate-x-1" /></button>)}</div>

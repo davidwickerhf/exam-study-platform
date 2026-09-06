@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { workspaceCache, cachedWorkspaceJson } from '@/hooks/use-workspace-data'
 import {
   BookOpenIcon, CalendarDaysIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon,
   CircleAlertIcon, Clock3Icon, ExternalLinkIcon,
@@ -198,7 +199,7 @@ function EventComposer({ seed, courses, saving, error, onOpenChange, onSave, onD
 export default function CalendarPage() {
   const apiRef = useRef<GridApi | null>(null)
   const today = localIsoDate()
-  const [payload, setPayload] = useState<CalendarData | null>(null); const [academicRevision, setAcademicRevision] = useState<number | null>(null); const [courses, setCourses] = useState<Course[]>([])
+  const [payload, setPayload] = useState<CalendarData | null>(() => workspaceCache.read('/api/calendar/events').data as CalendarData || null); const [academicRevision, setAcademicRevision] = useState<number | null>(null); const [courses, setCourses] = useState<Course[]>([])
   const [error, setError] = useState<string | null>(null); const [view, setView] = useState<string>(() => calendarView(typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('view')))
   const [date, setDate] = useState<Date>(new Date()); const [title, setTitle] = useState(''); const [hiddenSources, setHiddenSources] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState<CalendarEvent | null>(null); const [selectedDate, setSelectedDate] = useState(today); const [ready, setReady] = useState(false)
@@ -208,8 +209,8 @@ export default function CalendarPage() {
   const [composer, setComposer] = useState<ComposerSeed | null>(null); const [composerSaving, setComposerSaving] = useState(false); const [composerError, setComposerError] = useState<string | null>(null)
   const [pendingFeedRemoval, setPendingFeedRemoval] = useState<SourceRow | null>(null); const [pendingEventDelete, setPendingEventDelete] = useState<CalendarEvent | null>(null)
 
-  const loadCalendar = useCallback(async (preferredEventId?: string | null) => { const response = await fetch('/api/calendar/events', { headers: { accept: 'application/json' } }); if (!response.ok) throw new Error(`Your calendar returned ${response.status}`); const data = await response.json(); setPayload(data); if (preferredEventId) setSelected(data.events.find((event: CalendarEvent) => event.id === preferredEventId) || null); return data }, [])
-  const loadAcademics = useCallback(async () => { const response = await fetch('/api/academics', { headers: { accept: 'application/json' } }); if (!response.ok) return null; const data = await response.json() as AcademicsData; setAcademicRevision(data.workspace?.revision ?? null); setCourses(data.workspace?.courses ?? []); return data }, [])
+  const loadCalendar = useCallback(async (preferredEventId?: string | null) => { const data = await cachedWorkspaceJson<CalendarData>('/api/calendar/events'); setPayload(data); if (preferredEventId) setSelected(data.events.find((event: CalendarEvent) => event.id === preferredEventId) || null); return data }, [])
+  const loadAcademics = useCallback(async () => { const data = await cachedWorkspaceJson<AcademicsData>('/api/academics'); setAcademicRevision(data.workspace?.revision ?? null); setCourses(data.workspace?.courses ?? []); return data }, [])
   useEffect(() => { let live = true; Promise.all([loadCalendar(), loadAcademics()]).catch((cause: Error) => { if (live) setError(cause.message) }); return () => { live = false } }, [loadAcademics, loadCalendar])
   useEffect(() => { const number = (key: string, fallback: number) => Math.round(Number(localStorage.getItem(key))) || fallback; setLeftWidth(Math.min(LEFT_MAX, Math.max(LEFT_MIN, number('wicker-calendar-left-width', 248)))); setRightWidth(Math.min(RIGHT_MAX, Math.max(RIGHT_MIN, number('wicker-calendar-right-width', 310)))); setLeftOpen(localStorage.getItem('wicker-calendar-left-open') !== 'false'); setRightOpen(localStorage.getItem('wicker-calendar-right-open') !== 'false') }, [])
   useEffect(() => { localStorage.setItem('wicker-calendar-left-width', String(leftWidth)) }, [leftWidth]); useEffect(() => { localStorage.setItem('wicker-calendar-right-width', String(rightWidth)) }, [rightWidth]); useEffect(() => { localStorage.setItem('wicker-calendar-left-open', String(leftOpen)) }, [leftOpen]); useEffect(() => { localStorage.setItem('wicker-calendar-right-open', String(rightOpen)) }, [rightOpen])

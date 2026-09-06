@@ -11,18 +11,8 @@ import { nextStep, outstandingSteps, setupSteps, type SetupSourceState } from '@
 type OnboardingView = { id?: string; finished?: boolean; skipped?: string[]; state?: SetupSourceState }
 
 export function OnboardingResume({ className }: { className?: string }) {
-  const [incomplete, setIncomplete] = useState(false)
-
-  useEffect(() => {
-    let live = true
-    fetch('/api/onboarding', { headers: { accept: 'application/json' } })
-      .then((response) => response.ok ? response.json() : null)
-      .then((view: OnboardingView | null) => {
-        if (live) setIncomplete(Boolean(view && (!view.finished || !view.state?.programme)))
-      })
-      .catch(() => {})
-    return () => { live = false }
-  }, [])
+  const { data: view } = useWorkspaceData<OnboardingView>('/api/onboarding')
+  const incomplete = Boolean(view && (!view.finished || !view.state?.programme))
 
   if (!incomplete) return null
 

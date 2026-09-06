@@ -1,3 +1,5 @@
+import { readStudyWork, studyWorkOverview, readDiagnostic, answerDiagnostic, applyStudyWorkProposal, applyStudyProjectProposal } from './lib/study-work-store.mjs'
+import { STUDY_CAPABILITIES } from './lib/tutor-study-tools.mjs'
 import { createServer } from 'node:http'
 import { readFile, writeFile, readdir, stat, mkdir, unlink } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
@@ -39,6 +41,7 @@ import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEv
 import { dismissCalendarNotice, observeCalendarFeeds } from './lib/calendar-changes.mjs'
 import { discoverCourses } from './lib/course-repository.mjs'
 import { upsertAttendanceRecord } from './lib/attendance.mjs'
+import { applyTutorAttendance, readTutorAttendance } from './lib/tutor-attendance.mjs'
 import { removePersonalCalendarEvent, savePersonalCalendarEvent } from './lib/personal-calendar.mjs'
 import { parseAcademicCalendarText } from './lib/academic-calendar-parser.mjs'
 import { consume, classifyRequest, RATE_POLICIES } from './lib/rate-limit.mjs'
@@ -3459,6 +3462,21 @@ function tutorProposalFromConversation(conversation, proposalId) {
 }
 
 async function executeTutorProposal(proposal) {
+  if (proposal.type === 'study-work' || proposal.type === 'study-project') {
+    await (proposal.type === 'study-work' ? applyStudyWorkProposal(proposal) : applyStudyProjectProposal(proposal))
+    return { kind: proposal.type, label: proposal.type === 'study-project' ? 'Project tracked' : 'Study checklist updated', href: '/app/tutor/work' }
+  }
+  if (proposal.type === 'attendance-update') {
+    const dates = proposal.payload.entries.map(entry => entry.event.start.slice(0, 10)).sort()
+    const current = await readTutorAttendance({ from: dates[0], to: dates.at(-1) })
+    for (const { event } of proposal.payload.entries) {
+      const live = current.events.find(item => item.id === event.id)
+      if (!live || live.start !== event.start || live.end !== event.end) throw new TutorStoreError('The timetable changed or could not be read. Ask Tutor to prepare this attendance update again.', 409)
+    }
+    const workspace = applyTutorAttendance(current.workspace, proposal.payload)
+    await saveActiveAcademicWorkspace(workspace, current.workspace.revision)
+    return { kind: 'attendance-update', label: 'Attendance updated', href: '/app/calendar' }
+  }
   if (proposal.type === 'remember-plan') {
     const result = await rememberPlan(proposal.payload)
     return { kind: 'remember-plan', label: result.duplicate ? 'Plan already remembered' : 'Plan remembered', href: '/app/tutor' }
@@ -4308,19 +4326,12 @@ const server = createServer(async (req, res) => {
       // host. Fetched one after another, a student with four timetables waited
       // for the sum of them; they are independent, so they run together and
       // each failure is still reported against the feed that produced it.
-      const links = workspace.calendars || []
-      const feedResults = await Promise.allSettled(links.map((link) => feedEvents(link)))
-      const feeds = []
-      for (const [index, outcome] of feedResults.entries()) {
-        const link = links[index]
-        if (outcome.status === 'fulfilled') feeds.push({ link, events: outcome.value })
-        else problems.push({ id: link.id, label: link.label, error: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason) })
-      }
       // Canvas deadlines and Canvas course events join the same board. The hub
       // caches per user, so a warm calendar costs nothing extra; a cold or
       // broken Canvas must never stop the rest of the calendar from rendering.
       const canvas = { assignments: [], events: [] }
       let canvasConnected = false
+      const canvasRead = (async () => {
       if (url.searchParams.get('canvas') !== '0') {
         const connections = await listCanvasConnections()
         canvasConnected = connections.length > 0
@@ -4339,6 +4350,16 @@ const server = createServer(async (req, res) => {
           for (const problem of outcome.value.problems) problems.push({ id: `canvas:${connection.origin}`, label: 'Canvas', error: problem.error })
         }
       }
+      })()
+      const links = workspace.calendars || []
+      const feedResults = await Promise.allSettled(links.map((link) => feedEvents(link)))
+      const feeds = []
+      for (const [index, outcome] of feedResults.entries()) {
+        const link = links[index]
+        if (outcome.status === 'fulfilled') feeds.push({ link, events: outcome.value })
+        else problems.push({ id: link.id, label: link.label, error: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason) })
+      }
+      await canvasRead
       const [result, changes] = await Promise.all([
         Promise.resolve(aggregateCalendar({ workspace, editorialCourses: state.courses || [], ruleCourses: programmePriorityCourses(workspace, state.courses, scans), institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })),
         observeCalendarFeeds(workspace.id, feeds, { activeFeedIds: links.map((link) => link.id) }).catch((error) => {
@@ -4414,6 +4435,26 @@ const server = createServer(async (req, res) => {
     // The permanent tutor. Conversations, the facts it has been asked to
     // remember, and how the student wants to be answered all persist; nothing
     // said in one conversation reaches another unless it was remembered.
+    if (url.pathname === '/api/tutor/work' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ ...studyWorkOverview(await readStudyWork()), capabilities: STUDY_CAPABILITIES }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    const diagnosticRead = url.pathname.match(/^\/api\/tutor\/diagnostics\/([^/]+)$/)
+    if (diagnosticRead && req.method === 'GET') {
+      try { send(res, 200, JSON.stringify({ diagnostic: await readDiagnostic(decodeURIComponent(diagnosticRead[1])) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
+      catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })) }
+      return
+    }
+    const diagnosticAnswer = url.pathname.match(/^\/api\/tutor\/diagnostics\/([^/]+)\/answers$/)
+    if (diagnosticAnswer && req.method === 'POST') {
+      try {
+        const body = await readBody(req)
+        const diagnostic = await answerDiagnostic(decodeURIComponent(diagnosticAnswer[1]), body.answers, body.requestId)
+        send(res, 200, JSON.stringify({ diagnostic }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })) }
+      return
+    }
+
     if (url.pathname === '/api/tutor' && req.method === 'GET') {
       const id = url.searchParams.get('conversation')
       const [conversations, memory, receipts, attachments] = await Promise.all([listConversations(), readTutorMemory(), readTutorActionReceipts(), listTutorAttachments()])

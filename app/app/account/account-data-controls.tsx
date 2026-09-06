@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState } from "react";
 import {
   DownloadIcon,
@@ -168,9 +170,9 @@ export function AccountDataControls({
             </p>
           </div>
         </div>
-        <a className="text-primary text-sm font-semibold hover:underline" href="/app/settings?tab=data">
+        <Link className="text-primary text-sm font-semibold hover:underline" href="/app/settings?tab=data">
           Detailed data settings
-        </a>
+        </Link>
       </div>
 
       {notice && (

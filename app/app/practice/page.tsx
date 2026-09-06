@@ -1,5 +1,7 @@
 "use client";
 
+import { workspaceCache, cachedWorkspaceJson } from "@/hooks/use-workspace-data";
+
 /**
  * Practice.
  *
@@ -83,13 +85,13 @@ function TabCount({ value }: { value: number }) {
 }
 
 export default function PracticePage() {
-  const [practice, setPractice] = useState<PracticePayload | null>(null);
+  const [practice, setPractice] = useState<PracticePayload | null>(() => workspaceCache.read('/api/practice').data as PracticePayload || null);
   const [practiceError, setPracticeError] = useState<string | null>(null);
-  const [sr, setSr] = useState<SrPayload | null>(null);
+  const [sr, setSr] = useState<SrPayload | null>(() => workspaceCache.read('/api/sr/due').data as SrPayload || null);
   const [srError, setSrError] = useState<string | null>(null);
-  const [mistakes, setMistakes] = useState<Mistake[] | null>(null);
+  const [mistakes, setMistakes] = useState<Mistake[] | null>(() => workspaceCache.read('/api/mistakes?open=true').data as Mistake[] || null);
   const [mistakesError, setMistakesError] = useState<string | null>(null);
-  const [mocks, setMocks] = useState<MockSession[] | null>(null);
+  const [mocks, setMocks] = useState<MockSession[] | null>(() => workspaceCache.read('/api/mocks').data as MockSession[] || null);
   const [mocksError, setMocksError] = useState<string | null>(null);
   const [courses, setCourses] = useState<StudyCourse[]>([]);
   const [dueCount, setDueCount] = useState(0);
@@ -111,20 +113,7 @@ export default function PracticePage() {
     );
     setTab(location.tab);
     setInitialSessionId(location.sessionId);
-    const json = async (path: string) => {
-      const response = await fetch(path, {
-        headers: { accept: "application/json" },
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        const message =
-          data && typeof data.error === "string"
-            ? data.error
-            : `${path} returned ${response.status}`;
-        throw new Error(message);
-      }
-      return data;
-    };
+    const json = (path: string) => cachedWorkspaceJson<any>(path);
 
     json("/api/practice")
       .then((data: PracticePayload) => {
@@ -159,7 +148,7 @@ export default function PracticePage() {
       .catch((cause: Error) => {
         if (live) setMocksError(cause.message);
       });
-    json("/api/state")
+    json("/api/workspace-shell")
       .then((data) => {
         if (live) setCourses(data.courses ?? []);
       })
