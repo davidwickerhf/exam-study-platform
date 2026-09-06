@@ -42,6 +42,27 @@ def office_text(node):
         return ''.join(tokens(child) for child in n)
     return '\n'.join(tokens(p).strip() for p in paragraphs).strip()
 
+def presentation_slides(z):
+    """Use the presentation's relationship order, never ZIP or filename order."""
+    if 'ppt/presentation.xml' not in z.namelist():
+        # Some minimal/legacy exports lack the presentation manifest.
+        return sorted((i for i in z.infolist() if re.fullmatch(r'ppt/slides/slide\d+\.xml', i.filename)), key=lambda i: int(re.search(r'slide(\d+)', i.filename)[1]))
+    relationships = {r.attrib.get('Id'): r for r in xml(read_member(z, z.getinfo('ppt/_rels/presentation.xml.rels')))}
+    root = xml(read_member(z, z.getinfo('ppt/presentation.xml')))
+    ordered = []
+    for node in root.iter():
+        if node.tag.split('}')[-1] != 'sldId': continue
+        rid = next((v for k,v in node.attrib.items() if k.endswith('}id')), None)
+        relation = relationships.get(rid)
+        if relation is None or relation.attrib.get('TargetMode') == 'External':
+            raise ValueError('Presentation slide reference is unavailable; original preserved.')
+        target = relation.attrib.get('Target', '')
+        path = posixpath.normpath(target.lstrip('/') if target.startswith('/') else 'ppt/' + target)
+        if not path.startswith('ppt/slides/') or '\\' in path or not path.endswith('.xml'):
+            raise ValueError('Invalid presentation slide reference; original preserved.')
+        ordered.append(z.getinfo(path))
+    return ordered
+
 def slide_pages(data):
     """Preserve slide order, table cells, notes and explicit visual coverage gaps."""
     with zipfile.ZipFile(io.BytesIO(data)) as z:
@@ -58,15 +79,7 @@ def slide_pages(data):
                 if target.startswith('../') or target not in names: continue
                 result[n.attrib.get('Id')] = (target, n.attrib.get('Type',''))
             return result
-        order = []
-        if 'ppt/presentation.xml' in names:
-            rels = relationships('ppt/presentation.xml')
-            for n in member('ppt/presentation.xml').iter():
-                if n.tag.split('}')[-1] == 'sldId':
-                    rid = next((v for k,v in n.attrib.items() if k.endswith('}id')), None)
-                    if rid not in rels: raise ValueError('Slide order references a missing slide; original preserved.')
-                    order.append(rels[rid][0])
-        if not order: order = sorted((n for n in names if re.fullmatch(r'ppt/slides/slide\d+\.xml',n)), key=lambda n:int(re.search(r'slide(\d+)', n)[1]))
+        order = [info.filename for info in presentation_slides(z)]
         pages = []
         for index, name in enumerate(order):
             root = member(name); parts = []; visuals = {'images':0,'charts':0,'diagrams':0,'equations':sum(n.tag.split('}')[-1]=='oMath' for n in root.iter())}

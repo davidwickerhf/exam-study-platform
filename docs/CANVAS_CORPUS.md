@@ -254,6 +254,13 @@ interpretation. Until such a pass exists, generation must disclose relevant visu
 gaps and avoid unsupported graph/diagram claims. AI visual interpretation is not
 silently enabled by opening a document.
 
-Extraction format version 3 upgrades existing indexes during a fresh course sync.
+Extraction format version 4 upgrades existing indexes during a fresh course sync.
 Study source fingerprints include extracted evidence, so corrected text or newly
 extracted notes can trigger a refresh even when the original file SHA is unchanged.
+
+PowerPoint slide previews and indexed page citations follow the slide list and
+relationships saved in the presentation, including blank slides. Internal slide
+filenames and ZIP entry order are not presentation order. Paragraphs and line
+breaks are retained; styled runs in the same paragraph stay joined. Fresh scans
+upgrade older PPTX/ZIP indexes from retained originals. Minimal exports without a
+presentation manifest use numeric slide filenames as a fallback.
