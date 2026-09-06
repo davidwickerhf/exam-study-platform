@@ -38,7 +38,7 @@ with zipfile.ZipFile(os.path.join(root,'unsafe.zip'),'w') as z: z.writestr('../o
 test('large numeric text chunks in bounded time and large CSV indexes an explicit profile',async()=>{
   const {stdout}=await exec(process.execPath,['--input-type=module','-e',`import {retrievalRecords} from './lib/canvas-corpus-worker.mjs'; const rows=retrievalRecords({text:'0123456789,'.repeat(3_700_000)}); console.log(rows.length);`],{timeout:8000,maxBuffer:1024})
   assert.ok(Number(stdout)>25000)
-  const csv=Buffer.from('age,value\n'+'42,123456789\n'.repeat(100000))
+  const csv=Buffer.from('age,value\r'+'42,123456789\r'.repeat(100000))
   const result=await extracted(csv,'measurements.csv')
   assert.equal(result.status,'complete');assert.match(result.text,/100001 rows/)
   assert.match(result.text,/sample, not the full dataset/);assert.match(result.text,/age \| value/)

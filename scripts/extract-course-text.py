@@ -90,7 +90,7 @@ def read_text(data, name, depth=0):
     ext = pathlib.PurePosixPath(name).suffix.lower()
     if ext in ('.csv', '.tsv') and len(data) > DATASET_THRESHOLD:
         csv.field_size_limit(8 * 1024 * 1024)
-        return dataset_profile(csv.reader(io.StringIO(data.decode('utf-8-sig', errors='replace')), delimiter='\t' if ext == '.tsv' else ','), name)
+        return dataset_profile(csv.reader(io.StringIO(data.decode('utf-8-sig', errors='replace'), newline=''), delimiter='\t' if ext == '.tsv' else ','), name)
     if ext == '.ipynb':
         notebook = json.loads(data)
         parts = []

@@ -126,5 +126,22 @@ try {
     if((await one("SELECT stage FROM canvas_sync_resources WHERE id='healthy-fixture'")).stage==='complete') break
   }
   assert.equal((await one("SELECT stage FROM canvas_sync_resources WHERE id='healthy-fixture'")).stage,'complete')
-  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','stop fencing','expired-message recovery','hard-timeout isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
+  const {retrieveCanvasCorpus,readCanvasSource}=await import('../../lib/retrieval-store.mjs')
+  const {withRequestContext}=await import('../../lib/request-context.mjs')
+  await query("UPDATE canvas_source_snapshots SET resource_type='readings' WHERE binding_id='binding'")
+  await query("UPDATE editorial_source_retrieval_chunks SET content='IMWUT Paper list: 17 MindScape Study; 9 CurvFed; 13 Domain Generalization' WHERE id=(SELECT id FROM editorial_source_retrieval_chunks ORDER BY id DESC LIMIT 1)")
+  await withRequestContext({userId:'fixture'},async()=>{
+    const matches=await retrieveCanvasCorpus({query:'paper list',courseCode:'BCS2120',sourceType:'materials',database:statement})
+    assert.ok(matches.some(row=>row.content.includes('MindScape Study')))
+    const hit=matches.find(row=>row.content.includes('MindScape Study'))
+    const page=await readCanvasSource({assetId:hit.assetId,courseCode:'BCS2120',database:statement})
+    assert.equal(page.chunks.length,12)
+    assert.equal(page.nextOffset,12)
+    assert.equal((await readCanvasSource({assetId:hit.assetId,courseCode:'BCS9999',database:statement})).chunks.length,0)
+    await withRequestContext({userId:'another-student'},async()=>{
+      assert.equal((await readCanvasSource({assetId:hit.assetId,courseCode:'BCS2120',database:statement})).chunks.length,0)
+      assert.equal((await retrieveCanvasCorpus({query:'paper list',courseCode:'BCS2120',sourceType:'materials',database:statement})).length,0)
+    })
+  })
+  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}
