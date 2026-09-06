@@ -513,3 +513,72 @@ test('exam assessment resolves the original revision and rejects an answer not s
     assert.equal(attempt.revisionId, f.revision.id)
     assert.equal(attempt.examId, exam.id)
   }))
+
+test('verbatim extraction accepts a leaf question spanning overlapping retrieval chunks', async () => {
+  const { joinedPracticeEvidence } = await import('../lib/study-practice.mjs')
+  const chunks = [
+    {
+      id: 'a',
+      sourceKey: 'paper',
+      page: 1,
+      text: '1c Jeffrey says the agent needs to understand code written for any purpose. Andi disagrees.',
+    },
+    {
+      id: 'b',
+      sourceKey: 'paper',
+      page: 1,
+      text: 'needs to understand code written for any purpose. Andi disagrees. Who is right? Explain why.',
+    },
+  ]
+  const question =
+    'Jeffrey says the agent needs to understand code written for any purpose. Andi disagrees. Who is right? Explain why.'
+  assert.equal(joinedPracticeEvidence(chunks), '1c ' + question)
+  const raw = {
+    title: 'Paper',
+    warnings: [],
+    questions: [
+      {
+        label: '1c',
+        question,
+        sharedContext: '',
+        type: 'written',
+        options: [],
+        correctOptions: [],
+        marks: 2,
+        page: 1,
+        answer: '',
+        answerBasis: 'unavailable',
+        hint: '',
+        difficulty: 'standard',
+        sourceIds: ['a', 'b'],
+        answerSourceIds: [],
+        needsOriginal: false,
+      },
+    ],
+  }
+  assert.equal(
+    validatePracticeSet(raw, {
+      mode: 'extract',
+      questionSourceKey: 'paper',
+      snapshot: { chunks },
+    }).questions[0].question,
+    question,
+  )
+})
+
+test('negative-marking questions do not silently use all-or-nothing scores', () => {
+  const result = localPracticeGrade(
+    {
+      type: 'multi',
+      question: 'Select all that apply; wrong answers give negative points.',
+      answerBasis: 'source',
+      answer: 'A and B',
+      options: ['A', 'B', 'C'],
+      correctOptions: [0, 1],
+      marks: 2,
+    },
+    '0,2',
+  )
+  assert.equal(result.assessable, false)
+  assert.equal(result.earned, null)
+})
