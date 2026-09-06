@@ -55,3 +55,21 @@ test('teaching context excludes exam logistics while preserving academic numbers
   assert.match(result.text,/illustrative model, an exam lasts 120 minutes/)
   assert.match(chunks[0].text,/120 minutes/)
 })
+
+test('title-only passages remain coverage gaps rather than licenses to invent explanations', async () => {
+  const { teachingEvidence, titleOnlyEvidence, lessonPrompt } = await import('../lib/study-version-content.mjs')
+  const chunks = [
+    {id:'title',page:13,text:'Welsh room'},
+    {id:'image',page:12,text:'Chinese room\nVisual description supplied in original: https://example.test/picture.jpg\n[Visual coverage: inspect the original.]'},
+    {id:'definition',page:1,text:'An agent is autonomous'},
+    {id:'formula',page:2,text:'P(A) = 0.5'},
+    {id:'concept',page:16,text:'The Turing test evaluates responses, not intelligence itself.'}
+  ]
+  assert.ok(titleOnlyEvidence(chunks[0]))
+  assert.ok(titleOnlyEvidence(chunks[1]))
+  assert.deepEqual(teachingEvidence(chunks).map(c=>c.id), ['definition','formula','concept'])
+  const prompt = lessonPrompt({courseCode:'AI',courseName:'AI',academicYear:'2026-2027'}, [], chunks, {title:'Turing test',sourceIds:chunks.map(c=>c.id)})
+  assert.match(prompt, /COVERAGE-ONLY TITLES/)
+  assert.match(prompt, /must NOT become teaching sections/)
+  assert.equal(chunks[0].text, 'Welsh room', 'the original snapshot is unchanged')
+})
