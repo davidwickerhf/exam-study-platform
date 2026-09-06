@@ -47,8 +47,9 @@ mock.module("../../lib/db.mjs", { namedExports: { ...db, sql } });
 mock.module("../../lib/programme-scope.mjs", {
   namedExports: { activeProgrammeId: async () => "programme" },
 });
+let storedConversation = null;
 mock.module("../../lib/tutor-store.mjs", {
-  namedExports: { readConversation: async () => null },
+  namedExports: { readConversation: async () => storedConversation },
 });
 const store = await import("../../lib/feedback-store.mjs"),
   { withRequestContext } = await import("../../lib/request-context.mjs");
@@ -331,6 +332,19 @@ try {
   await user('admin',()=>store.mergeFeedbackIssues(issue,b.issueId),true);
   assert.ok(!JSON.stringify(await user('alice',()=>store.readFeedback(id))).includes('Bob private subject'));
   assert.ok(!JSON.stringify(await user('bob',()=>store.readFeedback(receipt.reportId))).includes('Expected 92'));
+  const { stableTutorMessages } = await import("../../lib/feedback-contract.mjs");
+  const fresh = { id: "fixture-conversation", messages: [{ role: "assistant", content: "Hello", presentation: { version: 1, widgets: [{ title: "Read", body: "Chapter one" }] } }] };
+  fresh.messages = stableTutorMessages(fresh);
+  storedConversation = (await pool.query("SELECT $1::jsonb AS value", [JSON.stringify(fresh)])).rows[0].value;
+  const subject = { kind: "answer", conversationId: fresh.id, answerId: fresh.messages[0].id, answerRevision: fresh.messages[0].answerRevision };
+  for (const value of ["helpful", "not-helpful", null])
+    assert.equal((await user("alice", () => store.reactToAnswer({ subject, value }))).value, value);
+  const answerDraft = await user("alice", () => store.prepareFeedback({ category: "incorrect", subject, note: "Reply feedback", evidence: [{ content: "Hello", label: "Answer" }] }));
+  const answerReceipt = await user("alice", () => store.submitFeedback({ ...answerDraft, confirmed: true }));
+  assert.ok(answerReceipt.reportId);
+  storedConversation.messages[0].content = "Actually edited";
+  await assert.rejects(user("alice", () => store.reactToAnswer({ subject, value: "helpful" })), e => e.status === 409);
+  storedConversation = null;
   await user("alice", () => store.eraseFeedback());
   assert.equal(
     (

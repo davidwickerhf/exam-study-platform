@@ -1,7 +1,9 @@
 FROM node:20-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production WICKER_SERVICE=api CANVAS_CORPUS_WORKER=off
-RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr unzip python3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr unzip python3 python3-pip && rm -rf /var/lib/apt/lists/*
+RUN pip3 install --no-cache-dir --target /opt/wicker-python xlrd==2.0.2
+ENV PYTHONPATH=/opt/wicker-python
 COPY deploy/runtime/package.json deploy/runtime/package-lock.json ./
 RUN npm ci --omit=dev
 COPY server.mjs runner.mjs ./

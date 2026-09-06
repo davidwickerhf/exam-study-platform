@@ -1,3 +1,4 @@
+import { previewCourseAsset } from './lib/course-file-preview.mjs'
 import { feedbackMaintenance, recordQualityEvent } from './lib/feedback-store.mjs'
 import { handleFeedbackRoute } from './lib/feedback-routes.mjs'
 import { beginAgentActivity, readAgentActivity } from './lib/agent-activity.mjs'
@@ -3899,6 +3900,14 @@ const server = createServer(async (req, res) => {
         courseCode: url.searchParams.get('courseCode') || '',
         academicYear: url.searchParams.get('academicYear') || ''
       }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
+    }
+    const corpusPreviewMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)\/preview$/)
+    if (corpusPreviewMatch && req.method === 'GET') {
+      const asset = await canvasCorpusAsset({ accountId: currentAuth().userId, assetId: decodeURIComponent(corpusPreviewMatch[1]) })
+      if (!asset) { send(res, 404, JSON.stringify({ error: 'Course material not found or not available to this account.' })); return }
+      try { send(res, 200, JSON.stringify(await previewCourseAsset(asset, String(url.searchParams.get('member') || '').slice(0, 1000))), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' }) }
+      catch { send(res, 422, JSON.stringify({ error: 'This preview could not be prepared. You can still download the original.' })) }
       return
     }
     const corpusAssetMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)$/)

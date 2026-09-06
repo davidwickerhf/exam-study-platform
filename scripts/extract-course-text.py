@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Read course notebooks/spreadsheets/archives without executing their content."""
 import csv, io, json, pathlib, sys, zipfile, xml.etree.ElementTree as ET, subprocess
+FORMATS = json.loads((pathlib.Path(__file__).resolve().parent.parent / 'lib/course-file-formats.json').read_text())
+TEXT_EXTENSIONS = tuple('.'+e for e in FORMATS['code']+FORMATS['text']+['csv','tsv'])
 MAX_BYTES = 128 * 1024 * 1024
 MAX_ENTRIES = 2000
 MAX_INVENTORY_ENTRIES = 50000
@@ -22,7 +24,7 @@ def read_member(z, info):
     return z.read(info)
 
 def xml(data):
-    if b'<!DOCTYPE' in data.upper() or b'<!ENTITY' in data.upper():
+    if b'<!DOCTYPE' in data.replace(b'\0', b'').upper() or b'<!ENTITY' in data.replace(b'\0', b'').upper():
         raise ValueError('XML entities are not allowed; original preserved.')
     return ET.fromstring(data)
 
@@ -95,6 +97,18 @@ def read_text(data, name, depth=0):
     if ext in ('.csv', '.tsv') and len(data) > DATASET_THRESHOLD:
         csv.field_size_limit(8 * 1024 * 1024)
         return dataset_profile(csv.reader(io.StringIO(data.decode('utf-8-sig', errors='replace'), newline=''), delimiter='\t' if ext == '.tsv' else ','), name)
+    if ext == '.xls':
+        import xlrd
+        book = xlrd.open_workbook(file_contents=data, on_demand=True)
+        parts = []
+        try:
+            for sheet in book.sheets():
+                parts.append('Sheet: ' + sheet.name)
+                rows = (sheet.row_values(i) for i in range(sheet.nrows))
+                if len(data) > DATASET_THRESHOLD: parts.append(dataset_profile(rows, sheet.name))
+                else: parts.extend(' | '.join(map(str, row)) for row in rows)
+        finally: book.release_resources()
+        return '\n'.join(parts)
     if ext == '.ipynb':
         notebook = json.loads(data)
         parts = []
@@ -139,7 +153,7 @@ def read_text(data, name, depth=0):
                     raise ValueError('Invalid archive member path; original preserved.')
                 if ext == '.docx' and info.filename != 'word/document.xml': continue
                 if ext == '.pptx' and not (info.filename.startswith('ppt/slides/slide') and info.filename.endswith('.xml')): continue
-                if ext == '.zip' and pathlib.PurePosixPath(info.filename).suffix.lower() not in ('.ipynb','.xlsx','.docx','.pptx','.zip','.pdf','.txt','.md','.csv','.tsv','.py','.r','.m','.tex','.json','.html','.htm','.js','.ts','.java','.c','.cpp','.h'):
+                if ext == '.zip' and pathlib.PurePosixPath(info.filename).name.lower() not in ('makefile','dockerfile') and pathlib.PurePosixPath(info.filename).suffix.lower() not in tuple('.'+e for e in FORMATS['structured']+['pdf']) + TEXT_EXTENSIONS:
                     binary_count += 1
                     if binary_count <= BINARY_SAMPLE:
                         parts.append(f'File: {info.filename[:240]}\n[Binary member retained in original archive; {info.file_size} bytes. No text extraction required.]')
@@ -153,13 +167,14 @@ def read_text(data, name, depth=0):
     if ext == '.pdf':
         result = subprocess.run(['pdftotext', '-', '-'], input=data, capture_output=True, timeout=45, check=True)
         return result.stdout.decode('utf-8', errors='replace')
-    if ext in ('.txt','.md','.csv','.tsv','.py','.r','.m','.tex','.json','.html','.htm','.js','.ts','.java','.c','.cpp','.h') and b'\0' not in data:
+    if (ext in TEXT_EXTENSIONS or pathlib.PurePosixPath(name).name.lower() in ('makefile','dockerfile')) and b'\0' not in data:
         return data.decode('utf-8', errors='replace')
     return ''
 
-try:
-    data = pathlib.Path(sys.argv[1]).read_bytes()
-    text = read_text(data, sys.argv[2])
-    print(json.dumps({'text': text, 'pages': None, 'status': 'complete' if text else 'unsupported', 'error': None}))
-except Exception as error:
-    print(json.dumps({'text': None, 'pages': None, 'status': 'failed', 'error': str(error)[:500]}))
+if __name__ == "__main__":
+    try:
+        data = pathlib.Path(sys.argv[1]).read_bytes()
+        text = read_text(data, sys.argv[2])
+        print(json.dumps({'text': text, 'pages': None, 'status': 'complete' if text else 'unsupported', 'error': None}))
+    except Exception as error:
+        print(json.dumps({'text': None, 'pages': None, 'status': 'failed', 'error': str(error)[:500]}))

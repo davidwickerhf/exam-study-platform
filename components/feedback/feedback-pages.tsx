@@ -3,6 +3,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ArrowLeftIcon,
+  ArrowUpRightIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  MessageSquareIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  Settings2Icon,
+  ShieldCheckIcon,
+} from "lucide-react";
 import {
   FeedbackButton,
   feedbackApi,
@@ -83,12 +96,38 @@ type Detail = {
   roles: string[];
 };
 function when(v?: string) {
-  return v ? new Date(v).toLocaleString() : "";
+  return v
+    ? new Intl.DateTimeFormat("en-GB", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(v))
+    : "";
 }
+const completed = (status: string) =>
+  ["resolved", "closed-without-change"].includes(status);
+const stateLabel = (value: string) =>
+  ({
+    new: "Submitted",
+    triaged: "Received",
+    investigating: "Under review",
+    planned: "Planned",
+    "in-progress": "In progress",
+    "needs-information": "Needs your reply",
+    "awaiting-verification": "Checking the fix",
+    resolved: "Resolved",
+    "closed-without-change": "Closed",
+  })[value] || label(value);
 function State({ value }: { value: string }) {
   return (
-    <span className="inline-flex rounded-full border px-2 py-0.5 text-xs font-medium">
-      {label(value)}
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ${value === "needs-information" ? "bg-amber-500/10 text-amber-800 dark:text-amber-300" : completed(value) ? "bg-muted text-foreground" : "bg-primary/5 text-foreground"}`}
+    >
+      <span
+        className={`size-1.5 rounded-full ${completed(value) ? "bg-foreground/50" : "bg-primary/70"}`}
+      />
+      {stateLabel(value)}
     </span>
   );
 }
@@ -98,21 +137,24 @@ function Shell({
   children,
   actions,
   admin = false,
+  back,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
   admin?: boolean;
+  back?: { href: string; label: string };
 }) {
   return (
     <main className="min-h-full">
       <header className="border-b px-5 py-6 sm:px-8">
         <Link
-          href={admin ? "/app/admin" : "/app"}
-          className="text-muted-foreground text-sm"
+          href={back?.href || (admin ? "/app/admin" : "/app")}
+          className="inline-flex items-center gap-2 text-muted-foreground text-sm hover:text-foreground"
         >
-          ← {admin ? "Admin" : "Workspace"}
+          <ArrowLeftIcon className="size-4" />
+          {back?.label || (admin ? "Admin" : "Workspace")}
         </Link>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -137,7 +179,8 @@ export function FeedbackInbox({ admin = false }: { admin?: boolean }) {
     [cursor, setCursor] = useState<string | null>(null),
     [status, setStatus] = useState(""),
     [category, setCategory] = useState(""),
-    [owner, setOwner] = useState("");
+    [owner, setOwner] = useState(""),
+    [view, setView] = useState("reports");
   const open = useFeedback(),
     params = useSearchParams(),
     draft = params.get("draft");
@@ -174,126 +217,166 @@ export function FeedbackInbox({ admin = false }: { admin?: boolean }) {
       }
       actions={
         <>
-          <Button variant="outline" onClick={() => void load()}>
-            Refresh
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Refresh feedback"
+            title="Refresh feedback"
+            disabled={loading}
+            onClick={() => void load()}
+          >
+            <RefreshCwIcon
+              className={`size-4 ${loading ? "animate-spin" : ""}`}
+            />
           </Button>
-          {!admin && <FeedbackButton />}
+          {!admin && (
+            <Button onClick={() => open()}>
+              <PlusIcon className="size-4" />
+              New feedback
+            </Button>
+          )}
         </>
       }
     >
-      {admin && <FeedbackReviewOverview />}
-      {admin && (
-        <div className="flex flex-wrap gap-3">
-          <label className="text-sm">
-            Status
-            <select
-              className={field}
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">All statuses</option>
-              {statuses.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            Category
-            <select
-              className={field}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">All categories</option>
-              {categories.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            Owner
-            <select
-              className={field}
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-            >
-              <option value="">Everyone</option>
-              <option value="me">Assigned to me</option>
-            </select>
-          </label>
-        </div>
+      {!admin && (
+        <Tabs value={view} onValueChange={(value) => setView(String(value))}>
+          <TabsList
+            variant="line"
+            className="w-full justify-start border-b pb-1"
+          >
+            <TabsTrigger value="reports">
+              <MessageSquareIcon className="size-4" />
+              Your reports
+            </TabsTrigger>
+            <TabsTrigger value="preferences">
+              <Settings2Icon className="size-4" />
+              Preferences
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
-      {error && (
-        <p role="alert" className="text-destructive">
-          {error}
-        </p>
-      )}
-      {loading && !items.length ? (
-        <div
-          role="status"
-          className="rounded-xl border p-8 text-muted-foreground"
-        >
-          Loading feedback…
-        </div>
-      ) : !items.length && !error ? (
-        <div className="rounded-xl border bg-card p-8">
-          <h2 className="font-heading text-xl font-semibold">
-            {admin
-              ? "No reports match these filters"
-              : "A direct line to the team"}
-          </h2>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            {admin
-              ? "New reports and technical incidents will appear here."
-              : "Share a suggestion or report something that is not working. You choose the details to include and can follow the review here."}
-          </p>
-          {!admin && (
-            <div className="mt-4">
-              <FeedbackButton />
+      {!admin && view === "preferences" ? (
+        <FeedbackPreferences />
+      ) : (
+        <>
+          {admin && <FeedbackReviewOverview />}
+          {admin && (
+            <div className="flex flex-wrap gap-3">
+              <label className="text-sm">
+                Status
+                <select
+                  className={field}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="">All statuses</option>
+                  {statuses.map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm">
+                Category
+                <select
+                  className={field}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">All categories</option>
+                  {categories.map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm">
+                Owner
+                <select
+                  className={field}
+                  value={owner}
+                  onChange={(e) => setOwner(e.target.value)}
+                >
+                  <option value="">Everyone</option>
+                  <option value="me">Assigned to me</option>
+                </select>
+              </label>
             </div>
           )}
-        </div>
-      ) : (
-        <div className="divide-y overflow-hidden rounded-xl border bg-card">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              href={`${admin ? "/app/admin/feedback" : "/app/feedback"}/${item.id}`}
-              className="block px-5 py-4 hover:bg-muted/50"
+          {error && (
+            <p role="alert" className="text-destructive">
+              {error}
+            </p>
+          )}
+          {loading && !items.length ? (
+            <div
+              role="status"
+              className="rounded-xl border p-8 text-muted-foreground"
             >
-              <div className="flex flex-wrap justify-between gap-3">
-                <h2 className="text-sm font-semibold">
-                  {item.unread && (
-                    <span className="mr-2 inline-block size-2 rounded-full bg-primary" />
-                  )}
-                  {item.title}
-                </h2>
-                <State value={item.status} />
-              </div>
-              {item.note && (
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                  {item.note}
-                </p>
-              )}
-              <p className="mt-2 text-xs text-muted-foreground">
-                {when(item.createdAt || item.created_at)}
-                {admin &&
-                  ` · ${item.reports} reports · ${item.occurrences} diagnostic events · ${label(item.severity || "normal")}`}
+              Loading feedback…
+            </div>
+          ) : !items.length && !error ? (
+            <div className="rounded-xl border bg-card p-8">
+              <h2 className="font-heading text-xl font-semibold">
+                {admin
+                  ? "No reports match these filters"
+                  : "A direct line to the team"}
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+                {admin
+                  ? "New reports and technical incidents will appear here."
+                  : "Share a suggestion or report something that is not working. You choose the details to include and can follow the review here."}
               </p>
-            </Link>
-          ))}
-        </div>
+              {!admin && (
+                <div className="mt-4">
+                  <FeedbackButton />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y overflow-hidden rounded-lg border bg-card">
+              {items.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`${admin ? "/app/admin/feedback" : "/app/feedback"}/${item.id}`}
+                  className="group flex items-center gap-4 px-5 py-5 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h2 className="line-clamp-2 text-sm font-semibold">
+                        {item.unread && (
+                          <span className="mr-2 inline-block size-2 rounded-full bg-primary" />
+                        )}
+                        {admin ? item.title : item.note || item.title}
+                      </h2>
+                      <State value={item.status} />
+                    </div>
+                    {admin && item.note && item.note.trim() !== item.title.trim() && (
+                      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                        {item.note}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {label(item.category || "other")} ·{" "}
+                      {when(item.createdAt || item.created_at)}
+                      {admin &&
+                        ` · ${item.reports} reports · ${item.occurrences} diagnostic events · ${label(item.severity || "normal")}`}
+                    </p>
+                  </div>
+                  <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              ))}
+            </div>
+          )}
+          {cursor && (
+            <Button
+              variant="outline"
+              disabled={loading}
+              onClick={() => void load(cursor)}
+            >
+              Load more
+            </Button>
+          )}
+        </>
       )}
-      {cursor && (
-        <Button
-          variant="outline"
-          disabled={loading}
-          onClick={() => void load(cursor)}
-        >
-          Load more
-        </Button>
-      )}
-      {!admin && <FeedbackPreferences />}
     </Shell>
   );
 }
@@ -311,26 +394,46 @@ export function FeedbackPreferences() {
       .catch((e) => setError(e.message));
   }, []);
   return (
-    <section className="rounded-xl border p-5">
-      <h2 className="font-heading text-lg font-semibold">
-        Feedback & diagnostics preferences
-      </h2>
+    <section className="max-w-2xl py-2">
+      <h2 className="font-heading text-xl font-semibold">Privacy & updates</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Technical diagnostics contain an error code, page category, timing and
         release. They never include messages, documents or credentials.
       </p>
       {prefs && (
-        <div className="mt-4 space-y-3">
+        <div className="mt-6 divide-y border-y">
           {(
             [
-              ["diagnostics", "Share minimized technical error diagnostics"],
-              ["performance", "Share slow-operation timings"],
-              ["notifications", "Show unread feedback updates"],
+              [
+                "diagnostics",
+                "Help diagnose errors",
+                "Share technical error codes so we can investigate problems.",
+              ],
+              [
+                "performance",
+                "Help improve speed",
+                "Share timings when a page or action takes too long.",
+              ],
+              [
+                "notifications",
+                "Highlight new replies",
+                "Show unread updates on your feedback reports.",
+              ],
             ] as const
-          ).map(([key, title]) => (
-            <label key={key} className="flex items-center gap-3 text-sm">
+          ).map(([key, title, description]) => (
+            <label
+              key={key}
+              className="flex cursor-pointer items-center justify-between gap-5 py-5 text-sm"
+            >
+              <span>
+                <span className="block font-semibold">{title}</span>
+                <span className="mt-1 block text-muted-foreground">
+                  {description}
+                </span>
+              </span>
               <input
                 type="checkbox"
+                className="size-4 shrink-0 accent-primary"
                 checked={prefs[key]}
                 disabled={busy}
                 onChange={async (e) => {
@@ -356,7 +459,6 @@ export function FeedbackPreferences() {
                   }
                 }}
               />
-              {title}
             </label>
           ))}
         </div>
@@ -421,6 +523,396 @@ export function FeedbackReport({
     } finally {
       setBusy(false);
     }
+  }
+  const evidenceSection = report && (
+    <details className="group border-t pt-5" open={admin || undefined}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">
+        Shared details
+        <ChevronDownIcon className="size-4 text-muted-foreground group-open:rotate-180" />
+      </summary>
+      {report.contactShared && (
+        <div className="my-4 min-w-0">
+          <p className="text-sm font-medium">Contact email</p>
+          <p className="mt-1 break-all text-sm text-muted-foreground">
+            {report.contactEmail || contact}
+          </p>
+          {admin ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              onClick={async () => {
+                try {
+                  setContact((await feedbackApi(base + "/contact")).email);
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            >
+              View shared email
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={async () => {
+                try {
+                  await feedbackApi(base + "/contact", {}, "DELETE");
+                  setContact(null);
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            >
+              Stop sharing my email
+            </Button>
+          )}
+        </div>
+      )}
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        {admin
+          ? "Opening evidence requires the evidence role and is recorded in the access log."
+          : "You can withdraw attachments at any time. This removes them from the review team’s access."}
+      </p>
+      {!report.evidence.length && (
+        <p className="mt-3 text-xs text-muted-foreground">No attachments.</p>
+      )}
+      {report.evidence.map((e) => (
+        <div key={e.id} className="mt-4 border-t pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm">
+              {e.label} · {Math.ceil(e.byte_size / 1024)} KB
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    setOpened((old) => ({ ...old, [e.id]: undefined! }));
+                    const data = await feedbackApi(base + "/evidence/" + e.id);
+                    setOpened((old) => ({ ...old, [e.id]: data }));
+                  } catch (err) {
+                    setError((err as Error).message);
+                  }
+                }}
+              >
+                View
+              </Button>
+              {!admin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    if (
+                      !window.confirm(
+                        "Permanently withdraw this attachment from your feedback report?",
+                      )
+                    )
+                      return;
+                    try {
+                      await feedbackApi(
+                        base + "/evidence/" + e.id,
+                        {},
+                        "DELETE",
+                      );
+                      setOpened((old) => {
+                        const next = { ...old };
+                        delete next[e.id];
+                        return next;
+                      });
+                      await load();
+                    } catch (err) {
+                      setError((err as Error).message);
+                    }
+                  }}
+                >
+                  Withdraw
+                </Button>
+              )}
+            </div>
+          </div>
+          {opened[e.id] &&
+            (opened[e.id].mediaType === "image/png" ? (
+              <img
+                src={opened[e.id].content}
+                alt={e.label}
+                className="mt-3 max-h-96 object-contain"
+              />
+            ) : (
+              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap text-xs">
+                {opened[e.id].content}
+              </pre>
+            ))}
+        </div>
+      ))}
+    </details>
+  );
+  const conversationSection = report && (
+    <section className={admin ? "border-t pt-5" : "min-w-0"}>
+      <h2 className="font-heading text-xl font-semibold">Conversation</h2>
+      {!admin && (
+        <article className="mt-6 border-b pb-6">
+          <div className="flex items-center gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-xs font-semibold text-background">
+              You
+            </span>
+            <div>
+              <p className="text-sm font-semibold">Your report</p>
+              <time className="text-xs text-muted-foreground">
+                {when(report.createdAt)}
+              </time>
+            </div>
+          </div>
+          <p className="mt-4 max-w-prose whitespace-pre-wrap break-words text-sm leading-7">
+            {report.note || report.title}
+          </p>
+        </article>
+      )}
+      {admin &&
+        report.reviewJobs?.map((job) => (
+          <div
+            key={job.id}
+            className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
+          >
+            <span>
+              Automatic review: {job.status} · {job.attempts} attempts
+            </span>
+            {job.status === "failed" && report.canRetryReview && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await feedbackApi(base + "/jobs/" + job.id + "/retry", {
+                      confirmed: true,
+                    });
+                    await load();
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              >
+                Retry automatic review
+              </Button>
+            )}
+          </div>
+        ))}
+      {report.events.length ? (
+        report.events.map((event) => (
+          <div key={event.id} className="border-b py-5">
+            <p className="text-xs text-muted-foreground">
+              {event.kind === "staff-ai-reply"
+                ? "AI-assisted reply · reviewed by the team"
+                : event.kind === "student-reply"
+                  ? "You"
+                  : event.kind === "staff-reply"
+                    ? "Wicker team"
+                    : label(event.kind)}{" "}
+              · {when(event.created_at)}
+              {admin && ` · ${event.visibility}`}
+            </p>
+            <p className="mt-2 max-w-prose whitespace-pre-wrap break-words text-sm leading-7">
+              {event.body}
+            </p>
+            {admin && event.kind === "ai-triage-suggestion" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  setBody(
+                    event.body.replace(/^AI suggestion — unverified. /, ""),
+                  );
+                  setAiAssisted(true);
+                  setInternal(false);
+                }}
+              >
+                Use as reply draft
+              </Button>
+            )}
+          </div>
+        ))
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Updates from the team will appear here. You can add more details
+          below.
+        </p>
+      )}
+      <div className="mt-6 overflow-hidden rounded-lg border bg-card p-4 focus-within:border-foreground/30">
+        <label className="block text-sm font-medium">
+          {admin ? "Write a review note or reply" : "Add information"}
+          <textarea
+            className="mt-2 min-h-24 w-full resize-y bg-transparent py-2 text-sm leading-6 outline-none placeholder:text-muted-foreground"
+            placeholder={
+              admin
+                ? "Write to the student or add a private note…"
+                : "Add a detail, answer a question, or ask for an update…"
+            }
+            value={body}
+            maxLength={4000}
+            rows={3}
+            onChange={(e) => setBody(e.target.value)}
+          />
+        </label>
+        {aiAssisted && (
+          <p className="my-2 text-xs text-muted-foreground">
+            AI-assisted draft. Review it before sending; it will be labeled as
+            reviewed by the team.
+          </p>
+        )}
+        {admin && (
+          <label className="my-3 flex gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={internal}
+              onChange={(e) => setInternal(e.target.checked)}
+            />
+            Internal note — only the review team can see this
+          </label>
+        )}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+          {!admin && (
+            <span className="text-xs text-muted-foreground">
+              Shared with the review team
+            </span>
+          )}
+          <Button
+            size="sm"
+            disabled={busy || !body.trim()}
+            onClick={() => void reply()}
+          >
+            {busy
+              ? "Saving…"
+              : admin && internal
+                ? "Save internal note"
+                : admin
+                  ? "Send reply to student"
+                  : "Send reply"}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+  if (!admin) {
+    const current = !report
+      ? 0
+      : completed(report.status)
+        ? 3
+        : !["new", "triaged"].includes(report.status)
+          ? 2
+          : report.receivedAt || report.status === "triaged"
+            ? 1
+            : 0;
+    return (
+      <Shell
+        title="Feedback report"
+        description={
+          report
+            ? `${label(report.category)} · Submitted ${when(report.createdAt)}`
+            : "Your conversation with the Wicker team"
+        }
+        back={{ href: "/app/feedback", label: "My feedback" }}
+        actions={report && <State value={report.status} />}
+      >
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        {!report ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            {error ? "Report unavailable." : "Loading your report…"}
+          </p>
+        ) : (
+          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_270px] lg:gap-12">
+            {conversationSection}
+            <aside className="space-y-6 border-t pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+              <section>
+                <h2 className="text-sm font-semibold">Review progress</h2>
+                <ol className="mt-5 space-y-5">
+                  {[
+                    "Submitted",
+                    "Received by the team",
+                    "In progress",
+                    "Completed",
+                  ].map((step, index) => (
+                    <li
+                      key={step}
+                      className="flex items-center gap-3 text-sm"
+                      aria-current={index === current ? "step" : undefined}
+                    >
+                      <span
+                        className={`grid size-5 shrink-0 place-items-center rounded-full ${index < current ? "bg-foreground text-background" : index === current ? "bg-primary/10 text-primary" : "border text-muted-foreground"}`}
+                      >
+                        {index < current ? (
+                          <CheckIcon className="size-3" />
+                        ) : (
+                          <span
+                            className={`size-1.5 rounded-full ${index === current ? "bg-primary" : "bg-muted-foreground/30"}`}
+                          />
+                        )}
+                      </span>
+                      <span
+                        className={
+                          index <= current
+                            ? "font-medium"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {step}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+                  {report.status === "needs-information"
+                    ? "The team needs more detail. Reply in the conversation to help the investigation."
+                    : completed(report.status)
+                      ? "The review is complete. See the team’s update in your conversation."
+                      : report.receivedAt
+                        ? `First reviewed ${when(report.receivedAt)}. Updates appear here automatically.`
+                        : "Waiting for the team’s first review. Updates appear here automatically."}
+                </p>
+              </section>
+              {evidenceSection}
+              <details className="group border-t pt-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
+                  Report context
+                  <ChevronDownIcon className="size-4 text-muted-foreground group-open:rotate-180" />
+                </summary>
+                <dl className="mt-3 space-y-2 text-xs text-muted-foreground">
+                  {Object.entries(report.subject)
+                    .filter(([key]) =>
+                      ["kind", "courseCode", "academicYear", "route"].includes(
+                        key,
+                      ),
+                    )
+                    .map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex flex-wrap justify-between gap-2"
+                      >
+                        <dt>
+                          {label(key.replace(/([A-Z])/g, " $1").toLowerCase())}
+                        </dt>
+                        <dd className="break-all text-foreground">
+                          {key === "kind" ? label(value) : value}
+                        </dd>
+                      </div>
+                    ))}
+                </dl>
+              </details>
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                <ShieldCheckIcon className="mt-0.5 size-4 shrink-0" />
+                Only the details you submitted are shared with the team.
+              </p>
+            </aside>
+          </div>
+        )}
+      </Shell>
+    );
   }
   return (
     <section
@@ -489,240 +981,8 @@ export function FeedbackReport({
               </pre>
             </details>
           </div>
-          <section className="rounded-xl border p-5">
-            <h2 className="font-semibold">Shared evidence & contact</h2>
-            {report.contactShared && (
-              <div className="my-4 rounded-lg bg-muted p-3">
-                <p className="text-sm font-medium">
-                  Account email shared for this investigation
-                </p>
-                <p className="mt-1 text-sm">{report.contactEmail || contact}</p>
-                {admin ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={async () => {
-                      try {
-                        setContact(
-                          (await feedbackApi(base + "/contact")).email,
-                        );
-                      } catch (e) {
-                        setError((e as Error).message);
-                      }
-                    }}
-                  >
-                    View shared email
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        await feedbackApi(base + "/contact", {}, "DELETE");
-                        setContact(null);
-                        await load();
-                      } catch (e) {
-                        setError((e as Error).message);
-                      }
-                    }}
-                  >
-                    Stop sharing my email
-                  </Button>
-                )}
-              </div>
-            )}
-            <p className="mt-1 text-sm text-muted-foreground">
-              {admin
-                ? "Opening evidence requires the evidence role and is recorded in the access log."
-                : "You can withdraw attachments at any time. This removes them from the review team’s access."}
-            </p>
-            {!report.evidence.length && (
-              <p className="mt-3 text-sm">No attachments shared.</p>
-            )}
-            {report.evidence.map((e) => (
-              <div key={e.id} className="mt-4 border-t pt-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm">
-                    {e.label} · {Math.ceil(e.byte_size / 1024)} KB
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          setOpened((old) => ({ ...old, [e.id]: undefined! }));
-                          const data = await feedbackApi(
-                            base + "/evidence/" + e.id,
-                          );
-                          setOpened((old) => ({ ...old, [e.id]: data }));
-                        } catch (err) {
-                          setError((err as Error).message);
-                        }
-                      }}
-                    >
-                      View
-                    </Button>
-                    {!admin && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          if (
-                            !window.confirm(
-                              "Permanently withdraw this attachment from your feedback report?",
-                            )
-                          )
-                            return;
-                          try {
-                            await feedbackApi(
-                              base + "/evidence/" + e.id,
-                              {},
-                              "DELETE",
-                            );
-                            setOpened((old) => {
-                              const next = { ...old };
-                              delete next[e.id];
-                              return next;
-                            });
-                            await load();
-                          } catch (err) {
-                            setError((err as Error).message);
-                          }
-                        }}
-                      >
-                        Withdraw
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                {opened[e.id] &&
-                  (opened[e.id].mediaType === "image/png" ? (
-                    <img
-                      src={opened[e.id].content}
-                      alt={e.label}
-                      className="mt-3 max-h-96 object-contain"
-                    />
-                  ) : (
-                    <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap text-xs">
-                      {opened[e.id].content}
-                    </pre>
-                  ))}
-              </div>
-            ))}
-          </section>
-          <section className="rounded-xl border p-5">
-            <h2 className="font-semibold">Conversation & updates</h2>
-            {admin &&
-              report.reviewJobs?.map((job) => (
-                <div
-                  key={job.id}
-                  className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
-                >
-                  <span>
-                    Automatic review: {job.status} · {job.attempts} attempts
-                  </span>
-                  {job.status === "failed" && report.canRetryReview && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await feedbackApi(
-                            base + "/jobs/" + job.id + "/retry",
-                            { confirmed: true },
-                          );
-                          await load();
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      Retry automatic review
-                    </Button>
-                  )}
-                </div>
-              ))}
-            {report.events.length ? (
-              report.events.map((event) => (
-                <div key={event.id} className="mt-4 border-t pt-4">
-                  <p className="text-xs text-muted-foreground">
-                    {event.kind === "staff-ai-reply"
-                      ? "AI-assisted reply · reviewed by the team"
-                      : label(event.kind)}{" "}
-                    · {when(event.created_at)}
-                    {admin && ` · ${event.visibility}`}
-                  </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm">
-                    {event.body}
-                  </p>
-                  {admin && event.kind === "ai-triage-suggestion" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => {
-                        setBody(
-                          event.body.replace(
-                            /^AI suggestion — unverified. /,
-                            "",
-                          ),
-                        );
-                        setAiAssisted(true);
-                        setInternal(false);
-                      }}
-                    >
-                      Use as reply draft
-                    </Button>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="mt-3 text-sm text-muted-foreground">
-                Your report is waiting for review.
-              </p>
-            )}
-            <label className="mt-5 block text-sm font-medium">
-              {admin ? "Write a review note or reply" : "Add information"}
-              <textarea
-                className={field}
-                value={body}
-                maxLength={4000}
-                rows={3}
-                onChange={(e) => setBody(e.target.value)}
-              />
-            </label>
-            {aiAssisted && (
-              <p className="my-2 text-xs text-muted-foreground">
-                AI-assisted draft. Review it before sending; it will be labeled
-                as reviewed by the team.
-              </p>
-            )}
-            {admin && (
-              <label className="my-3 flex gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={internal}
-                  onChange={(e) => setInternal(e.target.checked)}
-                />
-                Internal note — only the review team can see this
-              </label>
-            )}
-            <Button
-              disabled={busy || !body.trim()}
-              onClick={() => void reply()}
-            >
-              {busy
-                ? "Saving…"
-                : admin && internal
-                  ? "Save internal note"
-                  : admin
-                    ? "Send reply to student"
-                    : "Add to report"}
-            </Button>
-          </section>
+          {evidenceSection}
+          {conversationSection}
         </>
       )}
     </section>

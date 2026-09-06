@@ -1,0 +1,5 @@
+{
+  "code": ["py", "r", "m", "js", "jsx", "ts", "tsx", "java", "c", "cc", "cpp", "cxx", "h", "hpp", "cs", "go", "rs", "rb", "php", "swift", "kt", "kts", "scala", "sh", "bash", "zsh", "sql", "s", "asm", "jl", "lua", "pl", "f", "f90", "v", "sv", "vhd"],
+  "text": ["txt", "md", "markdown", "tex", "json", "jsonl", "yaml", "yml", "toml", "ini", "cfg", "xml", "css", "scss", "log", "html", "htm"],
+  "structured": ["ipynb", "xlsx", "xls", "csv", "tsv", "zip", "pptx", "docx"]
+}

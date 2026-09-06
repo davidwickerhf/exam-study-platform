@@ -145,3 +145,14 @@ Use `feedback_prepare` to create an exact report preview, then show it and obtai
 Students can follow reports and withdraw evidence at `/app/feedback`; authorized staff review them at `/app/admin/feedback`. See [the operations guide](../docs/FEEDBACK.md) for data boundaries and retention.
 
 Contact sharing is optional per report: use `shareContactEmail:true` only when the student chooses it and show the returned address in the preview. `feedback_withdraw_contact` stops sharing it after fresh confirmation. Reports show receipt, investigation and completion updates with public comments; AI-assisted replies are labeled and reviewed by the team.
+
+### Updating Claude Code
+
+`claude mcp add` does not overwrite an existing registration. If it reports “MCP server wicker-study already exists in user config”, replace that registration:
+
+```sh
+claude mcp remove --scope user wicker-study
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.10.0
+```
+
+Restart Claude Code afterward. Removing the MCP registration does not remove Wicker’s saved credentials in `~/.config/wicker-study/config.json`; you do not need to run `configure` again. This updates Claude Code, not the separate Claude Desktop configuration.
