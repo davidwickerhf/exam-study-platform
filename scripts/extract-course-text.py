@@ -240,6 +240,12 @@ def read_text(data, name, depth=0):
                 if info.is_dir(): continue
                 if '..' in pathlib.PurePosixPath(info.filename).parts or info.filename.startswith('/'):
                     raise ValueError('Invalid archive member path; original preserved.')
+                # Finder adds AppleDouble resource forks beside the real files.
+                # Their extensions mirror Office files, but their bytes are not
+                # Office archives. Keep them in the original, not study evidence.
+                member_path = pathlib.PurePosixPath(info.filename)
+                if ext == '.zip' and ('__MACOSX' in member_path.parts or member_path.name.startswith('._') or member_path.name == '.DS_Store'):
+                    continue
                 if ext == '.docx' and info.filename != 'word/document.xml': continue
                 if ext == '.pptx' and not (info.filename.startswith('ppt/slides/slide') and info.filename.endswith('.xml')): continue
                 if ext == '.zip' and pathlib.PurePosixPath(info.filename).name.lower() not in ('makefile','dockerfile') and pathlib.PurePosixPath(info.filename).suffix.lower() not in tuple('.'+e for e in FORMATS['structured']+['pdf']) + TEXT_EXTENSIONS:

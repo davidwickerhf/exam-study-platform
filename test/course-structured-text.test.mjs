@@ -7,6 +7,26 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { extracted } from '../lib/canvas-corpus-worker.mjs'
 const exec=promisify(execFile)
+test('macOS resource forks cannot fail a ZIP containing real Office documents', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'queue-macos-archive-'))
+  try {
+    await exec('python3', ['-c', `import zipfile,io,sys
+office=io.BytesIO()
+with zipfile.ZipFile(office,'w') as z:
+ z.writestr('word/document.xml','<document><p><t>Grounded lecture notes</t></p></document>')
+with zipfile.ZipFile(sys.argv[1],'w') as z:
+ z.writestr('Lecture notes.docx',office.getvalue())
+ z.writestr('__MACOSX/._Lecture notes.docx',b'AppleDouble metadata')
+ z.writestr('nested/._slides.pptx',b'AppleDouble metadata')
+ z.writestr('.DS_Store',b'Finder metadata')
+ z.writestr('README.md','Read the lecture notes.')`, join(root, 'notes.zip')])
+    const result = await extracted(await readFile(join(root, 'notes.zip')), 'notes.zip')
+    assert.equal(result.status, 'complete')
+    assert.match(result.text, /Grounded lecture notes/)
+    assert.match(result.text, /Read the lecture notes/)
+    assert.doesNotMatch(result.text, /AppleDouble|Finder metadata|__MACOSX|\._slides/)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
 test('notebooks retain code and saved plain output without executing cells',async()=>{
   const source=Buffer.from(JSON.stringify({cells:[{cell_type:'markdown',source:['# Lab']},{cell_type:'code',source:['raise Exception("must never execute")'],outputs:[{data:{'text/plain':['Saved result: 42'],'image/png':'ignored'}}]}]}))
   const result=await extracted(source,'tutorial.ipynb')
