@@ -27,6 +27,7 @@ test('browser evaluation runs generation, independent review and corruption chec
     assert.equal(options.billing.maxJobUsd, 0.25)
     assert.equal(options.jobKey, row.id)
     assert.deepEqual(options.responseSchema, studyResponseSchema(calls === 0 ? teachingSchema : reviewSchema, row.snapshot.chunks.map(c => c.id)))
+    if (calls > 0) assert.equal(options.reasoningEffort, 'medium')
     calls++
     if (calls === 1) return generated()
     if (calls === 2) return { text: '{"issues":[]}' }
@@ -34,7 +35,8 @@ test('browser evaluation runs generation, independent review and corruption chec
     assert.match(prompt, /occupy four of the six faces/)
     return { text: JSON.stringify({ issues: [
       { topicId: 'probability', severity: 'error', detail: 'Even probability is 1/2, not 2/3.' },
-      { topicId: 'probability', severity: 'error', detail: 'Historical exam rules are not current: use 120 minutes closed book.' }
+      { topicId: 'probability', severity: 'error', detail: 'Historical exam rules are not current: use 120 minutes closed book.' },
+        { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' }
     ] }) }
   }
   for (let i = 0; i < 3; i++) row = await step(row, generate)

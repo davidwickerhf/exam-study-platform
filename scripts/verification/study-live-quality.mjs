@@ -1,4 +1,4 @@
-import { evaluationCourse, evaluationSources, evaluationChunks, evaluationTopic } from '../../lib/study-quality-fixture.mjs'
+import { evaluationCourse, evaluationSources, evaluationChunks, evaluationTopic, corruptEvaluationChapter, reviewerCatchesKnownErrors } from '../../lib/study-quality-fixture.mjs'
 // Opt-in, local evaluation of real model output. Never runs in npm test/verify.
 // OPENAI_API_KEY=... npm run test:study:live -- --require-live
 import { writeFile } from 'node:fs/promises'
@@ -31,7 +31,7 @@ if (!Number.isFinite(cap) || cap < 0.05 || cap > 1)
   throw new Error('Evaluation cap must be between $0.05 and $1.')
 let ledger = null,
   calls = 0
-async function generate(prompt, maxOutputTokens = 8000, schema = teachingSchema) {
+async function generate(prompt, maxOutputTokens = 10000, schema = teachingSchema) {
   const reserved = reserveStudyLedger(
     ledger,
     {
@@ -65,7 +65,7 @@ async function generate(prompt, maxOutputTokens = 8000, schema = teachingSchema)
       body: JSON.stringify({
         model,
         max_completion_tokens: maxOutputTokens,
-        reasoning_effort: 'low',
+        reasoning_effort: schema === reviewSchema ? 'medium' : 'low',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_schema', json_schema: { name: 'study_evaluation', strict: true, schema: studyResponseSchema(schema, evaluationChunks.map(c => c.id)) } }
       }),
@@ -123,16 +123,7 @@ try {
     passed: !review.issues.some((i) => i.severity === 'error'),
     issues: review.issues
   })
-  const bad = structuredClone(lesson)
-  bad.questions[0] = {
-    ...bad.questions[0],
-    question:
-      'What is the probability of an even outcome on a fair six-sided die?',
-    answer:
-      'It is 2/3 because the even outcomes 2, 4 and 6 occupy four of the six faces.'
-  }
-  bad.sections[0].text +=
-    ' The current 2026-2027 exam is 90 minutes and you may bring notes.'
+  const bad = corruptEvaluationChapter(lesson)
   const adversarial = parseStudyJson(
     await generate(
       reviewPrompt(course, sources, chunks, { ...bad, id: topic.id }),
@@ -141,18 +132,8 @@ try {
     reviewSchema
   )
   report.checks.push({
-    name: 'review rejects intentionally wrong answer and historical assessment contamination',
-    passed:
-      adversarial.issues.some(
-        (i) =>
-          i.severity === 'error' &&
-          /probab|2\/3|four|even|incorrect/i.test(i.detail)
-      ) &&
-      adversarial.issues.some(
-        (i) =>
-          i.severity === 'error' &&
-          /90|120|histor|exam|notes|closed/i.test(i.detail)
-      ),
+    name: 'review rejects intentionally wrong answer, misleading visual and historical assessment contamination',
+    passed: reviewerCatchesKnownErrors(adversarial.issues),
     issues: adversarial.issues
   })
 } catch (error) {

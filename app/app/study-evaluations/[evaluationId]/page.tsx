@@ -39,7 +39,7 @@ export default function QualityEvaluationPage() {
   const chapter = data?.generated
   const revision: StudyRevision | null = data && chapter ? {
     id: data.id, versionId: data.id, course: data.course, snapshot: data.snapshot, topics: [data.topic],
-    chapters: [{ ...chapter, id: data.topic.id, review: data.checks[1]?.passed ? 'passed' : 'diagnostic',
+    chapters: [{ ...chapter, id: data.topic.id, review: data.checks.length >= 2 && data.checks.slice(0, 2).every(check => check.passed) ? 'passed' : 'diagnostic',
       questions: chapter.questions.map((q, i) => ({ ...q, id: `evaluation-q-${i}` })),
       flashcards: chapter.flashcards.map((f, i) => ({ ...f, id: `evaluation-f-${i}` })) }],
     gaps: [], issues: [], review: 'diagnostic'

@@ -1453,7 +1453,7 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
 }
 
 // OpenAI Chat Completions with JSON-schema structured output and image inputs.
-async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
+async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
   }
@@ -1471,8 +1471,8 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
     const body = {
       model,
       max_completion_tokens: maxOutputTokens,
-      ...(openAiReasoningEffort(model, OPENAI_REASONING_EFFORT)
-        ? { reasoning_effort: openAiReasoningEffort(model, OPENAI_REASONING_EFFORT) }
+      ...(openAiReasoningEffort(model, reasoningEffort)
+        ? { reasoning_effort: openAiReasoningEffort(model, reasoningEffort) }
         : {}),
       messages: [
         { role: 'system', content: schema ? 'You extract academic facts and answer only with JSON that conforms to the supplied schema. Never include prose outside the JSON.' : 'You are a precise academic study assistant.' },
