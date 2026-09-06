@@ -86,10 +86,10 @@ def preview(data,name,member=None):
         finally: book.release_resources()
     if ext=='.pptx':
         with zipfile.ZipFile(io.BytesIO(data)) as z:
-            slides=sorted([i for i in z.infolist() if re.match(r'ppt/slides/slide\d+\.xml$',i.filename)],key=lambda i:int(re.search(r'slide(\d+)',i.filename)[1]))
+            slides=extract.presentation_slides(z)
             pages=[]; used=0
             for info in slides[:100]:
-                text='\n'.join(n.text for n in extract.xml(extract.read_member(z,info)).iter() if n.tag.split('}')[-1]=='t' and n.text)[:16000]
+                text=extract.slide_text(extract.read_member(z,info))[:16000]
                 used+=len(text)
                 if used>MAX_TEXT: break
                 pages.append(text)

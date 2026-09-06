@@ -163,3 +163,10 @@ unchanged bytes again. A retry resumes its existing checkpoints; use a fresh sca
 to upgrade already-completed resources. Legacy XLS parsing uses pinned
 `xlrd==2.0.2` in the API and worker images; for local Python installs, provide the
 same module on `PYTHONPATH`.
+
+PowerPoint slide previews and indexed page citations follow the slide list and
+relationships saved in the presentation, including blank slides. Internal slide
+filenames and ZIP entry order are not presentation order. Paragraphs and line
+breaks are retained; styled runs in the same paragraph stay joined. Fresh scans
+upgrade older PPTX/ZIP indexes from retained originals. Minimal exports without a
+presentation manifest use numeric slide filenames as a fallback.

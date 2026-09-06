@@ -149,7 +149,7 @@ test("code formats are indexed and recognizable; legacy unsupported assets are u
   assert.equal(
     needsExtractionUpgrade("code.zip", {
       extraction_status: "complete",
-      metadata: { fileFormatVersion: 2 },
+      metadata: { fileFormatVersion: 3 },
     }),
     false,
   );
@@ -157,4 +157,28 @@ test("code formats are indexed and recognizable; legacy unsupported assets are u
     needsExtractionUpgrade("image.png", { extraction_status: "unsupported" }),
     false,
   );
+});
+
+test('PowerPoint preview and index follow saved slide order, keep blank slide numbers and join styled runs', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'presentation-order-'));
+  try {
+    await exec('python3', ['-c', `import zipfile,sys
+with zipfile.ZipFile(sys.argv[1],'w') as z:
+ z.writestr('ppt/presentation.xml','<presentation xmlns:r="urn:relationships"><sldIdLst><sldId r:id="third"/><sldId r:id="blank"/><sldId r:id="first"/></sldIdLst></presentation>')
+ z.writestr('ppt/_rels/presentation.xml.rels','<Relationships><Relationship Id="first" Target="slides/slide1.xml"/><Relationship Id="third" Target="slides/slide3.xml"/><Relationship Id="blank" Target="slides/slide2.xml"/></Relationships>')
+ z.writestr('ppt/slides/slide1.xml','<slide><p><r><t>Final slide</t></r></p></slide>')
+ z.writestr('ppt/slides/slide2.xml','<slide/>')
+ z.writestr('ppt/slides/slide3.xml','<slide><p><r><t>Power</t></r><r><t>Point intro</t></r></p><p><r><t>Next paragraph</t></r><br/><r><t>New line</t></r></p></slide>')
+ z.writestr('ppt/slides/slide4.xml','<slide><p><t>Orphan must not appear</t></p></slide>')`, join(root, 'deck.pptx')]);
+    const bytes = await readFile(join(root, 'deck.pptx'));
+    const expected = ['PowerPoint intro\nNext paragraph\nNew line', '', 'Final slide'];
+    const preview = await previewCourseBytes(bytes, 'deck.pptx');
+    assert.deepEqual(preview.pages, expected);
+    const indexed = await extracted(bytes, 'deck.pptx');
+    assert.equal(indexed.status, 'complete');
+    assert.deepEqual(indexed.pages, expected.map((text, i) => ({page:i+1,text})));
+    assert.doesNotMatch(indexed.text, /Orphan/);
+    assert.equal(needsExtractionUpgrade('deck.pptx', {extraction_status:'complete', metadata:{fileFormatVersion:2}}), true);
+    assert.equal(needsExtractionUpgrade('deck.pptx', {extraction_status:'complete', metadata:{fileFormatVersion:3}}), false);
+  } finally { await rm(root, {recursive:true,force:true}); }
 });

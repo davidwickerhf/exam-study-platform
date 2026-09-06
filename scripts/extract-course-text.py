@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read course notebooks/spreadsheets/archives without executing their content."""
-import csv, io, json, pathlib, sys, zipfile, xml.etree.ElementTree as ET, subprocess
+import csv, io, json, pathlib, posixpath, re, sys, zipfile, xml.etree.ElementTree as ET, subprocess
 FORMATS = json.loads((pathlib.Path(__file__).resolve().parent.parent / 'lib/course-file-formats.json').read_text())
 TEXT_EXTENSIONS = tuple('.'+e for e in FORMATS['code']+FORMATS['text']+['csv','tsv'])
 MAX_BYTES = 128 * 1024 * 1024
@@ -27,6 +27,46 @@ def xml(data):
     if b'<!DOCTYPE' in data.replace(b'\0', b'').upper() or b'<!ENTITY' in data.replace(b'\0', b'').upper():
         raise ValueError('XML entities are not allowed; original preserved.')
     return ET.fromstring(data)
+
+def presentation_slides(z):
+    """Use the presentation's relationship order, never ZIP or filename order."""
+    if 'ppt/presentation.xml' not in z.namelist():
+        # Some minimal/legacy exports lack the presentation manifest.
+        return sorted((i for i in z.infolist() if re.fullmatch(r'ppt/slides/slide\d+\.xml', i.filename)), key=lambda i: int(re.search(r'slide(\d+)', i.filename)[1]))
+    relationships = {r.attrib.get('Id'): r for r in xml(read_member(z, z.getinfo('ppt/_rels/presentation.xml.rels')))}
+    root = xml(read_member(z, z.getinfo('ppt/presentation.xml')))
+    ordered = []
+    for node in root.iter():
+        if node.tag.split('}')[-1] != 'sldId': continue
+        rid = next((v for k,v in node.attrib.items() if k.endswith('}id')), None)
+        relation = relationships.get(rid)
+        if relation is None or relation.attrib.get('TargetMode') == 'External':
+            raise ValueError('Presentation slide reference is unavailable; original preserved.')
+        target = relation.attrib.get('Target', '')
+        path = posixpath.normpath(target.lstrip('/') if target.startswith('/') else 'ppt/' + target)
+        if not path.startswith('ppt/slides/') or '\\' in path or not path.endswith('.xml'):
+            raise ValueError('Invalid presentation slide reference; original preserved.')
+        ordered.append(z.getinfo(path))
+    return ordered
+
+def slide_text(data):
+    root = xml(data)
+    paragraphs = []
+    for paragraph in root.iter():
+        if paragraph.tag.split('}')[-1] != 'p': continue
+        fragments = []
+        for node in paragraph.iter():
+            name = node.tag.split('}')[-1]
+            if name == 't': fragments.append(node.text or '')
+            elif name == 'br': fragments.append('\n')
+            elif name == 'tab': fragments.append('\t')
+        paragraphs.append(''.join(fragments))
+    if not paragraphs:
+        return '\n'.join(n.text for n in root.iter() if n.tag.split('}')[-1] == 't' and n.text)
+    return '\n'.join(paragraphs).strip()
+
+def presentation_pages(z):
+    return [{'page': i + 1, 'text': slide_text(read_member(z, info))} for i, info in enumerate(presentation_slides(z))]
 
 # Large datasets are indexed by structure and explicit samples; the complete
 # original remains downloadable. Do not embed millions of numeric cells.
@@ -125,6 +165,8 @@ def read_text(data, name, depth=0):
             inventory_entries += len(infos)
             if inventory_entries > MAX_INVENTORY_ENTRIES:
                 raise ValueError('Archive inventory entry limit exceeded; original preserved.')
+            if ext == '.pptx':
+                return '\n\n'.join('Slide ' + str(p['page']) + '\n' + p['text'] for p in presentation_pages(z))
             if ext == '.xlsx':
                 def member(name): return read_member(z, z.getinfo(name))
                 strings = []
@@ -174,7 +216,11 @@ def read_text(data, name, depth=0):
 if __name__ == "__main__":
     try:
         data = pathlib.Path(sys.argv[1]).read_bytes()
-        text = read_text(data, sys.argv[2])
-        print(json.dumps({'text': text, 'pages': None, 'status': 'complete' if text else 'unsupported', 'error': None}))
+        pages = None
+        if pathlib.PurePosixPath(sys.argv[2]).suffix.lower() == '.pptx':
+            with zipfile.ZipFile(io.BytesIO(data)) as z: pages = presentation_pages(z)
+            text = '\n\n'.join(p['text'] for p in pages)
+        else: text = read_text(data, sys.argv[2])
+        print(json.dumps({'text': text, 'pages': pages, 'status': 'complete' if text else 'unsupported', 'error': None}))
     except Exception as error:
         print(json.dumps({'text': None, 'pages': None, 'status': 'failed', 'error': str(error)[:500]}))
