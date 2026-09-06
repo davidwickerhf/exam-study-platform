@@ -1,3 +1,4 @@
+import { evaluationCourse, evaluationSources, evaluationChunks, evaluationTopic } from '../../lib/study-quality-fixture.mjs'
 // Opt-in, local evaluation of real model output. Never runs in npm test/verify.
 // OPENAI_API_KEY=... npm run test:study:live -- --require-live
 import { writeFile } from 'node:fs/promises'
@@ -83,47 +84,7 @@ async function generate(prompt, maxOutputTokens = 8000) {
     ledger = settleStudyLedger(ledger, reserved.reservation.id, usage)
   }
 }
-const course = {
-  courseCode: 'EVAL101',
-  courseName: 'Probability',
-  academicYear: '2026-2027',
-  period: '1'
-}
-const sources = [
-  {
-    key: 'current',
-    title: 'Current probability lecture',
-    kind: 'canvas',
-    academicYear: '2026-2027',
-    period: '1'
-  },
-  {
-    key: 'old',
-    title: 'Historical course notes',
-    kind: 'notes',
-    academicYear: '2025-2026',
-    period: '1'
-  }
-]
-const chunks = [
-  {
-    id: 'e-current',
-    sourceKey: 'current',
-    page: 1,
-    text: 'For two events A and B, P(A union B) = P(A) + P(B) - P(A intersection B). For disjoint events the intersection has probability zero. Independence instead means P(A intersection B) = P(A)P(B). Complement probability is 1-P(A). With a fair six-sided die each face has probability 1/6. Current exam duration is 120 minutes; it is closed book.'
-  },
-  {
-    id: 'e-old',
-    sourceKey: 'old',
-    page: 2,
-    text: 'In 2025-2026 the exam duration was 90 minutes and notes were permitted. Historical illustration: for a fair die, even outcomes are 2,4,6 so their probability is 3/6.'
-  }
-]
-const topic = {
-  id: 'probability',
-  title: 'Combining events and checking assumptions',
-  sourceIds: chunks.map((c) => c.id)
-}
+const course = evaluationCourse, sources = evaluationSources, chunks = evaluationChunks, topic = evaluationTopic
 const report = {
   model,
   capUsd: cap,

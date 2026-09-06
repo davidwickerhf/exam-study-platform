@@ -11,11 +11,12 @@ import {
 } from '../lib/study-version-store.mjs'
 import { processStudyStep } from '../lib/study-version-pipeline.mjs'
 import { course, lesson } from '../scripts/verification/study-fixtures.mjs'
+import { createQualityEvaluation, stepQualityEvaluation } from '../lib/study-quality-evaluation.mjs'
 if (process.env.DATABASE_URL)
   throw new Error('Browser fixtures require local document storage.')
 const run = (fn) =>
   withRequestContext({ userId: 'study-e2e-fixture', mode: 'local' }, fn)
-let versionId
+let versionId, evaluationId
 // The model is deterministic here; the full reader, HTTP APIs and persistence
 // are real. Live model evaluation has its own explicit spending-capped command.
 test.beforeAll(async () => {
@@ -55,6 +56,14 @@ test.beforeAll(async () => {
       if ((await ownStudyVersion(versionId)).draft.status === 'complete') break
     }
     expect((await ownStudyVersion(versionId)).draft.status).toBe('complete')
+    let evaluation = await createQualityEvaluation({}, { platform: { configured: true, provider: 'openai', model: 'gpt-5-mini' } })
+    evaluationId = evaluation.id
+    for (let i = 0; i < 3; i++) evaluation = await stepQualityEvaluation(evaluation.id, evaluation.revision, {
+      generate: async () => ({ text: JSON.stringify(i === 0 ? lesson(['e-current']) : { issues: i === 1 ? [] : [
+        { topicId: 'probability', severity: 'error', detail: 'Even outcomes have probability 1/2, not 2/3.' },
+        { topicId: 'probability', severity: 'error', detail: 'Current exam duration is 120 minutes; the historical rules are outdated.' }
+      ] }), usage: { inputTokens: 800, outputTokens: 1500, estimated: false } })
+    })
   })
 })
 test.beforeEach(async ({ page }) => {
@@ -65,6 +74,19 @@ test.beforeEach(async ({ page }) => {
 })
 test.afterAll(async () => {
   await run(deleteAllDocuments)
+})
+test('private quality report renders real persisted checks, costs, citations and exercise solutions', async ({ page }) => {
+  await page.goto(`/app/study-evaluations/${evaluationId}`)
+  await expect(page.getByRole('heading', { name: 'Inspect the teaching, then check the evidence.' })).toBeVisible()
+  await expect(page.getByText('3 calls recorded · $0.0096 recorded cost · complete')).toBeVisible()
+  await expect(page.getByText('Even outcomes have probability 1/2, not 2/3.', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: /Sources ·/ }).first().click()
+  await expect(page.getByText('Current probability lecture', { exact: true }).first()).toBeVisible()
+  await page.getByRole('tab', { name: 'Practice', exact: true }).click()
+  await page.getByRole('button', { name: 'Show worked solution', exact: true }).click()
+  await expect(page.getByText('Subtract three to verify the original two items.', { exact: false }).first()).toBeVisible()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 test('source-grounded study, persisted notes, exercises, mock exam and private sharing', async ({
   page,

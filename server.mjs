@@ -3637,17 +3637,26 @@ const studySourceOptions = { editorialSources: async courseCode => {
   }
   return result
 } }
+async function budgetedStudyGenerate(prompt, options, telemetry) {
+  const capture = async pending => { const result = await pending; if (telemetry) telemetry.usage = result.usage; return result }
+  return runBudgetedStudyCall(prompt, options, { billing: options.billing, jobKey: options.jobKey,
+    callPlatform: (text, opts) => {
+      if (opts.billing.provider === 'openai' && OPENAI_BASE_URL !== 'https://api.openai.com/v1') throw new Error('Budgeted study generation requires the priced first-party provider endpoint.')
+      return capture(opts.billing.provider === 'openai' ? runOpenAiApi(text, opts) : runAnthropicApi(text, opts))
+    },
+    callPersonal: (text, opts) => capture(opts.provider === 'openai' ? runOpenAiApi(text, { ...opts, baseUrl: 'https://api.openai.com/v1' }) : runAnthropicApi(text, opts))
+  })
+}
+async function generateStudyEvaluation(prompt, options) {
+  const telemetry = {}
+  const text = await budgetedStudyGenerate(prompt, options, telemetry)
+  return { text, usage: telemetry.usage }
+}
 async function runStudentStudyJob(id) {
   const record = await resolveStudyJob(id)
   if (!record || (localTestUserId() && record.owner !== localTestUserId())) return { again: false }
   return asStudyOwner(record.owner, () => processStudyStep(id, {
-    generate: (prompt, options) => runBudgetedStudyCall(prompt, options, { billing: options.billing, jobKey: options.jobKey,
-      callPlatform: (text, opts) => {
-        if (opts.billing.provider === 'openai' && OPENAI_BASE_URL !== 'https://api.openai.com/v1') throw new Error('Budgeted study generation requires the priced first-party provider endpoint.')
-        return opts.billing.provider === 'openai' ? runOpenAiApi(text, opts) : runAnthropicApi(text, opts)
-      },
-      callPersonal: (text, opts) => opts.provider === 'openai' ? runOpenAiApi(text, { ...opts, baseUrl: 'https://api.openai.com/v1' }) : runAnthropicApi(text, opts)
-    }), sourceOptions: studySourceOptions
+    generate: budgetedStudyGenerate, sourceOptions: studySourceOptions
   }))
 }
 const localStudyJobs = new Set()
@@ -3795,7 +3804,7 @@ const server = createServer(async (req, res) => {
       try {
         const result = await studyVersionApi({ pathname: url.pathname, method: req.method,
           query: Object.fromEntries(url.searchParams), body: ['POST','PATCH'].includes(req.method) ? await readBody(req, 12 * 1024 * 1024) : {},
-          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview', platform: { ...llmConfiguration(), configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview' }, wake: wakeStudentStudy })
+          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview', platform: { ...llmConfiguration(), configured: llmConfiguration().configured && process.env.VERCEL_ENV !== 'preview' }, wake: wakeStudentStudy, generateEvaluation: generateStudyEvaluation })
         send(res, result.status, JSON.stringify(result.data), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Study versions could not be loaded. Try again.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
       return

@@ -92,6 +92,23 @@ necessary to establish teaching quality across a full course.
   $0.25 by default (`STUDY_EVAL_MAX_USD`, maximum $1), including an adversarial
   incorrect-answer/historical-rules check. Requires `OPENAI_API_KEY`; no live calls
   occur in ordinary verification. Writes `/tmp/wicker-study-quality-evaluation.json`.
+- Signed-in browser evaluations: `POST /api/study-versions/evaluations` with
+  `{scenario:"reference",billing:{billingSource:"personal",maxJobUsd:0.25}}`, then
+  inspect `/app/study-evaluations/<id>`. The page runs one explicit paid step at a
+  time. Each step uses the production provider adapter, prompts and atomic budget
+  ledger. A stale revision or duplicate delivery never advances another paid step.
+  Reports include model usage, recorded cost, generated teaching, source passages,
+  and the independent review's findings. Failed/uncertain calls retain conservative
+  budget reservations; settings show the account total. An interrupted request is
+  never retried automatically. Evaluations are private, exported with account data,
+  and live in a separate namespace with no production queue or publication path.
+  Preview supports this diagnostic with a saved personal key while general preview
+  generation remains disabled. No key is returned to the browser or copied into CLI.
+  For real material use `scenario:"sources"`, `course`, `sourceKeys`, `topic`, and
+  explicit `includeHistorical` if needed. One chapter accepts at most 36,000 source
+  characters, rejects oversized selections, and rechecks source access at each step.
+  The fixed reference case additionally corrupts a solution and current exam rules
+  to test reviewer sensitivity. A passing diagnostic is not a full-course evaluation.
 - Production uses the existing signed Canvas queue dispatcher and minute outbox sweep.
   Preview generation is disabled so preview workers cannot consume production work.
   Local mode uses resumable in-process steps and a 30-second recovery sweep.
