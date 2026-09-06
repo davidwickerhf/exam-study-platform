@@ -32,7 +32,13 @@ test('tour waits for delayed content, visits all stops, reuses planning data and
       // Repeated activation while a request is pending cannot skip a stop.
       await page.keyboard.press('Enter')
       await expect(tour.getByRole('heading', { name: step.title })).toBeVisible()
+      await page.setViewportSize({ width: 360, height: 640 })
+      await expect.poll(async () => {
+        const box = await tour.boundingBox()
+        return box && box.x >= 0 && box.y >= 0 && box.x + box.width <= 360 && box.y + box.height <= 640
+      }).toBe(true)
       releasePractice()
+      await page.setViewportSize({ width: 1280, height: 720 })
     }
     await expect(tour).toHaveAttribute('data-tour-state', 'ready')
     await expect(page.locator('[data-tour-spotlight]')).toHaveCount(1)

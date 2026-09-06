@@ -146,6 +146,26 @@ export function WorkspaceTour() {
   }, [open, stepReady])
 
   useEffect(() => {
+    if (!open || stepReady) return
+    // A slow route can outlive a viewport/keyboard resize. Keep its stationary
+    // card inside the screen even before an anchor exists.
+    const contain = () => {
+      const width = Math.min(352, window.innerWidth - 32)
+      const height = Math.min(panelRef.current?.offsetHeight || 380, window.innerHeight - 32)
+      setPosition(previous => {
+        const left = Math.max(16, Math.min(previous.left, window.innerWidth - width - 16))
+        const top = Math.max(16, Math.min(previous.top, window.innerHeight - height - 16))
+        return previous.left === left && previous.top === top && previous.width === width ? previous : { left, top, width }
+      })
+    }
+    contain()
+    const observer = new ResizeObserver(contain)
+    if (panelRef.current) observer.observe(panelRef.current)
+    window.addEventListener('resize', contain)
+    return () => { observer.disconnect(); window.removeEventListener('resize', contain) }
+  }, [open, stepReady])
+
+  useEffect(() => {
     if (!open || !routeReady) return
     let target: HTMLElement | null = null
     let frame = 0
