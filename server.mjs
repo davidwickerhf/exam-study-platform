@@ -3593,10 +3593,12 @@ async function readReconciledAcademicState({ snapshot = null } = {}) {
 async function enqueueAndWake(promise) { const result = await promise; await wakeCanvasQueue(); return result }
 
 async function wakeCanvasQueue() {
-  if (process.env.VERCEL_ENV !== 'production' || !process.env.VERCEL_PROJECT_PRODUCTION_URL) return
+  if (process.env.VERCEL_ENV !== 'production') return
+  const base = process.env.WICKER_WEB_SERVICE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '')
+  if (!base) return
   const body = JSON.stringify({ action: 'dispatch' })
   try {
-    await fetch(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/internal/canvas-dispatch`, {
+    await fetch(new URL('internal/canvas-dispatch', `${base.replace(/\/$/, '')}/`), {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body) },
       body, signal: AbortSignal.timeout(5000)
     })

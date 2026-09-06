@@ -4,10 +4,10 @@ import { CANVAS_QUEUE_TOPIC, signCanvasTask } from './canvas-queue-protocol.mjs'
 type StepResult = { again?: boolean; delay?: number; ids?: string[]; disabled?: boolean }
 export async function callCanvasService(payload: Record<string, unknown>): Promise<StepResult> {
   const hostname = process.env.VERCEL_URL
-  const origin = process.env.WICKER_API_ORIGIN || (hostname ? `https://${hostname}` : '')
+  const origin = process.env.WICKER_API_SERVICE_URL || process.env.WICKER_API_ORIGIN || (hostname ? `https://${hostname}` : '')
   if (!origin) throw new Error('Canvas API service origin is not configured.')
   const body = JSON.stringify(payload)
-  const response = await fetch(`${origin}/api/internal/canvas-queue`, {
+  const response = await fetch(new URL('api/internal/canvas-queue', `${origin.replace(/\/$/, '')}/`), {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body),
       ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}) },
     body, signal: AbortSignal.timeout(240_000), cache: 'no-store',

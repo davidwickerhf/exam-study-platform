@@ -4,12 +4,39 @@
     "web": {
       "root": ".",
       "framework": "nextjs",
-      "buildCommand": "npm run build"
+      "buildCommand": "npm run build",
+      "functions": {
+        "app/internal/canvas-consume/route.ts": {
+          "experimentalTriggers": [
+            {
+              "type": "queue/v2beta",
+              "topic": "canvas-sync-v1",
+              "maxConcurrency": 2
+            }
+          ]
+        }
+      },
+      "bindings": [
+        {
+          "type": "service",
+          "service": "api",
+          "format": "url",
+          "env": "WICKER_API_SERVICE_URL"
+        }
+      ]
     },
     "api": {
       "root": ".",
       "runtime": "container",
-      "entrypoint": "Containerfile"
+      "entrypoint": "Containerfile",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "web",
+          "format": "url",
+          "env": "WICKER_WEB_SERVICE_URL"
+        }
+      ]
     }
   },
   "rewrites": [
@@ -32,17 +59,6 @@
       }
     }
   ],
-  "functions": {
-    "app/internal/canvas-consume/route.ts": {
-      "experimentalTriggers": [
-        {
-          "type": "queue/v2beta",
-          "topic": "canvas-sync-v1",
-          "maxConcurrency": 2
-        }
-      ]
-    }
-  },
   "crons": [
     {
       "path": "/internal/canvas-dispatch",
