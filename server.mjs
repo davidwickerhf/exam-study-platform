@@ -1386,7 +1386,7 @@ async function runClaudeCli(prompt, { schemaPath, images = [], model = '' } = {}
   })
 }
 
-async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
+async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY is not set. Either set the env var, add anthropicApiKey to data/llm-config.json, or switch provider to codex/claude.')
   }
@@ -1394,7 +1394,8 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
   // instruction. The prompt itself already asks for JSON in most call sites; this
   // is belt-and-braces.
   let userContent = prompt
-  if (schemaPath) {
+  if (responseSchema) userContent += `\n\nIMPORTANT: Return strict JSON that conforms to this schema:\n${JSON.stringify(responseSchema)}`
+  else if (schemaPath) {
     try {
       const schema = await readFile(schemaPath, 'utf8')
       userContent += `\n\nIMPORTANT: Return strict JSON that conforms to this schema:\n${schema}`
@@ -1452,12 +1453,12 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
 }
 
 // OpenAI Chat Completions with JSON-schema structured output and image inputs.
-async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
+async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
   }
-  let schema = null
-  if (schemaPath) {
+  let schema = responseSchema || null
+  if (!schema && schemaPath) {
     try { schema = JSON.parse(await readFile(schemaPath, 'utf8')) } catch {}
   }
   try {
@@ -1477,7 +1478,7 @@ async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens =
         { role: 'system', content: schema ? 'You extract academic facts and answer only with JSON that conforms to the supplied schema. Never include prose outside the JSON.' : 'You are a precise academic study assistant.' },
         { role: 'user', content }
       ],
-      ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: false } } } : {})
+      ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: Boolean(responseSchema) } } } : {})
     }
     const resp = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -1490,6 +1491,8 @@ async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens =
     }
     const data = await resp.json()
     const choice = data.choices?.[0]
+    if (choice?.finish_reason === 'length') throw new Error('The AI response reached its output limit before completing. Reduce the chapter scope and retry.')
+    if (choice?.message?.refusal) throw new Error('The AI provider declined this generation request. Review the selected sources before retrying.')
     const text = (typeof choice?.message?.content === 'string' ? choice.message.content : (choice?.message?.content || []).map((part) => part.text || '').join('')).trim()
     if (!text) throw new Error(`OpenAI API returned no content (finish_reason=${choice?.finish_reason})`)
     return {

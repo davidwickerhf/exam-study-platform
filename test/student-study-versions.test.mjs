@@ -39,6 +39,8 @@ import {
 import {
   mapSchema,
   lessonSchema,
+  reviewSchema,
+  studyResponseSchema,
   parseStudyJson,
   assertEvidence,
   sourceChanges,
@@ -108,8 +110,10 @@ async function fixture() {
 }
 async function finish(f, { reviewIssues = [] } = {}) {
   let calls = 0
-  const generate = async (prompt) => {
+  const generate = async (prompt, options) => {
     calls++
+    const expected = prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : lessonSchema
+    assert.deepEqual(options.responseSchema, studyResponseSchema(expected))
     const v = await ownStudyVersion(f.version.id),
       chunks = v.draft.snapshot.chunks,
       ids = chunks.map((c) => c.id)
@@ -130,6 +134,37 @@ async function finish(f, { reviewIssues = [] } = {}) {
   })
   return calls
 }
+
+test('provider schemas preserve validation bounds and require defaults without introducing nulls', () => {
+  for (const schema of [mapSchema, lessonSchema, reviewSchema]) {
+    const contract = studyResponseSchema(schema)
+    const visit = (node) => {
+      if (!node || typeof node !== 'object') return
+      assert.equal('$schema' in node, false)
+      assert.equal('default' in node, false)
+      if (node.properties) {
+        assert.deepEqual(node.required, Object.keys(node.properties))
+        assert.equal(node.additionalProperties, false)
+      }
+      Object.values(node).forEach((child) => Array.isArray(child) ? child.forEach(visit) : visit(child))
+    }
+    visit(contract)
+  }
+  const map = studyResponseSchema(mapSchema)
+  assert.equal(map.properties.topics.maxItems, 24)
+  assert.equal(map.properties.gaps.type, 'array')
+  assert.equal(map.properties.gaps.items.maxLength, 600)
+  assert.equal(studyResponseSchema(lessonSchema).properties.sections.minItems, 4)
+})
+
+test('invalid model output reports structural diagnostics without exposing content', () => {
+  assert.throws(() => parseStudyJson({ topics: [{ id: 'PRIVATE SOURCE TEXT', title: 'x', sourceIds: ['e-1'] }] }, mapSchema), (error) => {
+    assert.match(error.message, /topics.0.id \(invalid_string\)/)
+    assert.doesNotMatch(error.message, /PRIVATE SOURCE TEXT/)
+    return true
+  })
+  assert.throws(() => parseStudyJson('not-json private source', mapSchema), /format: invalid JSON/)
+})
 
 test('private generation completes without editorial acceptance and preserves evidence, practice and history', async () => {
   const f = await fixture()

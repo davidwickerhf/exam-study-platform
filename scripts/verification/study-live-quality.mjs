@@ -8,7 +8,8 @@ import {
   lessonSchema,
   reviewSchema,
   parseStudyJson,
-  assertEvidence
+  assertEvidence,
+  studyResponseSchema
 } from '../../lib/study-version-content.mjs'
 import { studyLessonQuality } from '../../lib/study-content-quality.mjs'
 import {
@@ -30,7 +31,7 @@ if (!Number.isFinite(cap) || cap < 0.05 || cap > 1)
   throw new Error('Evaluation cap must be between $0.05 and $1.')
 let ledger = null,
   calls = 0
-async function generate(prompt, maxOutputTokens = 8000) {
+async function generate(prompt, maxOutputTokens = 8000, schema = lessonSchema) {
   const reserved = reserveStudyLedger(
     ledger,
     {
@@ -66,7 +67,7 @@ async function generate(prompt, maxOutputTokens = 8000) {
         max_completion_tokens: maxOutputTokens,
         reasoning_effort: 'low',
         messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' }
+        response_format: { type: 'json_schema', json_schema: { name: 'study_evaluation', strict: true, schema: studyResponseSchema(schema) } }
       }),
       signal: AbortSignal.timeout(210000)
     })
@@ -113,7 +114,7 @@ try {
   const review = parseStudyJson(
     await generate(
       reviewPrompt(course, sources, chunks, { ...lesson, id: topic.id }),
-      4000
+      4000, reviewSchema
     ),
     reviewSchema
   )
@@ -135,7 +136,7 @@ try {
   const adversarial = parseStudyJson(
     await generate(
       reviewPrompt(course, sources, chunks, { ...bad, id: topic.id }),
-      4000
+      4000, reviewSchema
     ),
     reviewSchema
   )
