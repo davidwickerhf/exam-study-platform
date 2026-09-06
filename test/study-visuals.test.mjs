@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { studyVisualIssues } from '../lib/study-visuals.mjs'
 import { studyLessonQuality } from '../lib/study-content-quality.mjs'
 import { lesson } from '../scripts/verification/study-fixtures.mjs'
-import { teachingSchema, studyResponseSchema } from '../lib/study-version-content.mjs'
+import { teachingSchema, studyResponseSchema, teachingEvidence } from '../lib/study-version-content.mjs'
 
 const visual = diagram => ({ title:'Explore the idea', caption:'An illustrative example, with values defined here.', basis:'illustrative', sourceIds:['e-1'], diagram })
 test('visual validation catches broken relationships, mismatched tables and invalid plotted data', () => {
@@ -42,4 +42,16 @@ test('teaching gate rejects dense prose, empty summaries and shallow repetitive 
   assert.match(studyLessonQuality(wrongCallout).join(' '), /arithmetic/)
   const contract=studyResponseSchema(teachingSchema,['e-1'])
   assert.deepEqual(contract.properties.sections.items.properties.visual.anyOf[0].properties.sourceIds.items.enum,['e-1'])
+})
+
+
+test('teaching context excludes exam logistics while preserving academic numbers and explicit exam exclusions', () => {
+  const chunks=[{id:'e-1',text:'P(A)=0.5. Current exam duration is 120 minutes; it is closed book. The history section is not on the exam. A measured process lasts 90 minutes. In an illustrative model, an exam lasts 120 minutes.'}]
+  const [result]=teachingEvidence(chunks)
+  assert.match(result.text,/P\(A\)=0.5/)
+  assert.match(result.text,/not on the exam/)
+  assert.match(result.text,/process lasts 90 minutes/)
+  assert.doesNotMatch(result.text,/closed book|Current exam/)
+  assert.match(result.text,/illustrative model, an exam lasts 120 minutes/)
+  assert.match(chunks[0].text,/120 minutes/)
 })

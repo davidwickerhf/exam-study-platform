@@ -621,6 +621,8 @@ test('guided lesson exposes interactive diagrams, optional depth and progressive
   const definition = page.getByRole('complementary', {name:'Definition: Adding disjoint groups'})
   await expect(definition).toBeVisible()
   await expect(definition.locator('.katex-display')).toBeVisible()
+  await expect(definition).toContainText('A ∩ B')
+  await expect(definition).not.toContainText('\\cap')
   await expect(definition.getByRole('button', {name:/Sources/})).toBeVisible()
   const figure = page.getByRole('complementary', {name:'Visual explanation'})
   await expect(figure.locator('[data-study-visual="process"] svg')).toBeVisible()
