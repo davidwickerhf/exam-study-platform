@@ -5,7 +5,7 @@ import { writeFile } from 'node:fs/promises'
 import {
   lessonPrompt,
   reviewPrompt,
-  lessonSchema,
+  teachingSchema,
   reviewSchema,
   parseStudyJson,
   assertEvidence,
@@ -31,7 +31,7 @@ if (!Number.isFinite(cap) || cap < 0.05 || cap > 1)
   throw new Error('Evaluation cap must be between $0.05 and $1.')
 let ledger = null,
   calls = 0
-async function generate(prompt, maxOutputTokens = 8000, schema = lessonSchema) {
+async function generate(prompt, maxOutputTokens = 8000, schema = teachingSchema) {
   const reserved = reserveStudyLedger(
     ledger,
     {
@@ -100,7 +100,7 @@ try {
   const lesson = assertEvidence(
     parseStudyJson(
       await generate(lessonPrompt(course, sources, chunks, topic)),
-      lessonSchema
+      teachingSchema
     ),
     chunks
   )

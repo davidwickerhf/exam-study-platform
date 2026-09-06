@@ -97,7 +97,14 @@ def slide_pages(data):
                 if tag == 'pic': visuals['images'] += 1
                 if tag == 'chart': visuals['charts'] += 1
                 if tag in ('relIds','cxnSp','custGeom'): visuals['diagrams'] += 1
-                if tag == 'cNvPr' and node.attrib.get('descr'): parts.append('Visual description supplied in original: '+node.attrib['descr'])
+                if tag == 'cNvPr' and node.attrib.get('descr'):
+                    description = node.attrib['descr'].strip()
+                    # Some slide editors put a complete image data URI in alt
+                    # text. It is image bytes, not a human-authored caption.
+                    description = re.sub(r'data:[^\s<>"\']+', '[Embedded image data omitted.]', description, flags=re.I)
+                    if re.fullmatch(r'[A-Za-z0-9+/=]{256,}', description):
+                        description = '[Embedded image data omitted.]'
+                    if description: parts.append('Visual description supplied in original: '+description)
                 for child in node: walk(child)
             walk(root)
             if not parts and office_text(root): parts.append(office_text(root))

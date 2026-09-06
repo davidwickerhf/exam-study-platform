@@ -22,21 +22,35 @@ export type Evidence = {
   text: string
 }
 export type GroundedText = { text: string; sourceIds: string[] }
+export type StudyVisualSpec = {
+  title: string; caption: string; basis: 'source' | 'illustrative'; sourceIds: string[]
+  diagram:
+    | { kind: 'process'; nodes: { id: string; label: string; description: string }[]; edges: { from: string; to: string; label: string }[] }
+    | { kind: 'comparison'; columns: string[]; rows: { label: string; cells: string[] }[] }
+    | { kind: 'plot'; style: 'bar' | 'line'; xLabel: string; yLabel: string; points: { label: string; x: number; y: number }[] }
+    | { kind: 'sets'; aLabel: string; bLabel: string; universe: string[]; a: string[]; b: string[] }
+}
 export type StudyQuestion = {
   id: string
   question: string
   answer: string
   kind: string
+  skill?: string
+  difficulty?: string
+  objective?: string
+  hint?: string
   sourceIds: string[]
 }
 export type StudyChapter = {
   id: string
   title: string
   review: string
-  sections: (GroundedText & { title: string })[]
+  formatVersion?: 2
+  learningGoals?: string[]
+  sections: (GroundedText & { title: string; takeaway?: string; detail?: string | null; visual?: StudyVisualSpec | null })[]
   summary: GroundedText[]
   questions: StudyQuestion[]
-  flashcards: { id: string; front: string; back: string; sourceIds: string[] }[]
+  flashcards: { kind?: string; id: string; front: string; back: string; sourceIds: string[] }[]
   walkthrough: { title: string; steps: GroundedText[] } | null
   caveats: string[]
 }

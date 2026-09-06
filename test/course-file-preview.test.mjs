@@ -24,7 +24,7 @@ with zipfile.ZipFile(root/'evidence.pptx','w') as z:
  z.writestr('ppt/presentation.xml','<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="22" r:id="second"/><p:sldId id="11" r:id="first"/></p:sldIdLst></p:presentation>')
  z.writestr('ppt/_rels/presentation.xml.rels','<Relationships><Relationship Id="first" Target="slides/slide1.xml"/><Relationship Id="second" Target="slides/slide2.xml"/></Relationships>')
  z.writestr('ppt/slides/slide1.xml','<p:sld xmlns:p="p" xmlns:a="a"><p:sp><a:p><a:r><a:t>Second in presentation</a:t></a:r></a:p></p:sp></p:sld>')
- z.writestr('ppt/slides/slide2.xml','<p:sld xmlns:p="p" xmlns:a="a"><p:sp><a:p><a:r><a:t>C</a:t></a:r><a:r><a:t>ourse material</a:t></a:r></a:p><a:p><a:r><a:t>Written exam: 6</a:t></a:r><a:r><a:t>0%</a:t></a:r></a:p></p:sp><a:tbl><a:tr><a:tc><a:p><a:r><a:t>Task</a:t></a:r></a:p></a:tc><a:tc><a:p><a:r><a:t>Observable</a:t></a:r></a:p></a:tc></a:tr><a:tr><a:tc><a:p><a:r><a:t>Chess</a:t></a:r></a:p></a:tc><a:tc><a:p><a:r><a:t>Fully</a:t></a:r></a:p></a:tc></a:tr></a:tbl><p:pic><p:cNvPr descr="Agent environment diagram"/></p:pic></p:sld>')
+ z.writestr('ppt/slides/slide2.xml','<p:sld xmlns:p="p" xmlns:a="a"><p:sp><a:p><a:r><a:t>C</a:t></a:r><a:r><a:t>ourse material</a:t></a:r></a:p><a:p><a:r><a:t>Written exam: 6</a:t></a:r><a:r><a:t>0%</a:t></a:r></a:p></p:sp><a:tbl><a:tr><a:tc><a:p><a:r><a:t>Task</a:t></a:r></a:p></a:tc><a:tc><a:p><a:r><a:t>Observable</a:t></a:r></a:p></a:tc></a:tr><a:tr><a:tc><a:p><a:r><a:t>Chess</a:t></a:r></a:p></a:tc><a:tc><a:p><a:r><a:t>Fully</a:t></a:r></a:p></a:tc></a:tr></a:tbl><p:pic><p:cNvPr descr="Agent environment diagram"/><p:cNvPr descr="data:image/jpeg;base64,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"/></p:pic></p:sld>')
  z.writestr('ppt/slides/_rels/slide2.xml.rels','<Relationships><Relationship Id="notes" Target="../notesSlides/notesSlide1.xml" Type="http://example/notesSlide"/></Relationships>')
  z.writestr('ppt/notesSlides/notesSlide1.xml','<p:notes xmlns:p="p" xmlns:a="a"><p:sp><p:ph type="body"/><a:p><a:r><a:t>This background section is not on the exam.</a:t></a:r></a:p></p:sp><p:sp><p:ph type="sldNum"/><a:p><a:r><a:t>9876</a:t></a:r></a:p></p:sp></p:notes>')`, root])
     const bytes = await readFile(join(root, 'evidence.pptx'))
@@ -35,12 +35,15 @@ with zipfile.ZipFile(root/'evidence.pptx','w') as z:
     assert.match(preview.pages[0], /Course material\nWritten exam: 60%/)
     assert.match(preview.pages[0], /Task \| Observable\nChess \| Fully/)
     assert.match(preview.pages[0], /Speaker notes from original:\nThis background section is not on the exam/)
-    assert.doesNotMatch(preview.pages[0], /9876/)
+    assert.doesNotMatch(preview.pages[0], /9876|data:image|A{100}/)
+    assert.match(preview.pages[0], /Agent environment diagram/)
+    assert.match(preview.pages[0], /Embedded image data omitted/)
     assert.match(preview.pages[0], /visual meaning has not been analyzed/)
     assert.equal(preview.visualCoverage[0].images, 1)
     assert.equal(preview.pages[1], 'Second in presentation')
     assert.equal(needsExtractionUpgrade('deck.pptx', { extraction_status:'complete', metadata:{fileFormatVersion:2} }), true)
-    assert.equal(needsExtractionUpgrade('deck.pptx', { extraction_status:'complete', metadata:{fileFormatVersion:4} }), false)
+    assert.equal(needsExtractionUpgrade('deck.pptx', { extraction_status:'complete', metadata:{fileFormatVersion:5} }), false)
+    assert.equal(needsExtractionUpgrade('deck.pptx', { extraction_status:'complete', metadata:{fileFormatVersion:4} }), true)
   } finally { await rm(root, { recursive:true, force:true }) }
 })
 
@@ -178,7 +181,7 @@ test("code formats are indexed and recognizable; legacy unsupported assets are u
   assert.equal(
     needsExtractionUpgrade("code.zip", {
       extraction_status: "complete",
-      metadata: { fileFormatVersion: 4 },
+      metadata: { fileFormatVersion: 5 },
     }),
     false,
   );
@@ -210,6 +213,6 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
     assert.doesNotMatch(indexed.text, /Orphan/);
     assert.equal(needsExtractionUpgrade('deck.pptx', {extraction_status:'complete', metadata:{fileFormatVersion:3}}), true);
     assert.equal(needsExtractionUpgrade('deck.pptx', {extraction_status:'complete', metadata:{fileFormatVersion:2}}), true);
-    assert.equal(needsExtractionUpgrade('deck.pptx', {extraction_status:'complete', metadata:{fileFormatVersion:4}}), false);
+    assert.equal(needsExtractionUpgrade('deck.pptx', {extraction_status:'complete', metadata:{fileFormatVersion:5}}), false);
   } finally { await rm(root, {recursive:true,force:true}); }
 });

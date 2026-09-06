@@ -8,7 +8,7 @@ import { addStudyNote } from '../lib/study-version-sources.mjs'
 import { runBudgetedStudyCall } from '../lib/study-ai-budget.mjs'
 import { lesson, course } from '../scripts/verification/study-fixtures.mjs'
 
-import { lessonSchema, reviewSchema, studyResponseSchema } from '../lib/study-version-content.mjs'
+import { teachingSchema, reviewSchema, studyResponseSchema } from '../lib/study-version-content.mjs'
 
 const platform = { configured: true, provider: 'openai', model: 'gpt-5-mini' }
 async function fixture(fn) {
@@ -26,7 +26,7 @@ test('browser evaluation runs generation, independent review and corruption chec
   const generate = async (prompt, options) => {
     assert.equal(options.billing.maxJobUsd, 0.25)
     assert.equal(options.jobKey, row.id)
-    assert.deepEqual(options.responseSchema, studyResponseSchema(calls === 0 ? lessonSchema : reviewSchema, row.snapshot.chunks.map(c => c.id)))
+    assert.deepEqual(options.responseSchema, studyResponseSchema(calls === 0 ? teachingSchema : reviewSchema, row.snapshot.chunks.map(c => c.id)))
     calls++
     if (calls === 1) return generated()
     if (calls === 2) return { text: '{"issues":[]}' }
@@ -104,4 +104,19 @@ test('selected-source evaluation remains private and stops when source access is
   let calls = 0
   await assert.rejects(step(row, async () => { calls++; return generated() }), e => e.status === 410)
   assert.equal(calls, 0)
+}))
+
+test('a pre-provider concurrency rejection preserves evaluation results and can resume without duplicate generation', () => fixture(async () => {
+  const { StudyBudgetError } = await import('../lib/study-ai-budget.mjs')
+  let row = await step(await start(), async () => generated())
+  row = await step(row, async () => { throw new StudyBudgetError('Another chapter is generating on your account. This job will continue shortly.', 30) })
+  assert.equal(row.status, 'pending')
+  assert.equal(row.stage, 1)
+  assert.equal(row.calls.length, 1)
+  assert.equal(row.checks.length, 1)
+  assert.match(row.error, /No AI call was started/)
+  row = await step(row, async () => ({text:'{"issues":[]}'}))
+  assert.equal(row.stage, 2)
+  assert.equal(row.error, undefined)
+  assert.equal(row.calls.length, 2)
 }))

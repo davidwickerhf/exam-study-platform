@@ -39,7 +39,7 @@ export default function QualityEvaluationPage() {
   const chapter = data?.generated
   const revision: StudyRevision | null = data && chapter ? {
     id: data.id, versionId: data.id, course: data.course, snapshot: data.snapshot, topics: [data.topic],
-    chapters: [{ ...chapter, id: data.topic.id, review: 'diagnostic',
+    chapters: [{ ...chapter, id: data.topic.id, review: data.checks[1]?.passed ? 'passed' : 'diagnostic',
       questions: chapter.questions.map((q, i) => ({ ...q, id: `evaluation-q-${i}` })),
       flashcards: chapter.flashcards.map((f, i) => ({ ...f, id: `evaluation-f-${i}` })) }],
     gaps: [], issues: [], review: 'diagnostic'
@@ -64,6 +64,7 @@ export default function QualityEvaluationPage() {
           {data.status === 'pending' && <Button disabled={busy} onClick={() => void nextStep()}>{busy ? 'Running…' : ['Generate test chapter', 'Review against sources', 'Test reviewer with known errors'][data.stage]}</Button>}
           {data.status === 'running' && <p className="text-muted-foreground text-sm">Model call in progress. This page will update when its result is saved.</p>}
         </div>
+        {data.error && <p role="status" className="text-sm text-muted-foreground">{data.error}</p>}
         {data.checks.length > 0 && <ul className="divide-y">{data.checks.map((check, i) => <li className="py-3" key={i}>
           <div className="flex flex-wrap items-center gap-2"><Badge variant={check.passed ? 'secondary' : 'destructive'}>{check.passed ? 'Passed' : 'Needs attention'}</Badge><span className="text-sm font-medium">{check.name}</span></div>
           {check.issues.length > 0 && <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">{check.issues.map((issue, j) => <li key={j}>{typeof issue === 'string' ? issue : `${issue.severity}: ${issue.detail}`}</li>)}</ul>}

@@ -39,6 +39,7 @@ import {
 import {
   mapSchema,
   lessonSchema,
+  teachingSchema,
   reviewSchema,
   studyResponseSchema,
   parseStudyJson,
@@ -112,7 +113,7 @@ async function finish(f, { reviewIssues = [] } = {}) {
   let calls = 0
   const generate = async (prompt, options) => {
     calls++
-    const expected = prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : lessonSchema
+    const expected = prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : teachingSchema
     const v = await ownStudyVersion(f.version.id),
       chunks = v.draft.snapshot.chunks,
       ids = chunks.map((c) => c.id)
@@ -179,8 +180,8 @@ test('private generation completes without editorial acceptance and preserves ev
       assert.equal(r.chapters[0].review, 'passed')
       assert.equal(r.review, 'ai-checked')
       assert.equal(r.snapshot.sources[0].kind, 'notes')
-      assert.equal(r.chapters[0].questions.length, 3)
-      assert.equal(r.chapters[0].flashcards.length, 3)
+      assert.equal(r.chapters[0].questions.length, 8)
+      assert.equal(r.chapters[0].flashcards.length, 12)
       await saveStudyProgress(v.id, {
         revisionId: r.id,
         topicId: 'addition',

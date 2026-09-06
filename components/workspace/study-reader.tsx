@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Field, FieldLabel, FieldDescription } from '@/components/ui/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { StudyLessonStory } from './study-lesson-story'
 import { StudyProse } from './study-prose'
 import { StudyEvidence } from './study-evidence'
 import {
@@ -31,7 +32,9 @@ export function StudyReader({
   const [questionIndex, setQuestionIndex] = useState(0),
     [showAnswer, setShowAnswer] = useState(false),
     [answer, setAnswer] = useState(''),
-    [step, setStep] = useState(0)
+    [step, setStep] = useState(0),
+    [cardIndex, setCardIndex] = useState(0),
+    [cardRevealed, setCardRevealed] = useState(false)
   const [note, setNote] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -44,6 +47,8 @@ export function StudyReader({
     setShowAnswer(false)
     setAnswer('')
     setStep(0)
+    setCardIndex(0)
+    setCardRevealed(false)
     setNote(record?.note || '')
     setError('')
     setNotice('')
@@ -85,10 +90,12 @@ export function StudyReader({
         )
   )
   return (
-    <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="flex min-w-0 flex-col gap-5">
+      <details className="rounded-xl border bg-card">
+        <summary className="cursor-pointer px-5 py-4 text-sm font-medium">Chapters · {chapter.title} <span className="ml-2 text-muted-foreground">{revision.chapters.length} ready</span></summary>
       <nav
         aria-label="Study chapters"
-        className="flex max-h-[32rem] flex-col overflow-y-auto rounded-xl border bg-card lg:sticky lg:top-5"
+        className="grid border-t sm:grid-cols-2"
       >
         <p className="text-muted-foreground border-b px-4 py-3 text-xs font-medium">
           {revision.chapters.length} chapters ready · {revision.topics.length}{' '}
@@ -122,11 +129,12 @@ export function StudyReader({
           )
         })}
       </nav>
+      </details>
       <article className="min-w-0 rounded-xl border bg-card p-5 sm:p-7">
         <header className="mb-5 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">AI-generated</Badge>
-            <Badge variant="secondary">Evidence checked by AI</Badge>
+            <Badge variant="secondary">{chapter.review === 'passed' ? 'Evidence checked by AI' : 'Evidence review pending'}</Badge>
             {historical && (
               <Badge variant="outline">Includes supplements</Badge>
             )}
@@ -138,6 +146,7 @@ export function StudyReader({
             Not editorially reviewed. Source passages are available below each
             explanation.
           </p>
+          {!!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span>{goal}</li>)}</ul></div>}
         </header>
         <Tabs value={tab} onValueChange={setTab} className="min-w-0 gap-5">
           <TabsList
@@ -146,12 +155,12 @@ export function StudyReader({
           >
             <TabsTrigger value="lesson">Learn</TabsTrigger>
             <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="questions">Practice</TabsTrigger>
-            <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
+            <TabsTrigger value="questions">Practice ({chapter.questions.length})</TabsTrigger>
+            <TabsTrigger value="flashcards">Flashcards ({chapter.flashcards.length})</TabsTrigger>
             {personal && <TabsTrigger value="notes">My notes</TabsTrigger>}
           </TabsList>
           <TabsContent value="lesson" className="flex flex-col gap-7">
-            {chapter.sections.map((section, index) => (
+            {chapter.formatVersion === 2 ? <StudyLessonStory key={chapter.id} chapter={chapter} revision={revision} /> : chapter.sections.map((section, index) => (
               <section key={index}>
                 <h3 className="mb-3 text-base font-semibold">
                   {section.title}
@@ -160,7 +169,7 @@ export function StudyReader({
                 <StudyEvidence ids={section.sourceIds} revision={revision} />
               </section>
             ))}
-            {walkthrough && (
+            {walkthrough && chapter.formatVersion !== 2 && (
               <section className="flex flex-col gap-4 rounded-lg border bg-muted/20 p-5">
                 <div>
                   <p className="text-muted-foreground text-xs">
@@ -240,9 +249,11 @@ export function StudyReader({
             )}
           </TabsContent>
           <TabsContent value="summary">
-            <ul className="flex flex-col gap-5">
+            <p className="mb-6 text-sm text-muted-foreground">The ideas to take into your next problem. Try explaining each one without opening the lesson.</p>
+            <ul className="grid gap-6 md:grid-cols-2">
               {chapter.summary.map((s, i) => (
-                <li key={i}>
+                <li key={i} className="border-t pt-4">
+                  <p className="mb-2 text-xs tabular-nums text-muted-foreground">{String(i+1).padStart(2, '0')}</p>
                   <StudyProse>{s.text}</StudyProse>
                   <StudyEvidence ids={s.sourceIds} revision={revision} />
                 </li>
@@ -256,9 +267,11 @@ export function StudyReader({
                   <p className="text-muted-foreground text-xs">
                     Question {questionIndex + 1} of {chapter.questions.length}
                   </p>
-                  <Badge variant="outline">{question.kind}</Badge>
+                  <div className="flex flex-wrap gap-2"><Badge variant="outline">{question.skill || question.kind}</Badge>{question.difficulty && <Badge variant="secondary">{question.difficulty}</Badge>}</div>
                 </div>
+                {question.objective && <p className="text-xs text-muted-foreground">Practising: {question.objective}</p>}
                 <StudyProse>{question.question}</StudyProse>
+                {question.hint && <details key={question.id} className="rounded-lg border px-4 py-3"><summary className="cursor-pointer text-sm font-medium">Need a hint?</summary><div className="mt-3"><StudyProse>{question.hint}</StudyProse></div></details>}
                 <Field>
                   <FieldLabel htmlFor="study-answer">Your answer</FieldLabel>
                   <Textarea
@@ -365,22 +378,13 @@ export function StudyReader({
             )}
           </TabsContent>
           <TabsContent value="flashcards">
-            <p className="text-muted-foreground mb-4 text-sm">
-              Recall the answer before opening each card.
-            </p>
-            <div className="flex flex-col gap-3">
-              {chapter.flashcards.map((card) => (
-                <details key={card.id} className="rounded-lg border p-4">
-                  <summary className="cursor-pointer text-sm font-medium">
-                    {card.front}
-                  </summary>
-                  <div className="mt-4 border-t pt-4">
-                    <StudyProse>{card.back}</StudyProse>
-                    <StudyEvidence ids={card.sourceIds} revision={revision} />
-                  </div>
-                </details>
-              ))}
-            </div>
+            <p className="mb-5 text-sm text-muted-foreground">Recall the answer before revealing it. Explain the reasoning aloud.</p>
+            {chapter.flashcards[cardIndex] && <div className="rounded-xl border p-6 sm:p-8">
+              <div className="mb-6 flex justify-between gap-3 text-xs text-muted-foreground"><span>Card {cardIndex+1} of {chapter.flashcards.length}</span><span>{chapter.flashcards[cardIndex].kind}</span></div>
+              <p className="max-w-prose text-lg font-medium leading-relaxed">{chapter.flashcards[cardIndex].front}</p>
+              {cardRevealed ? <div className="mt-6 border-t pt-6"><StudyProse>{chapter.flashcards[cardIndex].back}</StudyProse><StudyEvidence ids={chapter.flashcards[cardIndex].sourceIds} revision={revision} /></div> : <Button className="mt-6" variant="outline" onClick={() => setCardRevealed(true)}>Reveal answer</Button>}
+              <div className="mt-8 flex justify-between gap-3"><Button variant="ghost" disabled={!cardIndex} onClick={() => { setCardIndex(i => i-1); setCardRevealed(false) }}>Previous card</Button><Button variant="ghost" disabled={cardIndex === chapter.flashcards.length-1} onClick={() => { setCardIndex(i => i+1); setCardRevealed(false) }}>Next card</Button></div>
+            </div>}
           </TabsContent>
           {personal && (
             <TabsContent value="notes" className="flex flex-col gap-4">
