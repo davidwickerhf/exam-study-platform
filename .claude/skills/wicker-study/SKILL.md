@@ -9,6 +9,8 @@ Wicker Study exposes one HTTP API for the web app, agents, and administrators.
 Everything is scoped by a personal API key. The MCP server wraps that API and
 runs from anywhere — it needs no checkout of the application.
 
+**Each write requires fresh, explicit confirmation of its exact effect.** Read first, show the change, then pass `confirmed:true` only after approval. Connecting an account is not blanket write permission. For attendance or memory, use the direct prepare/confirm workflow below without a hosted model call.
+
 ## Connect first
 
 Add the server to the client's MCP config, or run it directly:
@@ -94,7 +96,9 @@ IDs and cached results; force a refresh when stale data matters, not on every fo
 | Today / priorities this week | `get_study_briefing` + `get_study_work`; add `get_calendar` for times/rooms. Separate urgent deadlines from optional catch-up. |
 | Assignment instructions, comments or grade | `canvas_assignment_detail` using numeric Canvas IDs. Link to `/app/updates?tab=assignments&assignment=COURSE_ID%3AASSIGNMENT_ID`. Personal done, submitted and graded are different states. |
 | Attendance versus requirements | `get_attendance` + `get_course_obligations`. Preserve activity/edition splits and unknown marks; do not calculate compliance from incomplete coverage. |
-| Mark reported attendance / track an assignment / group milestones | Reuse `tutor_conversation`, then `tutor_ask` to stage exact changes. Review the concrete proposal and use `tutor_approve_action` only for the approved effect. |
+| Mark reported attendance | `get_attendance` → `tutor_prepare_attendance_update` → review with the student → `tutor_confirm_update`. No hosted model call. |
+| Remember preferences, availability or context | `tutor_sources` → `tutor_prepare_context` → review exact wording/dates → `tutor_confirm_update`. |
+| Track an assignment / group milestones | Reuse `tutor_conversation`, then `tutor_ask` to stage exact changes. Review the concrete proposal and use `tutor_approve_action` only for the approved effect. |
 | Focused practice or readiness | `get_study_readiness`, then `tutor_ask` for a short sourced diagnostic or proposed practice set. `get_study_diagnostic` / `answer_study_diagnostic` preserve the student's own attempts. |
 | Review a draft against a rubric | `tutor_add_source`, read assignment details, then `tutor_ask` with the attachment ID. This is formative feedback, not an official grade or submission. |
 | Weekly progress / blockers | `get_weekly_review`, with Canvas observations when submission status matters. |
