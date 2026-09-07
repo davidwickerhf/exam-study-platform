@@ -255,3 +255,23 @@ test('actual spending caps stay visible and are not treated as transient account
   assert.equal(scan.conflicts[0].title,'Priority generation allowance reached')
   assert.match(scan.conflicts[0].detail,/allowance is used/)
 })
+
+test('archive priority retrieval keeps instruction prose across chunks and excludes bundled SDK continuations', async () => {
+  const {attendanceEvidenceCandidates}=await import('../lib/priority-evidence.mjs')
+  const archive={assetId:'zip1',filename:'lab-assignment.zip',sourceType:'materials'}
+  const rows=[
+    {...archive,chunkId:0,content:'File: lab/CMakeLists.txt\nThe project requires build dependencies.\n'},
+    {...archive,chunkId:1,content:'File: lab/Drivers/SDK/README.md\nRequired class API and project setup.\n'},
+    {...archive,chunkId:2,content:'Mandatory implementation details.\nFile: lab/README.md\nSubmit the group report by Friday.\n#include <example.h>\n'},
+    {...archive,chunkId:3,content:'Register your team before the presentation.\nFile: lab/main.c\n/* Required classes and project state. */\n'},
+    {...archive,chunkId:4,content:'The project requires hardware registers.\nFile: lab/instructions.txt\nTutorial attendance is mandatory.\n'},
+    {chunkId:5,assetId:'pdf1',filename:'course-manual.pdf',sourceType:'syllabus',content:'Project meetings are mandatory.'}
+  ]
+  const selected=priorityEvidenceCandidates(rows,Infinity)
+  assert.deepEqual(selected.map(row=>row.chunkId).sort((a,b)=>a-b),[2,3,4,5])
+  assert.match(selected.find(row=>row.chunkId===3).content,/Register your team/)
+  assert.ok(selected.every(row=>!/implementation details|project state|hardware registers/.test(row.content)))
+  const attendance=attendanceEvidenceCandidates(rows)
+  assert.ok(attendance.some(row=>row.chunkId===4))
+  assert.ok(attendance.every(row=>!/SDK|implementation details|project state|hardware registers/.test(row.content)))
+})
