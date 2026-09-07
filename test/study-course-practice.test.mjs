@@ -50,11 +50,11 @@ test('course bank spans retakes, deduplicates refreshed questions, and isolates 
               {
                 ...lesson(snapshot.chunks.map((c) => c.id)),
                 id: 'addition',
-                review: 'passed',
+                review: title === 'Edited guide' ? 'student-edited' : 'passed',
                 questions: [
                   {
                     id: 'q1',
-                    question: 'Compute the total.',
+                    question: title === 'Edited guide' ? 'Explain the edited method.' : 'Compute the total.',
                     answer: 'Five.',
                     type: 'calc',
                     difficulty: 'standard',
@@ -73,6 +73,7 @@ test('course bank spans retakes, deduplicates refreshed questions, and isolates 
         }
         const { v, r } = await guide('2024-2025', programmeId, 'Earlier guide')
         await guide('2026-2027', programmeId, 'Refreshed guide')
+        await guide('2026-2027', programmeId, 'Edited guide')
         await guide(
           '2026-2027',
           'other-programme',
@@ -102,7 +103,8 @@ test('course bank spans retakes, deduplicates refreshed questions, and isolates 
           },
         })
         const bank = await courseExerciseBank(course.courseCode)
-        assert.equal(bank.questions.length, 2)
+        assert.equal(bank.questions.length, 3)
+        assert.match(bank.questions.find(q => q.question === 'Explain the edited method.').source, /^Personal edit/)
         assert.equal(
           bank.questions.find((q) => q.question === 'Compute the total.').type,
           'calc',

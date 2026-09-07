@@ -588,7 +588,7 @@ export default function QuestionsTab({
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b px-5 py-4 sm:px-8">
               <div className="min-w-0">
                 <p className="font-data text-sm font-semibold tabular-nums">
-                  {current.courseCode} · {current.study ? "Generated practice" : `Chapter ${current.chapterId}`}
+                  {current.courseCode} · {current.study ? "Personal practice" : `Chapter ${current.chapterId}`}
                 </p>
                 <p className="text-muted-foreground mt-0.5 text-sm">
                   {current.chapterName}
