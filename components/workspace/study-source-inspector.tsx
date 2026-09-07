@@ -21,10 +21,12 @@ export function StudySourceInspector({
   chunks,
   label,
   initialPage = 1,
+  focusDocument,
 }: {
   source: StudySource
   chunks: Evidence[]
   label?: string
+  focusDocument?: boolean
   initialPage?: number
 }) {
   const [open, setOpen] = useState(false)
@@ -41,7 +43,7 @@ export function StudySourceInspector({
         variant="ghost"
         aria-label={label || `View ${source.title}`}
         onClick={() =>
-          desk ? desk.openDocument(source, chunks, initialPage) : setOpen(true)
+          desk ? desk.openDocument(source, chunks, initialPage, focusDocument) : setOpen(true)
         }
       >
         <EyeIcon />

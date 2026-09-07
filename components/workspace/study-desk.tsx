@@ -17,7 +17,7 @@ type Companion =
   | { kind: 'tutor'; title: string; description: string; content: ReactNode }
 type Desk = {
   companion: Companion | null
-  openDocument: (source: StudySource, chunks: Evidence[], page?: number) => void
+  openDocument: (source: StudySource, chunks: Evidence[], page?: number, focusDocument?: boolean) => void
   openTutor: (title: string, description: string, content: ReactNode) => void
   close: () => void
 }
@@ -63,10 +63,12 @@ export function StudyDesk({ children }: { children: ReactNode }) {
   const value: Desk = {
     companion,
     close,
-    openDocument: (source, chunks, page = 1) => {
+    openDocument: (source, chunks, page = 1, focusDocument) => {
       rememberWork()
       setCompanion({ kind: 'document', source, chunks, page })
-      if (window.innerWidth >= 1024) restoreWork()
+      if (focusDocument !== undefined) setFocus(focusDocument)
+      if (focusDocument) requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+      if (window.innerWidth >= 1024 && !focusDocument) restoreWork()
       else
         requestAnimationFrame(() =>
           window.scrollTo({ top: 0, behavior: 'instant' }),
@@ -109,6 +111,7 @@ export function StudyDesk({ children }: { children: ReactNode }) {
             variant={!mobileSource ? 'secondary' : 'ghost'}
             onClick={() => {
               setMobileSource(false)
+              setFocus(false)
               restoreWork()
             }}
           >
@@ -172,6 +175,7 @@ export function StudyDesk({ children }: { children: ReactNode }) {
                 <Button
                   size="icon-sm"
                   variant="ghost"
+                  className="hidden lg:inline-flex"
                   aria-label="Back to split view"
                   onClick={toggleFocus}
                 >

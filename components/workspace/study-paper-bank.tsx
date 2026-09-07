@@ -389,6 +389,7 @@ export function StudyPaperBank({
                 <div className="flex flex-wrap items-center gap-1">
                   {p.url || p.assetId ? (
                     <StudySourceInspector
+                      focusDocument
                       source={p}
                       chunks={[]}
                       label={
