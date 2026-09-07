@@ -17,7 +17,7 @@ the MCP server.
 For a manually supplied key, the same secure bootstrap is available as:
 
 ```sh
-WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.11.0 configure
+WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.12.0 configure
 ```
 
 ```jsonc
@@ -100,7 +100,13 @@ authoritative list of endpoints and scopes.
 
 Direct context reads do not call the model. `tutor_ask` uses the student's AI allowance and can prepare attendance changes, assignment/catch-up trackers, group milestones, focused practice, diagnostics and rubric-based draft reviews. Reuse conversation IDs. Approve only the exact proposal the student reviewed; receipts prevent double application. No tool sends email or submits assignments to Canvas. Personal completion is separate from Canvas submission status.
 
-Update an installed client to `wicker-study-mcp@2.11.0` and restart its MCP connection to discover the new tools. The companion skill is served at [SKILL.md](https://study.wicker.life/skills/wicker-study/SKILL.md); re-download it to update an existing copy.
+Update an installed client to `wicker-study-mcp@2.12.0` and restart its MCP connection to discover the new tools. The companion skill is served at [SKILL.md](https://study.wicker.life/skills/wicker-study/SKILL.md); re-download it to update an existing copy.
+
+### Complete original downloads and remembered context
+
+Use `canvas_course_materials` to choose an exact asset/course/year, then call `download_course_original({assetId, courseCode, academicYear, outputFolder})`. The MCP streams the full stored original to a new private local subfolder and returns its path, size and SHA-256 only after verifying the complete file. PDFs, slide decks, images, spreadsheets and archives retain their original bytes. Existing files are never overwritten. Failed or incomplete downloads are removed. The maximum is 1 GB per file; larger files remain available through the authenticated web download. A remote MCP's filesystem may not be accessible to its client. This tool uses read scope and never scrapes Canvas or sends file bytes into the chat.
+
+The companion skill now proactively notices lasting preferences, project decisions, constraints and availability during normal discussions. It reads `tutor_sources` to avoid duplicates, prepares the exact new context, and asks for confirmation before saving with `tutor_confirm_update`. The agent reports a successful receipt instead of treating a draft or an ordinary chat reply as saved memory. Transient remarks and speculation are not stored, and tasks/attendance continue using their dedicated workflows.
 
 ## Licence
 
@@ -154,7 +160,7 @@ The in-app guide at [Docs → Update your MCP](https://study.wicker.life/app/doc
 
 ```sh
 codex mcp remove wicker-study
-codex mcp add wicker-study -- npx -y wicker-study-mcp@2.11.0
+codex mcp add wicker-study -- npx -y wicker-study-mcp@2.12.0
 ```
 
 Quit and reopen the Codex app, restart the CLI session, or reload the IDE extension window so the local MCP process restarts.
@@ -163,14 +169,14 @@ Quit and reopen the Codex app, restart the CLI session, or reload the IDE extens
 
 ```sh
 claude mcp remove --scope user wicker-study
-claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.11.0
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.12.0
 ```
 
 Exit and restart Claude Code, then check `/mcp`. `claude mcp add` does not overwrite an existing registration. If you originally installed with `project` or `local` scope, use that same scope in both commands.
 
 ### Claude Desktop and custom configurations
 
-In Claude Desktop, use Settings → Developer → Edit Config. Change only the package argument in the existing `wicker-study` entry to `wicker-study-mcp@2.11.0`, preserve its other settings, then fully quit and reopen Claude Desktop. For custom Codex/Claude Code configurations with environment variables or a server URL, update the package argument in place instead of replacing the registration. Check project overrides if an older version still loads.
+In Claude Desktop, use Settings → Developer → Edit Config. Change only the package argument in the existing `wicker-study` entry to `wicker-study-mcp@2.12.0`, preserve its other settings, then fully quit and reopen Claude Desktop. For custom Codex/Claude Code configurations with environment variables or a server URL, update the package argument in place instead of replacing the registration. Check project overrides if an older version still loads.
 
 The standard helper credentials stay in `~/.config/wicker-study/config.json`. These registration commands do not delete that file. After restarting, ask the agent to call `wicker_status` and `study_generation_contract` to verify connectivity and availability of the new tools. Replace any installed [companion skill](https://study.wicker.life/skills/wicker-study/SKILL.md) in its existing location too.
 
@@ -178,7 +184,7 @@ Official client references: [Codex MCP configuration](https://developers.openai.
 
 ## Local study generation
 
-The 2.11.0 source adds `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. Install `wicker-study-mcp@2.11.0` using the update instructions above.
+The 2.12.0 source adds `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. Install `wicker-study-mcp@2.12.0` using the update instructions above.
 
 1. Read the current contract and list the course edition’s sources. If needed, download originals with `canvas_import_remote_course`; inspect graphics and preserve page numbers. Add supplementary extraction as explicitly labelled local notes.
 2. Start the student-requested private run with its exact source selection, or continue a version prepared in the web UI.

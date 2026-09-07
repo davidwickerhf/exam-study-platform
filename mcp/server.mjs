@@ -2,6 +2,7 @@
 import { registerFeedbackTools } from './feedback-tools.mjs'
 import { installWriteConfirmation, toolRequestContext } from './write-confirmation.mjs'
 import { registerStudyTools } from './study-tools.mjs'
+import { downloadCourseOriginal } from './original-download.mjs'
 // Wicker Study MCP server — a thin stdio wrapper over the HTTP API so agents
 // (Claude Desktop, Claude Code, Codex, Cursor, …) can read course material and
 // a student's record, record study activity, collect a private Canvas course
@@ -60,13 +61,14 @@ function requireKey() {
   return credential.apiKey
 }
 
-async function apiResponse(path, { method = 'GET', body, query, timeoutMs } = {}) {
+async function apiResponse(path, { method = 'GET', body, query, timeoutMs, redirect } = {}) {
   const url = new URL(baseUrl + path)
   for (const [key, value] of Object.entries(query || {})) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value))
   const response = await fetch(url, {
     ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     method,
-    headers: { authorization: `Bearer ${requireKey()}`, accept: 'application/json', 'x-wicker-client': 'wicker-study-mcp 2.11.0', ...(toolRequestContext.getStore() ? { 'x-wicker-tool': toolRequestContext.getStore().tool, 'x-wicker-confirmed': String(toolRequestContext.getStore().confirmed) } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+    ...(redirect ? { redirect } : {}),
+    headers: { authorization: `Bearer ${requireKey()}`, accept: 'application/json', 'x-wicker-client': 'wicker-study-mcp 2.12.0', ...(toolRequestContext.getStore() ? { 'x-wicker-tool': toolRequestContext.getStore().tool, 'x-wicker-confirmed': String(toolRequestContext.getStore().confirmed) } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined
   })
   if (!response.ok) {
@@ -93,12 +95,15 @@ const json = (value) => ({ content: [{ type: 'text', text: typeof value === 'str
 const failed = (error) => ({ isError: true, content: [{ type: 'text', text: error.message }] })
 const run = (fn) => async (args) => { try { return json(await fn(args)) } catch (error) { return failed(error) } }
 
-const server = new McpServer({ name: 'wicker-study', version: '2.11.0' })
+const server = new McpServer({ name: 'wicker-study', version: '2.12.0' })
 installWriteConfirmation(server, z)
 const courseId = z.string().describe('Course id (e.g. "sec"). Use list_courses to discover ids.')
 const chapterId = z.string().describe('Chapter id (e.g. "02").')
 registerFeedbackTools(server, { z, run, api })
 registerStudyTools(server, { z, run, api, defaultCanvasUrl: DEFAULT_CANVAS_URL })
+server.tool('download_course_original', 'Download one complete original material file to the local filesystem of this MCP server, with size and SHA-256 verification. First use canvas_course_materials to choose its exact assetId and course/year. Use for PDFs, slide graphics, tables, datasets or any full-file analysis beyond indexed passages. Saves unchanged bytes in a new private subfolder of outputFolder; never overwrites files, executes content, or exposes credentials. This is a read of the platform, not a scrape or context update.', {
+  assetId: z.string().min(1).max(160), courseCode: z.string().min(1).max(40), academicYear: z.string().max(20).optional(), outputFolder: z.string().min(1).max(2000)
+}, run(args => downloadCourseOriginal(args, { api, apiResponse })))
 
 const COURSE_SOURCE_EXTENSIONS = new Set(['.pdf', '.ppt', '.pptx', '.doc', '.docx', '.txt', '.md', '.csv', '.tex', '.m', '.py', '.r', '.html', '.htm', '.png', '.jpg', '.jpeg', '.webp'])
 const SOURCE_MIME = { '.pdf': 'application/pdf', '.ppt': 'application/vnd.ms-powerpoint', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.txt': 'text/plain', '.md': 'text/markdown', '.csv': 'text/csv', '.tex': 'text/x-tex', '.m': 'text/x-matlab', '.py': 'text/x-python', '.r': 'text/x-r', '.html': 'text/html', '.htm': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }
