@@ -37,7 +37,8 @@ mock.module('../../lib/embeddings.mjs',{namedExports:{...embeddings,embeddingCon
   return texts.map(()=>Array(1536).fill(0.01))
 }}})
 const priorities=await import('../../lib/priority-evidence.mjs')
-mock.module('../../lib/priority-evidence.mjs',{namedExports:{...priorities,scanCanvasPriorityEvidence:async()=>({status:'confirmed',candidates:1})}})
+let priorityCalls=0
+mock.module('../../lib/priority-evidence.mjs',{namedExports:{...priorities,scanCanvasPriorityEvidence:async()=>{priorityCalls++;return {status:'confirmed',candidates:1}}}})
 const policies=await import('../../lib/programme-policy-sources.mjs')
 mock.module('../../lib/programme-policy-sources.mjs',{namedExports:{...policies,promoteReviewedProgrammePolicyAsset:async()=>null}})
 const {processCanvasQueueStep,dispatchCanvasQueue}=await import('../../lib/canvas-queue-pipeline.mjs')
@@ -152,6 +153,16 @@ try {
     if((await one("SELECT stage FROM canvas_sync_resources WHERE id='healthy-fixture'")).stage==='complete') break
   }
   assert.equal((await one("SELECT stage FROM canvas_sync_resources WHERE id='healthy-fixture'")).stage,'complete')
+  const callsBeforePartialRules=priorityCalls
+  await processCanvasQueueStep('csj-expired-message')
+  assert.equal(priorityCalls,callsBeforePartialRules+1,'saved syllabus rules are scanned despite another failed resource')
+  assert.equal((await one("SELECT value->>'status' status FROM canvas_sync_checkpoints WHERE job_id='csj-expired-message' AND key='rules'")).status,'confirmed')
+  await query("UPDATE canvas_sync_jobs SET status='cancelled' WHERE id='csj-expired-message'")
+  await query("UPDATE canvas_course_bindings SET last_synced_at=NULL WHERE id='binding'")
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type,payload) VALUES('csj-rules-only','fixture','https://canvas.fixture','binding','course','{\"stage\":\"priorities\"}')")
+  await processCanvasQueueStep('csj-rules-only')
+  assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-rules-only'")).status,'completed')
+  assert.equal((await one("SELECT last_synced_at FROM canvas_course_bindings WHERE id='binding'")).last_synced_at,null,'a rule scan cannot mark a partial material sync complete')
   const {retrieveCanvasCorpus,readCanvasSource}=await import('../../lib/retrieval-store.mjs')
   const {withRequestContext}=await import('../../lib/request-context.mjs')
   await query("UPDATE canvas_source_snapshots SET resource_type='readings' WHERE binding_id='binding'")

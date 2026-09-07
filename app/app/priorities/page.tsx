@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 
 type Inputs = NonNullable<Parameters<typeof homePriorities>[0]>
-type RuleCourse = {id:string;code:string;name?:string;archived?:boolean;priorityScan?:{status:string;scannedAt?:string};courseProfile?:(CourseProfile & {priorityExtractionCoverage?:string})|null}
+type RuleCourse = {id:string;code:string;name?:string;archived?:boolean;priorityScan?:{status:string;scannedAt?:string};courseProfile?:(CourseProfile & {priorityExtractionCoverage?:string;priorityExtractionPending?:boolean})|null}
 type Shell = {priorityCourses?:RuleCourse[];courses?:RuleCourse[]}
 const dateLabel=(date?:string|null)=>date ? new Date(date).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}) : 'Not checked yet'
 export default function PrioritiesPage() {
@@ -32,7 +32,7 @@ export default function PrioritiesPage() {
   return <main className="mx-auto w-full max-w-[1180px] px-4 py-6 sm:px-8 sm:py-8">
     <Link href="/app" className="mb-6 inline-flex items-center gap-2 text-xs text-muted-foreground"><ArrowLeftIcon className="size-3.5"/>Study desk</Link>
     <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-6">
-      <div><h1 className="text-2xl font-semibold tracking-tight">Your priorities</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Deadlines, exams and attendance requirements across your courses. Recurring sessions share one entry; urgent submissions come first.</p></div>
+      <div><h1 className="text-2xl font-semibold tracking-tight">Your priorities</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Deadlines, project steps, exams and attendance across your courses. Recurring sessions share one entry; urgent submissions come first.</p></div>
       <Button variant="outline" size="sm" onClick={refresh} disabled={loading}><RefreshCwIcon className="size-3.5"/>Refresh list</Button>
     </header>
     {errors.length>0 && <p role="alert" className="my-4 rounded-lg border border-destructive/30 p-4 text-sm">Some sources could not be read. This list is incomplete. {errors.join(' ')}</p>}
@@ -43,16 +43,16 @@ export default function PrioritiesPage() {
     </section>
     <div className="mb-3 flex justify-between text-xs text-muted-foreground"><span>{visible.length} of {priorities.length} priorities</span><Link href="/app/calendar" className="text-primary">Open calendar →</Link></div>
     <section aria-label="All priorities" className="overflow-hidden rounded-xl border bg-card">
-      {loading&&!priorities.length ? <div className="space-y-4 p-6"><Skeleton className="h-6 w-2/3"/><Skeleton className="h-20 w-full"/></div> : visible.length ? <ul>{visible.map(item=><PriorityRow key={item.id} item={{...item,dueText:item.dueAt ? dateLabel(item.dueAt) : 'Date not recorded'}}/>)}</ul> : <p className="p-6 text-sm text-muted-foreground">{priorities.length ? 'No priorities match these filters.' : 'No actionable priorities were found in the loaded sources. Check the course coverage below before assuming there are no obligations.'}</p>}
+      {loading&&!priorities.length ? <div className="space-y-4 p-6"><Skeleton className="h-6 w-2/3"/><Skeleton className="h-20 w-full"/></div> : visible.length ? <ul>{visible.map(item=><PriorityRow key={item.id} item={{...item,dueText:item.dueText || (item.dueAt ? (item.dueAt.length===10 ? new Date(item.dueAt+'T12:00:00').toLocaleDateString('en-GB',{dateStyle:'medium'}) : dateLabel(item.dueAt)) : 'Timing not specified')}}/>)}</ul> : <p className="p-6 text-sm text-muted-foreground">{priorities.length ? 'No priorities match these filters.' : 'No actionable priorities were found in the loaded sources. Check the course coverage below before assuming there are no obligations.'}</p>}
     </section>
     <section aria-label="Course evidence coverage" className="mt-8">
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b pb-3"><h2 className="text-base font-semibold">Course rules &amp; coverage</h2><span className="text-xs text-muted-foreground">{covered} of {courses.length} courses with supported rules</span></div>
       <p className="my-4 text-sm leading-6 text-muted-foreground">Automatic scans run after material collection and regularly while Canvas refresh is enabled. Unchanged evidence is reused. The list covers the calendar and Canvas records currently available; undated requirements and conflicts appear below.</p>
       <div className="divide-y rounded-xl border bg-card">{courses.map(c=>{
         const assessment=c.courseProfile?.assessment
-        const conflicts=(assessment as {conflicts?:{title:string;detail:string}[]}|undefined)?.conflicts || []
+        const conflicts=((assessment as {conflicts?:{title:string;detail:string}[]}|undefined)?.conflicts || []).filter(conflict=>conflict.title!=='Priority scan allowance reached')
         const rules=assessment?.attendanceRules || []
-        return <details key={c.id} className="px-5 py-4"><summary className="cursor-pointer text-sm font-semibold">{c.code} · {c.name || c.code}<span className="ml-3 text-xs font-normal text-muted-foreground">{c.priorityScan?.status==='needs-review' ? 'Needs review' : supportedCourseAssessment(c) ? 'Supported rules available' : 'Rules incomplete or unavailable'}</span></summary>
+        return <details key={c.id} className="px-5 py-4"><summary className="cursor-pointer text-sm font-semibold">{c.code} · {c.name || c.code}<span className="ml-3 text-xs font-normal text-muted-foreground">{c.courseProfile?.priorityExtractionPending ? 'Checking course rules' : c.priorityScan?.status==='needs-review' ? 'Needs review' : supportedCourseAssessment(c) ? 'Supported rules available' : 'Rules incomplete or unavailable'}</span></summary>
           <p className="mt-3 text-xs text-muted-foreground">Last source check: {dateLabel(c.priorityScan?.scannedAt)}</p>
           {c.courseProfile?.priorityExtractionCoverage && <p className="mt-1 text-xs text-muted-foreground">Coverage: {c.courseProfile.priorityExtractionCoverage}</p>}
           {rules.length ? <ul className="mt-3 list-disc space-y-2 pl-5 text-sm">{rules.map((rule,i)=><li key={i}>{rule}</li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">No attendance rule is established here. This does not mean attendance is optional.</p>}

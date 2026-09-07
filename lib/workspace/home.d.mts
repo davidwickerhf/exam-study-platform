@@ -78,6 +78,7 @@ export type CalendarChange = {
 }
 
 export type HomePriority = {
+  evidence?: Array<{chunkId:number;assetId?:string;title?:string;page?:number}>
   occurrences?: number
   id: string
   kind: 'attendance' | 'assignment' | 'exam' | 'project'
@@ -88,7 +89,7 @@ export type HomePriority = {
   dueText?: string | null
   href: string
   status: string
-  source: 'Academic plan' | 'Canvas' | 'Timetable' | 'Verified course rule'
+  source: 'Academic plan' | 'Canvas' | 'Timetable' | 'Verified course rule' | 'Canvas · rule conflict' | 'Canvas + verified course rule'
   rank: number
 }
 
@@ -112,7 +113,7 @@ export declare function upcomingDeadlines(events: CalendarEvent[], limit?: numbe
 export declare function homePriorities(input?: {
   events?: CalendarEvent[]
   assignments?: Array<{ id: string; title: string; courseCode?: string | null; courseName?: string | null; dueAt?: string | null; status: string; url?: string | null }>
-  courses?: Array<{ id: string; code?: string; courseProfile?: { assessment?: { status?: string; attendanceRules?: string[]; attendanceEvidence?: Array<{ text: string; activity: string; allowedMisses?: number | null; minimumAttendancePercent?: number | null; excusedPolicy?: string }>; components?: Array<{ name: string; type?: string; weightPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }> } | null } | null }>
+  courses?: Array<{ id: string; code?: string; courseProfile?: { assessment?: { status?: string; actions?: import('./courses.mjs').PriorityAction[]; attendanceRules?: string[]; attendanceEvidence?: Array<{ text: string; activity: string; allowedMisses?: number | null; minimumAttendancePercent?: number | null; excusedPolicy?: string }>; components?: Array<{ name: string; type?: string; weightPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }> } | null } | null }>
   now?: number
   limit?: number
 }): HomePriority[]

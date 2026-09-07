@@ -1,10 +1,12 @@
 "use client"
 import Link from 'next/link'
+import { StudySourceInspector } from './study-source-inspector'
 import { CalendarDaysIcon, ListChecksIcon, CircleAlertIcon, ChevronRightIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { daysUntil, type HomePriority } from '@/lib/workspace/home.mjs'
 const distance = (date: string | null) => { const days=daysUntil(date); return days === null ? 'No date recorded' : days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today' : `in ${days}d` }
 export function PriorityRow({ item }: { item: HomePriority }) {
+  const sources = (item.evidence || []).filter((ref,index,refs)=>ref.assetId && refs.findIndex(other=>other.assetId===ref.assetId)===index)
   return (
     <li className="border-b last:border-b-0">
       <Link href={item.href} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-5 py-3.5">
@@ -22,6 +24,10 @@ export function PriorityRow({ item }: { item: HomePriority }) {
         </span>
         <ChevronRightIcon className="text-muted-foreground mt-2 size-3.5 transition-transform group-hover:translate-x-0.5" />
       </Link>
+      {!!sources.length && <details className="px-5 pb-3 sm:pl-16">
+        <summary className="w-fit cursor-pointer text-xs text-muted-foreground">View {sources.length === 1 ? 'source' : `${sources.length} sources`}</summary>
+        <div className="mt-2 grid gap-2">{sources.map(ref=><div key={ref.assetId} className="min-w-0"><p className="truncate text-xs text-muted-foreground" title={ref.title}>{ref.title || 'Course source'}</p><StudySourceInspector source={{key:ref.assetId!,assetId:ref.assetId,title:ref.title || 'Course source',kind:'canvas',sha256:'',academicYear:'',url:`/api/corpus/assets/${encodeURIComponent(ref.assetId!)}`}} chunks={[]} initialPage={ref.page || 1} label="Open document"/></div>)}</div>
+      </details>}
     </li>
   )
 }
