@@ -1,3 +1,4 @@
+import { claimPaperDispatch, resolvePaperJob, processPaperJob } from './lib/study-paper-jobs.mjs'
 import { courseExerciseBank } from './lib/study-course-practice.mjs'
 import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queueRequestHeaders } from './lib/queue-runtime.mjs'
 import { activeProgrammeId } from './lib/programme-scope.mjs'
@@ -3676,10 +3677,10 @@ async function generateStudyEvaluation(prompt, options) {
   return { text, usage: telemetry.usage }
 }
 async function runStudentStudyJob(id) {
-  const record = await resolveStudyJob(id)
+  const record = await (id.startsWith('pap-') ? resolvePaperJob(id) : resolveStudyJob(id))
   if (!record || !queueWorkerAllowsUser(record.owner) || (localTestUserId() && record.owner !== localTestUserId())) return { again: false }
-  return asStudyOwner(record.owner, () => processStudyStep(id, {
-    generate: budgetedStudyGenerate, sourceOptions: studySourceOptions
+  return asStudyOwner(record.owner, () => (id.startsWith('pap-') ? processPaperJob : processStudyStep)(id, {
+    generate: budgetedStudyGenerate, sourceOptions: studySourceOptions, platform: llmConfiguration()
   }))
 }
 const localStudyJobs = new Set()
@@ -3704,8 +3705,8 @@ const server = createServer(async (req, res) => {
       }
       if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
       if (!queueWorkersEnabled()) { send(res, 200, JSON.stringify({ disabled: true })); return }
-      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: await claimStudyDispatch() })); return }
-      if (body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
+      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: [...await claimStudyDispatch(), ...await claimPaperDispatch()] })); return }
+      if ((body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) || (body.action === 'paper-step' && /^pap-[a-f0-9-]{36}$/.test(body.jobId || ''))) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result
       if (body.action === 'feedback-maintenance') { await feedbackMaintenance(); result = { ok: true } }
@@ -6737,7 +6738,7 @@ server.listen(port, hostname, () => {
 // Local recovery uses the same durable outbox as Vercel Cron. No browser worker.
 if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
   const recovery = setInterval(async () => {
-    try { for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key) }
+    try { for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key); for (const id of await claimPaperDispatch()) await wakeStudentStudy(id) }
     catch (error) { console.error('Study recovery deferred:', error.message) }
   }, 30000)
   recovery.unref()

@@ -40,8 +40,8 @@ export function CourseExercises({
     }
   }, [courseId, courseCode, retry])
   return (
-    <section className="space-y-6" aria-label="Course exercises">
-      <div>
+    <section className="space-y-6 rounded-xl border bg-card p-5 sm:p-6" aria-label="Course exercises">
+      <div className="border-b pb-5">
         <h2 className="text-xl font-semibold">Exercise bank</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Practice across every chapter. Your generated questions and published

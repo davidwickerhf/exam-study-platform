@@ -27,7 +27,7 @@ export function CourseStudyVersions({
   period: string
 }) {
   const router = useRouter(),
-    [versions, setVersions] = useState<StudyVersion[] | null>(null),
+    [versions, setVersions] = useState<(StudyVersion & {chapterPreviews?: {id:string;title:string}[]})[] | null>(null),
     [shared, setShared] = useState<StudyPublication[]>([]),
     [error, setError] = useState(''),
     [creating, setCreating] = useState(false)
@@ -37,7 +37,7 @@ export function CourseStudyVersions({
     setError('')
     setShared([])
     setCreating(false)
-    studyRequest<{ versions: StudyVersion[] }>(
+    studyRequest<{ versions: (StudyVersion & {chapterPreviews?: {id:string;title:string}[]})[] }>(
       `/api/study-versions?courseCode=${encodeURIComponent(courseCode)}`
     )
       .then((r) => active && setVersions(r.versions))
@@ -60,11 +60,11 @@ export function CourseStudyVersions({
       className="overflow-hidden rounded-xl border bg-card"
       aria-label="Your study guides"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 sm:px-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-5 sm:px-6">
         <div>
-          <h2 className="text-base font-semibold">Your study guides</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Study guides</h2>
           <p className="text-muted-foreground mt-1 max-w-xl text-sm">
-            Read a guide, or create one from your course materials. Exercises and mock papers live in their own course tabs.
+            Your course, explained chapter by chapter. Build a guide from slides, readings and your notes.
           </p>
         </div>
         {!creating && (
@@ -103,13 +103,13 @@ export function CourseStudyVersions({
           ) : (
             <ul className="divide-y border-t">
               {selected.map((v) => (
-                <li key={v.id}>
+                <li key={v.id} className="px-5 py-5 sm:px-6">
                   <Link
                     href={`/app/study/${v.id}`}
-                    className="hover:bg-muted/40 flex items-center justify-between gap-4 px-5 py-4 sm:px-6"
+                    className="group flex items-center justify-between gap-4"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium">{v.title}</p>
+                      <p className="text-lg font-semibold group-hover:text-primary">{v.title}</p>
                       <p className="text-muted-foreground mt-1 text-xs">
                         {v.course.academicYear} ·{' '}
                         {v.activeRevisionId
@@ -122,6 +122,10 @@ export function CourseStudyVersions({
                       <ArrowRightIcon className="size-4" />
                     </div>
                   </Link>
+                  {!!v.chapterPreviews?.length && <ol className="mt-5 grid gap-x-6 border-t pt-2 sm:grid-cols-2">
+                    {v.chapterPreviews.slice(0,6).map((chapter,index)=><li key={chapter.id}><Link href={`/app/study/${v.id}?chapter=${encodeURIComponent(chapter.id)}`} className="group flex items-start gap-3 rounded-md py-3 text-sm hover:text-primary"><span className="mt-0.5 font-heading text-xs tabular-nums text-muted-foreground">{String(index+1).padStart(2,'0')}</span><span className="leading-5">{chapter.title}</span><ArrowRightIcon className="ml-auto mt-0.5 size-3.5 shrink-0 opacity-0 group-hover:opacity-100"/></Link></li>)}
+                  </ol>}
+                  {v.chapterPreviews && v.chapterPreviews.length>6 && <Link className="mt-2 inline-block text-sm font-medium text-primary" href={`/app/study/${v.id}`}>View all {v.chapterPreviews.length} chapters →</Link>}
                 </li>
               ))}
             </ul>

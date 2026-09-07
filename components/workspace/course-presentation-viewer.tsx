@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
-const Pdf = dynamic(() => import('./course-pdf-viewer'), { ssr: false })
+const Pdf = dynamic(() => import('./pdf-viewer'), { ssr: false })
 const Text = dynamic(() => import('./course-file-viewer'), { ssr: false })
 export default function CoursePresentationViewer({ assetId, title, initialPage = 1 }: { assetId: string; title: string; initialPage?: number }) {
   const [text, setText] = useState(false)

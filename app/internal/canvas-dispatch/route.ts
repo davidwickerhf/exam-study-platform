@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (probe) return Response.json(await sendCanvasProbe())
   if (payload.action === 'continue') {
     if (!queueWorkersEnabled()) return Response.json({ disabled: true }, { status: 503 })
-    if (typeof payload.jobId !== 'string' || !/^(?:csj-[a-zA-Z0-9-]+|sv-[a-f0-9-]{36})$/.test(payload.jobId)
+    if (typeof payload.jobId !== 'string' || !/^(?:csj-[a-zA-Z0-9-]+|(?:sv|pap)-[a-f0-9-]{36})$/.test(payload.jobId)
       || !Number.isInteger(payload.delaySeconds) || payload.delaySeconds < 0 || payload.delaySeconds > 300)
       return Response.json({ error: 'Invalid continuation.' }, { status: 400 })
     await sendCanvasStep(payload.jobId, payload.delaySeconds)

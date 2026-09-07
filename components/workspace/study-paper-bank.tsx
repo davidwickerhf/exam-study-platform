@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { ArrowLeftIcon, FileTextIcon, SearchIcon } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { ArrowLeftIcon, FileTextIcon, SearchIcon, LoaderCircleIcon, CheckCircle2Icon, Clock3Icon, AlertCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -60,7 +60,9 @@ type Fit = {
     }[]
   }
 }
+type PaperJob = { id: string; sourceKey: string; status: string; completedSections: number; totalSections: number; setId: string | null; error: string | null }
 type Bank = {
+  processing?: PaperJob[]
   papers: (StudySource & { paperKind: string })[]
   syllabi: StudySource[]
   sets: SetInfo[]
@@ -87,6 +89,7 @@ export function StudyPaperBank({
     [search, setSearch] = useState(''),
     [year, setYear] = useState('all'),
     [showAll, setShowAll] = useState(false)
+  const autoStarted = useRef('')
   const [setChoices, setSetChoices] = useState<Record<string, string>>({})
   const [selected, setSelected] = useState<SetInfo | null>(null),
     [session, setSession] = useState<StudyRevision | null>(null),
@@ -113,6 +116,27 @@ export function StudyPaperBank({
       live = false
     }
   }, [base, paperUrl, courseMode])
+  // Backfill earlier imports once. New files are queued by ingestion itself;
+  // closing this page never stops processing.
+  useEffect(() => {
+    if (!bank || autoStarted.current === paperUrl || !bank.papers.some(p=>p.paperKind!=='solutions' && /\.pdf$/i.test(p.title) && !bank.processing?.some(j=>j.sourceKey===p.key))) return
+    autoStarted.current = paperUrl
+    void studyRequest('/api/study-versions/course-papers', { ...course, action: 'auto-prepare' })
+      .then(() => load()).catch(e => setError(e.message))
+  }, [bank, paperUrl])
+  const processing = bank?.processing?.some(j => ['queued','running'].includes(j.status))
+  useEffect(() => {
+    if (!processing) return
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void load().catch(e=>setError(e.message))
+    }, 8000)
+    return () => window.clearInterval(timer)
+  }, [processing, paperUrl])
+  async function retryAuto(job: PaperJob) {
+    setBusy(true);setError('')
+    try { await studyRequest('/api/study-versions/course-papers', {...course,action:'retry-auto',jobId:job.id}); await load() }
+    catch(e) {setError((e as Error).message)} finally {setBusy(false)}
+  }
   async function openSet(s: SetInfo) {
     setSelected(s)
     setSession(null)
@@ -266,14 +290,12 @@ export function StudyPaperBank({
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
   return (
-    <section className="space-y-6" aria-label="Past paper library">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <section className="overflow-hidden rounded-xl border bg-card" aria-label="Past paper library">
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b px-5 py-5 sm:px-6">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Past papers</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Mock papers</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Original exam papers and exercise sheets for {course.courseCode},
-            across all available years. Keep useful questions for your next
-            attempt.
+            Original papers, ready to practise. Questions are extracted and checked automatically after retrieval.
           </p>
         </div>
         <span className="text-sm text-muted-foreground">
@@ -282,7 +304,7 @@ export function StudyPaperBank({
             : 'Loading library…'}
         </span>
       </header>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 border-b bg-muted/20 px-5 py-3 sm:px-6">
         <div className="relative min-w-52 flex-1">
           <SearchIcon className="absolute left-3 top-3 size-4 text-muted-foreground" />
           <Input
@@ -336,11 +358,13 @@ export function StudyPaperBank({
           ))}
         </div>
       ) : visible.length ? (
-        <div className="divide-y rounded-lg border bg-card">
+        <div className="divide-y">
           {visible.map((p) => {
+            const job = bank.processing?.find(j=>j.sourceKey===p.key)
             const sets = bank.sets.filter((s) => s.questionSourceKey === p.key),
               chosen =
                 sets.find((s) => s.id === setChoices[p.key]) ||
+                sets.find((s) => s.id === job?.setId) ||
                 sets.find((s) => s.status === 'complete') ||
                 sets[0],
               ready = chosen?.status === 'complete' ? chosen : undefined,
@@ -348,11 +372,11 @@ export function StudyPaperBank({
             return (
               <article
                 key={p.key}
-                className="flex flex-wrap items-center gap-4 px-4 py-5 sm:px-6"
+                className="group flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-5 transition-colors hover:bg-muted/20 sm:px-6"
               >
-                <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground"><FileTextIcon className="size-5" /></span>
                 <div className="min-w-48 flex-1">
-                  <h3 className="text-sm font-semibold leading-6">
+                  <h3 className="text-base font-semibold leading-6">
                     {title(p.title)}
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -362,13 +386,9 @@ export function StudyPaperBank({
                       : p.paperKind === 'exercises'
                         ? 'Exercise sheet'
                         : 'Paper'}
-                    {ready
-                      ? ` · ${ready.questionCount} ${ready.questionCount === 1 ? 'question' : 'questions'}`
-                      : pending
-                        ? ` · ${pending.status === 'failed' ? 'Preparation needs attention' : 'Preparation saved'}`
-                        : ''}
+
                   </p>
-                  {chosen?.sourcePages?.length > 0 && (
+                  {chosen?.sourcePages?.length > 0 && chosen.id !== job?.setId && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       Prepared source pages: {chosen.sourcePages[0]}
                       {chosen.sourcePages.length > 1
@@ -376,15 +396,14 @@ export function StudyPaperBank({
                         : ''}
                     </p>
                   )}
-                  {ready && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {bank.reviews.some(
-                        (r) => r.setId === ready.id && r.status === 'complete',
-                      )
-                        ? 'Syllabus check available'
-                        : 'Current syllabus fit not checked'}
-                    </p>
+                  {p.paperKind !== 'solutions' && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground" role={job?.status === 'running' ? 'status' : undefined}>
+                      {job?.status === 'paused' ? <AlertCircleIcon className="size-3.5 text-amber-600"/> : job?.status === 'running' ? <LoaderCircleIcon className="size-3.5 animate-spin"/> : ready ? <CheckCircle2Icon className="size-3.5"/> : <Clock3Icon className="size-3.5"/>}
+                      {job?.status === 'paused' ? 'Processing paused' : job?.status === 'running' ? `Preparing questions · ${job.completedSections} of ${job.totalSections || '…'} sections checked` : job?.status === 'queued' ? 'Queued for automatic processing' : ready ? `${ready.questionCount} ${ready.questionCount === 1 ? 'question' : 'questions'} ready` : 'Waiting for automatic processing'}
+                    </div>
                   )}
+                  {job?.error && <p className="mt-2 max-w-xl text-xs leading-5 text-muted-foreground">{job.error}</p>}
+
                 </div>
                 <div className="flex flex-wrap items-center gap-1">
                   {p.url || p.assetId ? (
@@ -403,11 +422,12 @@ export function StudyPaperBank({
                       Original file unavailable
                     </span>
                   )}
+                  {job?.status === 'paused' && ready && <Button size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(job)}>Retry processing</Button>}
                   {p.paperKind !== 'solutions' &&
                     (ready ? (
                       <>
                         <Button size="sm" onClick={() => void openSet(ready)}>
-                          Practise
+                          {job && job.status !== 'complete' ? 'Practise checked section' : 'Practise'}
                         </Button>
                         <Button
                           size="sm"
@@ -422,7 +442,7 @@ export function StudyPaperBank({
                           Syllabus fit
                         </Button>
                       </>
-                    ) : (
+                    ) : job ? (job.status === 'paused' ? <Button size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(job)}>Retry processing</Button> : null) : (
                       <Button
                         size="sm"
                         variant="outline"
@@ -443,7 +463,7 @@ export function StudyPaperBank({
                     ))}
                 </div>
                 {!!sets.length && (
-                  <details className="w-full pl-9 text-sm">
+                  <details className="w-full pl-15 text-sm">
                     <summary className="cursor-pointer text-muted-foreground">
                       Paper options
                     </summary>
@@ -505,10 +525,8 @@ export function StudyPaperBank({
           </p>
         </div>
       )}
-      <p className="text-xs leading-5 text-muted-foreground">
-        Paper years describe the original document. Older questions are
-        retained; current syllabus coverage and assessment format are checked
-        separately. Access follows the original material’s permissions.
+      <p className="border-t bg-muted/10 px-5 py-3 text-xs leading-5 text-muted-foreground sm:px-6">
+        Processing continues when you leave. Uses your saved AI preferences and spending limits. Older papers remain available; syllabus fit is checked separately.
       </p>
       <Sheet open={!!paper} onOpenChange={(v) => !busy && !v && setPaper(null)}>
         <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg">

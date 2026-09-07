@@ -18,7 +18,7 @@ import {
 import { usePdfDocument } from './use-pdf-document'
 import { PdfPage } from './pdf-page'
 
-export default function CoursePdfViewer({
+export default function PdfViewer({
   url,
   file,
   title,

@@ -222,11 +222,11 @@ function CourseContent() {
               {nextChapter && <Link className={buttonVariants({ size: 'sm' })} href={`/app/courses/${course.id}/${nextChapter.id}`}>{progress.done ? 'Continue reading' : 'Start reading'}<ArrowRightIcon data-icon="inline-end" /></Link>}
             </div>
           </div></div>
-          {tab !== 'exercises' && tab !== 'papers' && <div aria-label="Course overview" className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-xs">
+          <div aria-label="Course overview" className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-xs">
             <span><span className="mr-1.5">Result</span><strong className="text-foreground font-medium">{academicLoading || catalogueLoading ? 'Loading…' : academicError ? 'Record unavailable' : latest ? [({passed:'Passed',failed:'Failed','no-show':'No show',upcoming:'Upcoming'} as Record<string,string>)[latest.status || ''] || 'Not recorded', latest.grade == null ? null : `Grade ${latest.grade}`, year === 'all' ? latest.academicYear : null].filter(Boolean).join(' · ') : 'Not recorded'}</strong></span>
             <span><span className="mr-1.5">Reading</span><strong className="text-foreground font-medium">{progress.total ? `${progress.done} / ${progress.total} chapters` : 'Choose a study guide'}</strong></span>
             <span><span className="mr-1.5">Next exam</span><strong className="text-foreground font-medium">{exam ? new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date)) : 'Not recorded'}</strong></span>
-          </div>}
+          </div>
         </div>
       </header>
       <div className="mx-auto flex w-full max-w-[1280px] min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">

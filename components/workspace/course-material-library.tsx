@@ -1,4 +1,5 @@
 "use client";
+import { materialModuleNames } from "@/lib/canvas-material-locations.mjs";
 
 import { useFeedback } from "@/components/feedback/feedback";
 import dynamic from "next/dynamic";
@@ -13,7 +14,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   DownloadIcon,
@@ -47,6 +48,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Material = {
+  locations?: {moduleId?:string;moduleName?:string;modulePosition?:number;assignmentTitle?:string}[];
   snapshotId?: string;
   assetId: string;
   filename: string;
@@ -65,7 +67,7 @@ const size = (bytes: number) =>
   bytes < 1024 * 1024
     ? `${Math.max(1, Math.round(bytes / 1024))} KB`
     : `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
-const CoursePdfViewer = dynamic(() => import('./course-pdf-viewer'), { ssr: false });
+const CoursePdfViewer = dynamic(() => import('./pdf-viewer'), { ssr: false });
 const CoursePresentationViewer = dynamic(() => import('./course-presentation-viewer'), { ssr: false });
 const CourseFileViewer = dynamic(() => import("./course-file-viewer"), { ssr: false });
 const iconFor = (kind: string) =>
@@ -93,6 +95,7 @@ export function CourseMaterialLibrary({
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState("all");
   const [kind, setKind] = useState("all");
+  const [moduleName, setModuleName] = useState("all");
   const [query, setQuery] = useState("");
   const giveFeedback = useFeedback();
   const [preview, setPreview] = useState<Material | null>(null);
@@ -205,11 +208,15 @@ export function CourseMaterialLibrary({
     (item) =>
       (year === "all" || (item.academicYear || "undated") === year) &&
       (kind === "all" || fileKind(item.filename, item.mediaType) === kind) &&
+      (moduleName === "all" || materialModuleNames(item).includes(moduleName) || (moduleName === "unfiled" && !materialModuleNames(item).length)) &&
       (!query ||
-        `${cleanMaterialName(item.filename)} ${item.sourcePath}`
+        `${cleanMaterialName(item.filename)} ${item.sourcePath} ${materialModuleNames(item).join(" ")} ${(item.locations || []).map(l=>l.assignmentTitle).join(" ")}`
           .toLowerCase()
           .includes(query.toLowerCase())),
-  );
+  ).sort((a,b) => {
+    const am=materialModuleNames(a)[0] || 'Outside modules', bm=materialModuleNames(b)[0] || 'Outside modules';
+    return (b.academicYear || '').localeCompare(a.academicYear || '') || (a.locations?.[0]?.modulePosition ?? 999)-(b.locations?.[0]?.modulePosition ?? 999) || am.localeCompare(bm,undefined,{numeric:true}) || a.sourcePath.localeCompare(b.sourcePath,undefined,{numeric:true});
+  });
 
   return (
     <section className="flex flex-col gap-3">
@@ -227,6 +234,11 @@ export function CourseMaterialLibrary({
         <div className="flex flex-wrap gap-2">
           {!!materials?.length && (
             <>
+              <select aria-label="Canvas module" value={moduleName} onChange={e=>setModuleName(e.target.value)} className="h-9 max-w-60 rounded-md border bg-background px-3 text-sm">
+                <option value="all">All modules</option>
+                {[...new Set(materials.flatMap(materialModuleNames))].map(name=><option key={String(name)} value={String(name)}>{String(name)}</option>)}
+                <option value="unfiled">Outside modules</option>
+              </select>
               {!academicYear && (
                 <Select
                   value={year}
@@ -326,11 +338,15 @@ export function CourseMaterialLibrary({
         </p>
       ) : (
         <ul className="border-t">
-          {shown.map((item) => {
+          {shown.map((item,index) => {
             const format = fileKind(item.filename, item.mediaType),
               Icon = iconFor(format),
               title = cleanMaterialName(item.filename);
+            const group=`${item.academicYear} · ${materialModuleNames(item)[0] || 'Outside modules'}`;
+            const before=shown[index-1], previous=before ? `${before.academicYear} · ${materialModuleNames(before)[0] || 'Outside modules'}` : '';
             return (
+              <Fragment key={item.snapshotId || `${item.assetId}-${item.sourcePath}`}>
+              {group!==previous && <li className="bg-muted/30 px-3 py-2.5 text-xs font-semibold tracking-wide">{group}</li>}
               <li
                 key={
                   item.snapshotId ||
@@ -368,6 +384,7 @@ export function CourseMaterialLibrary({
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
+                  {(materialModuleNames(item).length>0 || item.locations?.some(l=>l.assignmentTitle)) && <span className="mt-1 block text-xs leading-5 text-muted-foreground">{[...materialModuleNames(item), ...new Set((item.locations || []).map(l=>l.assignmentTitle).filter(Boolean))].join(' · ')}</span>}
                 </button>
                 <a
                   className={buttonVariants({
@@ -411,6 +428,7 @@ export function CourseMaterialLibrary({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </li>
+              </Fragment>
             );
           })}
         </ul>

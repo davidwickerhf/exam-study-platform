@@ -57,6 +57,7 @@ test('durable importer replays discovery after interruption without dropping nes
 
 test('student generation uses independent capacity from Canvas imports', () => {
   assert.equal(queueTopicForJob('sv-123'), STUDY_QUEUE_TOPIC)
+  assert.equal(queueTopicForJob('pap-123'), STUDY_QUEUE_TOPIC)
   assert.equal(queueTopicForJob('csj-123'), CANVAS_QUEUE_TOPIC)
   assert.notEqual(STUDY_QUEUE_TOPIC, CANVAS_QUEUE_TOPIC)
 })

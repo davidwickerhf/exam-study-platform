@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { StudySource, Evidence } from '@/lib/workspace/study-versions'
-const Pdf = dynamic(() => import('./course-pdf-viewer'), { ssr: false })
+const Pdf = dynamic(() => import('./pdf-viewer'), { ssr: false })
 const Slides = dynamic(() => import('./course-presentation-viewer'), {
   ssr: false,
 })

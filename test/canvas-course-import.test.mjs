@@ -1,3 +1,4 @@
+import { materialLocations, materialModuleNames } from '../lib/canvas-material-locations.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
@@ -38,7 +39,7 @@ test('Canvas importer downloads and categorises accessible course material witho
     ])
     if (url.pathname === '/api/v1/courses/25806/pages/welcome') return json({ title: 'Welcome', body: '<script>alert(1)</script><p>Read this first.</p>', published: true })
     if (url.pathname === '/api/v1/courses/25806/pages/reading-guide') return json({ title: 'Standalone reading guide', body: '<p>This page is published outside Modules.</p>', published: true })
-    if (url.pathname === '/api/v1/courses/25806/assignments/20') return json({ name: 'Problem set 1', description: '<p>Work individually.</p>', due_at: '2026-09-10', points_possible: 10, submission_types: ['online_upload'], html_url: 'https://canvas.test/courses/25806/assignments/20' })
+    if (url.pathname === '/api/v1/courses/25806/assignments/20') return json({ name: 'Problem set 1', description: '<p>Work individually.</p>', attachments: [{id:11,filename:'Syllabus.pdf'}], due_at: '2026-09-10', points_possible: 10, submission_types: ['online_upload'], html_url: 'https://canvas.test/courses/25806/assignments/20' })
     if (url.pathname === '/api/v1/courses/25806/files/10') return json({ id: 10, display_name: 'Lecture 1 slides.pdf', url: 'https://files.canvas.test/10' })
     if (url.pathname === '/api/v1/courses/25806/files/11') return json({ id: 11, display_name: 'Syllabus.pdf', url: 'https://files.canvas.test/11' })
     if (url.origin === 'https://files.canvas.test' && url.pathname === '/10') return new Response(Buffer.from('%PDF-lecture'), { status: 200, headers: { 'content-length': '12' } })
@@ -63,6 +64,11 @@ test('Canvas importer downloads and categorises accessible course material witho
     const manifest = JSON.parse(await readFile(join(root, '.wicker-canvas-import.json'), 'utf8'))
     assert.equal(manifest.resources.length, 7)
     assert.equal(manifest.skipped.length, 0)
+    const attachment=manifest.resources.find(r=>r.kind==='file' && r.id==='11')
+    assert.equal(attachment.source.assignmentId,'20')
+    assert.equal(attachment.source.moduleName,'Week 1')
+    assert.equal(attachment.source.modulePosition,1)
+    assert.deepEqual(materialModuleNames({locations:materialLocations(manifest.resources,attachment.path)}),['Week 1'])
     const written = await readdir(join(root, 'modules', '001 Week 1--module-5', '001 Orientation', 'slides'))
     assert.equal(written.length, 1)
     const welcome = manifest.resources.find((item) => item.kind === 'page')
@@ -354,4 +360,11 @@ test('Canvas importer refuses to overwrite a folder that was not created by it',
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test('material placements preserve repeated modules and assignment context with a legacy path fallback',()=>{
+ const records=[{path:'paper.pdf',source:{moduleId:'a',moduleName:'Week 1',modulePosition:1}},{path:'ref.md',target:'paper.pdf',source:{moduleId:'b',moduleName:'Revision',modulePosition:6,assignmentId:'7',assignmentTitle:'Mock exam'}}]
+ assert.deepEqual(materialModuleNames({locations:materialLocations(records,'paper.pdf')}),['Week 1','Revision'])
+ assert.equal(materialLocations(records,'paper.pdf')[1].assignmentTitle,'Mock exam')
+ assert.deepEqual(materialModuleNames({sourcePath:'modules/001 Week 1--module-5/slides/file.pdf'}),['Week 1'])
 })

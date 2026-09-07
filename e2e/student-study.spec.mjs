@@ -908,3 +908,37 @@ test('course exercises reuse Practice, include personal guides and keep course n
   await page.reload()
   await expect(page.getByRole('tab', { name: 'Exercises', exact: true })).toHaveAttribute('aria-selected','true')
 })
+
+test('automatic paper processing survives leaving the library and exposes checked questions on return',async({page})=>{
+  const {queueCoursePapers,retryPaperJob,processPaperJob,PAPER_JOBS}=await import('../lib/study-paper-jobs.mjs')
+  let jobId
+  await run(async()=>{
+    await addStudyNote({...course,title:'Automatic background exam.pdf'},[{page:1,text:'Explain why disjoint groups can be added.'},{page:2,text:'Describe how subtraction checks an addition.'}])
+    const jobs=await queueCoursePapers(course)
+    jobId=jobs.find(j=>j.title==='Automatic background exam.pdf').id
+  })
+  await page.route('**/api/state',route=>route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
+  await page.goto(`/app/courses/${course.courseCode}?tab=papers&year=${course.academicYear}`)
+  await expect(page.getByRole('heading',{name:'Automatic background exam',exact:true})).toBeVisible()
+  // Local test servers have no paid provider configured. Wait for that explicit
+  // pause, leave, then run the real durable worker with deterministic AI output.
+  await expect.poll(()=>run(async()=> (await readDocument(PAPER_JOBS,jobId,null)).status)).toBe('paused')
+  await page.getByRole('tab',{name:'Study guides',exact:true}).click()
+  await run(async()=>{
+    await retryPaperJob(jobId)
+    for(let i=0;i<8;i++){
+      const result=await processPaperJob(jobId,{platform:{configured:true,provider:'openai',model:'gpt-5-mini'},generate:async(prompt,opts)=>{
+        if(opts.usageMetadata.stage==='review')return JSON.stringify({issues:[]})
+        const chunks=JSON.parse(prompt.split('EVIDENCE: ').at(-1))
+        return JSON.stringify({title:'Automatic background exam',warnings:[],questions:chunks.map(c=>({label:String(c.page),question:c.text,sharedContext:'',type:'written',options:[],correctOptions:[],marks:null,page:c.page,answer:'',answerBasis:'unavailable',hint:'',difficulty:'standard',sourceIds:[c.id],answerSourceIds:[],needsOriginal:false}))})
+      }})
+      if(!result.again)break
+    }
+    expect((await readDocument(PAPER_JOBS,jobId,null)).status).toBe('complete')
+  })
+  await page.getByRole('tab',{name:'Mock papers',exact:true}).click()
+  const paper=page.getByRole('article').filter({has:page.getByRole('heading',{name:'Automatic background exam',exact:true})})
+  await expect(paper.getByText('2 questions ready',{exact:true})).toBeVisible()
+  await paper.getByRole('button',{name:'Practise',exact:true}).click()
+  await expect(page.getByText('Explain why disjoint groups can be added.',{exact:true})).toBeVisible()
+})

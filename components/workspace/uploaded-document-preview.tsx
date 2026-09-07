@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { EyeIcon, DownloadIcon, LoaderCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewPanel } from './review-panel'
-const PdfViewer=dynamic(()=>import('./course-pdf-viewer'),{ssr:false,loading:()=> <p role="status">Loading document…</p>})
+const PdfViewer=dynamic(()=>import('./pdf-viewer'),{ssr:false,loading:()=> <p role="status">Loading document…</p>})
 function RenderOriginal({load}:{load:()=>Promise<File>}) {
   const [file,setFile]=useState<File|null>(null),[error,setError]=useState(''),[text,setText]=useState<string|null>(null)
   useEffect(()=>{let active=true;void load().then(async file=>{

@@ -4,16 +4,16 @@ import { callCanvasService, wakeCurrentCanvasDispatcher, continueCurrentCanvasSt
 export const maxDuration = 300
 export const runtime = 'nodejs'
 export const POST = handleCallback(async (message: { version: number; jobId: string; probe?: string }) => {
-  if (message.version !== 1 || typeof message.jobId !== 'string' || !/^(?:csj-[a-zA-Z0-9-]+|sv-[a-f0-9-]{36})$/.test(message.jobId)) throw new Error('Invalid Canvas task.')
+  if (message.version !== 1 || typeof message.jobId !== 'string' || !/^(?:csj-[a-zA-Z0-9-]+|(?:sv|pap)-[a-f0-9-]{36})$/.test(message.jobId)) throw new Error('Invalid Canvas task.')
   if (message.jobId === 'csj-probe' && message.probe) {
     await callCanvasService({ action: 'probe' })
     console.info('Canvas queue probe delivered through API', message.probe)
     return
   }
   if (!queueWorkersEnabled()) return
-  if (message.jobId.startsWith('sv-')) console.info('Study queue step started', message.jobId)
-  const result = await callCanvasService({ action: message.jobId.startsWith('sv-') ? 'study-step' : 'step', jobId: message.jobId })
-  if (message.jobId.startsWith('sv-')) console.info('Study queue step finished', message.jobId, result)
+  if (/^(sv|pap)-/.test(message.jobId)) console.info('Study queue step started', message.jobId)
+  const result = await callCanvasService({ action: /^(sv|pap)-/.test(message.jobId) ? (message.jobId.startsWith('pap-') ? 'paper-step' : 'study-step') : 'step', jobId: message.jobId })
+  if (/^(sv|pap)-/.test(message.jobId)) console.info('Study queue step finished', message.jobId, result)
   // Preview has no cron sweep. Persist the next delivery, including backoff,
   // before acknowledging this message. SQL leases make duplicates harmless.
   if (process.env.VERCEL_ENV === 'preview' && result.again) {
