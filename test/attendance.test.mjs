@@ -208,3 +208,28 @@ test('a professor’s dated tutorial correction applies to a sole combined booki
   course.courseProfile.assessment.sessionMappings[0].times=['13:30']
   assert.equal(attendanceOverview([block],[],[course]).events[0].attendanceRequired,true)
 })
+
+test('numbered lab scopes use professor lesson-plan labels even when timetable titles omit them',()=>{
+  const course={code:'BCS1520',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {activity:'lab',text:'Attendance at Labs 1–5 is mandatory.',requirement:'required',scope:{kind:'specific',labels:['Lab 1','Lab 2','Lab 3','Lab 4','Lab 5'],dates:[]},evidence:[{chunkId:1}]}
+  ],sessionMappings:[
+    {activity:'lab',text:'Lab 2',dates:['2026-09-01'],times:[],evidence:[{chunkId:2}]},
+    {activity:'lab',text:'Lab 6',dates:['2026-10-01'],times:[],evidence:[{chunkId:3}]}
+  ]}}}
+  const events=[event(),event({id:'six',start:'2026-10-01T09:00:00Z'})]
+  const result=attendanceOverview(events,[],[course]).events
+  assert.equal(result[0].attendanceRequired,true)
+  assert.equal(result[0].activity,'lab')
+  assert.equal(result[1].attendanceRequired,null,'a later ungraded lab does not inherit Labs 1–5 requirements')
+})
+
+test('a combined lecture/tutorial booking applies the compulsory tutorial rule and its own allowance',()=>{
+  const course={code:'BCS1520',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {activity:'lecture',text:'Lecture attendance is optional.',requirement:'optional',evidence:[{chunkId:1}]},
+    {activity:'tutorial',text:'Tutorial attendance is mandatory; two absences allowed.',requirement:'required',allowedMisses:2,evidence:[{chunkId:2}]}
+  ],sessionMappings:['lecture','tutorial'].map(activity=>({activity,text:activity,dates:['2026-09-01'],times:[],evidence:[{chunkId:3}]}))}}}
+  const result=attendanceOverview([event({activity:'Lecture',notes:'Type: Lecture',start:'2026-09-01T13:30:00',end:'2026-09-01T18:00:00'})],[],[course]).events[0]
+  assert.equal(result.attendanceRequired,true)
+  assert.equal(result.activity,'tutorial')
+  assert.equal(result.attendancePolicy.allowedMisses,2)
+})
