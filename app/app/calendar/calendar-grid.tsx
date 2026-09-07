@@ -15,6 +15,7 @@
  * a calendar that has gone away.
  */
 
+import { calendarEventEmphasis } from '@/lib/calendar-emphasis.mjs'
 import { useEffect, useMemo, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -108,8 +109,19 @@ export default function CalendarGrid({
         return [
           event.attendanceEligible ? 'fc-attendance-eligible' : '',
           event.attendanceRequired ? 'fc-attendance-required' : '',
+          calendarEventEmphasis(event).tone === 'deadline' ? 'fc-obligation-deadline' : '',
           event.attendanceStatus && event.attendanceStatus !== 'unknown' ? `fc-attendance-${event.attendanceStatus}` : ''
         ].filter(Boolean)
+      }}
+      eventContent={info => {
+        const event=info.event.extendedProps as CalendarEvent
+        const emphasis=calendarEventEmphasis(event)
+        return <div className="h-full min-w-0 overflow-hidden" data-calendar-event-id={event.id}>
+          {info.timeText && <span className="fc-event-time block text-[10px]">{info.timeText}</span>}
+          <strong className="fc-event-title block truncate">{info.event.title}</strong>
+          {emphasis.label && <span className={`mt-1 block text-[10px] font-semibold ${emphasis.tone==='required' ? 'text-primary' : emphasis.tone==='deadline' ? 'text-destructive' : 'text-muted-foreground'}`}>{emphasis.label}</span>}
+          {event.attendanceStatus && event.attendanceStatus !== 'unknown' && <span className="mt-0.5 block text-[10px] capitalize">{event.attendanceStatus}</span>}
+        </div>
       }}
       eventClick={(info: EventClickArg) => {
         info.jsEvent.preventDefault()

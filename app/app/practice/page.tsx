@@ -1,5 +1,7 @@
 "use client";
 
+import { StudyDesk } from "@/components/workspace/study-desk"
+import { PersonalPracticeHistory } from "@/components/workspace/personal-practice-history";
 import { workspaceCache, cachedWorkspaceJson } from "@/hooks/use-workspace-data";
 
 /**
@@ -84,7 +86,8 @@ function TabCount({ value }: { value: number }) {
   );
 }
 
-export default function PracticePage() {
+export default function PracticePage() { return <StudyDesk><PracticeContent /></StudyDesk> }
+function PracticeContent() {
   const [practice, setPractice] = useState<PracticePayload | null>(() => workspaceCache.read('/api/practice').data as PracticePayload || null);
   const [practiceError, setPracticeError] = useState<string | null>(null);
   const [sr, setSr] = useState<SrPayload | null>(() => workspaceCache.read('/api/sr/due').data as SrPayload || null);
@@ -217,7 +220,7 @@ export default function PracticePage() {
         }}
         className="min-w-0 gap-6"
       >
-        <TabsList data-tour="practice-modes"
+        <TabsList data-tour="practice-modes" data-tour-ready={Boolean(practice || practiceError)}
           variant="line"
           className="max-w-full justify-start overflow-x-auto"
         >
@@ -300,12 +303,13 @@ export default function PracticePage() {
             sessions={mocks}
             error={mocksError}
             courses={courses}
-            bank={practice?.questions ?? []}
+            bank={(practice?.questions ?? []).filter(q => !q.study)}
             onChanged={setMocks}
             initialSessionId={initialSessionId}
           />
         </TabsContent>
       </Tabs>
+      {(tab === "questions" || tab === "mistakes") && <PersonalPracticeHistory mistakesOnly={tab === "mistakes"} />}
     </div>
   );
 }

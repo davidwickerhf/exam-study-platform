@@ -15,12 +15,21 @@ function statement(strings,...values) {
 }
 statement.transaction=async queries=>{
   const client=await pool.connect()
-  try {await client.query('BEGIN');const results=[];for(const q of queries) results.push((await client.query(q.text,q.values)).rows);await client.query('COMMIT');return results}
+  try {await client.query('BEGIN');const results=[];for(const q of queries) {
+    // Neon infers unknown parameter types before binding. Exercise that phase
+    // explicitly for polymorphic concat rather than relying on pg wire types.
+    if (q.text.includes('SELECT concat(')) {
+      await client.query(`PREPARE retry_type_check AS ${q.text}`)
+      await client.query('DEALLOCATE retry_type_check')
+    }
+    results.push((await client.query(q.text,q.values)).rows)
+  }await client.query('COMMIT');return results}
   catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}
 }
 mock.module('../../lib/db.mjs',{namedExports:{...db,sql:statement}})
 const connections=await import('../../lib/canvas-connections.mjs')
-mock.module('../../lib/canvas-connections.mjs',{namedExports:{...connections,canvasAccessTokenForUser:async()=>({token:'fixture-token'})}})
+let credentialsBlocked=false
+mock.module('../../lib/canvas-connections.mjs',{namedExports:{...connections,canvasAccessTokenForUser:async()=>{if(credentialsBlocked)throw new connections.CanvasConnectionError(connections.CANVAS_DECRYPTION_ERROR,'CANVAS_CONNECTION_UNREADABLE');return {token:'fixture-token'}}}})
 const embeddings=await import('../../lib/embeddings.mjs')
 let failEmbedding=false,embeddingCalls=0
 mock.module('../../lib/embeddings.mjs',{namedExports:{...embeddings,embeddingConfiguration:()=>({configured:true,model:'fixture'}),embedTexts:async texts=>{
@@ -150,6 +159,7 @@ try {
   await withRequestContext({userId:'fixture'},async()=>{
     const matches=await retrieveCanvasCorpus({query:'paper list',courseCode:'BCS2120',sourceType:'materials',database:statement})
     assert.ok(matches.some(row=>row.content.includes('MindScape Study')))
+    assert.ok(matches.every(row=>row.score<=2/61+Number.EPSILON), 'a duplicate source path must not add another rank vote')
     const hit=matches.find(row=>row.content.includes('MindScape Study'))
     const page=await readCanvasSource({assetId:hit.assetId,courseCode:'BCS2120',database:statement})
     assert.equal(page.chunks.length,12)
@@ -174,7 +184,7 @@ try {
   const access=await query("SELECT b.canvas_course_id,a.auto_refresh FROM canvas_corpus_access a JOIN canvas_course_bindings b ON b.id=a.binding_id WHERE a.user_id=$1 ORDER BY b.canvas_course_id",[accountId])
   assert.deepEqual(access,[{canvas_course_id:'101',auto_refresh:false},{canvas_course_id:'102',auto_refresh:true},{canvas_course_id:'103',auto_refresh:false}])
   await query(`INSERT INTO canvas_priority_scans(id,binding_id,user_id,evidence_hash,status,course_profile)
-    SELECT concat('scan-',binding_id),binding_id,user_id,'fixture','confirmed','{"priorityExtractionVersion":"2"}' FROM canvas_corpus_access WHERE user_id=$1`,[accountId])
+    SELECT concat('scan-',binding_id),binding_id,user_id,'fixture','confirmed',$2::jsonb FROM canvas_corpus_access WHERE user_id=$1`,[accountId,JSON.stringify({priorityExtractionVersion:priorities.PRIORITY_EXTRACTION_VERSION})])
   const {scheduleDueRefreshes}=await import('../../lib/canvas-corpus-worker.mjs')
   await query("UPDATE canvas_corpus_access SET sync_paused=true WHERE user_id=$1 AND auto_refresh=true",[accountId])
   await scheduleDueRefreshes()
@@ -211,5 +221,45 @@ try {
   assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending' AND payload->>'scheduled'='true'",[accountId])).n,'0')
   await setCanvasRefreshSettings({accountId,origin,settings})
   assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending' AND job_type='catalog'",[accountId])).n,'1')
-  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation'],downloads,embeddingCalls,passages:Number(total.n)}))
+  // A key mismatch is terminal until a compatible worker can read the connection.
+  await query("INSERT INTO canvas_corpus_permissions(user_id,origin,collection_enabled) VALUES('credential-student','https://credentials.fixture',true)")
+  await query("INSERT INTO academic_programmes(user_id,id,is_active) VALUES('credential-student','programme',true)")
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,job_type) VALUES('csj-credentials','credential-student','https://credentials.fixture','catalog')")
+  credentialsBlocked=true
+  assert.equal((await processCanvasQueueStep('csj-credentials')).again,false)
+  const blocked=await one("SELECT status,attempts,payload,error FROM canvas_sync_jobs WHERE id='csj-credentials'")
+  assert.equal(blocked.status,'failed');assert.equal(blocked.attempts,1)
+  assert.equal(blocked.payload.blockedReason,'canvas-connection')
+  assert.match(blocked.error,/same encryption key/)
+  assert.match((await one("SELECT message FROM canvas_sync_events WHERE job_id='csj-credentials' ORDER BY id DESC LIMIT 1")).message,/Automatic retries are paused/)
+  await dispatchCanvasQueue()
+  assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-credentials'")).status,'failed')
+  assert.equal((await processCanvasQueueStep('csj-credentials')).again,false)
+  credentialsBlocked=false
+  await dispatchCanvasQueue()
+  assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-credentials'")).status,'pending')
+  await processCanvasQueueStep('csj-credentials')
+  assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-credentials'")).status,'completed')
+  // Preview snapshots contain production rows. Only the configured test account
+  // may dispatch or acquire leases; automatic schedules must not fan out.
+  await query("UPDATE canvas_sync_jobs SET status='cancelled',lease_token=null WHERE user_id='fixture' AND status IN ('pending','running')")
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type) VALUES('csj-preview-allowed','fixture','https://canvas.fixture','binding','course')")
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,job_type) VALUES('csj-preview-denied','credential-student','https://credentials.fixture','catalog')")
+  process.env.VERCEL_ENV='preview'
+  process.env.DATABASE_URL='postgres://test:fixture@preview.test/db'
+  process.env.WICKER_PREVIEW_DATABASE_HOST='preview.test'
+  process.env.WICKER_PREVIEW_WORKER_USERS='fixture'
+  const jobsBefore=(await one('SELECT count(*) n FROM canvas_sync_jobs')).n
+  const previewIds=await dispatchCanvasQueue()
+  assert.ok(previewIds.includes('csj-preview-allowed'))
+  assert.ok(!previewIds.includes('csj-preview-denied'))
+  assert.equal((await one('SELECT count(*) n FROM canvas_sync_jobs')).n,jobsBefore)
+  assert.equal((await processCanvasQueueStep('csj-preview-denied')).again,false)
+  assert.equal((await one("SELECT attempts FROM canvas_sync_jobs WHERE id='csj-preview-denied'")).attempts,0)
+  await processCanvasQueueStep('csj-preview-allowed')
+  assert.equal((await one("SELECT attempts FROM canvas_sync_jobs WHERE id='csj-preview-allowed'")).attempts,1)
+  process.env.DATABASE_URL='postgres://test:fixture@production.test/db'
+  assert.deepEqual(await dispatchCanvasQueue(),[])
+  assert.equal((await processCanvasQueueStep('csj-preview-allowed')).disabled,true)
+  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation','preview database guard','preview account isolation','preview manual-only scheduling'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}

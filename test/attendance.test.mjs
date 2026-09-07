@@ -16,6 +16,26 @@ test('attendance policy binds only a verified rule for the same teaching kind', 
   assert.equal(attendancePolicyForEvent(event(), { ...courses[0], courseProfile: { assessment: { status: 'needs-review', attendanceRules: ['Tutorials are mandatory.'] } } }), null)
 })
 
+test('mandatory labs are preserved while unmatched tutorials stay unknown; optional needs explicit evidence', () => {
+  const course = {code:'BCS1520', courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Lab attendance is mandatory.',activity:'lab',evidence:[{chunkId:8}]},
+    {text:'Lecture attendance is not required.',activity:'lecture',evidence:[{chunkId:9}]}
+  ]}}}
+  const result = attendanceOverview([event(),event({id:'lecture',activity:'Lecture'})],[],[course])
+  assert.equal(result.events[0].attendanceRequired,null)
+  assert.equal(result.events[1].attendanceRequired,false)
+  assert.equal(result.courses[0].unknownRequirementSessions,1)
+  assert.equal(result.courses[0].unmatchedRules[0].activity,'lab')
+  assert.equal(attendancePolicyForEvent(event({activity:'Practical'}),course).required,true)
+})
+test('current attendance rules never classify a prior academic year and conflicting rules remain unknown', () => {
+  assert.equal(attendancePolicyForEvent(event({start:'2025-09-03T09:00:00Z'}),{...courses[0],ruleAcademicYear:'2026-2027'}),null)
+  const course = { ...courses[0], courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Tutorials are mandatory.',activity:'tutorial'}, {text:'Tutorials are optional.',activity:'tutorial'}
+  ]}}}
+  assert.equal(attendancePolicyForEvent(event(),course),null)
+})
+
 test('attendance records are replaced per occurrence and unknown clears the mark', () => {
   const missed = upsertAttendanceRecord([], event(), 'missed', 'Work shift', '2026-09-02T10:00:00Z')
   assert.equal(missed.length, 1)
@@ -34,7 +54,7 @@ test('attendance overview keeps unknown neutral and reports the verified allowan
   assert.equal(result.summary.unmarked, 1)
   assert.equal(result.courses[0].requiredMissed, 1)
   assert.equal(result.courses[0].allowedMissesRemaining, 1)
-  assert.equal(result.events[2].attendanceRequired, false)
+  assert.equal(result.events[2].attendanceRequired, null)
 })
 
 test('academic workspace normalization persists only valid attendance records', () => {

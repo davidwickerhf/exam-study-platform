@@ -13,12 +13,16 @@
  * chapter marked read in either half shows as read in both.
  */
 
+import dynamic from 'next/dynamic'
+import { StudyDesk } from '@/components/workspace/study-desk'
+import { CourseExercises } from '@/components/workspace/course-exercises'
+const StudyPaperBank = dynamic(() => import('@/components/workspace/study-paper-bank').then(m => m.StudyPaperBank), { loading: () => <p role="status">Opening papers…</p> })
 import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { useParams } from 'next/navigation'
-import { ArchiveIcon, MoreHorizontalIcon, ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
+import { FileTextIcon, FolderOpenIcon, GraduationCapIcon, InfoIcon, TargetIcon, ArchiveIcon, MoreHorizontalIcon, ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { COURSE_RETURN_KEY, type AcademicCourse, type Item, type StudyCourse, canvasCourseQuery, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
 import { type CalendarEvent, type CalendarPayload, localIsoDate } from '@/lib/workspace/home.mjs'
@@ -33,6 +37,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCourseCanvas } from '@/components/workspace/use-course-canvas'
 import { CourseEditionCollection } from '@/components/workspace/course-edition-collection'
 import { academicCourseInEdition, courseEditionCodes, courseCanvasShells, courseEditions } from '@/lib/workspace/course-editions.mjs'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import './course-workspace.css'
+import { CourseStudyVersions } from '@/components/workspace/course-study-versions'
 import { CourseMaterialLibrary } from '@/components/workspace/course-material-library'
 
 const NUMERALS = 'font-data tabular-nums'
@@ -40,7 +47,8 @@ const LEVELS = [0, 1, 2, 3, 4]
 /** A rating the student has actually given, as opposed to an untouched zero. */
 const isRated = (item: Item) => Boolean(item.masteryUpdatedAt)
 
-export default function CoursePage() {
+export default function CoursePage() { return <StudyDesk><CourseContent /></StudyDesk> }
+function CourseContent() {
   const params = useParams<{ courseId: string; itemId?: string }>()
   const canvas = useCourseCanvas()
   const [selectedYear, setSelectedYear] = useState<string | null>(null)
@@ -61,6 +69,27 @@ export default function CoursePage() {
   const pendingSources = [study, record, programmes, materials, timetable].filter(resource => resource.loading).length
   const reloadSources = () => { for (const resource of [study, record, programmes, materials, timetable]) resource.refresh() }
   const [tab, setTab] = useState<CourseTab>('study')
+  const [collectionOpen, setCollectionOpen] = useState(false)
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = () => setWide(mq.matches)
+    update(); mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  useEffect(() => {
+    if (wide) return
+    const frame = requestAnimationFrame(() => {
+      const list = document.querySelector<HTMLElement>('.course-nav-list')
+      const active = list?.querySelector<HTMLElement>('[aria-selected=true]')
+      if (!list || !active) return
+      const item = active.getBoundingClientRect(), viewport = list.getBoundingClientRect()
+      if (item.left < viewport.left || item.right > viewport.right) list.scrollLeft += item.left - viewport.left - 12
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [tab, wide])
+  const [openedPractice, setOpenedPractice] = useState(false)
+  useEffect(() => { if (tab === 'exercises') setOpenedPractice(true) }, [tab])
   const [read, setRead] = useState<Set<string>>(new Set())
   // A failed save is not a failed page: the two are kept apart so a mastery
   // click that loses the network does not replace the course with an error.
@@ -81,7 +110,7 @@ export default function CoursePage() {
     setTab(value)
     const url = new URL(window.location.href)
     url.searchParams.set('tab', value); url.hash = ''
-    window.history.replaceState(null, '', url)
+    window.history.pushState(null, '', url)
   }
   const entry = useMemo(() => courseDetail(params.courseId, { editorial: courses, academic, catalogue, programmeTemplate, corpus: canvas.status?.courses ?? corpus, currentCourses }), [params.courseId, courses, academic, catalogue, programmeTemplate, corpus, currentCourses, canvas.status])
   const course: StudyCourse | null = useMemo(() => entry ? { ...(entry.editorial ?? { id: entry.academic?.id || entry.code, chapters: [], items: [] }), code: entry.code, name: entry.name } : null, [entry])
@@ -180,72 +209,44 @@ export default function CoursePage() {
 
   return (
     <main className="flex w-full min-w-0 flex-col" data-course-detail>
-      <header className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
-        <div className="float-right"><FeedbackButton subject={{kind:"material",courseCode:course.code,academicYear:year}}/></div>
-        <div className="mx-auto max-w-[1280px]">
-          <div className="mb-2 flex min-h-8 items-center justify-between gap-4">
-            <Link href="/app/courses" className="text-muted-foreground inline-flex min-h-8 items-center gap-2 text-xs hover:text-foreground"><ArrowLeftIcon className="size-3.5" />All courses</Link>
-            {entry?.editorial && <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Course options" disabled={saving === 'archive'} />}><MoreHorizontalIcon /></DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-44">
-                <DropdownMenuItem onClick={() => void archive()}><ArchiveIcon />{course.archived ? 'Unarchive course' : 'Archive course'}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>}
+      <header className="course-heading">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/app/courses" className="inline-flex min-h-9 items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeftIcon className="size-4" />All courses</Link>
+          <div className="flex items-center gap-2"><FeedbackButton subject={{kind:"material",courseCode:course.code,academicYear:year}}/>
+          {entry?.editorial && <DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Course options" disabled={saving === 'archive'} />}><MoreHorizontalIcon /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => void archive()}><ArchiveIcon />{course.archived ? 'Unarchive course' : 'Archive course'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3"><div className="min-w-0 flex-1 basis-[320px]">
-            <p className={`text-primary mb-1 text-xs font-semibold tracking-[0.08em] ${NUMERALS}`}>{course.code}{course.archived ? ' · Archived' : ''}</p>
-            <h1 className="font-heading text-[22px] leading-tight font-semibold tracking-[-0.025em] sm:text-[24px]">{course.name}</h1>
-            <p className="text-muted-foreground mt-1 text-xs">{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).join(' · ') || 'Study material and your personal course record'}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span id="course-edition-label" className="sr-only">Course edition</span>
-              <Select value={year} onValueChange={value => value && selectYear(value)}>
-                <SelectTrigger size="sm" aria-labelledby="course-edition-label" className="w-40"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All years</SelectItem>
-                  {selectedYear && selectedYear !== 'all' && !editions.some(e => e.year === selectedYear) && <SelectItem value={selectedYear}>{selectedYear}</SelectItem>}
-                  {editions.map(e => <SelectItem key={e.year} value={e.year}>{e.year === 'undated' ? 'Undated' : e.year}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {(course.mockExams?.length || course.mockExamPdf) ? <Link className={buttonVariants({ variant: 'ghost', size: 'sm' })} href={`/app/courses/${course.id}/mock-exam`}>Past papers</Link> : null}
-              {nextChapter && <Link className={buttonVariants({ size: 'sm' })} href={`/app/courses/${course.id}/${nextChapter.id}`}>{progress.done ? 'Continue reading' : 'Start reading'}<ArrowRightIcon data-icon="inline-end" /></Link>}
-            </div>
-          </div></div>
-          <div aria-label="Course overview" className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-xs">
-            <span><span className="mr-1.5">Result</span><strong className="text-foreground font-medium">{academicLoading || catalogueLoading ? 'Loading…' : academicError ? 'Record unavailable' : latest ? [({passed:'Passed',failed:'Failed','no-show':'No show',upcoming:'Upcoming'} as Record<string,string>)[latest.status || ''] || 'Not recorded', latest.grade == null ? null : `Grade ${latest.grade}`, year === 'all' ? latest.academicYear : null].filter(Boolean).join(' · ') : 'Not recorded'}</strong></span>
-            <span><span className="mr-1.5">Reading</span><strong className="text-foreground font-medium">{progress.total ? `${progress.done} / ${progress.total} chapters` : 'No chapters published'}</strong></span>
-            <span><span className="mr-1.5">Next exam</span><strong className="text-foreground font-medium">{exam ? new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date)) : 'Not recorded'}</strong></span>
-          </div>
+        </div>
+        <div className="course-identity">
+          <h1>{course.name}</h1>
+          <div className="course-facts"><span className={NUMERALS}>{course.code}</span>{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).map(value=><span key={String(value)}>{value}</span>)}{course.archived && <span>Archived</span>}{exam && <span className="font-medium text-foreground">Exam {new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date))}</span>}</div>
         </div>
       </header>
-      <div className="mx-auto flex w-full max-w-[1280px] min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="course-workspace">
         {catalogueError && <p role="alert" className="text-muted-foreground text-sm">{catalogueError} <button className="text-primary underline" onClick={retry}>Try again</button></p>}
         {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
-        <Tabs value={tab} onValueChange={value => selectTab(value as CourseTab)} className="min-w-0 gap-6">
-          <TabsList variant="line" className="h-11 w-full max-w-full justify-start gap-5 overflow-x-auto rounded-none border-b p-0">
-            {([['study','Study'],['history','Attempt history'],['materials','Materials'],['attendance','Attendance'],['about','Course details']] as const).map(([value,label]) => <TabsTrigger key={value} value={value} className="h-11 flex-none px-0 text-[13px] after:bg-primary group-data-horizontal/tabs:after:-bottom-px">{label}{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}
-          </TabsList>
+        <Tabs value={tab} orientation={wide ? 'vertical' : 'horizontal'} onValueChange={value => selectTab(value as CourseTab)} className="course-layout">
+          <aside className="course-navigation">
+            <TabsList aria-label="Course sections" variant="line" className="course-nav-list">
+              {([['study','Study guides',BookOpenIcon],['exercises','Exercises',TargetIcon],['papers','Mock papers',FileTextIcon],['materials','Materials',FolderOpenIcon],['attendance','Attendance',CalendarCheckIcon],['history','Results',GraduationCapIcon],['about','Details',InfoIcon]] as const).map(([value,label,Icon]) => <TabsTrigger key={value} value={value} className={`course-nav-item ${value==='attendance'?'course-nav-secondary':''}`}><Icon className="size-4"/><span>{label}</span>{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`ml-auto text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}
+            </TabsList>
+            {['study','materials','history'].includes(tab) && <div className="course-edition-control">
+              <label id="course-edition-label" className="mb-2 block text-xs font-medium text-muted-foreground">Academic year</label>
+              <Select value={year} onValueChange={value => value && selectYear(value)}><SelectTrigger size="sm" aria-labelledby="course-edition-label" className="w-full bg-card"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{selectedYear && selectedYear !== 'all' && !editions.some(e => e.year === selectedYear) && <SelectItem value={selectedYear}>{selectedYear}</SelectItem>}{editions.map(e => <SelectItem key={e.year} value={e.year}>{e.year === 'undated' ? 'Undated' : e.year}</SelectItem>)}</SelectContent></Select>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Guides, materials and results.<br/>Practice includes all years.</p>
+            </div>}
+          </aside>
+          <div className="course-panel">
           <TabsContent value="study" className="min-w-0">
-            <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="min-w-0">
               <div className="flex min-w-0 flex-col gap-6">
                 {loadError && <p role="alert" className="text-sm">{loadError} <button className="text-primary underline" onClick={retry}>Try again</button></p>}
+      <CourseStudyVersions key={course.code} courseCode={course.code || course.id} courseName={course.name} academicYear={year} period={String(academicCourse?.period || '')} onNavigate={selectTab} onShowAllYears={()=>selectYear('all')} />
       {/* The register. The course is its chapters, so they come first. */}
-      <section className="overflow-hidden rounded-xl border bg-card">
+      {!!course.chapters?.length && <section className="course-section overflow-hidden">
         <div className="flex items-baseline justify-between gap-3 border-b px-5 py-4 sm:px-6">
-          <div><h2 className="text-base font-semibold">Chapters</h2><p className="text-muted-foreground mt-1 text-xs">Shared study guide · not tied to an academic year</p></div>
+          <div><h2 className="text-base font-semibold">Editorial chapters</h2><p className="text-muted-foreground mt-1 text-xs">Maintained study guide · academic year not recorded</p></div>
           <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{progress.done} read of {progress.total}</span>
         </div>
-        {!course.chapters?.length ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No study chapters yet</EmptyTitle>
-              <EmptyDescription>Published chapters will appear when study material is added. You can still view your academic record and original course material using the tabs above.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
           <ul className="flex flex-col">
             {course.chapters.map((chapter) => {
               const done = read.has(`${course.id}/${chapter.id}`)
@@ -269,12 +270,11 @@ export default function CoursePage() {
               )
             })}
           </ul>
-        )}
-      </section>
+      </section>}
 
       {/* Mastery at a glance: a register of topics, not a wall of controls. */}
       {!!items.length && (
-        <section className="flex flex-col gap-3 rounded-xl border bg-card p-5 sm:p-6">
+        <section className="course-section flex flex-col gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b pb-2">
             <h2 className="text-base font-semibold">Topic mastery</h2>
             <span className={`text-muted-foreground text-xs ${NUMERALS}`}>
@@ -308,18 +308,15 @@ export default function CoursePage() {
 
 
               </div>
-              <aside className="flex min-w-0 flex-col gap-5">
-                <CourseEditionCollection editions={editions} selected={year} onSelect={selectYear} canvas={canvas} />
-                <CourseAttemptHistory compact course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} onExpand={() => { selectTab('history'); selectYear('all') }} />
-                <div className="rounded-xl border bg-card px-5 py-4"><h2 className="text-sm font-semibold">Original course material</h2><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Find documents and recordings by academic year, including earlier sittings.</p><Button variant="ghost" size="sm" className="text-primary -ml-3 mt-2" onClick={() => selectTab('materials')}>Browse material <ArrowRightIcon data-icon="inline-end" /></Button></div>
-                {!entry?.editorial && requestRecord?.id && <Link href={`/app/course-request/${encodeURIComponent(requestRecord.id)}`} className="text-primary inline-flex min-h-9 items-center gap-2 text-xs font-semibold"><BookOpenIcon className="size-4" />Request study chapters</Link>}
-              </aside>
+
             </div>
           </TabsContent>
-          <TabsContent value="history" className="min-w-0"><p className="text-muted-foreground mb-4 text-sm">{year === 'all' ? 'All recorded academic years' : `Attempts in ${year === 'undated' ? 'an unrecorded year' : year}`} {year !== 'all' && <button className="text-primary ml-2 font-semibold" onClick={() => selectYear('all')}>Show all years</button>}</p><CourseAttemptHistory course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} /></TabsContent>
-          <TabsContent value="materials" className="min-w-0 space-y-6"><CourseEditionCollection editions={editions} selected={year} onSelect={selectYear} canvas={canvas} /><div id="course-material" className="rounded-xl border bg-card p-5 sm:p-6"><CourseMaterialLibrary courseCode={course.code} courseCodes={editionCodes} academicYear={year} revision={canvas.revision} /></div></TabsContent>
+          <TabsContent keepMounted value="exercises" className="min-w-0">{(openedPractice || tab === 'exercises') && <CourseExercises courseId={course.id} courseCode={course.code || course.id} />}</TabsContent>
+          <TabsContent value="papers" className="min-w-0"><StudyPaperBank course={{courseCode: course.code || course.id, courseName: course.name, academicYear: year === 'all' ? 'undated' : year, period: String(academicCourse?.period || '')}} /></TabsContent>
+          <TabsContent value="history" className="min-w-0"><div className="course-section-heading"><h2>Results</h2><p className="text-muted-foreground mt-2 text-sm">{year === 'all' ? 'All recorded academic years' : `Attempts in ${year === 'undated' ? 'an unrecorded year' : year}`} {year !== 'all' && <button className="text-primary ml-2 font-semibold" onClick={() => selectYear('all')}>Show all years</button>}</p></div><CourseAttemptHistory course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} /></TabsContent>
+          <TabsContent value="materials" className="min-w-0"><div id="course-material"><CourseMaterialLibrary courseCode={course.code} courseCodes={editionCodes} academicYear={year} revision={canvas.revision} collectionAction={<Button variant="outline" size="sm" onClick={()=>setCollectionOpen(true)}>Manage collection</Button>} /></div></TabsContent>
           <TabsContent value="attendance" className="min-w-0">
-      <section id="attendance" className="scroll-mt-8 overflow-hidden rounded-xl border bg-card">
+      <section id="attendance" className="scroll-mt-8 course-section overflow-hidden">
         <div className="flex flex-wrap items-baseline justify-between gap-3 border-b px-5 py-4">
           <div><h2 className="text-base font-semibold">Attendance</h2><p className="text-muted-foreground mt-1 text-xs">Teaching sessions from your connected timetable. Attendance is independent of the selected material edition.</p></div>
           <Link href="/app/calendar?view=timeGridWeek" className="text-primary text-xs font-semibold">Open calendar</Link>
@@ -333,22 +330,24 @@ export default function CoursePage() {
               ['Unmarked', attendance.unmarked]
             ].map(([label, value], index) => <div key={label} className={`border-r px-5 py-4 last:border-r-0 ${index < 2 ? 'max-sm:border-b' : ''} ${index === 1 ? 'max-sm:border-r-0' : ''}`}><dt className="text-muted-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">{label}</dt><dd className={`mt-1 text-2xl font-semibold ${NUMERALS}`}>{value}</dd></div>)}
           </dl>
+          {!!attendance.unknownRequirementSessions && <p className="border-b px-5 py-4 text-sm text-muted-foreground">Attendance requirements are not confirmed for {attendance.unknownRequirementSessions} scheduled sessions. Check the current syllabus; an unknown requirement does not mean attendance is optional.</p>}
+          {!!attendance.unmatchedRules?.length && <div className="border-b bg-accent/35 px-5 py-4"><h3 className="text-sm font-semibold">Course rules awaiting a timetable match</h3><p className="mt-1 text-xs text-muted-foreground">These requirements are supported by course evidence. A lab rule is not automatically applied to a session labelled tutorial or lecture.</p><ul className="mt-3 space-y-2">{attendance.unmatchedRules.map((rule, i) => <li key={i} className="text-sm"><strong className="capitalize">{rule.activity}: </strong>{rule.text}</li>)}</ul></div>}
           {(attendance.requiredScheduled > 0 || attendance.rule) && <div className="bg-accent/35 border-b px-5 py-4">
-            <div className="flex items-start gap-3"><span className="bg-primary/10 text-primary grid size-8 shrink-0 place-items-center rounded-md"><CalendarCheckIcon className="size-4" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-baseline justify-between gap-2"><strong className="text-sm">Required attendance</strong><span className={`text-sm font-semibold ${NUMERALS}`}>{attendance.requiredRate == null ? 'No marked sessions' : `${attendance.requiredRate}%`}</span></div><p className="text-muted-foreground mt-1 text-xs">{attendance.allowedMisses == null ? `${attendance.requiredMissed} required ${attendance.requiredMissed === 1 ? 'session' : 'sessions'} missed` : `${attendance.requiredMissed} of ${attendance.allowedMisses} allowed misses used · ${attendance.allowedMissesRemaining} remaining`}</p>{attendance.rule && <details className="mt-3 border-t pt-3"><summary className="cursor-pointer text-xs font-semibold">View verified rule</summary><p className="text-muted-foreground mt-2 text-xs leading-relaxed">{attendance.rule}</p><p className="text-primary mt-1 text-[11px] font-semibold">{attendance.ruleSource}</p></details>}</div></div>
+            <div className="flex items-start gap-3"><span className="bg-primary/10 text-primary grid size-8 shrink-0 place-items-center rounded-md"><CalendarCheckIcon className="size-4" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-baseline justify-between gap-2"><strong className="text-sm">Required attendance</strong><span className={`text-sm font-semibold ${NUMERALS}`}>{attendance.requiredRate == null ? 'No marked sessions' : `${attendance.requiredRate}%`}</span></div><p className="text-muted-foreground mt-1 text-xs">{attendance.allowedMisses == null ? `${attendance.requiredMissed} required ${attendance.requiredMissed === 1 ? 'session' : 'sessions'} missed` : `${attendance.requiredMissed} of ${attendance.allowedMisses} allowed misses used · ${attendance.allowedMissesRemaining} remaining`}</p>{attendance.rule && <details className="mt-3 border-t pt-3"><summary className="cursor-pointer text-xs font-semibold">View source rule</summary><p className="text-muted-foreground mt-2 text-xs leading-relaxed">{attendance.rule}</p><p className="text-primary mt-1 text-[11px] font-semibold">{attendance.ruleSource}</p></details>}</div></div>
           </div>}
           <div>
             <div className="flex items-center justify-between border-b px-5 py-3"><h3 className="text-sm font-semibold">Session history</h3><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{attendanceEvents.length} scheduled</span></div>
-            {attendanceEvents.slice(0, 8).map((event: CalendarEvent) => <div key={event.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-4 border-b px-5 py-3 last:border-b-0"><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(event.start))}</span><span className="min-w-0"><strong className="block truncate text-sm">{event.activity || event.title}</strong><small className="text-muted-foreground mt-0.5 block truncate text-xs">{event.attendanceRequired ? 'Required' : 'Not required'}{event.attendancePolicy?.allowedMisses != null ? ` · ${event.attendancePolicy.allowedMisses} allowed misses` : ''}</small></span><span className={`rounded-md px-2 py-1 text-[10px] font-semibold ${event.attendanceStatus === 'missed' ? 'bg-destructive/10 text-destructive' : event.attendanceStatus === 'attended' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{event.attendanceStatus === 'attended' ? 'Attended' : event.attendanceStatus === 'missed' ? 'Missed' : event.attendanceStatus === 'excused' ? 'Excused' : 'Unmarked'}</span></div>)}
+            {attendanceEvents.slice(0, 8).map((event: CalendarEvent) => <div key={event.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-4 border-b px-5 py-3 last:border-b-0"><span className={`text-muted-foreground text-xs ${NUMERALS}`}>{new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(event.start))}</span><span className="min-w-0"><strong className="block truncate text-sm">{event.activity || event.title}</strong><small className="text-muted-foreground mt-0.5 block truncate text-xs">{event.attendanceRequired === true ? 'Required' : event.attendanceRequired === false && event.attendancePolicy ? 'Not required (source confirmed)' : 'Requirement unknown'}{event.attendancePolicy?.allowedMisses != null ? ` · ${event.attendancePolicy.allowedMisses} allowed misses` : ''}</small></span><span className={`rounded-md px-2 py-1 text-[10px] font-semibold ${event.attendanceStatus === 'missed' ? 'bg-destructive/10 text-destructive' : event.attendanceStatus === 'attended' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{event.attendanceStatus === 'attended' ? 'Attended' : event.attendanceStatus === 'missed' ? 'Missed' : event.attendanceStatus === 'excused' ? 'Excused' : 'Unmarked'}</span></div>)}
           </div>
         </> : <div className="flex items-start gap-3 px-5 py-6"><CircleAlertIcon className="text-muted-foreground mt-0.5 size-4" /><div><p className="text-sm font-semibold">No teaching sessions are connected yet</p><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Connect a timetable in Settings to track attendance for this course.</p></div></div>}
       </section>
 
           </TabsContent>
-          <TabsContent value="about" className="flex min-w-0 flex-col gap-6">
-      {profile && (profile.description || profile.learningOutcomes?.length || profile.assessment?.components?.length) && <section className="flex flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-base font-semibold">Course information</h2>{profile.assessment?.status && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold">{profile.assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span>}</div><p className="text-muted-foreground text-xs">Shared course information · not tied to an academic year</p>{profile.description && <p className="text-muted-foreground leading-relaxed">{profile.description}</p>}{profile.assessment?.components?.length && <div className="flex flex-col">{profile.assessment.components.map((component, index) => <div key={`${component.name}-${index}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-b py-3"><strong className={`text-[21px] ${NUMERALS}`}>{component.weightPercent == null ? '—' : `${component.weightPercent}%`}</strong><div><h3 className="font-semibold">{component.name}</h3><p className="text-muted-foreground text-sm">{[component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : null, component.deadline || component.deadlineText].filter(Boolean).join(' · ')}</p></div></div>)}</div>}{profile.learningOutcomes?.length && <details><summary className="cursor-pointer text-sm font-semibold">Learning outcomes ({profile.learningOutcomes.length})</summary><ul className="mt-3 list-disc pl-5 text-sm leading-relaxed">{profile.learningOutcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul></details>}</section>}
+          <TabsContent value="about" className="flex min-w-0 flex-col gap-6"><header className="course-section-heading"><div><h2>Course details</h2><p>Assessment, learning outcomes and your academic record.</p></div></header>
+      {profile && (profile.description || profile.learningOutcomes?.length || profile.assessment?.components?.length) && <section className="course-section flex flex-col gap-4"><div className="flex items-baseline justify-between border-b pb-2"><h2 className="text-base font-semibold">Course information</h2>{profile.assessment?.status && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold">{profile.assessment.status === 'confirmed' ? 'Assessment verified' : 'Assessment under review'}</span>}</div><p className="text-muted-foreground text-xs">Shared course information · not tied to an academic year</p>{profile.description && <p className="text-muted-foreground leading-relaxed">{profile.description}</p>}{profile.assessment?.components?.length && <div className="flex flex-col">{profile.assessment.components.map((component, index) => <div key={`${component.name}-${index}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-b py-3"><strong className={`text-[21px] ${NUMERALS}`}>{component.weightPercent == null ? '—' : `${component.weightPercent}%`}</strong><div><h3 className="font-semibold">{component.name}</h3><p className="text-muted-foreground text-sm">{[component.type, component.minimumPercent != null ? `minimum ${component.minimumPercent}%` : null, component.deadline || component.deadlineText].filter(Boolean).join(' · ')}</p></div></div>)}</div>}{profile.learningOutcomes?.length && <details><summary className="cursor-pointer text-sm font-semibold">Learning outcomes ({profile.learningOutcomes.length})</summary><ul className="mt-3 list-disc pl-5 text-sm leading-relaxed">{profile.learningOutcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul></details>}</section>}
 
       {/* Everything that leaves this course: one ruled row each, no boxes. */}
-      <section className="flex flex-col rounded-xl border bg-card p-5 sm:p-6">
+      <section className="course-section flex flex-col">
         <h2 className="border-b pb-2 text-base font-semibold">Course tools</h2>
         {(course.mockExams?.length || course.mockExamPdf) ? (
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b py-3">
@@ -356,7 +355,7 @@ export default function CoursePage() {
               <h3 className="text-sm font-medium">Past-paper practice</h3>
               <p className="text-muted-foreground text-xs">Stored exam papers with question guidance and answer grading.</p>
             </div>
-            <Link href={`/app/courses/${course.id}/mock-exam`} className="text-primary shrink-0 text-sm font-semibold">Open papers</Link>
+            <Link href={`/app/courses/${course.id}?tab=papers`} className="text-primary shrink-0 text-sm font-semibold">Open papers</Link>
           </div>
         ) : null}
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b py-3">
@@ -381,8 +380,10 @@ export default function CoursePage() {
         </div>
       </section>
           </TabsContent>
+          </div>
         </Tabs>
       </div>
+      <Sheet open={collectionOpen} onOpenChange={setCollectionOpen}><SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg"><SheetHeader className="border-b p-6"><SheetTitle>Canvas collection</SheetTitle><SheetDescription>Retrieve new files or browse earlier course editions.</SheetDescription></SheetHeader><div className="min-h-0 overflow-y-auto px-6 pb-6"><CourseEditionCollection editions={editions} selected={year} onSelect={value=>{selectYear(value);setCollectionOpen(false)}} canvas={canvas}/></div></SheetContent></Sheet>
     </main>
   )
 }

@@ -1,3 +1,10 @@
+import { claimPaperDispatch, resolvePaperJob, processPaperJob } from './lib/study-paper-jobs.mjs'
+import { courseExerciseBank } from './lib/study-course-practice.mjs'
+import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queueRequestHeaders } from './lib/queue-runtime.mjs'
+import { activeProgrammeId } from './lib/programme-scope.mjs'
+import { originalContext, originalStatus, beginOriginal, putOriginalChunk, completeOriginal, readOriginalChunk } from './lib/academic-originals.mjs'
+import { aiQuotaExemption } from './lib/ai-quota-policy.mjs'
+import { renderCourseSlides } from './lib/course-slide-render.mjs'
 import { previewCourseAsset } from './lib/course-file-preview.mjs'
 import { feedbackMaintenance, recordQualityEvent } from './lib/feedback-store.mjs'
 import { handleFeedbackRoute } from './lib/feedback-routes.mjs'
@@ -26,7 +33,13 @@ import { createDocumentReview, readDocumentReviews, academicDocumentCheck, acade
 import { documentRows, validateDocumentRows, compareAcademicDocuments } from './lib/academic-document-check.mjs'
 import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
-import { currentAuth, setRequestContext } from './lib/request-context.mjs'
+import { currentUserId, currentAuth, setRequestContext } from './lib/request-context.mjs'
+import { runBudgetedStudyCall } from './lib/study-ai-budget.mjs'
+import { studyVersionApi } from './lib/study-version-api.mjs'
+import { processStudyStep } from './lib/study-version-pipeline.mjs'
+import { pendingStudyVersions, claimStudyDispatch, resolveStudyJob, asStudyOwner } from './lib/study-version-store.mjs'
+import { openAiResponseText } from './lib/study-provider-output.mjs'
+import { digest as studyDigest, StudyVersionError } from './lib/study-version-content.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { storeImportedProgramme } from './lib/academics.mjs'
 import {
@@ -1376,15 +1389,16 @@ async function runClaudeCli(prompt, { schemaPath, images = [], model = '' } = {}
   })
 }
 
-async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000 } = {}) {
-  if (!ANTHROPIC_API_KEY) {
+async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
+  if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY is not set. Either set the env var, add anthropicApiKey to data/llm-config.json, or switch provider to codex/claude.')
   }
   // If a schema was supplied, append a "must return JSON conforming to this schema"
   // instruction. The prompt itself already asks for JSON in most call sites; this
   // is belt-and-braces.
   let userContent = prompt
-  if (schemaPath) {
+  if (responseSchema) userContent += `\n\nIMPORTANT: Return strict JSON that conforms to this schema:\n${JSON.stringify(responseSchema)}`
+  else if (schemaPath) {
     try {
       const schema = await readFile(schemaPath, 'utf8')
       userContent += `\n\nIMPORTANT: Return strict JSON that conforms to this schema:\n${schema}`
@@ -1404,7 +1418,7 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
       })
     }
     const body = {
-      model: ANTHROPIC_MODEL,
+      model,
       max_tokens: maxOutputTokens,
       messages: [{ role: 'user', content }]
     }
@@ -1412,10 +1426,10 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
     })
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '')
@@ -1442,12 +1456,12 @@ async function runAnthropicApi(prompt, { schemaPath, images = [], maxOutputToken
 }
 
 // OpenAI Chat Completions with JSON-schema structured output and image inputs.
-async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens = 16000 } = {}) {
-  if (!OPENAI_API_KEY) {
+async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
+  if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
   }
-  let schema = null
-  if (schemaPath) {
+  let schema = responseSchema || null
+  if (!schema && schemaPath) {
     try { schema = JSON.parse(await readFile(schemaPath, 'utf8')) } catch {}
   }
   try {
@@ -1458,30 +1472,28 @@ async function runOpenAiApi(prompt, { schemaPath, images = [], maxOutputTokens =
       content.push({ type: 'image_url', image_url: { url: `data:${mediaType};base64,${(await readFile(imagePath)).toString('base64')}`, detail: 'high' } })
     }
     const body = {
-      model: OPENAI_MODEL,
+      model,
       max_completion_tokens: maxOutputTokens,
-      ...(openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT)
-        ? { reasoning_effort: openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) }
+      ...(openAiReasoningEffort(model, reasoningEffort)
+        ? { reasoning_effort: openAiReasoningEffort(model, reasoningEffort) }
         : {}),
       messages: [
         { role: 'system', content: schema ? 'You extract academic facts and answer only with JSON that conforms to the supplied schema. Never include prose outside the JSON.' : 'You are a precise academic study assistant.' },
         { role: 'user', content }
       ],
-      ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: false } } } : {})
+      ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: Boolean(responseSchema) } } } : {})
     }
-    const resp = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${OPENAI_API_KEY}` },
-      body: JSON.stringify(body)
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
     })
     if (!resp.ok) {
-      const errText = await resp.text().catch(() => '')
-      throw new Error(`OpenAI API ${resp.status}: ${errText.slice(0, 500)}`)
+      await resp.body?.cancel()
+      throw new StudyVersionError(`The AI provider returned HTTP ${resp.status}. Check the model connection and retry the unfinished step.`, 502)
     }
     const data = await resp.json()
-    const choice = data.choices?.[0]
-    const text = (typeof choice?.message?.content === 'string' ? choice.message.content : (choice?.message?.content || []).map((part) => part.text || '').join('')).trim()
-    if (!text) throw new Error(`OpenAI API returned no content (finish_reason=${choice?.finish_reason})`)
+    const text = openAiResponseText(data)
     return {
       text,
       usage: {
@@ -3604,16 +3616,83 @@ async function readReconciledAcademicState({ snapshot = null } = {}) {
 async function enqueueAndWake(promise) { const result = await promise; await wakeCanvasQueue(); return result }
 
 async function wakeCanvasQueue() {
-  if (process.env.VERCEL_ENV !== 'production') return
-  const base = process.env.WICKER_WEB_SERVICE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '')
+  const base = queueDispatcherOrigin()
   if (!base) return
   const body = JSON.stringify({ action: 'dispatch' })
   try {
     await fetch(new URL('internal/canvas-dispatch', `${base.replace(/\/$/, '')}/`), {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body) },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body), ...queueRequestHeaders() },
       body, signal: AbortSignal.timeout(5000)
     })
   } catch { /* The durable outbox is retried by the scheduled dispatcher. */ }
+}
+
+// Editorial chapters are optional source inputs. Loading the published template
+// avoids carrying personal progress or another programme's user overlay into jobs.
+const studyEditorialSourceCache = new Map()
+const studySourceOptions = { editorialSources: async courseCode => {
+  const state = await loadEditorialState(templatePath)
+  const course = state.courses?.find(c => c.code?.toUpperCase() === courseCode)
+  if (!course) return []
+  const cacheKey = studyDigest(course)
+  const cached = studyEditorialSourceCache.get(cacheKey)
+  if (cached?.until > Date.now()) return cached.sources
+  const result = []
+  for (const chapter of course.chapters || []) {
+    const text = await readKbFile(state, course, chapter.file).catch(() => null)
+    if (!text?.trim()) continue
+    result.push({ key: `editorial-${studyDigest([course.id, chapter.id]).slice(0,32)}`, title: chapter.name,
+      kind: 'editorial', academicYear: 'undated', period: '', sha256: studyDigest(text),
+      url: `/app/courses/${encodeURIComponent(course.id)}/${encodeURIComponent(chapter.id)}`, pages: [{page:null,text}] })
+  }
+  const paths = new Set()
+  for (const paper of [...getMockExams(course), ...getTutorials(course)]) {
+    for (const [role,path] of [['questions',paper.pdf],['solutions',paper.solutionsPdf]]) {
+      if (!path || paths.has(path)) continue
+      paths.add(path)
+      const pages = await loadPdfPages(state,course,path).catch(() => [])
+      if (!pages.some(p=>p.text?.trim())) continue
+      result.push({ key:`editorial-paper-${studyDigest([course.id,path]).slice(0,32)}`,
+        title:`${paper.label || paper.id} · ${role}.pdf`, kind:'editorial', academicYear:'undated',period:'',
+        sha256:studyDigest(pages), url:`/api/pdf/${encodeURIComponent(course.id)}/${encodeURIComponent(paper.id)}${role==='solutions'?'/solutions':''}`,pages })
+    }
+  }
+  if (studyEditorialSourceCache.size > 40) studyEditorialSourceCache.clear()
+  studyEditorialSourceCache.set(cacheKey,{until:Date.now()+60000,sources:result})
+  return result
+} }
+async function budgetedStudyGenerate(prompt, options, telemetry) {
+  const capture = async pending => { const result = await pending; if (telemetry) telemetry.usage = result.usage; return result }
+  return runBudgetedStudyCall(prompt, options, { billing: options.billing, jobKey: options.jobKey,
+    callPlatform: (text, opts) => {
+      if (opts.billing.provider === 'openai' && OPENAI_BASE_URL !== 'https://api.openai.com/v1') throw new Error('Budgeted study generation requires the priced first-party provider endpoint.')
+      return capture(opts.billing.provider === 'openai' ? runOpenAiApi(text, opts) : runAnthropicApi(text, opts))
+    },
+    callPersonal: (text, opts) => capture(opts.provider === 'openai' ? runOpenAiApi(text, { ...opts, baseUrl: 'https://api.openai.com/v1' }) : runAnthropicApi(text, opts))
+  })
+}
+async function generateStudyEvaluation(prompt, options) {
+  const telemetry = {}
+  const text = await budgetedStudyGenerate(prompt, options, telemetry)
+  return { text, usage: telemetry.usage }
+}
+async function runStudentStudyJob(id) {
+  const record = await (id.startsWith('pap-') ? resolvePaperJob(id) : resolveStudyJob(id))
+  if (!record || !queueWorkerAllowsUser(record.owner) || (localTestUserId() && record.owner !== localTestUserId())) return { again: false }
+  return asStudyOwner(record.owner, () => (id.startsWith('pap-') ? processPaperJob : processStudyStep)(id, {
+    generate: budgetedStudyGenerate, sourceOptions: studySourceOptions, platform: llmConfiguration()
+  }))
+}
+const localStudyJobs = new Set()
+async function wakeStudentStudy(id) {
+  if (process.env.VERCEL || process.env.VERCEL_ENV) { await wakeCanvasQueue(); return }
+  if (localStudyJobs.has(id)) return
+  localStudyJobs.add(id)
+  setImmediate(async () => {
+    try { while ((await runStudentStudyJob(id)).again) { /* Each step checkpoints before continuing. */ } }
+    catch (error) { console.error('Study generation paused:', error.message) }
+    finally { localStudyJobs.delete(id) }
+  })
 }
 
 const server = createServer(async (req, res) => {
@@ -3625,7 +3704,9 @@ const server = createServer(async (req, res) => {
         send(res, 401, JSON.stringify({ error: 'Unauthorized' })); return
       }
       if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
-      if (process.env.VERCEL_ENV === 'preview') { send(res, 200, JSON.stringify({ disabled: true })); return }
+      if (!queueWorkersEnabled()) { send(res, 200, JSON.stringify({ disabled: true })); return }
+      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: [...await claimStudyDispatch(), ...await claimPaperDispatch()] })); return }
+      if ((body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) || (body.action === 'paper-step' && /^pap-[a-f0-9-]{36}$/.test(body.jobId || ''))) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result
       if (body.action === 'feedback-maintenance') { await feedbackMaintenance(); result = { ok: true } }
@@ -3639,9 +3720,14 @@ const server = createServer(async (req, res) => {
     const ip = clientIp(req)
     const isApi = url.pathname.startsWith('/api/')
 
-    // Per-IP ceiling on everything, plus a tight budget for repeated auth failures.
-    const ipBudget = consume(`ip:${ip}`, RATE_POLICIES.ip)
-    if (!ipBudget.allowed) { sendRateLimited(res, ipBudget); return }
+    // Development emits hundreds of separate module chunks on a reload. Those
+    // read-only assets must not exhaust the request budget before setup loads.
+    // Production traffic and all API requests retain the per-IP ceiling.
+    const devAsset = development && ['GET', 'HEAD'].includes(req.method) && url.pathname.startsWith('/_next/static/')
+    if (!devAsset) {
+      const ipBudget = consume(`ip:${ip}`, RATE_POLICIES.ip)
+      if (!ipBudget.allowed) { sendRateLimited(res, ipBudget); return }
+    }
     if (isApi && !consume(`authfail:${ip}`, { ...RATE_POLICIES.authFailure, dryRun: true }).allowed) {
       sendRateLimited(res, consume(`authfail:${ip}`, { ...RATE_POLICIES.authFailure, dryRun: true }), 'Too many failed authentication attempts.')
       return
@@ -3667,7 +3753,7 @@ const server = createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/api/health' && req.method === 'GET') {
-      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured() } })) }
+      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured(), queue: { enabled: queueWorkersEnabled(), environment: process.env.VERCEL_ENV || 'local', revision: (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 12) } } })) }
       catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
       return
     }
@@ -3728,7 +3814,7 @@ const server = createServer(async (req, res) => {
       // Per-identity budgets by route class (AI allowances apply on top).
       const identity = auth.keyId ? `key:${auth.keyId}` : `user:${auth.userId}`
       const policy = classifyRequest(req.method, url.pathname)
-      const budget = consume(`${policy}:${identity}`, RATE_POLICIES[policy])
+      const budget = policy === 'ai' && await aiQuotaExemption() ? {allowed:true} : consume(`${policy}:${identity}`, RATE_POLICIES[policy])
       if (!budget.allowed) { sendRateLimited(res, budget); return }
       if (policy !== 'user') {
         const overall = consume(`user:${identity}`, RATE_POLICIES.user)
@@ -3743,6 +3829,15 @@ const server = createServer(async (req, res) => {
     }
 
     if (await handleFeedbackRoute(req,res,url,{readBody,send})) return
+    if (url.pathname.startsWith('/api/study-versions') || url.pathname === '/api/study-notes' || url.pathname.startsWith('/api/account/ai') || url.pathname.startsWith('/api/public/study-versions/')) {
+      try {
+        const result = await studyVersionApi({ pathname: url.pathname, method: req.method,
+          query: Object.fromEntries(url.searchParams), body: ['POST','PATCH'].includes(req.method) ? await readBody(req, 12 * 1024 * 1024) : {},
+          sourceOptions: studySourceOptions, configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()), platform: { ...llmConfiguration(), configured: llmConfiguration().configured && queueWorkerAllowsUser(currentUserId()) }, wake: wakeStudentStudy, generateEvaluation: generateStudyEvaluation, generatePractice: budgetedStudyGenerate })
+        send(res, result.status, JSON.stringify(result.data), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Study versions could not be loaded. Try again.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
+      return
+    }
 
     if (url.pathname === '/api/account/agent-activity' && req.method === 'GET') { send(res, 200, JSON.stringify(await readAgentActivity(Object.fromEntries(url.searchParams))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); return }
 
@@ -3824,6 +3919,7 @@ const server = createServer(async (req, res) => {
         const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
         if (!(await listCanvasConnections()).some(connection => connection.origin === origin)) { send(res, 409, JSON.stringify({ error: 'Connect Canvas first.' })); return }
         const permission = await setCanvasRefreshSettings({ accountId: currentAuth().userId, origin, settings: body?.settings })
+        await wakeCanvasQueue()
         send(res, 200, JSON.stringify({ permission }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
       return
@@ -3852,6 +3948,7 @@ const server = createServer(async (req, res) => {
       try {
         const body = await readBody(req, 1024)
         const result = await controlCanvasSyncJob({ accountId: currentAuth().userId, jobId: decodeURIComponent(corpusJobAction[1]), action: body?.action })
+        if (body?.action === 'retry') await wakeCanvasQueue()
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, 400, JSON.stringify({ error: error.message })) }
       return
@@ -3900,6 +3997,14 @@ const server = createServer(async (req, res) => {
         courseCode: url.searchParams.get('courseCode') || '',
         academicYear: url.searchParams.get('academicYear') || ''
       }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
+    }
+    const corpusSlidesMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)\/slides\.pdf$/)
+    if (corpusSlidesMatch && req.method === 'GET') {
+      const asset = await canvasCorpusAsset({ accountId: currentAuth().userId, assetId: decodeURIComponent(corpusSlidesMatch[1]) })
+      if (!asset) { send(res, 404, JSON.stringify({ error: 'Course material not found or not available to this account.' })); return }
+      try { send(res, 200, await renderCourseSlides(asset), 'application/pdf', { 'Cache-Control': 'private, no-store' }) }
+      catch (error) { send(res, error.status || 503, JSON.stringify({ error: error.message || 'Slide preview unavailable.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' }) }
       return
     }
     const corpusPreviewMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)\/preview$/)
@@ -4624,7 +4729,7 @@ const server = createServer(async (req, res) => {
         let usage = null
         if (!(body?.retry && completedTutorRetry(stored, message))) {
           activeTurn = await beginTutorTurn(stored, { message, context: body?.context || {}, retry: Boolean(body?.retry), id: canCreate ? body.conversation : undefined })
-          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, signal, onProgress: progress => emit?.('progress', progress) })
+          const turn = await runTutorTurn(activeTurn.base, { message, context: body?.context || {}, sourceOptions: studySourceOptions, signal, onProgress: progress => emit?.('progress', progress) })
           signal.throwIfAborted()
           saved = await completeTutorTurn(activeTurn, turn)
           usage = turn.usage
@@ -4839,6 +4944,20 @@ const server = createServer(async (req, res) => {
       } catch (error) { send(res, error instanceof OnboardingError ? error.status : 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Electives could not be saved.' })) }
       return
     }
+    const originalRoute = url.pathname.match(/^\/api\/onboarding\/documents\/(record|transcript)\/original(?:\/([a-f0-9-]{36})\/(complete|chunks\/(\d+)))?$/)
+    if (originalRoute) {
+      const [,kind,id,action,index] = originalRoute
+      try {
+        const headers = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' }
+        if (!id && req.method === 'GET') send(res,200,JSON.stringify(await originalStatus(kind)),'application/json; charset=utf-8',headers)
+        else if (!id && req.method === 'POST') send(res,200,JSON.stringify(await beginOriginal(kind,await readBody(req,4096))),'application/json; charset=utf-8',headers)
+        else if (action === 'complete' && req.method === 'POST') send(res,200,JSON.stringify(await completeOriginal(kind,id)),'application/json; charset=utf-8',headers)
+        else if (index !== undefined && req.method === 'PUT') send(res,200,JSON.stringify(await putOriginalChunk(kind,id,Number(index),(await readBody(req,710000)).data)),'application/json; charset=utf-8',headers)
+        else if (index !== undefined && req.method === 'GET') send(res,200,await readOriginalChunk(kind,id,Number(index)),'application/octet-stream',headers)
+        else send(res,405,JSON.stringify({error:'Method not allowed.'}))
+      } catch(error) { send(res,error.status || 400,JSON.stringify({error:error.message}),'application/json; charset=utf-8',{'Cache-Control':'no-store'}) }
+      return
+    }
     const onboardingDocument = url.pathname.match(/^\/api\/onboarding\/documents\/(record|transcript)$/)
     if (onboardingDocument && req.method === 'DELETE') {
       try {
@@ -4893,6 +5012,7 @@ const server = createServer(async (req, res) => {
         send(res, 200, JSON.stringify({
           unchanged: result.unchanged,
           snapshot: result.snapshot,
+          originalBinding: `${await activeProgrammeId()}:record:${result.snapshot.id}`,
           progress: result.progress,
           programme: parsed.programme,
           printedOn: parsed.printedOn,
@@ -5001,7 +5121,7 @@ const server = createServer(async (req, res) => {
             }
           } catch (error) { documentRecordError = error.message }
         }
-        send(res, 200, JSON.stringify({ ...saved, applied, documentRecord, documentRecordError }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        send(res, 200, JSON.stringify({ ...saved, applied, documentRecord, documentRecordError, originalBinding: body?.documentRecord?.kind === 'transcript' && !documentRecordError ? (await originalContext('transcript')).binding : null }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
       }
@@ -5749,15 +5869,22 @@ const server = createServer(async (req, res) => {
         }
       }))
 
-      const questions = banks.flat()
-      const courses = active.map((course) => ({
+      const requestedId = url.searchParams.get('courseId')
+      const requestedCode = url.searchParams.get('courseCode') || active.find(c => c.id === requestedId)?.code || requestedId || ''
+      const personal = await courseExerciseBank(requestedCode.toUpperCase(), { sourceOptions: studySourceOptions })
+      const personalQuestions = personal.questions.map(q => ({ ...q, courseId: active.find(c => c.code === q.courseCode)?.id || requestedId || q.courseId }))
+        .filter(q => !url.searchParams.get('chapterId') || q.chapterId === url.searchParams.get('chapterId'))
+      const questions = [...banks.flat(), ...personalQuestions]
+      const allCourses = [...active]
+      for (const q of personalQuestions) if (!allCourses.some(c => c.id === q.courseId)) allCourses.push({ id: q.courseId, code: q.courseCode, name: q.courseName })
+      const courses = allCourses.map((course) => ({
         id: course.id,
         code: course.code,
         name: course.name,
         accent: course.accent,
         questionCount: questions.filter((question) => question.courseId === course.id).length
       })).filter((course) => course.questionCount > 0)
-      send(res, 200, JSON.stringify({ questions, courses, source: 'published', generated: false }))
+      send(res, 200, JSON.stringify({ questions, courses, source: 'published-and-personal', generated: personalQuestions.length > 0 }))
       return
     }
 
@@ -6607,3 +6734,12 @@ server.listen(port, hostname, () => {
   if (LLM_PROVIDER === 'openai') console.log(`Model: ${OPENAI_MODEL} (reasoning ${openAiReasoningEffort(OPENAI_MODEL, OPENAI_REASONING_EFFORT) || 'not applicable'}; OpenAI key ${OPENAI_API_KEY ? 'set' : 'MISSING'})`)
   if (startCanvasCorpusWorkerProcess()) console.log('Canvas corpus worker: separate process running')
 })
+
+// Local recovery uses the same durable outbox as Vercel Cron. No browser worker.
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  const recovery = setInterval(async () => {
+    try { for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key); for (const id of await claimPaperDispatch()) await wakeStudentStudy(id) }
+    catch (error) { console.error('Study recovery deferred:', error.message) }
+  }, 30000)
+  recovery.unref()
+}
