@@ -367,7 +367,7 @@ export function StudyPaperBank({
                 sets.find((s) => s.id === job?.setId) ||
                 sets.find((s) => s.status === 'complete') ||
                 sets[0],
-              ready = chosen?.status === 'complete' ? chosen : undefined,
+              ready = chosen?.status === 'complete' && chosen.questionCount > 0 ? chosen : undefined,
               pending = chosen?.status !== 'complete' ? chosen : undefined
             return (
               <article
@@ -399,7 +399,7 @@ export function StudyPaperBank({
                   {p.paperKind !== 'solutions' && (
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground" role={job?.status === 'running' ? 'status' : undefined}>
                       {job?.status === 'paused' ? <AlertCircleIcon className="size-3.5 text-amber-600"/> : job?.status === 'running' ? <LoaderCircleIcon className="size-3.5 animate-spin"/> : ready ? <CheckCircle2Icon className="size-3.5"/> : <Clock3Icon className="size-3.5"/>}
-                      {job?.status === 'paused' ? 'Processing paused' : job?.status === 'running' ? `Preparing questions · ${job.completedSections} of ${job.totalSections || '…'} sections checked` : job?.status === 'queued' ? 'Queued for automatic processing' : ready ? `${ready.questionCount} ${ready.questionCount === 1 ? 'question' : 'questions'} ready` : 'Waiting for automatic processing'}
+                      {job?.status === 'paused' ? 'Processing paused' : job?.status === 'running' ? `Preparing questions · ${job.completedSections} of ${job.totalSections || '…'} sections checked` : job?.status === 'queued' ? 'Queued for automatic processing' : job?.status === 'complete' && !ready ? 'No practice questions found in this document' : ready ? `${ready.questionCount} ${ready.questionCount === 1 ? 'question' : 'questions'} ready` : 'Waiting for automatic processing'}
                     </div>
                   )}
                   {job?.error && <p className="mt-2 max-w-xl text-xs leading-5 text-muted-foreground">{job.error}</p>}
