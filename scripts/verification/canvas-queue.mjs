@@ -46,7 +46,7 @@ const {controlCanvasSyncJob,observeCanvasCorpusCourses,setCanvasRefreshSettings}
 const file=Buffer.alloc(9*1024*1024+13,97)
 let downloads=0,fileVersion="2026-09-01T00:00:00Z"
 const originalFetch=globalThis.fetch
-let failDownload=false
+let failDownload=false, announcementRows=[]
 fetch=async(value,options={})=>{
   const url=new URL(value)
   if(url.hostname==='files.fixture'){
@@ -55,6 +55,7 @@ fetch=async(value,options={})=>{
     const match=/bytes=(\d+)-(\d+)/.exec(options.headers.Range),start=Number(match[1]),end=Math.min(file.length-1,Number(match[2]))
     return new Response(file.subarray(start,end+1),{status:206,headers:{'content-range':`bytes ${start}-${end}/${file.length}`,etag:'"fixture-v1"'}})
   }
+  if(url.pathname==='/api/v1/courses/8/discussion_topics' && url.searchParams.get('only_announcements')==='true')return Response.json(announcementRows)
   if(url.pathname.endsWith('/files/7'))return Response.json({id:7,url:'https://files.fixture/7',size:file.length,updated_at:fileVersion})
   if(url.pathname==='/api/v1/users/self/profile')return Response.json({id:1})
   if(url.pathname==='/api/v1/courses/8')return Response.json({id:8,name:'Fixture',syllabus_body:'Weekly attendance. '.repeat(12000)})
@@ -287,5 +288,24 @@ try {
   process.env.DATABASE_URL='postgres://test:fixture@production.test/db'
   assert.deepEqual(await dispatchCanvasQueue(),[])
   assert.equal((await processCanvasQueueStep('csj-preview-allowed')).disabled,true)
-  console.log(JSON.stringify({ok:true,checks:['metadata-only freshness and owner isolation','byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation','preview database guard','preview account isolation','preview manual-only scheduling'],downloads,embeddingCalls,passages:Number(total.n)}))
+  const {refreshPriorityAnnouncements}=await import('../../lib/priority-announcements.mjs')
+  const binding=await one("SELECT * FROM canvas_course_bindings WHERE id='binding'")
+  await query("UPDATE canvas_corpus_access SET sync_paused=false WHERE user_id='fixture' AND binding_id='binding'")
+  await query("UPDATE canvas_corpus_permissions SET collection_enabled=true WHERE user_id='fixture' AND origin='https://canvas.fixture'")
+  announcementRows=[{id:91,title:'Lab waiver',posted_at:'2026-09-01T08:00:00Z',message:'<p>Attendance is waived for Lab 2 tomorrow.</p>'}]
+  await refreshPriorityAnnouncements({binding,accountId:'fixture'})
+  const passage=await one("SELECT id,content FROM editorial_source_retrieval_chunks WHERE metadata->>'canvasAnnouncementId'='91'")
+  assert.ok(passage.content.includes('Posted: 2026-09-01'))
+  await refreshPriorityAnnouncements({binding,accountId:'fixture'})
+  assert.equal((await one("SELECT count(*) n FROM editorial_source_retrieval_chunks WHERE metadata->>'canvasAnnouncementId'='91'")).n,'1','unchanged announcements retain citation IDs')
+  announcementRows[0].message='<p>Attendance is waived for Lab 2 on September 3.</p>'
+  await refreshPriorityAnnouncements({binding,accountId:'fixture'})
+  assert.equal((await one("SELECT count(*) n FROM canvas_source_snapshots WHERE metadata->>'canvasAnnouncementId'='91' AND retired_at IS NULL")).n,'1')
+  assert.equal((await one("SELECT count(*) n FROM canvas_source_snapshots WHERE metadata->>'canvasAnnouncementId'='91' AND retired_at IS NOT NULL")).n,'1')
+  announcementRows[0].message='<p>Uncommitted worker result.</p>'
+  await assert.rejects(refreshPriorityAnnouncements({binding,accountId:'fixture',commit:queries=>statement.transaction([statement`SELECT 1/0`,...queries])}))
+  assert.equal((await one("SELECT count(*) n FROM editorial_source_retrieval_chunks WHERE content LIKE '%Uncommitted worker%'")).n,'0','lease failure rolls back originals and citations together')
+  await query("UPDATE canvas_corpus_access SET sync_paused=true WHERE user_id='fixture' AND binding_id='binding'")
+  await assert.rejects(refreshPriorityAnnouncements({binding,accountId:'fixture'}),/paused/)
+  console.log(JSON.stringify({ok:true,checks:['current announcement amendment persistence and stable citations','announcement pause and lease fence','metadata-only freshness and owner isolation','byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation','preview database guard','preview account isolation','preview manual-only scheduling'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}

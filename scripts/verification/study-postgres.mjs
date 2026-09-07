@@ -21,6 +21,9 @@ function sql(strings, ...values) {
 mock.module('@neondatabase/serverless', {
   namedExports: { ...neonModule, neon: () => sql }
 })
+// Canvas HTTP/persistence is exercised separately by canvas-queue.mjs.
+// This fixture isolates the source-to-rule scan and its real SQL cache.
+mock.module('../../lib/priority-announcements.mjs',{namedExports:{refreshPriorityAnnouncements:async()=>({announcements:0})}})
 process.env.DATABASE_URL = url.href
 process.env.AI_CONNECTION_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString(
   'base64'
