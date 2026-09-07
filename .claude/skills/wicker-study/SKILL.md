@@ -9,7 +9,19 @@ Wicker Study exposes one HTTP API for the web app, agents, and administrators.
 Everything is scoped by a personal API key. The MCP server wraps that API and
 runs from anywhere — it needs no checkout of the application.
 
-**Each write requires fresh, explicit confirmation of its exact effect.** Read first, show the change, then pass `confirmed:true` only after approval. Connecting an account is not blanket write permission. For attendance or memory, use the direct prepare/confirm workflow below without a hosted model call.
+**Each write requires fresh, explicit confirmation of its exact effect.** Read first, show the change, then pass `confirmed:true` only after approval. Connecting an account is not blanket write permission. For attendance or memory, use the direct prepare/confirm workflow below without a hosted model call. A student-requested local study-generation run authorises its successive next/submit steps through completion; it does not authorise sharing, changing source selection, or unrelated record writes.
+
+## Generate a private course guide locally
+
+Use when the student asks to process course materials with their local agent and return a study guide to Wicker Study. Requires MCP 2.11.0 or newer with read/write access.
+
+- Fetch `study_generation_contract` and `study_generation_sources` for the exact course/year. Choose the student's sources. For deeper local processing use `canvas_import_remote_course` to obtain originals; inspect relevant graphs, tables, diagrams and speaker notes. Save supplementary extraction with `study_generation_add_notes`, retaining filenames/page numbers and distinguishing observations from interpretation. Original Canvas files are not overwritten.
+- Start `study_generation_start` for the authorised selection, or use the version ID prepared in the web interface. This starts no hosted model work and spends no platform AI allowance.
+- Call `study_generation_next` for each step. Follow the returned prompt, evidence and JSON schema exactly; do not maintain a separate schema or teaching prompt. For review steps use a fresh critique context against the supplied evidence and report genuine findings, never a fabricated pass.
+- Submit one complete response with `study_generation_submit`, preserving `requestId` and `contractId`. On transport failure repeat the identical submission. A changed contract or stale request requires fetching next again. Continue until complete. Corrections preserve useful content and use the same platform acceptance pipeline.
+- On `failed`, inspect the issues and use `retry:true` only when you can correct them. Stop and report an unresolved source-access problem or repeated quality failure. Completed chapters stay readable. User cancellation calls `study_generation_stop`.
+
+The deployed pipeline supplies fresh prompts and schemas every step. Its implementation fingerprint invalidates pending work after pipeline changes. Local semantic review comes from the local agent; platform schema, citation and deterministic teaching checks still apply. This is not independent editorial verification. Local provider/subscription costs are separate. Sharing remains a separate action in the web app.
 
 ## Connect first
 

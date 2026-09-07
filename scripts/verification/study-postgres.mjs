@@ -244,8 +244,29 @@ try {
     await removeOnboardingDocument('transcript')
     assert.equal((await sql`SELECT count(*)::int AS count FROM user_documents WHERE user_id='original-owner' AND namespace IN ('academic-originals','academic-original-chunks')`)[0].count,0)
   })
+  const local = await import('../../lib/study-local-generation.mjs')
+  await as('local-generator', async()=>{
+    const note=await local.addLocalStudyNotes({...course,title:'Local diagram notes',pages:[{page:1,text:'Two plus three is five. Addition combines disjoint quantities with matching units; subtraction checks the result.'}]})
+    const {version}=await local.startLocalStudy({...course,sourceKeys:[note.id]})
+    assert.equal((await pendingStudyVersions()).some(row=>row.key===version.id),false)
+    for(let i=0;i<12;i++){
+      const next=await local.nextLocalStudy(version.id)
+      if(next.version.status==='complete')break
+      assert.ok(next.request,JSON.stringify(next.version))
+      const ids=(await ownStudyVersion(version.id)).draft.snapshot.chunks.map(c=>c.id)
+      const response=next.request.stage==='quality' ? {issues:[]} : next.request.prompt.includes('Map this evidence batch') ? {topics:[{id:'addition',title:'Addition',sourceIds:ids}],gaps:[]} : lesson(ids)
+      const body={requestId:next.request.id,contractId:next.request.contractId,response}
+      const results=await Promise.all([local.submitLocalStudy(version.id,body),local.submitLocalStudy(version.id,body)])
+      assert.ok(results.some(result=>result.accepted||result.duplicate))
+      assert.equal((await local.submitLocalStudy(version.id,body)).duplicate,true)
+    }
+    const done=await ownStudyVersion(version.id)
+    assert.equal(done.draft.status,'complete')
+    assert.equal(done.history.length,1)
+    assert.equal((await studyRevision(done)).generation.semanticReview,'local-agent')
+  })
   console.log(
-    'PostgreSQL: migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal, atomic shared spending, derived scan invalidation, private batch caching JSONB document review validation and private original-file persistence/isolation/deletion passed.'
+    'PostgreSQL: local generation/JSONB/concurrent idempotency, migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal, atomic shared spending, derived scan invalidation, private batch caching JSONB document review validation and private original-file persistence/isolation/deletion passed.'
   )
 } finally {
   await pool.end()

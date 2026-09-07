@@ -240,13 +240,28 @@ try {
   assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-credentials'")).status,'pending')
   await processCanvasQueueStep('csj-credentials')
   assert.equal((await one("SELECT status FROM canvas_sync_jobs WHERE id='csj-credentials'")).status,'completed')
+  const freshness=await import('../../lib/canvas-freshness-store.mjs')
+  await query("UPDATE canvas_sync_jobs SET status='cancelled',lease_token=null WHERE user_id='fixture' AND status IN ('pending','running')")
+  await query("UPDATE canvas_corpus_access SET sync_paused=false WHERE user_id='fixture' AND binding_id='binding'")
+  fileVersion='2026-09-07T10:00:00Z'
+  const beforeDownloads=downloads,beforeEmbeddings=embeddingCalls
+  assert.equal((await freshness.enqueueCanvasFreshnessCheck({accountId:'other-student',bindingId:'binding'})).queued,false)
+  assert.equal((await freshness.enqueueCanvasFreshnessCheck({accountId:'fixture',bindingId:'binding'})).queued,true)
+  assert.equal((await freshness.enqueueCanvasFreshnessCheck({accountId:'fixture',bindingId:'binding'})).queued,false)
+  const freshnessJob=await one("SELECT id FROM canvas_sync_jobs WHERE user_id='fixture' AND payload->>'stage'='freshness' ORDER BY created_at DESC LIMIT 1")
+  await processCanvasQueueStep(freshnessJob.id)
+  assert.equal((await one('SELECT status FROM canvas_sync_jobs WHERE id=$1',[freshnessJob.id])).status,'completed')
+  const updates=await freshness.canvasFreshnessStatus({accountId:'fixture',courseCode:'BCS2120'})
+  assert.ok(updates.courses[0].changes.some(change=>change.title==='lecture.mp4'))
+  assert.equal(downloads,beforeDownloads);assert.equal(embeddingCalls,beforeEmbeddings)
+  assert.deepEqual(await freshness.canvasFreshnessStatus({accountId:'other-student',courseCode:'BCS2120'}),{courses:[]})
   // Preview snapshots contain production rows. Only the configured test account
   // may dispatch or acquire leases; automatic schedules must not fan out.
   await query("UPDATE canvas_sync_jobs SET status='cancelled',lease_token=null WHERE user_id='fixture' AND status IN ('pending','running')")
   await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type) VALUES('csj-preview-allowed','fixture','https://canvas.fixture','binding','course')")
   await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,job_type) VALUES('csj-preview-denied','credential-student','https://credentials.fixture','catalog')")
   process.env.VERCEL_ENV='preview'
-  process.env.DATABASE_URL='postgres://test:fixture@preview.test/db'
+  process.env.DATABASE_URL='postgres://preview.test/db'
   process.env.WICKER_PREVIEW_DATABASE_HOST='preview.test'
   process.env.WICKER_PREVIEW_WORKER_USERS='fixture'
   const jobsBefore=(await one('SELECT count(*) n FROM canvas_sync_jobs')).n
@@ -261,5 +276,5 @@ try {
   process.env.DATABASE_URL='postgres://test:fixture@production.test/db'
   assert.deepEqual(await dispatchCanvasQueue(),[])
   assert.equal((await processCanvasQueueStep('csj-preview-allowed')).disabled,true)
-  console.log(JSON.stringify({ok:true,checks:['byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation','preview database guard','preview account isolation','preview manual-only scheduling'],downloads,embeddingCalls,passages:Number(total.n)}))
+  console.log(JSON.stringify({ok:true,checks:['metadata-only freshness and owner isolation','byte-range recovery','no premature completeness','byte-exact durable video','duplicate delivery','expired lease','embedding batch recovery','retry reuse','unchanged refresh reuse','changed and unversioned refresh','latest current-period selection','pause and opt-out respected','refresh cadence and duplicate dispatch','stop fencing','expired-message recovery','hard-timeout isolation','materials retrieval across classifications','source pagination and access isolation','preview database guard','preview account isolation','preview manual-only scheduling'],downloads,embeddingCalls,passages:Number(total.n)}))
 }finally{globalThis.fetch=originalFetch;await pool.end();mock.restoreAll()}

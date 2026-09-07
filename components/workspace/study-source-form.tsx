@@ -35,15 +35,18 @@ export function StudySourceForm({
   course,
   versionId,
   initialKeys,
+  execution: initialExecution = 'hosted',
   onDone,
   onCancel
 }: {
   course: StudyCourseIdentity
   versionId?: string
   initialKeys?: string[]
+  execution?: 'hosted' | 'local'
   onDone: (id: string) => void
   onCancel: () => void
 }) {
+  const [execution, setExecution] = useState<'hosted' | 'local'>(initialExecution)
   const [billingSource, setBillingSource] = useState('platform'),
     [cap, setCap] = useState('1'),
     [quality, setQuality] = useState('standard'),
@@ -152,6 +155,11 @@ export function StudySourceForm({
         billingSource,
         quality,
         maxJobUsd: Number(cap)
+      }
+      if (execution === 'local') {
+        const result = await studyRequest<{version:{id:string}}>(versionId ? `/api/study-versions/${versionId}/local/refresh` : '/api/study-versions/local', payload)
+        onDone(result.version.id)
+        return
       }
       if (!estimate) {
         setEstimate(
@@ -391,15 +399,16 @@ export function StudySourceForm({
           </>
         )}
       </FieldGroup>
-      <StudyBillingFields
+      {!versionId && <Field><FieldLabel htmlFor="study-execution">Generate with</FieldLabel><select id="study-execution" className="h-10 rounded-lg border bg-background px-3 text-sm" value={execution} onChange={e=>setExecution(e.target.value as 'hosted' | 'local')}><option value="hosted">Wicker Study</option><option value="local">Local agent through MCP</option></select></Field>}
+      {execution === 'local' ? <p className="text-sm text-muted-foreground">Prepare the guide here, then ask your connected local agent to generate it. Your agent receives the same teaching instructions and source evidence; the platform checks each result. Your local subscription or model costs apply.</p> : <StudyBillingFields
         quality={quality}
         setQuality={setQuality}
         source={billingSource}
         setSource={setBillingSource}
         cap={cap}
         setCap={setCap}
-      />
-      {estimate && (
+      />}
+      {execution !== 'local' && estimate && (
         <Alert>
           <AlertDescription>
             <span>
@@ -412,7 +421,7 @@ export function StudySourceForm({
           </AlertDescription>
         </Alert>
       )}
-      {!configured && billingSource === 'platform' && (
+      {execution !== 'local' && !configured && billingSource === 'platform' && (
         <Alert>
           <AlertDescription>
             Platform generation is unavailable in this environment. You can
@@ -431,7 +440,7 @@ export function StudySourceForm({
           disabled={busy || noteBusy || !year || !chosen.length}
         >
           {busy && <Spinner data-icon="inline-start" />}
-          {!estimate
+          {execution === 'local' ? 'Prepare for local generation' : !estimate
             ? 'Review generation estimate'
             : versionId
               ? 'Generate updated revision'
@@ -441,11 +450,11 @@ export function StudySourceForm({
           Cancel
         </Button>
       </div>
-      <p className="text-muted-foreground text-xs">
+      {execution !== 'local' && <p className="text-muted-foreground text-xs">
         Generation uses your AI allowance. Source reading, chapter writing and
         evidence checks are saved as they finish. The full course may still be
         incomplete.
-      </p>
+      </p>}
     </section>
   )
 }

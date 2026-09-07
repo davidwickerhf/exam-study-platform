@@ -4,13 +4,13 @@ import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queu
 import { continueCurrentCanvasStep } from '../lib/queue-runtime.mjs'
 import { verifyCanvasTask } from '../lib/canvas-queue-protocol.mjs'
 
-const preview = { VERCEL_ENV: 'preview', DATABASE_URL: 'postgres://test:fixture@preview.test/db',
+const preview = { VERCEL_ENV: 'preview', DATABASE_URL: 'postgres://preview.test/db',
   WICKER_PREVIEW_DATABASE_HOST: 'preview.test', WICKER_PREVIEW_WORKER_USERS: 'student-one, student-two',
   VERCEL_BRANCH_URL: 'branch.vercel.app', VERCEL_URL: 'deployment.vercel.app',
   VERCEL_PROJECT_PRODUCTION_URL: 'production.example' }
 test('preview queue requires an explicit database and test-account configuration', () => {
   assert.equal(queueWorkersEnabled(preview), true)
-  for (const patch of [{ DATABASE_URL: 'postgres://test:fixture@production.test/db' },
+  for (const patch of [{ DATABASE_URL: 'postgres://production.test/db' },
     { DATABASE_URL: '' }, { WICKER_PREVIEW_DATABASE_HOST: '' }, { WICKER_PREVIEW_WORKER_USERS: '' }]) {
     assert.equal(queueWorkersEnabled({ ...preview, ...patch }), false)
   }

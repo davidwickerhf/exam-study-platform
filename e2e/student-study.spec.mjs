@@ -422,7 +422,9 @@ test('calendar keeps mandatory attendance prominent and filters obligations in w
   await expect(required).toContainText('Mandatory attendance')
   await expect(required).toContainText('attended')
   await expect(page.locator('[data-calendar-event-id="unknown-tutorial"]')).toContainText('Attendance requirement unknown')
-  await page.getByRole('button',{name:'Obligations only',exact:true}).click()
+  const filters=page.getByRole('group',{name:'Filter calendar events'})
+  await filters.getByRole('button',{name:'Mandatory attendance',exact:true}).click()
+  await filters.getByRole('button',{name:'Exams & deadlines',exact:true}).click()
   await expect(page.locator('[data-calendar-event-id="unknown-tutorial"]')).toHaveCount(0)
   await expect(required).toBeVisible()
   await expect(page.locator('[data-calendar-event-id="dated-exam"]')).toContainText('Exam')
@@ -1509,4 +1511,50 @@ test('calendar attendance renders optimistically, reopens a closed sidebar, and 
   await page.setViewportSize({width:390,height:844})
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   await page.screenshot({path:'/tmp/calendar-optimistic-mobile.png'})
+})
+
+test('calendar filters include late Canvas deadlines above the timetable with exact time in the details',async({page})=>{
+  const day=new Date(), date=`${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`
+  const events=[{id:'late-canvas-deadline',title:'Operating Systems · Lab 1',courseName:'Operating Systems',courseCode:'BCS2140',category:'canvas-deadline',source:'canvas',start:`${date}T23:59:00`,end:null,allDay:false},
+  {id:'filtered-lecture',title:'AI lecture',courseName:'AI',courseCode:'BCS2120',category:'timetable',source:'feed',start:`${date}T10:00:00`,end:`${date}T12:00:00`,allDay:false,attendanceEligible:true,attendanceRequired:true,attendanceStatus:'attended'}]
+  await page.route('**/api/calendar/events',route=>route.fulfill({json:{events,categories:{},courses:[],problems:[],feeds:[],canvas:{connected:true},attendance:{summary:{missed:0,unmarked:0,rate:null},courses:[]}}}))
+  await page.route('**/api/academics',route=>route.fulfill({json:{workspace:{revision:1,courses:[]}}}))
+  await page.goto('/app/calendar')
+  const deadline=page.locator('[data-calendar-event-id="late-canvas-deadline"]'),lecture=page.locator('[data-calendar-event-id="filtered-lecture"]')
+  await expect(deadline).toBeVisible()
+  await expect(deadline).toContainText('Due 23:59')
+  const filters=page.getByRole('group',{name:'Filter calendar events'})
+  await filters.getByRole('button',{name:'Exams & deadlines',exact:true}).click()
+  await expect(lecture).toHaveCount(0)
+  await expect(deadline).toBeVisible()
+  await filters.getByRole('button',{name:'Mandatory attendance',exact:true}).click()
+  await expect(lecture).toBeVisible()
+  await filters.getByRole('button',{name:'All events',exact:true}).click()
+  await deadline.click()
+  await expect(page.getByRole('complementary',{name:'Day desk',exact:true})).toContainText('23:59')
+  await page.screenshot({path:'/tmp/calendar-filters-deadlines.png'})
+})
+
+test('local generation can start from the source picker and opens a resumable MCP handoff without billing',async({page})=>{
+  let localId,hostedCalls=0
+  await page.route('**/api/state',route=>route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
+  await page.route('**/api/study-versions/estimate',route=>{hostedCalls++;return route.fulfill({status:500,json:{error:'Hosted billing must not be called'}})})
+  await page.goto(`/app/study/${versionId}`)
+  // The ordinary course create flow uses the same source form.
+  await page.goto('/app/courses/CS101?year=2026-2027')
+  await page.getByRole('button',{name:'Create study guide',exact:true}).click()
+  await page.getByLabel('Version name').fill('Locally generated test guide')
+  await page.locator('#study-execution').selectOption('local')
+  await expect(page.getByText('Your local subscription or model costs apply.',{exact:false})).toBeVisible()
+  const responsePromise=page.waitForResponse(r=>r.url().endsWith('/api/study-versions/local')&&r.request().method()==='POST')
+  await page.getByRole('button',{name:'Prepare for local generation',exact:true}).click()
+  const response=await responsePromise
+  expect(response.status()).toBe(201)
+  localId=(await response.json()).version.id
+  await expect(page).toHaveURL(new RegExp(`/app/study/${localId}`))
+  await expect(page.getByText('Waiting for your local agent',{exact:true})).toBeVisible()
+  await expect(page.getByText(/Continue local study generation for/)).toContainText(localId)
+  expect(hostedCalls).toBe(0)
+  await expect(page.getByText('Generation quality',{exact:true})).toHaveCount(0)
+  await page.screenshot({path:'/tmp/local-generation-handoff.png'})
 })

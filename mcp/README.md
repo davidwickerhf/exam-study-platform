@@ -17,7 +17,7 @@ the MCP server.
 For a manually supplied key, the same secure bootstrap is available as:
 
 ```sh
-WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.10.0 configure
+WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.11.0 configure
 ```
 
 ```jsonc
@@ -100,7 +100,7 @@ authoritative list of endpoints and scopes.
 
 Direct context reads do not call the model. `tutor_ask` uses the student's AI allowance and can prepare attendance changes, assignment/catch-up trackers, group milestones, focused practice, diagnostics and rubric-based draft reviews. Reuse conversation IDs. Approve only the exact proposal the student reviewed; receipts prevent double application. No tool sends email or submits assignments to Canvas. Personal completion is separate from Canvas submission status.
 
-Update an installed client to `wicker-study-mcp@2.10.0` and restart its MCP connection to discover the new tools. The companion skill is served at [SKILL.md](https://study.wicker.life/skills/wicker-study/SKILL.md); re-download it to update an existing copy.
+Update an installed client to `wicker-study-mcp@2.11.0` and restart its MCP connection to discover the new tools. The companion skill is served at [SKILL.md](https://study.wicker.life/skills/wicker-study/SKILL.md); re-download it to update an existing copy.
 
 ## Licence
 
@@ -152,7 +152,18 @@ Contact sharing is optional per report: use `shareContactEmail:true` only when t
 
 ```sh
 claude mcp remove --scope user wicker-study
-claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.10.0
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.11.0
 ```
 
 Restart Claude Code afterward. Removing the MCP registration does not remove Wicker’s saved credentials in `~/.config/wicker-study/config.json`; you do not need to run `configure` again. This updates Claude Code, not the separate Claude Desktop configuration.
+
+## Local study generation
+
+The 2.11.0 source adds `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. Install this repository checkout until that package version is published.
+
+1. Read the current contract and list the course edition’s sources. If needed, download originals with `canvas_import_remote_course`; inspect graphics and preserve page numbers. Add supplementary extraction as explicitly labelled local notes.
+2. Start the student-requested private run with its exact source selection, or continue a version prepared in the web UI.
+3. Fetch `study_generation_next`. Use its exact evidence, prompt and response schema to compute one complete response locally. Use a fresh critique context for review steps and report real findings.
+4. Submit with its `requestId` and `contractId`. Retry network failures with the identical payload. Fetch next again until complete. Failed content can be corrected with `retry:true`; ready chapters remain saved.
+
+Prompts and schemas are fetched from the deployed platform every step. An implementation fingerprint rejects submissions after pipeline changes; fetch next again. No platform generation worker, model call or AI allowance is used. Your local provider/subscription costs still apply. Local semantic reviews are agent-supplied; platform schema, citations and deterministic quality checks are enforced. This is not independent editorial verification, and nothing is shared automatically.

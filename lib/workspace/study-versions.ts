@@ -88,6 +88,7 @@ export type StudyVersion = {
   updatedAt: string
   history: { id: string; createdAt: string; chapters: number; reused: number; edit?: StudyEdit }[]
   draft: {
+    execution?: 'hosted' | 'local'
     id: string
     status: string
     stage: string
@@ -169,6 +170,8 @@ export function generationLabel(draft: StudyVersion['draft']) {
   if (draft.status === 'complete') return 'Revision ready'
   if (draft.status === 'failed') return 'Generation needs attention'
   if (draft.status === 'stopped') return 'Generation paused'
+  if (draft.status === 'waiting-local' || draft.status === 'local-ready') return 'Waiting for your local agent'
+  if (draft.status === 'local-running') return 'Checking your local result'
   if (draft.stage === 'mapping')
     return `Reading sources · ${draft.mapped} of ${draft.batches} batches`
   if (draft.stage === 'outline') return 'Organizing chapters'

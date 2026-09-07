@@ -1,5 +1,4 @@
 // Real local API + Next, with a disposable account and no provider credentials.
-import { spawn } from 'node:child_process'
 const env = {
   ...process.env,
   NODE_ENV: 'development',
@@ -19,7 +18,11 @@ const env = {
   VERCEL_ENV: '',
   WICKER_API_ORIGIN: ''
 }
-const child = spawn(process.execPath, ['server.mjs'], { env, stdio: 'inherit' })
-for (const signal of ['SIGINT', 'SIGTERM'])
-  process.on(signal, () => child.kill(signal))
-child.on('exit', (code) => process.exit(code || 0))
+// The browser suite drives dozens of separate browser contexts through one
+// disposable account. Do not let aggregate fixture traffic throttle later
+// tests; the limiter itself is covered by rate-limit.test.mjs. This runs only
+// in this test launcher, never in the production server.
+Object.assign(process.env, env)
+const { resetRateLimits } = await import('../../lib/rate-limit.mjs')
+setInterval(resetRateLimits, 5000).unref()
+await import('../../server.mjs')

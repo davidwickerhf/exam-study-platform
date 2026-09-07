@@ -43,6 +43,7 @@ import { processStudyStep } from './lib/study-version-pipeline.mjs'
 import { pendingStudyVersions, claimStudyDispatch, resolveStudyJob, asStudyOwner } from './lib/study-version-store.mjs'
 import { openAiResponseText } from './lib/study-provider-output.mjs'
 import { digest as studyDigest, StudyVersionError } from './lib/study-version-content.mjs'
+import { studyProviderError } from './lib/study-provider-errors.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
 import { storeImportedProgramme } from './lib/academics.mjs'
 import {
@@ -1435,8 +1436,7 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
       body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
     })
     if (!resp.ok) {
-      const errText = await resp.text().catch(() => '')
-      throw new Error(`Anthropic API ${resp.status}: ${errText.slice(0, 500)}`)
+      throw await studyProviderError(resp)
     }
     const data = await resp.json()
     const text = (data.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim()
@@ -1492,8 +1492,7 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
       body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
     })
     if (!resp.ok) {
-      await resp.body?.cancel()
-      throw new StudyVersionError(`The AI provider returned HTTP ${resp.status}. Check the model connection and retry the unfinished step.`, 502)
+      throw await studyProviderError(resp)
     }
     const data = await resp.json()
     const text = openAiResponseText(data)
