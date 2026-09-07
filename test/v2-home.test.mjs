@@ -187,3 +187,34 @@ test('home priorities stay empty when no source records an obligation', () => {
     courses: []
   }), [])
 })
+
+test('recurring attendance occupies one slot and other courses compete by due date', () => {
+  const events = [24, 3, 17, 10].map((days, i) => ({id:`block-${i}`,category:'timetable',courseCode:'BCS3210',courseName:'Block Chains',activity:'Lab',title:'Lab',start:new Date(Date.UTC(2026,8,6+days,9)).toISOString()}))
+  const courses = [{id:'block',code:'BCS3210',ruleAcademicYear:'2026-2027',courseProfile:{assessment:{status:'confirmed',attendanceRules:['Labs are mandatory.']}}}]
+  const assignments = [
+    {id:'os',courseCode:'BCS2140',title:'OS assignment',dueAt:'2026-09-07T12:00:00Z',status:'upcoming'},
+    {id:'ai',courseCode:'BCS2120',title:'AI assignment',dueAt:'2026-09-10T12:00:00Z',status:'upcoming'}
+  ]
+  events.push({...events[0]}, {id:'stats',category:'exam',courseCode:'BCS1520',title:'Statistics exam',start:'2026-09-08T09:00:00Z'})
+  const priorities = homePriorities({now:Date.parse('2026-09-06'),events,courses,assignments})
+  assert.deepEqual(priorities.map(p=>p.courseCode), ['BCS2140','BCS1520','BCS3210','BCS2120'])
+  assert.equal(priorities[2].occurrences,4)
+  assert.equal(priorities[2].dueAt,'2026-09-09T09:00:00.000Z')
+})
+
+test('Home shares attendance matching for plural labs, practicals, editions and conflicting rules', () => {
+  const events = [{id:'lab',category:'timetable',courseCode:'OS',activity:'Practical',title:'Operating Systems',start:'2026-09-09T09:00:00Z'}]
+  const course = {id:'os',code:'OS',ruleAcademicYear:'2026-2027',courseProfile:{assessment:{status:'confirmed',attendanceRules:['Labs are mandatory.']}}}
+  const input = {now:Date.parse('2026-09-06'),events,courses:[course]}
+  assert.equal(homePriorities(input).length,1)
+  assert.deepEqual(homePriorities({...input,courses:[{...course,ruleAcademicYear:'2025-2026'}]}),[])
+  assert.deepEqual(homePriorities({...input,courses:[{...course,courseProfile:{assessment:{status:'confirmed',attendanceRules:['Labs are mandatory.','Labs are optional.']}}}]}),[])
+})
+
+test('attendance grouping preserves separate courses and obligations and urgent submissions', () => {
+  const events = ['A','B'].flatMap(code=>['Lab','Lecture'].map(activity=>({id:code+activity,courseCode:code,category:'timetable',activity,title:`Mandatory ${activity}`,start:'2026-09-09T09:00:00Z'})))
+  const priorities = homePriorities({now:Date.parse('2026-09-06'),events,assignments:[{id:'missing',title:'Missing work',status:'missing',dueAt:null}],limit:10})
+  assert.equal(priorities[0].id,'assignment:missing')
+  assert.equal(priorities.length,5)
+  assert.ok(priorities.slice(1).every(p=>p.occurrences===1))
+})

@@ -2,9 +2,27 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { programmePriorityCourses } from '../lib/priority-courses.mjs'
 import { supportedCourseAssessment } from '../lib/course-rule-evidence.mjs'
-import { normalizeScan, priorityEvidenceCandidates } from '../lib/priority-evidence.mjs'
+import { normalizeScan, priorityEvidenceCandidates, literalAttendanceEvidence } from '../lib/priority-evidence.mjs'
 import { homePriorities } from '../lib/workspace/home.mjs'
 const claim = (id, name) => ({ name, type: 'project', deadline: '2026-09-10', evidence: [{ chunkId: id }] })
+test('explicit syllabus lab attendance is retained when a model misses it, with exact source references', () => {
+  const rows = [{chunkId:11,sourceType:'syllabus',content:'Laboratory sessions are mandatory. Lectures are optional.'}]
+  const result = normalizeScan({status:'not-found'},rows)
+  assert.equal(result.status,'confirmed')
+  assert.equal(result.courseProfile.assessment.attendanceEvidence[0].activity,'lab')
+  assert.deepEqual(result.courseProfile.assessment.attendanceEvidence[0].evidence,[{chunkId:11}])
+  assert.equal(literalAttendanceEvidence([{chunkId:12,sourceType:'slides',content:'Labs are mandatory.'}]).length,0)
+  assert.equal(literalAttendanceEvidence([{chunkId:13,sourceType:'syllabus',content:'Labs are mandatory only if you did not pass the project last year.'}]).length,0)
+  assert.equal(normalizeScan({status:'not-found'},[...rows,{chunkId:14,sourceType:'syllabus',content:'Labs are optional.'}]).status,'needs-review')
+})
+test('older or undated editorial rules cannot override the current syllabus', () => {
+  const workspace={profile:{academicYear:'2026-2027'},courses:[{code:'BCS2140',name:'Operating Systems'}]}
+  const old={assessment:{status:'confirmed',attendanceRules:['Labs are optional.']}}, current={assessment:{status:'confirmed',attendanceRules:['Labs are mandatory.']}}
+  for (const editorialEdition of [undefined,{academicYear:'2025-2026'}]) {
+    const result=programmePriorityCourses(workspace,[{code:'BCS2140',courseProfile:old,editorialEdition}],[{courseCode:'BCS2140',academicYear:'2026-2027',courseProfile:current}])
+    assert.equal(result[0].courseProfile,current)
+  }
+})
 test('current course rules include courses without editorial content and exclude older sittings', () => {
   const workspace = { profile: { academicYear: '2026–2027' }, courses: [{ id: 'record', code: 'BCS3300', name: 'Project 3-1' }] }
   const profile = { assessment: { status: 'confirmed', components: [claim(1, 'Project pitch')] } }
@@ -46,6 +64,35 @@ test('a long syllabus cannot starve introductory slides from the evidence budget
 test('confirmed editorial rules survive inconclusive Canvas scans', () => {
   const workspace = { profile: { academicYear: '2026-2027' }, courses: [{ code: 'BCS3300', name: 'Project' }] }
   const courseProfile = { assessment: { status: 'confirmed', components: [claim(1, 'Confirmed')] } }
-  const courses = programmePriorityCourses(workspace, [{ id: 'project', code: 'BCS3300', courseProfile }], [{ courseCode: 'BCS3300', academicYear: '2026-2027', courseProfile: { assessment: { status: 'not-found' } } }])
+  const courses = programmePriorityCourses(workspace, [{ id: 'project', code: 'BCS3300', editorialEdition:{academicYear:'2026-2027'}, courseProfile }], [{ courseCode: 'BCS3300', academicYear: '2026-2027', courseProfile: { assessment: { status: 'not-found' } } }])
   assert.equal(courses[0].courseProfile, courseProfile)
+})
+
+test('literal attendance extraction preserves wrapped conditions and does not infer optionality', () => {
+  for (const content of ['Labs are mandatory\nfor students who have not previously passed.', 'Labs are mandatory. Exceptions may be granted.', 'No policy has been supplied.']) {
+    const scan = normalizeScan({status:'not-found'}, [{chunkId:1,filename:'course-manual.pdf',sourceType:'syllabus',content}])
+    assert.equal(scan.courseProfile.assessment.attendanceEvidence.length, 0)
+  }
+})
+
+test('provider failure does not discard independently literal attendance and preserves other claims', async()=>{
+  const {recoverLiteralAttendance}=await import('../lib/priority-evidence.mjs')
+  const rows=[{chunkId:1,assetId:'manual',filename:'coursemanual.pdf',page:2,content:'Assignments. Attendance and\nparticipation in these debates counts for 10% of your final grade (pass/fail). Final Exam. The exam lasts two hours. Resit. Except for the assignments.',sourceType:'materials'}]
+  const profile=recoverLiteralAttendance({assessment:{status:'needs-review',components:[claim(99,'Unchanged')],conflicts:[{title:'Priority scan allowance reached',chunkIds:[1,99]}]}},rows)
+  const supported=supportedCourseAssessment({courseProfile:profile})
+  assert.equal(supported.attendanceEvidence[0].participationAssessed,true)
+  assert.equal(supported.attendanceEvidence[0].activity,'debate')
+  assert.equal(supported.attendanceEvidence[0].evidence[0].assetId,'manual')
+  assert.equal(profile.assessment.components[0].name,'Unchanged')
+  assert.equal(supported.components.length,0,'a literal fallback does not endorse failed model claims')
+  profile.assessment.conflicts.push({title:'Conflicting attendance requirements',chunkIds:[1]})
+  assert.equal(supportedCourseAssessment({courseProfile:profile}),null)
+})
+
+test('literal verification uses the actual source activity and references, not model-supplied metadata',()=>{
+  const scan=normalizeScan({status:'confirmed',attendanceRules:[{text:'Labs are mandatory',activity:'lecture',evidence:[{chunkId:2}]}]},[{chunkId:1,sourceType:'syllabus',content:'Labs are mandatory.'},{chunkId:2,sourceType:'slides',content:'Lecture notes'}])
+  const rule=scan.courseProfile.assessment.attendanceEvidence[0]
+  assert.equal(rule.activity,'lab')
+  assert.deepEqual(rule.evidence,[{chunkId:1}])
+  assert.equal(rule.verification,'literal')
 })

@@ -589,9 +589,19 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
     try {
       const assignment = initial && Object.hasOwn(initial, 'description') ? initial : await api.getJson(`/api/v1/courses/${encodeURIComponent(canvas.courseId)}/assignments/${encodeURIComponent(id)}`)
       const title = assignment.name || source.title || 'Canvas assignment'
+      source = { ...source, assignmentId: id, assignmentTitle: title }
       const outputPath = pagePath(join(base, 'assignments'), position, title, `assignment-${id}`)
       await write(outputPath, htmlRecord({ title, url: assignment.html_url, body: assignment.description, details: [['Due', assignment.due_at], ['Unlocks', assignment.unlock_at], ['Available until', assignment.lock_at], ['Points possible', assignment.points_possible], ['Submission types', (assignment.submission_types || []).join(', ')], ['Grading type', assignment.grading_type]] }))
       const links = uniqueLinks(assignment.description, assignment.html_url || `${canvas.origin}/courses/${canvas.courseId}/assignments/${id}`, canvas.origin, canvas.courseId)
+      // Some courses expose attachments as structured file objects, in addition
+      // to links in the assignment HTML. Resolve through the course file API.
+      for (const attachment of Array.isArray(assignment.attachments) ? assignment.attachments : []) {
+        const fileId = String(attachment.id || '')
+        if (/^\d+$/.test(fileId)) {
+          linkedFilePosition++
+          await importFile(fileId, join(root, 'linked-files'), linkedFilePosition, { ...source, itemType: 'Assignment attachment', title: attachment.display_name || attachment.filename || title })
+        }
+      }
       records.push({ kind: 'assignment', id, source, path: outputPath.slice(root.length + 1), canvasUrl: assignment.html_url || null, links })
       await indexAndFollowLinks({ title, pageUrl: assignment.html_url || `${canvas.origin}/courses/${canvas.courseId}/assignments/${id}`, body: assignment.description, outputPath, source, id: `assignment-${id}`, links })
       return outputPath
@@ -665,7 +675,7 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
   async function importTextItem(item, moduleBase, module) {
     const kind = String(item.type || '').toLowerCase()
     const itemId = String(item.id || item.content_id || `${module?.id || 'course'}-${item.position || 0}`)
-    const source = { moduleId: module?.id || null, moduleName: module?.name || null, itemId, itemType: item.type || 'Unknown', title: text(item.title, 300) }
+    const source = { moduleId: module?.id || null, moduleName: module?.name || null, modulePosition: module?.position ?? null, itemPosition: item.position ?? null, itemId, itemType: item.type || 'Unknown', title: text(item.title, 300) }
     if (kind === 'file') return importFile(item.content_id || item.content_details?.content_id, moduleBase, item.position, source)
     if (kind === 'subheader') return null
     try {
@@ -704,7 +714,7 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
 
   for (const module of selectedModules.sort((left, right) => number(left.position) - number(right.position))) {
     const moduleBase = join(root, 'modules', `${prefix(module.position)} ${safeSegment(module.name)}--module-${safeSegment(module.id)}`)
-    if (durable) module.items = await api.getPaged(`/api/v1/courses/${encodeURIComponent(canvas.courseId)}/modules/${encodeURIComponent(module.id)}/items?per_page=100`)
+    if (durable || !Array.isArray(module.items) || Number(module.items_count) > module.items.length) module.items = await api.getPaged(`/api/v1/courses/${encodeURIComponent(canvas.courseId)}/modules/${encodeURIComponent(module.id)}/items?per_page=100`)
     const hierarchy = []
     for (const item of (Array.isArray(module.items) ? module.items : []).sort((left, right) => number(left.position) - number(right.position))) {
       const indent = Math.min(12, Math.max(0, number(item.indent)))

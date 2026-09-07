@@ -277,7 +277,7 @@ export function AnswerControl({
                   disabled={disabled}
                   className="peer sr-only"
                 />
-                <span className="peer-focus-visible:ring-ring absolute inset-1 rounded-md peer-focus-visible:ring-3" />
+                <span className="pointer-events-none peer-focus-visible:ring-ring absolute inset-1 rounded-md peer-focus-visible:ring-3" />
                 <OptionMark checked={checked} label={index === 0 ? "T" : "F"} />
                 <span className="relative pt-0.5 text-[15px] font-semibold">
                   {option}
@@ -335,7 +335,7 @@ export function AnswerControl({
                 disabled={disabled}
                 className="peer sr-only"
               />
-              <span className="peer-focus-visible:ring-ring absolute inset-1 rounded-md peer-focus-visible:ring-3" />
+              <span className="pointer-events-none peer-focus-visible:ring-ring absolute inset-1 rounded-md peer-focus-visible:ring-3" />
               <OptionMark
                 checked={checked}
                 label={String.fromCharCode(65 + index)}

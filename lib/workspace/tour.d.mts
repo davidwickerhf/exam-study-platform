@@ -2,3 +2,5 @@ export type TourStep = { id: string; route: string; target: string; fallback?: s
 export type TourRect = { left: number; top: number; right: number; bottom: number; width: number; height: number }
 export declare const TOUR_STEPS: readonly TourStep[]
 export declare function tourPosition(anchor: TourRect | null, panel: { width: number; height: number }, viewport: { width: number; height: number }): { left: number; top: number; width: number }
+
+export declare const TOUR_PREFETCH: Readonly<Record<string, readonly string[]>>

@@ -65,3 +65,10 @@ data/cache/questions/cyber-*.json
 data/cache/questions/it-*.json
 .vercel
 .env*
+
+# Browser verification artifacts
+playwright-report/
+test-results/
+
+# Versioned PDF.js viewer runtime, copied from the locked dependency
+/public/vendor/pdfjs/

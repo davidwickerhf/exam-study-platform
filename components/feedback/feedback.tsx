@@ -77,7 +77,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         .catch(() => {});
     }, 1500);
     const click = (event: MouseEvent) => {
-      const target = (event.target as Element)?.closest("a");
+      const target = (event.target as Element)?.closest<HTMLAnchorElement>("a[href]");
       if (!target || event.metaKey || event.ctrlKey || event.button !== 0)
         return;
       const url = new URL(target.href);

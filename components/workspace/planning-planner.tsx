@@ -1,5 +1,7 @@
 'use client'
 
+import { cachedWorkspaceJson } from "@/hooks/use-workspace-data"
+
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { AlertTriangleIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, GripVerticalIcon, LockIcon, RotateCcwIcon, TargetIcon } from 'lucide-react'
@@ -196,8 +198,7 @@ export function PlanningPlanner() {
 
   useEffect(() => {
     let live = true
-    fetch('/api/academics', { headers: { accept: 'application/json' } })
-      .then(readResponse)
+    cachedWorkspaceJson<AcademicState>('/api/academics')
       .then((state) => {
         if (!live) return
         setWorkspace(state.workspace)
@@ -289,7 +290,7 @@ export function PlanningPlanner() {
   }
 
   if (!workspace && error) return <Empty><EmptyHeader><EmptyTitle>The plan could not be read</EmptyTitle><EmptyDescription>{error}</EmptyDescription></EmptyHeader></Empty>
-  if (!workspace || !draft || !summary) return <div className="flex h-full min-h-[520px] flex-col gap-3"><Skeleton className="h-20 w-full" /><Skeleton className="min-h-0 flex-1" /></div>
+  if (!workspace || !draft || !summary) return <div data-tour-loading="true" className="flex h-full min-h-[520px] flex-col gap-3"><Skeleton className="h-20 w-full" /><Skeleton className="min-h-0 flex-1" /></div>
   if (!draft.courses.length) return <Empty className="min-h-[520px]"><EmptyHeader><EmptyTitle>No courses to plan yet</EmptyTitle><EmptyDescription>Add courses in the Courses tab or finish programme setup. The session board will use your own academic calendar and exam records.</EmptyDescription></EmptyHeader></Empty>
 
   const goal = draft.gates[0]

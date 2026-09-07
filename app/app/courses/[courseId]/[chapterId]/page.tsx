@@ -46,8 +46,8 @@ import { neighbours, outlineOf, readingMinutes } from '@/lib/workspace/chapter.m
 import { COURSE_RETURN_KEY, type StudyCourse, isMaterialPath, materialName, readKey } from '@/lib/workspace/courses.mjs'
 import { type PracticeQuestion, gradeRequest, usableOptions } from '@/lib/workspace/practice.mjs'
 import { cachedWorkspaceJson } from '@/hooks/use-workspace-data'
-import dynamic from 'next/dynamic'
-const TutorWorkspace = dynamic(() => import('@/app/app/tutor/tutor-workspace').then(module => module.TutorWorkspace), { loading: () => <p className="p-5 text-sm text-muted-foreground">Opening Tutor…</p> })
+import {StudyDesk,useStudyDesk} from '@/components/workspace/study-desk'
+import {CourseTutorEntry} from '@/components/workspace/course-tutor-entry'
 
 type Payload = { title: string; content: string; examples?: string | null }
 
@@ -107,13 +107,18 @@ const inkPlugins = () => ({
 })
 
 export default function ChapterPage() {
+  const params=useParams<{courseId:string}>()
+  return <StudyDesk key={params.courseId}><ChapterContent/></StudyDesk>
+}
+
+function ChapterContent() {
+  const desk=useStudyDesk()
   const params = useParams<{ courseId: string; chapterId: string; relPath?: string[] }>()
   const router = useRouter()
   const [payload, setPayload] = useState<Payload | null>(null)
   const [course, setCourse] = useState<StudyCourse | null>(null)
   const [read, setRead] = useState(false)
   const [outlineOpen, setOutlineOpen] = useState(false)
-  const [tutorOpen, setTutorOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [questions, setQuestions] = useState<PracticeQuestion[] | null>(null)
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -123,6 +128,7 @@ export default function ChapterPage() {
   const [practiceBusy, setPracticeBusy] = useState(false)
   const [practiceError, setPracticeError] = useState<string | null>(null)
   const [deck, setDeck] = useState<Set<string>>(new Set())
+  const tutorContext={courseId:course?.id || params.courseId,courseCode:course?.code,courseName:course?.name,chapterId:params.chapterId,chapterName:payload?.title,courseTab:'chapter',courseTabLabel:payload?.title || 'Chapter',sourcePath:course?.chapters?.find(chapter=>chapter.id===params.chapterId)?.file}
   // True only for the first chapter opened from a course register: after that
   // the previous history entry is another chapter, not the register.
   const fromRegister = useRef(false)
@@ -276,6 +282,7 @@ export default function ChapterPage() {
             <><Skeleton className="h-8 w-80 max-w-full" /><Skeleton className="h-3 w-40" /></>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
+            <CourseTutorEntry context={tutorContext}/>
             <Button variant={read ? 'secondary' : 'outline'} size="sm" onClick={toggleRead} aria-pressed={read}>
               {read && <CheckIcon data-icon="inline-start" />}
               {read ? 'Read' : 'Mark as read'}
@@ -332,7 +339,7 @@ export default function ChapterPage() {
         {payload && (
           <section className="flex flex-col gap-4 px-5 sm:px-0" aria-labelledby="chapter-practice-title">
             <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-3"><div><h2 id="chapter-practice-title" className="text-base font-semibold">Practice questions</h2><p className="text-muted-foreground mt-1 text-sm">Published questions for this chapter. Checking an answer records study activity and adds it to your flashcard deck.</p></div>{questions && <span className={`text-muted-foreground text-sm ${NUMERALS}`}>{questions.length}</span>}</div>
-            {questions === null ? <Skeleton className="h-48 w-full" /> : !questions.length ? <Empty><EmptyHeader><EmptyTitle>No published questions</EmptyTitle><EmptyDescription>This chapter does not have a published question bank yet.</EmptyDescription></EmptyHeader></Empty> : currentQuestion && <div className="flex flex-col gap-4"><div className="flex items-center justify-between"><strong className={NUMERALS}>Question {questionIndex + 1} / {questions.length}</strong><span className="text-muted-foreground text-xs">{currentQuestion.type}</span></div><div className={INK_PROSE}><Markdown {...inkPlugins()}>{currentQuestion.question}</Markdown></div>{usableOptions(currentQuestion).length > 0 && <ol className="list-[lower-alpha] pl-5 text-sm">{usableOptions(currentQuestion).map((option) => <li key={option}>{option}</li>)}</ol>}<Textarea value={attempt} onChange={(event) => setAttempt(event.target.value)} placeholder="Write your answer…" disabled={practiceBusy} /><div className="flex flex-wrap gap-2"><Button onClick={() => void checkAnswer()} disabled={!attempt.trim() || practiceBusy}>{practiceBusy ? 'Checking…' : 'Check answer'}</Button><Button variant="outline" onClick={() => void addCard()} disabled={practiceBusy || deck.has(currentQuestion.id)}>{deck.has(currentQuestion.id) ? <CheckIcon data-icon="inline-start" /> : <PlusIcon data-icon="inline-start" />}{deck.has(currentQuestion.id) ? 'In flashcards' : 'Add to flashcards'}</Button>{currentQuestion.expected && <Button variant="ghost" onClick={() => setShowReference((shown) => !shown)}>{showReference ? 'Hide reference' : 'Reference answer'}</Button>}<Button variant="outline" onClick={() => setTutorOpen(true)}><MessageCircleIcon data-icon="inline-start" />Ask the tutor</Button></div>{showReference && currentQuestion.expected && <div className="bg-paper text-paper-ink rounded-[4px] p-5 text-sm leading-relaxed shadow-lg"><Markdown {...inkPlugins()}>{currentQuestion.expected}</Markdown></div>}{grade && <div className="bg-paper text-paper-ink rounded-[4px] p-5 shadow-lg"><strong className={NUMERALS}>{grade.score ?? '—'}/10</strong><div className="mt-3 text-sm leading-relaxed whitespace-pre-wrap">{grade.correction}</div></div>}{practiceError && <p role="alert" className="text-destructive text-sm">{practiceError}</p>}<div className="flex justify-between border-t pt-3"><Button variant="ghost" disabled={questionIndex === 0} onClick={() => moveQuestion(questionIndex - 1)}>Previous</Button><Button variant="ghost" disabled={questionIndex === questions.length - 1} onClick={() => moveQuestion(questionIndex + 1)}>Next</Button></div></div>}
+            {questions === null ? <Skeleton className="h-48 w-full" /> : !questions.length ? <Empty><EmptyHeader><EmptyTitle>No published questions</EmptyTitle><EmptyDescription>This chapter does not have a published question bank yet.</EmptyDescription></EmptyHeader></Empty> : currentQuestion && <div className="flex flex-col gap-4"><div className="flex items-center justify-between"><strong className={NUMERALS}>Question {questionIndex + 1} / {questions.length}</strong><span className="text-muted-foreground text-xs">{currentQuestion.type}</span></div><div className={INK_PROSE}><Markdown {...inkPlugins()}>{currentQuestion.question}</Markdown></div>{usableOptions(currentQuestion).length > 0 && <ol className="list-[lower-alpha] pl-5 text-sm">{usableOptions(currentQuestion).map((option) => <li key={option}>{option}</li>)}</ol>}<Textarea value={attempt} onChange={(event) => setAttempt(event.target.value)} placeholder="Write your answer…" disabled={practiceBusy} /><div className="flex flex-wrap gap-2"><Button onClick={() => void checkAnswer()} disabled={!attempt.trim() || practiceBusy}>{practiceBusy ? 'Checking…' : 'Check answer'}</Button><Button variant="outline" onClick={() => void addCard()} disabled={practiceBusy || deck.has(currentQuestion.id)}>{deck.has(currentQuestion.id) ? <CheckIcon data-icon="inline-start" /> : <PlusIcon data-icon="inline-start" />}{deck.has(currentQuestion.id) ? 'In flashcards' : 'Add to flashcards'}</Button>{currentQuestion.expected && <Button variant="ghost" onClick={() => setShowReference((shown) => !shown)}>{showReference ? 'Hide reference' : 'Reference answer'}</Button>}<Button variant="outline" onClick={()=>desk?.openCourseTutor()}><MessageCircleIcon data-icon="inline-start" />Ask the tutor</Button></div>{showReference && currentQuestion.expected && <div className="bg-paper text-paper-ink rounded-[4px] p-5 text-sm leading-relaxed shadow-lg"><Markdown {...inkPlugins()}>{currentQuestion.expected}</Markdown></div>}{grade && <div className="bg-paper text-paper-ink rounded-[4px] p-5 shadow-lg"><strong className={NUMERALS}>{grade.score ?? '—'}/10</strong><div className="mt-3 text-sm leading-relaxed whitespace-pre-wrap">{grade.correction}</div></div>}{practiceError && <p role="alert" className="text-destructive text-sm">{practiceError}</p>}<div className="flex justify-between border-t pt-3"><Button variant="ghost" disabled={questionIndex === 0} onClick={() => moveQuestion(questionIndex - 1)}>Previous</Button><Button variant="ghost" disabled={questionIndex === questions.length - 1} onClick={() => moveQuestion(questionIndex + 1)}>Next</Button></div></div>}
           </section>
         )}
 
@@ -370,12 +377,7 @@ export default function ChapterPage() {
           </nav>
         </SheetContent>
       </Sheet>
-      <Sheet open={tutorOpen} onOpenChange={setTutorOpen}>
-        <SheetContent side="right" className="w-[min(1120px,96vw)] max-w-none gap-0 overflow-hidden p-0 sm:max-w-none">
-          <SheetTitle className="sr-only">Tutor for {course?.code || params.courseId}</SheetTitle>
-          <TutorWorkspace embedded initialContext={{ courseId: course?.id || params.courseId, courseCode: course?.code, courseName: course?.name, chapterId: params.chapterId, chapterName: payload?.title, sourcePath: course?.chapters?.find((chapter) => chapter.id === params.chapterId)?.file }} />
-        </SheetContent>
-      </Sheet>
+
     </div>
   )
 }

@@ -13,7 +13,7 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 26)
+  assert.equal(tools.size, 35)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
@@ -47,7 +47,7 @@ test('standalone MCP publishes the new tools and schemas over stdio', async () =
   const transport = new StdioClientTransport({ command: process.execPath, args: [new URL('../mcp/server.mjs', import.meta.url).pathname], env: { PATH: process.env.PATH, WICKER_STUDY_URL: 'http://127.0.0.1:4177', WICKER_STUDY_API_KEY: 'wsk_fixture_never_sent' }, stderr: 'pipe' })
   try {
     await client.connect(transport)
-    assert.equal(client.getServerVersion().version, '2.10.0')
+    assert.equal(client.getServerVersion().version, '2.11.0')
     const listed = await client.listTools()
     for (const name of fixture().tools.keys()) assert.ok(listed.tools.some(tool => tool.name === name), name)
     const approval = listed.tools.find(tool => tool.name === 'tutor_approve_action')
@@ -67,4 +67,26 @@ test('MCP requires a fresh confirmation on student writes, including legacy tool
   }
   assert.equal(tools.get('get_attendance').schema.safeParse({}).success, true)
   assert.equal(tools.get('tutor_prepare_context').schema.safeParse({}).success, true)
+})
+
+test('Canvas groups MCP preserves course edition, host and selected team in the read-only API',async()=>{
+  const {call}=fixture()
+  const result=await call('canvas_groups',{courseCode:'KEN2220',academicYear:'2026-2027',groupId:'123',canvasUrl:'https://canvas.example.edu',refresh:true})
+  assert.equal(result.path,'/api/integrations/canvas/groups')
+  assert.deepEqual(result.query,{courseCode:'KEN2220',academicYear:'2026-2027',groupId:'123',canvasUrl:'https://canvas.example.edu',refresh:'1'})
+  assert.throws(()=>call('canvas_groups',{groupId:'../private'}))
+})
+
+test('local generation tools forward the live contract and idempotency fields without copying pipeline prompts',async()=>{
+  const {tools,call}=fixture()
+  assert.equal((await call('study_generation_contract')).path,'/api/study-versions/local/contract')
+  assert.throws(()=>call('study_generation_start',{courseCode:'CS101',academicYear:'2026-2027',sourceKeys:['note']}))
+  const started=await call('study_generation_start',{courseCode:'CS101',academicYear:'2026-2027',sourceKeys:['note'],confirmed:true})
+  assert.equal(started.path,'/api/study-versions/local')
+  assert.deepEqual(started.body.sourceKeys,['note'])
+  const next=await call('study_generation_next',{versionId:'sv-id',retry:true})
+  assert.deepEqual(next.body,{retry:true})
+  const submitted=await call('study_generation_submit',{versionId:'sv-id',requestId:'local-request',contractId:'deployed-hash',response:{issues:[]}})
+  assert.deepEqual(submitted.body,{requestId:'local-request',contractId:'deployed-hash',response:{issues:[]}})
+  assert.equal(tools.get('study_generation_next').schema.safeParse({versionId:'sv-id'}).success,true)
 })

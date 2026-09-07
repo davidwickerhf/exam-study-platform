@@ -105,6 +105,64 @@ and attendance for every selected academic course, including courses without
 published Wicker chapters. Independently supported requirements contribute even
 when another source passage is disputed; conflicting passages stay excluded.
 
+### Attendance requirements and unknowns
+
+A missing attendance rule is unknown, never evidence that attendance is optional.
+The course page distinguishes required, explicitly optional, and unknown sessions.
+Rules apply to the same academic year and teaching activity: practicals map to labs;
+a mandatory lab rule is not silently assigned to a tutorial or lecture. Mandatory
+rules without matching timetable sessions remain visible on the attendance page.
+Undated or older editorial rules cannot override current-year source evidence.
+
+Priority extraction version 4 also retains narrow, explicit syllabus sentences
+such as “Labs are mandatory”, with their source references, even when AI extraction
+misses them or is unavailable. Conditional or disputed rules are not inferred by
+this fallback. An attendance-only fallback does not establish complete assessment
+coverage. Existing accounts need the next derived-rule scan (or an explicit Canvas
+sync/retry) to replace cached extraction; this change does not rewrite stored user
+course data during deployment.
+
+### Home priority selection
+
+Home considers source-backed obligations across programme courses, Canvas assignments
+and dated exams. Repeated upcoming attendance sessions for the same course/rule share
+one row with the next date and the number of later sessions. Missing/overdue submissions
+remain first; other obligations compete by due date, with type only breaking ties.
+The four-row limit applies after grouping. Distinct rules and distinct courses remain
+separate. Home uses the same attendance matcher as the course page, including plural
+lab names, practical aliases, academic-year scoping and conflicting evidence.
+
+The rail reports how many rows are shown and how many courses have supported rules.
+Partial source coverage must not be interpreted as absence of obligations in the other
+courses. Grouping and ranking are deterministic and make no AI calls.
+
+### Recurring scans, cost and full priorities view
+
+The existing queue scheduler checks derived course rules every 24 hours and retries
+incomplete scans after six hours, with the existing one-hour duplicate-job guard.
+It respects collection consent, auto-refresh, paused editions, current periods and
+active programmes. Material collection triggers scans too. Syllabi, introductory
+slides and stored announcements are considered; announcements enter when material
+collection refreshes, rather than on every lightweight Canvas hub refresh.
+
+A hash of the extraction version and all relevant evidence avoids repeat model
+calls. Successful batches are cached privately per account/course binding. A scan
+makes at most four new model calls including retries; later scans reuse completed
+batches. Background scans use platform billing only, share atomic study allowances,
+and have a $0.20 ceiling per evidence revision for capped accounts. Development,
+preview and the verified owner accounts use the quota exemption documented in
+[the study cost contract](design/student-study-versions.md). Concurrency and input
+bounds still apply. At most 100 passages are selected; exceeding that bound is an
+explicit coverage gap, not a claim that every source was analysed. Conflicting
+assessment facts remain flagged with references instead of silently taking a value.
+
+`/app/priorities` expands Home's four-row rail into a searchable list with course
+and type filters, undated rules, conflicts and scan coverage. Refreshing this list
+reads existing records without invoking AI. Calendar event labels distinguish
+mandatory attendance, explicit optional attendance and unknown requirements;
+mandatory labels remain after marking attendance. Exams and deadlines have a
+separate emphasis, and an obligations-only filter is available.
+
 ### Controls for one course edition
 
 `POST /api/integrations/canvas/corpus/jobs/:id` accepts `action: "stop"` or
@@ -149,20 +207,56 @@ the viewer caches its last eight inspected archive members while open.
   an exhaustive searchable copy of every cell.
 - ZIP: a searchable inventory and previews of supported members. Indexing retains
   readable member paths and content; binary members remain in the original.
-- PPTX: numbered slide text; download the original for diagrams and exact layout.
-  PDF, image, audio and video retain their native viewers.
+- PDF: first-party PDF.js canvas rendering with page navigation, fit/zoom and an
+  accessible copyable page-text view. Authenticated fetch supplies bytes to the
+  worker. Documents are never embedded in blocked iframes or sent to an external
+  document-viewing service. PDF.js worker/fonts/decoders are copied from the pinned
+  dependency by `prebuild` and `pretest:e2e`, under a versioned local asset path.
+- PPT/PPTX: on-demand LibreOffice conversion to static PDF slide pages, preserving
+  graphics, charts and layout, with an extracted-text/notes alternative. Animations
+  remain in the original. Conversion is capped at 64 MB and 60 seconds, one deck at
+  a time per server, with deduplicated requests and a bounded 15-minute memory cache.
+  The private `/api/corpus/assets/<assetId>/slides.pdf` endpoint checks the same
+  current account access as downloading the original, before consulting the cache.
+  The API image includes LibreOffice and fallback fonts. Local use requires
+  `soffice` on PATH, or `LIBREOFFICE_PATH` pointing to its executable.
+- Images, audio and video retain native media controls. HTML files are inspected as
+  non-executing extracted text rather than embedded active documents.
 
 Interactive previews accept originals up to 64 MB and have a 20-second processing
 budget. Notebook, sheet and archive previews explicitly disclose display limits.
 Preview failure never deletes the original or marks collection as failed.
 The preview endpoint applies the same per-account corpus access check as downloads.
 
-Previously unsupported, now-supported originals and ZIPs indexed with the older
+Previously unsupported, now-supported originals and ZIP/PPTX/DOCX files indexed with the older
 format registry are re-extracted on the next fresh course sync without downloading
 unchanged bytes again. A retry resumes its existing checkpoints; use a fresh scan
 to upgrade already-completed resources. Legacy XLS parsing uses pinned
 `xlrd==2.0.2` in the API and worker images; for local Python installs, provide the
 same module on `PYTHONPATH`.
+
+
+### Slide extraction and visual coverage
+
+PPTX extraction joins formatting runs inside paragraphs without adding spaces or
+newlines, follows presentation relationships for slide order, and preserves table
+rows/cells and speaker notes (excluding page-number/header/footer placeholders).
+Preview text and retrieval use this same parser. Original alt descriptions remain
+explicitly attributed. Images, charts, diagrams and structured equations receive
+visual-coverage markers; flattened equation symbols are not presented as a correct
+formula. Diagram meaning and graph values are not inferred from text alone.
+
+These checks cost no model tokens. They preserve visual evidence for the viewer;
+they do not claim to interpret it. A future vision pass should analyze only selected
+slides that need it, cache by original hash + slide + extraction/model version,
+reserve image-token cost under the same billing cap, and cite the slide for every
+interpretation. Until such a pass exists, generation must disclose relevant visual
+gaps and avoid unsupported graph/diagram claims. AI visual interpretation is not
+silently enabled by opening a document.
+
+Extraction format version 4 upgrades existing indexes during a fresh course sync.
+Study source fingerprints include extracted evidence, so corrected text or newly
+extracted notes can trigger a refresh even when the original file SHA is unchanged.
 
 PowerPoint slide previews and indexed page citations follow the slide list and
 relationships saved in the presentation, including blank slides. Internal slide

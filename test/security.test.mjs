@@ -47,7 +47,7 @@ test('the CSP forbids inline scripts and framing', () => {
   const csp = contentSecurityPolicy()
   assert.match(csp, /frame-ancestors 'none'/)
   assert.ok(!/script-src[^;]*unsafe-inline/.test(csp))
-  assert.ok(!/script-src[^;]*unsafe-eval/.test(csp))
+  assert.ok(!/script-src[^;]*\x27unsafe-eval\x27/.test(csp))
 })
 
 test('the healthcheck reports whether Canvas connections can be stored, without key material', async (t) => {

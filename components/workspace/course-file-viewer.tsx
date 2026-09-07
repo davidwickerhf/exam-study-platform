@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { StudyProse } from "./study-prose";
 import {
   ArrowLeftIcon,
   FileCodeIcon,
@@ -141,17 +141,7 @@ export default function CourseFileViewer({ assetId }: { assetId: string }) {
                     </p>
                     {cell.type === "markdown" ? (
                       <div className="prose max-w-none text-sm leading-7 [&_h1]:text-xl [&_h2]:text-lg [&_p]:my-2 [&_a]:text-primary">
-                        <ReactMarkdown
-                          components={{
-                            img: () => (
-                              <span className="text-muted-foreground">
-                                [Image in original notebook]
-                              </span>
-                            ),
-                          }}
-                        >
-                          {cell.source}
-                        </ReactMarkdown>
+                        <StudyProse>{cell.source}</StudyProse>
                       </div>
                     ) : (
                       <Code text={cell.source} />
