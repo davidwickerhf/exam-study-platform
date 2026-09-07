@@ -61,6 +61,7 @@ export type PracticeRecord = {
   error?: string
   issues?: string[]
   mode?: string
+  questionSourceKey?: string
   model?: string
   question?: Question
   answer?: string
@@ -73,11 +74,13 @@ export type PracticeRecord = {
 export function StudyPracticeWorkspace({
   revision,
   topicId,
+  fixedSetId,
   onTutor,
   legacyAttempts = [],
 }: {
   revision: StudyRevision
   topicId?: string
+  fixedSetId?: string
   legacyAttempts?: StudyProgress['attempts']
   onTutor?: (questionId?: string) => void
 }) {
@@ -94,7 +97,7 @@ export function StudyPracticeWorkspace({
     }
   }, [preferences])
   const [records, setRecords] = useState<PracticeRecord[]>([]),
-    [selected, setSelected] = useState('chapter'),
+    [selected, setSelected] = useState(fixedSetId || 'chapter'),
     [index, setIndex] = useState(0),
     [answers, setAnswers] = useState<Record<string, string>>({}),
     [revealed, setRevealed] = useState(false)
@@ -122,16 +125,22 @@ export function StudyPracticeWorkspace({
     [loaded, setLoaded] = useState(false)
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('practice')
-    if (id) setSelected(id)
-  }, [])
+    if (id && !fixedSetId) setSelected(id)
+  }, [fixedSetId])
   const alive = useRef(true)
   const base = `/api/study-versions/${revision.versionId}`
   useEffect(() => {
     alive.current = true
-    void studyRequest<{ records: PracticeRecord[] }>(`${base}/practice`)
+    void studyRequest<{ records: PracticeRecord[] }>(
+      `${base}/practice${fixedSetId ? `?setId=${encodeURIComponent(fixedSetId)}` : ''}`,
+    )
       .then((r) => {
         if (alive.current) {
           setRecords(r.records)
+          if (fixedSetId) {
+            const set = r.records.find((s) => s.id === fixedSetId)
+            if (set) setChapterId(set.topicId)
+          }
           setLoaded(true)
         }
       })
@@ -139,7 +148,7 @@ export function StudyPracticeWorkspace({
     return () => {
       alive.current = false
     }
-  }, [base])
+  }, [base, fixedSetId])
   useEffect(() => {
     if (!form) return
     const query = new URLSearchParams(revision.course)
@@ -183,7 +192,9 @@ export function StudyPracticeWorkspace({
   const originalSource = (set?.sources || revision.snapshot.sources).find(
     (s) =>
       (s.url || s.assetId) &&
-      questionEvidence.some((c) => c.sourceKey === s.key),
+      (set?.mode === 'extract'
+        ? s.key === set.questionSourceKey
+        : questionEvidence.some((c) => c.sourceKey === s.key)),
   )
   const answerKey = `${chapterId}:${selected}:${question?.id}`
   const answer = answers[answerKey] || ''
@@ -253,18 +264,23 @@ export function StudyPracticeWorkspace({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="font-semibold">
-            {topicId ? 'Chapter exercises' : 'Mock exams & exercise papers'}
+            {fixedSetId
+              ? set?.result?.title || 'Paper questions'
+              : 'Chapter exercises'}
           </h3>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Practise with course-provided papers or generated exercises. Answers
-            and assessments stay attached to their original questions.
+            {fixedSetId
+              ? 'Original questions and marks. Your answers stay saved with this paper.'
+              : 'Targeted practice generated from this chapter. These are not past-exam questions.'}
           </p>
         </div>
-        <Button variant="outline" onClick={() => setForm(true)}>
-          Add practice set
-        </Button>
+        {!fixedSetId && (
+          <Button variant="outline" onClick={() => setForm(true)}>
+            Add practice set
+          </Button>
+        )}
       </div>
-      {!topicId && (
+      {!topicId && !fixedSetId && (
         <label className="block text-sm">
           Chapter context
           <select
@@ -284,26 +300,28 @@ export function StudyPracticeWorkspace({
           </select>
         </label>
       )}
-      <label className="block text-sm font-medium">
-        Exercise set
-        <select
-          aria-label="Exercise set"
-          className="mt-2 w-full rounded-md border bg-background px-3 py-2 font-normal"
-          value={selected}
-          onChange={(e) => choose(e.target.value)}
-        >
-          <option value="chapter">
-            Generated chapter questions · {chapter?.questions.length}
-          </option>
-          {readySets.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.mode === 'extract' ? 'Course paper' : 'Generated set'} ·{' '}
-              {r.result?.title || 'Preparing practice'} · {r.status}
-              {r.revisionId !== revision.id ? ' · Earlier revision' : ''}
+      {!fixedSetId && (
+        <label className="block text-sm font-medium">
+          Exercise set
+          <select
+            aria-label="Exercise set"
+            className="mt-2 w-full rounded-md border bg-background px-3 py-2 font-normal"
+            value={selected}
+            onChange={(e) => choose(e.target.value)}
+          >
+            <option value="chapter">
+              Generated chapter questions · {chapter?.questions.length}
             </option>
-          ))}
-        </select>
-      </label>
+            {readySets.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.mode === 'extract' ? 'Course paper' : 'Generated set'} ·{' '}
+                {r.result?.title || 'Preparing practice'} · {r.status}
+                {r.revisionId !== revision.id ? ' · Earlier revision' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {selected !== 'chapter' && set?.status !== 'complete' ? (
         <div className="space-y-3 rounded-lg border p-5" role="status">
           <p className="font-medium">
@@ -357,7 +375,7 @@ export function StudyPracticeWorkspace({
                 {w}
               </p>
             ))}
-            {!!set?.sources.length && (
+            {!!set?.sources.length && !fixedSetId && (
               <div className="flex flex-wrap gap-3">
                 {set.sources.map((s) => (
                   <div key={s.key} className="flex items-center gap-2 text-xs">
@@ -376,30 +394,51 @@ export function StudyPracticeWorkspace({
               aria-label="Practice questions"
               className="flex flex-wrap gap-2"
             >
-              {questions.map((q, i) => (
-                <Button
-                  key={q.id}
-                  size="sm"
-                  variant={index === i ? 'secondary' : 'outline'}
-                  aria-current={index === i ? 'step' : undefined}
-                  onClick={() => {
-                    setIndex(i)
-                    setRevealed(false)
-                  }}
-                >
-                  {q.label || i + 1}
-                  {records.some(
-                    (r) =>
-                      r.kind === 'assessment' &&
-                      r.topicId === chapterId &&
-                      r.revisionId === (set?.revisionId || revision.id) &&
-                      r.question?.id === q.id &&
-                      (r.setId || 'chapter') === selected,
-                  )
-                    ? ' ✓'
-                    : ''}
-                </Button>
-              ))}
+              {questions.length > 10 ? (
+                <label className="flex items-center gap-3 text-sm">
+                  Question
+                  <select
+                    aria-label="Jump to question"
+                    className="h-10 max-w-full rounded-md border bg-background px-3"
+                    value={index}
+                    onChange={(e) => {
+                      setIndex(Number(e.target.value))
+                      setRevealed(false)
+                    }}
+                  >
+                    {questions.map((q, i) => (
+                      <option key={q.id} value={i}>
+                        {q.label || i + 1} of {questions.length}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                questions.map((q, i) => (
+                  <Button
+                    key={q.id}
+                    size="sm"
+                    variant={index === i ? 'secondary' : 'outline'}
+                    aria-current={index === i ? 'step' : undefined}
+                    onClick={() => {
+                      setIndex(i)
+                      setRevealed(false)
+                    }}
+                  >
+                    {q.label || i + 1}
+                    {records.some(
+                      (r) =>
+                        r.kind === 'assessment' &&
+                        r.topicId === chapterId &&
+                        r.revisionId === (set?.revisionId || revision.id) &&
+                        r.question?.id === q.id &&
+                        (r.setId || 'chapter') === selected,
+                    )
+                      ? ' ✓'
+                      : ''}
+                  </Button>
+                ))
+              )}
             </nav>
             <div className="space-y-5 border-y py-6">
               <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
@@ -428,7 +467,11 @@ export function StudyPracticeWorkspace({
                   <StudySourceInspector
                     source={originalSource}
                     chunks={questionEvidence}
-                    label="View original"
+                    label={
+                      set?.mode === 'extract'
+                        ? 'View question paper'
+                        : 'View teaching source'
+                    }
                     initialPage={
                       question.page || questionEvidence[0]?.page || 1
                     }
@@ -504,7 +547,7 @@ export function StudyPracticeWorkspace({
               )}
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   disabled={busy || !answer.trim()}
                   onClick={() =>
                     void work('assess', {
@@ -605,7 +648,9 @@ export function StudyPracticeWorkspace({
                         ? latest.result?.assessable
                           ? `${latest.result.earned} / ${latest.result.possible} · Practice assessment`
                           : 'Answer saved · Not scored'
-                        : 'Assessment pending'}
+                        : latest.status === 'failed'
+                          ? 'Assessment could not finish'
+                          : 'Assessment pending'}
                   </h4>
                   {latest.status === 'draft' ? (
                     <p className="text-sm text-muted-foreground">

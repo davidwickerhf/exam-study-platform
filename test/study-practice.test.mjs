@@ -479,9 +479,8 @@ test('concurrent identical generation requests create only one payable practice 
   }))
 test('exam assessment resolves the original revision and rejects an answer not saved in the exam', () =>
   fixture(async (f) => {
-    const { createStudyExam, saveStudyExam } = await import(
-      '../lib/study-version-store.mjs'
-    )
+    const { createStudyExam, saveStudyExam } =
+      await import('../lib/study-version-store.mjs')
     let exam = await createStudyExam(f.version.id, {
       revisionId: f.revision.id,
       count: 4,
@@ -581,4 +580,192 @@ test('negative-marking questions do not silently use all-or-nothing scores', () 
   )
   assert.equal(result.assessable, false)
   assert.equal(result.earned, null)
+})
+
+test('course paper bank reuses originals across retakes without exposing other programmes or accounts', () =>
+  fixture(async (f) => {
+    const { coursePaperBank, reviewPaperFit } =
+      await import('../lib/study-paper-bank.mjs')
+    const { writeDocument } = await import('../lib/user-store.mjs')
+    const set = await extracted(f)
+    const nextCourse = { ...course, academicYear: '2027-2028' }
+    const next = await createStudyVersion(
+      nextCourse,
+      'test-programme',
+      f.snapshot,
+    )
+    const rev = await saveStudyRevision(next, {
+      ...next.draft,
+      chapters: f.revision.chapters,
+      topics: f.revision.topics,
+      issues: [],
+    })
+    await mutateStudyVersion(next.id, (v) => {
+      v.activeRevisionId = rev.id
+      v.history = [{ id: rev.id }]
+      v.draft = null
+    })
+    const bank = await coursePaperBank(next.id)
+    assert.equal(bank.sets[0].id, set.id)
+    assert.ok(bank.papers.some((p) => p.key === f.paper.id))
+    const reused = await createStudyPractice(
+      next.id,
+      {
+        revisionId: rev.id,
+        topicId: 'addition',
+        mode: 'extract',
+        questionSourceKey: f.paper.id,
+        solutionSourceKey: f.solution.id,
+        includeHistorical: true,
+      },
+      { billing },
+    )
+    assert.equal(reused.id, set.id)
+    const other = await createStudyVersion(
+      nextCourse,
+      'unrelated-programme',
+      f.snapshot,
+    )
+    assert.equal((await coursePaperBank(other.id)).sets.length, 0)
+    await withRequestContext(
+      { userId: `unrelated-${randomUUID()}`, mode: 'local' },
+      async () => await assert.rejects(coursePaperBank(next.id), /not found/),
+    )
+    // The original teaching revision can go away; the paper's own snapshot remains authoritative.
+    await writeDocument(
+      'study-revisions',
+      `${f.version.id}-${f.revision.id}`,
+      {},
+    )
+    const assessment = await createStudyAssessment(set.versionId, {
+      setId: set.id,
+      questionId: set.result.questions[1].id,
+      answer: '1',
+    })
+    assert.equal(assessment.result.earned, 1)
+    const syllabus = await addStudyNote(
+      { ...nextCourse, title: 'Current syllabus' },
+      [
+        {
+          page: 1,
+          text: 'Addition is covered. Written questions will not be tested. The exam uses only multiple-choice questions.',
+        },
+      ],
+    )
+    const currentSnapshot = await readStudySourceSnapshot(nextCourse, [
+        syllabus.id,
+      ]),
+      sid = currentSnapshot.chunks[0].id
+    let calls = 0
+    const opts = {
+      resolveBilling: async () => billing,
+      generate: async () => {
+        calls++
+        return JSON.stringify({
+          questions: set.result.questions.map((q) => ({
+            questionId: q.id,
+            topicFit: 'covered',
+            formatFit: q.type === 'written' ? 'excluded' : 'covered',
+            reason: 'Based on current assessment instructions.',
+            evidence: [
+              {
+                sourceId: sid,
+                quote:
+                  'Addition is covered. Written questions will not be tested. The exam uses only multiple-choice questions.',
+              },
+            ],
+          })),
+        })
+      },
+    }
+    const review = await reviewPaperFit(
+      next.id,
+      { setId: set.id, sourceKeys: [syllabus.id] },
+      opts,
+    )
+    assert.equal(review.status, 'complete')
+    assert.equal(review.result.questions[0].formatFit, 'excluded')
+    await reviewPaperFit(
+      next.id,
+      { setId: set.id, sourceKeys: [syllabus.id] },
+      opts,
+    )
+    assert.equal(calls, 1)
+    await assert.rejects(
+      reviewPaperFit(
+        next.id,
+        { setId: set.id, sourceKeys: [f.paper.id] },
+        opts,
+      ),
+      /current-edition/,
+    )
+  }))
+
+test('syllabus fit does not accept invented citations, missing questions or unsupported exclusions', async () => {
+  const { validatePaperFit, paperKind } =
+    await import('../lib/study-paper-bank.mjs')
+  const questions = [{ id: 'q1' }],
+    chunks = [{ id: 's1', text: 'Addition is covered in this course.' }]
+  const unknown = {
+    questions: [
+      {
+        questionId: 'q1',
+        topicFit: 'uncertain',
+        formatFit: 'uncertain',
+        reason: 'No format information is supplied.',
+        evidence: [],
+      },
+    ],
+  }
+  assert.equal(
+    validatePaperFit(unknown, questions, chunks).questions[0].formatFit,
+    'uncertain',
+  )
+  assert.throws(() =>
+    validatePaperFit({ ...unknown, questions: [] }, questions, chunks),
+  )
+  assert.throws(
+    () =>
+      validatePaperFit(
+        {
+          questions: [
+            {
+              ...unknown.questions[0],
+              topicFit: 'excluded',
+              evidence: [
+                {
+                  sourceId: 's1',
+                  quote: 'Addition is covered in this course.',
+                },
+              ],
+            },
+          ],
+        },
+        questions,
+        chunks,
+      ),
+    /explicit limiting/,
+  )
+  assert.throws(
+    () =>
+      validatePaperFit(
+        {
+          questions: [
+            {
+              ...unknown.questions[0],
+              topicFit: 'covered',
+              evidence: [
+                { sourceId: 's1', quote: 'Invented assessment exclusion.' },
+              ],
+            },
+          ],
+        },
+        questions,
+        chunks,
+      ),
+    /unsupported passage/,
+  )
+  assert.equal(paperKind({ title: 'Introduction lecture slides.pdf' }), null)
+  assert.equal(paperKind({ title: 'practice_exam--file-123.pdf' }), 'paper')
+  assert.equal(paperKind({ title: 'mock_exam_solutions.pdf' }), 'solutions')
 })

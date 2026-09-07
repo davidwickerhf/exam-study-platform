@@ -61,21 +61,21 @@ export function StudySourceInspector({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-4xl">
           <SheetHeader>
-            <SheetTitle className="pr-8">{source.title}</SheetTitle>
+            <SheetTitle className="pr-8">{source.title.replace(/^\d+\s*/,'').replace(/--file-\d+/,'').replace(/_/g,' ')}</SheetTitle>
             <SheetDescription>
-              {source.academicYear} · {chunks.length} extracted passages
+              {source.academicYear} · Original source
             </SheetDescription>
           </SheetHeader>
           <Tabs
             defaultValue={original ? 'original' : 'text'}
             className="min-h-0 flex-1 px-5 pb-5"
           >
-            <TabsList variant="line">
+            {!!chunks.length && <TabsList variant="line">
               <TabsTrigger value="original" disabled={!original}>
-                Original document
+                Document
               </TabsTrigger>
-              <TabsTrigger value="text">Ingested text</TabsTrigger>
-            </TabsList>
+              <TabsTrigger value="text">Extracted text</TabsTrigger>
+            </TabsList>}
             <TabsContent
               value="original"
               className="flex min-h-0 flex-1 flex-col"

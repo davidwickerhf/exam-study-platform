@@ -273,3 +273,41 @@ silently switch payment to the platform. Free answer-key scoring remains free.
 A View original button beside a practice question opens the original document
 in a side panel. PDF.js starts at the cited page, clamped to the file's page count;
 the separate Ingested text tab retains the actual retrieval passages.
+
+### Course paper bank and syllabus fit (7 September)
+
+The Past papers tab opens a document library across accessible academic years for
+the same course and programme. Generated chapter exercises are under Practice;
+Build practice exam makes generated mixed-chapter exams. View paper opens the
+actual paper before extraction, while generated questions use View teaching
+source. Extracted questions explicitly resolve their question-source key, never
+a solution or arbitrary teaching citation.
+
+Prepared paper sets are reused across personal versions and retakes. Their
+original question, evidence, marks and assessment snapshots remain authoritative.
+The bank is owner-scoped and rechecks original material access; it does not
+implicitly publish another student's private sources. Unavailable original files
+are labelled honestly. Failed preparation resumes its saved job.
+
+An optional, metered syllabus comparison checks each question's topic and format
+separately against explicitly selected current syllabus/assessment documents.
+It retains original questions and uses covered/excluded/uncertain labels with
+verbatim evidence, page and document title. Absence alone is never exclusion.
+Reviews are cached by paper contents and source snapshot, leased against
+duplicate work, bounded to 60 questions and 45,000 syllabus characters, and
+invalidated when evidence changes. This is AI guidance, not editorial approval
+or an exam prediction. No automatic recurring paid scan is introduced.
+
+The library uses compact rows, search and year filters, a single focused paper
+session, and an optional syllabus side panel. Long question sets use a jump
+selector. Practice list permission checks reuse one source catalogue instead of
+loading it per record; a fixed paper fetches only its set and attempts. Full
+study revisions stop polling when generation is idle.
+
+Focused Chromium checks cover the honest paper-library default, mobile width,
+missing-syllabus state, one-click key grading, page-specific PDF rendering,
+extracted text, tutor entry and saved preferences. Deterministic tests cover
+cross-year reuse, programme/account isolation, original snapshots surviving
+teaching-revision removal, cached syllabus checks and rejected unsupported
+citations/exclusions. Real-provider paper extraction, grading and syllabus-fit
+quality remain unverified after the earlier provider HTTP 429.

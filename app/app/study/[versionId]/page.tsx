@@ -1,4 +1,5 @@
 'use client'
+import { StudyPaperBank } from '@/components/workspace/study-paper-bank'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -13,7 +14,7 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { StudyBillingFields } from '@/components/workspace/study-billing-fields'
@@ -22,12 +23,11 @@ import { StudySourceMap } from '@/components/workspace/study-source-inspector'
 import { StudyReader } from '@/components/workspace/study-reader'
 import { StudySourceForm } from '@/components/workspace/study-source-form'
 import { StudySharingForm } from '@/components/workspace/study-sharing-form'
-import { StudyPracticeWorkspace } from '@/components/workspace/study-practice-workspace'
 import { StudyPracticeExam } from '@/components/workspace/study-practice-exam'
 import {
   studyRequest,
   generationLabel,
-  type StudyVersionPayload
+  type StudyVersionPayload,
 } from '@/lib/workspace/study-versions'
 
 export default function StudentStudyPage() {
@@ -43,31 +43,55 @@ export default function StudentStudyPage() {
     [cap, setCap] = useState('1'),
     [quality, setQuality] = useState('standard'),
     [recheck, setRecheck] = useState(false)
-  useEffect(() => { setSelected(new URLSearchParams(window.location.search).get('revision') || '') }, [])
+  useEffect(() => {
+    setSelected(
+      new URLSearchParams(window.location.search).get('revision') || '',
+    )
+  }, [])
   async function load() {
     const result = await studyRequest<StudyVersionPayload>(
-      `/api/study-versions/${versionId}${selected ? `?revision=${encodeURIComponent(selected)}` : ''}`
+      `/api/study-versions/${versionId}${selected ? `?revision=${encodeURIComponent(selected)}` : ''}`,
     )
     setData(result)
+    window.dispatchEvent(new Event('study-job-changed'))
     setError('')
   }
   useEffect(() => {
     let active = true
     setData(null)
     setError('')
-    const poll = () =>
-      studyRequest<StudyVersionPayload>(
-        `/api/study-versions/${versionId}${selected ? `?revision=${encodeURIComponent(selected)}` : ''}`
+    let running = true,
+      inFlight = false
+    const poll = () => {
+      if (inFlight) return
+      inFlight = true
+      return studyRequest<StudyVersionPayload>(
+        `/api/study-versions/${versionId}${selected ? `?revision=${encodeURIComponent(selected)}` : ''}`,
       )
-        .then((r) => active && setData(r))
+        .then((r) => {
+          running = ['queued', 'running'].includes(
+            r.version.draft?.status || '',
+          )
+          if (active) setData(r)
+        })
         .catch((e) => active && setError(e.message))
+        .finally(() => {
+          inFlight = false
+        })
+    }
+    const wakePoll = () => {
+      running = true
+      void poll()
+    }
+    window.addEventListener('study-job-changed', wakePoll)
     void poll()
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') void poll()
+      if (running && document.visibilityState === 'visible') void poll()
     }, 10000)
     return () => {
       active = false
       clearInterval(interval)
+      window.removeEventListener('study-job-changed', wakePoll)
     }
   }, [versionId, selected])
   async function control(action: string) {
@@ -75,7 +99,9 @@ export default function StudentStudyPage() {
     try {
       await studyRequest(
         `/api/study-versions/${versionId}/${action}`,
-        action === 'retry' ? { billingSource, maxJobUsd: Number(cap), quality, recheck } : {}
+        action === 'retry'
+          ? { billingSource, maxJobUsd: Number(cap), quality, recheck }
+          : {},
       )
       setResume(false)
       await load()
@@ -193,7 +219,11 @@ export default function StudentStudyPage() {
                 else {
                   setBillingSource(version.billing?.source || 'platform')
                   setCap(String(version.billing?.maxJobUsd || 1))
-                  setQuality(version.billing?.model === 'gpt-5.4' ? 'enhanced' : 'standard')
+                  setQuality(
+                    version.billing?.model === 'gpt-5.4'
+                      ? 'enhanced'
+                      : 'standard',
+                  )
                   setRecheck(false)
                   setResume(!resume)
                 }
@@ -205,13 +235,14 @@ export default function StudentStudyPage() {
           {draft.error && (
             <p className="text-destructive text-sm">{draft.error}</p>
           )}
-          {!active && draft.issues
-            ?.filter((i) => i.severity === 'error')
-            .map((i, index) => (
-              <p key={index} className="text-muted-foreground text-sm">
-                {i.detail}
-              </p>
-            ))}
+          {!active &&
+            draft.issues
+              ?.filter((i) => i.severity === 'error')
+              .map((i, index) => (
+                <p key={index} className="text-muted-foreground text-sm">
+                  {i.detail}
+                </p>
+              ))}
           {!!draft.excluded?.length && (
             <p className="text-muted-foreground text-xs">
               No readable text: {draft.excluded.map((s) => s.title).join(', ')}.
@@ -219,7 +250,18 @@ export default function StudentStudyPage() {
           )}
         </section>
       )}
-      {data.proposal && data.revision && data.revision.id === version.activeRevisionId && <StudyProposal proposal={data.proposal} base={data.revision} onChanged={() => { setSelected(''); void load() }} />}
+      {data.proposal &&
+        data.revision &&
+        data.revision.id === version.activeRevisionId && (
+          <StudyProposal
+            proposal={data.proposal}
+            base={data.revision}
+            onChanged={() => {
+              setSelected('')
+              void load()
+            }}
+          />
+        )}
       {resume && (
         <section className="flex flex-col gap-4 rounded-xl border bg-card p-5">
           <h2 className="font-semibold">Resume generation</h2>
@@ -231,7 +273,23 @@ export default function StudentStudyPage() {
             cap={cap}
             setCap={setCap}
           />
-          {draft?.canRecheck && <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={recheck} onChange={e => setRecheck(e.target.checked)} className="mt-1 size-4" /><span>Recheck the saved chapter without rewriting it<span className="mt-1 block text-xs text-muted-foreground">Useful when a finding appears mistaken. Runs only the paid evidence check; it does not correct content.</span></span></label>}
+          {draft?.canRecheck && (
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={recheck}
+                onChange={(e) => setRecheck(e.target.checked)}
+                className="mt-1 size-4"
+              />
+              <span>
+                Recheck the saved chapter without rewriting it
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Useful when a finding appears mistaken. Runs only the paid
+                  evidence check; it does not correct content.
+                </span>
+              </span>
+            </label>
+          )}
           <div className="flex gap-2">
             <Button disabled={busy} onClick={() => void control('retry')}>
               Resume with this billing choice
@@ -302,7 +360,7 @@ export default function StudentStudyPage() {
               <SelectValue>
                 {(() => {
                   const r = version.history.find(
-                    (r) => r.id === (selected || version.activeRevisionId)
+                    (r) => r.id === (selected || version.activeRevisionId),
                   )
                   return r
                     ? `${r.edit?.label || new Date(r.createdAt).toLocaleString()} · ${r.id === version.activeRevisionId ? 'Latest' : `${r.chapters} chapters`}`
@@ -314,18 +372,40 @@ export default function StudentStudyPage() {
               <SelectGroup>
                 {version.history.map((r, index) => (
                   <SelectItem key={r.id} value={r.id}>
-                    {r.edit?.label || 'Generated revision'} · {new Date(r.createdAt).toLocaleString()} ·{' '}
+                    {r.edit?.label || 'Generated revision'} ·{' '}
+                    {new Date(r.createdAt).toLocaleString()} ·{' '}
                     {index === 0 ? 'Latest' : `${r.chapters} chapters`}
                   </SelectItem>
                 ))}
               </SelectGroup>
             </SelectContent>
           </Select>
-          {selected && selected !== version.activeRevisionId && <Button variant="outline" size="sm" disabled={busy || active || Boolean(data.proposal)} onClick={async () => {
-            setBusy(true)
-            try { await studyRequest(`/api/study-versions/${versionId}/restore`, { baseRevisionId: version.activeRevisionId, revisionId: selected }); setSelected('') }
-            catch(e) { setError((e as Error).message) } finally { setBusy(false) }
-          }}>Restore this revision</Button>}
+          {selected && selected !== version.activeRevisionId && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy || active || Boolean(data.proposal)}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await studyRequest(
+                    `/api/study-versions/${versionId}/restore`,
+                    {
+                      baseRevisionId: version.activeRevisionId,
+                      revisionId: selected,
+                    },
+                  )
+                  setSelected('')
+                } catch (e) {
+                  setError((e as Error).message)
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              Restore this revision
+            </Button>
+          )}
         </div>
       )}
       {revision && (
@@ -336,7 +416,12 @@ export default function StudentStudyPage() {
           >
             <TabsTrigger value="study">Study</TabsTrigger>
             {data.revision && (
-              <TabsTrigger value="exam">Mock exams & papers</TabsTrigger>
+              <TabsTrigger value="exam">Past papers</TabsTrigger>
+            )}
+            {data.revision && (
+              <TabsTrigger value="practice-exam">
+                Build practice exam
+              </TabsTrigger>
             )}
             <TabsTrigger value="sources">Sources & generation</TabsTrigger>
           </TabsList>
@@ -345,8 +430,16 @@ export default function StudentStudyPage() {
               revision={revision}
               progress={data.progress}
               personal={Boolean(data.revision)}
-              editable={Boolean(data.revision) && revision.id === version.activeRevisionId && !active && !data.proposal}
-              onEdited={() => { setSelected(''); void load() }}
+              editable={
+                Boolean(data.revision) &&
+                revision.id === version.activeRevisionId &&
+                !active &&
+                !data.proposal
+              }
+              onEdited={() => {
+                setSelected('')
+                void load()
+              }}
               onSaved={(progress) =>
                 setData((old) =>
                   old
@@ -354,19 +447,24 @@ export default function StudentStudyPage() {
                         ...old,
                         progress: [
                           ...old.progress.filter(
-                            (p) => p.topicId !== progress.topicId
+                            (p) => p.topicId !== progress.topicId,
                           ),
-                          progress
-                        ]
+                          progress,
+                        ],
                       }
-                    : old
+                    : old,
                 )
               }
             />
           </TabsContent>
           {data.revision && (
             <TabsContent value="exam">
-              <div className="rounded-xl border bg-card p-5 sm:p-7"><Tabs defaultValue="papers"><TabsList variant="line"><TabsTrigger value="papers">Course papers & sets</TabsTrigger><TabsTrigger value="mixed">Mixed chapter exams</TabsTrigger></TabsList><TabsContent value="papers"><StudyPracticeWorkspace revision={data.revision} /></TabsContent><TabsContent value="mixed"><StudyPracticeExam revision={data.revision} /></TabsContent></Tabs></div>
+              <StudyPaperBank revision={data.revision} />
+            </TabsContent>
+          )}
+          {data.revision && (
+            <TabsContent value="practice-exam">
+              <StudyPracticeExam revision={data.revision} />
             </TabsContent>
           )}
           <TabsContent
