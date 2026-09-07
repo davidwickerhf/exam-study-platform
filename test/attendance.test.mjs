@@ -88,8 +88,8 @@ test('structured optional and assessed attendance do not depend on model wording
   assert.equal(attendancePolicyForEvent(event(),course).required,false)
 })
 
-test('explicit timetable optionality is retained and unrelated activity notes do not override its Type', () => {
-  assert.equal(attendancePolicyForEvent(event({notes:'Tutorial attendance is optional.'}),courses[0]).required,false)
+test('professor rules override timetable optionality and unrelated activity notes do not override its Type', () => {
+  assert.equal(attendancePolicyForEvent(event({notes:'Tutorial attendance is optional.'}),courses[0]).required,true)
   assert.equal(attendancePolicyForEvent(event({activity:'Timetable',notes:'Type: Lecture. Tutorials are mandatory.'}),courses[0]),null)
 })
 
@@ -160,4 +160,51 @@ test('explicitly shared lab and tutorial pools combine marks despite activity-sp
   assert.equal(row.minimumAttendancePercent,80)
   assert.equal(row.requiredRate,80)
   assert.equal(row.atRisk,false,'one missed lab must be counted with the four attended tutorials in the shared pool')
+})
+
+test('dated labs match a sole generic timetable tutorial, without claiming lectures or ambiguous tutorials', () => {
+  const course={code:'BCS1520',ruleAcademicYear:'2026-2027',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Lab 1 attendance is required on September 1.',activity:'lab',requirement:'required',scope:{kind:'specific',labels:['Lab 1'],dates:['2026-09-01']},evidence:[{chunkId:7}]}
+  ]}}}
+  const tutorial=event(), lecture=event({id:'lecture',activity:'Lecture',start:'2026-09-01T07:00:00Z'})
+  const result=attendanceOverview([lecture,tutorial],[],[course])
+  assert.equal(result.events[0].attendanceRequired,null)
+  assert.equal(result.events[1].attendanceRequired,true)
+  assert.equal(attendanceOverview([tutorial,event({id:'other',start:'2026-09-01T13:00:00Z'})],[],[course]).events[0].attendanceRequired,null)
+  assert.equal(attendanceOverview([event({start:'2026-09-02T09:00:00Z'})],[],[course]).events[0].attendanceRequired,null)
+})
+
+test('a dated all-student lab waiver overrides the pool and mandatory timetable marker but not other days', () => {
+  const course={code:'BCS1520',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Tutorial attendance is mandatory.',activity:'tutorial',requirement:'required',scope:{kind:'all'}},
+    {text:'Attendance for Lab 2 on September 1 is waived for everyone.',activity:'lab',requirement:'optional',scope:{kind:'specific',labels:['Lab 2'],dates:['2026-09-01']},evidence:[{chunkId:10}]}
+  ]}}}
+  const result=attendanceOverview([event({notes:'Type: Tutorial; attendance mandatory'}),event({id:'next',start:'2026-09-08T09:00:00Z'})],[],[course])
+  assert.deepEqual(result.events.map(e=>e.attendanceRequired),[false,true])
+})
+
+test('professor lesson plans correct timetable activity before applying the general attendance pool',()=>{
+  const course={code:'BCS1520',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Labs are mandatory; two absences allowed.',activity:'lab',requirement:'required',allowedMisses:2,evidence:[{chunkId:1}]}
+  ],sessionMappings:[{activity:'lab',text:'September 1, 11:00: lab.',dates:['2026-09-01'],times:['11:00'],evidence:[{chunkId:2}]}]}}}
+  const sessions=[event({activity:'Lecture',notes:'Type: Lecture; attendance optional'}),event({id:'other',activity:'Lecture',start:'2026-09-01T13:00:00Z'})]
+  const result=attendanceOverview(sessions,[],[course])
+  assert.equal(result.events[0].attendanceRequired,true)
+  assert.equal(result.events[0].attendancePolicy.allowedMisses,2)
+  assert.deepEqual(result.events[0].attendancePolicy.evidence.map(e=>e.chunkId),[1,2])
+  assert.equal(result.events[1].attendanceRequired,null)
+})
+
+test('conflicting professor schedules do not fall back to an unreliable timetable requirement',()=>{
+  const mappings=['lab','lecture'].map(activity=>({activity,dates:['2026-09-01'],times:['11:00'],evidence:[{chunkId:2}]}))
+  const course={...courses[0],courseProfile:{assessment:{...courses[0].courseProfile.assessment,sessionMappings:mappings}}}
+  assert.equal(attendanceOverview([event({notes:'Type: Tutorial; attendance mandatory'})],[],[course]).events[0].attendanceRequired,null)
+})
+
+test('a professor’s dated tutorial correction applies to a sole combined booking with floating local time',()=>{
+  const course={...courses[0],courseProfile:{assessment:{...courses[0].courseProfile.assessment,sessionMappings:[{activity:'tutorial',dates:['2026-09-01'],times:[],evidence:[{chunkId:3}]}]}}}
+  const block=event({activity:'Lecture',notes:'Type: Lecture',start:'2026-09-01T13:30:00',end:'2026-09-01T18:00:00'})
+  assert.equal(attendanceOverview([block],[],[course]).events[0].attendanceRequired,true)
+  course.courseProfile.assessment.sessionMappings[0].times=['13:30']
+  assert.equal(attendanceOverview([block],[],[course]).events[0].attendanceRequired,true)
 })

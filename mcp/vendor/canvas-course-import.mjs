@@ -93,7 +93,7 @@ export function sanitizeCanvasHtml(value) {
     .replace(/\s+(href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, '')
 }
 
-function htmlRecord({ title, url, body, details = [] }) {
+export function htmlRecord({ title, url, body, details = [] }) {
   const rows = details.filter(([label, value]) => text(value)).map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join('')
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head><body>
@@ -622,7 +622,7 @@ export async function importCanvasCourse({ courseUrl, accessToken, outputFolder,
       const discussion = initial && Object.hasOwn(initial, 'message') ? initial : await api.getJson(`/api/v1/courses/${encodeURIComponent(canvas.courseId)}/discussion_topics/${encodeURIComponent(id)}`)
       const title = discussion.title || source.title || 'Canvas discussion'
       const outputPath = pagePath(join(base, 'discussions'), position, title, `discussion-${id}`)
-      await write(outputPath, htmlRecord({ title, url: discussion.html_url, body: discussion.message, details: [['Posted', discussion.posted_at], ['Discussion type', discussion.discussion_type], ['Due', discussion.delayed_post_at]] }))
+      await write(outputPath, htmlRecord({ title, url: discussion.html_url, body: discussion.message, details: [['Posted', discussion.posted_at], ['Discussion type', discussion.discussion_type], ['Scheduled publication', discussion.delayed_post_at]] }))
       const links = uniqueLinks(discussion.message, discussion.html_url || `${canvas.origin}/courses/${canvas.courseId}/discussion_topics/${id}`, canvas.origin, canvas.courseId)
       records.push({ kind: 'discussion', id, source, path: outputPath.slice(root.length + 1), canvasUrl: discussion.html_url || null, links })
       await indexAndFollowLinks({ title, pageUrl: discussion.html_url || `${canvas.origin}/courses/${canvas.courseId}/discussion_topics/${id}`, body: discussion.message, outputPath, source, id: `discussion-${id}`, links })

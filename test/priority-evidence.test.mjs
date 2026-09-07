@@ -275,3 +275,22 @@ test('archive priority retrieval keeps instruction prose across chunks and exclu
   assert.ok(attendance.some(row=>row.chunkId===4))
   assert.ok(attendance.every(row=>!/SDK|implementation details|project state|hardware registers/.test(row.content)))
 })
+
+test('dated professor session mappings retain real citations and reject unsupported or undated mappings',async()=>{
+  const {normalizeScan}=await import('../lib/priority-evidence.mjs')
+  const result=normalizeScan({status:'confirmed',sessionMappings:[
+    {activity:'lab',text:'Lab on September 9 at 11:00',dates:['2026-09-09','2026-02-30'],times:['11:00','25:00'],evidence:[{chunkId:1}]},
+    {activity:'tutorial',dates:['2026-09-09'],evidence:[{chunkId:999}]},
+    {activity:'lecture',dates:[],evidence:[{chunkId:1}]}
+  ]},[{chunkId:1,content:'Lab on September 9 at 11:00.',assetId:'source',filename:'Syllabus'}])
+  assert.equal(result.courseProfile.assessment.sessionMappings.length,1)
+  assert.deepEqual(result.courseProfile.assessment.sessionMappings[0].dates,['2026-09-09'])
+  assert.deepEqual(result.courseProfile.assessment.sessionMappings[0].times,['11:00'])
+  assert.equal(result.courseProfile.assessment.sessionMappings[0].evidence[0].assetId,'source')
+})
+
+test('legacy announcement publication metadata is not treated as a due date',()=>{
+  const [row]=priorityEvidenceCandidates([{chunkId:1,filename:'Topic choice--discussion-42.html',sourceType:'announcements',content:'Posted 2026-08-31T09:00:00Z Discussion type threaded Due 2026-08-31T09:00:00Z Choose your project topic. Deadline today at 23:59.'}])
+  assert.ok(row.content.includes('Scheduled publication 2026-08-31T09:00:00Z'))
+  assert.ok(row.content.includes('Deadline today at 23:59.'))
+})
