@@ -101,3 +101,50 @@ test('numbered graded lab requirements do not turn unrelated labs into compulsor
   assert.equal(attendancePolicyForEvent({...base,notes:'Type: Lab; Lab 10'},course),null)
   assert.equal(attendancePolicyForEvent({...base,notes:'Type: Lab; Lab 2'},course)?.required,true)
 })
+
+test('project rules match project meetings and openings without affecting lectures in a project course', () => {
+  const course={courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Project meetings are mandatory, including the online Project Opening.',activity:'project',requirement:'required',allowedMisses:3,scope:{kind:'all'},evidence:[{chunkId:1}]},
+    {text:'Missing the Project Defense results in NG.',activity:'project',requirement:'required',allowedMisses:0,scope:{kind:'specific',labels:['Project Defense'],dates:[]},evidence:[{chunkId:2}]}
+  ]}}}
+  const base={title:'Project 3-1',start:'2026-09-08T09:00:00Z',activity:'Timetable',notes:'Type: Project'}
+  assert.equal(attendancePolicyForEvent(base,course)?.allowedMisses,3)
+  assert.equal(attendancePolicyForEvent({...base,title:'Project Opening',activity:'Project Opening'},course)?.required,true)
+  assert.equal(attendancePolicyForEvent({...base,title:'Project Defense'},course)?.allowedMisses,0)
+  assert.equal(attendancePolicyForEvent({...base,notes:'Type: Lecture'},course),null)
+  assert.equal(attendancePolicyForEvent({...base,notes:'Type: Tutorial'},course),null)
+})
+
+test('a named exception overrides a general rule but equally scoped conflicts remain unresolved', () => {
+  const general={text:'Project meetings are mandatory.',activity:'project',requirement:'required',scope:{kind:'all'}}
+  const exception={text:'The optional Project Clinic is available for questions.',activity:'project',requirement:'optional',scope:{kind:'specific',labels:['Project Clinic'],dates:[]}}
+  const course=rules=>({courseProfile:{assessment:{status:'confirmed',attendanceEvidence:rules}}})
+  const event={title:'Project Clinic',activity:'Project',start:'2026-09-08T09:00:00Z'}
+  assert.equal(attendancePolicyForEvent(event,course([general,exception]))?.required,false)
+  assert.equal(attendancePolicyForEvent(event,course([general,exception,{...exception,requirement:'required'}])),null)
+})
+
+test('project assessment absences cannot borrow the ordinary meeting allowance', () => {
+  const course={code:'BCS1520',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Project meetings are mandatory.',activity:'project',requirement:'required',allowedMisses:3,scope:{kind:'all'}},
+    {text:'The Project Defense is mandatory.',activity:'project',requirement:'required',allowedMisses:0,scope:{kind:'specific',labels:['Project Defense'],dates:[]}}
+  ]}}}
+  const defense=event({id:'defense',title:'Project Defense',activity:'Project'})
+  const meeting=event({id:'meeting',title:'Project meeting',activity:'Project'})
+  const opts={now:new Date('2026-09-05').getTime()}
+  const clear=attendanceOverview([defense,meeting],[],[course],opts).courses[0]
+  assert.equal(clear.atRisk,false)
+  assert.equal(clear.allowedMisses,null,'different pools must not imply one shared allowance')
+  const missed=upsertAttendanceRecord([],defense,'missed')
+  assert.equal(attendanceOverview([defense,meeting],missed,[course],opts).courses[0].atRisk,true)
+  assert.equal(attendanceOverview([meeting,defense],missed,[course],opts).courses[0].atRisk,true)
+})
+
+test('unclassified project skill-class rules cannot override project meeting allowances', () => {
+  const course={courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Project meetings are mandatory.',activity:'project',requirement:'required',allowedMisses:3},
+    {text:'Project skill classes are mandatory.',activity:'other',requirement:'required',allowedMisses:2}
+  ]}}}
+  assert.equal(attendancePolicyForEvent({activity:'Project',title:'Project 3-1'},course)?.allowedMisses,3)
+  assert.equal(attendancePolicyForEvent({activity:'Class',title:'Project skill class'},course)?.allowedMisses,2)
+})
