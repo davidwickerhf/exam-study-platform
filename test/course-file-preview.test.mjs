@@ -216,3 +216,24 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
     assert.equal(needsExtractionUpgrade('deck.pptx', {extraction_status:'complete', metadata:{fileFormatVersion:5}}), false);
   } finally { await rm(root, {recursive:true,force:true}); }
 });
+
+
+test('HTML preview preserves document structure while stripping executable and network markup', async () => {
+  const {kind,text} = await previewCourseBytes(Buffer.from(`<html><head><base href="https://evil.test"><meta http-equiv="refresh" content="0;url=https://evil.test"><style>body{display:none}</style></head><body onload="alert(1)"><h1>Course teams</h1><p>Choose <strong>two partners</strong>.</p><table><tr><th>Team</th><td>2</td></tr></table><script>alert(1)</script><svg><a onload="alert(1)">attack</a></svg><iframe srcdoc="attack"></iframe><form action="/api/delete"><input name="x"></form><a href="jav&#x61;script:alert(1)">bad</a><a href="//evil.test">relative</a><a href="/api/delete">local</a><a href="https://canvas.example.test/course" onclick="alert(1)" ping="https://evil.test">Canvas</a><img src="https://evil.test/pixel" onerror="alert(1)" alt="Diagram"></body></html>`), 'discussion.html')
+  assert.equal(kind,'html')
+  assert.match(text, /<h1>Course teams<\/h1>/)
+  assert.match(text, /<strong>two partners<\/strong>/)
+  assert.match(text, /<table>/)
+  assert.match(text, /href="https:\/\/canvas.example.test\/course"/)
+  assert.match(text, /rel="noopener noreferrer"/)
+  assert.doesNotMatch(text, /<(script|style|iframe|svg|form|input|base|meta|img)\b|onload=|onclick=|onerror=|ping=|srcdoc=|javascript:|href="(?:\/|jav)/i)
+  assert.match(text, /Image: Diagram/)
+})
+
+test('Markdown previews retain their format and plain code stays plain', async () => {
+  const markdown='# Course links\n\n- [Canvas](https://canvas.example.test)\n\n```python\nprint(1)\n```'
+  const result=await previewCourseBytes(Buffer.from(markdown),'links.MD')
+  assert.equal(result.kind,'markdown')
+  assert.equal(result.text,markdown)
+  assert.equal((await previewCourseBytes(Buffer.from('# comment'), 'script.py')).kind,'text')
+})

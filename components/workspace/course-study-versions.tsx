@@ -69,19 +69,19 @@ export function CourseStudyVersions({
       : versions === null ? <div role="status" aria-label="Loading study guides" className="space-y-4"><Skeleton className="h-16"/><Skeleton className="h-48"/></div>
       : active ? <>
         {selected.length > 1 && <label className="mb-5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">Study guide<select aria-label="Study guide" className="h-10 max-w-full rounded-md border bg-card px-3 text-foreground" value={active.id} onChange={e=>choose(e.target.value)}>{selected.map(v=><option key={v.id} value={v.id}>{v.title}</option>)}</select></label>}
-        <div className="course-guide-heading">
+        <div className="course-guide-heading course-band">
           <div className="min-w-0"><h3 className="text-lg font-semibold leading-6">{active.title}</h3><div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"><span className="inline-flex items-center gap-1.5"><LockKeyholeIcon className="size-3"/>Private guide</span><span>{active.course.academicYear}</span><span>{active.activeRevisionId ? `${active.chapterPreviews?.length || active.history[0]?.chapters || 0} ${(active.chapterPreviews?.length || active.history[0]?.chapters) === 1 ? 'chapter' : 'chapters'}` : generationLabel(active.draft)}</span></div></div>
           <Link href={`/app/study/${active.id}`} className={buttonVariants({size:'sm'})}>{active.activeRevisionId ? 'Open guide' : 'View generation'}<ArrowRightIcon/></Link>
         </div>
         {!!active.chapterPreviews?.length && <ol className="course-chapters" aria-label="Chapters">{active.chapterPreviews.map((chapter,index)=><li key={chapter.id}><Link href={`/app/study/${active.id}?chapter=${encodeURIComponent(chapter.id)}`} className="course-chapter group"><span className="course-chapter-number">{String(index+1).padStart(2,'0')}</span><span className="text-sm font-medium leading-6 group-hover:text-primary">{chapter.title}</span><ArrowRightIcon className="size-4 text-muted-foreground group-hover:text-primary"/></Link></li>)}</ol>}
-        {!active.activeRevisionId && <p className="border-y py-6 text-sm text-muted-foreground">No chapters are ready yet. Open the guide to see generation progress or resolve a paused step.</p>}
-      </> : <div className="border-y py-10">
+        {!active.activeRevisionId && <p className="course-band border-t py-6 text-sm text-muted-foreground">No chapters are ready yet. Open the guide to see generation progress or resolve a paused step.</p>}
+      </> : <div className="course-band border-t py-10">
         <BookOpenIcon className="mb-4 size-7 text-muted-foreground"/>
         <h3 className="text-lg font-semibold">{versions?.length ? 'No guide for this academic year' : 'Your course starts with its materials'}</h3>
         <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">Create a guide from your slides, readings and notes. Each chapter includes explanations, a summary and practice.</p>
         <div className="mt-5 flex flex-wrap gap-3"><Button size="sm" onClick={()=>setCreating(true)}>{versions?.length ? 'Create study guide' : 'Create your first guide'}<ArrowRightIcon/></Button>{versions?.length ? <Button size="sm" variant="ghost" onClick={onShowAllYears}>Show all years</Button> : <Button size="sm" variant="ghost" onClick={()=>onNavigate('materials')}>Browse materials</Button>}</div>
       </div>}
-    <div className="course-next-actions">
+    <div className="course-next-actions course-band">
       <button onClick={()=>onNavigate('exercises')}><TargetIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground"/><span><strong>Put it into practice</strong><small>Work through questions from every chapter.</small></span><ArrowRightIcon className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground"/></button>
       <button onClick={()=>onNavigate('materials')}><FolderOpenIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground"/><span><strong>Go to the source</strong><small>Open the original slides, readings and notes.</small></span><ArrowRightIcon className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground"/></button>
     </div>

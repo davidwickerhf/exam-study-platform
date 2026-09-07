@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { StudyProse } from "./study-prose";
+import { DocumentMarkdown, HtmlDocument } from "./document-prose";
 import {
   ArrowLeftIcon,
   FileCodeIcon,
@@ -128,8 +128,12 @@ export default function CourseFileViewer({ assetId }: { assetId: string }) {
                 "Showing a limited preview. Download the original for the full content."}
             </p>
           )}
-          <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-card">
-            {data.kind === "notebook" ? (
+          <div className="min-h-0 flex-1 overflow-auto bg-card">
+            {data.kind === "html" ? (
+              <HtmlDocument html={data.text || ""} />
+            ) : data.kind === "markdown" ? (
+              <DocumentMarkdown>{data.text || ""}</DocumentMarkdown>
+            ) : data.kind === "notebook" ? (
               <div className="divide-y">
                 {data.cells?.map((cell, index) => (
                   <section key={index} className="p-5">
@@ -141,7 +145,7 @@ export default function CourseFileViewer({ assetId }: { assetId: string }) {
                     </p>
                     {cell.type === "markdown" ? (
                       <div className="prose max-w-none text-sm leading-7 [&_h1]:text-xl [&_h2]:text-lg [&_p]:my-2 [&_a]:text-primary">
-                        <StudyProse>{cell.source}</StudyProse>
+                        <DocumentMarkdown>{cell.source}</DocumentMarkdown>
                       </div>
                     ) : (
                       <Code text={cell.source} />
