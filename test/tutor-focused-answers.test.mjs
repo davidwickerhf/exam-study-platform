@@ -88,6 +88,6 @@ test('browser consumes live status and answer fragments before the final result,
     globalThis.fetch = async () => new Response('{"type":"progress","message":"Checking"}\n', { headers: { 'content-type': 'application/x-ndjson' } })
     await assert.rejects(tutorStream('/api/tutor', {}, () => {}), /interrupted/)
     globalThis.fetch = async () => new Response('{"type":"error","error":"Try again"}\n', { headers: { 'content-type': 'application/x-ndjson' } })
-    await assert.rejects(tutorStream('/api/tutor', {}, () => {}), /Try again/)
+    await assert.rejects(tutorStream('/api/tutor', {}, () => {}), /No complete answer was returned/)
   } finally { globalThis.fetch = original }
 })

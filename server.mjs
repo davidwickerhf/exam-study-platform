@@ -1,3 +1,4 @@
+import {tutorFailure} from './lib/tutor-errors.mjs'
 import { claimPaperDispatch, resolvePaperJob, processPaperJob } from './lib/study-paper-jobs.mjs'
 import { courseExerciseBank } from './lib/study-course-practice.mjs'
 import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queueRequestHeaders } from './lib/queue-runtime.mjs'
@@ -4743,7 +4744,8 @@ const server = createServer(async (req, res) => {
         void recordQualityEvent({code:controller.signal.aborted?'TUTOR_INTERRUPTED':'TUTOR_FAILURE',stage:'generation',route:'/app/tutor',outcome:controller.signal.aborted?'interrupted':'failed'}).catch(()=>{})
         let conversation = null
         if (activeTurn) conversation = await failTutorTurn(activeTurn, error, controller.signal.aborted).catch(() => null)
-        const failure = { conversation: visibleTutorConversation(conversation), error: error?.name === 'TimeoutError' ? 'Tutor took too long to finish. Please retry your question.' : error instanceof Error ? error.message : 'That could not be sent.' }
+        const detail=tutorFailure(error,controller.signal.aborted)
+        const failure = { conversation: visibleTutorConversation(conversation), error:detail.message, failure:detail }
         if (emit) { emit('error', failure); res.end() }
         else if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify(failure))
       } finally { res.off('close', disconnected) }

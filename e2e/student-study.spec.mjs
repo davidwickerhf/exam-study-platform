@@ -1102,6 +1102,7 @@ test('attendance retains a cited assessed-participation rule after scan failure 
 })
 
 test('course tutor follows tabs, preserves drafts and conversations, and fits desktop and mobile',async({page})=>{
+  await run(async () => { const programmeId = await activeProgrammeId(); await mutateStudyVersion(versionId, v => { v.programmeId = programmeId }) })
   const posts=[]
   await page.route('**/api/state',route=>route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
   await page.route('**/api/tutor**',route=>{
@@ -1201,4 +1202,64 @@ test('editorial chapter opens the shared tutor with its chapter and source path'
   await page.keyboard.press('Escape')
   await expect(tutor).not.toBeVisible()
   await expect(page.getByRole('button',{name:'Ask tutor',exact:true})).toBeFocused()
+})
+
+test('tutor explains exhausted credits beside the question, survives reload and recovers without duplicates',async({page})=>{
+  let saved=null,posts=0
+  const failure={code:'provider_credits'}
+  const hub=()=>({available:true,conversation:saved,conversations:[],receipts:[],memory:{facts:[],plans:[]},attachments:[]})
+  await page.route('**/api/tutor**',route=>{
+    if(route.request().method()==='POST'){
+      const body=route.request().postDataJSON();posts++
+      saved={id:body.conversation,messages:[{role:'user',content:body.message}],reply:{status:'failed',failure}}
+      if(posts===1)return route.fulfill({contentType:'application/x-ndjson',body:JSON.stringify({type:'error',error:'PRIVATE PROVIDER JSON',failure,conversation:saved})+'\n'})
+      expect(body.retry).toBe(true)
+      saved={...saved,messages:[...saved.messages,{role:'assistant',content:'Rational agents choose actions based on expected performance.'}],reply:{status:'complete'}}
+      return route.fulfill({json:hub()})
+    }
+    return route.fulfill({json:hub()})
+  })
+  await page.setViewportSize({width:390,height:844})
+  await page.goto('/app/tutor')
+  const input=page.getByRole('textbox',{name:'Ask the tutor'})
+  await expect(input).toBeEnabled()
+  await input.fill('Explain rational agents')
+  await input.press('Enter')
+  const alert=page.getByRole('alert').filter({hasText:'API credits exhausted'})
+  await expect(alert).toContainText('Tutor is paused: API credits exhausted')
+  await expect(alert).toContainText('platform owner needs to restore')
+  await expect(page.getByText('PRIVATE PROVIDER JSON')).toHaveCount(0)
+  await page.screenshot({path:'/tmp/wicker-tutor-credit-error-mobile.png',fullPage:true})
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.reload()
+  await expect(alert).toContainText('API credits exhausted')
+  expect(posts).toBe(1)
+  await page.getByRole('button',{name:'Retry after billing is resolved'}).click()
+  await expect(page.getByText('Rational agents choose actions based on expected performance.')).toBeVisible()
+  await expect(alert).toHaveCount(0)
+  await expect(page.getByText('Explain rational agents',{exact:true})).toHaveCount(1)
+  expect(posts).toBe(2)
+})
+
+test('course tutor shows temporary throttling as a retryable error in its sidebar',async({page})=>{
+  let posts=0
+  await page.route('**/api/state',route=>route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
+  await page.route('**/api/tutor**',route=>{
+    if(route.request().method()==='POST'){
+      posts++
+      return route.fulfill({status:429,json:{error:'PRIVATE PROVIDER JSON',failure:{code:'provider_rate_limit'}}})
+    }
+    return route.fulfill({json:{available:true,conversation:null,conversations:[],receipts:[],memory:{facts:[],plans:[]},attachments:[]}})
+  })
+  await page.goto(`/app/courses/${course.courseCode}?year=${course.academicYear}`)
+  await page.getByRole('button',{name:'Ask tutor',exact:true}).click()
+  const tutor=page.getByRole('complementary',{name:'Course tutor',exact:true})
+  const input=tutor.getByRole('textbox',{name:'Ask the tutor'})
+  await expect(input).toBeEnabled()
+  await input.fill('Explain this topic');await input.press('Enter')
+  await expect(tutor.getByRole('alert')).toContainText('Tutor is temporarily busy')
+  await expect(tutor.getByRole('button',{name:'Retry reply',exact:true})).toBeVisible()
+  await expect(page.getByText('PRIVATE PROVIDER JSON')).toHaveCount(0)
+  expect(posts).toBe(1)
+  await page.screenshot({path:'/tmp/wicker-tutor-rate-error-desktop.png',fullPage:true})
 })

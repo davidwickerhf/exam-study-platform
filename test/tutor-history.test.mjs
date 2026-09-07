@@ -88,3 +88,19 @@ test('all visible chat text remains while old internal lookup payloads are compa
   assert.deepEqual(saved.messages.map(item => item.content), ['Old question', 'Old answer', 'New question'])
   assert.equal(saved.messages[1].evidence[0].id, 'citation')
 }))
+
+test('safe failure details and per-answer cached-token usage survive conversation reload',()=>fixture(async()=>{
+  const active=await beginTutorTurn(null,{id:crypto.randomUUID(),message:'Explain rational agents'})
+  const failed=await failTutorTurn(active,Object.assign(new Error('private provider response'),{failure:{code:'provider_credits'}}))
+  const reopened=await readConversation(failed.id)
+  assert.equal(reopened.reply.failure.code,'provider_credits')
+  assert.doesNotMatch(JSON.stringify(reopened.reply),/private provider response/)
+  const retry=await beginTutorTurn(reopened,{message:'Explain rational agents',retry:true})
+  const usage={prompt_tokens:4000,completion_tokens:200,total_tokens:4200,prompt_tokens_details:{cached_tokens:2560}}
+  const saved=await completeTutorTurn(retry,{usage,added:[{role:'user',content:'Explain rational agents'},{role:'assistant',content:'An agent chooses actions.',usage}]})
+  const completed=await readConversation(saved.id)
+  assert.deepEqual(completed.reply.usage,usage)
+  assert.deepEqual(completed.messages.at(-1).usage,usage)
+  assert.equal(completed.reply.failure,undefined)
+  assert.equal(completed.messages.filter(x=>x.role==='user').length,1)
+}))
