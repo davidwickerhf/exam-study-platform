@@ -107,3 +107,47 @@ test('provider throttling is not labelled as the platform scan allowance', async
   assert.equal(calls,1)
   assert.equal(result.conflicts[0].title,'Priority AI provider unavailable')
 })
+
+test('attendance selection excludes vendor code and keeps amendments with adjacent context', async () => {
+  const {attendanceEvidenceCandidates}=await import('../lib/priority-evidence.mjs')
+  const rows=[
+    {chunkId:1,filename:'coursebook.pdf',sourceType:'readings',content:'Attendance: tutorials and labs are compulsory.'},
+    {chunkId:2,filename:'coursebook.pdf',sourceType:'readings',content:'An exception applies to students with an approved exemption.'},
+    {chunkId:3,filename:'updated--discussion-1.html',sourceType:'materials',content:'The attendance requirement was reduced from nine to eight sessions.'},
+    {chunkId:4,filename:'lecture1_intro.pdf',sourceType:'slides',page:4,content:'Course schedule and structure.'},
+    {chunkId:5,filename:'lab.zip',sourceType:'assessments',content:'#define REQUIRED_CONFIG 1\n/* Required class setup */'}
+  ]
+  assert.deepEqual(attendanceEvidenceCandidates(rows).map(row=>row.chunkId),[1,2,3,4])
+  assert.ok(!priorityEvidenceCandidates(rows).some(row=>row.chunkId===5))
+})
+
+test('attendance is reconciled before generic obligations and survives unrelated provider failure', async () => {
+  const {normalizeScan}=await import('../lib/priority-evidence.mjs')
+  const {supportedCourseAssessment}=await import('../lib/course-rule-evidence.mjs')
+  const attendanceRows=[
+    {chunkId:1,filename:'coursebook.pdf',sourceType:'syllabus',content:'At least eight lab/tutorial sessions are required.'},
+    {chunkId:2,filename:'lecture1.pdf',sourceType:'slides',content:'Attend nine sessions.'},
+    {chunkId:3,filename:'updated--discussion.html',sourceType:'announcements',content:'Mandatory attendance was reduced from nine to eight sessions.'}
+  ]
+  let calls=0
+  const model=async messages=>{
+    calls++
+    if(calls>1) throw Object.assign(new Error('Provider unavailable'),{status:429})
+    const prompt=messages.at(-1).content
+    assert.match(prompt,/dedicated attendance pass/)
+    for(const row of attendanceRows) assert.ok(prompt.includes(row.content))
+    assert.match(prompt,/explicitly superseded value/)
+    return {message:{content:JSON.stringify({status:'confirmed',attendanceRules:[{text:'Attend at least eight lab/tutorial sessions.',activity:'tutorial',requirement:'required',evidence:[{chunkId:1},{chunkId:3}]}],components:[],conflicts:[]})}}
+  }
+  const extracted=await extractPriorityEvidence({},[...attendanceRows,{chunkId:4,content:'An unrelated assessment.'}],model,{attendanceRows})
+  const normalized=normalizeScan(extracted,attendanceRows)
+  assert.equal(normalized.status,'needs-review')
+  const supported=supportedCourseAssessment(normalized)
+  assert.equal(supported.attendanceEvidence[0].requirement,'required')
+  assert.match(supported.attendanceEvidence[0].text,/eight/)
+  assert.equal(calls,2)
+  // A genuine attendance conflict remains blocked even with a successful
+  // overall model status; a check cannot bypass source disagreement.
+  const disputed=normalizeScan({...extracted,attendanceCheck:{status:'needs-review',conflicts:[{title:'Attendance conflict',chunkIds:[1,3]}]}},attendanceRows)
+  assert.equal(supportedCourseAssessment(disputed),null)
+})

@@ -39,3 +39,15 @@ test('background priority calls use owner-scoped platform budget and actual prov
   assert.equal(calls,1)
   await assert.rejects(priorityModelCall('owner','binding','evidence-v1',{settings:async()=>({baseUrl:'https://unpriced.test'})})([],{}),/priced first-party/)
 })
+
+test('current corpus batches are not evicted before a large course can finish',async()=>{
+  const owner=`priority-${randomUUID()}`,binding='large-course'
+  try {
+    const cache=priorityBatchCache(owner,binding)
+    cache.retain(Array.from({length:70},(_,i)=>`batch-${i}`))
+    for(let i=0;i<70;i++) await cache.save(`batch-${i}`,{status:'confirmed'})
+    assert.equal((await cache.load('batch-0')).status,'confirmed')
+    assert.equal((await cache.load('batch-69')).status,'confirmed')
+    assert.equal(await priorityBatchCache('peer',binding).load('batch-0'),null)
+  } finally {await withRequestContext({userId:owner},()=>deleteDocument('priority-evidence-cache',binding))}
+})

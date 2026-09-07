@@ -204,3 +204,14 @@ test('Wicker calendar events retain their editable identity and source', () => {
   assert.equal(event.location, 'Library')
   assert.equal(event.courseCode, 'BCS1520')
 })
+
+test('university Type labels connect syllabus attendance to course-only event titles', () => {
+  const workspace=normalizeAcademicWorkspace({profile:{academicYear:'2026-2027'},courses:[{code:'BCS3210',name:'Blockchains'}]})
+  const rules=[{code:'BCS3210',ruleAcademicYear:'2026-2027',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[{text:'Tutorial attendance is mandatory.',activity:'tutorial',evidence:[{chunkId:1}]}]}}}]
+  const result=aggregateCalendar({workspace,ruleCourses:rules,feeds:[{link:{id:'timetable'},events:[
+    {id:'tutorial',title:'BCS3210 Blockchains',date:'2026-09-07',notes:'13:30–15:30 · Type: Tutorial\nLocation: PHS1'},
+    {id:'lecture',title:'BCS3210 Blockchains',date:'2026-09-08',notes:'08:30–10:30 · Type: Lecture\nLocation: PHS1'}
+  ]}]})
+  assert.equal(result.events.find(e=>e.activity==='Tutorial').attendanceRequired,true)
+  assert.equal(result.events.find(e=>e.activity==='Lecture').attendanceRequired,null)
+})

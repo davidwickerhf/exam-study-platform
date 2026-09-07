@@ -1,0 +1,11 @@
+# Attendance extraction and timetable matching
+
+Attendance is extracted from the current Canvas edition's saved syllabus/course manual, announcements and introductory material. Evidence includes adjacent chunks so conditions and amendments are not separated from their rules. Generated link inventories and software-library code are excluded from this focused pass. Timetable `Type:` labels in descriptions take precedence over generic course titles when matching a rule to a session.
+
+The attendance pass runs before general deadline/assessment extraction. Explicit amendments must cite the announcement and affected source; merely newer material does not automatically override a syllabus. Required, optional and assessed participation are distinct. Silence does not establish optional attendance. A rule restricted to a named activity must not make every course session compulsory.
+
+Each scan retains a separate attendance check. An unrelated assessment failure cannot suppress a successfully checked attendance rule; actual attendance conflicts still block the affected evidence. Original asset IDs and page references are retained. The overall scan continues to report incomplete assessment coverage.
+
+The model-call budget bounds each run, not the total source coverage. Successful batches are cached and subsequent runs continue with unfinished batches; the old permanent 100-passage cutoff is removed. Extraction version changes invalidate old results and schedule a rules-only refresh for eligible active connections. Partially indexed courses can be scanned without waiting for every file to succeed, while collection permissions, paused connections and contributor isolation remain enforced.
+
+Regression coverage includes generic timetable titles with description activity labels, lecture/tutorial isolation, explicit optionality, provider failures, amended attendance thresholds presented in the same request, source-code exclusion, and queue processing after an unrelated resource failure. `npm run verify` and the PostgreSQL Canvas queue fixture exercise the pipeline. Model output remains source dependent; live semantic extraction must be checked separately from mocked provider regressions.

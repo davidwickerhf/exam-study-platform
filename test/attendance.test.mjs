@@ -74,3 +74,21 @@ test('assessed debate participation is visible without declaring every tutorial 
   assert.equal(matched.events[0].attendanceRequired,null,'graded participation does not prove compulsory attendance')
   assert.equal(matched.courses[0].unknownRequirementSessions,0)
 })
+
+test('a description activity resolves generic timetable events without making lectures mandatory', () => {
+  const generic = event({activity:'Timetable',notes:'11:00–13:00 · Type: Tutorial\nLocation: Main building'})
+  assert.equal(attendancePolicyForEvent(generic,courses[0]).required,true)
+  assert.equal(attendancePolicyForEvent({...generic,notes:'Type: Lecture\nTutorial questions will be discussed.'},courses[0]),null)
+})
+
+test('structured optional and assessed attendance do not depend on model wording', () => {
+  const course={courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'You may choose whether to attend these sessions.',activity:'tutorial',requirement:'optional',evidence:[{chunkId:1}]}
+  ]}}}
+  assert.equal(attendancePolicyForEvent(event(),course).required,false)
+})
+
+test('explicit timetable optionality is retained and unrelated activity notes do not override its Type', () => {
+  assert.equal(attendancePolicyForEvent(event({notes:'Tutorial attendance is optional.'}),courses[0]).required,false)
+  assert.equal(attendancePolicyForEvent(event({activity:'Timetable',notes:'Type: Lecture. Tutorials are mandatory.'}),courses[0]),null)
+})
