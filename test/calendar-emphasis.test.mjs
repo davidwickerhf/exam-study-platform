@@ -12,3 +12,7 @@ test('calendar separates missing attendance evidence, explicit optionality and d
   assert.equal(calendarEventEmphasis({category:'canvas-deadline'}).tone,'deadline')
   assert.equal(calendarEventEmphasis({category:'canvas-deadline',canvasDone:true}).tone,'neutral')
 })
+
+test('graded attendance is prominent without declaring it mandatory',()=>{
+  assert.deepEqual(calendarEventEmphasis({attendanceAssessed:true,attendanceRequired:null}),{label:'Assessed attendance',tone:'required'})
+})

@@ -22,12 +22,14 @@ export function StudySourceInspector({
   label,
   initialPage = 1,
   focusDocument,
+  onOpen,
 }: {
   source: StudySource
   chunks: Evidence[]
   label?: string
   focusDocument?: boolean
   initialPage?: number
+  onOpen?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const desk = useStudyDesk()
@@ -42,9 +44,12 @@ export function StudySourceInspector({
         size={label ? 'sm' : 'icon-sm'}
         variant="ghost"
         aria-label={label || `View ${source.title}`}
-        onClick={() =>
-          desk ? desk.openDocument(source, chunks, initialPage, focusDocument) : setOpen(true)
-        }
+        onClick={() => {
+          if (desk) {
+            onOpen?.()
+            desk.openDocument(source, chunks, initialPage, focusDocument)
+          } else setOpen(true)
+        }}
       >
         <EyeIcon />
         {label}

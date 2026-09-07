@@ -1,7 +1,9 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { ArrowLeftIcon, FileTextIcon, SearchIcon, LoaderCircleIcon, CheckCircle2Icon, Clock3Icon, AlertCircleIcon } from 'lucide-react'
+import { ArrowLeftIcon, FileTextIcon, SearchIcon, LoaderCircleIcon, ChevronRightIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { paperSelection, paperReadiness } from '@/lib/workspace/paper-library.mjs'
+import './paper-library.css'
 import { Input } from '@/components/ui/input'
 import {
   Sheet,
@@ -88,7 +90,9 @@ export function StudyPaperBank({
     [error, setError] = useState(''),
     [search, setSearch] = useState(''),
     [year, setYear] = useState('all'),
-    [showAll, setShowAll] = useState(false)
+    [showAll, setShowAll] = useState(false),
+    [detailKey, setDetailKey] = useState<string | null>(null),
+    [activityOpen, setActivityOpen] = useState(false)
   const autoStarted = useRef('')
   const [setChoices, setSetChoices] = useState<Record<string, string>>({})
   const [selected, setSelected] = useState<SetInfo | null>(null),
@@ -97,7 +101,8 @@ export function StudyPaperBank({
     [solution, setSolution] = useState(''),
     [from, setFrom] = useState(''),
     [to, setTo] = useState(''),
-    [busy, setBusy] = useState(false)
+    [busy, setBusy] = useState(false),
+    [operation, setOperation] = useState<'prepare' | 'resume' | null>(null)
   const [fitSet, setFitSet] = useState<SetInfo | null>(null),
     [syllabi, setSyllabi] = useState<string[]>([])
   const { preferences } = useStudyAiPreferences(),
@@ -140,6 +145,7 @@ export function StudyPaperBank({
     catch(e) {setError((e as Error).message)} finally {setBusy(false)}
   }
   async function openSet(s: SetInfo) {
+    setDetailKey(null)
     setSelected(s)
     setSession(null)
     setError('')
@@ -168,6 +174,7 @@ export function StudyPaperBank({
   }
   async function resume(s: SetInfo) {
     setBusy(true)
+    setOperation('resume')
     setError('')
     try {
       const response = await studyRequest<{
@@ -183,11 +190,13 @@ export function StudyPaperBank({
       setError((e as Error).message)
     } finally {
       setBusy(false)
+      setOperation(null)
     }
   }
   async function prepare() {
     if (!paper) return
     setBusy(true)
+    setOperation('prepare')
     setError('')
     try {
       let r = await studyRequest<PracticeRecord & { versionId: string }>(
@@ -204,6 +213,7 @@ export function StudyPaperBank({
           ...preferences,
         },
       )
+      setDetailKey(paper.key)
       setPaper(null)
       await load()
       r = await finish(r)
@@ -217,6 +227,7 @@ export function StudyPaperBank({
       setError((e as Error).message)
     } finally {
       setBusy(false)
+      setOperation(null)
     }
   }
   async function checkFit() {
@@ -241,6 +252,7 @@ export function StudyPaperBank({
       setError((e as Error).message)
     } finally {
       setBusy(false)
+      setOperation(null)
     }
   }
   if (selected)
@@ -291,249 +303,62 @@ export function StudyPaperBank({
         r.sourceKeys.every((key) => syllabi.includes(key)),
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const detail = bank?.papers.find(p => p.key === detailKey)
+  const info = (p: StudySource) => paperSelection(bank?.sets || [], bank?.processing || [], p.key, setChoices[p.key])
+  const choosePages = (p: StudySource) => { setDetailKey(null); setPaper(p); setSolution(''); setFrom(''); setTo('') }
+  const backToPaper = () => { setDetailKey(paper?.key || fitSet?.questionSourceKey || null); setPaper(null); setFitSet(null); setError('') }
+  const inspectFit = (set: SetInfo) => { setDetailKey(null); setFitSet(set); setSyllabi(bank?.syllabi.map(s=>s.key).slice(0,1) || []) }
+  const attention = bank?.processing?.filter(j=>j.status==='paused') || []
+  const activeJobs = bank?.processing?.filter(j=>['queued','running'].includes(j.status)) || []
+  const groups = [['paper','Exam papers'],['exercises','Exercise sheets'],['solutions','Solution files']] as const
+  const detailInfo = detail ? info(detail) : null
+  const resetFilters = () => { setSearch(''); setYear('all'); setShowAll(false) }
   return (
-    <section aria-label="Past paper library">
+    <section aria-label="Past paper library" className="paper-library">
       <header className="course-section-heading">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Mock papers</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Original exam papers and exercise sheets, across all course years.
-          </p>
-        </div>
-        <span className="text-sm text-muted-foreground">
-          {bank
-            ? `${bank.papers.filter((p) => p.paperKind !== 'solutions').length} ${bank.papers.filter((p) => p.paperKind !== 'solutions').length === 1 ? 'document' : 'documents'}`
-            : error ? 'Library unavailable' : 'Loading library…'}
-        </span>
+        <div><h2>Mock papers</h2><p>Choose an original paper, or practise its checked questions.</p></div>
+        {!!bank && <Button variant="outline" size="sm" onClick={()=>setActivityOpen(true)}><span className={`size-1.5 rounded-full ${attention.length ? 'bg-amber-600' : activeJobs.length ? 'bg-primary' : 'bg-muted-foreground'}`}/>{attention.length ? `${attention.length} paused` : activeJobs.length ? `${activeJobs.length} preparing` : 'Preparation status'}</Button>}
       </header>
-      <div className="flex flex-wrap items-center gap-3 border-b pb-5">
-        <div className="relative min-w-52 flex-1">
-          <SearchIcon className="absolute left-3 top-3 size-4 text-muted-foreground" />
-          <Input
-            aria-label="Search past papers"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Find a paper or exercise sheet"
-            className="pl-9"
-          />
-        </div>
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">Paper year<select
-          aria-label="Paper year"
-          className="h-10 rounded-md border bg-background px-3 text-sm"
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-        >
-          <option value="all">All years</option>
-          {[...new Set(bank?.papers.map((p) => p.academicYear) || [])]
-            .sort()
-            .reverse()
-            .map((y) => (
-              <option key={y}>{y}</option>
-            ))}
-        </select></label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={showAll}
-            onChange={(e) => setShowAll(e.target.checked)}
-          />
-          Include solution files
-        </label>
+      <div className="paper-toolbar">
+        <div className="relative min-w-0 flex-1"><SearchIcon className="absolute left-3 top-3 size-4 text-muted-foreground"/><Input aria-label="Search past papers" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search papers" className="pl-9"/></div>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">Year<select aria-label="Paper year" className="h-10 rounded-md border bg-card px-3 text-sm text-foreground" value={year} onChange={e=>setYear(e.target.value)}><option value="all">All years</option>{[...new Set(bank?.papers.map(p=>p.academicYear) || [])].sort().reverse().map(y=><option key={y}>{y}</option>)}</select></label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showAll} onChange={e=>setShowAll(e.target.checked)}/>Solution files</label>
       </div>
-      {!!bank?.processing?.some(j=>j.status==='paused') && <details className="my-4 rounded-md bg-muted/60 px-4 py-3 text-sm"><summary className="cursor-pointer font-medium">{bank.processing.filter(j=>j.status==='paused').length} papers need attention</summary><div className="mt-2 space-y-2 text-xs leading-5 text-muted-foreground">{[...new Set(bank.processing.filter(j=>j.status==='paused').map(j=>j.error).filter(Boolean))].map(message=><p key={message}>{message}</p>)}<p>Original files remain available. Retry a paper when you are ready.</p></div></details>}
-      {busy && (
-        <p role="status" className="text-sm text-muted-foreground">
-          Preparing and checking your paper. Each finished step is saved.
-        </p>
-      )}
-      {error && (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive/30 p-4 text-sm text-destructive"
-        >
-          {error}<Button variant="outline" size="sm" className="ml-3" onClick={()=>{setError('');void load().catch(e=>setError(e.message))}}>Reload library</Button>
-        </p>
-      )}
-      {!bank && !error ? (
-        <div role="status" className="space-y-3 py-8">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="h-20 animate-pulse rounded-md bg-muted" />
-          ))}
-        </div>
-      ) : !bank ? null : visible.length ? (
-        <div className="divide-y">
-          {visible.map((p) => {
-            const job = bank.processing?.find(j=>j.sourceKey===p.key)
-            const sets = bank.sets.filter((s) => s.questionSourceKey === p.key),
-              chosen =
-                sets.find((s) => s.id === setChoices[p.key]) ||
-                sets.find((s) => s.id === job?.setId) ||
-                sets.find((s) => s.status === 'complete') ||
-                sets[0],
-              ready = chosen?.status === 'complete' && chosen.questionCount > 0 ? chosen : undefined,
-              pending = chosen?.status !== 'complete' ? chosen : undefined
-            return (
-              <article
-                key={p.key}
-                className="group flex flex-wrap items-center gap-x-4 gap-y-3 py-5 transition-colors"
-              >
-                <span className="flex h-12 w-9 shrink-0 items-center justify-center text-muted-foreground"><FileTextIcon className="size-5" /></span>
-                <div className="min-w-48 flex-1">
-                  <h3 className="text-sm font-semibold leading-6">
-                    {title(p.title)}
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {p.academicYear} ·{' '}
-                    {p.paperKind === 'solutions'
-                      ? 'Solutions'
-                      : p.paperKind === 'exercises'
-                        ? 'Exercise sheet'
-                        : 'Paper'}
-
-                  </p>
-                  {chosen?.sourcePages?.length > 0 && chosen.id !== job?.setId && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Prepared source pages: {chosen.sourcePages[0]}
-                      {chosen.sourcePages.length > 1
-                        ? `–${chosen.sourcePages.at(-1)}`
-                        : ''}
-                    </p>
-                  )}
-                  {p.paperKind !== 'solutions' && (
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground" role={job?.status === 'running' ? 'status' : undefined}>
-                      {job?.status === 'paused' ? <AlertCircleIcon className="size-3.5 text-amber-600"/> : job?.status === 'running' ? <LoaderCircleIcon className="size-3.5 animate-spin"/> : ready ? <CheckCircle2Icon className="size-3.5"/> : <Clock3Icon className="size-3.5"/>}
-                      {job?.status === 'paused' ? 'Processing paused' : job?.status === 'running' ? `Preparing questions · ${job.completedSections} of ${job.totalSections || '…'} sections checked` : job?.status === 'queued' ? 'Queued for automatic processing' : job?.status === 'complete' && !ready ? 'No practice questions found in this document' : ready ? `${ready.questionCount} ${ready.questionCount === 1 ? 'question' : 'questions'} ready` : 'Waiting for automatic processing'}
-                    </div>
-                  )}
-
-
-                </div>
-                <div className="flex flex-wrap items-center gap-1">
-                  {p.url || p.assetId ? (
-                    <StudySourceInspector
-                      focusDocument
-                      source={p}
-                      chunks={[]}
-                      label={
-                        p.paperKind === 'solutions'
-                          ? 'View solutions'
-                          : 'View paper'
-                      }
-                    />
-                  ) : (
-                    <span className="px-2 text-xs text-muted-foreground">
-                      Original file unavailable
-                    </span>
-                  )}
-                  {job?.status === 'paused' && ready && <Button size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(job)}>Retry processing</Button>}
-                  {p.paperKind !== 'solutions' &&
-                    (ready ? (
-                      <>
-                        <Button size="sm" onClick={() => void openSet(ready)}>
-                          {job && job.status !== 'complete' ? 'Practise checked section' : 'Practise'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setFitSet(ready)
-                            setSyllabi(
-                              bank.syllabi.map((s) => s.key).slice(0, 1),
-                            )
-                          }}
-                        >
-                          Syllabus fit
-                        </Button>
-                      </>
-                    ) : job ? (job.status === 'paused' ? <Button size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(job)}>Retry processing</Button> : null) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => {
-                          if (pending) {
-                            void resume(pending)
-                            return
-                          }
-                          setPaper(p)
-                          setSolution('')
-                          setFrom('')
-                          setTo('')
-                        }}
-                      >
-                        {pending ? 'Resume questions' : 'Prepare questions'}
-                      </Button>
-                    ))}
-                </div>
-                {!!sets.length && (
-                  <details className="w-full pl-13 text-xs">
-                    <summary className="cursor-pointer text-muted-foreground">
-                      Paper options
-                    </summary>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      {sets.length > 1 && (
-                        <select
-                          aria-label={`Prepared questions for ${title(p.title)}`}
-                          className="max-w-full rounded-md border bg-background p-2 text-sm"
-                          value={chosen?.id || ''}
-                          onChange={(e) =>
-                            setSetChoices((old) => ({
-                              ...old,
-                              [p.key]: e.target.value,
-                            }))
-                          }
-                        >
-                          {sets.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.sourcePages?.length
-                                ? `Pages ${s.sourcePages[0]}–${s.sourcePages.at(-1)} · `
-                                : ''}
-                              {s.title} · {s.questionCount} questions ·{' '}
-                              {s.status === 'complete' ? 'Ready' : s.status}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => {
-                          setPaper(p)
-                          setSolution('')
-                          setFrom('')
-                          setTo('')
-                        }}
-                      >
-                        Prepare another section
-                      </Button>
-                    </div>
-                  </details>
-                )}
-              </article>
-            )
-          })}
-        </div>
-      ) : (
-        <div className="border-y py-12 text-center">
-          <h3 className="font-medium">
-            {search || year !== 'all'
-              ? 'No papers match these filters'
-              : 'No past papers found yet'}
-          </h3>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            {search || year !== 'all'
-              ? 'Try another year or search.'
-              : 'Sync course materials containing an exam or exercise PDF. Generated questions remain in chapter Practice.'}
-          </p>
-        </div>
-      )}
-      <p className="border-t py-4 text-xs leading-5 text-muted-foreground">
-        Questions are prepared automatically. Processing continues when you leave, using your saved AI preferences and spending limits.
-      </p>
-      <Sheet open={!!paper} onOpenChange={(v) => !busy && !v && setPaper(null)}>
+      {error && !detail && <div role="alert" className="my-4 text-sm text-destructive">{error}<Button variant="outline" size="sm" className="ml-3" onClick={()=>{setError('');void load().catch(e=>setError(e.message))}}>Reload library</Button></div>}
+      {!bank && !error ? <div role="status" aria-label="Loading papers" className="space-y-3 py-6">{[1,2,3].map(n=><div key={n} className="h-16 animate-pulse rounded bg-muted"/>)}</div> : bank && !visible.length ? <div className="py-12"><h3 className="text-lg font-semibold">{search || year!=='all' ? 'No papers match these filters' : 'No past papers found yet'}</h3><p className="mt-2 text-sm text-muted-foreground">{search || year!=='all' ? 'Clear the filters to see the full library.' : 'Papers and exercise sheets appear here after your course materials are collected.'}</p>{(search || year!=='all') && <Button className="mt-4" variant="outline" size="sm" onClick={resetFilters}>Clear filters</Button>}</div> : groups.map(([kind,label])=>{
+        const papers=visible.filter(p=>kind==='paper' ? !['exercises','solutions'].includes(p.paperKind) : p.paperKind===kind).sort((a,b)=>b.academicYear.localeCompare(a.academicYear)||title(a.title).localeCompare(title(b.title)))
+        return papers.length ? <section key={kind} aria-label={label} className="paper-group"><h3 className="paper-group-label">{label}<span>{papers.length}</span></h3>{papers.map(p=>{
+          const {ready,job}=info(p)
+          return <article key={p.key} className="paper-row">
+            <FileTextIcon className="paper-row-icon"/>
+            <div className="paper-row-copy"><h4><button className="paper-name" onClick={()=>{setDetailKey(p.key);setError('')}}>{title(p.title)}</button></h4><div className="paper-row-meta"><span>{p.academicYear}</span>{p.paperKind!=='solutions' && <span className={ready ? 'text-foreground' : ''}>{paperReadiness(ready,job)}</span>}</div></div>
+            <div className="paper-row-actions">{p.url || p.assetId ? <StudySourceInspector focusDocument source={p} chunks={[]} label={p.paperKind==='solutions' ? 'View solutions' : 'View paper'}/> : <span className="text-xs text-muted-foreground">Original unavailable</span>}{ready && <Button size="sm" onClick={()=>void openSet(ready)}>{job?.setId===ready.id && job.status==='complete' ? 'Practise' : 'Practise section'}</Button>}<Button size="icon-sm" variant="ghost" aria-label={`Details for ${title(p.title)}`} onClick={()=>{setDetailKey(p.key);setError('')}}><ChevronRightIcon/></Button></div>
+          </article>
+        })}</section> : null
+      })}
+      <p className="mt-6 text-xs leading-5 text-muted-foreground">Originals stay available while questions are prepared. Older papers may cover a different syllabus.</p>
+      <Sheet open={!!detail} onOpenChange={open=>!open&&!busy&&setDetailKey(null)}>
+        <SheetContent className="paper-detail data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+          <SheetHeader className="border-b p-6 pr-12"><SheetTitle>{detail && title(detail.title)}</SheetTitle><SheetDescription>{detail?.academicYear} · Original course material</SheetDescription></SheetHeader>
+          {detail && detailInfo && <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+            {error && <p role="alert" className="my-4 text-sm text-destructive">{error}</p>}
+            {busy && operation && <p role="status" className="flex items-center gap-2 pt-5 text-sm"><LoaderCircleIcon className="size-4 animate-spin"/>{operation==='prepare' ? 'Preparing questions…' : 'Resuming questions…'}</p>}
+            <div className="flex flex-wrap items-center gap-2 py-5">{(detail.url || detail.assetId) && <StudySourceInspector focusDocument source={detail} chunks={[]} label="View paper" onOpen={()=>setDetailKey(null)}/>}{detailInfo.ready && <Button size="sm" disabled={busy} onClick={()=>void openSet(detailInfo.ready!)}>Practise</Button>}</div>
+            <section className="border-t py-5"><h3 className="font-semibold">Practice questions</h3><p className="mt-2 text-sm text-muted-foreground">{paperReadiness(detailInfo.ready,detailInfo.job)}</p>
+              {detailInfo.sets.length>0 && <div className="mt-4 space-y-3"><label className="block text-sm">Saved question set<select aria-label={`Prepared questions for ${title(detail.title)}`} className="mt-2 w-full rounded-md border bg-card p-2 text-sm" value={detailInfo.chosen?.id || ''} onChange={e=>setSetChoices(old=>({...old,[detail.key]:e.target.value}))}>{detailInfo.sets.map(s=><option key={s.id} value={s.id}>{s.sourcePages?.length ? `Pages ${s.sourcePages[0]}–${s.sourcePages.at(-1)} · ` : ''}{s.title} · {s.questionCount} questions · {s.status==='complete'?'Ready':s.status}</option>)}</select></label>{!!detailInfo.chosen?.sourcePages?.length && <p className="text-xs text-muted-foreground">Prepared source pages: {detailInfo.chosen.sourcePages[0]}–{detailInfo.chosen.sourcePages.at(-1)}. This set covers these pages only.</p>}</div>}
+              {detail.paperKind!=='solutions' && <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={busy} onClick={()=>choosePages(detail)}>{detailInfo.sets.length ? 'Prepare another section' : 'Choose pages to prepare'}</Button>{detailInfo.chosen && detailInfo.chosen.status!=='complete' && <Button size="sm" variant="outline" disabled={busy} onClick={()=>void resume(detailInfo.chosen!)}>{busy && operation==='resume' ? 'Resuming…' : 'Resume questions'}</Button>}</div>}
+            </section>
+            {detailInfo.job && <section className="border-t py-5"><h3 className="font-semibold">Automatic preparation</h3><p className="mt-2 text-sm text-muted-foreground">{detailInfo.job.status==='paused' ? 'Preparation paused. Your original and any checked questions are still available.' : detailInfo.job.status==='complete' ? 'Preparation finished.' : `${detailInfo.job.completedSections} of ${detailInfo.job.totalSections || '…'} sections checked. You can leave this page.`}</p>{detailInfo.job.error && <details className="mt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Why it paused</summary><p className="mt-2 leading-5">{detailInfo.job.error}</p></details>}{detailInfo.job.status==='paused' && <Button className="mt-4" size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(detailInfo.job!)}>{busy && !operation ? 'Retrying…' : 'Retry processing'}</Button>}</section>}
+            {detailInfo.ready && <section className="border-t py-5"><h3 className="font-semibold">Current syllabus</h3><p className="mt-2 text-sm text-muted-foreground">Check whether these questions still match the topics and question formats in your course.</p><Button className="mt-4" size="sm" variant="outline" onClick={()=>inspectFit(detailInfo.ready!)}>Syllabus fit</Button></section>}
+            <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">Preparation and syllabus checks use your saved AI preferences and spending limits.</p>
+          </div>}
+        </SheetContent>
+      </Sheet>
+      <Sheet open={activityOpen} onOpenChange={setActivityOpen}><SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg"><SheetHeader className="border-b p-6"><SheetTitle>Question preparation</SheetTitle><SheetDescription>Original papers are always available. Checked questions remain usable if a later step pauses.</SheetDescription></SheetHeader><div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">{bank?.papers.filter(p=>p.paperKind!=='solutions').map(p=>{const {job,ready}=info(p);return <button key={p.key} className="flex w-full items-center gap-3 border-b py-4 text-left" onClick={()=>{setActivityOpen(false);setDetailKey(p.key);setError('')}}><span className="min-w-0 flex-1"><strong className="block text-sm font-medium">{title(p.title)}</strong><span className="mt-1 block text-xs text-muted-foreground">{p.academicYear} · {job?.status==='paused' ? 'Preparation paused' : paperReadiness(ready,job)}</span></span><ChevronRightIcon className="size-4 shrink-0"/></button>})}</div></SheetContent></Sheet>
+      <Sheet open={!!paper} onOpenChange={(v) => !busy && !v && backToPaper()}>
         <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
           <SheetHeader>
+            <Button variant="ghost" size="sm" className="w-fit -ml-2" disabled={busy} onClick={backToPaper}><ArrowLeftIcon/>Back to paper</Button>
             <SheetTitle>Prepare paper questions</SheetTitle>
             <SheetDescription>{paper && title(paper.title)}</SheetDescription>
           </SheetHeader>
@@ -603,10 +428,11 @@ export function StudyPaperBank({
       </Sheet>
       <Sheet
         open={!!fitSet}
-        onOpenChange={(v) => !busy && !v && setFitSet(null)}
+        onOpenChange={(v) => !busy && !v && backToPaper()}
       >
         <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
           <SheetHeader>
+            <Button variant="ghost" size="sm" className="w-fit -ml-2" disabled={busy} onClick={backToPaper}><ArrowLeftIcon/>Back to paper</Button>
             <SheetTitle>Fit with this year’s syllabus</SheetTitle>
             <SheetDescription>
               {course.academicYear} · {fitSet?.title}

@@ -100,3 +100,10 @@ test('announcements remain visible and cross-batch deadline conflicts are not si
   assert.deepEqual(result.conflicts[0].chunkIds,[1,2])
   assert.match(result.conflicts[0].detail,/2026-09-10 \/ 2026-09-17/)
 })
+
+test('provider throttling is not labelled as the platform scan allowance', async()=>{
+  let calls=0
+  const result=await extractPriorityEvidence({},[{chunkId:1,content:'Labs are mandatory.'}],async()=>{calls++;throw Object.assign(new Error('Provider throttled'),{status:429})})
+  assert.equal(calls,1)
+  assert.equal(result.conflicts[0].title,'Priority AI provider unavailable')
+})

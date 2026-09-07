@@ -1,0 +1,2 @@
+export declare function paperSelection<S extends {id:string;questionSourceKey:string;status:string;questionCount:number},J extends {sourceKey:string;setId:string|null;status:string}>(sets:S[],jobs:J[],key:string,selectedId?:string):{sets:S[];job:J|undefined;chosen:S|undefined;ready:S|undefined}
+export declare function paperReadiness(ready:{id:string;questionCount:number}|undefined,job:{setId:string|null;status:string}|undefined):string

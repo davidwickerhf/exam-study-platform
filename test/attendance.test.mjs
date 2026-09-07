@@ -63,3 +63,14 @@ test('academic workspace normalization persists only valid attendance records', 
   assert.equal(workspace.planning.attendanceRecords.length, 1)
   assert.equal(workspace.planning.attendanceRecords[0].eventId, event().id)
 })
+
+test('assessed debate participation is visible without declaring every tutorial mandatory',()=>{
+  const course={code:'BCS1520',ruleAcademicYear:'2026-2027',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[{text:'Attendance and participation in these debates counts for 10% of your final grade (pass/fail)',activity:'debate',participationAssessed:true,evidence:[{chunkId:1}]}]}}}
+  const unknown=attendanceOverview([event()],[],[course])
+  assert.equal(unknown.courses[0].unmatchedRules[0].assessed,true)
+  assert.equal(unknown.events[0].attendanceRequired,null)
+  const matched=attendanceOverview([event({activity:'Debate'})],[],[course])
+  assert.equal(matched.events[0].attendanceAssessed,true)
+  assert.equal(matched.events[0].attendanceRequired,null,'graded participation does not prove compulsory attendance')
+  assert.equal(matched.courses[0].unknownRequirementSessions,0)
+})

@@ -74,3 +74,25 @@ test('literal attendance extraction preserves wrapped conditions and does not in
     assert.equal(scan.courseProfile.assessment.attendanceEvidence.length, 0)
   }
 })
+
+test('provider failure does not discard independently literal attendance and preserves other claims', async()=>{
+  const {recoverLiteralAttendance}=await import('../lib/priority-evidence.mjs')
+  const rows=[{chunkId:1,assetId:'manual',filename:'coursemanual.pdf',page:2,content:'Assignments. Attendance and\nparticipation in these debates counts for 10% of your final grade (pass/fail). Final Exam. The exam lasts two hours. Resit. Except for the assignments.',sourceType:'materials'}]
+  const profile=recoverLiteralAttendance({assessment:{status:'needs-review',components:[claim(99,'Unchanged')],conflicts:[{title:'Priority scan allowance reached',chunkIds:[1,99]}]}},rows)
+  const supported=supportedCourseAssessment({courseProfile:profile})
+  assert.equal(supported.attendanceEvidence[0].participationAssessed,true)
+  assert.equal(supported.attendanceEvidence[0].activity,'debate')
+  assert.equal(supported.attendanceEvidence[0].evidence[0].assetId,'manual')
+  assert.equal(profile.assessment.components[0].name,'Unchanged')
+  assert.equal(supported.components.length,0,'a literal fallback does not endorse failed model claims')
+  profile.assessment.conflicts.push({title:'Conflicting attendance requirements',chunkIds:[1]})
+  assert.equal(supportedCourseAssessment({courseProfile:profile}),null)
+})
+
+test('literal verification uses the actual source activity and references, not model-supplied metadata',()=>{
+  const scan=normalizeScan({status:'confirmed',attendanceRules:[{text:'Labs are mandatory',activity:'lecture',evidence:[{chunkId:2}]}]},[{chunkId:1,sourceType:'syllabus',content:'Labs are mandatory.'},{chunkId:2,sourceType:'slides',content:'Lecture notes'}])
+  const rule=scan.courseProfile.assessment.attendanceEvidence[0]
+  assert.equal(rule.activity,'lab')
+  assert.deepEqual(rule.evidence,[{chunkId:1}])
+  assert.equal(rule.verification,'literal')
+})
