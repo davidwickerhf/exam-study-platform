@@ -1,6 +1,7 @@
 'use client'
 import dynamic from 'next/dynamic'
 import { useStudyDesk } from './study-desk'
+import {useCourseTutorContext} from './course-tutor-entry'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { StudyPracticeWorkspace } from './study-practice-workspace'
 import { useEffect, useState } from 'react'
@@ -68,6 +69,7 @@ export function StudyReader({
     setError('')
     setNotice('')
   }, [chapter?.id, revision.id])
+  useCourseTutorContext({courseCode:revision.course.courseCode,courseName:revision.course.courseName,academicYear:revision.course.academicYear,courseTab:'chapter',chapterView:tab,courseTabLabel:chapter ? `${chapter.title} · ${tab}` : 'Study guide',chapterId:chapter?.id,chapterName:chapter?.title,studyVersionId:personal ? revision.versionId : undefined,studyRevisionId:personal ? revision.id : undefined,studyQuestionId:tutorQuestion})
   if (!chapter)
     return (
       <p className="text-muted-foreground py-6 text-sm">
@@ -75,8 +77,8 @@ export function StudyReader({
       </p>
     )
   function openTutor(questionId?: string) {
-    if (desk) desk.openTutor('Chapter tutor', chapter.title,
-      <Tutor embedded initialContext={{courseCode:revision.course.courseCode,courseName:revision.course.courseName,chapterId:chapter.id,chapterName:chapter.title,studyVersionId:revision.versionId,studyRevisionId:revision.id,studyQuestionId:questionId}}/>)
+    setTutorQuestion(questionId)
+    if (desk) desk.openCourseTutor()
     else {setTutorQuestion(questionId);setTutorOpen(true)}
   }
   const question = chapter.questions[questionIndex],

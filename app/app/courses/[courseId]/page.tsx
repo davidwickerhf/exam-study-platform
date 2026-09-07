@@ -14,6 +14,7 @@
  */
 
 import dynamic from 'next/dynamic'
+import { CourseTutorEntry } from '@/components/workspace/course-tutor-entry'
 import { StudyDesk } from '@/components/workspace/study-desk'
 import { CourseExercises } from '@/components/workspace/course-exercises'
 const StudyPaperBank = dynamic(() => import('@/components/workspace/study-paper-bank').then(m => m.StudyPaperBank), { loading: () => <p role="status">Opening papers…</p> })
@@ -48,7 +49,7 @@ const LEVELS = [0, 1, 2, 3, 4]
 /** A rating the student has actually given, as opposed to an untouched zero. */
 const isRated = (item: Item) => Boolean(item.masteryUpdatedAt)
 
-export default function CoursePage() { return <StudyDesk><CourseContent /></StudyDesk> }
+export default function CoursePage() { const params=useParams<{courseId:string}>(); return <StudyDesk key={params.courseId}><CourseContent /></StudyDesk> }
 function CourseContent() {
   const params = useParams<{ courseId: string; itemId?: string }>()
   const canvas = useCourseCanvas()
@@ -72,12 +73,16 @@ function CourseContent() {
   const [tab, setTab] = useState<CourseTab>('study')
   const [collectionOpen, setCollectionOpen] = useState(false)
   const [wide, setWide] = useState(false)
+  const [courseElement,setCourseElement] = useState<HTMLElement | null>(null)
   useEffect(() => {
+    if(!courseElement) return
     const mq = window.matchMedia('(min-width: 1024px)')
-    const update = () => setWide(mq.matches)
+    const update = () => setWide(mq.matches && courseElement.getBoundingClientRect().width>800)
+    const observer=new ResizeObserver(update)
+    observer.observe(courseElement)
     update(); mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
+    return () => {observer.disconnect();mq.removeEventListener('change', update)}
+  }, [courseElement])
   useEffect(() => {
     if (wide) return
     const frame = requestAnimationFrame(() => {
@@ -209,7 +214,7 @@ function CourseContent() {
   }
 
   return (
-    <main className="flex w-full min-w-0 flex-col" data-course-detail>
+    <main ref={setCourseElement} className="flex w-full min-w-0 flex-col" data-course-detail>
       <header className="course-heading">
         <div className="flex items-center justify-between gap-3">
           <Link href="/app/courses" className="inline-flex min-h-9 items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeftIcon className="size-4" />All courses</Link>
@@ -217,9 +222,10 @@ function CourseContent() {
           {entry?.editorial && <DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Course options" disabled={saving === 'archive'} />}><MoreHorizontalIcon /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => void archive()}><ArchiveIcon />{course.archived ? 'Unarchive course' : 'Archive course'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
           </div>
         </div>
-        <div className="course-identity">
+        <div className="course-identity"><div>
           <h1>{course.name}</h1>
           <div className="course-facts"><span className={NUMERALS}>{course.code}</span>{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).map(value=><span key={String(value)}>{value}</span>)}{course.archived && <span>Archived</span>}{exam && <span className="font-medium text-foreground">Exam {new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date))}</span>}</div>
+        </div><CourseTutorEntry context={{courseId:course.id,courseCode:course.code,courseName:course.name,academicYear:year==='all' ? undefined : year,courseTab:tab,courseTabLabel:({study:'Study guides',exercises:'Exercises',papers:'Mock papers',materials:'Materials',attendance:'Attendance',history:'Results',about:'Details'})[tab]}}/>
         </div>
       </header>
       <div className="course-workspace">

@@ -1,4 +1,5 @@
 "use client";
+import {useStudyDesk} from "./study-desk";
 import { materialModuleNames } from "@/lib/canvas-material-locations.mjs";
 
 import { useFeedback } from "@/components/feedback/feedback";
@@ -93,6 +94,11 @@ export function CourseMaterialLibrary({
   revision?: number;
   collectionAction?: ReactNode;
 }) {
+  const desk=useStudyDesk();
+  function openMaterial(item:Material) {
+    if(desk && !/^(video|audio|image)\//.test(item.mediaType)) desk.openDocument({key:item.assetId,assetId:item.assetId,title:item.filename,kind:'canvas',academicYear:item.academicYear,period:item.period,sha256:'',url:item.url},[],1,true);
+    else setPreview(item);
+  }
   const [materials, setMaterials] = useState<Material[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState("all");
@@ -359,7 +365,7 @@ export function CourseMaterialLibrary({
                 </span>
                 <button
                   className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-primary"
-                  onClick={() => setPreview(item)}
+                  onClick={() => openMaterial(item)}
                 >
                   <span
                     className="block truncate text-sm font-medium group-hover:text-primary"

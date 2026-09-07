@@ -11,10 +11,12 @@ export function StudyDocument({
   source,
   chunks,
   initialPage = 1,
+  onPageChange,
 }: {
   source: StudySource
   chunks: Evidence[]
   initialPage?: number
+  onPageChange?: (page:number)=>void
 }) {
   const url =
     source.url?.startsWith('/') && !source.url.startsWith('//')
@@ -44,6 +46,7 @@ export function StudyDocument({
             url={url}
             title={source.title}
             initialPage={initialPage}
+            onPageChange={onPageChange}
             hideFullscreen
           />
         ) : /\.pptx?$/i.test(source.title) && source.assetId ? (
@@ -51,6 +54,7 @@ export function StudyDocument({
             assetId={source.assetId}
             title={source.title}
             initialPage={initialPage}
+            onPageChange={onPageChange}
           />
         ) : source.assetId ? (
           <File assetId={source.assetId} />

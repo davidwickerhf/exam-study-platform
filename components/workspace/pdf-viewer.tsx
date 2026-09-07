@@ -25,6 +25,7 @@ export default function PdfViewer({
   slides = false,
   initialPage = 1,
   hideFullscreen = false,
+  onPageChange,
 }: {
   url?: string
   file?: File
@@ -32,6 +33,7 @@ export default function PdfViewer({
   slides?: boolean
   initialPage?: number
   hideFullscreen?: boolean
+  onPageChange?: (page:number)=>void
 }) {
   const { pdf, error, retry } = usePdfDocument(url, file)
   const root = useRef<HTMLDivElement>(null),
@@ -43,6 +45,7 @@ export default function PdfViewer({
     [draft, setDraft] = useState(String(initialPage)),
     [fit, setFit] = useState(slides ? 'page' : 'width'),
     [zoom, setZoom] = useState(1)
+  useEffect(()=>{onPageChange?.(page)},[page,onPageChange])
   const [thumbs, setThumbs] = useState(false),
     [searchOpen, setSearchOpen] = useState(false),
     [query, setQuery] = useState(''),

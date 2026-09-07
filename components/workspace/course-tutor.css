@@ -1,0 +1,19 @@
+.tutor-embedded > nav { gap: 20px; padding: 8px 16px 0; align-items: center; }
+.tutor-embedded main > div { padding: 24px 20px; }
+.tutor-embedded main h2 { font-size: 24px; line-height: 1.25; }
+.tutor-embedded main .sm\:grid-cols-2 { grid-template-columns: 1fr; }
+.tutor-embedded #tutor-actions[data-compact] { width: 100%; border-left: 0; border-top: 1px solid var(--border); flex-shrink: 0; height: 48px; }
+.tutor-embedded #tutor-actions[data-compact][data-expanded] { height: auto; max-height: 45%; }
+.tutor-embedded #tutor-actions[data-compact] > button { display: flex; height: 48px; }
+.tutor-embedded #tutor-actions[data-compact] > div:nth-child(2) { display: none; }
+.tutor-embedded #tutor-actions[data-compact]:not([data-expanded]) > div { display: none; }
+.tutor-embedded #tutor-actions[data-compact][data-expanded] > div:nth-child(n+3) { display: block; }
+.tutor-embedded > .border-t { padding: 12px; }
+.tutor-embedded main article { padding-inline: 20px; }
+
+.practice-question-workspace { container-type: inline-size; }
+@container (max-width: 600px) {
+  .practice-setup-compact { display: block; }
+  .practice-setup-wide { display: none; }
+  .practice-question-footer { flex-direction: column; align-items: stretch; }
+}

@@ -10,6 +10,7 @@
  * would otherwise push the whole canvas sideways.
  */
 
+import { useTutorSelection } from '@/components/workspace/course-tutor-entry'
 import { gradeStudyQuestion, StudyQuestionSource } from "@/components/workspace/practice-study-question"
 import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from "react";
@@ -318,6 +319,7 @@ export default function QuestionsTab({
   );
   const visible = focus ?? filtered;
   const current = visible[currentIndex] ?? null;
+  useTutorSelection('exercises',current ? {kind:'question',title:current.chapterName || 'Course exercise',text:current.question} : undefined)
   const summary = useMemo(() => summariseSession(events), [events]);
   const selectedCourse = courses.find((course) => course.id === courseId);
   const selectedChapter = chapters.find(
@@ -382,7 +384,7 @@ export default function QuestionsTab({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="practice-question-workspace flex flex-col gap-6">
       {focus ? (
         <div className="bg-background flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-5 py-4">
           <p className="text-sm">
@@ -400,7 +402,7 @@ export default function QuestionsTab({
           onOpenChange={setSetupOpen}
           className="bg-background overflow-hidden rounded-[14px] border"
         >
-          <div className="sm:hidden">
+          <div className="practice-setup-compact sm:hidden">
             <CollapsibleTrigger
               render={
                 <Button
@@ -427,7 +429,7 @@ export default function QuestionsTab({
               </span>
             </CollapsibleTrigger>
           </div>
-          <div className="hidden min-w-0 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="practice-setup-wide hidden min-w-0 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
             <div className="grid min-w-0 grid-cols-5">
               <SessionDatum
                 label="Course"
@@ -619,7 +621,7 @@ export default function QuestionsTab({
               />
             </div>
 
-            <div className="bg-background/95 z-10 flex flex-col gap-3 border-t px-5 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 md:sticky md:bottom-0">
+            <div className="practice-question-footer bg-background/95 z-10 flex flex-col gap-3 border-t px-5 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 md:sticky md:bottom-0">
               <div className="flex items-center justify-between gap-2">
                 <Button
                   variant="outline"

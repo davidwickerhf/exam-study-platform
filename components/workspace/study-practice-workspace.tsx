@@ -1,4 +1,5 @@
 'use client'
+import {useTutorSelection} from './course-tutor-entry'
 import { useEffect, useRef, useState } from 'react'
 import { useStudyDesk } from './study-desk'
 import { Button } from '@/components/ui/button'
@@ -188,6 +189,7 @@ export function StudyPracticeWorkspace({
   const questions: Question[] =
     set?.result?.questions || chapter?.questions || []
   const question = questions[index]
+  useTutorSelection(desk?.courseContext?.courseTab === 'chapter' ? 'chapter' : 'papers',question ? {kind:'question',title:set?.result?.title || chapter?.title || 'Practice question',text:question.question} : undefined)
   const questionEvidence = (set?.evidence || revision.snapshot.chunks).filter(
     (c) => question?.sourceIds.includes(c.id),
   )
