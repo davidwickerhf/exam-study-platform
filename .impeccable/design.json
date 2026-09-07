@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-04T14:28:04Z",
+  "generatedAt": "2026-09-07T02:41:35Z",
   "title": "Design System: Wicker Study",
   "extensions": {
     "colorMeta": {
@@ -128,17 +128,17 @@
     "motion": [
       {
         "name": "widget-assembly",
-        "value": "scroll progress 0.12–0.70; rounded pixel translate only",
+        "value": "scroll progress 0.12\u20130.70; rounded pixel translate only",
         "purpose": "Move exact dashboard widgets into their measured destinations without scaling, blur, or a transformed resting state."
       },
       {
         "name": "workspace-arrival",
-        "value": "scroll progress 0.18–0.68; translateY(160px) to none",
+        "value": "scroll progress 0.18\u20130.68; translateY(160px) to none",
         "purpose": "Raise the complete Study Itinerary beneath the moving widgets."
       },
       {
         "name": "ambient-field",
-        "value": "5.5–10s linear/ease-in-out loops; opacity and translate only",
+        "value": "5.5\u201310s linear/ease-in-out loops; opacity and translate only",
         "purpose": "Move product-derived rules, marks, and data labels behind the opening promise; fade fully before the workspace lands."
       },
       {
@@ -168,6 +168,10 @@
       {
         "name": "public-medium",
         "value": "1120px"
+      },
+      {
+        "name": "course-navigation-rail",
+        "value": "1024px"
       }
     ]
   },
@@ -184,7 +188,7 @@
       "kind": "card",
       "refersTo": "public-artifact",
       "description": "An exact second rendering of a dashboard widget used as a scroll-assembly source.",
-      "html": "<div class=\"hero-artifact\" data-assembly-source=\"priority\"><section class=\"control-room-priorities\">…</section></div>",
+      "html": "<div class=\"hero-artifact\" data-assembly-source=\"priority\"><section class=\"control-room-priorities\">\u2026</section></div>",
       "css": ".hero-artifact { overflow: hidden; border: 1px solid rgba(32,38,58,.06); border-radius: 20px; background: #fff; box-shadow: 0 20px 25px -5px rgba(32,38,58,.10), 0 8px 10px -6px rgba(32,38,58,.08); }"
     },
     {
@@ -192,7 +196,7 @@
       "kind": "custom",
       "refersTo": "public-product-stage",
       "description": "A solid cool-neutral field holding the complete Study Itinerary after four dashboard widgets converge.",
-      "html": "<section class=\"landing-product-stage\" data-assembly-frame><span>Your home screen</span><div class=\"control-room\">…</div><p>Example account shown.</p></section>",
+      "html": "<section class=\"landing-product-stage\" data-assembly-frame><span>Your home screen</span><div class=\"control-room\">\u2026</div><p>Example account shown.</p></section>",
       "css": ".landing-product-stage { border-radius: 24px; background: #f1f2f6; box-shadow: inset 0 0 0 1px rgba(32,38,58,.08); }"
     },
     {
@@ -207,8 +211,15 @@
       "kind": "custom",
       "refersTo": "public-course-row",
       "description": "A flat catalogue row aligning course identity, topics, and chapter count.",
-      "html": "<article class=\"public-course-row\"><span>BCS2420</span><h3>Computer Security</h3><p>Cryptography · authentication · system defence</p><b>7 chapters</b></article>",
+      "html": "<article class=\"public-course-row\"><span>BCS2420</span><h3>Computer Security</h3><p>Cryptography \u00b7 authentication \u00b7 system defence</p><b>7 chapters</b></article>",
       "css": ".public-course-row { display: grid; align-items: center; border-bottom: 1px solid #dfe2ea; background: #f7f7f4; }"
+    },
+    {
+      "name": "Course Chapter Row",
+      "kind": "custom",
+      "description": "Direct chapter entry on the course working plane; sequential number, compact title and trailing arrow, with no enclosing card.",
+      "html": "<a class=\"ds-course-chapter\" href=\"#chapter\"><span class=\"ds-course-number\">01</span><span>Chapter title</span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></a>",
+      "css": ".ds-course-chapter { display: grid; grid-template-columns: 32px minmax(0,1fr) auto; align-items: center; gap: 16px; min-height: 76px; padding: 16px 12px; border-top: 1px solid var(--border); border-radius: 0; color: var(--foreground); text-decoration: none; font-family: var(--font-archivo), sans-serif; font-size: 14px; font-weight: 500; line-height: 24px; } .ds-course-number { font-family: var(--font-archivo-narrow), sans-serif; font-weight: 400; color: var(--muted-foreground); font-variant-numeric: tabular-nums; } .ds-course-chapter:hover { background: var(--muted); color: var(--primary); } .ds-course-chapter:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }"
     }
   ],
   "narrative": {

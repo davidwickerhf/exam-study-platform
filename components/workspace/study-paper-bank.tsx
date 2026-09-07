@@ -106,9 +106,11 @@ export function StudyPaperBank({
     setBank(
       await studyRequest<Bank>(courseMode ? paperUrl : `${base}/paper-bank`),
     )
+    setError('')
   }
   useEffect(() => {
     let live = true
+    setError(''); setBank(null)
     void studyRequest<Bank>(courseMode ? paperUrl : `${base}/paper-bank`)
       .then((r) => live && setBank(r))
       .catch((e) => live && setError(e.message))
@@ -290,21 +292,21 @@ export function StudyPaperBank({
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
   return (
-    <section className="overflow-hidden rounded-xl border bg-card" aria-label="Past paper library">
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b px-5 py-5 sm:px-6">
+    <section aria-label="Past paper library">
+      <header className="course-section-heading">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Mock papers</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Original papers, ready to practise. Questions are extracted and checked automatically after retrieval.
+            Original exam papers and exercise sheets, across all course years.
           </p>
         </div>
         <span className="text-sm text-muted-foreground">
           {bank
             ? `${bank.papers.filter((p) => p.paperKind !== 'solutions').length} ${bank.papers.filter((p) => p.paperKind !== 'solutions').length === 1 ? 'document' : 'documents'}`
-            : 'Loading library…'}
+            : error ? 'Library unavailable' : 'Loading library…'}
         </span>
       </header>
-      <div className="flex flex-wrap items-center gap-3 border-b bg-muted/20 px-5 py-3 sm:px-6">
+      <div className="flex flex-wrap items-center gap-3 border-b pb-5">
         <div className="relative min-w-52 flex-1">
           <SearchIcon className="absolute left-3 top-3 size-4 text-muted-foreground" />
           <Input
@@ -315,7 +317,7 @@ export function StudyPaperBank({
             className="pl-9"
           />
         </div>
-        <select
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">Paper year<select
           aria-label="Paper year"
           className="h-10 rounded-md border bg-background px-3 text-sm"
           value={year}
@@ -328,7 +330,7 @@ export function StudyPaperBank({
             .map((y) => (
               <option key={y}>{y}</option>
             ))}
-        </select>
+        </select></label>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -338,6 +340,7 @@ export function StudyPaperBank({
           Include solution files
         </label>
       </div>
+      {!!bank?.processing?.some(j=>j.status==='paused') && <details className="my-4 rounded-md bg-muted/60 px-4 py-3 text-sm"><summary className="cursor-pointer font-medium">{bank.processing.filter(j=>j.status==='paused').length} papers need attention</summary><div className="mt-2 space-y-2 text-xs leading-5 text-muted-foreground">{[...new Set(bank.processing.filter(j=>j.status==='paused').map(j=>j.error).filter(Boolean))].map(message=><p key={message}>{message}</p>)}<p>Original files remain available. Retry a paper when you are ready.</p></div></details>}
       {busy && (
         <p role="status" className="text-sm text-muted-foreground">
           Preparing and checking your paper. Each finished step is saved.
@@ -348,16 +351,16 @@ export function StudyPaperBank({
           role="alert"
           className="rounded-md border border-destructive/30 p-4 text-sm text-destructive"
         >
-          {error}
+          {error}<Button variant="outline" size="sm" className="ml-3" onClick={()=>{setError('');void load().catch(e=>setError(e.message))}}>Reload library</Button>
         </p>
       )}
-      {!bank ? (
+      {!bank && !error ? (
         <div role="status" className="space-y-3 py-8">
           {[1, 2, 3].map((n) => (
             <div key={n} className="h-20 animate-pulse rounded-md bg-muted" />
           ))}
         </div>
-      ) : visible.length ? (
+      ) : !bank ? null : visible.length ? (
         <div className="divide-y">
           {visible.map((p) => {
             const job = bank.processing?.find(j=>j.sourceKey===p.key)
@@ -372,11 +375,11 @@ export function StudyPaperBank({
             return (
               <article
                 key={p.key}
-                className="group flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-5 transition-colors hover:bg-muted/20 sm:px-6"
+                className="group flex flex-wrap items-center gap-x-4 gap-y-3 py-5 transition-colors"
               >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground"><FileTextIcon className="size-5" /></span>
+                <span className="flex h-12 w-9 shrink-0 items-center justify-center text-muted-foreground"><FileTextIcon className="size-5" /></span>
                 <div className="min-w-48 flex-1">
-                  <h3 className="text-base font-semibold leading-6">
+                  <h3 className="text-sm font-semibold leading-6">
                     {title(p.title)}
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -402,7 +405,7 @@ export function StudyPaperBank({
                       {job?.status === 'paused' ? 'Processing paused' : job?.status === 'running' ? `Preparing questions · ${job.completedSections} of ${job.totalSections || '…'} sections checked` : job?.status === 'queued' ? 'Queued for automatic processing' : job?.status === 'complete' && !ready ? 'No practice questions found in this document' : ready ? `${ready.questionCount} ${ready.questionCount === 1 ? 'question' : 'questions'} ready` : 'Waiting for automatic processing'}
                     </div>
                   )}
-                  {job?.error && <p className="mt-2 max-w-xl text-xs leading-5 text-muted-foreground">{job.error}</p>}
+
 
                 </div>
                 <div className="flex flex-wrap items-center gap-1">
@@ -463,7 +466,7 @@ export function StudyPaperBank({
                     ))}
                 </div>
                 {!!sets.length && (
-                  <details className="w-full pl-15 text-sm">
+                  <details className="w-full pl-13 text-xs">
                     <summary className="cursor-pointer text-muted-foreground">
                       Paper options
                     </summary>
@@ -525,8 +528,8 @@ export function StudyPaperBank({
           </p>
         </div>
       )}
-      <p className="border-t bg-muted/10 px-5 py-3 text-xs leading-5 text-muted-foreground sm:px-6">
-        Processing continues when you leave. Uses your saved AI preferences and spending limits. Older papers remain available; syllabus fit is checked separately.
+      <p className="border-t py-4 text-xs leading-5 text-muted-foreground">
+        Questions are prepared automatically. Processing continues when you leave, using your saved AI preferences and spending limits.
       </p>
       <Sheet open={!!paper} onOpenChange={(v) => !busy && !v && setPaper(null)}>
         <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-lg">

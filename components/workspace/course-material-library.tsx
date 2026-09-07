@@ -14,7 +14,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { type ReactNode, Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   DownloadIcon,
@@ -85,11 +85,13 @@ export function CourseMaterialLibrary({
   courseCodes = [],
   academicYear,
   revision = 0,
+  collectionAction,
 }: {
   courseCode: string;
   courseCodes?: string[];
   academicYear?: string;
   revision?: number;
+  collectionAction?: ReactNode;
 }) {
   const [materials, setMaterials] = useState<Material[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +117,8 @@ export function CourseMaterialLibrary({
   useEffect(() => {
     setYear(academicYear || "all");
     setKind("all");
+    setModuleName("all");
+    setQuery("");
     setPreview(null);
   }, [codeKey, academicYear]);
 
@@ -219,11 +223,11 @@ export function CourseMaterialLibrary({
   });
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-2">
+    <section className="flex flex-col gap-4">
+      <header className="course-section-heading !mb-2">
         <div>
           <h2 className="font-heading text-xl font-semibold">
-            Course material
+            Materials
           </h2>
           <p className="text-muted-foreground mt-0.5 text-sm">
             {academicYear && academicYear !== "all"
@@ -231,7 +235,9 @@ export function CourseMaterialLibrary({
               : "Original documents and recordings, across all course editions."}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2">{collectionAction}<Button variant="ghost" size="icon-sm" onClick={load} aria-label="Refresh material list"><RefreshCwIcon className="size-4"/></Button></div>
+      </header>
+      <div className="flex flex-wrap items-center gap-2 border-b pb-4">
           {!!materials?.length && (
             <>
               <select aria-label="Canvas module" value={moduleName} onChange={e=>setModuleName(e.target.value)} className="h-9 max-w-60 rounded-md border bg-background px-3 text-sm">
@@ -282,16 +288,6 @@ export function CourseMaterialLibrary({
               </Select>
             </>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={load}
-            aria-label="Refresh material list"
-            title="Refresh material list"
-          >
-            <RefreshCwIcon className="size-4" />
-          </Button>
-        </div>
       </div>
 
       {!!materials?.length && (
@@ -322,8 +318,7 @@ export function CourseMaterialLibrary({
         // between the same hairlines the material rows would have used.
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-y py-3">
           <p className="text-muted-foreground min-w-0 text-sm">
-            No stored material for this selection. Collect an available Canvas
-            edition above, or switch academic years.
+            No stored material for this selection. Use Manage collection to retrieve files, or switch academic years.
           </p>
           <Link
             className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -346,7 +341,7 @@ export function CourseMaterialLibrary({
             const before=shown[index-1], previous=before ? `${before.academicYear} · ${materialModuleNames(before)[0] || 'Outside modules'}` : '';
             return (
               <Fragment key={item.snapshotId || `${item.assetId}-${item.sourcePath}`}>
-              {group!==previous && <li className="bg-muted/30 px-3 py-2.5 text-xs font-semibold tracking-wide">{group}</li>}
+              {group!==previous && <li className="flex items-center gap-2 bg-muted/40 px-3 py-3 text-sm font-medium">{group}</li>}
               <li
                 key={
                   item.snapshotId ||
@@ -357,9 +352,9 @@ export function CourseMaterialLibrary({
                     item.period,
                   ])
                 }
-                className="group flex min-w-0 items-center gap-3 border-b py-4 hover:bg-muted/20"
+                className="group flex min-w-0 items-center gap-3 border-b px-3 py-4 hover:bg-muted/30"
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted/60 text-muted-foreground">
+                <span className="grid size-8 shrink-0 place-items-center text-muted-foreground">
                   <Icon className="size-4" />
                 </span>
                 <button
@@ -384,7 +379,7 @@ export function CourseMaterialLibrary({
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
-                  {(materialModuleNames(item).length>0 || item.locations?.some(l=>l.assignmentTitle)) && <span className="mt-1 block text-xs leading-5 text-muted-foreground">{[...materialModuleNames(item), ...new Set((item.locations || []).map(l=>l.assignmentTitle).filter(Boolean))].join(' · ')}</span>}
+                  {(materialModuleNames(item).length>1 || item.locations?.some(l=>l.assignmentTitle)) && <span className="mt-1 block text-xs leading-5 text-muted-foreground">{[...(materialModuleNames(item).length>1 ? materialModuleNames(item) : []), ...new Set((item.locations || []).map(l=>l.assignmentTitle).filter(Boolean))].join(' · ')}</span>}
                 </button>
                 <a
                   className={buttonVariants({
