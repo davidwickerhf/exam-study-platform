@@ -17,7 +17,7 @@ related_targets: ["components/workspace/canvas-groups.tsx", "docs/CANVAS_GROUPS.
 ## Constraints
 
 - Render one global page title. Group memberships by origin, course and academic year; keep global groups separate. Long names wrap in flat ruled rows.
-- Search by team, course name/code or context; expose All groups, Course teams and Global groups controls plus the available academic years. Unknown years remain explicitly unlisted. Changing scope resets the year filter.
+- Search by team, course name/code or context; expose Course teams and Global groups controls plus the available academic years. Unknown years remain explicitly unlisted. The top-of-page year selector defaults to the newest available course year. There is no combined all-years view. Switching scope preserves the selected year, and the year query parameter preserves it on reload. Global communities are not tied to academic years.
 - Do not fetch any global roster before its row is opened, even for a one-group global directory. The focused course exception automatically loads the sole team; multiple course teams use the directory.
 - Key selection by Canvas origin and group ID. Preserve exact course/year request boundaries and selected tutor context.
 - Member-count actions display Canvas's known count or “View members” when unknown. Never convert unavailable data into zero.
@@ -46,3 +46,5 @@ related_targets: ["components/workspace/canvas-groups.tsx", "docs/CANVAS_GROUPS.
 - Final design review: ship after the sole required roster-error precedence fix.
 - `npm run verify` passed: 836 tests, zero skipped, TypeScript and production build.
 - Browser evidence uses mocked Canvas responses. Deployment acceptance is recorded separately in the pull request; no live-account or deployment claim follows from local tests.
+
+Year-scoped directory: course teams show one academic year at a time, newest available by default. The header owns the year selector; counts use that selected year. Search clearing and switching to Global groups do not reset the year; reload retains an explicitly selected year through the URL. Courses retain their own existing edition selector.

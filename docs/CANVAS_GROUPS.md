@@ -50,12 +50,12 @@ Official source: [Canvas Groups API](https://canvas.instructure.com/doc/api/grou
 ## Directory and roster behavior
 
 `/app/groups` owns one “Your groups” title and a flat directory grouped by Canvas
-origin, course and academic year. Global groups occupy separate sections. All
-groups, Course teams and Global groups controls show membership counts; search
-matches group name, course name/code and global context. The academic-year filter
-includes an explicit “Year not listed” choice when needed. Changing group type
-resets the year selection. Long team names wrap in the directory instead of being
-hidden in a selector.
+origin and course within one academic year. The header year selector defaults
+to the newest available year and has no combined all-years choice. Course teams
+and Global groups remain separate views; course counts reflect the selected year.
+Search matches group name, course name/code and global context. “Year not listed”
+appears when needed. Switching group type or clearing search preserves the year;
+an explicit selection is retained in the URL on reload. Long names wrap in rows.
 
 Each row is a keyboard-operable member action. A known Canvas member count is
 shown alongside it; an unknown count says “View members”, never zero. Opening a
@@ -135,3 +135,5 @@ The final design reviewer disposition was **ship** after the roster-error
 precedence fix. `npm run verify` passed: 836 tests, zero skipped, TypeScript and
 production build. Deployment acceptance is recorded separately in the pull request;
 local screenshots alone are not preview evidence.
+
+Year-scoped directory: course teams show one academic year at a time, newest available by default. The header owns the year selector; counts use that selected year. Search clearing and switching to Global groups do not reset the year; reload retains an explicitly selected year through the URL. Courses retain their own existing edition selector.
