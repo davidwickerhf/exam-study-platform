@@ -572,3 +572,5 @@ split major plane: a soft indigo thesis block beside two white evidence columns.
 - **Don't** apply the floating 20px artifact silhouette or its shadow to ordinary public sections.
 - **Don't** reintroduce ambient fragment drift or a dark hero stage; the shipped signature is scroll-directed convergence into a light tonal frame.
 - **Don't** invent preview data that contradicts the dates, course names, counts, or route state shown elsewhere in the same composition.
+
+Structural boundaries have one owner: never stack an empty-state bottom rule with child action top rules. Course bands span the entire working plane; apply content gutters inside each band. Document viewers are flush, square-edged surfaces inside the workspace, without nested frames. Opening a tutor must retain the current document, page and task rather than replace them with the course landing page.

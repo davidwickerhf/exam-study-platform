@@ -37,6 +37,7 @@ export function StudyDesk({ children }: { children: ReactNode }) {
   const [courseContext,setCourseContext] = useState<TutorContext | null>(null)
   const [tutorSelection,setTutorSelection] = useState<{tab:string;value:NonNullable<TutorContext['selection']>} | null>(null)
   const [tutorStarted,setTutorStarted] = useState(false)
+  const [documentTutor,setDocumentTutor] = useState(false)
   const liveTutorContext = {...courseContext,selection:tutorSelection?.tab===courseContext?.courseTab ? tutorSelection?.value : undefined}
   const [companion, setCompanion] = useState<Companion | null>(null),
     [focus, setFocus] = useState(false),
@@ -74,6 +75,7 @@ export function StudyDesk({ children }: { children: ReactNode }) {
   }
   const close = () => {
     setCompanion(null)
+    setDocumentTutor(false)
     setFocus(false)
     if(returnFocus.current?.isConnected) returnFocus.current.focus({preventScroll:true})
     restoreWork()
@@ -81,10 +83,15 @@ export function StudyDesk({ children }: { children: ReactNode }) {
   const value: Desk = {
     companion,
     courseContext, setCourseContext, setTutorSelection,
-    openCourseTutor: () => { rememberWork(); setTutorStarted(true); setCompanion({kind:'course-tutor'}); setFocus(false); setMobileSource(true); if(window.innerWidth<1024) requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'})) },
+    openCourseTutor: () => {
+      rememberWork(); setTutorStarted(true); setMobileSource(true)
+      if (companion?.kind === 'document') { setDocumentTutor(true); setFocus(true) }
+      else { setDocumentTutor(false); setCompanion({kind:'course-tutor'}); setFocus(false) }
+    },
     close,
     openDocument: (source, chunks, page = 1, focusDocument) => {
       rememberWork()
+      setDocumentTutor(false)
       if(courseContext) setTutorSelection({tab:courseContext.courseTab || 'study',value:{kind:'document',title:source.title,sourceAssetId:source.assetId,page}})
       setCompanion({ kind: 'document', source, chunks, page })
       if (focusDocument !== undefined) setFocus(focusDocument)
@@ -115,10 +122,10 @@ export function StudyDesk({ children }: { children: ReactNode }) {
   }, [companion, mobileSource])
   useEffect(()=>{
     if(!companion) return
-    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape' && !event.defaultPrevented && !document.querySelector('[role=dialog]')) close()}
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape' && !event.defaultPrevented && !document.querySelector('[role=dialog]')) { if(documentTutor) setDocumentTutor(false); else close() }}
     window.addEventListener('keydown',escape)
     return()=>window.removeEventListener('keydown',escape)
-  },[companion])
+  },[companion,documentTutor])
   const documentSource = companion?.kind==='document' ? companion.source : null
   const onDocumentPage = useCallback((page:number)=>{
     if(documentSource && courseContext) setTutorSelection({tab:courseContext.courseTab || 'study',value:{kind:'document',title:documentSource.title,sourceAssetId:documentSource.assetId,page}})
@@ -202,8 +209,7 @@ export function StudyDesk({ children }: { children: ReactNode }) {
             className={`${!companion ? 'hidden' : mobileSource ? 'flex' : 'hidden lg:flex'} sticky top-12 lg:top-0 min-h-0 min-w-0 flex-col border-l bg-background ${companion?.kind==='course-tutor' ? 'h-[calc(100dvh-10.5rem)]' : 'h-[calc(100dvh-7rem)]'} lg:h-screen`}
           >
             <header className="flex shrink-0 items-center gap-2 border-b px-3 py-3">
-              {companion?.kind==='document' && courseContext && <Button size="sm" variant="outline" onClick={value.openCourseTutor}>Ask tutor</Button>}
-              {focus && (
+              {focus && !documentTutor && (
                 <Button
                   size="icon-sm"
                   variant="ghost"
@@ -224,10 +230,11 @@ export function StudyDesk({ children }: { children: ReactNode }) {
                     : companion?.kind==='course-tutor' ? `${courseContext?.courseCode || ''} · ${courseContext?.courseTabLabel || 'Course'}` : companion?.kind==='tutor' ? companion.description : ''}
                 </p>
               </div>
+              {companion?.kind==='document' && courseContext && <Button size="sm" variant="outline" aria-expanded={documentTutor} onClick={()=>documentTutor ? setDocumentTutor(false) : value.openCourseTutor()}>Ask tutor</Button>}
               <Button
                 size="icon-sm"
                 variant="ghost"
-                className="hidden lg:inline-flex"
+                className={documentTutor ? "hidden" : "hidden lg:inline-flex"}
                 aria-label={focus ? 'Split view' : companion?.kind==='document' ? 'Focus document' : 'Focus tutor'}
                 title={focus ? 'Split view' : companion?.kind==='document' ? 'Focus document' : 'Focus tutor'}
                 onClick={toggleFocus}
@@ -245,7 +252,8 @@ export function StudyDesk({ children }: { children: ReactNode }) {
                 <XIcon />
               </Button>
             </header>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col [&_.pdf-reader]:rounded-none [&_.pdf-reader]:border-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-row [&_.pdf-reader]:rounded-none [&_.pdf-reader]:border-0">
+              <div className={`${companion?.kind==='course-tutor' ? 'hidden' : documentTutor ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col`}>
               {companion?.kind === 'document' ? (
                 <StudyDocument
                   source={companion.source}
@@ -256,7 +264,11 @@ export function StudyDesk({ children }: { children: ReactNode }) {
               ) : (
                 companion?.kind==='tutor' ? companion.content : null
               )}
-              {tutorStarted && <div className={companion?.kind==='course-tutor' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}><CourseTutor embedded initialContext={liveTutorContext}/></div>}
+              </div>
+              {tutorStarted && <div role={documentTutor ? 'complementary' : undefined} aria-label={documentTutor ? 'Document tutor' : undefined} className={documentTutor ? 'flex min-h-0 w-full flex-col border-l lg:w-[380px] lg:shrink-0 xl:w-[420px]' : companion?.kind==='course-tutor' ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
+                {documentTutor && <div className="flex items-center justify-between border-b px-4 py-3"><span className="text-sm font-medium">Document tutor</span><Button size="icon-sm" variant="ghost" aria-label="Close document tutor" onClick={()=>setDocumentTutor(false)}><XIcon/></Button></div>}
+                <CourseTutor embedded initialContext={liveTutorContext}/>
+              </div>}
             </div>
           </aside>
         )}

@@ -48,7 +48,7 @@ export function CourseCanvasUpdates({ courseCode, academicYear }: { courseCode: 
   }
   const visible = courses.filter(course => !course.paused && (course.active || course.changes.length))
   if (!visible.length) return null
-  return <section aria-label="Canvas course updates" className="mb-6 border-b pb-5 text-sm">
+  return <section aria-label="Canvas course updates" className="course-band mb-6 border-b pb-5 text-sm">
     {visible.map(course => <div key={course.bindingId} className="mb-3 last:mb-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">

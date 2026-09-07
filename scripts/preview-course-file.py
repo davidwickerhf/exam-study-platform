@@ -91,6 +91,9 @@ def preview(data,name,member=None):
             if used>MAX_TEXT: break
             pages.append(text)
         return {'kind':'slides','pages':pages,'visualCoverage':[p['visualCoverage'] for p in source[:len(pages)]],'limited':len(pages)<len(source),'notice':'Extracted text and speaker notes. Graphs and diagrams need visual inspection; switch to Slides for their layout.'}
+    if ext in ('.html', '.htm', '.md', '.markdown'):
+        text=data.decode('utf-8-sig',errors='replace')
+        return {'kind':'html' if ext in ('.html','.htm') else 'markdown','text':text[:MAX_TEXT],'limited':len(text)>MAX_TEXT}
     text=extract.read_text(data,name)
     if not text: return {'kind':'unsupported','text':'This file has no readable text preview. Download the original to open it in its application.'}
     return {'kind':'text','text':text[:MAX_TEXT],'limited':len(text)>MAX_TEXT}

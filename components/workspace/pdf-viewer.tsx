@@ -79,7 +79,10 @@ export default function PdfViewer({
     const element = viewport.current
     if (!element) return
     const observer = new ResizeObserver(([e]) => {
-      pendingJump.current = currentPage.current
+      pendingJump.current ??= currentPage.current
+      // A hidden companion has no layout. Preserve its last real page and
+      // dimensions until it becomes visible again (including mobile tutor).
+      if (!e.contentRect.width || !e.contentRect.height) return
       setSize({
         width: Math.max(180, e.contentRect.width - 32),
         height: Math.max(160, e.contentRect.height - 32),
@@ -126,6 +129,7 @@ export default function PdfViewer({
     (number: number) => {
       if (!pdf) return
       const next = Math.min(pdf.numPages, Math.max(1, Math.floor(number) || 1))
+      currentPage.current = next
       setPage(next)
       setDraft(String(next))
       const box = viewport.current?.querySelector<HTMLElement>(
@@ -145,13 +149,13 @@ export default function PdfViewer({
   useEffect(() => {
     if (!pdf) return
     const frame = requestAnimationFrame(() => {
-      if (pendingJump.current !== null) {
+      if (pendingJump.current !== null && viewport.current?.clientWidth && viewport.current.clientHeight) {
         jump(pendingJump.current)
         pendingJump.current = null
       }
     })
     return () => cancelAnimationFrame(frame)
-  }, [pdf, width, base, jump, textView])
+  }, [pdf, width, size, base, jump, textView])
   useEffect(() => {
     const view = viewport.current
     if (!view || !pdf || textView) return
@@ -159,12 +163,19 @@ export default function PdfViewer({
     const track = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
+        if (!view.clientWidth || !view.clientHeight || pendingJump.current !== null) return
         const boxes = [...view.querySelectorAll<HTMLElement>('[data-pdf-page]')]
         const middle = view.scrollTop + Math.min(view.clientHeight / 3, 180)
-        const current = boxes.find(
+        // The final page may be too short to reach the tracking line. A
+        // clamped jump to the bottom must still select that final page.
+        const atBottom = view.scrollTop > 0 && view.scrollTop + view.clientHeight >= view.scrollHeight - 2
+        const current = atBottom ? boxes.at(-1) : boxes.find(
           (box) => box.offsetTop + box.offsetHeight > middle,
         )
-        if (current) setPage(Number(current.dataset.pdfPage))
+        if (current) {
+          currentPage.current = Number(current.dataset.pdfPage)
+          setPage(currentPage.current)
+        }
       })
     }
     view.addEventListener('scroll', track, { passive: true })
