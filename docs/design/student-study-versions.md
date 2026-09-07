@@ -311,3 +311,12 @@ cross-year reuse, programme/account isolation, original snapshots surviving
 teaching-revision removal, cached syllabus checks and rejected unsupported
 citations/exclusions. Real-provider paper extraction, grading and syllabus-fit
 quality remain unverified after the earlier provider HTTP 429.
+
+Live preview acceptance: the 2024–25 two-page AI practice exam and the 2025–26
+81-page past-question collection both render their actual PDFs in the side
+panel. A GPT-5.4 extraction attempt on pages 1–2 of the collection returned
+provider HTTP 429; job sp-ca2b99cc-14a7-848a-86c0-de7001465a15 remains saved
+for explicit resume. No paid retry loop was started. Prepared sections now
+show their source pages, with a section selector and Prepare another section
+under Paper options so partial extractions are never presented as a full paper.
+The full verification passed 802 tests again after this addition.

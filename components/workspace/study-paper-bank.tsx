@@ -31,6 +31,7 @@ type SetInfo = {
   topicId: string
   title: string
   questionCount: number
+  sourcePages: number[]
   questionSourceKey: string
   status: string
   academicYear: string
@@ -77,6 +78,7 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
     [search, setSearch] = useState(''),
     [year, setYear] = useState('all'),
     [showAll, setShowAll] = useState(false)
+  const [setChoices, setSetChoices] = useState<Record<string, string>>({})
   const [selected, setSelected] = useState<SetInfo | null>(null),
     [session, setSession] = useState<StudyRevision | null>(null),
     [paper, setPaper] = useState<StudySource | null>(null),
@@ -320,8 +322,12 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
         <div className="divide-y rounded-lg border bg-card">
           {visible.map((p) => {
             const sets = bank.sets.filter((s) => s.questionSourceKey === p.key),
-              ready = sets.find((s) => s.status === 'complete'),
-              pending = sets.find((s) => s.status !== 'complete')
+              chosen =
+                sets.find((s) => s.id === setChoices[p.key]) ||
+                sets.find((s) => s.status === 'complete') ||
+                sets[0],
+              ready = chosen?.status === 'complete' ? chosen : undefined,
+              pending = chosen?.status !== 'complete' ? chosen : undefined
             return (
               <article
                 key={p.key}
@@ -345,6 +351,14 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
                         ? ` · ${pending.status === 'failed' ? 'Preparation needs attention' : 'Preparation saved'}`
                         : ''}
                   </p>
+                  {chosen?.sourcePages?.length > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Prepared source pages: {chosen.sourcePages[0]}
+                      {chosen.sourcePages.length > 1
+                        ? `–${chosen.sourcePages.at(-1)}`
+                        : ''}
+                    </p>
+                  )}
                   {ready && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       {bank.reviews.some(
@@ -410,6 +424,51 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
                       </Button>
                     ))}
                 </div>
+                {!!sets.length && (
+                  <details className="w-full pl-9 text-sm">
+                    <summary className="cursor-pointer text-muted-foreground">
+                      Paper options
+                    </summary>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      {sets.length > 1 && (
+                        <select
+                          aria-label={`Prepared questions for ${title(p.title)}`}
+                          className="max-w-full rounded-md border bg-background p-2 text-sm"
+                          value={chosen?.id || ''}
+                          onChange={(e) =>
+                            setSetChoices((old) => ({
+                              ...old,
+                              [p.key]: e.target.value,
+                            }))
+                          }
+                        >
+                          {sets.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.sourcePages?.length
+                                ? `Pages ${s.sourcePages[0]}–${s.sourcePages.at(-1)} · `
+                                : ''}
+                              {s.title} · {s.questionCount} questions ·{' '}
+                              {s.status === 'complete' ? 'Ready' : s.status}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => {
+                          setPaper(p)
+                          setSolution('')
+                          setFrom('')
+                          setTo('')
+                        }}
+                      >
+                        Prepare another section
+                      </Button>
+                    </div>
+                  </details>
+                )}
               </article>
             )
           })}

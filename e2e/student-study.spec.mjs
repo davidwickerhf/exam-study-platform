@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { createStudyPractice, stepStudyPractice } from '../lib/study-practice.mjs'
 import { studyRevision } from '../lib/study-version-store.mjs'
 import { removeOriginal } from '../lib/academic-originals.mjs'
@@ -717,7 +718,7 @@ test('chapter feedback proposes changes for review without a separate manual edi
 })
 
 test('chapter workspace restores course papers, free answer-key grading, source inspection and tutor panel', async ({page}) => {
-  let setId
+  let setId, secondSetId
   await run(async()=>{
     const v=await ownStudyVersion(versionId),revision=await studyRevision(v)
     const paper=await addStudyNote({...course,title:'Mock exam fixture'},[{page:2,text:'1(a) Select the result of 2 + 3. A: 4 B: 5 [2 marks]. Answer: B, five.'}])
@@ -729,6 +730,9 @@ test('chapter workspace restores course papers, free answer-key grading, source 
     const record=await readDocument('study-practice',set.id)
     record.snapshot.sources[0]={...record.snapshot.sources[0],title:'Mock exam fixture.pdf',url:'/api/test-original-paper.pdf'}
     await writeDocument('study-practice',set.id,record)
+    secondSetId='sp-'+randomUUID()
+    await writeDocument('study-practice',secondSetId,{...record,id:secondSetId,createdAt:new Date(Date.parse(record.createdAt)-1000).toISOString(),result:{...record.result,title:'Another paper section'}})
+
   })
   await page.route('**/api/account/ai',async route=>{const response=await route.fetch();const body=await response.json();await route.fulfill({json:{...body,platform:{...body.platform,provider:'openai'}}})})
   await page.route('**/api/test-original-paper.pdf',route=>route.fulfill({contentType:'application/pdf',body:previewPdf('Original exam',2)}))
@@ -746,6 +750,15 @@ test('chapter workspace restores course papers, free answer-key grading, source 
   await expect(page.getByRole('dialog').getByText('No current syllabus or assessment document is available.',{exact:false})).toBeVisible()
   await expect(page.getByRole('button',{name:'Check syllabus fit',exact:true})).toBeDisabled()
   await page.keyboard.press('Escape')
+  await page.getByText('Paper options',{exact:true}).click()
+  const sections=page.getByRole('combobox',{name:'Prepared questions for Mock exam fixture',exact:true})
+  await sections.selectOption(secondSetId)
+  await page.getByRole('button',{name:'Practise',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Another paper section',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'All past papers',exact:true}).click()
+  await page.getByText('Paper options',{exact:true}).click()
+  await page.getByRole('combobox',{name:'Prepared questions for Mock exam fixture',exact:true}).selectOption(setId)
+  await expect(page.getByRole('button',{name:'Prepare another section',exact:true})).toBeVisible()
   await page.getByRole('button',{name:'Practise',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Arithmetic mock exam',exact:true})).toBeVisible()
   await expect(page.getByRole('combobox',{name:'Exercise set',exact:true})).toHaveCount(0)
