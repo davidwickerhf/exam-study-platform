@@ -1,3 +1,4 @@
+import { readCanvasGroups } from './lib/canvas-group-context.mjs'
 import {tutorFailure} from './lib/tutor-errors.mjs'
 import { claimPaperDispatch, resolvePaperJob, processPaperJob } from './lib/study-paper-jobs.mjs'
 import { courseExerciseBank } from './lib/study-course-practice.mjs'
@@ -4079,6 +4080,13 @@ const server = createServer(async (req, res) => {
         const result = await fetchCanvasAssignmentDetail({ origin, token, courseId: url.searchParams.get('courseId'), assignmentId: url.searchParams.get('assignmentId'), force: url.searchParams.get('refresh') === '1' })
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, 400, JSON.stringify({ error: error.message || 'Assignment details could not be loaded.' })) }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/groups' && req.method === 'GET') {
+      try {
+        const groups = await readCanvasGroups({courseCode:url.searchParams.get('courseCode') || '',academicYear:url.searchParams.get('academicYear') || '',scope:url.searchParams.get('scope') || 'all',groupId:url.searchParams.get('groupId') || '',canvasUrl:url.searchParams.get('canvasUrl') || '',refresh:url.searchParams.get('refresh') === '1'})
+        send(res,200,JSON.stringify(groups),'application/json; charset=utf-8',{'Cache-Control':'no-store'})
+      } catch(error) { send(res,400,JSON.stringify({error:error.message || 'Canvas groups could not be loaded.'})) }
       return
     }
     if (url.pathname === '/api/integrations/canvas/hub' && req.method === 'GET') {

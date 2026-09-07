@@ -16,6 +16,7 @@
 import dynamic from 'next/dynamic'
 import { CourseTutorEntry } from '@/components/workspace/course-tutor-entry'
 import { StudyDesk } from '@/components/workspace/study-desk'
+import { CanvasGroups } from '@/components/workspace/canvas-groups'
 import { CourseExercises } from '@/components/workspace/course-exercises'
 const StudyPaperBank = dynamic(() => import('@/components/workspace/study-paper-bank').then(m => m.StudyPaperBank), { loading: () => <p role="status">Opening papers…</p> })
 import { FeedbackButton } from '@/components/feedback/feedback'
@@ -23,7 +24,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { useParams } from 'next/navigation'
-import { FileTextIcon, FolderOpenIcon, GraduationCapIcon, InfoIcon, TargetIcon, ArchiveIcon, MoreHorizontalIcon, ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
+import { UsersIcon, FileTextIcon, FolderOpenIcon, GraduationCapIcon, InfoIcon, TargetIcon, ArchiveIcon, MoreHorizontalIcon, ArrowLeftIcon, ArrowRightIcon, BookOpenIcon, CalendarCheckIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, ExternalLinkIcon } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { COURSE_RETURN_KEY, type AcademicCourse, type Item, type StudyCourse, canvasCourseQuery, courseProgress, nextExam, readChapters } from '@/lib/workspace/courses.mjs'
 import { type CalendarEvent, type CalendarPayload, localIsoDate } from '@/lib/workspace/home.mjs'
@@ -225,7 +226,7 @@ function CourseContent() {
         <div className="course-identity"><div>
           <h1>{course.name}</h1>
           <div className="course-facts"><span className={NUMERALS}>{course.code}</span>{[academicCourse?.yearLevel, academicCourse?.period, academicCourse?.ects == null ? null : `${academicCourse.ects} ECTS`].filter(Boolean).map(value=><span key={String(value)}>{value}</span>)}{course.archived && <span>Archived</span>}{exam && <span className="font-medium text-foreground">Exam {new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date))}</span>}</div>
-        </div><CourseTutorEntry context={{courseId:course.id,courseCode:course.code,courseName:course.name,academicYear:year==='all' ? undefined : year,courseTab:tab,courseTabLabel:({study:'Study guides',exercises:'Exercises',papers:'Mock papers',materials:'Materials',attendance:'Attendance',history:'Results',about:'Details'})[tab]}}/>
+        </div><CourseTutorEntry context={{courseId:course.id,courseCode:course.code,courseName:course.name,academicYear:year==='all' ? undefined : year,courseTab:tab,courseTabLabel:({study:'Study guides',exercises:'Exercises',papers:'Mock papers',materials:'Materials',groups:'Groups',attendance:'Attendance',history:'Results',about:'Details'})[tab]}}/>
         </div>
       </header>
       <div className="course-workspace">
@@ -234,12 +235,12 @@ function CourseContent() {
         <Tabs value={tab} orientation={wide ? 'vertical' : 'horizontal'} onValueChange={value => selectTab(value as CourseTab)} className="course-layout">
           <aside className="course-navigation">
             <TabsList aria-label="Course sections" variant="line" className="course-nav-list">
-              {([['study','Study guides',BookOpenIcon],['exercises','Exercises',TargetIcon],['papers','Mock papers',FileTextIcon],['materials','Materials',FolderOpenIcon],['attendance','Attendance',CalendarCheckIcon],['history','Results',GraduationCapIcon],['about','Details',InfoIcon]] as const).map(([value,label,Icon]) => <TabsTrigger key={value} value={value} className={`course-nav-item ${value==='attendance'?'course-nav-secondary':''}`}><Icon className="size-4"/><span>{label}</span>{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`ml-auto text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}
+              {([['study','Study guides',BookOpenIcon],['exercises','Exercises',TargetIcon],['papers','Mock papers',FileTextIcon],['materials','Materials',FolderOpenIcon],['groups','Groups',UsersIcon],['attendance','Attendance',CalendarCheckIcon],['history','Results',GraduationCapIcon],['about','Details',InfoIcon]] as const).map(([value,label,Icon]) => <TabsTrigger key={value} value={value} className={`course-nav-item ${value==='attendance'?'course-nav-secondary':''}`}><Icon className="size-4"/><span>{label}</span>{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`ml-auto text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}
             </TabsList>
-            {['study','materials','history'].includes(tab) && <div className="course-edition-control">
+            {['study','materials','history','groups'].includes(tab) && <div className="course-edition-control">
               <label id="course-edition-label" className="mb-2 block text-xs font-medium text-muted-foreground">Academic year</label>
               <Select value={year} onValueChange={value => value && selectYear(value)}><SelectTrigger size="sm" aria-labelledby="course-edition-label" className="w-full bg-card"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{selectedYear && selectedYear !== 'all' && !editions.some(e => e.year === selectedYear) && <SelectItem value={selectedYear}>{selectedYear}</SelectItem>}{editions.map(e => <SelectItem key={e.year} value={e.year}>{e.year === 'undated' ? 'Undated' : e.year}</SelectItem>)}</SelectContent></Select>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">Guides, materials and results.<br/>Practice includes all years.</p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Guides, materials, groups and results.<br/>Practice includes all years.</p>
             </div>}
           </aside>
           <div className="course-panel">
@@ -322,6 +323,7 @@ function CourseContent() {
           <TabsContent value="papers" className="min-w-0"><StudyPaperBank course={{courseCode: course.code || course.id, courseName: course.name, academicYear: year === 'all' ? 'undated' : year, period: String(academicCourse?.period || '')}} /></TabsContent>
           <TabsContent value="history" className="min-w-0"><div className="course-section-heading"><h2>Results</h2><p className="text-muted-foreground mt-2 text-sm">{year === 'all' ? 'All recorded academic years' : `Attempts in ${year === 'undated' ? 'an unrecorded year' : year}`} {year !== 'all' && <button className="text-primary ml-2 font-semibold" onClick={() => selectYear('all')}>Show all years</button>}</p></div><CourseAttemptHistory course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} /></TabsContent>
           <TabsContent value="materials" className="min-w-0"><div id="course-material"><CourseMaterialLibrary courseCode={course.code} courseCodes={editionCodes} academicYear={year} revision={canvas.revision} collectionAction={<Button variant="outline" size="sm" onClick={()=>setCollectionOpen(true)}>Manage collection</Button>} /></div></TabsContent>
+          <TabsContent value="groups" className="min-w-0">{tab === 'groups' && <CanvasGroups key={`${course.code}:${year}`} courseCode={course.code} academicYear={year}/>}</TabsContent>
           <TabsContent value="attendance" className="min-w-0">
       <section id="attendance" className="scroll-mt-8 course-section overflow-hidden">
         <div className="flex flex-wrap items-baseline justify-between gap-3 border-b px-5 py-4">

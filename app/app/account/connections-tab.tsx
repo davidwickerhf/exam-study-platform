@@ -622,6 +622,7 @@ export function ConnectionsTab() {
         </button>}
       </div>
 
+      {saved.length > 0 && <Link href="/app/groups" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">View your Canvas groups <ArrowRightIcon className="size-4"/></Link>}
       {saved.length > 0 && managingHosts && <div id="canvas-sync" className="mt-8 scroll-mt-6"><Section
         title="Canvas management"
         note="Removing one deletes its encrypted token here and changes nothing in Canvas."

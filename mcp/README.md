@@ -77,7 +77,7 @@ they are how a key is obtained. Everything else needs one.
   `update_planning_objective`, `set_course_visibility`, `join_programme`
 - **Documents and calendars** — `analyze_documents`, `apply_changes`, `preview_calendar`,
   `save_calendar_link`, `sync_calendar_link`, `remove_calendar_link`
-- **Canvas** — `canvas_connect`, `canvas_updates` (announcements, assignments with
+- **Canvas** — `canvas_groups` (your course teams and global memberships; pass a group ID to read teammates), `canvas_connect`, `canvas_updates` (announcements, assignments with
   submission state, events, grades), `canvas_course_requirements` (syllabus and the
   module item carrying the assessment rules), `canvas_list_remote_courses`,
   `canvas_list_remote_course_modules`, `canvas_import_remote_course`,

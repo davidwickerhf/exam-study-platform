@@ -1263,3 +1263,77 @@ test('course tutor shows temporary throttling as a retryable error in its sideba
   expect(posts).toBe(1)
   await page.screenshot({path:'/tmp/wicker-tutor-rate-error-desktop.png',fullPage:true})
 })
+
+test('course groups show teammates, isolate retake years, and refresh membership without stale rosters',async({page})=>{
+  await page.route('**/api/tutor**',route=>route.fulfill({json:{available:true,conversation:null,conversations:[],receipts:[],memory:{facts:[],plans:[]},attachments:[]}}))
+  let refreshed=false
+  const calls=[]
+  const makeGroup=year=>({id:year==='2026-2027'?'501':'502',origin:'https://canvas.example.edu',name:year==='2026-2027'?'Project team 4':'Previous project team',scope:'course',courseId:'1',courseName:'Foundations',courseCode:course.courseCode,academicYear:year,url:'https://canvas.example.edu/groups/501',memberCount:3,membersStatus:'not-loaded',members:null})
+  await page.route('**/api/state',route=>route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
+  await page.route('**/api/integrations/canvas/groups?**',route=>{
+    const q=new URL(route.request().url()).searchParams;calls.push(Object.fromEntries(q))
+    if(q.get('refresh')==='1')refreshed=true
+    const year=q.get('academicYear')||course.academicYear,group=makeGroup(year)
+    if(q.has('groupId')){group.membersStatus='loaded';group.members=[{id:'1',name:'Student',isYou:true},{id:'2',name:year==='2026-2027'?(refreshed?'Grace Hopper':'Ada Lovelace'):'Previous teammate',isYou:false}]}
+    return route.fulfill({json:{connected:true,groups:[group],problems:[],matchedCourses:[{id:'1'}],refreshMinutes:10}})
+  })
+  await page.goto(`/app/courses/${course.courseCode}?year=${course.academicYear}&tab=groups`)
+  const groups=page.getByRole('region',{name:'Your course groups'})
+  await expect(groups.getByRole('heading',{name:'Project team 4'})).toBeVisible()
+  await expect(groups.getByRole('list',{name:'Group members'})).toContainText('Ada Lovelace')
+  await expect(groups.getByText('You',{exact:true})).toBeVisible()
+  await groups.getByRole('button',{name:'Refresh groups'}).click()
+  await expect(groups.getByRole('list',{name:'Group members'})).toContainText('Grace Hopper')
+  await expect(groups.getByText('Ada Lovelace')).toHaveCount(0)
+  await page.screenshot({path:'/tmp/wicker-course-groups-desktop.png',fullPage:true})
+  await page.getByRole('button',{name:'Ask tutor',exact:true}).click()
+  const tutor=page.getByRole('complementary',{name:'Course tutor',exact:true})
+  await expect(tutor.getByText('Group: Project team 4',{exact:true})).toBeVisible()
+  await tutor.getByRole('button',{name:'Close reference',exact:true}).click()
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:'/tmp/wicker-course-groups-mobile.png',fullPage:true})
+  await page.goto(`/app/courses/${course.courseCode}?year=2025-2026&tab=groups`)
+  await expect(groups.getByRole('heading',{name:'Previous project team'})).toBeVisible()
+  await expect(groups.getByRole('list',{name:'Group members'})).toContainText('Previous teammate')
+  expect(calls.some(call=>call.groupId==='502'&&call.academicYear==='2025-2026')).toBe(true)
+})
+
+test('settings activity links and browser history keep the selected tab in sync', async ({ page }) => {
+  await page.route('**/api/account/api-keys', route => route.fulfill({ json: { keys: [], scopes: ['read', 'write'], admin: false } }))
+  await page.route('**/api/account/agent-activity?*', route => route.fulfill({ json: { items: [], nextCursor: null } }))
+  await page.goto('/app/settings?tab=api')
+  await expect(page.getByRole('tab', { name: 'API access', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('link', { name: 'View AI activity' }).click()
+  await expect(page.getByRole('heading', { name: 'AI activity', exact: true })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'AI activity', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByText('No AI activity yet', { exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Manage API access' }).click()
+  await expect(page.getByRole('tab', { name: 'API access', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'AI activity', exact: true })).toBeVisible()
+  await page.goForward()
+  await expect(page.getByRole('link', { name: 'View AI activity' })).toBeVisible()
+  await page.getByRole('tab', { name: 'AI activity', exact: true }).click()
+  await expect(page).toHaveURL(/tab=activity/)
+  await expect(page.getByRole('heading', { name: 'AI activity', exact: true })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'AI activity', exact: true })).toBeVisible()
+})
+
+test('global Canvas groups stay separate, and a denied roster never looks like an empty team',async({page})=>{
+  const global={id:'601',origin:'https://canvas.example.edu',name:'Data Science society',scope:'global',contextName:'Student communities',url:'https://canvas.example.edu/groups/601',membersStatus:'not-loaded',members:null}
+  const courseGroup={...global,id:'602',name:'Graph theory team',scope:'course',courseName:'Graph Theory',academicYear:'2026-2027'}
+  await page.route('**/api/integrations/canvas/groups?**',route=>{
+    const groupId=new URL(route.request().url()).searchParams.get('groupId')
+    return route.fulfill({json:{connected:true,groups:[global,courseGroup].map(group=>({...group,membersStatus:group.id===groupId?'unavailable':'not-loaded'})),problems:groupId?[{part:'members',message:'Canvas did not allow the member list to load.'}]:[],matchedCourses:[]}})
+  })
+  await page.goto('/app/groups')
+  await page.getByRole('button',{name:'Global groups',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Data Science society'})).toBeVisible()
+  await expect(page.getByRole('region',{name:'Your Canvas groups'}).getByRole('alert')).toContainText('Canvas did not allow')
+  await expect(page.getByText('Canvas returned no visible members for this group.')).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'Graph theory team'})).toHaveCount(0)
+  await page.getByRole('button',{name:'Course teams',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Graph theory team'})).toBeVisible()
+})

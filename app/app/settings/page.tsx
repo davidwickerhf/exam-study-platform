@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,18 +33,10 @@ const TABS = [
 export default function SettingsPage() {
 
   const isMobile = useIsMobile();
-  const [tab, setTab] = useState<string>("connections");
+  const searchParams = useSearchParams();
+  const requested = searchParams.get("tab");
+  const tab = TABS.some(([id]) => id === requested) ? String(requested) : "connections";
   const summary = useJson<AccountSummary>(tab === "data" ? "/api/account/summary" : null);
-
-  useEffect(() => {
-    const readTab = () => {
-      const requested = new URLSearchParams(window.location.search).get("tab");
-      setTab(TABS.some(([id]) => id === requested) ? String(requested) : "connections");
-    };
-    readTab();
-    window.addEventListener("popstate", readTab);
-    return () => window.removeEventListener("popstate", readTab);
-  }, []);
 
   return (
     <div className="flex w-full flex-col">
@@ -57,7 +49,6 @@ export default function SettingsPage() {
         value={tab}
         onValueChange={(value) => {
           const next = String(value);
-          setTab(next);
           history.replaceState(null, "", `/app/settings?tab=${next}`);
         }}
         className="items-stretch gap-0 lg:min-h-[calc(100dvh-6.5rem)]"

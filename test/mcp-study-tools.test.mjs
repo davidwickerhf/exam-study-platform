@@ -13,7 +13,7 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 26)
+  assert.equal(tools.size, 27)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
@@ -67,4 +67,12 @@ test('MCP requires a fresh confirmation on student writes, including legacy tool
   }
   assert.equal(tools.get('get_attendance').schema.safeParse({}).success, true)
   assert.equal(tools.get('tutor_prepare_context').schema.safeParse({}).success, true)
+})
+
+test('Canvas groups MCP preserves course edition, host and selected team in the read-only API',async()=>{
+  const {call}=fixture()
+  const result=await call('canvas_groups',{courseCode:'KEN2220',academicYear:'2026-2027',groupId:'123',canvasUrl:'https://canvas.example.edu',refresh:true})
+  assert.equal(result.path,'/api/integrations/canvas/groups')
+  assert.deepEqual(result.query,{courseCode:'KEN2220',academicYear:'2026-2027',groupId:'123',canvasUrl:'https://canvas.example.edu',refresh:'1'})
+  assert.throws(()=>call('canvas_groups',{groupId:'../private'}))
 })
