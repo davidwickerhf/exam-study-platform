@@ -148,3 +148,16 @@ test('unclassified project skill-class rules cannot override project meeting all
   assert.equal(attendancePolicyForEvent({activity:'Project',title:'Project 3-1'},course)?.allowedMisses,3)
   assert.equal(attendancePolicyForEvent({activity:'Class',title:'Project skill class'},course)?.allowedMisses,2)
 })
+
+test('explicitly shared lab and tutorial pools combine marks despite activity-specific wording', () => {
+  const course={code:'BCS1520',courseProfile:{assessment:{status:'confirmed',attendanceEvidence:['lab','tutorial'].map(activity=>({
+    text:'Attendance for '+activity+' counts in a combined tutorials-and-labs pool: at least 80% is required.',
+    activity,requirement:'required',minimumAttendancePercent:80,scope:{kind:'all'},evidence:[{chunkId:1}]
+  }))}}}
+  const events=Array.from({length:5},(_,i)=>event({id:'pool-'+i,activity:i===4?'Lab':'Tutorial'}))
+  const records=events.reduce((held,e,i)=>upsertAttendanceRecord(held,e,i===4?'missed':'attended'),[])
+  const row=attendanceOverview(events,records,[course],{now:new Date('2026-09-05').getTime()}).courses[0]
+  assert.equal(row.minimumAttendancePercent,80)
+  assert.equal(row.requiredRate,80)
+  assert.equal(row.atRisk,false,'one missed lab must be counted with the four attended tutorials in the shared pool')
+})
