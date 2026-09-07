@@ -139,3 +139,12 @@ test('project assessment absences cannot borrow the ordinary meeting allowance',
   assert.equal(attendanceOverview([defense,meeting],missed,[course],opts).courses[0].atRisk,true)
   assert.equal(attendanceOverview([meeting,defense],missed,[course],opts).courses[0].atRisk,true)
 })
+
+test('unclassified project skill-class rules cannot override project meeting allowances', () => {
+  const course={courseProfile:{assessment:{status:'confirmed',attendanceEvidence:[
+    {text:'Project meetings are mandatory.',activity:'project',requirement:'required',allowedMisses:3},
+    {text:'Project skill classes are mandatory.',activity:'other',requirement:'required',allowedMisses:2}
+  ]}}}
+  assert.equal(attendancePolicyForEvent({activity:'Project',title:'Project 3-1'},course)?.allowedMisses,3)
+  assert.equal(attendancePolicyForEvent({activity:'Class',title:'Project skill class'},course)?.allowedMisses,2)
+})
