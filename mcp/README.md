@@ -146,20 +146,39 @@ Students can follow reports and withdraw evidence at `/app/feedback`; authorized
 
 Contact sharing is optional per report: use `shareContactEmail:true` only when the student chooses it and show the returned address in the preview. `feedback_withdraw_contact` stops sharing it after fresh confirmation. Reports show receipt, investigation and completion updates with public comments; AI-assisted replies are labeled and reviewed by the team.
 
-### Updating Claude Code
+## Updating an existing installation
 
-`claude mcp add` does not overwrite an existing registration. If it reports “MCP server wicker-study already exists in user config”, replace that registration:
+The in-app guide at [Docs → Update your MCP](https://study.wicker.life/app/docs#update) has copyable commands for both clients. For the standard installation, reuse your saved credentials; do not generate a new API key or run `configure` again.
+
+### Codex
+
+```sh
+codex mcp remove wicker-study
+codex mcp add wicker-study -- npx -y wicker-study-mcp@2.11.0
+```
+
+Quit and reopen the Codex app, restart the CLI session, or reload the IDE extension window so the local MCP process restarts.
+
+### Claude Code
 
 ```sh
 claude mcp remove --scope user wicker-study
 claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.11.0
 ```
 
-Restart Claude Code afterward. Removing the MCP registration does not remove Wicker’s saved credentials in `~/.config/wicker-study/config.json`; you do not need to run `configure` again. This updates Claude Code, not the separate Claude Desktop configuration.
+Exit and restart Claude Code, then check `/mcp`. `claude mcp add` does not overwrite an existing registration. If you originally installed with `project` or `local` scope, use that same scope in both commands.
+
+### Claude Desktop and custom configurations
+
+In Claude Desktop, use Settings → Developer → Edit Config. Change only the package argument in the existing `wicker-study` entry to `wicker-study-mcp@2.11.0`, preserve its other settings, then fully quit and reopen Claude Desktop. For custom Codex/Claude Code configurations with environment variables or a server URL, update the package argument in place instead of replacing the registration. Check project overrides if an older version still loads.
+
+The standard helper credentials stay in `~/.config/wicker-study/config.json`. These registration commands do not delete that file. After restarting, ask the agent to call `wicker_status` and `study_generation_contract` to verify connectivity and availability of the new tools. Replace any installed [companion skill](https://study.wicker.life/skills/wicker-study/SKILL.md) in its existing location too.
+
+Official client references: [Codex MCP configuration](https://developers.openai.com/codex/mcp), [Claude Code MCP configuration](https://code.claude.com/docs/en/mcp).
 
 ## Local study generation
 
-The 2.11.0 source adds `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. Install this repository checkout until that package version is published.
+The 2.11.0 source adds `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. Install `wicker-study-mcp@2.11.0` using the update instructions above.
 
 1. Read the current contract and list the course edition’s sources. If needed, download originals with `canvas_import_remote_course`; inspect graphics and preserve page numbers. Add supplementary extraction as explicitly labelled local notes.
 2. Start the student-requested private run with its exact source selection, or continue a version prepared in the web UI.
