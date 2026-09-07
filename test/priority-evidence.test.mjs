@@ -233,3 +233,25 @@ test('identical attendance text for different dated sessions survives merge and 
   const profile={assessment:{status:'confirmed',attendanceEvidence:rules}}
   assert.equal(recoverLiteralAttendance(profile,[{chunkId:2,sourceType:'syllabus',content:'Lectures are optional.'}]).assessment.attendanceEvidence.length,3)
 })
+
+test('account lease contention resumes automatically without publishing draft priorities', async () => {
+  const {StudyBudgetError}=await import('../lib/study-ai-budget.mjs')
+  const {normalizeScan}=await import('../lib/priority-evidence.mjs')
+  const rows=[{chunkId:1,content:'Submit your project report.'}]
+  const result=await extractPriorityEvidence({},rows,async()=>{throw new StudyBudgetError('Another chapter is generating on your account.',30)})
+  const scan=normalizeScan(result,rows)
+  assert.equal(scan.courseProfile.priorityExtractionPending,true)
+  assert.equal(scan.conflicts[0].title,'Priority scan allowance reached')
+  assert.deepEqual(scan.courseProfile.assessment.actions,[])
+})
+
+test('actual spending caps stay visible and are not treated as transient account contention', async () => {
+  const {StudyBudgetError}=await import('../lib/study-ai-budget.mjs')
+  const {normalizeScan}=await import('../lib/priority-evidence.mjs')
+  const rows=[{chunkId:1,content:'Submit your project report.'}]
+  const result=await extractPriorityEvidence({},rows,async()=>{throw new StudyBudgetError('Your platform generation allowance is used.')})
+  const scan=normalizeScan(result,rows)
+  assert.equal(scan.courseProfile.priorityExtractionPending,false)
+  assert.equal(scan.conflicts[0].title,'Priority generation allowance reached')
+  assert.match(scan.conflicts[0].detail,/allowance is used/)
+})
