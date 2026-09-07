@@ -754,6 +754,7 @@ test('chapter workspace restores course papers, free answer-key grading, source 
   await page.getByRole('button', { name: 'View paper', exact: true }).click()
   const focusedPaper = page.getByRole('complementary', { name: 'Reference document', exact: true })
   await expect(focusedPaper.getByRole('button', { name: 'Split view', exact: true })).toBeVisible()
+  await expect.poll(() => focusedPaper.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - innerHeight))).toBeLessThanOrEqual(2)
   await expect(focusedPaper.locator('[data-pdf-page="1"] .pdf-reader-text')).toContainText('Original exam page 1')
   await expect(page.getByRole('region', { name: 'Past paper library' })).not.toBeVisible()
   await focusedPaper.getByRole('button', { name: 'Close reference', exact: true }).click()

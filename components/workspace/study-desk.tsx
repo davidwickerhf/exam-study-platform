@@ -168,7 +168,7 @@ export function StudyDesk({ children }: { children: ReactNode }) {
                 ? 'Reference document'
                 : 'Chapter tutor'
             }
-            className={`${mobileSource ? 'flex' : 'hidden lg:flex'} sticky top-12 lg:top-0 min-h-0 min-w-0 flex-col border-l bg-background ${focus ? 'h-[calc(100dvh-7rem)]' : 'h-[calc(100dvh-7rem)] lg:h-screen'}`}
+            className={`${mobileSource ? 'flex' : 'hidden lg:flex'} sticky top-12 lg:top-0 min-h-0 min-w-0 flex-col border-l bg-background h-[calc(100dvh-7rem)] lg:h-screen`}
           >
             <header className="flex shrink-0 items-center gap-2 border-b px-3 py-3">
               {focus && (
