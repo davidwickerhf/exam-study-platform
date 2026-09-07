@@ -58,20 +58,19 @@ export function CourseStudyVersions({
   return (
     <section
       className="overflow-hidden rounded-xl border bg-card"
-      aria-label="Your study versions"
+      aria-label="Your study guides"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 sm:px-6">
         <div>
-          <h2 className="text-base font-semibold">Your study versions</h2>
+          <h2 className="text-base font-semibold">Your study guides</h2>
           <p className="text-muted-foreground mt-1 max-w-xl text-sm">
-            Turn course materials and your notes into a study guide and
-            practice. No editorial approval needed.
+            Read a guide, or create one from your course materials. Exercises and mock papers live in their own course tabs.
           </p>
         </div>
         {!creating && (
           <Button size="sm" onClick={() => setCreating(true)}>
             <PlusIcon data-icon="inline-start" />
-            Create version
+            Create study guide
           </Button>
         )}
       </div>
@@ -98,7 +97,7 @@ export function CourseStudyVersions({
           ) : !selected.length ? (
             <p className="text-muted-foreground border-t px-5 py-4 text-sm sm:px-6">
               {versions.length
-                ? 'No personal version for this edition yet.'
+                ? 'No personal guide for this edition yet.'
                 : 'Start with collected materials, an editorial guide, or your own notes.'}
             </p>
           ) : (
@@ -114,7 +113,7 @@ export function CourseStudyVersions({
                       <p className="text-muted-foreground mt-1 text-xs">
                         {v.course.academicYear} ·{' '}
                         {v.activeRevisionId
-                          ? `${v.history[0]?.chapters || 0} chapters`
+                          ? `${v.history[0]?.chapters || 0} ${v.history[0]?.chapters === 1 ? "chapter" : "chapters"}`
                           : generationLabel(v.draft)}
                       </p>
                     </div>

@@ -32,6 +32,10 @@ export type StudyVisualSpec = {
     | { kind: 'sets'; aLabel: string; bLabel: string; universe: string[]; a: string[]; b: string[] }
 }
 export type StudyQuestion = {
+  type?: 'written' | 'mc' | 'multi' | 'tf' | 'calc' | 'pseudocode'
+  options?: string[]
+  correctOptions?: number[]
+  marks?: number | null
   id: string
   question: string
   answer: string

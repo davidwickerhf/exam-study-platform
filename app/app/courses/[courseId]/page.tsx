@@ -13,6 +13,10 @@
  * chapter marked read in either half shows as read in both.
  */
 
+import dynamic from 'next/dynamic'
+import { StudyDesk } from '@/components/workspace/study-desk'
+import { CourseExercises } from '@/components/workspace/course-exercises'
+const StudyPaperBank = dynamic(() => import('@/components/workspace/study-paper-bank').then(m => m.StudyPaperBank), { loading: () => <p role="status">Opening papers…</p> })
 import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -41,7 +45,8 @@ const LEVELS = [0, 1, 2, 3, 4]
 /** A rating the student has actually given, as opposed to an untouched zero. */
 const isRated = (item: Item) => Boolean(item.masteryUpdatedAt)
 
-export default function CoursePage() {
+export default function CoursePage() { return <StudyDesk><CourseContent /></StudyDesk> }
+function CourseContent() {
   const params = useParams<{ courseId: string; itemId?: string }>()
   const canvas = useCourseCanvas()
   const [selectedYear, setSelectedYear] = useState<string | null>(null)
@@ -62,6 +67,8 @@ export default function CoursePage() {
   const pendingSources = [study, record, programmes, materials, timetable].filter(resource => resource.loading).length
   const reloadSources = () => { for (const resource of [study, record, programmes, materials, timetable]) resource.refresh() }
   const [tab, setTab] = useState<CourseTab>('study')
+  const [openedPractice, setOpenedPractice] = useState(false)
+  useEffect(() => { if (tab === 'exercises') setOpenedPractice(true) }, [tab])
   const [read, setRead] = useState<Set<string>>(new Set())
   // A failed save is not a failed page: the two are kept apart so a mastery
   // click that loses the network does not replace the course with an error.
@@ -211,15 +218,15 @@ export default function CoursePage() {
               </Select>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {(course.mockExams?.length || course.mockExamPdf) ? <Link className={buttonVariants({ variant: 'ghost', size: 'sm' })} href={`/app/courses/${course.id}/mock-exam`}>Past papers</Link> : null}
+              {(course.mockExams?.length || course.mockExamPdf) ? <Link className={buttonVariants({ variant: 'ghost', size: 'sm' })} href={`/app/courses/${course.id}?tab=papers`}>Past papers</Link> : null}
               {nextChapter && <Link className={buttonVariants({ size: 'sm' })} href={`/app/courses/${course.id}/${nextChapter.id}`}>{progress.done ? 'Continue reading' : 'Start reading'}<ArrowRightIcon data-icon="inline-end" /></Link>}
             </div>
           </div></div>
-          <div aria-label="Course overview" className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-xs">
+          {tab !== 'exercises' && tab !== 'papers' && <div aria-label="Course overview" className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-xs">
             <span><span className="mr-1.5">Result</span><strong className="text-foreground font-medium">{academicLoading || catalogueLoading ? 'Loading…' : academicError ? 'Record unavailable' : latest ? [({passed:'Passed',failed:'Failed','no-show':'No show',upcoming:'Upcoming'} as Record<string,string>)[latest.status || ''] || 'Not recorded', latest.grade == null ? null : `Grade ${latest.grade}`, year === 'all' ? latest.academicYear : null].filter(Boolean).join(' · ') : 'Not recorded'}</strong></span>
-            <span><span className="mr-1.5">Reading</span><strong className="text-foreground font-medium">{progress.total ? `${progress.done} / ${progress.total} chapters` : 'No chapters published'}</strong></span>
+            <span><span className="mr-1.5">Reading</span><strong className="text-foreground font-medium">{progress.total ? `${progress.done} / ${progress.total} chapters` : 'Choose a study guide'}</strong></span>
             <span><span className="mr-1.5">Next exam</span><strong className="text-foreground font-medium">{exam ? new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(new Date(exam.date)) : 'Not recorded'}</strong></span>
-          </div>
+          </div>}
         </div>
       </header>
       <div className="mx-auto flex w-full max-w-[1280px] min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -227,27 +234,19 @@ export default function CoursePage() {
         {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
         <Tabs value={tab} onValueChange={value => selectTab(value as CourseTab)} className="min-w-0 gap-6">
           <TabsList variant="line" className="h-11 w-full max-w-full justify-start gap-5 overflow-x-auto rounded-none border-b p-0">
-            {([['study','Study'],['history','Attempt history'],['materials','Materials'],['attendance','Attendance'],['about','Course details']] as const).map(([value,label]) => <TabsTrigger key={value} value={value} className="h-11 flex-none px-0 text-[13px] after:bg-primary group-data-horizontal/tabs:after:-bottom-px">{label}{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}
+            {([['study','Study guides'],['exercises','Exercises'],['papers','Mock papers'],['materials','Materials'],['attendance','Attendance'],['history','Results'],['about','Details']] as const).map(([value,label]) => <TabsTrigger key={value} value={value} className="h-11 flex-none px-0 text-[13px] after:bg-primary group-data-horizontal/tabs:after:-bottom-px">{label}{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}
           </TabsList>
           <TabsContent value="study" className="min-w-0">
-            <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="min-w-0">
               <div className="flex min-w-0 flex-col gap-6">
                 {loadError && <p role="alert" className="text-sm">{loadError} <button className="text-primary underline" onClick={retry}>Try again</button></p>}
       <CourseStudyVersions key={course.code} courseCode={course.code || course.id} courseName={course.name} academicYear={year} period={String(academicCourse?.period || '')} />
       {/* The register. The course is its chapters, so they come first. */}
-      <section className="overflow-hidden rounded-xl border bg-card">
+      {!!course.chapters?.length && <section className="overflow-hidden rounded-xl border bg-card">
         <div className="flex items-baseline justify-between gap-3 border-b px-5 py-4 sm:px-6">
           <div><h2 className="text-base font-semibold">Editorial chapters</h2><p className="text-muted-foreground mt-1 text-xs">Maintained study guide · academic year not recorded</p></div>
           <span className={`text-muted-foreground text-xs ${NUMERALS}`}>{progress.done} read of {progress.total}</span>
         </div>
-        {!course.chapters?.length ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No study chapters yet</EmptyTitle>
-              <EmptyDescription>You can generate your own study version above. Editorial chapters will appear here when a reviewed guide is available.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
           <ul className="flex flex-col">
             {course.chapters.map((chapter) => {
               const done = read.has(`${course.id}/${chapter.id}`)
@@ -271,8 +270,7 @@ export default function CoursePage() {
               )
             })}
           </ul>
-        )}
-      </section>
+      </section>}
 
       {/* Mastery at a glance: a register of topics, not a wall of controls. */}
       {!!items.length && (
@@ -310,14 +308,11 @@ export default function CoursePage() {
 
 
               </div>
-              <aside className="flex min-w-0 flex-col gap-5">
-                <CourseEditionCollection editions={editions} selected={year} onSelect={selectYear} canvas={canvas} />
-                <CourseAttemptHistory compact course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} onExpand={() => { selectTab('history'); selectYear('all') }} />
-                <div className="rounded-xl border bg-card px-5 py-4"><h2 className="text-sm font-semibold">Original course material</h2><p className="text-muted-foreground mt-1 text-xs leading-relaxed">Find documents and recordings by academic year, including earlier sittings.</p><Button variant="ghost" size="sm" className="text-primary -ml-3 mt-2" onClick={() => selectTab('materials')}>Browse material <ArrowRightIcon data-icon="inline-end" /></Button></div>
-                {!entry?.editorial && requestRecord?.id && <Link href={`/app/course-request/${encodeURIComponent(requestRecord.id)}`} className="text-primary inline-flex min-h-9 items-center gap-2 text-xs font-semibold"><BookOpenIcon className="size-4" />Request study chapters</Link>}
-              </aside>
+
             </div>
           </TabsContent>
+          <TabsContent keepMounted value="exercises" className="min-w-0">{(openedPractice || tab === 'exercises') && <CourseExercises courseId={course.id} courseCode={course.code || course.id} />}</TabsContent>
+          <TabsContent value="papers" className="min-w-0"><StudyPaperBank course={{courseCode: course.code || course.id, courseName: course.name, academicYear: year === 'all' ? 'undated' : year, period: String(academicCourse?.period || '')}} /></TabsContent>
           <TabsContent value="history" className="min-w-0"><p className="text-muted-foreground mb-4 text-sm">{year === 'all' ? 'All recorded academic years' : `Attempts in ${year === 'undated' ? 'an unrecorded year' : year}`} {year !== 'all' && <button className="text-primary ml-2 font-semibold" onClick={() => selectYear('all')}>Show all years</button>}</p><CourseAttemptHistory course={academicCourse} loading={academicLoading || catalogueLoading} error={academicError} retry={retry} /></TabsContent>
           <TabsContent value="materials" className="min-w-0 space-y-6"><CourseEditionCollection editions={editions} selected={year} onSelect={selectYear} canvas={canvas} /><div id="course-material" className="rounded-xl border bg-card p-5 sm:p-6"><CourseMaterialLibrary courseCode={course.code} courseCodes={editionCodes} academicYear={year} revision={canvas.revision} /></div></TabsContent>
           <TabsContent value="attendance" className="min-w-0">
@@ -360,7 +355,7 @@ export default function CoursePage() {
               <h3 className="text-sm font-medium">Past-paper practice</h3>
               <p className="text-muted-foreground text-xs">Stored exam papers with question guidance and answer grading.</p>
             </div>
-            <Link href={`/app/courses/${course.id}/mock-exam`} className="text-primary shrink-0 text-sm font-semibold">Open papers</Link>
+            <Link href={`/app/courses/${course.id}?tab=papers`} className="text-primary shrink-0 text-sm font-semibold">Open papers</Link>
           </div>
         ) : null}
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b py-3">

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useStudyDesk } from './study-desk'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -84,6 +85,7 @@ export function StudyPracticeWorkspace({
   legacyAttempts?: StudyProgress['attempts']
   onTutor?: (questionId?: string) => void
 }) {
+  const desk = useStudyDesk()
   const {
     preferences,
     error: preferenceError,
@@ -196,6 +198,11 @@ export function StudyPracticeWorkspace({
         ? s.key === set.questionSourceKey
         : questionEvidence.some((c) => c.sourceKey === s.key)),
   )
+  useEffect(() => {
+    if (desk?.companion?.kind === 'document' && originalSource && desk.companion.source.key === originalSource.key) {
+      desk.openDocument(originalSource, questionEvidence, question?.page || questionEvidence[0]?.page || 1)
+    }
+  }, [question?.id, originalSource?.key])
   const answerKey = `${chapterId}:${selected}:${question?.id}`
   const answer = answers[answerKey] || ''
   const attempts = records.filter(
@@ -440,7 +447,7 @@ export function StudyPracticeWorkspace({
                 ))
               )}
             </nav>
-            <div className="space-y-5 border-y py-6">
+            <div data-study-task={question.id} className="scroll-mt-16 space-y-5 border-y py-6">
               <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
                 <span>
                   Question {question.label || index + 1}

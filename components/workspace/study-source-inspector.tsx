@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
-import dynamic from 'next/dynamic'
-import { DownloadIcon, EyeIcon } from 'lucide-react'
+import { useStudyDesk } from './study-desk'
+import { StudyDocument } from './study-document'
+import { DownloadIcon, EyeIcon, MaximizeIcon, MinimizeIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -10,17 +11,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import type {
   StudySource,
   Evidence,
   StudyRevision,
 } from '@/lib/workspace/study-versions'
-const Pdf = dynamic(() => import('./course-pdf-viewer'), { ssr: false })
-const Slides = dynamic(() => import('./course-presentation-viewer'), {
-  ssr: false,
-})
-const File = dynamic(() => import('./course-file-viewer'), { ssr: false })
 export function StudySourceInspector({
   source,
   chunks,
@@ -33,20 +28,24 @@ export function StudySourceInspector({
   initialPage?: number
 }) {
   const [open, setOpen] = useState(false)
+  const desk = useStudyDesk()
+  const [expanded, setExpanded] = useState(false)
   const url =
     source.url?.startsWith('/') && !source.url.startsWith('//')
       ? source.url
       : null
-  const original = Boolean(url || source.assetId)
   return (
     <>
       <Button
-        size={label ? "sm" : "icon-sm"}
+        size={label ? 'sm' : 'icon-sm'}
         variant="ghost"
         aria-label={label || `View ${source.title}`}
-        onClick={() => setOpen(true)}
+        onClick={() =>
+          desk ? desk.openDocument(source, chunks, initialPage) : setOpen(true)
+        }
       >
-        <EyeIcon />{label}
+        <EyeIcon />
+        {label}
       </Button>
       {url && (
         <a
@@ -59,72 +58,35 @@ export function StudySourceInspector({
         </a>
       )}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-4xl">
-          <SheetHeader>
-            <SheetTitle className="pr-8">{source.title.replace(/^\d+\s*/,'').replace(/--file-\d+/,'').replace(/_/g,' ')}</SheetTitle>
+        <SheetContent
+          className={`gap-0 data-[side=right]:w-full ${expanded ? 'data-[side=right]:sm:max-w-none' : 'data-[side=right]:sm:max-w-[min(48rem,65vw)]'}`}
+        >
+          <SheetHeader className="relative shrink-0 border-b px-4 py-3 pr-24">
+            <SheetTitle className="truncate text-sm" title={source.title}>
+              {source.title
+                .replace(/^\d+\s*/, '')
+                .replace(/--file-\d+/, '')
+                .replace(/_/g, ' ')}
+            </SheetTitle>
             <SheetDescription>
               {source.academicYear} · Original source
             </SheetDescription>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="absolute right-12 top-3"
+              aria-label={expanded ? 'Collapse viewer' : 'Expand viewer'}
+              title={expanded ? 'Collapse viewer' : 'Expand viewer'}
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? <MinimizeIcon /> : <MaximizeIcon />}
+            </Button>
           </SheetHeader>
-          <Tabs
-            defaultValue={original ? 'original' : 'text'}
-            className="min-h-0 flex-1 px-5 pb-5"
-          >
-            {!!chunks.length && <TabsList variant="line">
-              <TabsTrigger value="original" disabled={!original}>
-                Document
-              </TabsTrigger>
-              <TabsTrigger value="text">Extracted text</TabsTrigger>
-            </TabsList>}
-            <TabsContent
-              value="original"
-              className="flex min-h-0 flex-1 flex-col"
-            >
-              {/\.pdf$/i.test(source.title) && url ? (
-                <Pdf url={url} title={source.title} initialPage={initialPage} />
-              ) : /\.pptx?$/i.test(source.title) && source.assetId ? (
-                <Slides assetId={source.assetId} title={source.title} initialPage={initialPage} />
-              ) : source.assetId ? (
-                <File assetId={source.assetId} />
-              ) : url ? (
-                <a
-                  className="text-primary underline"
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open original source
-                </a>
-              ) : null}
-            </TabsContent>
-            <TabsContent
-              value="text"
-              className="min-h-0 flex-1 overflow-y-auto"
-            >
-              <p className="mb-5 text-sm text-muted-foreground">
-                These are the exact passages available to generation. Graphics
-                are only understood when their content is present in the
-                extraction; opening a rendered slide does not mean AI inspected
-                its diagram.
-              </p>
-              {chunks.map((c) => (
-                <section key={c.id} className="border-t py-5">
-                  <h3 className="mb-3 text-xs font-medium text-muted-foreground">
-                    {c.page ? `Page / slide ${c.page}` : 'Text passage'} ·{' '}
-                    {c.id}
-                  </h3>
-                  <p className="whitespace-pre-wrap text-sm leading-7">
-                    {c.text}
-                  </p>
-                </section>
-              ))}
-              {!chunks.length && (
-                <p className="text-sm text-muted-foreground">
-                  No text from this source was included in this snapshot.
-                </p>
-              )}
-            </TabsContent>
-          </Tabs>
+          <StudyDocument
+            source={source}
+            chunks={chunks}
+            initialPage={initialPage}
+          />
         </SheetContent>
       </Sheet>
     </>

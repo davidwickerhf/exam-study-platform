@@ -1,3 +1,4 @@
+import { courseExerciseBank } from './lib/study-course-practice.mjs'
 import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queueRequestHeaders } from './lib/queue-runtime.mjs'
 import { activeProgrammeId } from './lib/programme-scope.mjs'
 import { originalContext, originalStatus, beginOriginal, putOriginalChunk, completeOriginal, readOriginalChunk } from './lib/academic-originals.mjs'
@@ -5867,15 +5868,22 @@ const server = createServer(async (req, res) => {
         }
       }))
 
-      const questions = banks.flat()
-      const courses = active.map((course) => ({
+      const requestedId = url.searchParams.get('courseId')
+      const requestedCode = url.searchParams.get('courseCode') || active.find(c => c.id === requestedId)?.code || requestedId || ''
+      const personal = await courseExerciseBank(requestedCode.toUpperCase(), { sourceOptions: studySourceOptions })
+      const personalQuestions = personal.questions.map(q => ({ ...q, courseId: active.find(c => c.code === q.courseCode)?.id || requestedId || q.courseId }))
+        .filter(q => !url.searchParams.get('chapterId') || q.chapterId === url.searchParams.get('chapterId'))
+      const questions = [...banks.flat(), ...personalQuestions]
+      const allCourses = [...active]
+      for (const q of personalQuestions) if (!allCourses.some(c => c.id === q.courseId)) allCourses.push({ id: q.courseId, code: q.courseCode, name: q.courseName })
+      const courses = allCourses.map((course) => ({
         id: course.id,
         code: course.code,
         name: course.name,
         accent: course.accent,
         questionCount: questions.filter((question) => question.courseId === course.id).length
       })).filter((course) => course.questionCount > 0)
-      send(res, 200, JSON.stringify({ questions, courses, source: 'published', generated: false }))
+      send(res, 200, JSON.stringify({ questions, courses, source: 'published-and-personal', generated: personalQuestions.length > 0 }))
       return
     }
 

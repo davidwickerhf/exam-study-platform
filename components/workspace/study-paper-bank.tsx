@@ -72,7 +72,16 @@ const title = (s: string) =>
     .replace(/--file-\d+/, '')
     .replace(/_/g, ' ')
     .replace(/\.pdf$/i, '')
-export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
+export function StudyPaperBank({
+  revision,
+  course: courseProp,
+}: {
+  revision?: StudyRevision
+  course?: StudyRevision['course']
+}) {
+  const course = courseProp || revision!.course
+  const courseMode = !revision
+  const paperUrl = `/api/study-versions/course-papers?${new URLSearchParams(course).toString()}`
   const [bank, setBank] = useState<Bank | null>(null),
     [error, setError] = useState(''),
     [search, setSearch] = useState(''),
@@ -89,19 +98,21 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
   const [fitSet, setFitSet] = useState<SetInfo | null>(null),
     [syllabi, setSyllabi] = useState<string[]>([])
   const { preferences } = useStudyAiPreferences(),
-    base = `/api/study-versions/${revision.versionId}`
+    base = `/api/study-versions/${revision?.versionId}`
   async function load() {
-    setBank(await studyRequest<Bank>(`${base}/paper-bank`))
+    setBank(
+      await studyRequest<Bank>(courseMode ? paperUrl : `${base}/paper-bank`),
+    )
   }
   useEffect(() => {
     let live = true
-    void studyRequest<Bank>(`${base}/paper-bank`)
+    void studyRequest<Bank>(courseMode ? paperUrl : `${base}/paper-bank`)
       .then((r) => live && setBank(r))
       .catch((e) => live && setError(e.message))
     return () => {
       live = false
     }
-  }, [base])
+  }, [base, paperUrl, courseMode])
   async function openSet(s: SetInfo) {
     setSelected(s)
     setSession(null)
@@ -154,9 +165,10 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
     setError('')
     try {
       let r = await studyRequest<PracticeRecord & { versionId: string }>(
-        `${base}/practice`,
+        courseMode ? '/api/study-versions/course-papers' : `${base}/practice`,
         {
-          revisionId: revision.id,
+          ...course,
+          revisionId: revision?.id,
           mode: 'extract',
           questionSourceKey: paper.key,
           solutionSourceKey: solution,
@@ -186,11 +198,16 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
     setBusy(true)
     setError('')
     try {
-      const fit = await studyRequest<Fit>(`${base}/paper-fit`, {
-        setId: fitSet.id,
-        sourceKeys: syllabi,
-        ...preferences,
-      })
+      const fit = await studyRequest<Fit>(
+        courseMode ? '/api/study-versions/course-papers' : `${base}/paper-fit`,
+        {
+          ...course,
+          action: 'fit',
+          setId: fitSet.id,
+          sourceKeys: syllabi,
+          ...preferences,
+        },
+      )
       await load()
       if (fit.status === 'failed')
         setError(fit.error || 'The syllabus check could not finish.')
@@ -254,9 +271,9 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Past papers</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Original exam papers and exercise sheets for{' '}
-            {revision.course.courseCode}, across all available years. Keep
-            useful questions for your next attempt.
+            Original exam papers and exercise sheets for {course.courseCode},
+            across all available years. Keep useful questions for your next
+            attempt.
           </p>
         </div>
         <span className="text-sm text-muted-foreground">
@@ -570,7 +587,7 @@ export function StudyPaperBank({ revision }: { revision: StudyRevision }) {
           <SheetHeader>
             <SheetTitle>Fit with this year’s syllabus</SheetTitle>
             <SheetDescription>
-              {revision.course.academicYear} · {fitSet?.title}
+              {course.academicYear} · {fitSet?.title}
             </SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-6">

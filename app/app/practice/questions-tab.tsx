@@ -10,6 +10,7 @@
  * would otherwise push the whole canvas sideways.
  */
 
+import { gradeStudyQuestion, StudyQuestionSource } from "@/components/workspace/practice-study-question"
 import { FeedbackButton } from '@/components/feedback/feedback'
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -120,7 +121,7 @@ function QuestionCard({
     setBusy(true);
     setFailure(null);
     try {
-      const data = await api<{
+      const data = question.study ? await gradeStudyQuestion(question, attempt) : await api<{
         correction: string;
         score: number | null;
         savedAsMistake?: string | null;
@@ -144,7 +145,7 @@ function QuestionCard({
         item: question,
       });
       if (data.savedAsMistake) onMistake();
-      onDeckChange(question.id);
+      if (!question.study) onDeckChange(question.id);
     } catch (cause) {
       setFailure((cause as Error).message);
     } finally {
@@ -169,7 +170,7 @@ function QuestionCard({
   };
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-[900px] flex-col gap-5 sm:gap-6">
+    <div data-study-task={question.id} className="mx-auto flex w-full min-w-0 max-w-[900px] flex-col gap-5 sm:gap-6">
       <div className="flex flex-col gap-2 sm:gap-3">
         <div className="flex flex-wrap justify-between gap-2"><TypeLine question={question} /><FeedbackButton subject={{kind:"practice",courseId:question.courseId,questionId:question.id}} excerpt={question.question}>Report question</FeedbackButton></div>
         <Prose
@@ -197,7 +198,7 @@ function QuestionCard({
               >
                 {busy ? "Checking…" : "Check answer"}
               </Button>
-              <Button
+              {!question.study && <Button
                 size="sm"
                 variant="outline"
                 className="w-full bg-background sm:w-auto"
@@ -210,7 +211,7 @@ function QuestionCard({
                   <PlusIcon data-icon="inline-start" />
                 )}
                 {inDeck ? "In flashcards" : "Add to flashcards"}
-              </Button>
+              </Button>}
               <Button
                 size="sm"
                 variant="ghost"
@@ -242,6 +243,7 @@ function QuestionCard({
           }
         />
       </div>
+      {question.study && <StudyQuestionSource question={question} />}
       {result && (
         <div className="bg-card overflow-hidden rounded-[10px] border">
           <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
@@ -282,7 +284,11 @@ export default function QuestionsTab({
   ended,
   onEndedChange,
   onClearSession,
+  lockedCourseId,
+  initialChapterId,
 }: {
+  lockedCourseId?: string;
+  initialChapterId?: string;
   payload: PracticePayload | null;
   error: string | null;
   deck: Set<string>;
@@ -294,8 +300,8 @@ export default function QuestionsTab({
   onEndedChange: (ended: boolean) => void;
   onClearSession: () => void;
 }) {
-  const [courseId, setCourseId] = useState("all");
-  const [chapterKey, setChapterKey] = useState("all");
+  const [courseId, setCourseId] = useState(lockedCourseId || "all");
+  const [chapterKey, setChapterKey] = useState(initialChapterId ? `${lockedCourseId}/${initialChapterId}` : "all");
   const [type, setType] = useState("all");
   const [query, setQuery] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -432,7 +438,7 @@ export default function QuestionsTab({
                 label="Chapter"
                 value={
                   selectedChapter
-                    ? `Ch ${selectedChapter.chapterId} · ${selectedChapter.chapterName}`
+                    ? selectedChapter.chapterName || String(selectedChapter.chapterId)
                     : "All chapters"
                 }
                 className="border-r"
@@ -475,6 +481,7 @@ export default function QuestionsTab({
               </div>
 
               <Select
+                disabled={Boolean(lockedCourseId)}
                 value={courseId}
                 onValueChange={(value) => {
                   setCourseId(value ?? "all");
@@ -519,7 +526,7 @@ export default function QuestionsTab({
                         (entry) => entry.key === value,
                       );
                       return chapter
-                        ? `Ch ${chapter.chapterId} · ${chapter.chapterName}`
+                        ? chapter.chapterName || String(chapter.chapterId)
                         : "All chapters";
                     }}
                   </SelectValue>
@@ -530,7 +537,7 @@ export default function QuestionsTab({
                     {chapters.map((chapter) => (
                       <SelectItem key={chapter.key} value={chapter.key}>
                         {courseId === "all" ? `${chapter.courseCode} · ` : ""}Ch{" "}
-                        {chapter.chapterId} · {chapter.chapterName}
+                        {chapter.chapterName || chapter.chapterId}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -569,10 +576,9 @@ export default function QuestionsTab({
       {!visible.length ? (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>Nothing matches</EmptyTitle>
+<EmptyTitle>{all.length ? "Nothing matches" : "No exercises yet"}</EmptyTitle>
             <EmptyDescription>
-              {all.length} published questions sit outside this filter. Widen
-              the course, chapter or type.
+              {all.length ? `${all.length} questions sit outside this filter. Widen the chapter or type.` : "Generate a study guide to add practice questions, or open Mock papers to practise from an original exam."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -582,7 +588,7 @@ export default function QuestionsTab({
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b px-5 py-4 sm:px-8">
               <div className="min-w-0">
                 <p className="font-data text-sm font-semibold tabular-nums">
-                  {current.courseCode} · Chapter {current.chapterId}
+                  {current.courseCode} · {current.study ? "Generated practice" : `Chapter ${current.chapterId}`}
                 </p>
                 <p className="text-muted-foreground mt-0.5 text-sm">
                   {current.chapterName}
@@ -594,7 +600,7 @@ export default function QuestionsTab({
                 nativeButton={false}
                 render={
                   <Link
-                    href={`/app/courses/${encodeURIComponent(current.courseId)}/${encodeURIComponent(String(current.chapterId))}`}
+                    href={current.study ? `/app/study/${current.study.versionId}?chapter=${current.study.topicId}&revision=${current.study.revisionId}` : `/app/courses/${encodeURIComponent(current.courseId)}/${encodeURIComponent(String(current.chapterId))}`}
                   />
                 }
               >

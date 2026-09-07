@@ -1,5 +1,5 @@
 'use client'
-import { StudyPaperBank } from '@/components/workspace/study-paper-bank'
+import { StudyDesk } from '@/components/workspace/study-desk'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -31,6 +31,9 @@ import {
 } from '@/lib/workspace/study-versions'
 
 export default function StudentStudyPage() {
+  return <StudyDesk><StudentStudyContent /></StudyDesk>
+}
+function StudentStudyContent() {
   const { versionId } = useParams<{ versionId: string }>(),
     [data, setData] = useState<StudyVersionPayload | null>(null),
     [error, setError] = useState(''),
@@ -409,15 +412,13 @@ export default function StudentStudyPage() {
         </div>
       )}
       {revision && (
-        <Tabs defaultValue="study" className="min-w-0 gap-5">
+        <div className="space-y-4"><div className="flex flex-wrap gap-4 text-sm font-medium"><Link className="text-primary hover:underline" href={`/app/courses/${version.course.courseCode}?tab=exercises`}>All course exercises</Link><Link className="text-primary hover:underline" href={`/app/courses/${version.course.courseCode}?tab=papers&year=${version.course.academicYear}`}>Course mock papers</Link></div><Tabs defaultValue="study" className="min-w-0 gap-5">
           <TabsList
             variant="line"
             className="max-w-full justify-start overflow-x-auto"
           >
             <TabsTrigger value="study">Study</TabsTrigger>
-            {data.revision && (
-              <TabsTrigger value="exam">Past papers</TabsTrigger>
-            )}
+
             {data.revision && (
               <TabsTrigger value="practice-exam">
                 Build practice exam
@@ -457,11 +458,7 @@ export default function StudentStudyPage() {
               }
             />
           </TabsContent>
-          {data.revision && (
-            <TabsContent value="exam">
-              <StudyPaperBank revision={data.revision} />
-            </TabsContent>
-          )}
+
           {data.revision && (
             <TabsContent value="practice-exam">
               <StudyPracticeExam revision={data.revision} />
@@ -510,7 +507,7 @@ export default function StudentStudyPage() {
               </p>
             )}
           </TabsContent>
-        </Tabs>
+        </Tabs></div>
       )}
     </main>
   )

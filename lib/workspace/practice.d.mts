@@ -13,6 +13,8 @@ export type PracticeQuestion = {
   courseName?: string | null
   chapterId?: string | null
   chapterName?: string | null
+  study?: { versionId: string; revisionId: string; topicId: string; questionId: string; setId: string | null }
+  hint?: string
   chapterQuestionIndex?: number
 }
 

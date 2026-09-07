@@ -1,5 +1,6 @@
 'use client'
 import dynamic from 'next/dynamic'
+import { useStudyDesk } from './study-desk'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { StudyPracticeWorkspace } from './study-practice-workspace'
 import { useEffect, useState } from 'react'
@@ -36,6 +37,7 @@ export function StudyReader({
   onEdited?: () => void
   editable?: boolean
 }) {
+  const desk = useStudyDesk()
   const [tutorOpen, setTutorOpen] = useState(false), [tutorQuestion, setTutorQuestion] = useState<string | undefined>()
   const [topicId, setTopicId] = useState(revision.chapters[0]?.id || ''),
     [tab, setTab] = useState('lesson')
@@ -72,6 +74,11 @@ export function StudyReader({
         Chapters appear here as soon as they pass their evidence check.
       </p>
     )
+  function openTutor(questionId?: string) {
+    if (desk) desk.openTutor('Chapter tutor', chapter.title,
+      <Tutor embedded initialContext={{courseCode:revision.course.courseCode,courseName:revision.course.courseName,chapterId:chapter.id,chapterName:chapter.title,studyVersionId:revision.versionId,studyRevisionId:revision.id,studyQuestionId:questionId}}/>)
+    else {setTutorQuestion(questionId);setTutorOpen(true)}
+  }
   const question = chapter.questions[questionIndex],
     walkthrough = chapter.walkthrough
   async function save(body: Record<string, unknown>, success: string) {
@@ -159,9 +166,9 @@ export function StudyReader({
             Not editorially reviewed. Source passages are available below each
             explanation.
           </p>
-          {personal && <div><Button variant="outline" onClick={() => { setTutorQuestion(undefined); setTutorOpen(true) }}>Ask AI tutor</Button></div>}
-          {editable && onEdited && <StudyChapterEditor key={`${revision.id}-${chapter.id}`} chapter={chapter} revision={revision} onChanged={onEdited} />}
-          {!!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span><StudyInline>{goal}</StudyInline></li>)}</ul></div>}
+          {personal && <div><Button variant="outline" onClick={() => openTutor()}>Ask AI tutor</Button></div>}
+          {tab === 'lesson' && editable && onEdited && <StudyChapterEditor key={`${revision.id}-${chapter.id}`} chapter={chapter} revision={revision} onChanged={onEdited} />}
+          {tab === 'lesson' && !!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span><StudyInline>{goal}</StudyInline></li>)}</ul></div>}
         </header>
         <Tabs value={tab} onValueChange={setTab} className="min-w-0 gap-5">
           <TabsList
@@ -276,7 +283,7 @@ export function StudyReader({
             </ul>
           </TabsContent>
           <TabsContent value="questions" className="flex flex-col gap-4">
-            {personal ? <StudyPracticeWorkspace key={`${revision.id}-${chapter.id}`} revision={revision} topicId={chapter.id} legacyAttempts={record?.attempts} onTutor={id => { setTutorQuestion(id); setTutorOpen(true) }} /> : question && (
+            {personal ? <StudyPracticeWorkspace key={`${revision.id}-${chapter.id}`} revision={revision} topicId={chapter.id} legacyAttempts={record?.attempts} onTutor={id => openTutor(id)} /> : question && (
               <>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-muted-foreground text-xs">
