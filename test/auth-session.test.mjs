@@ -1,8 +1,27 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { safeAuthDestination, createAuthenticatedFetch } from '../lib/workspace/auth-session.mjs'
+import { resumableAuthSessions, safeAuthDestination, createAuthenticatedFetch } from '../lib/workspace/auth-session.mjs'
 const origin = 'https://study.example'
 const unauthorized = () => Response.json({ error: 'Sign in required', reason: 'session-token-expired' }, { status: 401 })
+
+test('an unselected active Clerk session can resume without another password attempt', () => {
+  const session = { id: 'existing-session', status: 'active', currentTask: null }
+  assert.deepEqual(resumableAuthSessions([session], null), [session])
+  assert.deepEqual(resumableAuthSessions([session], session.id), [])
+  assert.deepEqual(resumableAuthSessions(undefined, undefined), [])
+})
+test('session recovery never revives invalid sessions or bypasses a selected pending session', () => {
+  const valid = { id: 'valid', status: 'active' }
+  const invalid = ['pending', 'expired', 'revoked', 'ended', 'abandoned', 'removed', 'replaced'].map(status => ({ id: status, status }))
+  invalid.push({ id: 'task', status: 'active', currentTask: { key: 'setup-mfa' } })
+  assert.deepEqual(resumableAuthSessions([...invalid, valid], null), [valid])
+  assert.deepEqual(resumableAuthSessions([...invalid, valid], 'pending'), [])
+})
+test('multiple resumable accounts remain explicit choices, independent of session ordering', () => {
+  const accounts = [{ id: 'first', status: 'active' }, { id: 'second', status: 'active' }]
+  assert.deepEqual(resumableAuthSessions(accounts, null), accounts)
+  assert.equal(resumableAuthSessions([...accounts].reverse(), null).length, 2)
+})
 
 test('auth redirects preserve workspace routes and reject outside/recursive destinations', () => {
   for (const value of [null, 'https://evil.example/app', '//evil.example/app', '/sign-in?redirect_url=/app', '/app/../sign-up', '/api/account', 'javascript:alert(1)', '/\\evil.example/app']) assert.equal(safeAuthDestination(value, origin), '/app')

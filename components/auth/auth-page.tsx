@@ -1,9 +1,9 @@
 'use client'
 
-import { SignIn, SignUp, useAuth } from '@clerk/nextjs'
-import { Suspense, useEffect, useState } from 'react'
+import { SignIn, SignUp, useAuth, useSessionList } from '@clerk/nextjs'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { safeAuthDestination } from '@/lib/workspace/auth-session.mjs'
+import { resumableAuthSessions, safeAuthDestination } from '@/lib/workspace/auth-session.mjs'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { contacts } from '@/lib/site-content'
 import { SiteIcon } from '@/components/site/icon'
@@ -39,16 +39,50 @@ function AuthLoading({ opening = false }: { opening?: boolean }) {
 }
 
 function HostedAuth({ signUp }: { signUp: boolean }) {
-  const { isLoaded, isSignedIn } = useAuth()
+  const { isLoaded, isSignedIn, sessionId } = useAuth()
+  const { isLoaded: sessionsLoaded, sessions, setActive } = useSessionList()
+  const [recovery, setRecovery] = useState<'idle' | 'opening' | 'failed'>('idle')
+  const attemptedSession = useRef<string | null>(null)
+  const recovering = useRef(false)
   const router = useRouter()
   const params = useSearchParams()
   const destination = safeAuthDestination(params.get('redirect_url'), typeof window === 'undefined' ? 'https://study.wicker.life' : window.location.origin)
   const switchQuery = `?redirect_url=${encodeURIComponent(destination)}`
+  const resumable = resumableAuthSessions(sessions, sessionId)
+  const soleSessionId = resumable.length === 1 ? resumable[0].id : null
+  const resumeSession = useCallback(async (id: string) => {
+    if (!setActive || recovering.current) return
+    attemptedSession.current = id
+    recovering.current = true
+    setRecovery('opening')
+    try {
+      // Selecting the existing Clerk session avoids submitting a second sign-in
+      // attempt (session_exists). The signed-in effect navigates only after
+      // Clerk has published the authenticated state to React.
+      await setActive({ session: id })
+    } catch {
+      setRecovery('failed')
+    } finally {
+      recovering.current = false
+    }
+  }, [setActive])
+  useEffect(() => {
+    if (isLoaded && sessionsLoaded && !isSignedIn && soleSessionId && attemptedSession.current !== soleSessionId) void resumeSession(soleSessionId)
+  }, [isLoaded, sessionsLoaded, isSignedIn, soleSessionId, resumeSession])
   useEffect(() => { if (isLoaded && isSignedIn) router.replace(destination) }, [isLoaded, isSignedIn, destination, router])
   // Do not mount a second sign-in flow over an active session. Pending Clerk
   // session tasks remain signed-out here and are completed inside the widget.
-  if (!isLoaded) return <AuthLoading />
+  if (!isLoaded || !sessionsLoaded) return <AuthLoading opening={recovery === 'opening'} />
   if (isSignedIn) return <><AuthLoading opening /><a className="text-sm font-semibold text-primary" href={destination}>Continue to your workspace →</a></>
+  if (resumable.length) {
+    if (recovery === 'opening' || (soleSessionId && recovery === 'idle')) return <AuthLoading opening />
+    return <div className="space-y-4 py-5">
+      {recovery === 'failed'
+        ? <p role="alert" className="text-sm text-muted-foreground">We couldn’t reopen your signed-in session. Try again to continue.</p>
+        : <p className="text-sm text-muted-foreground">Choose an account to continue to your workspace.</p>}
+      {resumable.map(session => <button key={session.id} type="button" className="site-button site-button-primary" onClick={() => void resumeSession(session.id)}>{soleSessionId ? 'Try again' : `Continue as ${session.user?.primaryEmailAddress?.emailAddress || session.user?.fullName || 'signed-in account'}`}</button>)}
+    </div>
+  }
   return <>
     {signUp
       ? <SignUp routing="hash" signInUrl={`/sign-in${switchQuery}`} forceRedirectUrl={destination} appearance={appearance} />
