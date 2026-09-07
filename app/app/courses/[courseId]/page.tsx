@@ -14,6 +14,7 @@
  */
 
 import dynamic from 'next/dynamic'
+import { CourseCanvasUpdates } from '@/components/workspace/course-canvas-updates'
 import { CourseTutorEntry } from '@/components/workspace/course-tutor-entry'
 import { StudyDesk } from '@/components/workspace/study-desk'
 import { CanvasGroups } from '@/components/workspace/canvas-groups'
@@ -244,6 +245,7 @@ function CourseContent() {
             </div>}
           </aside>
           <div className="course-panel">
+          <CourseCanvasUpdates key={`${course.code}:${year}`} courseCode={course.code} academicYear={year} />
           <TabsContent value="study" className="min-w-0">
             <div className="min-w-0">
               <div className="flex min-w-0 flex-col gap-6">

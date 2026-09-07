@@ -15,7 +15,7 @@
  * a calendar that has gone away.
  */
 
-import { calendarEventEmphasis } from '@/lib/calendar-emphasis.mjs'
+import { calendarCourseTone, calendarEventEmphasis } from '@/lib/calendar-emphasis.mjs'
 import { useEffect, useMemo, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -107,6 +107,7 @@ export default function CalendarGrid({
       eventClassNames={(info) => {
         const event = info.event.extendedProps as CalendarEvent
         return [
+          `fc-course-tone-${calendarCourseTone(event)}`,
           event.attendanceEligible ? 'fc-attendance-eligible' : '',
           event.attendanceRequired ? 'fc-attendance-required' : '',
           calendarEventEmphasis(event).tone === 'deadline' ? 'fc-obligation-deadline' : '',

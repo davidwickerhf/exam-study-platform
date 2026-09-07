@@ -1421,3 +1421,92 @@ test('group roster transport failure shows recovery and refresh members retries 
   await expect(panel.getByRole('alert')).toHaveCount(0)
   await page.screenshot({path:'.impeccable/review/groups-roster-recovered.png',animations:'disabled'})
 })
+
+test('Canvas update notice stays course-scoped across tabs and refreshes without forced reprocessing',async({page})=>{
+  await page.route('**/api/state',route=>route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
+  let busy=null,checks=0,refreshBody=null,settled=false
+  await page.route('**/api/integrations/canvas/freshness**',route=>{
+    if(route.request().method()==='POST'){checks++;return route.fulfill({json:{queued:true}})}
+    const query=new URL(route.request().url()).searchParams
+    expect(query.get('courseCode')).toBe(course.courseCode)
+    return route.fulfill({json:{courses:[{bindingId:'ccb-fixture',academicYear:course.academicYear,canvasUrl:'https://canvas.example.edu',canvasCourseId:'7',active:true,paused:false,status:settled?'current':'updates',checkedAt:new Date().toISOString(),busy,changes:settled?[]:[{kind:'files',id:'9',title:'Lecture 2.pdf',change:'new'},{kind:'assignments',id:'10',title:'Lab deadline',change:'changed'}],unchecked:[]}]}})
+  })
+  await page.route('**/api/integrations/canvas/corpus/course',route=>{
+    refreshBody=route.request().postDataJSON();busy='syncing'
+    return route.fulfill({json:{observed:1,queued:1}})
+  })
+  await page.goto(`/app/courses/${course.courseCode}?year=${course.academicYear}&tab=study`)
+  const updates=page.getByRole('region',{name:'Canvas course updates'})
+  await expect(updates).toContainText('2 Canvas updates available')
+  await updates.getByText('What changed',{exact:true}).click()
+  await expect(updates).toContainText('Lecture 2.pdf')
+  await page.getByRole('tab',{name:'Materials',exact:true}).click()
+  await expect(updates).toContainText('2 Canvas updates available')
+  await updates.getByRole('button',{name:'Check for updates',exact:true}).click()
+  expect(checks).toBe(1)
+  await expect(updates).toContainText('2 Canvas updates available')
+  await updates.getByRole('button',{name:'Update materials',exact:true}).click()
+  expect(refreshBody).toEqual({canvasUrl:'https://canvas.example.edu',canvasCourseId:'7',force:false})
+  await expect(updates).toContainText('Updating course materials')
+  await expect(updates.getByRole('button',{name:'Update materials',exact:true})).toBeDisabled()
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:'/tmp/canvas-updates-mobile.png'})
+  busy=null;settled=true
+  await page.reload()
+  await expect(updates).toContainText('Materials up to date')
+  await expect(updates.getByRole('button',{name:'Update materials',exact:true})).toHaveCount(0)
+})
+
+test('calendar attendance renders optimistically, reopens a closed sidebar, and rolls back failed saves',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-09-07T16:00:00Z'))
+  await page.setViewportSize({width:1440,height:1000})
+  const base={category:'timetable',allDay:false,attendanceEligible:true,attendanceRequired:false,notes:'Teaching session',source:'timetable',attendanceStatus:'unknown'}
+  const events=[{...base,id:'optimistic-os',courseCode:'BCS2140',courseName:'Operating Systems',title:'Operating Systems',start:'2026-09-07T09:00:00Z',end:'2026-09-07T11:00:00Z'},
+    {...base,id:'optimistic-ai',courseCode:'BCS2120',courseName:'Artificial Intelligence',title:'Artificial Intelligence',start:'2026-09-08T09:00:00Z',end:'2026-09-08T11:00:00Z'}]
+  // Both sessions are markable; keep the second on the same teaching day.
+  events[1].start='2026-09-07T12:00:00Z';events[1].end='2026-09-07T14:00:00Z'
+  await page.route('**/api/calendar/events',route=>route.fulfill({json:{events,categories:{},feeds:[],attendance:{summary:{attended:0,missed:0,unmarked:2,rate:null},courses:[]}}}))
+  await page.route('**/api/academics',route=>route.fulfill({json:{workspace:{revision:10,courses:[]}}}))
+  let release,received=false,fail=false
+  await page.route('**/api/attendance',async route=>{
+    const body=route.request().postDataJSON();received=true
+    await new Promise(resolve=>{release=resolve})
+    if(fail)return route.fulfill({status:409,json:{error:'The record changed in another tab.'}})
+    events.find(event=>event.id===body.event.id).attendanceStatus=body.status
+    return route.fulfill({json:{workspace:{revision:11}}})
+  })
+  await page.goto('/app/calendar')
+  const os=page.locator('[data-calendar-event-id="optimistic-os"]'),ai=page.locator('[data-calendar-event-id="optimistic-ai"]')
+  const desk=page.getByRole('complementary',{name:'Day desk',exact:true})
+  await expect(os).toBeVisible()
+  const colors=await Promise.all([os,ai].map(item=>item.evaluate(el=>getComputedStyle(el.closest('.fc-event')).backgroundColor)))
+  expect(colors[0]).not.toBe(colors[1])
+  await page.getByRole('button',{name:'Collapse day desk',exact:true}).click()
+  await expect(desk).not.toBeVisible()
+  await os.click()
+  await expect(desk.getByRole('heading',{name:'Operating Systems',exact:true})).toBeVisible()
+  await desk.getByRole('button',{name:'Attended',exact:true}).click()
+  await expect.poll(()=>received).toBe(true)
+  await expect(os).toContainText('attended')
+  await expect(desk.getByRole('button',{name:'Attended',exact:true})).toHaveAttribute('aria-pressed','true')
+  await expect(desk).toContainText('Saving attendance')
+  expect(await os.evaluate(el=>getComputedStyle(el.closest('.fc-event')).backgroundColor)).not.toBe(colors[0])
+  // The response for OS must not restore OS after the student selects AI.
+  await ai.click();release()
+  await expect(desk.getByRole('heading',{name:'Artificial Intelligence',exact:true})).toBeVisible()
+  await expect(desk.getByRole('button',{name:'Missed',exact:true})).toBeEnabled()
+  fail=true;received=false
+  await desk.getByRole('button',{name:'Missed',exact:true}).click()
+  await expect.poll(()=>received).toBe(true)
+  await expect(ai).toContainText('missed')
+  release()
+  await expect(desk.getByRole('alert')).toContainText('previous mark was restored')
+  await expect(ai).not.toContainText('missed')
+  await expect(os).toContainText('attended')
+  await expect(desk.getByRole('button',{name:'Missed',exact:true})).toBeEnabled()
+  await page.screenshot({path:'/tmp/calendar-optimistic-desktop.png'})
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:'/tmp/calendar-optimistic-mobile.png'})
+})

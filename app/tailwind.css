@@ -193,36 +193,42 @@
 [data-fc] .fc-daygrid-day-number { font-size: 0.75rem; color: var(--muted-foreground); padding: 0.25rem 0.35rem; }
 [data-fc] .fc-day-today .fc-daygrid-day-number { color: var(--foreground); font-weight: 600; }
 
-/* An event is a ruled block with a signal edge, not a rounded pill. */
+/* Course identity uses a stable pastel fill and signal edge. Attendance
+   changes the fill, while the edge retains the course identity. */
+[data-fc] .fc-course-tone-0 { --event-paper: #e8edff; --event-edge: #5367aa; }
+[data-fc] .fc-course-tone-1 { --event-paper: #efe8fa; --event-edge: #80609f; }
+[data-fc] .fc-course-tone-2 { --event-paper: #e2f1f3; --event-edge: #417a82; }
+[data-fc] .fc-course-tone-3 { --event-paper: #faeadf; --event-edge: #a46c41; }
+[data-fc] .fc-course-tone-4 { --event-paper: #eeeedd; --event-edge: #77773e; }
+[data-fc] .fc-course-tone-5 { --event-paper: #e7eef3; --event-edge: #59798f; }
 [data-fc] .fc-event {
-  border-radius: 0;
-  border: 0;
-  border-left: 1px solid var(--border);
-  background: var(--card);
-  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--event-edge, var(--border)) 35%, transparent);
+  border-left: 3px solid var(--event-edge, var(--border));
+  background: var(--event-paper, var(--card));
+  color: #20263a;
+  padding: 3px 5px;
   font-size: 11px;
   line-height: 1.3;
 }
-[data-fc] .fc-event:hover { background: var(--muted); }
-[data-fc] .fc-event-main { color: var(--foreground); }
-[data-fc] .fc-event-title { font-weight: 500; }
-[data-fc] .fc-event-time { color: var(--muted-foreground); font-weight: 500; }
-[data-fc] .fc-event.fc-attendance-required {
-  border-left: 4px solid var(--primary);
-  background: color-mix(in oklab, var(--primary) 9%, var(--card));
-}
-[data-fc] .fc-event.fc-obligation-deadline {
-  border-left: 4px solid var(--destructive);
-  background: color-mix(in oklab, var(--destructive) 6%, var(--card));
-}
-[data-fc] .fc-event.fc-attendance-missed { outline: 1px solid var(--destructive); }
+[data-fc] .fc-event:hover { filter: brightness(.97); }
+[data-fc] .fc-event-main { color: #20263a; }
+[data-fc] .fc-event-title { font-weight: 600; }
+[data-fc] .fc-event-time { color: #424b60; font-weight: 500; }
+[data-fc] .fc-event.fc-attendance-required { outline: 1px solid var(--primary); border-left: 4px solid var(--primary); }
+[data-fc] .fc-event.fc-obligation-deadline { --event-paper: #fbe5e8; border-left: 4px solid var(--destructive); }
+[data-fc] .fc-event.fc-attendance-attended { --event-paper: #e0f2e8; }
+[data-fc] .fc-event.fc-attendance-missed { --event-paper: #fbe5e8; }
+[data-fc] .fc-event.fc-attendance-excused { --event-paper: #fff0d9; }
+[data-fc] .fc-list-event td { background: var(--event-paper, var(--card)); }
+[data-fc] .fc-list-event:hover td { background: var(--event-paper, var(--card)); filter: brightness(.97); }
 /* The one colour, spent on what is happening now. */
 [data-fc] .fc-timegrid-now-indicator-line { border-color: var(--primary); border-width: 1px; }
 [data-fc] .fc-timegrid-now-indicator-arrow { border-color: var(--primary); color: var(--primary); }
 
 [data-fc] .fc-list { border-color: var(--border); }
 [data-fc] .fc-list-day-cushion { background: var(--card); }
-[data-fc] .fc-list-event:hover td { background: var(--card); }
+
 [data-fc] .fc-list-empty { background: transparent; color: var(--muted-foreground); }
 [data-fc] .fc-scrollgrid { border-color: var(--border); }
 [data-fc] .fc-timegrid-axis-cushion { color: var(--muted-foreground); font-size: 11px; }

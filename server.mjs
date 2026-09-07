@@ -1,3 +1,4 @@
+import { canvasFreshnessStatus, enqueueCanvasFreshnessCheck } from './lib/canvas-freshness-store.mjs'
 import { readCanvasGroups } from './lib/canvas-group-context.mjs'
 import {tutorFailure} from './lib/tutor-errors.mjs'
 import { claimPaperDispatch, resolvePaperJob, processPaperJob } from './lib/study-paper-jobs.mjs'
@@ -3974,6 +3975,17 @@ const server = createServer(async (req, res) => {
         send(res, 200, JSON.stringify(await cancelPendingCanvasSyncs({ accountId: currentAuth().userId, origin })), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Queued Canvas work could not be cancelled.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/freshness' && ['GET','POST'].includes(req.method)) {
+      if (req.method === 'POST') {
+        const body = await readBody(req, 2048)
+        const result = await enqueueCanvasFreshnessCheck({ accountId: currentAuth().userId, bindingId: String(body.bindingId || '') })
+        if (result.queued) await wakeCanvasQueue()
+        send(res, 202, JSON.stringify(result))
+      } else {
+        send(res, 200, JSON.stringify(await canvasFreshnessStatus({ accountId: currentAuth().userId, courseCode: url.searchParams.get('courseCode') || '', academicYear: url.searchParams.get('academicYear') || '' })), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
       }
       return
     }
