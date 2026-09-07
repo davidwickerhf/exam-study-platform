@@ -150,6 +150,11 @@ Successful batches are cached privately per account/course binding and evidence
 revision. The queued production path makes one new model call per invocation to
 fit its worker lease; the helper supports up to four. All relevant passages are
 processed in bounded batches rather than permanently truncating at 100 passages.
+Archive member paths are carried across chunk boundaries: prose instructions and
+READMEs remain eligible, while SDK/vendor trees, source code, build files and
+licences are excluded from obligation extraction. Original archive contents remain
+available in the materials corpus. Filtering changes the evidence hash, so affected
+scans recheck the reduced source set without invalidating unrelated courses.
 Attendance receives a dedicated GPT-5.4 pass over the syllabus, announcements and
 opening materials. A final GPT-5.4 reconciliation checks the combined attendance
 rules and milestones before publishing actions. Ordinary obligation batches use
