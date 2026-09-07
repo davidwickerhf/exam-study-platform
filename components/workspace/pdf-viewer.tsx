@@ -166,10 +166,16 @@ export default function PdfViewer({
         if (!view.clientWidth || !view.clientHeight || pendingJump.current !== null) return
         const boxes = [...view.querySelectorAll<HTMLElement>('[data-pdf-page]')]
         const middle = view.scrollTop + Math.min(view.clientHeight / 3, 180)
-        const current = boxes.find(
+        // The final page may be too short to reach the tracking line. A
+        // clamped jump to the bottom must still select that final page.
+        const atBottom = view.scrollTop > 0 && view.scrollTop + view.clientHeight >= view.scrollHeight - 2
+        const current = atBottom ? boxes.at(-1) : boxes.find(
           (box) => box.offsetTop + box.offsetHeight > middle,
         )
-        if (current) setPage(Number(current.dataset.pdfPage))
+        if (current) {
+          currentPage.current = Number(current.dataset.pdfPage)
+          setPage(currentPage.current)
+        }
       })
     }
     view.addEventListener('scroll', track, { passive: true })

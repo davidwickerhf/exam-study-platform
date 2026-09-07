@@ -1223,6 +1223,8 @@ test('course materials send the opened document and current PDF page to the tuto
   await page.setViewportSize({width:390,height:844})
   await expect(input).toBeVisible()
   await tutor.getByRole('button',{name:'Close document tutor'}).click()
+  // Let visibility, resize restoration and scroll tracking all settle.
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))))
   await expect(viewer.getByRole('spinbutton',{name:'Page number'})).toHaveValue('2')
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
