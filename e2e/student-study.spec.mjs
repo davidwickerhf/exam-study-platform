@@ -1323,17 +1323,92 @@ test('settings activity links and browser history keep the selected tab in sync'
 
 test('global Canvas groups stay separate, and a denied roster never looks like an empty team',async({page})=>{
   const global={id:'601',origin:'https://canvas.example.edu',name:'Data Science society',scope:'global',contextName:'Student communities',url:'https://canvas.example.edu/groups/601',membersStatus:'not-loaded',members:null}
-  const courseGroup={...global,id:'602',name:'Graph theory team',scope:'course',courseName:'Graph Theory',academicYear:'2026-2027'}
+  const courseGroup={...global,id:'602',name:'Graph theory team',scope:'course',courseId:'42',courseName:'Graph Theory',academicYear:'2026-2027'}
+  const calls=[]
   await page.route('**/api/integrations/canvas/groups?**',route=>{
-    const groupId=new URL(route.request().url()).searchParams.get('groupId')
+    const groupId=new URL(route.request().url()).searchParams.get('groupId');calls.push(groupId)
     return route.fulfill({json:{connected:true,groups:[global,courseGroup].map(group=>({...group,membersStatus:group.id===groupId?'unavailable':'not-loaded'})),problems:groupId?[{part:'members',message:'Canvas did not allow the member list to load.'}]:[],matchedCourses:[]}})
   })
   await page.goto('/app/groups')
-  await page.getByRole('button',{name:'Global groups',exact:true}).click()
-  await expect(page.getByRole('heading',{name:'Data Science society'})).toBeVisible()
-  await expect(page.getByRole('region',{name:'Your Canvas groups'}).getByRole('alert')).toContainText('Canvas did not allow')
+  await expect(page.getByRole('button',{name:'View members of Data Science society'})).toBeVisible()
+  expect(calls.every(id=>!id)).toBe(true)
+  await page.getByRole('button',{name:/^Global groups/}).click()
+  await expect(page.getByRole('button',{name:'View members of Graph theory team'})).toHaveCount(0)
+  const trigger=page.getByRole('button',{name:'View members of Data Science society'})
+  await trigger.click()
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Canvas did not allow')
   await expect(page.getByText('Canvas returned no visible members for this group.')).toHaveCount(0)
-  await expect(page.getByRole('heading',{name:'Graph theory team'})).toHaveCount(0)
-  await page.getByRole('button',{name:'Course teams',exact:true}).click()
-  await expect(page.getByRole('heading',{name:'Graph theory team'})).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(trigger).toBeFocused()
+  await page.getByRole('button',{name:/^Course teams/}).click()
+  await expect(page.getByRole('button',{name:'View members of Graph theory team'})).toBeVisible()
+})
+
+test('group directory exposes long names, filters by year and course, and keeps browsing state after roster review', async({page})=>{
+  const calls=[]
+  let refreshed=false
+  const groups=Array.from({length:24},(_,i)=>({id:String(700+i),origin:'https://canvas.example.edu',name:i===0?'Course Project Topic Selection 2 — Embedded systems and connected devices':`Project team ${i+1}`,scope:'course',courseId:String(Math.floor(i/4)),courseName:['Ubiquitous Computing & Internet of Things','Introduction to Artificial Intelligence','Graph Theory','Operating Systems','Semantic Web','Machine Learning'][Math.floor(i/4)],courseCode:`KEN${1000+Math.floor(i/4)}`,academicYear:i<12?'2026-2027':'2025-2026',memberCount:3,url:`https://canvas.example.edu/groups/${700+i}`,membersStatus:'not-loaded',members:null}))
+  await page.route('**/api/integrations/canvas/groups?**',route=>{
+    const q=new URL(route.request().url()).searchParams;calls.push(Object.fromEntries(q))
+    if(q.get('refresh')==='1')refreshed=true
+    return route.fulfill({json:{connected:true,groups:groups.map(group=>group.id===q.get('groupId')?{...group,membersStatus:'loaded',members:[{id:'1',name:'DHF (David) Wicker',isYou:true},{id:'2',name:refreshed?'GH (Grace) Hopper':'AL (Ada) Lovelace',isYou:false},{id:'3',name:'. (Mohamed) Mohamed Abdellah Saber Eldeeb',isYou:false}]}:group),problems:[],matchedCourses:[]}})
+  })
+  await page.goto('/app/groups')
+  await expect(page.getByRole('button',{name:/View members of/})).toHaveCount(24)
+  expect(calls.every(call=>!call.groupId)).toBe(true)
+  await page.addStyleTag({content:'nextjs-portal { display: none !important; }'})
+  await page.screenshot({path:'.impeccable/review/groups-desktop.png',fullPage:true,animations:'disabled'})
+  await page.getByRole('combobox',{name:'Academic year'}).selectOption('2025-2026')
+  await expect(page.getByRole('button',{name:/View members of/})).toHaveCount(12)
+  await page.getByRole('combobox',{name:'Academic year'}).selectOption('all')
+  await page.getByRole('textbox',{name:'Find a group or course'}).fill('Ubiquitous')
+  await expect(page.getByRole('button',{name:/View members of/})).toHaveCount(4)
+  const trigger=page.getByRole('button',{name:`View members of ${groups[0].name}`,exact:true})
+  await trigger.focus();await page.keyboard.press('Enter')
+  const panel=page.getByRole('dialog')
+  await expect(panel.getByRole('list',{name:'Group members'})).toContainText('AL (Ada) Lovelace')
+  await expect(panel.getByText('DW',{exact:true})).toBeVisible()
+  await expect(panel.getByText('ME',{exact:true})).toBeVisible()
+  await panel.getByRole('button',{name:'Refresh members'}).click()
+  await expect(panel.getByRole('list',{name:'Group members'})).toContainText('GH (Grace) Hopper')
+  await page.screenshot({path:'.impeccable/review/groups-detail-desktop.png',animations:'disabled'})
+  await page.keyboard.press('Escape')
+  await expect(trigger).toBeFocused()
+  await expect(page.getByRole('textbox',{name:'Find a group or course'})).toHaveValue('Ubiquitous')
+  await page.setViewportSize({width:390,height:844})
+  await page.getByRole('textbox',{name:'Find a group or course'}).fill('')
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:'.impeccable/review/groups-mobile.png',fullPage:true,animations:'disabled'})
+  await trigger.click()
+  await expect(panel.getByRole('list',{name:'Group members'})).toContainText('David')
+  await expect.poll(()=>panel.evaluate(el=>el.getBoundingClientRect().width)).toBeLessThanOrEqual(390)
+  await page.screenshot({path:'.impeccable/review/groups-detail-mobile.png',animations:'disabled'})
+  await panel.getByRole('button',{name:'Close',exact:true}).click()
+  await page.getByRole('textbox',{name:'Find a group or course'}).fill('does not exist')
+  await expect(page.getByRole('heading',{name:'No matching groups'})).toBeVisible()
+  await page.getByRole('button',{name:'Clear filters'}).click()
+  await expect(page.getByRole('button',{name:/View members of/})).toHaveCount(24)
+})
+
+
+test('group roster transport failure shows recovery and refresh members retries it', async({page})=>{
+  let failed=true
+  const group={id:'901',origin:'https://canvas.example.edu',name:'Project team',scope:'course',courseId:'12',courseName:'Graph Theory',academicYear:'2026-2027',url:'https://canvas.example.edu/groups/901',membersStatus:'not-loaded',members:null}
+  await page.route('**/api/integrations/canvas/groups?**',route=>{
+    const q=new URL(route.request().url()).searchParams
+    if(q.get('refresh')==='1')failed=false
+    if(q.has('groupId')&&failed)return route.fulfill({status:503,json:{error:'Temporary unavailable'}})
+    return route.fulfill({json:{connected:true,groups:[q.has('groupId')?{...group,membersStatus:'loaded',members:[{id:'1',name:'Student',isYou:true}]}:group],problems:[],matchedCourses:[]}})
+  })
+  await page.goto('/app/groups')
+  await page.getByRole('button',{name:'View members of Project team',exact:true}).click()
+  const panel=page.getByRole('dialog')
+  await expect(panel.getByRole('alert')).toContainText('The member list could not be loaded')
+  await expect(panel.getByRole('status',{name:'Loading teammates'})).toHaveCount(0)
+  await page.addStyleTag({content:'nextjs-portal { display: none !important; }'})
+  await page.screenshot({path:'.impeccable/review/groups-roster-error.png',animations:'disabled'})
+  await panel.getByRole('button',{name:'Refresh members'}).click()
+  await expect(panel.getByRole('list',{name:'Group members'})).toContainText('Student')
+  await expect(panel.getByRole('alert')).toHaveCount(0)
+  await page.screenshot({path:'.impeccable/review/groups-roster-recovered.png',animations:'disabled'})
 })

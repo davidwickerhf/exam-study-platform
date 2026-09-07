@@ -3,7 +3,9 @@
 Students can open **Groups** in a course or `/app/groups` for all connected
 Canvas memberships. Settings → Connections links to the same global view.
 Course teams respect the selected academic year; global/account groups remain
-separate. A group roster is fetched when selected, not for every group up front.
+separate. The global view is a browsable directory: a roster is fetched only
+when its member action opens the detail sheet. A course with exactly one team
+keeps its compact inline roster and loads that team automatically.
 
 ## API and MCP
 
@@ -45,18 +47,91 @@ is never put in shared course material, public study guides or the editorial cor
 
 Official source: [Canvas Groups API](https://canvas.instructure.com/doc/api/groups.html).
 
+## Directory and roster behavior
+
+`/app/groups` owns one “Your groups” title and a flat directory grouped by Canvas
+origin, course and academic year. Global groups occupy separate sections. All
+groups, Course teams and Global groups controls show membership counts; search
+matches group name, course name/code and global context. The academic-year filter
+includes an explicit “Year not listed” choice when needed. Changing group type
+resets the year selection. Long team names wrap in the directory instead of being
+hidden in a selector.
+
+Each row is a keyboard-operable member action. A known Canvas member count is
+shown alongside it; an unknown count says “View members”, never zero. Opening a
+row loads only that roster into the shared detail sheet, with course/year context,
+an “Open in Canvas” link and “Refresh members”. Closing the sheet leaves the
+directory mounted and preserves its search, filters and browsing position; Escape
+returns focus to the triggering row. No global roster request occurs on initial
+load, including when the directory contains only one group.
+
+The course Groups tab continues to pass its exact course code and selected year.
+Exactly one course team uses the compact inline roster; multiple teams use the
+directory and sheet. Tutor selection follows the selected group and Canvas origin.
+Names remain exactly as returned by Canvas. Decorative initials use Unicode
+letter tokens, recognize parenthesized given names, and take first/last initials;
+punctuation is not an initial. The “You” label uses Canvas identity evidence only.
+
+On mobile, controls wrap, long names remain readable and the detail sheet uses the
+available screen width. Its member list scrolls between the context header and
+action footer. The directory remains a single document flow.
+
+## Failure and recovery
+
+Connection absence, membership loading, membership request failure, partial
+permission failure, no memberships, unmatched filters and roster failure are
+separate states. Filtered empty results offer “Clear filters”; connection absence
+links to Settings. Partial membership reads explicitly say coverage is incomplete.
+
+Roster errors take precedence over the selected membership's earlier
+`not-loaded` status, so a transport failure cannot leave an endless skeleton.
+An unreadable roster is an alert, not an empty team. “Refresh members” invalidates
+the groups cache, refreshes memberships and retries the selected roster; “Open in
+Canvas” remains available. Only a successfully loaded empty roster may say Canvas
+returned no visible members.
+
 ## Design decisions
 
-Existing Wicker Study course styling is the build target. Refero's
-[Open Collective reference](https://opencollective.com) supports the navy/white
-hierarchy; the [GlossGenius team roster](https://refero.design/pages/f5e4e1f1-ae88-48b1-99a0-08b36d8669e1)
-informs the compact identity rows and “You” marker.
+The existing [Wicker Study design system](../DESIGN.md) remains the visual
+authority: Archivo, navy ink, white working surfaces, blue actions and thin rules.
+This surface changes the browsing interaction without replacing the global world.
+The decision ledger below records the source IDs retained in the implementation
+direction.
 
-| Decision | Basis |
+| Decision | Source and translation |
 | --- | --- |
-| Groups within the navy course shell | User's focused-course direction; existing course navigation |
-| Team name and edition above members | User's membership question; prevents retake confusion |
-| Simple group selector only when needed | Existing form controls; keeps small teams immediately visible |
-| Names and initials, explicit “You” | Roster reference; no fabricated profile photos |
-| Global/course filter and Canvas permalink | Canvas context model; clear route to membership management |
-| Distinct disconnected, denied and empty states | Canvas permission semantics; never equate a failed read with no group |
+| Incumbent navy/white/blue hierarchy | Open Collective Raise, Refero `f72e18d0-98f4-4e88-9754-5426589564ea`: palette roles only; retain Wicker typography and density |
+| Scannable membership rows with on-demand detail sheet | Mercury, Refero `ce741341-e1d2-4c81-8662-5455a0753e0b`: list-to-detail pattern |
+| Search, quiet filters and secondary course/year metadata | Dropbox, Refero `0f021185-83e8-4842-bdf5-d9a2c65f263a`: browsing controls and hierarchy |
+| One page title; course/year sections; wrapping names | Supplied screenshot and 24-membership browsing case: remove duplicate heading and group selector |
+| Explicit member action; no initial global roster fetch | Avoid an arbitrary default selection and preserve directory browsing state |
+| Single-course, single-team inline roster | Preserve the focused course workflow and exact retake-year boundary |
+| Real names, initials and “You”; unknown counts remain unknown | Canvas data and permissions; no fabricated profile photos or plausible zeroes |
+
+The scoped interaction contract lives in
+[the Groups surface brief](../.impeccable/surfaces/app-app-groups-page-tsx.md).
+
+## Validation evidence
+
+Four targeted Chromium E2Es passed (29.4 seconds) in the final local run recorded
+at `/tmp/groups-redesign-final-e2e.log`:
+
+- Course roster, exact retake years, refresh without stale members, tutor context
+  and 390px overflow check.
+- Separate global/course groups, no initial roster fetch, denied roster alert and
+  Escape focus restoration.
+- A 24-membership directory, long names, year/search filtering, keyboard opening,
+  Unicode initials, refresh, retained search after closing, mobile sheet width and
+  empty-filter recovery.
+- Roster transport failure replacing loading, followed by successful refresh and
+  removal of the error.
+
+These tests use mocked Canvas responses. They do not establish live-account
+permission coverage. Directory scroll preservation is an interaction constraint;
+the tests directly assert retained search and focus, not a scroll-offset round trip.
+Desktop, mobile, detail, error and recovered screenshots are stored in
+`.impeccable/review/groups-{desktop,mobile,detail-desktop,detail-mobile,roster-error,roster-recovered}.png`.
+The final design reviewer disposition was **ship** after the roster-error
+precedence fix. `npm run verify` passed: 836 tests, zero skipped, TypeScript and
+production build. Deployment acceptance is recorded separately in the pull request;
+local screenshots alone are not preview evidence.
