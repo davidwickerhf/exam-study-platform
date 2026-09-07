@@ -27,7 +27,7 @@ test('background priority calls use owner-scoped platform budget and actual prov
       calls++
       assert.equal(currentUserId(),'owner')
       assert.equal(control.billing.source,'platform')
-      assert.equal(control.billing.maxJobUsd,0.2)
+      assert.equal(control.billing.maxJobUsd,0.5)
       assert.equal(control.jobKey,'priority:binding:evidence-v1')
       assert.equal(control.callPersonal,undefined)
       const result=await control.callPlatform()
@@ -50,4 +50,13 @@ test('current corpus batches are not evicted before a large course can finish',a
     assert.equal((await cache.load('batch-69')).status,'confirmed')
     assert.equal(await priorityBatchCache('peer',binding).load('batch-0'),null)
   } finally {await withRequestContext({userId:owner},()=>deleteDocument('priority-evidence-cache',binding))}
+})
+
+test('stronger reconciliation is billed using its actual model',async()=>{
+  const generate=priorityModelCall('owner','binding','v7',{
+    settings:async()=>({model:'gpt-5-mini',baseUrl:'https://api.openai.com/v1'}),available:()=>true,
+    modelCall:async(_messages,options)=>{assert.equal(options.model,'gpt-5.4');return {message:{content:'{}'}}},
+    budgetCall:async(_prompt,_options,control)=>{assert.equal(control.billing.model,'gpt-5.4');return (await control.callPlatform()).text}
+  })
+  await generate([],{model:'gpt-5.4',maxOutputTokens:8000})
 })

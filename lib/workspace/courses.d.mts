@@ -1,3 +1,4 @@
+export type PriorityAction = {title:string;parent:string;kind:string;deadline:string|null;deadlineText:string;prerequisite:string;notes:string;evidence:Array<{chunkId:number;assetId?:string;title?:string;page?:number}>}
 /** Types for lib/app/courses.mjs. */
 
 export type Chapter = { id: string; name: string; file?: string }
@@ -5,7 +6,7 @@ export type Item = { id: string; title: string; mastery: number; chapterIds?: st
 export type CourseProfile = {
   description?: string
   learningOutcomes?: string[]
-  assessment?: { status?: string; components?: { name: string; type?: string; weightPercent?: number | null; minimumPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }[]; overallPassRules?: string[]; resitRules?: string[]; attendanceRules?: string[]; attendanceEvidence?: { text: string; activity: string; allowedMisses?: number | null; minimumAttendancePercent?: number | null; excusedPolicy?: string; evidence?: unknown[] }[] }
+  assessment?: { status?: string; actions?: PriorityAction[]; components?: { name: string; type?: string; weightPercent?: number | null; minimumPercent?: number | null; deadline?: string | null; deadlineText?: string; notes?: string }[]; overallPassRules?: string[]; resitRules?: string[]; attendanceRules?: string[]; attendanceEvidence?: { text: string; activity: string; allowedMisses?: number | null; minimumAttendancePercent?: number | null; excusedPolicy?: string; evidence?: unknown[] }[] }
 }
 
 export type StudyCourse = {

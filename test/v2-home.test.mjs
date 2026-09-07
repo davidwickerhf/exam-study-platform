@@ -218,3 +218,26 @@ test('attendance grouping preserves separate courses and obligations and urgent 
   assert.equal(priorities.length,5)
   assert.ok(priorities.slice(1).every(p=>p.occurrences===1))
 })
+
+test('buried project steps remain actionable with relative timing and prerequisites',()=>{
+  const action={title:'Upload presentation slides',parent:'Paper talk',kind:'submission',deadline:null,deadlineText:'One hour before your presentation',prerequisite:'After your group receives its presentation slot',notes:'PDF slides',evidence:[{chunkId:1,assetId:'asset-1'}]}
+  const result=homePriorities({courses:[{id:'iot',code:'BCS3120',courseProfile:{assessment:{status:'confirmed',actions:[action]}}}],now:Date.parse('2026-09-07'),limit:Infinity})
+  assert.equal(result.length,1)
+  assert.equal(result[0].dueAt,null)
+  assert.equal(result[0].dueText,'One hour before your presentation')
+  assert.match(result[0].detail,/After your group receives/)
+  assert.equal(result[0].evidence[0].assetId,'asset-1')
+  assert.equal(result[0].href,'/app/courses/iot?tab=materials')
+})
+
+test('completed Canvas submissions suppress only the matching deliverable',()=>{
+  const actions=['Submit Final report','Prepare presentation'].map(title=>({title,parent:'Group project',deadline:'2026-10-04',evidence:[{chunkId:1}]}))
+  const result=homePriorities({courses:[{id:'iot',code:'BCS3120',courseProfile:{assessment:{status:'confirmed',actions,components:[{name:'Final report',type:'project',deadline:'2026-10-04'}]}}}],assignments:[{id:'a1',courseCode:'BCS3120',title:'Final report',status:'submitted',dueAt:'2026-10-04T21:59:00Z'}],now:Date.parse('2026-09-07'),limit:Infinity})
+  assert.deepEqual(result.map(item=>item.title),['Prepare presentation'])
+})
+
+test('Canvas UTC due dates compare to the local course date across midnight',()=>{
+  const result=homePriorities({courses:[{id:'iot',code:'BCS3120',courseProfile:{assessment:{status:'confirmed',components:[{name:'Project',type:'project',deadline:'2026-10-05'}]}}}],assignments:[{id:'a1',courseCode:'BCS3120',title:'Project',status:'pending',dueAt:'2026-10-04T22:30:00Z'}],now:Date.parse('2026-09-07'),limit:Infinity})
+  assert.equal(result.length,1)
+  assert.doesNotMatch(result[0].detail,/conflicts/)
+})

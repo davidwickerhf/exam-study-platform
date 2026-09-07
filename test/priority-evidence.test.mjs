@@ -39,6 +39,7 @@ test('priority extraction merges duplicate claims and their evidence', () => {
 test('a malformed priority response is isolated by splitting its batch', async () => {
   const calls = []
   const model = async (messages, options) => {
+    if(messages.at(-1).content.includes('FINAL RECONCILIATION')) return {message:{content:messages.at(-1).content.split('Draft to correct:\n')[1]}}
     const ids = [...messages.at(-1).content.matchAll(/\[chunk:(\d+)/g)].map((match) => Number(match[1]))
     calls.push({ ids, responseFormat: options.responseFormat })
     if (ids.length > 6) return { message: { content: '' } }
@@ -69,7 +70,7 @@ test('setup groups failed priority extraction without pretending the programme i
 })
 
 test('recurring scan has a hard call ceiling and reuses successful evidence batches', async () => {
-  const rows=Array.from({length:50},(_,i)=>({chunkId:i+1,sourceType:'syllabus',filename:'manual.pdf',content:`Assignment ${i} is due.`}))
+  const rows=Array.from({length:250},(_,i)=>({chunkId:i+1,sourceType:'syllabus',filename:'manual.pdf',content:`Assignment ${i} is due.`}))
   const values=new Map(),cache={load:async key=>values.get(key),save:async(key,result)=>values.set(key,result)}
   let calls=0
   const model=async()=>{calls++;return {message:{content:JSON.stringify({status:'not-found',attendanceRules:[],components:[],conflicts:[]})}}}
@@ -150,4 +151,83 @@ test('attendance is reconciled before generic obligations and survives unrelated
   // overall model status; a check cannot bypass source disagreement.
   const disputed=normalizeScan({...extracted,attendanceCheck:{status:'needs-review',conflicts:[{title:'Attendance conflict',chunkIds:[1,3]}]}},attendanceRows)
   assert.equal(supportedCourseAssessment(disputed),null)
+})
+
+test('identical combined requirements retain both lab and tutorial activity records',()=>{
+  const value=mergePriorityExtractions([{status:'confirmed',attendanceRules:['lab','tutorial'].map(activity=>({activity,text:'Attend eight combined sessions.',evidence:[{chunkId:1}]}))}])
+  assert.deepEqual(value.attendanceRules.map(rule=>rule.activity),['lab','tutorial'])
+})
+
+test('project actions preserve relative timing, exact offsets and source references',async()=>{
+  const {normalizeScan}=await import('../lib/priority-evidence.mjs')
+  const rows=[{chunkId:1,assetId:'source-1',filename:'project.pdf',page:2}]
+  const actions=[
+    {title:'Register your team',parent:'Group project',kind:'team',deadline:null,deadlineText:'Before your pitch',prerequisite:'Choose a topic first',notes:'Teams of four',evidence:[{chunkId:1}]},
+    {title:'Upload slides',parent:'Group project',kind:'submission',deadline:null,deadlineText:'One hour before your presentation',evidence:[{chunkId:1}]},
+    {title:'Submit report',parent:'Group project',kind:'submission',deadline:'2026-10-04T23:59:00+02:00',evidence:[{chunkId:1}]},
+    {title:'Invented step',evidence:[{chunkId:999}]}
+  ]
+  const result=normalizeScan({status:'confirmed',actions},rows).courseProfile.assessment
+  assert.equal(result.status,'confirmed')
+  assert.equal(result.actions.length,3)
+  assert.equal(result.actions[1].deadline,null)
+  assert.equal(result.actions[1].deadlineText,'One hour before your presentation')
+  assert.equal(result.actions[2].deadline,'2026-10-04T23:59:00+02:00')
+  assert.equal(result.actions[0].evidence[0].assetId,'source-1')
+  assert.equal(result.actions[0].prerequisite,'Choose a topic first')
+})
+
+test('priority dates reject impossible days and timestamps without an offset',async()=>{
+  const {validPriorityDeadline}=await import('../lib/priority-evidence.mjs')
+  for(const date of ['2026-02-30','2026-13-01','2026-10-04T23:59','tomorrow'])assert.equal(validPriorityDeadline(date),null)
+  assert.equal(validPriorityDeadline('2026-10-04'),'2026-10-04')
+})
+
+test('explicit amendments reach every obligation batch and semantic conflicts are cached',async()=>{
+  const rows=[{chunkId:1,sourceType:'announcements',content:'The project deadline is extended from 2 October to 4 October.'},...Array.from({length:120},(_,i)=>({chunkId:i+2,sourceType:'slides',content:'Project due 2 October.'}))]
+  const cacheValues=new Map(),cache={load:async k=>cacheValues.get(k),save:async(k,v)=>cacheValues.set(k,v)}
+  let calls=0
+  const model=async messages=>{calls++;assert.match(messages.at(-1).content,/extended from 2 October to 4 October/);return {message:{content:JSON.stringify({status:'needs-review',conflicts:[{title:'A separate genuine conflict',detail:'Unresolved',chunkIds:[2]}]})}}}
+  await extractPriorityEvidence({},rows,model,{cache})
+  await extractPriorityEvidence({},rows,model,{cache})
+  assert.equal(calls,2,'semantic review does not repeatedly consume the budget needed to finish other batches')
+})
+
+test('one-call production scans resume through final reconciliation without losing attendance to another conflict',async()=>{
+  const rows=[{chunkId:1,filename:'manual.pdf',content:'Labs are compulsory. Prepare the project pitch before approval.'}]
+  const values=new Map(),cache={load:async key=>values.get(key),save:async(key,value)=>values.set(key,value)}
+  const rule={activity:'lab',requirement:'required',text:'Labs are compulsory.',evidence:[{chunkId:1}]}
+  const action={title:'Prepare the pitch',parent:'Project',deadline:null,deadlineText:'Before approval',evidence:[{chunkId:1}]}
+  let calls=0
+  const model=async (messages,options)=>{
+    calls++
+    const prompt=messages.at(-1).content
+    if(prompt.includes('FINAL RECONCILIATION')){
+      assert.equal(options.model,'gpt-5.4')
+      return {message:{content:JSON.stringify({status:'needs-review',attendanceRules:[rule],actions:[action],components:[],conflicts:[{title:'Conflicting project grade weights',detail:'Project weight differs between sources',chunkIds:[2]}]})}}
+    }
+    if(prompt.includes('dedicated attendance pass'))assert.equal(options.model,'gpt-5.4')
+    return {message:{content:JSON.stringify({status:'confirmed',attendanceRules:[rule],actions:[action],components:[],conflicts:[]})}}
+  }
+  const opts={maxCalls:1,cache,attendanceRows:rows}
+  const first=await extractPriorityEvidence({},rows,model,opts)
+  assert.equal(calls,1)
+  assert.ok(first.conflicts.some(c=>c.title==='Priority scan allowance reached'))
+  const second=await extractPriorityEvidence({},rows,model,opts)
+  assert.equal(calls,2)
+  assert.ok(second.conflicts.some(c=>c.title==='Priority scan allowance reached'))
+  const third=await extractPriorityEvidence({},rows,model,opts)
+  assert.equal(calls,3)
+  assert.equal(third.attendanceCheck.status,'confirmed')
+  assert.equal(third.actions[0].deadlineText,'Before approval')
+  await extractPriorityEvidence({},rows,model,opts)
+  assert.equal(calls,3,'the final reconciliation is reused too')
+})
+
+test('identical attendance text for different dated sessions survives merge and legacy recovery',async()=>{
+  const {recoverLiteralAttendance}=await import('../lib/priority-evidence.mjs')
+  const rules=['2026-09-02','2026-09-09'].map((date,i)=>({text:'Graded labs require attendance.',activity:'lab',requirement:'required',scope:{kind:'specific',labels:[`Lab ${i+1}`],dates:[date]},evidence:[{chunkId:1}]}))
+  assert.equal(mergePriorityExtractions([{status:'confirmed',attendanceRules:rules}]).attendanceRules.length,2)
+  const profile={assessment:{status:'confirmed',attendanceEvidence:rules}}
+  assert.equal(recoverLiteralAttendance(profile,[{chunkId:2,sourceType:'syllabus',content:'Lectures are optional.'}]).assessment.attendanceEvidence.length,3)
 })
