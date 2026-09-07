@@ -212,9 +212,11 @@ test('one-call production scans resume through final reconciliation without losi
   const opts={maxCalls:1,cache,attendanceRows:rows}
   const first=await extractPriorityEvidence({},rows,model,opts)
   assert.equal(calls,1)
+  assert.deepEqual(first.actions,[])
   assert.ok(first.conflicts.some(c=>c.title==='Priority scan allowance reached'))
   const second=await extractPriorityEvidence({},rows,model,opts)
   assert.equal(calls,2)
+  assert.deepEqual(second.actions,[])
   assert.ok(second.conflicts.some(c=>c.title==='Priority scan allowance reached'))
   const third=await extractPriorityEvidence({},rows,model,opts)
   assert.equal(calls,3)
