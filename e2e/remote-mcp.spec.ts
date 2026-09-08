@@ -25,6 +25,16 @@ test('remote service approval shows scope and callback; token works until discon
   const courses=await request.post('/api/mcp',{headers,data:{jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'list_courses',arguments:{}}}})
   expect(courses.status()).toBe(200)
   expect((await courses.json()).result.isError).not.toBe(true)
+  const discovered=await request.post('/api/mcp',{headers,data:{jsonrpc:'2.0',id:4,method:'tools/list',params:{}}})
+  const tools=(await discovered.json()).result.tools
+  for(const name of ['list_courses','get_course','search_course','canvas_course_materials']) expect(tools.find((tool:{name:string})=>tool.name===name).annotations.readOnlyHint).toBe(true)
+  const invalidSearch=await request.post('/api/mcp',{headers,data:{jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'search_course',arguments:{query:'lab attendance'}}}})
+  expect((await invalidSearch.json()).result.isError).toBe(true)
+  const missingCourse=await request.post('/api/mcp',{headers,data:{jsonrpc:'2.0',id:6,method:'tools/call',params:{name:'get_course',arguments:{courseId:'missing-published-course-fixture'}}}})
+  const missing=(await missingCourse.json()).result
+  expect(missing.isError).toBe(true)
+  expect(missing.content[0].text).toContain('Published study course not found')
+  expect(missing.content[0].text).toContain('courseCode')
   await page.goto('/connect/remote')
   const row=page.getByRole('listitem').filter({hasText:'Study integration browser test'})
   await expect(row).toBeVisible()

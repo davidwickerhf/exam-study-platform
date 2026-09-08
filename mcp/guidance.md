@@ -77,6 +77,29 @@ separately in Settings → API access when it should no longer work anywhere.
 - Discover everything with `GET /api/agent/manifest` — it lists every endpoint,
   its scope, and body shapes. Read it first when unsure.
 
+## Finding published courses and Canvas materials
+
+`list_courses` lists published study courses with chapters and progress; it is not
+an inventory of Canvas enrolments or stored originals. `get_course` accepts the
+exact published `id` from that list, not a Canvas numeric ID or course code.
+An empty list or a missing published course does **not** establish that Canvas
+material is absent.
+
+For Canvas material, discover the stable course code and academic-year editions
+with `canvas_corpus_status` (or find course codes in `get_academic_plan`). Call
+`canvas_course_materials({courseCode, academicYear})` for the stored originals,
+and `search_course({courseCode, query, academicYear})` for indexed passages.
+`search_course` requires a nonblank query and at least one nonblank `courseId`,
+`courseCode`, or `canonicalCourseId`; use `courseCode` even if the course has no
+published study guide. Omit `academicYear` only when searching across editions.
+If an inventory or search is empty, check collection status and sync logs before
+claiming that Canvas itself has no material. A tool error is not an empty result.
+
+MCP discovery includes explicit `readOnlyHint` annotations. These describe tool
+behavior; they do not replace key scopes or the student's confirmation for
+writes. Draft preparation, local file downloads and generation continuations
+can still write even when no additional approval is needed for that step.
+
 ## Answering a question about a current course
 
 Route the question to the source that actually holds the answer, and say when a

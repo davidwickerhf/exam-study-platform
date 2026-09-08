@@ -48,10 +48,16 @@ test('standalone MCP publishes the new tools and schemas over stdio', async () =
   const transport = new StdioClientTransport({ command: process.execPath, args: [new URL('../mcp/server.mjs', import.meta.url).pathname], env: { PATH: process.env.PATH, WICKER_STUDY_URL: 'http://127.0.0.1:4177', WICKER_STUDY_API_KEY: 'wsk_fixture_never_sent' }, stderr: 'pipe' })
   try {
     await client.connect(transport)
-    assert.equal(client.getServerVersion().version, '2.14.1')
+    assert.equal(client.getServerVersion().version, '2.14.2')
     const listed = await client.listTools()
+    for (const tool of listed.tools) assert.equal(typeof tool.annotations?.readOnlyHint, 'boolean', tool.name)
+    for (const name of ['list_courses', 'get_course', 'search_course', 'canvas_course_materials']) assert.equal(listed.tools.find(tool => tool.name === name).annotations.readOnlyHint, true, name)
+    const search = listed.tools.find(tool => tool.name === 'search_course')
+    assert.deepEqual(search.inputSchema.anyOf, [{required:['courseId']}, {required:['courseCode']}, {required:['canonicalCourseId']}])
+    assert.equal(listed.tools.find(tool => tool.name === 'study_generation_next').annotations.readOnlyHint, false)
     const download = listed.tools.find(tool => tool.name === 'download_course_original')
     assert.ok(download)
+    assert.equal(download.annotations.readOnlyHint, false)
     assert.ok(download.inputSchema.required.includes('outputFolder'))
     assert.ok(!download.inputSchema.required.includes('confirmed'))
     for (const name of fixture().tools.keys()) assert.ok(listed.tools.some(tool => tool.name === name), name)
@@ -63,7 +69,7 @@ test('standalone MCP publishes the new tools and schemas over stdio', async () =
 
 test('MCP requires a fresh confirmation on student writes, including legacy tools', async () => {
   const { installWriteConfirmation } = await import('../mcp/write-confirmation.mjs')
-  const tools = new Map(), server = { tool: (name, description, schema, handler) => tools.set(name, { schema: z.object(schema), handler }) }
+  const tools = new Map(), server = { registerTool: (name, { inputSchema }, handler) => tools.set(name, { schema: z.object(inputSchema), handler }) }
   installWriteConfirmation(server, z)
   for (const name of ['set_mastery', 'tutor_ask', 'tutor_confirm_update', 'canvas_sync_control', 'get_attendance', 'tutor_prepare_context']) server.tool(name, 'fixture', {}, args => args)
   for (const name of ['set_mastery', 'tutor_ask', 'tutor_confirm_update', 'canvas_sync_control']) {

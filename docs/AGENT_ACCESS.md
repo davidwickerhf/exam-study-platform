@@ -24,6 +24,29 @@ keys, reset data, or delete the account — those need a signed-in session.
 Send the key as `Authorization: Bearer wsk_…`. Keys work in every mode
 (Clerk-protected production and local development).
 
+## Finding published courses and Canvas materials
+
+`list_courses` lists published study courses with chapters and progress; it is not
+an inventory of Canvas enrolments or stored originals. `get_course` accepts the
+exact published `id` from that list, not a Canvas numeric ID or course code.
+An empty list or a missing published course does **not** establish that Canvas
+material is absent.
+
+For Canvas material, discover the stable course code and academic-year editions
+with `canvas_corpus_status` (or find course codes in `get_academic_plan`). Call
+`canvas_course_materials({courseCode, academicYear})` for the stored originals,
+and `search_course({courseCode, query, academicYear})` for indexed passages.
+`search_course` requires a nonblank query and at least one nonblank `courseId`,
+`courseCode`, or `canonicalCourseId`; use `courseCode` even if the course has no
+published study guide. Omit `academicYear` only when searching across editions.
+If an inventory or search is empty, check collection status and sync logs before
+claiming that Canvas itself has no material. A tool error is not an empty result.
+
+MCP discovery includes explicit `readOnlyHint` annotations. These describe tool
+behavior; they do not replace key scopes or the student's confirmation for
+writes. Draft preparation, local file downloads and generation continuations
+can still write even when no additional approval is needed for that step.
+
 ## Programmes and organisations
 
 Each maintained programme is an organisation. A key acts inside its owner's
@@ -154,10 +177,10 @@ Requires Node.js 20.11 or newer; no application checkout is needed. Register it 
 
 ```sh
 # Codex
-codex mcp add wicker-study -- npx -y wicker-study-mcp@2.14.1
+codex mcp add wicker-study -- npx -y wicker-study-mcp@2.14.2
 
 # Claude Code
-claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.14.1
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.14.2
 ```
 
 Remove an existing registration first, using its original scope.
