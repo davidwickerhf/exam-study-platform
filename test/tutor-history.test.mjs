@@ -104,3 +104,15 @@ test('safe failure details and per-answer cached-token usage survive conversatio
   assert.equal(completed.reply.failure,undefined)
   assert.equal(completed.messages.filter(x=>x.role==='user').length,1)
 }))
+
+test('automatic recall selects relevant student reports, not longer generated answers or zero-match chats',()=>fixture(async()=>{
+  await saveConversation({...newConversation(),title:'Project preparation',messages:[
+    {role:'user',content:'Two teammates will attend the skill class.',at:'2026-09-08T10:00:00Z'},
+    {role:'assistant',content:'The skill class is a project meeting and a one-page status is required.',at:'2026-09-08T10:01:00Z'}
+  ]})
+  const matches=await searchTutorHistory({query:'skill class',userOnly:true})
+  assert.equal(matches.length,1)
+  assert.equal(matches[0].role,'user')
+  assert.deepEqual(await searchTutorHistory({query:'nonexistentneedle',userOnly:true}),[])
+  assert.ok((await searchTutorHistory({query:'one-page status'})).some(item=>item.role==='assistant'),'explicit history search still preserves what was said')
+}))
