@@ -2,7 +2,83 @@
 
 Endpoint: `https://study.wicker.life/api/mcp`. Transport: Streamable HTTP, stateless JSON responses. A new transport is created per request; every request authenticates. No sticky sessions, SSE subscription, or legacy HTTP+SSE endpoint is required. GET and DELETE return 405 because there is no persistent stream/session. The SDK negotiates its supported protocol versions during initialization.
 
-## Connect
+## Connect over HTTPS (recommended)
+
+For local agents and other compatible services, use **https://study.wicker.life/api/mcp**
+with Streamable HTTP and OAuth. No Wicker package, Node.js or separately downloaded skill
+is needed. The client manages credentials after the user signs in and approves access.
+
+### Codex
+
+```sh
+codex mcp add wicker-study --url https://study.wicker.life/api/mcp
+codex mcp login wicker-study --scopes read,write
+```
+
+Complete browser approval, then restart the agent session (or reopen the app/reload the IDE window).
+
+### Claude Code
+
+```sh
+claude mcp add --scope user --transport http wicker-study https://study.wicker.life/api/mcp
+```
+
+Open Claude Code, run `/mcp`, select `wicker-study` and authenticate in the browser.
+
+### Replace an existing package registration
+
+Before running the hosted commands above, remove the existing entry:
+
+```sh
+# Codex
+codex mcp remove wicker-study
+
+# Claude Code: use the scope where the old entry was installed
+claude mcp remove --scope user wicker-study
+```
+
+For Claude project/local installations, use that same scope when removing and adding the
+connection. Preserve any custom settings still needed and check project overrides.
+This changes client configuration, not account data. Old package keys are not used by OAuth
+and are not automatically revoked; revoke unused keys in Settings → API access.
+
+Verify with `wicker_status`, `wicker_guidance` and `list_courses`. Hosted updates require a
+reconnection to refresh tools and guidance, not an npm or separate skill update. An optional
+installed skill is only a discovery hint. Revoke OAuth access at
+[Connected services](https://study.wicker.life/connect/remote).
+
+Other clients need Streamable HTTP and OAuth dynamic registration with PKCE, or support for
+an existing scoped key in `Authorization: Bearer wsk_…`. Keep credentials out of URLs and chat.
+See [authentication details below](#authentication-details) for protocol details and limits, and the official
+[Codex](https://developers.openai.com/codex/mcp) and
+[Claude Code](https://code.claude.com/docs/en/mcp) client instructions.
+
+### Does local work require the package?
+
+No. An agent with shell/file access can inspect folders, extract PDFs, render slides, verify
+hashes and generate content using its own tools. Hosted `study_generation_*` tools provide
+current prompts, evidence and schemas, and accept locally computed results. The transport
+does not decide where model computation runs.
+
+Keep the package as the optional **admin toolkit**: it retains editorial operations,
+course-folder inventory/sync and bulk Canvas imports. Existing helper users remain supported.
+Students and ordinary agents should use hosted MCP and their native file/processing tools.
+
+For complete originals, call `prepare_original_download` with an asset ID from
+`canvas_course_materials`. It returns the direct HTTPS URL, a short-lived file-scoped header,
+size, SHA-256 and expiry. Stream the response with native HTTP/file tools into a new temporary
+file, verify its complete size/hash, then rename it to a safe chosen path. Resume with Range
+and the supplied If-Match; request a new descriptor for the same asset/hash after expiry.
+This works without the npm helper and keeps binary bytes outside MCP text-token budgets.
+
+The temporary header authorizes only that original, not other files or account actions.
+Keep it out of chat, logs and shell history; do not follow redirects or forward it elsewhere.
+Do not extract the client’s OAuth token or request Canvas credentials. A native file tool
+alone does not supply authenticated access; the server supplies the narrowly scoped transfer.
+`read_original_chunk` remains a fallback for clients unable to perform direct downloads.
+Direct transfers have their own request, concurrency and byte limits.
+
+## Authentication details
 
 For standard OAuth clients, enter the endpoint and choose OAuth. The server advertises protected-resource metadata at `/.well-known/oauth-protected-resource/api/mcp` and authorization-server metadata at `/.well-known/oauth-authorization-server`. It supports dynamic registration, public clients (`none`), `client_secret_post` and `client_secret_basic`. OAuth-only services must support authorization code + S256 PKCE and RFC 8707 resource indicators. Client ID metadata documents and client-credentials grants are not implemented; clients use dynamic registration instead.
 
@@ -17,6 +93,43 @@ Manage/revoke OAuth connections at `/connect/remote`; API keys are managed separ
 Core, study and feedback tool registrations are shared with local stdio MCP. Hosted MCP omits machine-local filesystem, clipboard and editorial administrator operations. Consumers discover capabilities with `tools/list`; they must not assume every local tool exists remotely. `read_original_chunk` returns unchanged original bytes in ranges of at most 48 KiB. Assemble chunks using `Content-Range` and verify the inventory's full SHA-256 and byte size. Never place binary chunks in model conversation text.
 
 `wicker_guidance` and the `wicker://guidance/current` resource serve `mcp/guidance.md`, bundled with the release. Initialize instructions request the guide once per connection/version. The optional installed skill is a small stable discovery hint. Updating stdio MCP updates its guide; hosted clients reconnect to refresh discovery and guidance. No separate skill-update procedure is necessary.
+
+## Direct original downloads
+
+`prepare_original_download` calls `GET /api/corpus/assets/:assetId/download-ticket`
+through the authenticated read-scoped API. Both hosted MCP and package 2.14.0 expose it.
+The descriptor contains `url`, `method`, `headers`, `assetId`, `filename`, `mediaType`,
+`byteSize`, `sha256`, `expiresAt` and `supportsRanges`.
+
+The URL is `/api/mcp/original`; the file capability is sent in the supplied Authorization
+header, never in a query string. It cannot authenticate other API/MCP routes. Only its hash
+is stored, bound to the issuing user/key or OAuth grant, exact asset, size and hash. Each GET
+or HEAD rechecks the issuer’s active read access and current asset access. Key/grant revocation,
+account deletion, expiry or loss of material access prevents subsequent transfers. Revocation
+does not retract bytes already sent by an in-progress request.
+
+Original bytes stream unchanged with Content-Length, ETag, attachment Content-Disposition,
+no-store and no-referrer. GET supports a single Range and If-Match; HEAD returns metadata.
+A changed original returns 412, an unsatisfiable range 416, and an expired capability 401.
+Resume in a separate request. If a server timeout interrupts a large transfer, retain verified
+partial bytes and resume; verify the complete SHA-256 before declaring success. The original
+filename is a display name, not a safe output path. No local file is written by hosted MCP.
+
+| Direct transfer limit | Default |
+| --- | --- |
+| Capability lifetime | 10 minutes |
+| Maximum original | 1 GiB |
+| Preparations per account | 20/minute |
+| Download requests per account and connection | 60/minute |
+| Simultaneous transfers per account | 2 |
+| Transferred bytes per account and connection | 4 GiB/day |
+
+PostgreSQL reserves requested bytes before streaming and returns unused capacity on partial
+failure. Bytes already handed to the HTTP writer remain conservatively charged, even if
+the client disconnects before acknowledging them. Finished transfers count again if downloaded again. HEAD consumes request quota but
+no byte quota. Account limits cannot be bypassed with another key. File bytes use this budget,
+not MCP text-token accounting; the small descriptor still counts as an MCP response. These
+limits live in `ORIGINAL_DOWNLOAD_LIMITS` in `lib/original-downloads.mjs`.
 
 ## Limits
 

@@ -13,12 +13,13 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 35)
+  assert.equal(tools.size, 36)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
   assert.equal((await call('get_attendance', { courseCode: 'BCS2140' })).query.view, 'attendance')
   assert.equal((await call('get_course_obligations')).query.view, 'obligations')
+  assert.equal((await call('prepare_original_download', {assetId:'source-a'})).path, '/api/corpus/assets/source-a/download-ticket')
   assert.equal((await call('get_study_readiness', { courseCode: 'BCS3120' })).query.view, 'readiness')
   assert.equal((await call('get_weekly_review')).query.view, 'weekly-review')
   assert.equal((await call('canvas_search_announcements', { query: 'paper 17', rulesOnly: false })).query.query, 'paper 17')
@@ -47,7 +48,7 @@ test('standalone MCP publishes the new tools and schemas over stdio', async () =
   const transport = new StdioClientTransport({ command: process.execPath, args: [new URL('../mcp/server.mjs', import.meta.url).pathname], env: { PATH: process.env.PATH, WICKER_STUDY_URL: 'http://127.0.0.1:4177', WICKER_STUDY_API_KEY: 'wsk_fixture_never_sent' }, stderr: 'pipe' })
   try {
     await client.connect(transport)
-    assert.equal(client.getServerVersion().version, '2.13.0')
+    assert.equal(client.getServerVersion().version, '2.14.0')
     const listed = await client.listTools()
     const download = listed.tools.find(tool => tool.name === 'download_course_original')
     assert.ok(download)

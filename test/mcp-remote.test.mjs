@@ -124,6 +124,13 @@ test('real Streamable HTTP client discovers tools/guidance, preserves account is
   t.after(()=>new Promise(resolve=>server.close(resolve)))
   const host=`http://127.0.0.1:${server.address().port}`
   dependencies={store,origin:host,oauth:createMcpOAuth({store,origin:host})}
+  const preflight=await fetch(`${host}/api/mcp/original`,{method:'OPTIONS',headers:{Origin:host,'Access-Control-Request-Method':'GET','Access-Control-Request-Headers':'authorization,if-match,range'}})
+  assert.equal(preflight.status,204)
+  assert.match(preflight.headers.get('access-control-allow-headers'),/If-Match/)
+  assert.match(preflight.headers.get('access-control-allow-methods'),/HEAD/)
+  assert.match(preflight.headers.get('access-control-expose-headers'),/Content-Range/)
+  const forbiddenDownloadOrigin=await fetch(`${host}/api/mcp/original`,{method:'OPTIONS',headers:{Origin:'https://unregistered.example'}})
+  assert.equal(forbiddenDownloadOrigin.status,403)
   const challenge=await fetch(`${host}/api/mcp`,{method:'POST',headers:{'content-type':'application/json'},body:'{}'})
   assert.equal(challenge.status,401)
   assert.match(challenge.headers.get('www-authenticate'),/resource_metadata/)
@@ -158,6 +165,7 @@ test('real Streamable HTTP client discovers tools/guidance, preserves account is
     const listed=await client.listTools()
     assert.ok(Buffer.byteLength(JSON.stringify(listed))<128*1024,'tool discovery fits the reserved response capacity')
     assert.ok(listed.tools.some(tool=>tool.name==='list_courses'))
+    assert.ok(listed.tools.some(tool=>tool.name==='prepare_original_download'))
     assert.ok(listed.tools.some(tool=>tool.name==='study_generation_contract'))
     assert.ok(!listed.tools.some(tool=>tool.name==='download_course_original'||tool.name.startsWith('admin_')))
     const guidance=await client.callTool({name:'wicker_guidance',arguments:{}})

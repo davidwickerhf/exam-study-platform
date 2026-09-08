@@ -70,28 +70,103 @@ Course-source PDFs are text-extracted with Poppler and indexed per page;
 Tesseract handles scanned pages and images, while `unzip` extracts DOCX/PPTX
 text. Public URLs pass DNS and redirect validation before fetching.
 
-## MCP server
+## Connect over HTTPS (recommended)
 
-Published as [`wicker-study-mcp`](https://www.npmjs.com/package/wicker-study-mcp). It
-wraps the API as MCP tools over stdio and runs from anywhere — no checkout, and no
-environment variable to set up first.
+For local agents and other compatible services, use **https://study.wicker.life/api/mcp**
+with Streamable HTTP and OAuth. No Wicker package, Node.js or separately downloaded skill
+is needed. The client manages credentials after the user signs in and approves access.
 
-```json
-{
-  "mcpServers": {
-    "wicker-study": {
-      "command": "npx",
-      "args": ["-y", "wicker-study-mcp"]
-    }
-  }
-}
+### Codex
+
+```sh
+codex mcp add wicker-study --url https://study.wicker.life/api/mcp
+codex mcp login wicker-study --scopes read,write
 ```
+
+Complete browser approval, then restart the agent session (or reopen the app/reload the IDE window).
+
+### Claude Code
+
+```sh
+claude mcp add --scope user --transport http wicker-study https://study.wicker.life/api/mcp
+```
+
+Open Claude Code, run `/mcp`, select `wicker-study` and authenticate in the browser.
+
+### Replace an existing package registration
+
+Before running the hosted commands above, remove the existing entry:
+
+```sh
+# Codex
+codex mcp remove wicker-study
+
+# Claude Code: use the scope where the old entry was installed
+claude mcp remove --scope user wicker-study
+```
+
+For Claude project/local installations, use that same scope when removing and adding the
+connection. Preserve any custom settings still needed and check project overrides.
+This changes client configuration, not account data. Old package keys are not used by OAuth
+and are not automatically revoked; revoke unused keys in Settings → API access.
+
+Verify with `wicker_status`, `wicker_guidance` and `list_courses`. Hosted updates require a
+reconnection to refresh tools and guidance, not an npm or separate skill update. An optional
+installed skill is only a discovery hint. Revoke OAuth access at
+[Connected services](https://study.wicker.life/connect/remote).
+
+Other clients need Streamable HTTP and OAuth dynamic registration with PKCE, or support for
+an existing scoped key in `Authorization: Bearer wsk_…`. Keep credentials out of URLs and chat.
+See [the hosted MCP guide](REMOTE_MCP.md) for protocol details and limits, and the official
+[Codex](https://developers.openai.com/codex/mcp) and
+[Claude Code](https://code.claude.com/docs/en/mcp) client instructions.
+
+### Does local work require the package?
+
+No. An agent with shell/file access can inspect folders, extract PDFs, render slides, verify
+hashes and generate content using its own tools. Hosted `study_generation_*` tools provide
+current prompts, evidence and schemas, and accept locally computed results. The transport
+does not decide where model computation runs.
+
+Keep the package as the optional **admin toolkit**: it retains editorial operations,
+course-folder inventory/sync and bulk Canvas imports. Existing helper users remain supported.
+Students and ordinary agents should use hosted MCP and their native file/processing tools.
+
+For complete originals, call `prepare_original_download` with an asset ID from
+`canvas_course_materials`. It returns the direct HTTPS URL, a short-lived file-scoped header,
+size, SHA-256 and expiry. Stream the response with native HTTP/file tools into a new temporary
+file, verify its complete size/hash, then rename it to a safe chosen path. Resume with Range
+and the supplied If-Match; request a new descriptor for the same asset/hash after expiry.
+This works without the npm helper and keeps binary bytes outside MCP text-token budgets.
+
+The temporary header authorizes only that original, not other files or account actions.
+Keep it out of chat, logs and shell history; do not follow redirects or forward it elsewhere.
+Do not extract the client’s OAuth token or request Canvas credentials. A native file tool
+alone does not supply authenticated access; the server supplies the narrowly scoped transfer.
+`read_original_chunk` remains a fallback for clients unable to perform direct downloads.
+Direct transfers have their own request, concurrency and byte limits.
+
+## Optional local stdio helper
+
+Published as [`wicker-study-mcp`](https://www.npmjs.com/package/wicker-study-mcp).
+Use this instead of the hosted registration when you need its local helpers or editorial tools.
+Requires Node.js 20.11 or newer; no application checkout is needed. Register it as:
+
+```sh
+# Codex
+codex mcp add wicker-study -- npx -y wicker-study-mcp@2.14.0
+
+# Claude Code
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.14.0
+```
+
+Remove an existing registration first, using its original scope.
 
 `WICKER_STUDY_URL` chooses the server (default `https://study.wicker.life`; plain http
 is refused for anything but loopback). `WICKER_STUDY_API_KEY` overrides the saved key
 for one-off runs and CI.
 
-### Getting a key without one in the transcript
+### Local helper browser authorization
 
 With no key the server still starts, so the agent can bootstrap instead of failing at
 launch. `wicker_status` reports what is missing; `wicker_authorize` returns a
