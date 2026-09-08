@@ -154,10 +154,10 @@ Requires Node.js 20.11 or newer; no application checkout is needed. Register it 
 
 ```sh
 # Codex
-codex mcp add wicker-study -- npx -y wicker-study-mcp@2.14.0
+codex mcp add wicker-study -- npx -y wicker-study-mcp@2.14.1
 
 # Claude Code
-claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.14.0
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.14.1
 ```
 
 Remove an existing registration first, using its original scope.

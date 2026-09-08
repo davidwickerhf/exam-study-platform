@@ -14,6 +14,8 @@ export function RemoteConnect() {
   useEffect(()=>{
     let cancelled=false
     document.documentElement.classList.remove('app-mode')
+    document.body.classList.remove('app-mode')
+    setLoaded(false);setSignIn(false);setPending(null);setConnections([]);setError('')
     fetch(request?`/api/mcp/consent?request=${encodeURIComponent(request)}`:'/api/mcp/connections',{cache:'no-store'}).then(async response=>{
       const body=await response.json()
       if(cancelled)return
@@ -43,7 +45,7 @@ export function RemoteConnect() {
   return <main className={styles.page}><section className={styles.card}>
     <a href="/app/settings?tab=api">← Back to settings</a>
     <p className={styles.eyebrow}>Remote MCP</p>
-    <h1>{pending?`Connect ${pending.name}?`:'Connected services'}</h1>
+    <h1>{pending?`Connect ${pending.name}?`:request?'Connect a service':'Connected services'}</h1>
     {pending?<><p className={styles.lead}>This service is asking to access your Wicker Study account. Only approve it if you started this connection and trust the service.</p>
       <p>Return address: <strong>{new URL(pending.redirectUri).origin}</strong></p>
       <ul className={styles.scopes}>{pending.scopes.map(scope=><li key={scope}><strong>{scope==='write'?'Make study changes':'Read your study data'}</strong><span>{scope==='write'?'Save answers, progress, plans and context, and request AI processing.':'Read your course materials, calendar, groups, progress and saved context.'}</span></li>)}</ul>
@@ -51,8 +53,8 @@ export function RemoteConnect() {
       <div className={styles.actions}><button className={styles.primary} disabled={busy} onClick={()=>answer(true)}>{busy?'Connecting…':'Approve connection'}</button><button className={styles.secondary} disabled={busy} onClick={()=>answer(false)}>Cancel</button></div>
     </>:null}
     {!loaded?<p role="status">Loading connection…</p>:null}
-    {signIn?<a className={styles.primary} href={`/sign-in?redirect_url=${encodeURIComponent(`/connect/remote${request?`?request=${encodeURIComponent(request)}`:''}`)}`}>Sign in to continue</a>:null}
-    {!request&&!signIn&&loaded?<><p className={styles.lead}>Services you have authorized through MCP. Disconnecting stops future access and token refreshes.</p>{connections.length?<ul className={styles.scopes}>{connections.map(item=><li key={item.id}><strong>{item.name}</strong><span>{item.scopes.join(' · ')} · Connected {new Date(item.createdAt).toLocaleDateString()}</span><button className={styles.secondary} disabled={busy} onClick={()=>disconnect(item.id)}>Disconnect</button></li>)}</ul>:<p>No services connected yet.</p>}</>:null}
+    {signIn?<><p className={styles.lead}>{request?'Sign in to review the service and permissions before connecting.':'Sign in to see which services can access your Wicker Study account.'}</p><a className={styles.primary} href={`/sign-in?redirect_url=${encodeURIComponent(`/connect/remote${request?`?request=${encodeURIComponent(request)}`:''}`)}`}>Sign in to continue</a></>:null}
+    {!request&&!signIn&&loaded&&!error?<><p className={styles.lead}>Services you have authorized through MCP. Disconnecting stops future access and token refreshes.</p>{connections.length?<ul className={styles.scopes}>{connections.map(item=><li key={item.id}><strong>{item.name}</strong><span>{item.scopes.join(' · ')} · Connected {new Date(item.createdAt).toLocaleDateString()}</span><button className={styles.secondary} disabled={busy} onClick={()=>disconnect(item.id)}>Disconnect</button></li>)}</ul>:<p>No services connected yet.</p>}</>:null}
     {error?<p role="alert" className={styles.error}>{error}</p>:null}
   </section></main>
 }

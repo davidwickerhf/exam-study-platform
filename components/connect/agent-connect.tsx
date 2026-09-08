@@ -63,7 +63,7 @@ export function AgentConnect() {
   useEffect(() => { setHref(window.location.href) }, [])
 
   // /app locks the document viewport; a direct route transition must release it.
-  useEffect(() => { document.documentElement.classList.remove('app-mode') }, [])
+  useEffect(() => { document.documentElement.classList.remove('app-mode'); document.body.classList.remove('app-mode') }, [])
 
   useEffect(() => {
     let cancelled = false

@@ -28,41 +28,45 @@ The deployed pipeline supplies fresh prompts and schemas every step. Its impleme
 
 ## Connect first
 
-Add the server to the client's MCP config, or run it directly:
+Use the hosted MCP at `https://study.wicker.life/api/mcp` with Streamable HTTP
+and the client’s OAuth sign-in flow. No npm package or installed skill is needed
+for study work, downloading originals or generating a guide with local tools.
+Current client setup and migration commands are at
+`https://study.wicker.life/app/docs#connect`.
 
-```jsonc
-{ "mcpServers": { "wicker-study": { "command": "npx", "args": ["-y", "wicker-study-mcp"] } } }
-```
+At the start of a session:
 
-```sh
-npx -y wicker-study-mcp                                    # study.wicker.life
-WICKER_STUDY_URL=http://localhost:4177 npx -y wicker-study-mcp   # a dev server
-```
-
-Then, at the start of a session, in this order:
-
-1. **`wicker_status`** — the cheapest way to learn what is already set up. It
-   reports the server, whether a key is available, which account it acts as,
-   and whether that account has Canvas connected. Nothing else is needed if it
-   comes back connected.
-2. **`wicker_authorize`** if it is not connected. It returns a URL. Show the URL
-   to the user and ask them to open it and approve. The key is delivered
-   straight back to their machine over loopback and saved in
-   `~/.config/wicker-study/config.json` (mode 0600), so every later session on
-   that machine reuses it. Poll `wicker_status` until it reports connected.
-   Ask for `["read","write"]` unless the user maintains course content, in which
-   case ask for `admin` too — only administrators can approve it.
-3. **`canvas_connect`** before any `canvas_*` tool. It says whether the account
-   has a Canvas connection and, if not, returns the page where the student adds
-   one themselves.
+1. Call **`wicker_status`** to check the authenticated connection and its
+   capabilities, scopes and limits. Do not assume hosted status has the same
+   fields as local-package status.
+2. Read **`wicker_guidance`** once per connection/version, then use only tools
+   advertised by that server. If hosted authorization fails, use the client’s
+   reconnect/OAuth flow. Do not recommend installing npm to repair a hosted
+   connection, or call local-only authorization tools that are not advertised.
+3. For Canvas work, use the connected account’s saved sources. If a tool reports
+   that Canvas is not connected, direct the student to Wicker Study
+   **Settings → Connections**. Connecting their agent does not connect Canvas.
 
 **Never ask the user to paste an API key, a Canvas token, a password, an MFA
-code, or a cookie into the conversation.** The authorization flow exists so that
-is never necessary. If a tool reports no key, run `wicker_authorize` — do not
-ask for credentials, and do not try to read them from the user's files.
+code, or a cookie into the conversation.** API-key clients configure a scoped key
+in their credential settings; never inspect the user’s files to find credentials.
+Hosted OAuth services are managed at `/connect/remote`; API keys are managed
+separately under **Settings → API access**.
 
-`wicker_sign_out` forgets the saved key on that machine; the key itself is
-revoked under **Account → API access** in the web app.
+### Optional local administrator/import toolkit
+
+The npm package is only an alternative for editorial admin operations or bulk
+local import helpers. Installation is documented at
+`https://study.wicker.life/docs#admin`; do not present it as the normal student
+setup or require it for native file processing or local generation.
+
+When the user has deliberately chosen this package, call `wicker_status`.
+Only if it advertises `wicker_authorize` and is disconnected, use that tool’s
+browser approval flow. The helper saves the resulting key privately on the local
+machine. Request admin scope only for authorized editorial work. Likewise,
+`canvas_connect` and `wicker_sign_out` are local helpers: use them only when
+advertised. Signing out of the helper forgets its local key; revoke the key
+separately in Settings → API access when it should no longer work anywhere.
 
 ### Without MCP
 
