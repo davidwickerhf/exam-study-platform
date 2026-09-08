@@ -40,6 +40,10 @@ jobs:
         run: node --experimental-test-module-mocks scripts/verification/canvas-queue.mjs
         env:
           QUEUE_TEST_DATABASE_URL: postgres://postgres:fixture@localhost:5432/postgres
+      - name: Verify remote MCP atomic authorization and quotas
+        run: node scripts/verification/mcp-postgres.mjs
+        env:
+          MCP_TEST_DATABASE_URL: postgres://postgres:fixture@localhost:5432/postgres
       - name: Build and boot the production API container
         run: |
           docker build -f Containerfile -t study-api-check .

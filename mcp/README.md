@@ -17,7 +17,7 @@ the MCP server.
 For a manually supplied key, the same secure bootstrap is available as:
 
 ```sh
-WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.12.0 configure
+WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.13.0 configure
 ```
 
 ```jsonc
@@ -100,7 +100,7 @@ authoritative list of endpoints and scopes.
 
 Direct context reads do not call the model. `tutor_ask` uses the student's AI allowance and can prepare attendance changes, assignment/catch-up trackers, group milestones, focused practice, diagnostics and rubric-based draft reviews. Reuse conversation IDs. Approve only the exact proposal the student reviewed; receipts prevent double application. No tool sends email or submits assignments to Canvas. Personal completion is separate from Canvas submission status.
 
-Update an installed client to `wicker-study-mcp@2.12.0` and restart its MCP connection to discover the new tools. The companion skill is served at [SKILL.md](https://study.wicker.life/skills/wicker-study/SKILL.md); re-download it to update an existing copy.
+Update an installed client to `wicker-study-mcp@2.13.0` and restart its MCP connection to discover the new tools. The matching workflow guide is served by `wicker_guidance` and `wicker://guidance/current`. No separate skill update is needed.
 
 ### Complete original downloads and remembered context
 
@@ -160,7 +160,7 @@ The in-app guide at [Docs → Update your MCP](https://study.wicker.life/app/doc
 
 ```sh
 codex mcp remove wicker-study
-codex mcp add wicker-study -- npx -y wicker-study-mcp@2.12.0
+codex mcp add wicker-study -- npx -y wicker-study-mcp@2.13.0
 ```
 
 Quit and reopen the Codex app, restart the CLI session, or reload the IDE extension window so the local MCP process restarts.
@@ -169,22 +169,22 @@ Quit and reopen the Codex app, restart the CLI session, or reload the IDE extens
 
 ```sh
 claude mcp remove --scope user wicker-study
-claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.12.0
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.13.0
 ```
 
 Exit and restart Claude Code, then check `/mcp`. `claude mcp add` does not overwrite an existing registration. If you originally installed with `project` or `local` scope, use that same scope in both commands.
 
 ### Claude Desktop and custom configurations
 
-In Claude Desktop, use Settings → Developer → Edit Config. Change only the package argument in the existing `wicker-study` entry to `wicker-study-mcp@2.12.0`, preserve its other settings, then fully quit and reopen Claude Desktop. For custom Codex/Claude Code configurations with environment variables or a server URL, update the package argument in place instead of replacing the registration. Check project overrides if an older version still loads.
+In Claude Desktop, use Settings → Developer → Edit Config. Change only the package argument in the existing `wicker-study` entry to `wicker-study-mcp@2.13.0`, preserve its other settings, then fully quit and reopen Claude Desktop. For custom Codex/Claude Code configurations with environment variables or a server URL, update the package argument in place instead of replacing the registration. Check project overrides if an older version still loads.
 
-The standard helper credentials stay in `~/.config/wicker-study/config.json`. These registration commands do not delete that file. After restarting, ask the agent to call `wicker_status` and `study_generation_contract` to verify connectivity and availability of the new tools. Replace any installed [companion skill](https://study.wicker.life/skills/wicker-study/SKILL.md) in its existing location too.
+The standard helper credentials stay in `~/.config/wicker-study/config.json`. These registration commands do not delete that file. After restarting, ask the agent to call `wicker_status` and `wicker_guidance` to verify connectivity and availability of the new tools. The optional companion skill is a stable discovery hint; the current guide comes from MCP.
 
 Official client references: [Codex MCP configuration](https://developers.openai.com/codex/mcp), [Claude Code MCP configuration](https://code.claude.com/docs/en/mcp).
 
 ## Local study generation
 
-The 2.12.0 source adds `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. Install `wicker-study-mcp@2.12.0` using the update instructions above.
+The 2.13.0 source adds `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. Install `wicker-study-mcp@2.13.0` using the update instructions above.
 
 1. Read the current contract and list the course edition’s sources. If needed, download originals with `canvas_import_remote_course`; inspect graphics and preserve page numbers. Add supplementary extraction as explicitly labelled local notes.
 2. Start the student-requested private run with its exact source selection, or continue a version prepared in the web UI.
@@ -192,3 +192,11 @@ The 2.12.0 source adds `study_generation_contract`, `study_generation_sources`, 
 4. Submit with its `requestId` and `contractId`. Retry network failures with the identical payload. Fetch next again until complete. Failed content can be corrected with `retry:true`; ready chapters remain saved.
 
 Prompts and schemas are fetched from the deployed platform every step. An implementation fingerprint rejects submissions after pipeline changes; fetch next again. No platform generation worker, model call or AI allowance is used. Your local provider/subscription costs still apply. Local semantic reviews are agent-supplied; platform schema, citations and deterministic quality checks are enforced. This is not independent editorial verification, and nothing is shared automatically.
+
+## Hosted connections
+
+Connect to **https://study.wicker.life/api/mcp** using Streamable HTTP. Choose OAuth in your MCP client, sign in and review the service name, callback origin and scopes. Discovery, dynamic client registration, S256 PKCE, resource-bound authorization codes, one-hour access tokens, rotating refresh tokens (30-day connection lifetime), and revocation are supported. Existing API keys also work in `Authorization: Bearer wsk_…`. OAuth is authorization-code based; client-credentials grants and anonymous account access are not supported.
+
+Hosted tools share their schemas and implementations with this package. Filesystem imports and clipboard operations remain local. Hosted consumers can assemble complete originals using `read_original_chunk`; verify against inventory SHA-256 and byte size. Only use tools listed by your connection. Guidance is served by MCP, so hosted clients reconnect to refresh it without npm or skill downloads.
+
+See [remote MCP operations](../docs/REMOTE_MCP.md) for limits and configuration. Disconnect OAuth services under [Connected services](https://study.wicker.life/connect/remote). Revoke API keys separately in Settings → API access.

@@ -42,6 +42,24 @@
   },
   "rewrites": [
     {
+      "source": "/.well-known/oauth-authorization-server",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/api/mcp",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
       "source": "/api/(.*)",
       "destination": {
         "service": "api"

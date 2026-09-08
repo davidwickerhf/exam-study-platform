@@ -1,0 +1,35 @@
+import { test, expect } from '@playwright/test'
+import { createHash, randomBytes } from 'node:crypto'
+
+test('remote service approval shows scope and callback; token works until disconnected', async ({ page, request }) => {
+  const origin='http://localhost:4188',callback=`${origin}/mcp-test-callback`
+  const registered=await request.post('/api/mcp/oauth/register',{data:{client_name:'Study integration browser test',redirect_uris:[callback],token_endpoint_auth_method:'none',scope:'read'}})
+  expect(registered.status()).toBe(201)
+  const client=await registered.json(),verifier=randomBytes(32).toString('base64url')
+  const parameters=new URLSearchParams({client_id:client.client_id,response_type:'code',redirect_uri:callback,resource:`${origin}/api/mcp`,scope:'read',code_challenge_method:'S256',code_challenge:createHash('sha256').update(verifier).digest('base64url'),state:'browser-test-state'})
+  await page.route(`${callback}*`,route=>route.fulfill({contentType:'text/html',body:'<h1>Returned to service</h1>'}))
+  await page.goto(`/api/mcp/oauth/authorize?${parameters}`)
+  await expect(page.getByRole('heading',{name:'Connect Study integration browser test?'})).toBeVisible()
+  await expect(page.getByText('Read your study data',{exact:true})).toBeVisible()
+  await expect(page.getByText('http://localhost:4188',{exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Approve connection',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Returned to service'})).toBeVisible()
+  const returned=new URL(page.url())
+  expect(returned.searchParams.get('state')).toBe('browser-test-state')
+  const exchanged=await request.post('/api/mcp/oauth/token',{form:{client_id:client.client_id,grant_type:'authorization_code',redirect_uri:callback,resource:`${origin}/api/mcp`,code:returned.searchParams.get('code')!,code_verifier:verifier}})
+  expect(exchanged.status()).toBe(200)
+  const tokens=await exchanged.json()
+  const headers={authorization:`Bearer ${tokens.access_token}`,accept:'application/json, text/event-stream','content-type':'application/json'}
+  const initialized=await request.post('/api/mcp',{headers,data:{jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'browser-test',version:'1'}}}})
+  expect(initialized.status()).toBe(200)
+  const courses=await request.post('/api/mcp',{headers,data:{jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'list_courses',arguments:{}}}})
+  expect(courses.status()).toBe(200)
+  expect((await courses.json()).result.isError).not.toBe(true)
+  await page.goto('/connect/remote')
+  const row=page.getByRole('listitem').filter({hasText:'Study integration browser test'})
+  await expect(row).toBeVisible()
+  await row.getByRole('button',{name:'Disconnect',exact:true}).click()
+  await expect(row).toHaveCount(0)
+  const rejected=await request.post('/api/mcp',{headers,data:{jsonrpc:'2.0',id:3,method:'tools/list',params:{}}})
+  expect(rejected.status()).toBe(401)
+})

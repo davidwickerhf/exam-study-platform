@@ -217,10 +217,7 @@ mkdir -p ~/.claude/skills/wicker-study && curl -fsSL https://study.wicker.life/s
 
 The public `/docs` page carries the same instructions for students.
 
-`.claude/skills/wicker-study/SKILL.md` teaches Claude Code the workflows above
-(reading, studying on a student's behalf, maintaining content). It is picked up
-automatically in this repository; copy it into another project's
-`.claude/skills/` to use it there.
+`.claude/skills/wicker-study/SKILL.md` is an optional discovery hint. The canonical workflow guide is `mcp/guidance.md`, served by `wicker_guidance` and the `wicker://guidance/current` resource. Tools and guidance update together; no repeated skill downloads are necessary.
 
 
 ## Current study workflows (MCP 2.9)
@@ -278,3 +275,5 @@ Settings → AI activity (`/app/settings?tab=activity`) shows API-key requests f
 For request-log fields, durability, privacy and limitations, see [AI activity](AGENT_ACTIVITY.md). In-app Docs at `/app/docs` includes the same prepare/confirm, refresh and upgrade workflows.
 
 Automatic Canvas refresh is configurable in Settings → Connections → Manage: on/off, update frequency (15 minutes to daily), material frequency (hourly to weekly), and studying/completed status. Defaults remain 30 minutes and six hours. Course selection is re-evaluated at least hourly across period boundaries. Summer/break monitoring retains the ending year and discovers upcoming next-year courses, selecting the latest eligible edition per course. Completion or no active programme pauses background collection; manual refresh remains available. These preferences require a signed-in browser, not an MCP write.
+
+Remote services connect through `/api/mcp` using Streamable HTTP and OAuth or an API-key Bearer header. See [REMOTE_MCP.md](REMOTE_MCP.md) for discovery, authorization and limits.

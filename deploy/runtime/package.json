@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "@clerk/backend": "^3.16.12",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@neondatabase/serverless": "^1.1.0",
     "dotenv": "^17.4.2",
     "mammoth": "^1.12.2",

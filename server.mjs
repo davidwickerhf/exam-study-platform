@@ -1,3 +1,5 @@
+import { isMcpRoute, handleRemoteMcp } from './lib/mcp-service.mjs'
+import { internalMcpAuth } from './lib/mcp-bridge.mjs'
 import { canvasFreshnessStatus, enqueueCanvasFreshnessCheck } from './lib/canvas-freshness-store.mjs'
 import { readCanvasGroups } from './lib/canvas-group-context.mjs'
 import {tutorFailure} from './lib/tutor-errors.mjs'
@@ -3697,7 +3699,7 @@ async function wakeStudentStudy(id) {
   })
 }
 
-const server = createServer(async (req, res) => {
+async function handleRequest(req, res) {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host}`)
     if (url.pathname === '/api/internal/canvas-queue') {
@@ -3726,7 +3728,7 @@ const server = createServer(async (req, res) => {
     // read-only assets must not exhaust the request budget before setup loads.
     // Production traffic and all API requests retain the per-IP ceiling.
     const devAsset = development && ['GET', 'HEAD'].includes(req.method) && url.pathname.startsWith('/_next/static/')
-    if (!devAsset) {
+    if (!devAsset && !internalMcpAuth.has(req)) {
       const ipBudget = consume(`ip:${ip}`, RATE_POLICIES.ip)
       if (!ipBudget.allowed) { sendRateLimited(res, ipBudget); return }
     }
@@ -3739,6 +3741,8 @@ const server = createServer(async (req, res) => {
       const anonymous = consume(`anon:${ip}`, RATE_POLICIES.anonymousApi)
       if (!anonymous.allowed) { sendRateLimited(res, anonymous); return }
     }
+
+    if (isMcpRoute(url.pathname)) { await handleRemoteMcp(req, res, { handler: handleRequest, ip }); return }
 
     if (url.pathname === '/api/auth/config' && req.method === 'GET') {
       send(res, 200, JSON.stringify(authConfig()))
@@ -3786,7 +3790,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname.startsWith('/api/') && !isPublicApi(url.pathname)) {
-      const auth = await authenticate(req)
+      const auth = internalMcpAuth.get(req) || await authenticate(req)
       if (!auth.authenticated) {
         consume(`authfail:${ip}`, RATE_POLICIES.authFailure)
         if (auth.reason === 'email_not_allowed') {
@@ -4764,6 +4768,7 @@ const server = createServer(async (req, res) => {
         let conversation = null
         if (activeTurn) conversation = await failTutorTurn(activeTurn, error, controller.signal.aborted).catch(() => null)
         const detail=tutorFailure(error,controller.signal.aborted)
+        if(error?.status===429&&error.retryAfter&&!res.headersSent)res.setHeader('Retry-After',String(error.retryAfter))
         const failure = { conversation: visibleTutorConversation(conversation), error:detail.message, failure:detail }
         if (emit) { emit('error', failure); res.end() }
         else if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify(failure))
@@ -6717,7 +6722,8 @@ const server = createServer(async (req, res) => {
     console.error('Unhandled request error:', error)
     send(res, 500, JSON.stringify({ error: process.env.NODE_ENV === 'production' ? 'Something went wrong on the server.' : error.message }))
   }
-})
+}
+const server = createServer(handleRequest)
 
 // Slow-client protection.
 server.requestTimeout = 60_000
