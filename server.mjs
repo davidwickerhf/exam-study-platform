@@ -1,4 +1,6 @@
-import { isMcpRoute, handleRemoteMcp } from './lib/mcp-service.mjs'
+import { prepareOriginalDownload } from './lib/original-downloads.mjs'
+import { sendCorpusAsset } from './lib/corpus-asset-response.mjs'
+import { isMcpRoute, handleRemoteMcp, remoteMcpService } from './lib/mcp-service.mjs'
 import { internalMcpAuth } from './lib/mcp-bridge.mjs'
 import { canvasFreshnessStatus, enqueueCanvasFreshnessCheck } from './lib/canvas-freshness-store.mjs'
 import { readCanvasGroups } from './lib/canvas-group-context.mjs'
@@ -90,7 +92,7 @@ import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
-import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusAssetChunks, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
+import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { workspaceProgrammeCatalogue, loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -120,7 +122,6 @@ const MAX_CANVAS_API_RESPONSE_BYTES = 4 * 1024 * 1024
 const MAX_CANVAS_FILE_BYTES = 1024 * 1024 * 1024
 const CANVAS_API_TIMEOUT_MS = 30_000
 const CANVAS_FILE_TIMEOUT_MS = 10 * 60_000
-const CORPUS_ASSET_CHUNK_BYTES = 512 * 1024
 
 let canvasCorpusWorkerProcess = null
 let stoppingCanvasWorker = false
@@ -571,69 +572,7 @@ function send(res, status, body, type = 'application/json; charset=utf-8', heade
   res.end(payload)
 }
 
-async function sendCorpusAsset(req, res, asset, { download = false } = {}) {
-  const size = Number(asset.byteSize)
-  const rawRange = String(req.headers.range || '')
-  const match = /^bytes=(\d*)-(\d*)$/.exec(rawRange)
-  let start = 0
-  let end = Math.max(0, size - 1)
-  if (rawRange && !match) {
-    send(res, 416, '', 'text/plain; charset=utf-8', { 'Content-Range': `bytes */${size}` })
-    return
-  }
-  if (match) {
-    if (!match[1] && match[2]) {
-      const suffix = Math.min(size, Number(match[2]))
-      start = size - suffix
-    } else {
-      start = Number(match[1] || 0)
-      end = match[2] ? Math.min(size - 1, Number(match[2])) : size - 1
-    }
-    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start >= size || end < start) {
-      send(res, 416, '', 'text/plain; charset=utf-8', { 'Content-Range': `bytes */${size}` })
-      return
-    }
-  }
-  const filename = safeAttachmentName(asset.filename || 'course-material')
-  const headers = {
-    ...securityHeaders({ page: false }),
-    'Content-Type': asset.mediaType || 'application/octet-stream',
-    'Content-Length': String(end - start + 1),
-    'Accept-Ranges': 'bytes',
-    'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
-    'Cache-Control': 'private, max-age=3600',
-    ETag: `"${asset.sha256}"`
-  }
-  if (match) headers['Content-Range'] = `bytes ${start}-${end}/${size}`
-  if (asset.localObjectKey) {
-    const objectPath = resolve(process.env.CANVAS_CORPUS_ASSET_DIR || join(__dirname, 'data/corpus-assets'), asset.localObjectKey)
-    const root = resolve(process.env.CANVAS_CORPUS_ASSET_DIR || join(__dirname, 'data/corpus-assets'))
-    if (!objectPath.startsWith(`${root}${sep}`)) { res.destroy(); return }
-    if (!existsSync(objectPath)) { send(res, 503, JSON.stringify({ error: 'This original needs to be collected again. Retry its course sync.' })); return }
-    res.writeHead(match ? 206 : 200, headers)
-    createReadStream(objectPath, { start, end }).on('error', () => res.destroy()).pipe(res)
-    return
-  }
-  const firstChunk = Math.floor(start / CORPUS_ASSET_CHUNK_BYTES)
-  const lastChunk = Math.floor(end / CORPUS_ASSET_CHUNK_BYTES)
-  // Stream bounded batches; a video must not allocate its full size in the API.
-  for (let first = firstChunk; first <= lastChunk; first += 16) {
-    const last = Math.min(lastChunk, first + 15)
-    const rows = await canvasCorpusAssetChunks({ assetId: asset.id, first, last })
-    if (rows.length !== last - first + 1) {
-      if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This original is incomplete. Retry its course sync.' }))
-      else res.destroy()
-      return
-    }
-    if (!res.headersSent) res.writeHead(match ? 206 : 200, headers)
-    const joined = Buffer.concat(rows.map(row => Buffer.from(row.data)))
-    const from = Math.max(0, start - first * CORPUS_ASSET_CHUNK_BYTES)
-    const to = Math.min(joined.length, end - first * CORPUS_ASSET_CHUNK_BYTES + 1)
-    if (!res.write(joined.subarray(from, to))) await once(res, 'drain')
-    if (res.destroyed) return
-  }
-  res.end()
-}
+
 
 function sendAiError(res, error) {
   if (!(error instanceof AiLimitError)) return false
@@ -4014,6 +3953,17 @@ async function handleRequest(req, res) {
         courseCode: url.searchParams.get('courseCode') || '',
         academicYear: url.searchParams.get('academicYear') || ''
       }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
+    }
+    const originalDownloadMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)\/download-ticket$/)
+    if (originalDownloadMatch && req.method === 'GET') {
+      try {
+        const { store, origin } = remoteMcpService()
+        const descriptor = await prepareOriginalDownload({ assetId: decodeURIComponent(originalDownloadMatch[1]), auth: currentAuth(), store, origin })
+        send(res, 200, JSON.stringify(descriptor), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' })
+      } catch (error) {
+        send(res, error.status || 503, JSON.stringify({ error: error.status ? error.message : 'Original download is temporarily unavailable.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store', ...(error.status === 429 ? { 'Retry-After': '60' } : {}) })
+      }
       return
     }
     const corpusSlidesMatch = url.pathname.match(/^\/api\/corpus\/assets\/([^/]+)\/slides\.pdf$/)
