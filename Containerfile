@@ -8,6 +8,7 @@ COPY deploy/runtime/package.json deploy/runtime/package-lock.json ./
 RUN npm ci --omit=dev
 COPY server.mjs runner.mjs ./
 COPY lib ./lib
+COPY mcp ./mcp
 COPY scripts ./scripts
 COPY db ./db
 COPY data ./data

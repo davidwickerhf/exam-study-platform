@@ -204,6 +204,7 @@ export function ApiTab() {
             <code className="text-xs">Authorization: Bearer wsk_…</code>. Keys
             cannot manage other keys, reset data, or delete your account.
             <Link href="/app/settings?tab=activity" className="text-primary mt-2 block text-sm font-semibold">View AI activity →</Link>
+            <Link href="/connect/remote" className="text-primary mt-2 block text-sm font-semibold">Manage connected MCP services →</Link>
           </>
         }
         action={
