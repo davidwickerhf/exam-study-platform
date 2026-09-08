@@ -159,13 +159,24 @@ test('real Streamable HTTP client discovers tools/guidance, preserves account is
   const signedOutApproval=await fetch(`${host}/api/mcp/consent`,{method:'POST',headers:{'content-type':'application/json',origin:host,authorization:'Bearer wsk_invalid'},body:JSON.stringify({request:pending,approved:true})})
   assert.equal(signedOutApproval.status,401)
   assert.equal((await dependencies.oauth.pending(pending)).name,'SDK OAuth consumer')
-  // Simulate completed browser authentication and explicit consent. The real
-  // SDK then finishes the PKCE exchange with the original connection state.
-  const approval=await dependencies.oauth.consent(pending,'sdk-student',true)
+  assert.equal((await signedOutRead.json()).account,undefined)
+  const reviewed=await (await fetch(`${host}/api/mcp/consent?request=${encodeURIComponent(pending)}`)).json()
+  assert.ok(reviewed.account.id)
+  // A stale tab cannot approve under a different current identity. Missing
+  // identity from a pre-upgrade tab must also trigger a fresh review.
+  for(const accountId of ['another-account',undefined]){
+    const stale=await fetch(`${host}/api/mcp/consent`,{method:'POST',headers:{'content-type':'application/json',origin:host},body:JSON.stringify({request:pending,approved:true,accountId})})
+    assert.equal(stale.status,409)
+    assert.equal((await stale.json()).error,'account_changed')
+    assert.equal((await dependencies.oauth.pending(pending)).name,'SDK OAuth consumer')
+  }
+  const accepted=await fetch(`${host}/api/mcp/consent`,{method:'POST',headers:{'content-type':'application/json',origin:host},body:JSON.stringify({request:pending,approved:true,accountId:reviewed.account.id})})
+  assert.equal(accepted.status,200)
+  const approval=await accepted.json()
   assert.equal(await authorizeMcp(provider,{serverUrl:new URL(`${host}/api/mcp`),authorizationCode:new URL(approval.redirect).searchParams.get('code')}),'AUTHORIZED')
   const oauthClient=new Client({name:'oauth-integration-test',version:'1.0'})
   await oauthClient.connect(new StreamableHTTPClientTransport(new URL(`${host}/api/mcp`),{authProvider:provider}))
-  assert.equal(JSON.parse((await oauthClient.callTool({name:'wicker_status',arguments:{}})).content[0].text).userId,'sdk-student')
+  assert.equal(JSON.parse((await oauthClient.callTool({name:'wicker_status',arguments:{}})).content[0].text).userId,reviewed.account.id)
   await oauthClient.close()
   for(const userId of ['student-a','student-b']){
     const issued=await grant(dependencies.oauth,{userId,scope:'read'}),tokens=await dependencies.oauth.token(issued.body)
