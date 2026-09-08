@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createTutorGrounding, selectTutorEvidence, tutorResearchRequirements } from '../lib/tutor-grounding.mjs'
-import { evidenceFromTool, tutorToolResultForModel } from '../lib/tutor-agent.mjs'
+import { createTutorToolRunner, evidenceFromTool, tutorToolResultForModel } from '../lib/tutor-agent.mjs'
 import { readCanvasAssignments, readTutorAssignmentDetail } from '../lib/tutor-study-tools.mjs'
 import { runToolLoop } from '../lib/model-loop.mjs'
 
@@ -97,4 +97,19 @@ test('course-scoped assignment discovery normalizes Canvas edition labels and fe
   assert.equal(result.assignments[0].courseCode,'BCS3300')
   assert.equal(result.assignments[0].dueAt,assignment.dueAt)
   assert.equal(result.omitted,0)
+})
+
+
+test('an early detail lookup can recover after discovery rather than reusing its cached error',async()=>{
+  let discovered=false, attempts=0
+  const read=createTutorToolRunner({},async name=>{
+    if(name==='get_canvas_assignments'){discovered=true;return {assignments:[assignment]}}
+    attempts++
+    return discovered ? {assignment} : {error:'Call get_canvas_assignments first.'}
+  })
+  assert.ok((await read('get_canvas_assignment_detail',{sourceKey:assignment.sourceKey})).error)
+  await read('get_canvas_assignments',{courseCode:'BCS3300'})
+  assert.equal((await read('get_canvas_assignment_detail',{sourceKey:assignment.sourceKey})).assignment.id,assignment.id)
+  await read('get_canvas_assignment_detail',{sourceKey:assignment.sourceKey})
+  assert.equal(attempts,2,'successful reads are still reused')
 })
