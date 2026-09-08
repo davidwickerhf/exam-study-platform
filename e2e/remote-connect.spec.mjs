@@ -15,6 +15,9 @@ test('signed-out remote connection has visible controls and preserves the approv
   await page.setViewportSize({width:390,height:844})
   await expect(signIn).toBeInViewport()
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await signIn.click()
+  await expect(page).toHaveURL(/\/sign-in\?redirect_url=%2Fconnect%2Fremote%3Frequest%3Dapproval-fixture/)
+  await expect(page.getByRole('heading',{name:'Return to your study record.'})).toBeVisible()
 })
 
 test('remote connection distinguishes a failed list from an empty one and reviews exact permissions',async({page})=>{

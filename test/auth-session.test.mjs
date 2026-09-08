@@ -29,6 +29,16 @@ test('auth redirects preserve workspace routes and reject outside/recursive dest
   assert.equal(safeAuthDestination(`${origin}/app/courses/ai`, origin), '/app/courses/ai')
   assert.equal(safeAuthDestination('/connect?code=one', origin), '/connect?code=one')
 })
+test('remote MCP login resumes the exact consent request without allowing arbitrary callbacks', () => {
+  const destination = '/connect/remote?request=opaque-request-123'
+  const signIn = new URL(`/sign-in?redirect_url=${encodeURIComponent(destination)}`, origin)
+  assert.equal(safeAuthDestination(signIn.searchParams.get('redirect_url'), origin), destination)
+  assert.equal(safeAuthDestination(`${origin}${destination}`, origin), destination)
+  for (const value of ['https://evil.example/connect/remote?request=abc', '//evil.example/connect/remote', '/connect/remote/extra', '/connect/remote/../../api/mcp', '/connect/remote-evil']) {
+    assert.equal(safeAuthDestination(value, origin), '/app')
+  }
+})
+
 test('parallel API requests share token resolution without caching an expiring token', async () => {
   let count = 0
   const seen = []
