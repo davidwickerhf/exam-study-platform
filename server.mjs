@@ -4340,7 +4340,7 @@ async function handleRequest(req, res) {
     if (courseGetMatch && req.method === 'GET') {
       const state = await readState()
       const course = state.courses.find((c) => c.id === decodeURIComponent(courseGetMatch[1]))
-      if (!course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      if (!course) { send(res, 404, JSON.stringify({ error: 'Published study course not found. Use an exact id from list_courses. Canvas materials may still exist: use canvas_course_materials or search_course with courseCode.', code: 'published_course_not_found' })); return }
       send(res, 200, JSON.stringify({ ...course, doneThreshold: state.meta?.doneThreshold ?? 3 }))
       return
     }
@@ -5311,7 +5311,7 @@ async function handleRequest(req, res) {
       const course = body.courseId
         ? state.courses.find((candidate) => candidate.id === body.courseId)
         : state.courses.find((candidate) => String(candidate.code || '').toUpperCase() === String(body.courseCode || '').toUpperCase())
-      if (body.courseId && !course) { send(res, 404, JSON.stringify({ error: 'Unknown course' })); return }
+      if (body.courseId && !course) { send(res, 404, JSON.stringify({ error: 'Published courseId not found. Use an exact id from list_courses, or search Canvas material with courseCode instead.', code: 'published_course_not_found' })); return }
       const count = Math.max(1, Math.min(Number(body.limit) || 8, 20))
       const [published, canvas] = await Promise.all([
         course ? retrieveCourseContent({ query: body.query, courseId: course.id, sourcePath: body.sourcePath || null, limit: count }) : [],
