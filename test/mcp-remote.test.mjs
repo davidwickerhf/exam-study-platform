@@ -151,6 +151,16 @@ test('real Streamable HTTP client discovers tools/guidance, preserves account is
   const destination=await fetch(authorizationUrl,{redirect:'manual'})
   assert.equal(destination.status,302)
   const pending=new URL(destination.headers.get('location')).searchParams.get('request')
+  // Force an unauthenticated identity in the development-auth test server.
+  // The browser must sign in first; neither inspecting nor
+  // attempting approval consumes the pending request or issues a code.
+  const signedOutRead=await fetch(`${host}/api/mcp/consent?request=${encodeURIComponent(pending)}`,{headers:{authorization:'Bearer wsk_invalid'}})
+  assert.equal(signedOutRead.status,401)
+  const signedOutApproval=await fetch(`${host}/api/mcp/consent`,{method:'POST',headers:{'content-type':'application/json',origin:host,authorization:'Bearer wsk_invalid'},body:JSON.stringify({request:pending,approved:true})})
+  assert.equal(signedOutApproval.status,401)
+  assert.equal((await dependencies.oauth.pending(pending)).name,'SDK OAuth consumer')
+  // Simulate completed browser authentication and explicit consent. The real
+  // SDK then finishes the PKCE exchange with the original connection state.
   const approval=await dependencies.oauth.consent(pending,'sdk-student',true)
   assert.equal(await authorizeMcp(provider,{serverUrl:new URL(`${host}/api/mcp`),authorizationCode:new URL(approval.redirect).searchParams.get('code')}),'AUTHORIZED')
   const oauthClient=new Client({name:'oauth-integration-test',version:'1.0'})

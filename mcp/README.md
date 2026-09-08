@@ -92,7 +92,7 @@ saved key exists. No key needs to be pasted into the agent conversation.
 For a manually supplied key, the same secure bootstrap is available as:
 
 ```sh
-WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.14.0 configure
+WICKER_STUDY_URL='https://study.wicker.life' WICKER_STUDY_API_KEY='wsk_…' npx -y wicker-study-mcp@2.14.1 configure
 ```
 
 ```jsonc
@@ -175,7 +175,7 @@ authoritative list of endpoints and scopes.
 
 Direct context reads do not call the model. `tutor_ask` uses the student's AI allowance and can prepare attendance changes, assignment/catch-up trackers, group milestones, focused practice, diagnostics and rubric-based draft reviews. Reuse conversation IDs. Approve only the exact proposal the student reviewed; receipts prevent double application. No tool sends email or submits assignments to Canvas. Personal completion is separate from Canvas submission status.
 
-Hosted users reconnect to discover the current tools. Optional package users update to `wicker-study-mcp@2.14.0` and restart their local MCP process. The matching workflow guide is served by `wicker_guidance` and `wicker://guidance/current`. No separate skill update is needed.
+Hosted users reconnect to discover the current tools. Optional package users update to `wicker-study-mcp@2.14.1` and restart their local MCP process. The matching workflow guide is served by `wicker_guidance` and `wicker://guidance/current`. No separate skill update is needed.
 
 ### Complete original downloads and remembered context
 
@@ -237,7 +237,7 @@ Most users can switch to hosted MCP using the instructions above. If keeping the
 
 ```sh
 codex mcp remove wicker-study
-codex mcp add wicker-study -- npx -y wicker-study-mcp@2.14.0
+codex mcp add wicker-study -- npx -y wicker-study-mcp@2.14.1
 ```
 
 Quit and reopen the Codex app, restart the CLI session, or reload the IDE extension window so the local MCP process restarts.
@@ -246,14 +246,14 @@ Quit and reopen the Codex app, restart the CLI session, or reload the IDE extens
 
 ```sh
 claude mcp remove --scope user wicker-study
-claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.14.0
+claude mcp add --scope user wicker-study -- npx -y wicker-study-mcp@2.14.1
 ```
 
 Exit and restart Claude Code, then check `/mcp`. `claude mcp add` does not overwrite an existing registration. If you originally installed with `project` or `local` scope, use that same scope in both commands.
 
 ### Claude Desktop and custom configurations
 
-In Claude Desktop, use Settings → Developer → Edit Config. Change only the package argument in the existing `wicker-study` entry to `wicker-study-mcp@2.14.0`, preserve its other settings, then fully quit and reopen Claude Desktop. For custom Codex/Claude Code configurations with environment variables or a server URL, update the package argument in place instead of replacing the registration. Check project overrides if an older version still loads.
+In Claude Desktop, use Settings → Developer → Edit Config. Change only the package argument in the existing `wicker-study` entry to `wicker-study-mcp@2.14.1`, preserve its other settings, then fully quit and reopen Claude Desktop. For custom Codex/Claude Code configurations with environment variables or a server URL, update the package argument in place instead of replacing the registration. Check project overrides if an older version still loads.
 
 The standard helper credentials stay in `~/.config/wicker-study/config.json`. These registration commands do not delete that file. After restarting, ask the agent to call `wicker_status` and `wicker_guidance` to verify connectivity and availability of the new tools. The optional companion skill is a stable discovery hint; the current guide comes from MCP.
 
@@ -261,7 +261,7 @@ Official client references: [Codex MCP configuration](https://developers.openai.
 
 ## Local study generation
 
-Both hosted MCP and package 2.14.0 expose `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. The package is not required for this workflow; an agent can use its own model and file tools with the hosted connection.
+Both hosted MCP and package 2.14.1 expose `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. The package is not required for this workflow; an agent can use its own model and file tools with the hosted connection.
 
 1. Read the current contract and list the course edition’s sources. If needed, obtain originals through `prepare_original_download` and stream/verify them with the client’s file tools, or use the optional package’s download/import helpers. Inspect graphics and preserve page numbers. Add supplementary extraction as explicitly labelled local notes.
 2. Start the student-requested private run with its exact source selection, or continue a version prepared in the web UI.
