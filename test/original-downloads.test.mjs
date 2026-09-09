@@ -126,3 +126,23 @@ test('real API key and OAuth grant revocation invalidate their file capabilities
   await oauth.store.deleteOwner(oauth.auth.userId)
   assert.deepEqual(await oauth.store.list('download',oauth.auth.userId),[])
 })
+
+test('exempt owners can download with exhausted allowances on API keys and OAuth grants; existing tickets recheck owner policy',async t=>{
+  const {accountQuotaExemption}=await import('../lib/ai-quota-policy.mjs')
+  let exempt=true
+  const quotaExemption=options=>accountQuotaExemption({...options,lookup:async id=>{assert.equal(id,'student-a');return {email:exempt?'d.wicker@student.maastrichtuniversity.nl':'ordinary@example.com'}}})
+  for(const keyId of ['personal-key','oauth-existing-grant']){
+    const env={...fixture(),quotaExemption};env.auth.keyId=keyId
+    for(const id of [`user:${env.auth.userId}`,`key:${keyId}`])await env.store.charge(`download-bytes:${Math.floor(Date.now()/86400000)}:${id}`,limits.bytesPerDay,limits.bytesPerDay,172800000)
+    const remote=await http(t,env)
+    assert.equal(remote.descriptor.limits.bytesPerDay,null)
+    const result=await remote.fetch()
+    assert.equal(result.status,200)
+    assert.equal(await result.text(),'complete original')
+    exempt=false
+    assert.equal((await remote.fetch()).status,429)
+    exempt=true
+    env.revoke()
+    assert.equal((await remote.fetch()).status,401)
+  }
+})
