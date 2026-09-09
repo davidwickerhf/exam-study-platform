@@ -206,3 +206,17 @@ test('preparation reads a referenced assignment brief and cannot generate unsoli
   outage.record('get_canvas_assignments',{assignments:[],error:'Disconnected'})
   assert.deepEqual(outage.requiredTools(),[],'do not require a detail lookup without an observed assignment')
 })
+
+test('a correction about bringing work still follows the preparation source path',()=>{
+  const g=createTutorGrounding({message:'but bringing the results of the individual review doesnt make sense, its due AFTER the skill class',history:[{role:'user',content:'Do the two reps need to prepare before the skill class?'}]})
+  assert.ok(g.requiredTools().includes('get_announcements'))
+  assert.ok(g.requiredTools().includes('get_schedule'))
+})
+
+test('parallel assignment discovery before the announcement still requires the linked brief',()=>{
+  const g=createTutorGrounding({message:'The individual review is due after the meeting, so why bring it?'})
+  g.record('get_canvas_assignments',{assignments:[assignment]})
+  g.record('get_announcements',{announcements:[{text:'See the assignment description.'}]})
+  g.record('get_schedule',{})
+  assert.deepEqual(g.requiredTools(),['get_canvas_assignment_detail'])
+})
