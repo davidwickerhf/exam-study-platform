@@ -30,7 +30,7 @@ for(const scenario of cases){
     signal:AbortSignal.timeout(180_000),
     onDiagnostic:diagnostic=>console.log(JSON.stringify({case:scenario.name,...diagnostic})),
     messages:[{role:'system',content:tutorStableSystemPrompt()},...history,{role:'system',content:tutorTurnContextPrompt({memory:{},context:{courseCode:code},now:new Date('2026-09-08T16:12:00Z')})},{role:'user',content:scenario.message}],
-    tools:TUTOR_TOOLS,responseFormat:()=>grounding.responseFormat(TUTOR_RESPONSE_FORMAT),reviewAnswer:grounding.review,reasoningEffort:'medium',maxRounds:6,maxOutputTokens:8192,parallelTools:true,
+    tools:TUTOR_TOOLS,responseFormat:()=>grounding.responseFormat(TUTOR_RESPONSE_FORMAT),reviewAnswer:grounding.review,requiredTools:grounding.requiredTools,reasoningEffort:'medium',maxRounds:6,maxOutputTokens:8192,parallelTools:true,
     toolResultForModel:tutorToolResultForModel,
     runTool:async(name,args)=>{
       calls.push(name)

@@ -30,6 +30,15 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Exclude the unused system Chrome repository
+        run: |
+          # Playwright installs its own pinned browser. A stale Google package
+          # index must not block Ubuntu document packages or browser test deps.
+          for source in /etc/apt/sources.list.d/*; do
+            if grep -q 'dl.google.com/linux/chrome' "$source"; then
+              sudo mv "$source" "$RUNNER_TEMP/$(basename "$source")"
+            fi
+          done
       - name: Install document rendering dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress libreoffice-writer poppler-utils fonts-liberation fonts-dejavu-core
       - run: npm run verify

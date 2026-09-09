@@ -168,3 +168,22 @@ test('oversized briefings keep citation IDs instead of cutting off the evidence 
   assert.equal(model.evidence[0].excerpt,source.excerpt)
   assert.equal(model.omittedEvidence,0)
 })
+
+test('required research precedes drafting rather than triggering an expensive answer repair',async()=>{
+  const g=createTutorGrounding({message:'Do the two representatives need to prepare before the meeting?'})
+  const names=['get_announcements','get_schedule','get_briefing']
+  let requests=0
+  const result=await runToolLoop({messages:[],tools:names.map(name=>({type:'function',function:{name}})),requiredTools:g.requiredTools,reviewAnswer:g.review,
+    runTool:async()=>({error:'Disconnected source'}),onToolCall:(name,args,result)=>g.record(name,result),modelCall:async(_,options)=>{
+      requests++
+      if(requests===1){
+        assert.equal(options.toolChoice,'required')
+        assert.deepEqual(options.tools.map(t=>t.function.name),['get_announcements','get_schedule'])
+        return {message:{tool_calls:options.tools.map((t,i)=>({id:String(i),function:{name:t.function.name,arguments:'{}'}}))}}
+      }
+      assert.equal(options.toolChoice,undefined)
+      return {message:{content:answer([])}}
+    }})
+  assert.equal(requests,2)
+  assert.equal(result.exhausted,false)
+})
