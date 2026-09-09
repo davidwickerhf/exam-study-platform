@@ -42,7 +42,8 @@
     "README.md",
     "core-tools.mjs",
     "tool-annotations.mjs",
-    "search-course-schema.mjs"
+    "search-course-schema.mjs",
+    "calendar-result.mjs"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
