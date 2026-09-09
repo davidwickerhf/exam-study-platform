@@ -187,3 +187,22 @@ test('required research precedes drafting rather than triggering an expensive an
   assert.equal(requests,2)
   assert.equal(result.exhausted,false)
 })
+
+test('preparation reads a referenced assignment brief and cannot generate unsolicited planning widgets',async()=>{
+  const {TUTOR_RESPONSE_FORMAT}=await import('../lib/tutor-response.mjs')
+  const g=createTutorGrounding({message:'Do the two representatives need to prepare anything before the meeting?'})
+  g.record('get_announcements',{announcements:[{text:'The assignment description has all instructions.'}]})
+  g.record('get_schedule',{})
+  assert.deepEqual(g.requiredTools(),['get_canvas_assignments'])
+  g.record('get_canvas_assignments',{assignments:[assignment]})
+  assert.deepEqual(g.requiredTools(),['get_canvas_assignment_detail'])
+  g.record('get_canvas_assignment_detail',{assignment})
+  assert.deepEqual(g.requiredTools(),[])
+  const properties=g.responseFormat(TUTOR_RESPONSE_FORMAT).json_schema.schema.properties
+  for(const field of ['priorities','courses','drafts','agenda','options'])assert.equal(properties[field].maxItems,0)
+  const outage=createTutorGrounding({message:'Do the representatives need to prepare before the meeting?'})
+  outage.record('get_announcements',{announcements:[{text:'See the assignment brief.'}]})
+  outage.record('get_schedule',{})
+  outage.record('get_canvas_assignments',{assignments:[],error:'Disconnected'})
+  assert.deepEqual(outage.requiredTools(),[],'do not require a detail lookup without an observed assignment')
+})
