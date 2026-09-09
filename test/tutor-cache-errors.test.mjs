@@ -88,3 +88,24 @@ test('embedding billing failures stop retries without deleting work, while tempo
     await assert.rejects(embedTexts(['Graph theory']),e=>e.retryable===true&&e.blockedReason===null)
   }finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key}
 })
+
+test('bad requests, context overflow, provider timeouts and outages are distinguishable', () => {
+  assert.equal(providerFailure(400,{error:{code:'context_length_exceeded'}}).code,'context_limit')
+  assert.equal(providerFailure(400,{error:{code:'invalid_json_schema',message:'private details'}}).code,'provider_request')
+  assert.equal(providerFailure(422,{}).code,'provider_request')
+  assert.equal(providerFailure(504,{}).code,'timeout')
+  assert.equal(providerFailure(503,{}).code,'provider_unavailable')
+})
+
+test('stalled browser streams time out and release the reader; heartbeats do not overwrite progress',async()=>{
+  const original=globalThis.fetch
+  let cancelled=false
+  try {
+    globalThis.fetch=async()=>new Response(new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{"type":"heartbeat"}\n'))},cancel(){cancelled=true}}),{headers:{'content-type':'application/x-ndjson'}})
+    // Keep this test alive: AbortSignal.timeout uses an unref'd timer in Node.
+    const keepAlive=setTimeout(()=>{},1000)
+    try {await assert.rejects(tutorStream('/api/tutor',{},()=>assert.fail('heartbeat is not progress'),()=>{}, {idleTimeoutMs:10}),e=>e.name==='TimeoutError')}
+    finally{clearTimeout(keepAlive)}
+    assert.equal(cancelled,true)
+  }finally{globalThis.fetch=original}
+})
