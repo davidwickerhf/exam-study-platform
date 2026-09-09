@@ -22,3 +22,17 @@ test('only the two verified account emails are exempt, including queued workers'
   assert.equal(await aiQuotaExemption({env,lookup:async()=>({email:'someone@student.maastrichtuniversity.nl',admin:true})}),null)
   assert.equal(await aiQuotaExemption({env,lookup:async()=>{throw new Error('Identity unavailable')}}),null)
 })
+
+test('MCP inherits the verified owner exemption for every key, without trusting connector claims or preview mode',async()=>{
+  const {withRequestContext}=await import('../lib/request-context.mjs')
+  for(const keyId of ['personal-key','oauth-existing-grant','oauth-new-grant']) {
+    await withRequestContext({userId:'owner',keyId,remoteMcp:true},async()=>{
+      assert.equal(await aiQuotaExemption({env:{VERCEL_ENV:'production'},lookup:async id=>{assert.equal(id,'owner');return {email:'d.wicker@student.maastrichtuniversity.nl'}}}),'account')
+      assert.equal(await aiQuotaExemption({env:{VERCEL_ENV:'preview'},lookup:async()=>({email:'ordinary@example.com'})}),null)
+    })
+  }
+  await withRequestContext({userId:'ordinary',remoteMcp:true,email:'davidwickerhf@gmail.com',admin:true,unlimited:true},async()=>{
+    assert.equal(await aiQuotaExemption({env:{VERCEL_ENV:'production'},lookup:async()=>({email:'ordinary@example.com'})}),null)
+    assert.equal(await aiQuotaExemption({env:{VERCEL_ENV:'production'},lookup:async()=>{throw new Error('Unavailable')}}),null)
+  })
+})
