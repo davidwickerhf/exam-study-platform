@@ -9,8 +9,9 @@ export class TutorReplyError extends Error {
   }
 }
 
-export async function tutorStream<T>(path: string, init: RequestInit, onProgress: (message: string) => void, onAnswer: (text: string) => void = () => {}): Promise<T> {
-  const response = await fetch(path, { ...init, headers: { 'content-type': 'application/json', accept: 'application/x-ndjson', ...init.headers } })
+export async function tutorStream<T>(path: string, init: RequestInit, onProgress: (message: string) => void, onAnswer: (text: string) => void = () => {}, { idleTimeoutMs = 45_000 } = {}): Promise<T> {
+  const signal = AbortSignal.any([...(init.signal ? [init.signal] : []), AbortSignal.timeout(190_000)])
+  const response = await fetch(path, { ...init, signal, headers: { 'content-type': 'application/json', accept: 'application/x-ndjson', ...init.headers } })
   if (!response.headers.get('content-type')?.includes('application/x-ndjson')) {
     const value = await response.json()
     if (!response.ok) throw new TutorReplyError(value)
@@ -22,7 +23,16 @@ export async function tutorStream<T>(path: string, init: RequestInit, onProgress
   let buffer = ''
   try {
     while (true) {
-      const { done, value } = await reader.read()
+      // Heartbeats keep a healthy, slow turn alive. A lost connection must not
+      // leave the composer waiting indefinitely, even if a proxy stalls EOF.
+      const readSignal = AbortSignal.any([signal, AbortSignal.timeout(idleTimeoutMs)])
+      readSignal.throwIfAborted()
+      let onAbort: () => void = () => {}
+      const interrupted = new Promise<never>((_, reject) => {
+        onAbort = () => reject(readSignal.reason)
+        readSignal.addEventListener('abort', onAbort, { once: true })
+      })
+      const { done, value } = await Promise.race([reader.read(), interrupted]).finally(() => readSignal.removeEventListener('abort', onAbort))
       buffer += decoder.decode(value, { stream: !done })
       let end
       while ((end = buffer.indexOf('\n')) >= 0) {
@@ -36,5 +46,5 @@ export async function tutorStream<T>(path: string, init: RequestInit, onProgress
       }
       if (done) throw new Error('The reply was interrupted. Please retry your question.')
     }
-  } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
+  } finally { void reader.cancel().catch(() => {}); reader.releaseLock() }
 }

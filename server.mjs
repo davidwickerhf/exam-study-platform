@@ -4686,8 +4686,10 @@ async function handleRequest(req, res) {
       const disconnected = () => { if (!res.writableEnded) controller.abort() }
       res.once('close', disconnected)
       const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(180_000)])
+      const requestStarted = Date.now()
       let activeTurn = null
       let emit = null
+      let heartbeat = null
       try {
         const body = await readBody(req, 32 * 1024)
         const message = String(body?.message || '').trim().slice(0, 4000)
@@ -4695,6 +4697,8 @@ async function handleRequest(req, res) {
         if (String(req.headers.accept || '').includes('application/x-ndjson')) {
           emit = openTutorStream(res)
           emit('progress', { message: 'I’m checking your question…' })
+          heartbeat = setInterval(() => emit?.('heartbeat', {}), 10_000)
+          heartbeat.unref?.()
         }
         const stored = body?.conversation ? await readConversation(body.conversation) : null
         const canCreate = body?.create === true && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body?.conversation || ''))
@@ -4718,11 +4722,12 @@ async function handleRequest(req, res) {
         let conversation = null
         if (activeTurn) conversation = await failTutorTurn(activeTurn, error, controller.signal.aborted).catch(() => null)
         const detail=tutorFailure(error,controller.signal.aborted)
+        console.error(JSON.stringify({event:'tutor_turn_failed',code:detail.code,elapsedMs:Date.now()-requestStarted,providerStatus:error?.providerStatus || null,providerRequestId:error?.providerRequestId || null}))
         if(error?.status===429&&error.retryAfter&&!res.headersSent)res.setHeader('Retry-After',String(error.retryAfter))
         const failure = { conversation: visibleTutorConversation(conversation), error:detail.message, failure:detail }
         if (emit) { emit('error', failure); res.end() }
         else if (!res.destroyed) send(res, error?.name === 'TimeoutError' ? 504 : error?.status || 400, JSON.stringify(failure))
-      } finally { res.off('close', disconnected) }
+      } finally { clearInterval(heartbeat); res.off('close', disconnected) }
       return
     }
     if (url.pathname === '/api/tutor/actions' && req.method === 'POST') {

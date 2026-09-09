@@ -249,7 +249,7 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
   }
   const retryReply = () => {
     if (replyFailure?.code === 'conversation_changed') return void load(conversationId || undefined)
-    if (replyFailure?.code === 'conversation_missing') {
+    if (replyFailure?.code === 'conversation_missing' || replyFailure?.code === 'context_limit') {
       setDraft(messages.at(-1)?.content || '')
       return void load()
     }

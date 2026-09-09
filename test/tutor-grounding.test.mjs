@@ -14,7 +14,9 @@ test('deadline reply cannot finish after only searching indexed files or old con
   let round=0
   const output=await runToolLoop({messages:[],tools:[],maxRounds:4,reviewAnswer:grounding.review,onContent:text=>previews.push(text),
     modelCall:async(messages,options)=>{
-      assert.equal(options.onContent,undefined,'rejected drafts must not stream to the student')
+      assert.equal(typeof options.onContent,'function','provider streaming stays enabled while drafts are withheld')
+      options.onContent(answer(['unsupported-draft']))
+      assert.equal(previews.length,0,'rejected drafts must not stream to the student')
       round++
       if(round===1)return {message:{content:answer([])}}
       if(round===2){assert.match(messages.at(-1).content,/get_canvas_assignments/);return {message:{tool_calls:[{id:'a',function:{name:'get_canvas_assignments',arguments:'{"courseCode":"BCS3300"}'}}]}}}
@@ -112,4 +114,109 @@ test('an early detail lookup can recover after discovery rather than reusing its
   assert.equal((await read('get_canvas_assignment_detail',{sourceKey:assignment.sourceKey})).assignment.id,assignment.id)
   await read('get_canvas_assignment_detail',{sourceKey:assignment.sourceKey})
   assert.equal(attempts,2,'successful reads are still reused')
+})
+
+test('live citation contract changes after research and never advertises past-chat IDs', async () => {
+  const { TUTOR_RESPONSE_FORMAT } = await import('../lib/tutor-response.mjs')
+  const g=createTutorGrounding({message:'What must I do tomorrow?'})
+  const before=g.responseFormat(TUTOR_RESPONSE_FORMAT)
+  assert.equal(before.json_schema.schema.properties.evidenceIds.maxItems,0)
+  const briefing={teaching:[{when:'2026-09-10',time:'08:30',course:'BCS3120',title:'Ubiquitous Computing',activity:'Lecture',room:'Room A'}],courseObligations:[{id:'step:project:1',title:'Discuss project idea',courseCode:'BCS3120',dueAt:'2026-09-10',detail:'Bring the one-page idea.'}],recentRuleAnnouncements:[{title:'Project ideas',course:'BCS3120',excerpt:'Discuss your idea tomorrow.',url:'https://canvas.example/announcement/1'}]}
+  const result=tutorToolResultForModel('get_briefing',briefing)
+  assert.equal(result.evidence.length,3,'every briefing source family can be cited')
+  g.record('get_briefing',briefing,result.evidence)
+  g.record('search_conversation_history',{},[{id:'chat:old',sourceType:'Past conversation'}])
+  const ids=g.responseFormat(TUTOR_RESPONSE_FORMAT).json_schema.schema.properties.evidenceIds.items.enum
+  assert.deepEqual(new Set(ids),new Set(result.evidence.map(item=>item.id)))
+  assert.equal(g.review(answer(ids)),null)
+  assert.equal(TUTOR_RESPONSE_FORMAT.json_schema.schema.properties.evidenceIds.items.enum,undefined,'shared schema remains unchanged')
+})
+
+test('repeated rejected drafts stop after one repair, with the rejected draft available only to the model',async()=>{
+  let requests=0
+  const emitted=[]
+  await assert.rejects(runToolLoop({messages:[],maxRounds:5,tools:[],reviewAnswer:()=> 'Correct the citation.',onContent:text=>emitted.push(text),modelCall:async(messages,options)=>{
+    requests++
+    options.onContent('Unverified text')
+    if(requests===2)assert.equal(messages.at(-2).content,'Rejected draft')
+    return {message:{content:'Rejected draft'},finishReason:'stop'}
+  }}),e=>e.failure.code==='evidence_check')
+  assert.equal(requests,2,'do not spend five more full generations on the same failure')
+  assert.deepEqual(emitted,[])
+})
+
+test('each model request receives the current evidence schema, including the final fallback',async()=>{
+  const formats=[]
+  let researched=false
+  await runToolLoop({messages:[],tools:[],maxRounds:1,responseFormat:()=>({phase:researched?'after':'before'}),runTool:async()=>{researched=true;return {}},modelCall:async(_,options)=>{
+    formats.push(options.responseFormat.phase)
+    return {message:researched?{content:'Answer'}:{tool_calls:[{id:'a',function:{name:'get_briefing',arguments:'{}'}}]}}
+  }})
+  assert.deepEqual(formats,['before','after'])
+})
+
+test('oversized briefings keep citation IDs instead of cutting off the evidence table',async()=>{
+  const {serializeToolResult}=await import('../lib/model-loop.mjs')
+  const source={id:'priority:assignment:44',title:'Individual review',course:'BCS3300',sourceType:'Canvas assignment',excerpt:'Due 9 September at 23:59.'}
+  const raw={courseObligations:Array.from({length:74},()=>({detail:'"Review" \\ project notes '.repeat(80)})),evidence:[source]}
+  assert.ok(JSON.stringify(raw).length>60_000)
+  const serialized=serializeToolResult(raw)
+  assert.ok(serialized.length<=60_000)
+  const model=JSON.parse(serialized)
+  assert.equal(model.truncated,true)
+  assert.equal(model.evidence[0].id,source.id)
+  assert.equal(model.evidence[0].excerpt,source.excerpt)
+  assert.equal(model.omittedEvidence,0)
+})
+
+test('required research precedes drafting rather than triggering an expensive answer repair',async()=>{
+  const g=createTutorGrounding({message:'Do the two representatives need to prepare before the meeting?'})
+  const names=['get_announcements','get_schedule','get_briefing']
+  let requests=0
+  const result=await runToolLoop({messages:[],tools:names.map(name=>({type:'function',function:{name}})),requiredTools:g.requiredTools,reviewAnswer:g.review,
+    runTool:async()=>({error:'Disconnected source'}),onToolCall:(name,args,result)=>g.record(name,result),modelCall:async(_,options)=>{
+      requests++
+      if(requests===1){
+        assert.equal(options.toolChoice,'required')
+        assert.deepEqual(options.tools.map(t=>t.function.name),['get_announcements','get_schedule'])
+        return {message:{tool_calls:options.tools.map((t,i)=>({id:String(i),function:{name:t.function.name,arguments:'{}'}}))}}
+      }
+      assert.equal(options.toolChoice,undefined)
+      return {message:{content:answer([])}}
+    }})
+  assert.equal(requests,2)
+  assert.equal(result.exhausted,false)
+})
+
+test('preparation reads a referenced assignment brief and cannot generate unsolicited planning widgets',async()=>{
+  const {TUTOR_RESPONSE_FORMAT}=await import('../lib/tutor-response.mjs')
+  const g=createTutorGrounding({message:'Do the two representatives need to prepare anything before the meeting?'})
+  g.record('get_announcements',{announcements:[{text:'The assignment description has all instructions.'}]})
+  g.record('get_schedule',{})
+  assert.deepEqual(g.requiredTools(),['get_canvas_assignments'])
+  g.record('get_canvas_assignments',{assignments:[assignment]})
+  assert.deepEqual(g.requiredTools(),['get_canvas_assignment_detail'])
+  g.record('get_canvas_assignment_detail',{assignment})
+  assert.deepEqual(g.requiredTools(),[])
+  const properties=g.responseFormat(TUTOR_RESPONSE_FORMAT).json_schema.schema.properties
+  for(const field of ['priorities','courses','drafts','agenda','options'])assert.equal(properties[field].maxItems,0)
+  const outage=createTutorGrounding({message:'Do the representatives need to prepare before the meeting?'})
+  outage.record('get_announcements',{announcements:[{text:'See the assignment brief.'}]})
+  outage.record('get_schedule',{})
+  outage.record('get_canvas_assignments',{assignments:[],error:'Disconnected'})
+  assert.deepEqual(outage.requiredTools(),[],'do not require a detail lookup without an observed assignment')
+})
+
+test('a correction about bringing work still follows the preparation source path',()=>{
+  const g=createTutorGrounding({message:'but bringing the results of the individual review doesnt make sense, its due AFTER the skill class',history:[{role:'user',content:'Do the two reps need to prepare before the skill class?'}]})
+  assert.ok(g.requiredTools().includes('get_announcements'))
+  assert.ok(g.requiredTools().includes('get_schedule'))
+})
+
+test('parallel assignment discovery before the announcement still requires the linked brief',()=>{
+  const g=createTutorGrounding({message:'The individual review is due after the meeting, so why bring it?'})
+  g.record('get_canvas_assignments',{assignments:[assignment]})
+  g.record('get_announcements',{announcements:[{text:'See the assignment description.'}]})
+  g.record('get_schedule',{})
+  assert.deepEqual(g.requiredTools(),['get_canvas_assignment_detail'])
 })
