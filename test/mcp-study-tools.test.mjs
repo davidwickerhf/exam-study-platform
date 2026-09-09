@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { z } from 'zod'
+import { readFileSync } from 'node:fs'
 import { registerStudyTools } from '../mcp/study-tools.mjs'
 
 function fixture() {
@@ -48,7 +49,7 @@ test('standalone MCP publishes the new tools and schemas over stdio', async () =
   const transport = new StdioClientTransport({ command: process.execPath, args: [new URL('../mcp/server.mjs', import.meta.url).pathname], env: { PATH: process.env.PATH, WICKER_STUDY_URL: 'http://127.0.0.1:4177', WICKER_STUDY_API_KEY: 'wsk_fixture_never_sent' }, stderr: 'pipe' })
   try {
     await client.connect(transport)
-    assert.equal(client.getServerVersion().version, '2.14.2')
+    assert.equal(client.getServerVersion().version, JSON.parse(readFileSync(new URL('../mcp/package.json', import.meta.url), 'utf8')).version)
     const listed = await client.listTools()
     for (const tool of listed.tools) assert.equal(typeof tool.annotations?.readOnlyHint, 'boolean', tool.name)
     for (const name of ['list_courses', 'get_course', 'search_course', 'canvas_course_materials']) assert.equal(listed.tools.find(tool => tool.name === name).annotations.readOnlyHint, true, name)
