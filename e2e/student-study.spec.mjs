@@ -1625,3 +1625,67 @@ test('project steps preserve relative deadlines and open original evidence in pl
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
   await page.screenshot({path:'/tmp/wicker-priority-steps-mobile.png',fullPage:true})
 })
+
+test('course material polling preserves the list and scroll, and desktop navigation stays sticky', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.route('**/api/state', async route => {
+    const response = await route.fetch(), state = await response.json()
+    await route.fulfill({ json: { ...state, courses: [{ id: 'stats', code: 'BCS1520', name: 'Statistics', chapters: [], items: [] }] } })
+  })
+  await page.route('**/api/account/integrations/canvas/corpus?view=summary', route => route.fulfill({ json: {
+    status: { courses: [], latestJobs: [{ id: 'collecting', status: 'running' }] }
+  } }))
+  const materials = Array.from({ length: 80 }, (_, index) => ({
+    assetId: `scroll-${index}`, filename: `Lecture ${String(index).padStart(2, '0')}.pdf`,
+    sourcePath: `lecture-${index}.pdf`, sourceType: 'file', mediaType: 'application/pdf',
+    byteSize: 1200, academicYear: '2026-2027', period: '1', current: true,
+    url: `/api/corpus/assets/scroll-${index}`, downloadUrl: `/api/corpus/assets/scroll-${index}?download=1`
+  }))
+  let hold = false, pending
+  await page.route('**/api/corpus/materials?*', async route => {
+    if (hold) { pending = route; return }
+    await route.fulfill({ json: { materials } })
+  })
+  await page.goto('/app/courses/stats?tab=materials&year=2026-2027')
+  const rows = page.locator('#course-material').getByRole('button', { name: /^Lecture \d+/ })
+  await expect(rows).toHaveCount(80)
+  await page.getByRole('textbox', { name: 'Search course material' }).fill('Lecture')
+  await page.evaluate(() => window.scrollTo(0, 1800))
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(1800)
+  const navigation = page.locator('.course-navigation-content')
+  await expect.poll(() => navigation.evaluate(node => node.getBoundingClientRect().top)).toBe(0)
+  await expect(page.getByRole('tab', { name: 'Study guides', exact: true })).toBeInViewport()
+  await expect(page.getByText('Academic year', { exact: true })).toBeInViewport()
+
+  // Use the real status-polling handler, holding the downstream material read.
+  hold = true
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect.poll(() => Boolean(pending)).toBe(true)
+  await expect(rows).toHaveCount(80)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(1800)
+  hold = false
+  await pending.fulfill({ json: { materials } })
+  pending = undefined
+  await expect(rows).toHaveCount(80)
+  await expect(page.getByRole('textbox', { name: 'Search course material' })).toHaveValue('Lecture')
+
+  hold = true
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect.poll(() => Boolean(pending)).toBe(true)
+  await pending.fulfill({ status: 503, json: { error: 'Temporary refresh failure' } })
+  await expect(page.getByRole('alert').filter({ hasText: 'Temporary refresh failure' })).toBeAttached()
+  await expect(rows).toHaveCount(80)
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1700)
+  hold = false
+  await page.screenshot({ path: '/tmp/wicker-sticky-course-desktop.png' })
+
+  await page.setViewportSize({ width: 1440, height: 480 })
+  await expect.poll(() => navigation.evaluate(node => node.clientHeight)).toBeLessThanOrEqual(480)
+  await navigation.evaluate(node => { node.scrollTop = node.scrollHeight })
+  await expect(page.getByText('Academic year', { exact: true })).toBeInViewport()
+  for (const width of [1024, 390]) {
+    await page.setViewportSize({ width, height: 844 })
+    await expect(navigation).toHaveCSS('position', 'static')
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  }
+})
