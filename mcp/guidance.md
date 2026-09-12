@@ -186,6 +186,14 @@ refreshable. Unchanged versioned files reuse originals and indexes. Changed or u
 files are fetched again. Dataset text may be a labelled structural sample; the full original
 is retained. A stored original does not imply complete text extraction.
 
+When the student asks to refresh course materials, use `canvas_corpus_status` to identify
+the exact `canvas_course_id`, `origin` and academic year, then call
+`refresh_course_materials` with that ID and `canvasUrl` after the required confirmation.
+It queues the same forced edition refresh as the course page. A queue receipt does not
+mean the files are ready: inspect the job status and logs, then call
+`canvas_course_materials` after completion. Report failures or local/unavailable mode
+honestly. This refresh does not generate study guides or change upstream Canvas content.
+
 Use `canvas_corpus_status` for editions/jobs, `canvas_sync_logs` for real progress and
 `canvas_sync_control` to stop or retry one requested job. Follow `nextCursor` through logs.
 A recent worker checkpoint with old resource progress is not proof of healthy advancement.

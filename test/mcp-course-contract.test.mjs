@@ -75,3 +75,44 @@ test('Canvas inventory and course-code search remain available when no study cou
   assert.match(tools.get('canvas_course_materials').description,/absent from list_courses/)
   assert.match(tools.get('search_course').description,/courseCode/)
 })
+
+test('course material refresh requires confirmation and queues only the selected edition', async t => {
+  const { client, tools, calls } = await fixture(t)
+  const tool = tools.get('refresh_course_materials')
+  assert.equal(tool.annotations.readOnlyHint, false)
+  assert.ok(tool.inputSchema.required.includes('confirmed'))
+  for (const args of [{ canvasCourseId: '42' }, { canvasCourseId: 'BCS2120', confirmed: true }]) {
+    const result = await client.callTool({ name: tool.name, arguments: args })
+    assert.equal(result.isError, true)
+  }
+  assert.equal(calls.length, 0)
+  const result = await client.callTool({ name: tool.name, arguments: {
+    canvasCourseId: '42', canvasUrl: 'https://canvas.example.edu', confirmed: true
+  } })
+  assert.ok(!result.isError)
+  assert.deepEqual(calls, [{ path: '/api/integrations/canvas/corpus/course', method: 'POST', body: {
+    canvasCourseId: '42', canvasUrl: 'https://canvas.example.edu', force: true
+  } }])
+  await client.callTool({ name: tool.name, arguments: { canvasCourseId: '43', confirmed: true } })
+  assert.equal(calls[1].body.canvasUrl, 'https://canvas.maastrichtuniversity.nl')
+})
+
+test('course material refresh preserves queue receipts and reports consent errors', async t => {
+  let denied = false
+  const receipt = { observed: 1, queued: 1, syncId: 'sync-fixture' }
+  const server = createRemoteMcpServer({ auth: { userId: 'student', scopes: ['read', 'write'] }, api: async () => {
+    if (denied) throw Object.assign(new Error('Choose a Canvas material authorization in Settings first.'), { status: 409 })
+    return receipt
+  } })
+  const client = new Client({ name: 'refresh-test', version: '1' })
+  const [a, b] = InMemoryTransport.createLinkedPair()
+  await server.connect(a); await client.connect(b)
+  t.after(async () => { await client.close(); await server.close() })
+  const call = () => client.callTool({ name: 'refresh_course_materials', arguments: { canvasCourseId: '42', confirmed: true } })
+  const queued = await call()
+  assert.deepEqual(JSON.parse(queued.content[0].text), receipt)
+  denied = true
+  const rejected = await call()
+  assert.equal(rejected.isError, true)
+  assert.equal(JSON.parse(rejected.content[0].text).status, 409)
+})

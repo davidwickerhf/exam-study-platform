@@ -14,7 +14,7 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 36)
+  assert.equal(tools.size, 37)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
@@ -72,8 +72,8 @@ test('MCP requires a fresh confirmation on student writes, including legacy tool
   const { installWriteConfirmation } = await import('../mcp/write-confirmation.mjs')
   const tools = new Map(), server = { registerTool: (name, { inputSchema }, handler) => tools.set(name, { schema: z.object(inputSchema), handler }) }
   installWriteConfirmation(server, z)
-  for (const name of ['set_mastery', 'tutor_ask', 'tutor_confirm_update', 'canvas_sync_control', 'get_attendance', 'tutor_prepare_context']) server.tool(name, 'fixture', {}, args => args)
-  for (const name of ['set_mastery', 'tutor_ask', 'tutor_confirm_update', 'canvas_sync_control']) {
+  for (const name of ['set_mastery', 'tutor_ask', 'tutor_confirm_update', 'canvas_sync_control', 'refresh_course_materials', 'get_attendance', 'tutor_prepare_context']) server.tool(name, 'fixture', {}, args => args)
+  for (const name of ['set_mastery', 'tutor_ask', 'tutor_confirm_update', 'canvas_sync_control', 'refresh_course_materials']) {
     assert.equal(tools.get(name).schema.safeParse({}).success, false)
     assert.equal(tools.get(name).schema.safeParse({ confirmed: true }).success, true)
   }
