@@ -7,7 +7,8 @@
 .course-facts > span + span { padding-left: 20px; border-left: 1px solid var(--border); }
 .course-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); align-items: stretch; gap: 0; flex: 1; }
 .course-workspace { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.course-navigation { align-self: stretch; padding: 24px 12px; background: var(--background); border-right: 1px solid var(--border); }
+.course-navigation { align-self: stretch; background: var(--background); border-right: 1px solid var(--border); }
+.course-navigation-content { position: sticky; top: 0; max-height: 100dvh; overflow-y: auto; overscroll-behavior-y: contain; padding: 24px 12px; }
 .course-nav-list { display: flex; width: 100%; height: auto; justify-content: flex-start; flex-direction: column; gap: 4px; padding: 0; align-items: stretch; }
 .course-nav-item { flex: none; width: 100%; height: 40px; justify-content: flex-start; padding: 0 12px; border: 0; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--muted-foreground); }
 .course-nav-item::after { display: none; }
@@ -42,6 +43,7 @@
   .course-heading { padding: 12px 20px 20px; }
   .course-layout { display: flex; flex-direction: column; }
   .course-navigation { width: 100%; padding: 0 20px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .course-navigation-content { position: static; max-height: none; overflow: visible; padding: 0; }
   .course-nav-list { flex-direction: row; overflow-x: auto; gap: 20px; height: 48px; }
   .course-nav-item { width: auto; padding: 0; height: 48px; border-radius: 0; }
   .course-nav-item svg { display: none; }
@@ -80,6 +82,7 @@
   .course-heading { padding: 12px 20px 20px; }
   .course-layout { display: flex; flex-direction: column; }
   .course-navigation { width: 100%; padding: 0 20px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .course-navigation-content { position: static; max-height: none; overflow: visible; padding: 0; }
   .course-nav-list { flex-direction: row; overflow-x: auto; gap: 20px; height: 48px; }
   .course-nav-item { width: auto; padding: 0; height: 48px; border-radius: 0; }
   .course-nav-item svg { display: none; }

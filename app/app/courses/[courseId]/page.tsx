@@ -235,6 +235,7 @@ function CourseContent() {
         {saveError && <p role="alert" className="text-destructive border-y py-2 text-sm">{saveError}</p>}
         <Tabs value={tab} orientation={wide ? 'vertical' : 'horizontal'} onValueChange={value => selectTab(value as CourseTab)} className="course-layout">
           <aside className="course-navigation">
+            <div className="course-navigation-content">
             <TabsList aria-label="Course sections" variant="line" className="course-nav-list">
               {([['study','Study guides',BookOpenIcon],['exercises','Exercises',TargetIcon],['papers','Mock papers',FileTextIcon],['materials','Materials',FolderOpenIcon],['groups','Groups',UsersIcon],['attendance','Attendance',CalendarCheckIcon],['history','Results',GraduationCapIcon],['about','Details',InfoIcon]] as const).map(([value,label,Icon]) => <TabsTrigger key={value} value={value} className={`course-nav-item ${value==='attendance'?'course-nav-secondary':''}`}><Icon className="size-4"/><span>{label}</span>{value === 'history' && !academicLoading && !academicError && attempts.length > 0 && <span className={`ml-auto text-xs ${NUMERALS}`}>{attempts.length}</span>}</TabsTrigger>)}
             </TabsList>
@@ -243,6 +244,7 @@ function CourseContent() {
               <Select value={year} onValueChange={value => value && selectYear(value)}><SelectTrigger size="sm" aria-labelledby="course-edition-label" className="w-full bg-card"><SelectValue>{year === 'all' ? 'All years' : year === 'undated' ? 'Undated' : year}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{selectedYear && selectedYear !== 'all' && !editions.some(e => e.year === selectedYear) && <SelectItem value={selectedYear}>{selectedYear}</SelectItem>}{editions.map(e => <SelectItem key={e.year} value={e.year}>{e.year === 'undated' ? 'Undated' : e.year}</SelectItem>)}</SelectContent></Select>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">Guides, materials, groups and results.<br/>Practice includes all years.</p>
             </div>}
+            </div>
           </aside>
           <div className="course-panel">
           <CourseCanvasUpdates key={`${course.code}:${year}`} courseCode={course.code} academicYear={year} />

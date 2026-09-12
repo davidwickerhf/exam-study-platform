@@ -126,6 +126,7 @@ export function CourseMaterialLibrary({
     setModuleName("all");
     setQuery("");
     setPreview(null);
+    setMaterials(null);
   }, [codeKey, academicYear]);
 
   useEffect(() => {
@@ -133,7 +134,8 @@ export function CourseMaterialLibrary({
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15_000);
     setError(null);
-    setMaterials(null);
+    // Keep the current list mounted while collection polling refreshes it.
+    // Collapsing it to a skeleton clamps the document scroll position.
     Promise.all(
       (JSON.parse(codeKey) as string[]).map((code) =>
         fetch(
@@ -309,16 +311,17 @@ export function CourseMaterialLibrary({
         </label>
       )}
 
-      {error ? (
+      {error && (
         <p role="alert" className="text-sm font-medium">
           {error}
         </p>
-      ) : !materials ? (
+      )}
+      {!materials ? (error ? null : (
         <div className="grid gap-2">
           <Skeleton className="h-14" />
           <Skeleton className="h-14" />
         </div>
-      ) : !materials.length ? (
+      )) : !materials.length ? (
         // Nothing stored is still a row of the register, not a box inside a
         // box: one line of what is missing with its action beside it, held
         // between the same hairlines the material rows would have used.
