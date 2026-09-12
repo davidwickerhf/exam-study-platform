@@ -190,6 +190,7 @@ authoritative list of endpoints and scopes.
 
 - Source reading: `read_course_source`, `canvas_course_materials`, `canvas_search_announcements`.
 - Assignment details: `canvas_assignment_detail` returns the full brief, deadlines, own submission, rubric and comments; link to the first-party Updates assignment view.
+- Refresh course materials: `refresh_course_materials({canvasCourseId, canvasUrl, confirmed:true})` queues an immediate refresh of one exact Canvas edition, matching the course page. Discover the ID, host and academic year with `canvas_corpus_status`; existing collection consent is required. Follow status/logs to completion, then read `canvas_course_materials`. Available through hosted MCP and the optional local package.
 - Sync: `canvas_corpus_status`, `canvas_corpus_sync`, `canvas_sync_course`, `canvas_sync_logs`, `canvas_sync_control`. Latest current-period editions refresh updates every 30 minutes and materials every six hours. Historic retakes stay available on demand; unchanged resources reuse their durable originals/indexes.
 - Personal study context: `get_study_work`, `get_attendance`, `get_course_obligations`, `get_study_readiness`, `get_weekly_review`.
 - Persistent Tutor: `tutor_history`, `tutor_conversation`, `tutor_ask`, `tutor_approve_action`, `tutor_delete_conversation`.
