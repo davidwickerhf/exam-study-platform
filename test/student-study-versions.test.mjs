@@ -380,7 +380,7 @@ test('failed independent evidence review cannot activate or publish a revision',
     await f.run(async () => {
       const v = await ownStudyVersion(f.version.id)
       assert.equal(v.draft.status, 'failed')
-      assert.equal(v.draft.automaticRepairs.addition, 1)
+      assert.equal(v.draft.automaticRepairs.addition, 3)
       assert.equal(v.activeRevisionId, null)
       await assert.rejects(
         publishStudyVersion(v.id, { revisionId: v.draft.id }),
@@ -392,7 +392,7 @@ test('failed independent evidence review cannot activate or publish a revision',
       assert.deepEqual(retry.draft.repair.chapter, v.draft.chapters[0])
       await processStudyStep(v.id, {generate: async prompt => {
         assert.match(prompt, /smallest coherent changes/)
-        assert.ok(prompt.includes(JSON.stringify(v.draft.chapters[0])))
+        assert.ok(prompt.includes(JSON.stringify(v.draft.chapters[0].sections)))
         assert.match(prompt, /Solution contradicts the supplied source/)
         return lesson(f.snapshot.chunks.map(c => c.id))
       }})

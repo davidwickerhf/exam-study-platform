@@ -112,3 +112,14 @@ test('null corruption blocks acceptance even when a model called it a formatting
   const draft=chapter();draft.sections[0].text='The complement is 1\u0000\u0000=5/6.'
   assert.ok(studyLessonQuality(draft,evidence).some(issue=>issue.includes('null-character corruption')))
 })
+
+test('flashcard-only correction preserves the lesson and practice instead of regenerating them',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter();draft.factualAudit={marker:'DO NOT COPY ACCEPTANCE METADATA'}
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:'cards:0',detail:'Clarify the illustrative assumption.'}])
+  assert.ok(step);assert.doesNotMatch(step.prompt,/DO NOT COPY ACCEPTANCE METADATA/)
+  const flashcards=Object.fromEntries(step.cardIndexes.map(index=>[`card-${index}`,{...draft.flashcards[index],back:'Assume disjoint groups. '+draft.flashcards[index].back}]))
+  const fixed=applyQuestionRepair(draft,step,{flashcards})
+  assert.deepEqual(fixed.questions,draft.questions);assert.deepEqual(fixed.sections,draft.sections)
+  assert.deepEqual(fixed.flashcards.slice(4),draft.flashcards.slice(4));assert.notEqual(fixed.flashcards[0].back,draft.flashcards[0].back)
+})

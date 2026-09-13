@@ -134,7 +134,9 @@ test('personal billing bypasses included chapter caps but enforces its own month
   )
   const bounded = estimateStudyCall('🙂'.repeat(100), 50000, 'gpt-5-mini')
   assert.equal(bounded.inputTokens, 2448)
-  assert.equal(bounded.outputTokens, 20000)
+  assert.equal(bounded.outputTokens, 50000)
+  assert.equal(estimateStudyCall('Deep lesson', 64000, 'gpt-5-mini').outputTokens, 64000)
+  assert.equal(estimateStudyCall('Deep lesson', 100000, 'gpt-5-mini').outputTokens, 64000)
   assert.equal(estimateStudyCall('Deep lesson', 20000, 'gpt-5-mini').outputTokens, 20000)
 })
 test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never falls back to platform billing', async () => {
@@ -195,6 +197,7 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
         callPersonal: async (_prompt, opts) => {
           calls++
           assert.equal(opts.apiKey, key)
+          assert.equal(opts.maxOutputTokens, 64000)
           started()
           await pending
           return {
@@ -203,7 +206,7 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
           }
         }
       }
-      const first = runBudgetedStudyCall('hello', {}, config)
+      const first = runBudgetedStudyCall('hello', {maxOutputTokens:64000}, config)
       await entered
       await assert.rejects(
         runBudgetedStudyCall('hello', {}, config),

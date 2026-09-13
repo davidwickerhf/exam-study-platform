@@ -7,6 +7,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { auth as authorizeMcp } from '@modelcontextprotocol/sdk/client/auth.js'
 import { createMcpStore } from '../lib/mcp-store.mjs'
 import { createMcpOAuth } from '../lib/mcp-oauth.mjs'
+import { MCP_LIMITS } from '../lib/mcp-http.mjs'
 import { handleRemoteMcp } from '../lib/mcp-service.mjs'
 import { internalMcpAuth } from '../lib/mcp-bridge.mjs'
 import { createMcpApiBridge } from '../lib/mcp-bridge.mjs'
@@ -209,9 +210,9 @@ test('real Streamable HTTP client discovers tools/guidance, preserves account is
   const limited=await grant(dependencies.oauth,{userId:'limited-student',scope:'read'})
   const limitedTokens=await dependencies.oauth.token(limited.body)
   const headers={authorization:`Bearer ${limitedTokens.access_token}`,accept:'application/json, text/event-stream','content-type':'application/json'}
-  const oversized=await fetch(`${host}/api/mcp`,{method:'POST',headers,body:JSON.stringify({padding:'a'.repeat(256*1024)})})
+  const oversized=await fetch(`${host}/api/mcp`,{method:'POST',headers,body:JSON.stringify({padding:'a'.repeat(MCP_LIMITS.requestBytes)})})
   assert.equal(oversized.status,413)
-  await store.charge(`mcp-tokens:minute:${Math.floor(Date.now()/60000)}:user:limited-student`,900000,1000000,120000)
+  await store.charge(`mcp-tokens:minute:${Math.floor(Date.now()/60000)}:user:limited-student`,MCP_LIMITS.tokenUnitsPerMinute,MCP_LIMITS.tokenUnitsPerMinute,120000)
   const callsBefore=calls.length
   const throttled=await fetch(`${host}/api/mcp`,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'list_courses',arguments:{}}})})
   assert.equal(throttled.status,429)

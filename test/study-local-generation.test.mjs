@@ -127,3 +127,45 @@ test('read-only API keys cannot advance local generation; hosted actions cannot 
   assert.equal(authorise({mode:'api-key',scopes:['read','write']},{method:'POST',pathname:`/api/study-versions/${id}/local/next`}),null)
   await assert.rejects(studyVersionApi({pathname:`/api/study-versions/${id}/retry`,method:'POST',body:{},query:{}}),/local agent/)
 }))
+
+for(const rejectedDrafts of [2,99])test(`local correction loop ${rejectedDrafts===2?'recovers from repeated review failures':'stops at its shared limit'} without discarding its base`,async()=>fixture(async id=>{
+  const ids=await map(id)
+  let drafts=0,lastText='',lastResponse
+  for(let index=0;index<100;index++) {
+    const next=await nextLocalStudy(id)
+    if(!next.request){lastResponse=next;break}
+    const findings=drafts<=rejectedDrafts?[{topicId:'addition',severity:'error',detail:'Explain why these groups must be disjoint before adding them.'}]:[]
+    let response=teachingResponse(next.request.prompt,ids,{reviewIssues:findings})
+    if(!response){
+      if(lastText)assert.ok(next.request.prompt.includes(lastText),'each correction receives the immediately preceding saved draft')
+      drafts++
+      response=lesson(ids)
+      response.sections[0].text+=` Teaching revision ${drafts}.`
+      lastText=response.sections[0].text
+    }
+    const result=await answer(id,next.request,response)
+    const duplicate=await answer(id,next.request,response)
+    assert.equal(duplicate.duplicate,true)
+    assert.deepEqual(duplicate.version.corrections,result.version.corrections,'duplicate submissions cannot consume another correction')
+  }
+  assert.ok(lastResponse,'loop must reach a terminal state')
+  const held=await ownStudyVersion(id)
+  if(rejectedDrafts===2){
+    assert.equal(lastResponse.version.status,'complete')
+    assert.equal(drafts,3)
+    const revision=await studyRevision(held)
+    assert.equal(revision.generation.corrections.attempts.addition,2)
+    assert.equal(new Set(revision.generation.corrections.history.map(item=>item.baseHash)).size,2)
+  }else{
+    assert.equal(lastResponse.version.status,'failed')
+    assert.equal(drafts,4,'one initial draft plus three corrections')
+    assert.equal(lastResponse.version.corrections.attempts.addition,3)
+    assert.match(lastResponse.version.error,/3 of 3/)
+    assert.equal(held.activeRevisionId,null)
+    assert.equal(held.draft.chapters[0].sections[0].text,lastText)
+    const retry=await nextLocalStudy(id,{retry:true})
+    assert.ok(retry.request.prompt.includes(lastText))
+    assert.equal(retry.version.corrections.attempts.addition,3,'explicit retry does not reset the automatic allowance')
+    assert.equal(retry.version.corrections.manualAttempts.addition,1)
+  }
+}))

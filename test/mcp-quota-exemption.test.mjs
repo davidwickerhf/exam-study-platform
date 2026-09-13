@@ -68,3 +68,27 @@ test('hosted AI reservations inherit owner exemption across keys and keep usage 
   await store.charge(`mcp-model:${day}:user:ordinary`,AI_LIMITS.tokensPerDay,AI_LIMITS.tokensPerDay,172800000)
   await assert.rejects(()=>withRequestContext({remoteMcp:true,userId:'ordinary',keyId:'other',mcpBudgetStore:store,unlimited:true},()=>reserveRemoteModelBudget({message:'hello'},30,{quotaExemption})),{status:429})
 })
+
+test('MCP carries a large local-generation submission and draft response intact',async t=>{
+  const store=createMcpStore(null)
+  const payload='Teaching and worked reasoning. '.repeat(16000)
+  const server=createServer(async(req,res)=>{
+    if(req.method!=='POST'){res.writeHead(405);res.end();return}
+    const chunks=[];for await(const part of req)chunks.push(part)
+    const body=JSON.parse(Buffer.concat(chunks).toString())
+    await handleMcpRequest(req,res,{body,store,auth:{userId:'large-guide',keyId:'test-key',scopes:['read','write']},quotaExemption:async()=>false,
+      api:async(path,options)=>{
+        assert.match(path,/local\/submit$/)
+        assert.equal(options.body.response,payload)
+        return {accepted:true,retainedDraft:payload}
+      }})
+  })
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
+  t.after(()=>{server.closeAllConnections();return new Promise(resolve=>server.close(resolve))})
+  const client=new Client({name:'large-guide-test',version:'1'})
+  await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${server.address().port}/api/mcp`)))
+  t.after(()=>client.close())
+  const result=await client.callTool({name:'study_generation_submit',arguments:{versionId:'sv-test',requestId:'request-test',contractId:'contract-test',response:payload}})
+  assert.equal(result.isError,undefined)
+  assert.deepEqual(JSON.parse(result.content[0].text),{accepted:true,retainedDraft:payload})
+})
