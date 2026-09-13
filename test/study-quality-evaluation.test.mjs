@@ -29,7 +29,7 @@ test('browser evaluation runs generation, independent review and corruption chec
     assert.equal(options.billing.maxJobUsd, 0.25)
     assert.equal(options.jobKey, row.id)
     const spec = evaluationStep(row)
-    assert.deepEqual(options.responseSchema, studyResponseSchema(spec.schema, row.snapshot.chunks.map(c => c.id)))
+    assert.deepEqual(options.responseSchema, spec.responseSchema || studyResponseSchema(spec.schema, row.snapshot.chunks.map(c => c.id)))
     if (row.stage >= 2) assert.equal(options.reasoningEffort, 'medium')
     calls++
     if (row.stage === 0) return planned()

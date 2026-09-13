@@ -282,6 +282,10 @@ try {
     const [{key}]=await listDocuments(automation.MODULE_SETTINGS)
     await automation.reconcileModuleGuides(key,{sourceOptions,now:Date.now()+3*86400000})
     assert.equal((await automation.localGenerationQueue()).versions.length,1)
+    await sql`UPDATE canvas_corpus_access SET sync_paused=true WHERE user_id='module-sql' AND binding_id='binding'`
+    assert.equal((await automation.localGenerationQueue()).versions.length,0)
+    await sql`UPDATE canvas_corpus_access SET sync_paused=false WHERE user_id='module-sql' AND binding_id='binding'`
+    assert.equal((await automation.localGenerationQueue()).versions.length,1)
     await recurring.saveRecurringPolicy({guides:false,papers:false,priorities:false})
     assert.equal((await automation.localGenerationQueue()).versions.length,0)
     await automation.scheduleModuleGuides({sourceOptions})

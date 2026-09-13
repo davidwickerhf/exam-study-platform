@@ -296,7 +296,7 @@ export function StudyReader({
                 </div>
                 {question.objective && <p className="text-xs text-muted-foreground">Practising: <StudyInline>{question.objective}</StudyInline></p>}
                 <StudyProse>{question.question}</StudyProse>
-                <StudyHints key={question.id} question={question} />
+                <StudyHints key={`hints-${question.id}`} question={question} />
                 <Field>
                   <FieldLabel htmlFor="study-answer">Your answer</FieldLabel>
                   <Textarea
@@ -340,7 +340,7 @@ export function StudyReader({
                     </Button>
                   )}
                 </div>
-                {showAnswer && <StudyRemediation key={question.id} question={question} questions={chapter.questions} onSelect={i=>{setQuestionIndex(i);setShowAnswer(false);setAnswer('')}}/>}
+                {showAnswer && <StudyRemediation key={`remediation-${question.id}`} question={question} questions={chapter.questions} onSelect={i=>{setQuestionIndex(i);setShowAnswer(false);setAnswer('')}}/>}
                 {showAnswer && (
                   <div className="rounded-lg border bg-muted/20 p-4">
                     <StudyProse>{question.answer}</StudyProse>

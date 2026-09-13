@@ -73,3 +73,18 @@ test('title-only passages remain coverage gaps rather than licenses to invent ex
   assert.match(prompt, /must NOT become teaching sections/)
   assert.equal(chunks[0].text, 'Welsh room', 'the original snapshot is unchanged')
 })
+
+
+test('ordinary prose about data is not confused with a data URI',()=>{
+  const process=lesson(['e-1']).sections[2].visual
+  process.diagram.nodes[0].description='Identify given data: the input values and their units.'
+  assert.deepEqual(studyVisualIssues(process),[])
+  process.diagram.nodes[0].description='data:image/svg+xml;base64,AAAA'
+  assert.match(studyVisualIssues(process).join(' '),/embedded/)
+})
+
+test('format 3 leaves proportional solution depth to semantic review, not a word quota',()=>{
+  const chapter=lesson(['e-1'])
+  chapter.questions[0].answer='Subtract three from five to recover two; the inverse operation checks the total.'
+  assert.equal(studyLessonQuality(chapter).some(i=>/Practice needs varied/.test(i)),false)
+})

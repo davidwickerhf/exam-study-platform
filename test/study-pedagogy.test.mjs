@@ -47,3 +47,39 @@ test('a changed exam-scope announcement invalidates otherwise unchanged chapter 
   const after={...before,text:'Polling will not be on this exam.'}
   assert.notEqual(inputHash(topic,[teaching,before]),inputHash(topic,[teaching,after]))
 })
+
+
+test('provider schema requires diagnostic feedback for any difficult-objective question',async()=>{
+  const {teachingResponseSchema,teachingSchema}=await import('../lib/study-version-content.mjs')
+  const {default:Ajv}=await import('ajv')
+  const chapter=lesson(['e-1']),plan=chapter.teachingPlan
+  const raw=teachingSchema.parse(chapter)
+  const validate=new Ajv({strict:false}).compile(teachingResponseSchema(plan,['e-1']))
+  assert.equal(validate(raw),true,JSON.stringify(validate.errors))
+  raw.questions[0].misconceptions=[]
+  assert.equal(validate(raw),false)
+  raw.questions[0].objectiveIds=['invented']
+  assert.equal(validate(raw),false)
+})
+
+
+test('reviewer evidence choices are exact visible excerpts and bind to their section', async () => {
+  const {pedagogicalResponseSchema}=await import('../lib/study-version-content.mjs')
+  const {default:Ajv}=await import('ajv')
+  const chapter=iotPedagogyFixture().chapter
+  const schema=pedagogicalResponseSchema(chapter)
+  const choices=schema.properties.objectives.items.properties.explanation.anyOf
+  const validate=new Ajv({strict:false}).compile({anyOf:choices})
+  for(const choice of choices){
+    const sectionId=choice.properties.sectionId.enum[0]
+    const section=chapter.sections.find(s=>s.id===sectionId)
+    for(const quote of choice.properties.quote.enum){
+      assert.ok(section.text.includes(quote))
+      assert.ok(quote.length<=280)
+      assert.ok(validate({sectionId,quote}))
+    }
+  }
+  assert.equal(validate({sectionId:chapter.sections[0].id,quote:'Invented explanation.'}),false)
+  const quote=choices[0].properties.quote.enum[0]
+  assert.equal(validate({sectionId:chapter.sections[1].id,quote}),false)
+})

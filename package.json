@@ -37,7 +37,9 @@
     "prebuild": "node scripts/prepare-pdf-viewer.mjs",
     "predev": "node scripts/prepare-pdf-viewer.mjs",
     "pretest:e2e": "node scripts/prepare-pdf-viewer.mjs",
-    "test:tutor:live": "node scripts/verification/tutor-grounding-live.mjs"
+    "test:tutor:live": "node scripts/verification/tutor-grounding-live.mjs",
+    "test:study:readiness:live": "node scripts/verification/study-readiness-live.mjs",
+    "test:study:pipeline:live": "node scripts/verification/study-pipeline-live.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

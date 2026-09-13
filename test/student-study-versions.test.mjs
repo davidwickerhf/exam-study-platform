@@ -40,9 +40,10 @@ import {
 import {
   mapSchema,
   lessonSchema,
-  teachingSchema,
+  teachingSchema, teachingResponseSchema,
   reviewSchema,
   studyResponseSchema,
+  pedagogicalResponseSchema,
   parseStudyJson,
   assertEvidence,
   sourceChanges,
@@ -118,7 +119,7 @@ async function finish(f, { reviewIssues = [] } = {}) {
     const v = await ownStudyVersion(f.version.id),
       chunks = v.draft.snapshot.chunks,
       ids = chunks.map((c) => c.id)
-    assert.deepEqual(options.responseSchema, studyResponseSchema(expected, expected === pedagogyReviewSchema ? undefined : ids))
+    assert.deepEqual(options.responseSchema, expected === teachingSchema ? teachingResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? pedagogicalResponseSchema(v.draft.chapters.find(c=>c.review==='pending')) : studyResponseSchema(expected, ids))
     if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
     if (prompt.includes('Map this evidence batch'))
       return {

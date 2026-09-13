@@ -106,3 +106,24 @@ test('course pause retains local checkpoints and resumes without a new run',()=>
   const resumed=await nextLocalStudy(id,{},sourceOptions)
   assert.equal(resumed.request.id,waiting.request.id)
 }))
+
+
+test('activation observes new evidence only in its own Canvas shell',async()=>{
+  const {automaticSourcesAdded}=await import('../lib/study-version-pipeline.mjs')
+  const version={course,automation:{candidate:{bindingId:'binding',moduleId:'one'}}},snapshot={sources:[{key:'saved'}]}
+  const notice={key:'notice',bindingId:'other-shell',academicYear:course.academicYear,announcement:true}
+  const material={key:'new-file',bindingId:'other-shell',academicYear:course.academicYear,locations:[{moduleId:'one'}]}
+  assert.equal(automaticSourcesAdded(version,snapshot,[notice,material]),false)
+  assert.equal(automaticSourcesAdded(version,snapshot,[{...notice,bindingId:'binding'}]),true)
+  assert.equal(automaticSourcesAdded(version,snapshot,[{...material,bindingId:'binding'}]),true)
+  assert.equal(automaticSourcesAdded(version,snapshot,[{...notice,key:'saved',bindingId:'binding'}]),false)
+})
+
+
+test('historical explanatory citations may accompany current scope, but cannot replace it',()=>{
+  const snapshot={sources:[{key:'current',academicYear:course.academicYear},{key:'old',academicYear:'2025-2026'}],chunks:[{id:'c',sourceKey:'current',text:'Current objectives: polling.'},{id:'h',sourceKey:'old',text:'Polling samples input.'}]}
+  const result={ready:true,organisation:'topic',reason:'Current scope, historical explanation',scope:[{topic:'Polling',sourceIds:['c','h']}],evidence:[{sourceId:'c',quote:'Current objectives: polling.'}],missingReadings:[],unresolvedTopics:[]}
+  assert.equal(validateModuleReadiness(result,snapshot,course).ready,true)
+  assert.throws(()=>validateModuleReadiness({...result,scope:[{topic:'Polling',sourceIds:['h']}]},snapshot,course),/Current-edition/)
+  assert.throws(()=>validateModuleReadiness({...result,scope:[{topic:'Polling',sourceIds:['c','invented']}]},snapshot,course),/Current-edition/)
+})
