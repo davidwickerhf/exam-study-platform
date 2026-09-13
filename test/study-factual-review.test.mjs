@@ -83,6 +83,18 @@ test('question-only correction preserves all other teaching and cannot drop obje
   assert.equal(questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:'Untaught prerequisite across objectives'}]),null)
 })
 
+test('diagnostic corrections can repair linked targets while retaining unrelated questions',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter(),q=draft.questions[0]
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:q.key+': follow-up does not target the misconception'}])
+  assert.ok(step.keys.includes(q.key))
+  for(const m of q.misconceptions)assert.ok(step.keys.includes(m.followUpKey))
+  const replacements=Object.fromEntries(draft.questions.filter(q=>step.keys.includes(q.key)).map(q=>[q.key,{...q,question:q.question+' Explain the changed condition.'}]))
+  const fixed=applyQuestionRepair(draft,step,{questions:replacements})
+  assert.deepEqual(fixed.questions.filter(q=>!step.keys.includes(q.key)),draft.questions.filter(q=>!step.keys.includes(q.key)))
+  assert.deepEqual(fixed.sections,draft.sections)
+})
+
 test('an objective review can inspect a linked follow-up from another objective',async()=>{
   const {nextPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
   const draft=chapter(),[a,b]=draft.teachingPlan.objectives.map(o=>o.id)

@@ -128,6 +128,36 @@ test('read-only API keys cannot advance local generation; hosted actions cannot 
   await assert.rejects(studyVersionApi({pathname:`/api/study-versions/${id}/retry`,method:'POST',body:{},query:{}}),/local agent/)
 }))
 
+for(const attempts of [0,3])test(`missing follow-up targets use the shared correction policy at ${attempts} attempts`,async()=>fixture(async id=>{
+  const ids=await map(id), next=await nextLocalStudy(id)
+  await answer(id,next.request,lesson(ids))
+  await mutateStudyVersion(id,version=>{
+    const chapter=version.draft.chapters[0]
+    chapter.questions[0].objectiveIds=['objective-1']
+    for(const question of chapter.questions.slice(1))question.objectiveIds=['objective-2','objective-3']
+    version.draft.automaticRepairs={addition:attempts}
+  })
+  const result=await nextLocalStudy(id)
+  const version=await ownStudyVersion(id)
+  assert.equal(version.activeRevisionId,null)
+  if(attempts===0){
+    assert.ok(result.request)
+    assert.match(result.request.prompt,/Missing related practice for question-1/)
+    assert.match(result.request.prompt,/Return the complete chapter/)
+    assert.equal(version.draft.automaticRepairs.addition,1)
+    assert.equal(version.draft.correctionHistory.at(-1).phase,'links')
+    const duplicate=await nextLocalStudy(id)
+    assert.equal(duplicate.request.id,result.request.id)
+    assert.equal((await ownStudyVersion(id)).draft.automaticRepairs.addition,1)
+  }else{
+    assert.equal(result.request,null)
+    assert.equal(result.version.status,'failed')
+    assert.match(result.version.error,/3 of 3/)
+    assert.equal(version.draft.chapters.length,1)
+    assert.match(version.draft.issues[0].detail,/Missing related practice/)
+  }
+}))
+
 for(const rejectedDrafts of [2,99])test(`local correction loop ${rejectedDrafts===2?'recovers from repeated review failures':'stops at its shared limit'} without discarding its base`,async()=>fixture(async id=>{
   const ids=await map(id)
   let drafts=0,lastText='',lastResponse
