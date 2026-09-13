@@ -769,3 +769,39 @@ test('syllabus fit does not accept invented citations, missing questions or unsu
   assert.equal(paperKind({ title: 'practice_exam--file-123.pdf' }), 'paper')
   assert.equal(paperKind({ title: 'mock_exam_solutions.pdf' }), 'solutions')
 })
+
+test('practice citation output is constrained to selected chunks and a bad citation gets one correction', async () => {
+  await fixture(async f => {
+    const set = await createStudyPractice(f.version.id, { ...f.base, mode: 'extract', questionSourceKey: f.paper.id, solutionSourceKey: f.solution.id }, { billing })
+    const payload = { title: 'Exam', questions: f.questions, warnings: [] }
+    const bad = { ...payload, questions: payload.questions.map(q => ({ ...q, sourceIds: ['invented-id'] })) }
+    const first = await stepStudyPractice(f.version.id, set.id, { generate: async (prompt, options) => {
+      const properties = options.responseSchema.properties.questions.items.properties
+      const ids = f.snapshot.chunks.map(chunk => chunk.id)
+      assert.deepEqual(properties.sourceIds.items.enum, ids)
+      assert.deepEqual(properties.answerSourceIds.items.enum, ids)
+      return JSON.stringify(bad)
+    } })
+    assert.equal(first.status, 'pending')
+    assert.equal(first.stage, 'generate')
+    const corrected = await stepStudyPractice(f.version.id, set.id, { generate: async prompt => {
+      assert.match(prompt, /A citation was outside the selected evidence/)
+      return JSON.stringify(payload)
+    } })
+    assert.equal(corrected.stage, 'review')
+    const reviewed = await stepStudyPractice(f.version.id, set.id, { generate: async () => JSON.stringify({ issues: [] }) })
+    assert.equal(reviewed.status, 'complete')
+  })
+})
+
+test('repeated invalid practice citations pause instead of retrying indefinitely or accepting unsupported evidence', async () => {
+  await fixture(async f => {
+    const set = await createStudyPractice(f.version.id, { ...f.base, mode: 'extract', questionSourceKey: f.paper.id }, { billing })
+    const generate = async () => JSON.stringify({ title: 'Exam', warnings: [], questions: f.questions.map(q => ({ ...q, sourceIds: ['invented-id'] })) })
+    assert.equal((await stepStudyPractice(f.version.id, set.id, { generate })).status, 'pending')
+    const failed = await stepStudyPractice(f.version.id, set.id, { generate })
+    assert.equal(failed.status, 'failed')
+    assert.match(failed.error, /citation is not in the selected evidence/)
+    assert.equal((await stepStudyPractice(f.version.id, set.id, { generate: () => { throw new Error('must not run') } })).status, 'failed')
+  })
+})
