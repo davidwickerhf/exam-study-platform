@@ -1,4 +1,5 @@
 'use client'
+import { CourseGuideAutomation } from './course-guide-automation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -81,6 +82,7 @@ export function CourseStudyVersions({
         <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">Create a guide from your slides, readings and notes. Each chapter includes explanations, a summary and practice.</p>
         <div className="mt-5 flex flex-wrap gap-3"><Button size="sm" onClick={()=>setCreating(true)}>{versions?.length ? 'Create study guide' : 'Create your first guide'}<ArrowRightIcon/></Button>{versions?.length ? <Button size="sm" variant="ghost" onClick={onShowAllYears}>Show all years</Button> : <Button size="sm" variant="ghost" onClick={()=>onNavigate('materials')}>Browse materials</Button>}</div>
       </div>}
+    {academicYear!=='all'&&<CourseGuideAutomation course={{courseCode,courseName,academicYear,period}} onSaved={()=>setLoadRevision(n=>n+1)}/>}
     <div className="course-next-actions course-band">
       <button onClick={()=>onNavigate('exercises')}><TargetIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground"/><span><strong>Put it into practice</strong><small>Work through questions from every chapter.</small></span><ArrowRightIcon className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground"/></button>
       <button onClick={()=>onNavigate('materials')}><FolderOpenIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground"/><span><strong>Go to the source</strong><small>Open the original slides, readings and notes.</small></span><ArrowRightIcon className="ml-auto mt-0.5 size-4 shrink-0 text-muted-foreground"/></button>

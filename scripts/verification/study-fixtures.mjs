@@ -6,17 +6,45 @@ export const course = {
 }
 const paragraph =
   'Addition combines quantities into a total. Start from the first value, then count forward by the second value. For an illustrative example, two items combined with three items give five items. Check the calculation by reversing the operation: subtract the second amount from the total to recover the first amount. This reasoning assumes the quantities use the same unit and refer to disjoint groups. Counting an item twice is a common mistake. A negative quantity instead represents a change in the opposite direction. Explain the operation and its assumptions before applying a formula to a new situation.'
+const goals = ['Combine disjoint quantities with matching units using $T=A+B$.', 'Diagnose double counting and unit errors.', 'Check a total using subtraction.']
+export function teachingPlan(ids) {
+  return { objectives: goals.map((goal, i) => ({ id: `objective-${i + 1}`, goal, complexity: 'difficult', basis: 'course', sourceIds: ids,
+    prerequisites: [{ text: 'Recognize which items belong to each group and use matching units.', basis: 'background', sourceIds: ids }],
+    demonstration: 'Explain the assumptions, compute a total, diagnose overlap and check by subtraction.',
+    teachingApproach: 'Explain disjoint groups, work an addition and inverse check, then change overlap and units.' })), exclusions: [], gaps: [] }
+}
+export function pedagogicalReview(chapter, { shallow = false } = {}) {
+  return { objectives: chapter.teachingPlan.objectives.map(o => {
+    const path = chapter.objectiveCoverage.find(c => c.objectiveId === o.id)
+    const explanation = chapter.sections.find(s => s.id === path.explanationSectionIds[0])
+    const worked = chapter.sections.find(s => s.id === path.workedExampleSectionIds[0])
+    return { objectiveId: o.id, adequate: !shallow,
+      explanation: { sectionId: explanation.id, quote: explanation.text.split('. ')[0] },
+      workedExample: shallow ? null : { sectionId: worked.id, quote: worked.text.split('. ')[0] },
+      guidedQuestionKey: path.guidedQuestionKeys[0], independentQuestionKey: path.independentQuestionKeys[0],
+      rationale: 'Scripted plumbing fixture, not a live pedagogical judgment.',
+      missingReasoning: shallow ? ['The definition does not teach the event trace required by its assessment.'] : [] }
+  }), issues: [] }
+}
+export function teachingResponse(prompt, ids) {
+  if (prompt.includes('PLAN THE TEACHING')) return teachingPlan(ids)
+  if (prompt.includes('INDEPENDENT PEDAGOGICAL REVIEW')) return pedagogicalReview(JSON.parse(prompt.split('Chapter: ').at(-1)))
+  return null
+}
 export function lesson(ids, { wrong = false } = {}) {
   return {
     title: 'Addition',
-    formatVersion: 2,
+    teachingPlan: teachingPlan(ids),
+    formatVersion: 3,
+    objectiveCoverage: teachingPlan(ids).objectives.map(o => ({ objectiveId: o.id, explanationSectionIds: ['section-1'], workedExampleSectionIds: ['section-3'], guidedQuestionKeys: ['question-1'], independentQuestionKeys: ['question-3'], transferQuestionKeys: ['question-7'] })),
     learningGoals: ['Combine disjoint quantities with matching units using $T=A+B$.', 'Diagnose double counting and unit errors.', 'Check a total using subtraction.'],
     sections: [
       'Definition',
       'Reasoning',
       'Worked example',
       'Limits and self-check'
-    ].map((title) => ({
+    ].map((title, i) => ({
+      id: `section-${i + 1}`, objectiveIds: ['objective-1', 'objective-2', 'objective-3'],
       title,
       text: paragraph,
       callouts: title === 'Definition' ? [{kind:'definition',title:'Adding disjoint groups',text:'Addition combines quantities with matching units. Count each item once. An overlap is written A \\cap B. For the illustrative groups:\n\n$$2+3=5$$',sourceIds:ids}] : [],
@@ -66,7 +94,7 @@ export function lesson(ids, { wrong = false } = {}) {
       {question:'A student adds metres to centimetres without conversion. Explain the error and repair the method.',answer:'The numerical terms use incompatible units, so their direct sum lacks a consistent meaning. Convert to a common unit first, combine the terms, and preserve that unit.',kind:'application'},
       {question:'Design a test that distinguishes an incorrect total from a double-counted input.',answer:'First verify which objects belong to each group and identify any shared members. Then count distinct objects once and reverse the proposed operation to check the total.',kind:'exam-style'},
       {question:'Transfer the counting method to two inventories when some products belong to both lists.',answer:'Match product identities across the inventories before adding counts. Count shared products once rather than twice, then check the result by reconstructing the separate and shared groups.',kind:'exam-style'}
-    ].map((q,i) => ({...q, answer:q.answer+' State the disjoint-group and matching-unit assumptions explicitly so the calculation can be checked independently.', sourceIds:ids, objective:['Combine disjoint quantities with matching units using $T=A+B$.','Diagnose double counting and unit errors.','Check a total using subtraction.'][i%3], skill:['apply','compare','recall','diagnose','apply','diagnose','transfer','transfer'][i], difficulty:i>=6?'challenge':i<2?'foundation':'standard',hint:'Check which items and units are being combined before calculating.'})),
+    ].map((q,i) => ({...q, key: `question-${i + 1}`, objectiveIds: ['objective-1', 'objective-2', 'objective-3'], practiceStage: i < 2 ? 'guided' : i >= 6 ? 'transfer' : 'independent', hints: ['Identify each group and its units.', 'Check for shared items before adding; subtract one group to check.'], misconceptions: [{mistake:'Counting an overlapping item twice.',explanation:'Identify shared members and count each only once before applying the inverse check.',followUpKey:i === 3 ? 'question-8' : 'question-4'}], answer:q.answer+' State the disjoint-group and matching-unit assumptions explicitly so the calculation can be checked independently.', sourceIds:ids, objective:['Combine disjoint quantities with matching units using $T=A+B$.','Diagnose double counting and unit errors.','Check a total using subtraction.'][i%3], skill:['apply','compare','recall','diagnose','apply','diagnose','transfer','transfer'][i], difficulty:i>=6?'challenge':i<2?'foundation':'standard',hint:'Check which items and units are being combined before calculating.'})),
     flashcards: [
       ['What does addition combine?', 'Quantities expressed in matching units.', 'definition'],
       ['Why require disjoint groups?', 'Otherwise shared items are counted twice.', 'misconception'],

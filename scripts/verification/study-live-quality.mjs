@@ -1,3 +1,4 @@
+import { evaluationStep, pedagogicalEvaluationCheck } from '../../lib/study-evaluation-steps.mjs'
 import { evaluationCourse, evaluationSources, evaluationChunks, evaluationTopic, corruptEvaluationChapter, reviewerCatchesKnownErrors } from '../../lib/study-quality-fixture.mjs'
 // Opt-in, local evaluation of real model output. Never runs in npm test/verify.
 // OPENAI_API_KEY=... npm run test:study:live -- --require-live
@@ -65,7 +66,7 @@ async function generate(prompt, maxOutputTokens = 10000, schema = teachingSchema
       body: JSON.stringify({
         model,
         max_completion_tokens: maxOutputTokens,
-        reasoning_effort: schema === reviewSchema ? 'medium' : 'low',
+        reasoning_effort: 'medium',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_schema', json_schema: { name: 'study_evaluation', strict: true, schema: studyResponseSchema(schema, evaluationChunks.map(c => c.id)) } }
       }),
@@ -97,45 +98,19 @@ const report = {
     'Small fixed source set; AI review is not proof of educational correctness across courses.'
 }
 try {
-  const lesson = assertEvidence(
-    parseStudyJson(
-      await generate(lessonPrompt(course, sources, chunks, topic)),
-      teachingSchema
-    ),
-    chunks
-  )
-  const deterministic = studyLessonQuality(lesson, chunks)
-  report.generated = lesson
-  report.checks.push({
-    name: 'format, citations, teaching depth, reasoned solutions and arithmetic',
-    passed: deterministic.length === 0,
-    issues: deterministic
-  })
-  const review = parseStudyJson(
-    await generate(
-      reviewPrompt(course, sources, chunks, { ...lesson, id: topic.id }),
-      4000, reviewSchema
-    ),
-    reviewSchema
-  )
-  report.checks.push({
-    name: 'independent evidence review',
-    passed: !review.issues.some((i) => i.severity === 'error'),
-    issues: review.issues
-  })
-  const bad = corruptEvaluationChapter(lesson)
-  const adversarial = parseStudyJson(
-    await generate(
-      reviewPrompt(course, sources, chunks, { ...bad, id: topic.id }),
-      4000, reviewSchema
-    ),
-    reviewSchema
-  )
-  report.checks.push({
-    name: 'review rejects intentionally wrong answer, misleading visual and historical assessment contamination',
-    passed: reviewerCatchesKnownErrors(adversarial.issues),
-    issues: adversarial.issues
-  })
+  const row = { course, snapshot:{sources,chunks}, topic, stage:0 }
+  for (; row.stage < 7; row.stage++) {
+    const step = evaluationStep(row)
+    const parsed = parseStudyJson(await generate(step.prompt, step.tokens, step.schema), step.schema)
+    if (step.kind === 'plan') row.teachingPlan = assertEvidence(parsed, chunks)
+    else if (step.kind === 'lesson') {
+      row.generated = report.generated = {...assertEvidence(parsed, chunks), teachingPlan:row.teachingPlan}
+      const issues = studyLessonQuality(row.generated, chunks)
+      report.checks.push({name:'Format, citations, coverage and arithmetic',passed:!issues.length,issues})
+    } else if (step.kind === 'evidence' || step.kind === 'corruption') {
+      report.checks.push({name:step.kind, passed:step.kind === 'corruption' ? reviewerCatchesKnownErrors(parsed.issues) : !parsed.issues.some(i=>i.severity==='error'),issues:parsed.issues})
+    } else report.checks.push(pedagogicalEvaluationCheck(step, parsed))
+  }
 } catch (error) {
   report.checks.push({
     name: 'evaluation completed',

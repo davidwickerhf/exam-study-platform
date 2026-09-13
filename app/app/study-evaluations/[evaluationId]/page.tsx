@@ -40,7 +40,7 @@ export default function QualityEvaluationPage() {
   const chapter = data?.generated
   const revision: StudyRevision | null = data && chapter ? {
     id: data.id, versionId: data.id, course: data.course, snapshot: data.snapshot, topics: [data.topic],
-    chapters: [{ ...chapter, id: data.topic.id, review: data.checks.length >= 2 && data.checks.slice(0, 2).every(check => check.passed) ? 'passed' : 'diagnostic',
+    chapters: [{ ...chapter, id: data.topic.id, review: data.checks.length >= 4 && data.checks.slice(0, 4).every(check => check.passed) ? 'passed' : 'diagnostic',
       questions: chapter.questions.map((q, i) => ({ ...q, id: `evaluation-q-${i}` })),
       flashcards: chapter.flashcards.map((f, i) => ({ ...f, id: `evaluation-f-${i}` })) }],
     gaps: [], issues: [], review: 'diagnostic'
@@ -62,7 +62,7 @@ export default function QualityEvaluationPage() {
             <p className="text-muted-foreground mt-1 text-xs">{data.billing.model} · {data.billing.source === 'personal' ? 'Your AI key' : 'Platform allowance'} · {data.billing.unlimited ? 'No usage cap' : `$${data.billing.maxJobUsd.toFixed(2)} total cap`}</p>
             <p className="text-muted-foreground mt-1 text-xs">{data.calls.length} calls recorded · ${data.calls.reduce((n, c) => n + c.chargedUsd, 0).toFixed(4)} recorded cost · {data.status}</p>
           </div>
-          {data.status === 'pending' && <Button disabled={busy} onClick={() => void nextStep()}>{busy ? 'Running…' : ['Generate test chapter', 'Review against sources', 'Test reviewer with known errors'][data.stage]}</Button>}
+          {data.status === 'pending' && <Button disabled={busy} onClick={() => void nextStep()}>{busy ? 'Running…' : ['Plan teaching objectives', 'Generate test chapter', 'Review against sources', 'Review teaching quality', 'Test factual errors', 'Test IoT teaching', 'Test shallow IoT lessons'][data.stage]}</Button>}
           {data.generated && data.status !== 'running' && data.stage >= 2 && <Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { const next = await studyRequest<Evaluation>(`${path}/recheck`, {revision:data.revision}); router.push(`/app/study-evaluations/${next.id}`) } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}>Recheck this chapter</Button>}
           {data.status === 'running' && <p className="text-muted-foreground text-sm">Model call in progress. This page will update when its result is saved.</p>}
         </div>
@@ -70,7 +70,7 @@ export default function QualityEvaluationPage() {
         {data.error && <p role="status" className="text-sm text-muted-foreground">{data.error}</p>}
         {data.checks.length > 0 && <ul className="divide-y">{data.checks.map((check, i) => <li className="py-3" key={i}>
           <div className="flex flex-wrap items-center gap-2"><Badge variant={check.passed ? 'secondary' : 'destructive'}>{check.passed ? 'Passed' : 'Needs attention'}</Badge><span className="text-sm font-medium">{check.name}</span></div>
-          {i === 2 && <p className="mt-2 text-sm text-muted-foreground">These errors were deliberately inserted into a test copy to check the reviewer. The study chapter below is unchanged.</p>}
+          {i === 4 && <p className="mt-2 text-sm text-muted-foreground">These errors were deliberately inserted into a test copy to check the reviewer. The study chapter below is unchanged.</p>}
           {check.issues.length > 0 && <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">{check.issues.map((issue, j) => <li key={j}>{typeof issue === 'string' ? issue : `${issue.severity}: ${issue.detail}`}</li>)}</ul>}
         </li>)}</ul>}
         <p className="text-muted-foreground text-xs leading-5">{data.limitations}</p>

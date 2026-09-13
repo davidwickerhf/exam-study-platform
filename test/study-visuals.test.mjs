@@ -25,7 +25,7 @@ test('set visuals require actual membership and never accept executable or fetch
   spec.caption = '<img src="https://example.com/tracker">'
   assert.match(studyVisualIssues(spec).join(' '), /executable markup/)
 })
-test('teaching gate rejects dense prose, empty summaries and shallow repetitive practice even with valid JSON', () => {
+test('teaching gate permits necessary depth but rejects empty summaries and shallow repetitive practice even with valid JSON', () => {
   const good = lesson(['e-1'])
   assert.ok(teachingSchema.safeParse(good).success)
   assert.deepEqual(studyLessonQuality(good), [])
@@ -36,7 +36,7 @@ test('teaching gate rejects dense prose, empty summaries and shallow repetitive 
   bad.questions[0].question = 'Which exam rule applies this year?'
   bad.flashcards.forEach(c => {c.front='What is addition?';c.kind='definition'})
   const issues=studyLessonQuality(bad).join(' ')
-  for (const term of [/concise/,/visual/,/summary/,/progressive challenge/,/distinct prompts/,/exam-policy trivia/]) assert.match(issues,term)
+  for (const term of [/visual/,/summary/,/progressive challenge/,/distinct prompts/,/exam-policy trivia/]) assert.match(issues,term)
   const wrongCallout = structuredClone(good)
   wrongCallout.sections[0].callouts[0].text = 'The rule is $2+3=6$.'
   assert.match(studyLessonQuality(wrongCallout).join(' '), /arithmetic/)

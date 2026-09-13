@@ -1,3 +1,4 @@
+import { pedagogicalReview as evaluationReview } from '../scripts/verification/study-fixtures.mjs'
 import { activeProgrammeId } from '../lib/programme-scope.mjs'
 import { mutateStudyVersion } from '../lib/study-version-store.mjs'
 import { randomUUID } from 'node:crypto'
@@ -16,7 +17,7 @@ import {
   ownStudyVersion
 } from '../lib/study-version-store.mjs'
 import { processStudyStep } from '../lib/study-version-pipeline.mjs'
-import { course, lesson } from '../scripts/verification/study-fixtures.mjs'
+import { course, lesson, teachingPlan, teachingResponse, pedagogicalReview } from '../scripts/verification/study-fixtures.mjs'
 import { createQualityEvaluation, stepQualityEvaluation } from '../lib/study-quality-evaluation.mjs'
 import { readFile } from 'node:fs/promises'
 import { renderSlideBytes } from '../lib/course-slide-render.mjs'
@@ -66,26 +67,26 @@ test.beforeAll(async () => {
     for (let i = 0; i < 10; i++) {
       await processStudyStep(versionId, {
         generate: async (prompt) =>
-          prompt.includes('Map this evidence batch')
+          teachingResponse(prompt, ids) || (prompt.includes('Map this evidence batch')
             ? {
                 topics: [{ id: 'addition', title: 'Addition', sourceIds: ids }],
                 gaps: []
               }
             : prompt.includes('Independently check')
               ? { issues: [] }
-              : lesson(ids)
+              : lesson(ids))
       })
       if ((await ownStudyVersion(versionId)).draft.status === 'complete') break
     }
     expect((await ownStudyVersion(versionId)).draft.status).toBe('complete')
     let evaluation = await createQualityEvaluation({}, { platform: { configured: true, provider: 'openai', model: 'gpt-5-mini' } })
     evaluationId = evaluation.id
-    for (let i = 0; i < 3; i++) evaluation = await stepQualityEvaluation(evaluation.id, evaluation.revision, {
-      generate: async () => ({ text: JSON.stringify(i === 0 ? lesson(['e-current']) : { issues: i === 1 ? [] : [
+    for (let i = 0; i < 7; i++) evaluation = await stepQualityEvaluation(evaluation.id, evaluation.revision, {
+      generate: async prompt => ({ text: JSON.stringify(i >= 5 ? evaluationReview(JSON.parse(prompt.split('Chapter: ').at(-1)), { shallow: i === 6 }) : teachingResponse(prompt, ['e-current']) || (i === 1 ? lesson(['e-current']) : { issues: i === 2 ? [] : [
         { topicId: 'probability', severity: 'error', detail: 'Even outcomes have probability 1/2, not 2/3.' },
         { topicId: 'probability', severity: 'error', detail: 'Current exam duration is 120 minutes; the historical rules are outdated.' },
         { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' }
-      ] }), usage: { inputTokens: 800, outputTokens: 1500, estimated: false } })
+      ] })), usage: { inputTokens: 800, outputTokens: 1500, estimated: false } })
     })
   })
 })
@@ -101,7 +102,7 @@ test.afterAll(async () => {
 test('private quality report renders real persisted checks, costs, citations and exercise solutions', async ({ page }) => {
   await page.goto(`/app/study-evaluations/${evaluationId}`)
   await expect(page.getByRole('heading', { name: 'Inspect the teaching, then check the evidence.' })).toBeVisible()
-  await expect(page.getByText('3 calls recorded · $0.0096 recorded cost · complete')).toBeVisible()
+  await expect(page.getByText('7 calls recorded · $0.0224 recorded cost · complete')).toBeVisible()
   await expect(page.getByText('Even outcomes have probability 1/2, not 2/3.', { exact: false })).toBeVisible()
   await page.getByRole('button', { name: /Sources ·/ }).first().click()
   await expect(page.getByText('Current probability lecture', { exact: true }).first()).toBeVisible()
@@ -722,7 +723,9 @@ test('guided lesson exposes interactive diagrams, optional depth and progressive
   await expect(page.getByText('If groups overlap, first remove the shared members', {exact:false})).toBeVisible()
   await page.getByRole('tab', {name:/^Practice \(8\)$/}).click()
   await page.getByText('Need a hint?',{exact:true}).click()
-  await expect(page.getByText('Check which items and units', {exact:false})).toBeVisible()
+  await expect(page.getByText('Identify each group and its units.', {exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Show next hint',exact:true}).click()
+  await expect(page.getByText('Check for shared items before adding; subtract one group to check.',{exact:true})).toBeVisible()
   for (let i=0;i<6;i++) await page.getByRole('button',{name:'Next question',exact:true}).click()
   await expect(page.getByText('challenge',{exact:true})).toBeVisible()
   await expect(page.getByText('Design a test that distinguishes', {exact:false})).toBeVisible()
@@ -759,7 +762,8 @@ test('chapter feedback proposes changes for review without a separate manual edi
   await run(async () => {
     const { improveStudyChapter } = await import('../lib/study-version-editing.mjs')
     await improveStudyChapter(versionId, { baseRevisionId: edited.revision.id, topicId: edited.revision.chapters[0].id, feedback: 'Add a worked example' })
-    for (let i = 0; i < 6; i++) await processStudyStep(versionId, { generate: async prompt => {
+    for (let i = 0; i < 10; i++) await processStudyStep(versionId, { generate: async prompt => {
+      const supplemental = teachingResponse(prompt, (await ownStudyVersion(versionId)).draft.snapshot.chunks.map(c => c.id)); if (supplemental) return supplemental
       if (prompt.includes('Independently check')) return { issues: [] }
       const result = lesson(edited.revision.snapshot.chunks.map(c => c.id))
       result.sections[0].text += ' A newly proposed worked example explains this calculation.'
@@ -1713,4 +1717,34 @@ test('course material polling preserves the list and scroll, and desktop navigat
     await expect(navigation).toHaveCSS('position', 'static')
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
+})
+
+
+test('recurring pipeline controls and connection settings use side drawers',async({page})=>{
+  await page.goto('/app/settings?tab=pipelines')
+  await expect(page.getByRole('heading',{name:'Recurring pipelines',exact:true})).toBeVisible()
+  const guides=page.getByRole('checkbox',{name:/Module guides and revisions/})
+  await guides.uncheck()
+  await page.getByRole('button',{name:'Save pipeline controls',exact:true}).click()
+  await expect.poll(async()=> (await page.request.get('/api/study-versions/pipelines')).json().then(r=>r.settings.guides)).toBe(false)
+  await guides.check()
+  await page.getByRole('button',{name:'Save pipeline controls',exact:true}).click()
+  await expect.poll(async()=> (await page.request.get('/api/study-versions/pipelines')).json().then(r=>r.settings.guides)).toBe(true)
+  await page.goto('/app/settings?tab=connections')
+  await page.route('**/api/account/integrations/canvas',route=>route.fulfill({json:{connections:[{origin:'https://canvas.example.test',createdAt:'2026-09-01',lastUsedAt:'2026-09-13',corpus:{collectionEnabled:true,sharingMode:'private',refresh:{enabled:true,updatesMinutes:30,materialsMinutes:1440,studyStatus:'studying'}}}]}}))
+  await page.reload()
+  await page.getByRole('button',{name:'Manage',exact:true}).click()
+  const drawer=page.getByRole('dialog',{name:'Canvas settings'})
+  await expect(drawer).toBeVisible()
+  await expect(drawer.getByRole('combobox',{name:'Material collection',exact:true})).toBeVisible()
+  const rect=await drawer.boundingBox()
+  expect(rect.x).toBeGreaterThan(100)
+  await expect.poll(async()=>{const r=await drawer.boundingBox();return Math.abs(r.x+r.width-page.viewportSize().width)}).toBeLessThan(3)
+  await page.screenshot({path:'/tmp/wicker-settings-side-drawer.png'})
+  await page.keyboard.press('Escape')
+  await expect(drawer).not.toBeVisible()
+  await page.setViewportSize({width:390,height:844})
+  await page.getByRole('button',{name:'Manage',exact:true}).click()
+  await expect(drawer).toBeVisible()
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })

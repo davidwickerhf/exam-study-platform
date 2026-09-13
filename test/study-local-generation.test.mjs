@@ -9,7 +9,7 @@ import { startLocalStudy, nextLocalStudy, submitLocalStudy, addLocalStudyNotes }
 import { studyVersionApi } from '../lib/study-version-api.mjs'
 import { studyGenerationContract } from '../lib/study-generation-contract.mjs'
 import { authorise } from '../lib/auth.mjs'
-import { course, lesson } from '../scripts/verification/study-fixtures.mjs'
+import { course, lesson, teachingPlan, teachingResponse } from '../scripts/verification/study-fixtures.mjs'
 
 async function fixture(fn) {
   await withRequestContext({ userId: `local-study-${randomUUID()}`, mode: 'local' }, async () => {
@@ -25,6 +25,9 @@ async function map(id) {
   const {request} = await nextLocalStudy(id)
   const ids = (await ownStudyVersion(id)).draft.snapshot.chunks.map(c=>c.id)
   await answer(id,request,{topics:[{id:'addition',title:'Addition',sourceIds:ids}],gaps:[]})
+  const plan = await nextLocalStudy(id)
+  assert.match(plan.request.prompt, /PLAN THE TEACHING/)
+  await answer(id, plan.request, teachingPlan(ids))
   return ids
 }
 
@@ -50,6 +53,9 @@ test('local generation uses the real staged pipeline without hosted dispatch and
   assert.equal(review.request.stage,'quality')
   assert.match(review.request.prompt,/Independently check/)
   await answer(id,review.request,{issues:[]})
+  const pedagogical = await nextLocalStudy(id)
+  assert.match(pedagogical.request.prompt, /INDEPENDENT PEDAGOGICAL REVIEW/)
+  await answer(id, pedagogical.request, teachingResponse(pedagogical.request.prompt, ids))
   const finished = await nextLocalStudy(id)
   assert.equal(finished.version.status,'complete')
   assert.equal(finished.request,null)

@@ -215,6 +215,12 @@ try {
   await query("UPDATE canvas_corpus_permissions SET collection_enabled=false WHERE user_id=$1",[accountId])
   await scheduleDueRefreshes()
   assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending'",[accountId])).n,'0')
+  // A recent metadata check must not suppress a due full material collection.
+  await query("UPDATE canvas_corpus_permissions SET collection_enabled=true,refresh_materials_minutes=60 WHERE user_id=$1",[accountId])
+  await query("INSERT INTO canvas_sync_jobs(id,user_id,origin,binding_id,job_type,status,finished_at,payload) SELECT 'recent-metadata',user_id,$2,binding_id,'course','completed',now(),'{\"stage\":\"freshness\"}'::jsonb FROM canvas_corpus_access WHERE user_id=$1 AND auto_refresh",[accountId,origin])
+  await observeCanvasCorpusCourses({accountId,origin,courses,automatic:true,refreshPolicy:true,timeContext:{academicYear:'2026-2027',periodNumber:1}})
+  assert.equal((await one("SELECT count(*) n FROM canvas_sync_jobs WHERE user_id=$1 AND status='pending' AND job_type='course' AND coalesce(payload->>'stage','')<>'freshness'",[accountId])).n,'1')
+  await query("UPDATE canvas_sync_jobs SET status='completed',finished_at=now() WHERE user_id=$1 AND status='pending'",[accountId])
   // Settings never cancel manual work, never change another account, and fence
   // automatic notifications after opt-out/completion.
   await query("UPDATE canvas_corpus_permissions SET collection_enabled=true WHERE user_id=$1",[accountId])

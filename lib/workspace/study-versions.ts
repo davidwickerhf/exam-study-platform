@@ -32,6 +32,11 @@ export type StudyVisualSpec = {
     | { kind: 'sets'; aLabel: string; bLabel: string; universe: string[]; a: string[]; b: string[] }
 }
 export type StudyQuestion = {
+  key?: string
+  objectiveIds?: string[]
+  practiceStage?: 'guided' | 'independent' | 'transfer'
+  hints?: string[]
+  misconceptions?: { mistake: string; explanation: string; followUpKey: string }[]
   type?: 'written' | 'mc' | 'multi' | 'tf' | 'calc' | 'pseudocode'
   options?: string[]
   correctOptions?: number[]
@@ -50,9 +55,11 @@ export type StudyChapter = {
   id: string
   title: string
   review: string
-  formatVersion?: 2
+  formatVersion?: 2 | 3
   learningGoals?: string[]
-  sections: (GroundedText & { title: string; takeaway?: string; detail?: string | null; visual?: StudyVisualSpec | null; callouts?: { kind: 'definition' | 'rule' | 'formula' | 'pitfall'; title: string; text: string; sourceIds: string[] }[] })[]
+  teachingPlan?: { objectives: { id: string; goal: string; basis: 'course' | 'background'; complexity: 'simple' | 'difficult'; prerequisites: { text: string; basis: string; sourceIds: string[] }[] }[]; exclusions: string[]; gaps: string[] }
+  objectiveCoverage?: { objectiveId: string; explanationSectionIds: string[]; workedExampleSectionIds: string[]; guidedQuestionKeys: string[]; independentQuestionKeys: string[]; transferQuestionKeys: string[] }[]
+  sections: (GroundedText & { id?: string; objectiveIds?: string[]; title: string; takeaway?: string; detail?: string | null; visual?: StudyVisualSpec | null; callouts?: { kind: 'definition' | 'rule' | 'formula' | 'pitfall'; title: string; text: string; sourceIds: string[] }[] })[]
   summary: GroundedText[]
   questions: StudyQuestion[]
   flashcards: { kind?: string; id: string; front: string; back: string; sourceIds: string[] }[]
@@ -172,11 +179,12 @@ export function generationLabel(draft: StudyVersion['draft']) {
   if (draft.status === 'stopped') return 'Generation paused'
   if (draft.status === 'waiting-local' || draft.status === 'local-ready') return 'Waiting for your local agent'
   if (draft.status === 'local-running') return 'Checking your local result'
+  if (draft.stage === 'readiness') return 'Checking module scope and required readings'
   if (draft.stage === 'mapping')
     return `Reading sources · ${draft.mapped} of ${draft.batches} batches`
   if (draft.stage === 'outline') return 'Organizing chapters'
   if (draft.stage === 'review')
-    return `Checking evidence · ${draft.chapters} of ${draft.total} chapters ready`
+    return `Checking evidence and teaching · ${draft.chapters} of ${draft.total} chapters ready`
   if (draft.stage === 'finish') return 'Saving your revision'
   if (draft.repairing) return `Correcting chapter · ${draft.chapters} of ${draft.total} ready`
   return `Writing chapters · ${draft.chapters} of ${draft.total} ready`

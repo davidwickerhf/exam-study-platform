@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { StudyProse, StudyInline } from './study-prose'
 import { StudyEvidence } from './study-evidence'
 import { StudyCallout } from './study-callout'
+import { StudyGuidedAttempt } from './study-learning-support'
 import { StudyVisual } from './study-visual'
 import type { StudyChapter, StudyRevision } from '@/lib/workspace/study-versions'
 
@@ -32,13 +33,14 @@ export function StudyLessonStory({ chapter, revision }: { chapter: StudyChapter;
   const visualSection = chapter.sections[visualIndex]
   return <div ref={root} className={hasVisual ? 'grid min-w-0 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-10' : ''}>
     <div className="min-w-0">
-      {chapter.sections.map((section, index) => <section key={`${chapter.id}-${index}`} data-story-section={index} className="mb-12 scroll-mt-8 last:mb-0">
+      {chapter.sections.map((section, index) => <section key={`${chapter.id}-${index}`} id={section.id ? `lesson-${chapter.id}-${section.id}` : undefined} data-story-section={index} className="mb-12 scroll-mt-8 last:mb-0">
         <p className="mb-3 text-xs font-medium tabular-nums text-muted-foreground">{String(index + 1).padStart(2, '0')} / {String(chapter.sections.length).padStart(2, '0')}</p>
         <h3 className="mb-4 text-xl font-semibold leading-snug tracking-tight">{section.title}</h3>
         {!!section.callouts?.length && <div className="mb-5 space-y-4">{section.callouts.map((callout,i) => <StudyCallout key={i} callout={callout} revision={revision} />)}</div>}
         <div className="max-w-prose text-pretty"><StudyProse>{section.text}</StudyProse></div>
         {section.takeaway && (!section.callouts?.length ? <div className="mt-5"><StudyCallout callout={{kind:'takeaway',title:'Key idea',text:section.takeaway,sourceIds:[]}} revision={revision} /></div> : <p className="mt-5 text-sm font-medium leading-relaxed"><StudyInline>{section.takeaway}</StudyInline></p>)}
         {section.detail && <details className="mt-5 border-y py-3"><summary className="cursor-pointer text-sm font-medium">Go deeper: {section.title}</summary><div className="mt-4 max-w-prose"><StudyProse>{section.detail}</StudyProse></div></details>}
+        {chapter.formatVersion === 3 && chapter.questions.filter(q => q.practiceStage === 'guided' && chapter.objectiveCoverage?.some(path => path.workedExampleSectionIds.at(-1) === section.id && path.guidedQuestionKeys.includes(q.key || ''))).map(q => <StudyGuidedAttempt key={q.id} question={q} />)}
         <StudyEvidence ids={section.sourceIds} revision={revision} />
         {section.visual && <div className="mt-6 xl:hidden"><StudyVisual visual={section.visual} /><StudyEvidence ids={section.visual.sourceIds} revision={revision} /></div>}
       </section>)}

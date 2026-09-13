@@ -1,3 +1,4 @@
+import { scheduleModuleGuides } from './lib/study-module-automation.mjs'
 import { prepareOriginalDownload } from './lib/original-downloads.mjs'
 import { sendCorpusAsset } from './lib/corpus-asset-response.mjs'
 import { isMcpRoute, handleRemoteMcp, remoteMcpService } from './lib/mcp-service.mjs'
@@ -3648,7 +3649,7 @@ async function handleRequest(req, res) {
       }
       if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
       if (!queueWorkersEnabled()) { send(res, 200, JSON.stringify({ disabled: true })); return }
-      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: [...await claimStudyDispatch(), ...await claimPaperDispatch()] })); return }
+      if (body.action === 'study-dispatch') { await scheduleModuleGuides({sourceOptions:studySourceOptions,platform:llmConfiguration()}); send(res, 200, JSON.stringify({ ids: [...await claimStudyDispatch(), ...await claimPaperDispatch()] })); return }
       if ((body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) || (body.action === 'paper-step' && /^pap-[a-f0-9-]{36}$/.test(body.jobId || ''))) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result
@@ -6717,7 +6718,7 @@ server.listen(port, hostname, () => {
 // Local recovery uses the same durable outbox as Vercel Cron. No browser worker.
 if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
   const recovery = setInterval(async () => {
-    try { for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key); for (const id of await claimPaperDispatch()) await wakeStudentStudy(id) }
+    try { await scheduleModuleGuides({sourceOptions:studySourceOptions,platform:llmConfiguration()}); for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key); for (const id of await claimPaperDispatch()) await wakeStudentStudy(id) }
     catch (error) { console.error('Study recovery deferred:', error.message) }
   }, 30000)
   recovery.unref()

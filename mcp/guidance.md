@@ -20,7 +20,7 @@ Use when the student asks to process course materials with their local agent and
 
 - Fetch `study_generation_contract` and `study_generation_sources` for the exact course/year. Choose the student's sources. For deeper local processing use `prepare_original_download` and your own file tools to obtain originals (or the optional package’s `canvas_import_remote_course` for bulk imports); inspect relevant graphs, tables, diagrams and speaker notes. Save supplementary extraction with `study_generation_add_notes`, retaining filenames/page numbers and distinguishing observations from interpretation. Original Canvas files are not overwritten.
 - Start `study_generation_start` for the authorised selection, or use the version ID prepared in the web interface. This starts no hosted model work and spends no platform AI allowance.
-- Call `study_generation_next` for each step. Follow the returned prompt, evidence and JSON schema exactly; do not maintain a separate schema or teaching prompt. For review steps use a fresh critique context against the supplied evidence and report genuine findings, never a fabricated pass.
+- Call `study_generation_next` for each step. Follow the returned prompt, evidence and JSON schema exactly; do not maintain a separate schema or teaching prompt. Plan objective/evidence coverage before drafting; the server requests that as a separate step. For factual AND pedagogical review use separate fresh critique contexts against the exact supplied artifact. Pedagogical reviews must identify actual visible explanations and worked reasoning that prepare each objective’s assessment. Report genuine findings, never a fabricated pass.
 - Submit one complete response with `study_generation_submit`, preserving `requestId` and `contractId`. On transport failure repeat the identical submission. A changed contract or stale request requires fetching next again. Continue until complete. Corrections preserve useful content and use the same platform acceptance pipeline.
 - On `failed`, inspect the issues and use `retry:true` only when you can correct them. Stop and report an unresolved source-access problem or repeated quality failure. Completed chapters stay readable. User cancellation calls `study_generation_stop`.
 
@@ -482,3 +482,25 @@ Automatic Canvas refresh is configurable in Settings → Connections → Manage:
 Read the student's reports with `feedback_list` and `feedback_read`. Each `feedback_reply`, `feedback_withdraw_evidence` and `feedback_react` also needs individual explicit confirmation. Helpful/not-helpful reactions reference an exact saved Tutor answer revision and do not forward its text. Link students to `/app/feedback` for public replies, status and evidence withdrawal. A complaint is not permission to submit feedback, write Tutor memory or change an attendance record. Feedback reviewers do not gain access to private referenced originals.
 
 Contact sharing is optional per report: use `shareContactEmail:true` only when the student chooses it and show the returned address in the preview. `feedback_withdraw_contact` stops sharing it after fresh confirmation. Reports show receipt, investigation and completion updates with public comments; AI-assisted replies are labeled and reviewed by the team.
+
+
+## Recurring module generation and changed scope
+
+Read `study_pipeline_status` and `study_module_guides` for schedules, saved checks,
+failures, historical-material suggestions and pending work. When the student asks
+for automatic local maintenance, use `study_module_guides_configure` for the exact
+course edition. Do not grant Canvas consent or enable hosted billing through MCP.
+`study_generation_queue` lists authorised work. Continue with next/submit until
+complete or a real blocker. The automatic readiness step may honestly reject a
+module for missing textbook content or uncertain current-year scope; that is an
+accepted decision, not permission to fabricate content. Local work waits while
+the agent is disconnected, with no platform fallback.
+
+Current-year topic scope and explicit later exam exclusions take precedence over
+older course material. Past-year sources may explain matched topics, but cannot
+establish current rules or complete coverage. Generic “Week 1” filenames are not
+proof of an equivalent syllabus. Textbook references need actual readable chapter
+content. New/modified files and current-course announcements trigger checks and
+new revisions for automatically maintained module guides; manual saved guides
+are not silently enrolled. Use Settings → Recurring pipelines for global pauses
+and durable logs. Existing runs retain their original billing/execution choice.

@@ -45,7 +45,7 @@ const { processStudyStep } = await import(
 const { publishStudyVersion, readStudyPublication, submitStudyVersion } =
   await import('../../lib/study-version-sharing.mjs')
 const { runBudgetedStudyCall } = await import('../../lib/study-ai-budget.mjs')
-const { course, lesson } = await import('./study-fixtures.mjs')
+const { course, lesson, teachingResponse } = await import('./study-fixtures.mjs')
 const as = (userId, fn) => withRequestContext({ userId, mode: 'local' }, fn)
 try {
   await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public')
@@ -80,6 +80,8 @@ try {
     let mappingCalls = 0
     const generate = async (prompt) => {
       const ids = snapshot.chunks.map((c) => c.id)
+      const extra=teachingResponse(prompt,ids)
+      if(extra)return extra
       if (prompt.includes('Map this evidence batch')) {
         mappingCalls++
         await new Promise((r) => setTimeout(r, 30))
@@ -257,7 +259,7 @@ try {
       if(next.version.status==='complete')break
       assert.ok(next.request,JSON.stringify(next.version))
       const ids=(await ownStudyVersion(version.id)).draft.snapshot.chunks.map(c=>c.id)
-      const response=next.request.stage==='quality' ? {issues:[]} : next.request.prompt.includes('Map this evidence batch') ? {topics:[{id:'addition',title:'Addition',sourceIds:ids}],gaps:[]} : lesson(ids)
+      const response=teachingResponse(next.request.prompt,ids) || (next.request.stage==='quality' ? {issues:[]} : next.request.prompt.includes('Map this evidence batch') ? {topics:[{id:'addition',title:'Addition',sourceIds:ids}],gaps:[]} : lesson(ids))
       const body={requestId:next.request.id,contractId:next.request.contractId,response}
       const results=await Promise.all([local.submitLocalStudy(version.id,body),local.submitLocalStudy(version.id,body)])
       assert.ok(results.some(result=>result.accepted||result.duplicate))
@@ -267,6 +269,25 @@ try {
     assert.equal(done.draft.status,'complete')
     assert.equal(done.history.length,1)
     assert.equal((await studyRevision(done)).generation.semanticReview,'local-agent')
+  })
+  // Exercise automatic policy selection and leases against real JSONB/SQL.
+  const automation=await import('../../lib/study-module-automation.mjs')
+  const recurring=await import('../../lib/study-recurring-policy.mjs')
+  const {writeDocument,listDocuments}=await import('../../lib/user-store.mjs')
+  await pool.query("INSERT INTO canvas_corpus_permissions(user_id,origin,collection_enabled) VALUES('module-sql','https://canvas.example.test',true); INSERT INTO canvas_corpus_access(user_id,binding_id,auto_refresh) VALUES('module-sql','binding',true)")
+  await as('module-sql',async()=>{
+    const sourceOptions={editorialSources:async()=>[{key:'module-notes',title:'Addition practice',bindingId:'binding',academicYear:course.academicYear,period:'1',locations:[{moduleId:'one'}],sha256:'v1',pages:[{page:1,text:'Addition combines disjoint quantities. Two plus three is five.'}]}]}
+    await writeDocument(automation.MODULE_INVENTORIES,'binding',{bindingId:'binding',course,modules:[{id:'one',name:'Addition',position:1,items:1}],skipped:[]})
+    await automation.saveModuleGuideSettings(course,{enabled:true,execution:'local',rule:'auto',supportingSourceKeys:[],billing:{source:'platform',quality:'standard',maxJobUsd:1}},{sourceOptions})
+    const [{key}]=await listDocuments(automation.MODULE_SETTINGS)
+    await automation.reconcileModuleGuides(key,{sourceOptions,now:Date.now()+3*86400000})
+    assert.equal((await automation.localGenerationQueue()).versions.length,1)
+    await recurring.saveRecurringPolicy({guides:false,papers:false,priorities:false})
+    assert.equal((await automation.localGenerationQueue()).versions.length,0)
+    await automation.scheduleModuleGuides({sourceOptions})
+    await recurring.saveRecurringPolicy({guides:true,papers:true,priorities:true})
+    await automation.scheduleModuleGuides({sourceOptions})
+    assert.equal((await automation.localGenerationQueue()).versions.length,1)
   })
   console.log(
     'PostgreSQL: local generation/JSONB/concurrent idempotency, migrations, private Canvas generation, exact retrieval, duplicate leases, course membership, consent withdrawal, atomic shared spending, derived scan invalidation, private batch caching JSONB document review validation and private original-file persistence/isolation/deletion passed.'

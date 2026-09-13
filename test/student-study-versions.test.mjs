@@ -1,3 +1,4 @@
+import { teachingPlanSchema, pedagogyReviewSchema, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
@@ -54,7 +55,7 @@ import {
 } from '../lib/study-content-quality.mjs'
 import { studyVersionApi } from '../lib/study-version-api.mjs'
 
-import { course, lesson } from '../scripts/verification/study-fixtures.mjs'
+import { course, lesson, teachingPlan, teachingResponse, pedagogicalReview } from '../scripts/verification/study-fixtures.mjs'
 test('display period labels match source periods without opting into historical materials', async () => {
   await withRequestContext({ userId: `study-period-${randomUUID()}`, mode: 'local' }, async () => {
     try {
@@ -113,11 +114,12 @@ async function finish(f, { reviewIssues = [] } = {}) {
   let calls = 0
   const generate = async (prompt, options) => {
     calls++
-    const expected = prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : teachingSchema
+    const expected = prompt.includes('PLAN THE TEACHING') ? teachingPlanSchema : prompt.includes('INDEPENDENT PEDAGOGICAL REVIEW') ? pedagogyReviewSchema : prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : teachingSchema
     const v = await ownStudyVersion(f.version.id),
       chunks = v.draft.snapshot.chunks,
       ids = chunks.map((c) => c.id)
-    assert.deepEqual(options.responseSchema, studyResponseSchema(expected, ids))
+    assert.deepEqual(options.responseSchema, studyResponseSchema(expected, expected === pedagogyReviewSchema ? undefined : ids))
+    if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
     if (prompt.includes('Map this evidence batch'))
       return {
         topics: [{ id: 'addition', title: 'Addition', sourceIds: ids }],
@@ -156,7 +158,7 @@ test('provider schemas preserve validation bounds and require defaults without i
   assert.equal(map.properties.topics.maxItems, 24)
   assert.equal(map.properties.gaps.type, 'array')
   assert.equal(map.properties.gaps.items.maxLength, 600)
-  assert.equal(studyResponseSchema(lessonSchema).properties.sections.minItems, 4)
+  assert.equal(studyResponseSchema(lessonSchema).properties.sections.minItems, 2)
 })
 
 test('invalid model output reports structural diagnostics without exposing content', () => {
@@ -171,7 +173,7 @@ test('invalid model output reports structural diagnostics without exposing conte
 test('private generation completes without editorial acceptance and preserves evidence, practice and history', async () => {
   const f = await fixture()
   try {
-    assert.equal(await finish(f), 3)
+    assert.equal(await finish(f), 5)
     await f.run(async () => {
       const v = await ownStudyVersion(f.version.id),
         r = await studyRevision(v)
@@ -409,6 +411,7 @@ test('a source-recall card receives one automatic correction before the paid evi
       await mutateStudyVersion(f.version.id, v => { v.draft.stage = 'chapters'; v.draft.topics = [{id:'addition',title:'Addition',sourceIds:ids}] })
       let generated = 0, reviewed = 0
       const generate = async prompt => {
+        if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
         if (prompt.includes('Independently check')) { reviewed++; return {issues:[]} }
         generated++
         const value = lesson(ids)
@@ -416,7 +419,7 @@ test('a source-recall card receives one automatic correction before the paid evi
         else { assert.match(prompt, /smallest coherent changes/); assert.match(prompt, /academic concept directly/) }
         return value
       }
-      for (let i = 0; i < 6; i++) { await processStudyStep(f.version.id, {generate}); if ((await ownStudyVersion(f.version.id)).activeRevisionId) break }
+      for (let i = 0; i < 10; i++) { await processStudyStep(f.version.id, {generate}); if ((await ownStudyVersion(f.version.id)).activeRevisionId) break }
       assert.equal(generated, 2)
       assert.equal(reviewed, 1)
       assert.ok((await ownStudyVersion(f.version.id)).activeRevisionId)
@@ -496,7 +499,7 @@ test('content quality gates reject unsupported citations, arithmetic mistakes, t
   )
   const thin = lesson(ids)
   thin.sections = thin.sections.map((s) => ({ ...s, text: 'Summary.' }))
-  assert.match(studyLessonQuality(thin).join(' '), /substantive teaching/)
+  assert.ok(pedagogyReviewIssues(thin, pedagogicalReview(lesson(ids))).some(i => /actual visible teaching/.test(i.detail)))
   const unsafe = lesson(ids)
   unsafe.sections[0].text += '<script>alert(1)</script>'
   assert.match(studyLessonQuality(unsafe).join(' '), /safe text/)
@@ -710,6 +713,7 @@ test('refresh reuses an unchanged checked chapter and only generates the newly m
               ids = v.draft.snapshot.chunks
                 .filter((c) => c.sourceKey === added.id)
                 .map((c) => c.id)
+            if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
             if (prompt.includes('Map this evidence batch'))
               return {
                 topics: [
@@ -864,6 +868,7 @@ test('targeted AI feedback reuses other chapters, waits for apply, and supports 
         calls++
         assert.equal(options.billing.model, 'gpt-5.4')
         assert.ok(!prompt.includes('Map this evidence batch'))
+        if (teachingResponse(prompt, original.snapshot.chunks.map(c => c.id))) return teachingResponse(prompt, original.snapshot.chunks.map(c => c.id))
         if (prompt.includes('Independently check')) return { issues: [] }
         assert.ok(prompt.includes(input.feedback))
         assert.ok(prompt.includes('Existing chapter:'))
@@ -871,9 +876,9 @@ test('targeted AI feedback reuses other chapters, waits for apply, and supports 
         result.sections[0].text += ' This additional worked example clarifies the steps.'
         return result
       }
-      for (let i = 0; i < 6; i++) await processStudyStep(version.id, { generate })
+      for (let i = 0; i < 10; i++) await processStudyStep(version.id, { generate })
       version = await ownStudyVersion(version.id)
-      assert.equal(calls, 2)
+      assert.equal(calls, 4)
       assert.equal(version.activeRevisionId, two.id)
       const proposal = await studyProposal(version)
       assert.ok(proposal)
@@ -890,7 +895,7 @@ test('targeted AI feedback reuses other chapters, waits for apply, and supports 
       assert.ok(await studyRevision(applied, two.id))
       await assert.rejects(decideStudyProposal(version.id, { revisionId: proposal.id, decision: 'apply' }), /no longer available/)
       await improveStudyChapter(version.id, { ...input, baseRevisionId: proposal.id })
-      for (let i = 0; i < 6; i++) await processStudyStep(version.id, { generate: async prompt => prompt.includes('Independently check') ? { issues: [] } : lesson(original.snapshot.chunks.map(c => c.id)) })
+      for (let i = 0; i < 10; i++) await processStudyStep(version.id, { generate: async prompt => teachingResponse(prompt, original.snapshot.chunks.map(c => c.id)) || (prompt.includes('Independently check') ? { issues: [] } : lesson(original.snapshot.chunks.map(c => c.id))) })
       const pending = await studyProposal(await ownStudyVersion(version.id))
       const discarded = await decideStudyProposal(version.id, { revisionId: pending.id, decision: 'discard' })
       assert.equal(discarded.activeRevisionId, proposal.id)
@@ -948,9 +953,12 @@ test('review-only retry keeps the failed chapter and charges no generation call'
       await controlStudyGeneration(before.id, 'retry', null, {recheck:true})
       let calls = 0
       await processStudyStep(before.id, {generate: async prompt => { calls++; assert.match(prompt, /Independently check/); return {issues:[]} }})
+      await processStudyStep(before.id, { generate: async prompt => { calls++; return teachingResponse(prompt, f.snapshot.chunks.map(c => c.id)) } })
       const next = await ownStudyVersion(before.id)
-      assert.equal(calls, 1)
-      assert.deepEqual(next.draft.chapters[0], {...saved, review:'passed'})
+      assert.equal(calls, 2)
+      assert.equal(next.draft.chapters[0].review, 'passed')
+      assert.deepEqual(next.draft.chapters[0].sections, saved.sections)
+      assert.deepEqual(next.draft.chapters[0].questions, saved.questions)
       await mutateStudyVersion(before.id, v => { v.draft.status = 'failed'; v.draft.chapters[0].review = 'failed'; v.draft.automaticRepairs = {} })
       await controlStudyGeneration(before.id, 'retry', null, {recheck:true})
       const result = await processStudyStep(before.id, {generate: async prompt => {

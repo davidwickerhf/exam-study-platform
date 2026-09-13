@@ -1,3 +1,4 @@
+import { evaluationStep } from '../lib/study-evaluation-steps.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
@@ -6,7 +7,7 @@ import { deleteAllDocuments, listDocuments, deleteDocument } from '../lib/user-s
 import { studyVersionApi } from '../lib/study-version-api.mjs'
 import { addStudyNote } from '../lib/study-version-sources.mjs'
 import { runBudgetedStudyCall } from '../lib/study-ai-budget.mjs'
-import { lesson, course } from '../scripts/verification/study-fixtures.mjs'
+import { lesson, course, teachingPlan, pedagogicalReview } from '../scripts/verification/study-fixtures.mjs'
 
 import { teachingSchema, reviewSchema, studyResponseSchema } from '../lib/study-version-content.mjs'
 
@@ -19,6 +20,7 @@ async function fixture(fn) {
 const api = (pathname, method, body, extra = {}) => studyVersionApi({ pathname, method, body, platform, ...extra })
 const start = (body = {}) => api('/api/study-versions/evaluations', 'POST', body).then(r => r.data)
 const step = (r, generateEvaluation) => api(`/api/study-versions/evaluations/${r.id}/step`, 'POST', { revision: r.revision }, { generateEvaluation }).then(r => r.data)
+const planned = () => ({text: JSON.stringify(teachingPlan(['e-current']))})
 const generated = (ids = ['e-current']) => ({ text: JSON.stringify(lesson(ids)), usage: { inputTokens: 800, outputTokens: 1500, estimated: false } })
 
 test('browser evaluation runs generation, independent review and corruption checks without creating queue jobs', () => fixture(async () => {
@@ -26,11 +28,14 @@ test('browser evaluation runs generation, independent review and corruption chec
   const generate = async (prompt, options) => {
     assert.equal(options.billing.maxJobUsd, 0.25)
     assert.equal(options.jobKey, row.id)
-    assert.deepEqual(options.responseSchema, studyResponseSchema(calls === 0 ? teachingSchema : reviewSchema, row.snapshot.chunks.map(c => c.id)))
-    if (calls > 0) assert.equal(options.reasoningEffort, 'medium')
+    const spec = evaluationStep(row)
+    assert.deepEqual(options.responseSchema, studyResponseSchema(spec.schema, row.snapshot.chunks.map(c => c.id)))
+    if (row.stage >= 2) assert.equal(options.reasoningEffort, 'medium')
     calls++
-    if (calls === 1) return generated()
-    if (calls === 2) return { text: '{"issues":[]}' }
+    if (row.stage === 0) return planned()
+    if (row.stage === 1) return generated()
+    if (row.stage === 2) return { text: '{"issues":[]}' }
+    if ([3,5,6].includes(row.stage)) return {text: JSON.stringify(pedagogicalReview(spec.chapter, {shallow:row.stage === 6}))}
     assert.match(prompt, /current 2026-2027 exam is 90 minutes/)
     assert.match(prompt, /occupy four of the six faces/)
     return { text: JSON.stringify({ issues: [
@@ -39,23 +44,23 @@ test('browser evaluation runs generation, independent review and corruption chec
         { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' }
     ] }) }
   }
-  for (let i = 0; i < 3; i++) row = await step(row, generate)
+  for (let i = 0; i < 7; i++) row = await step(row, generate)
   assert.equal(row.status, 'complete')
-  assert.equal(row.checks.length, 3)
+  assert.equal(row.checks.length, 7)
   assert.ok(row.checks.every(c => c.passed))
-  assert.equal(row.calls.length, 3)
-  assert.equal(row.calls[0].chargedUsd, 0.0032)
+  assert.equal(row.calls.length, 7)
+  assert.equal(row.calls[1].chargedUsd, 0.0032)
   assert.equal((await listDocuments('study-versions')).length, 0)
   assert.equal(row.billing.credentialRevision, undefined)
   await step(row, generate)
-  assert.equal(calls, 3)
+  assert.equal(calls, 7)
 }))
 
 test('duplicate delivery and stale revisions cannot trigger another paid model call', () => fixture(async () => {
   const original = await start()
   let calls = 0, release
   const gate = new Promise(resolve => { release = resolve })
-  const generate = async () => { calls++; await gate; return generated() }
+  const generate = async () => { calls++; await gate; return planned() }
   const first = step(original, generate)
   while (!calls) await new Promise(resolve => setTimeout(resolve, 2))
   const duplicate = await step(original, generate)
@@ -110,34 +115,36 @@ test('selected-source evaluation remains private and stops when source access is
 
 test('a pre-provider concurrency rejection preserves evaluation results and can resume without duplicate generation', () => fixture(async () => {
   const { StudyBudgetError } = await import('../lib/study-ai-budget.mjs')
-  let row = await step(await start(), async () => generated())
+  let row = await step(await start(), async () => planned())
+  row = await step(row, async () => generated())
   row = await step(row, async () => { throw new StudyBudgetError('Another chapter is generating on your account. This job will continue shortly.', 30) })
   assert.equal(row.status, 'pending')
-  assert.equal(row.stage, 1)
-  assert.equal(row.calls.length, 1)
-  assert.equal(row.checks.length, 1)
+  assert.equal(row.stage, 2)
+  assert.equal(row.calls.length, 2)
+  assert.equal(row.checks.length, 2)
   assert.match(row.error, /No AI call was started/)
   row = await step(row, async () => ({text:'{"issues":[]}'}))
-  assert.equal(row.stage, 2)
+  assert.equal(row.stage, 3)
   assert.equal(row.error, undefined)
-  assert.equal(row.calls.length, 2)
+  assert.equal(row.calls.length, 3)
 }))
 
 test('rechecking preserves the exact artifact and prior failures without another generation call', () => fixture(async () => {
-  const original = await step(await start(), async () => generated())
+  const plannedRow = await step(await start(), async () => planned())
+  const original = await step(plannedRow, async () => generated())
   const reviewed = await step(original, async () => ({ text: JSON.stringify({ issues: [{ topicId:'probability', severity:'error', detail:'A reviewer finding to preserve for audit.' }] }) }))
   const next = (await api(`/api/study-versions/evaluations/${reviewed.id}/recheck`, 'POST', { revision:reviewed.revision })).data
   assert.notEqual(next.id, reviewed.id)
   assert.deepEqual(next.generated, reviewed.generated)
   assert.equal(next.reusedFrom, reviewed.id)
-  assert.equal(next.stage, 1)
+  assert.equal(next.stage, 2)
   assert.equal(next.calls.length, 0)
-  assert.equal(next.checks.length, 1)
+  assert.equal(next.checks.length, 2)
   const old = (await api(`/api/study-versions/evaluations/${reviewed.id}`, 'GET')).data
   assert.deepEqual(old.checks, reviewed.checks)
   assert.deepEqual(old.calls, reviewed.calls)
   const result = await step(next, async prompt => { assert.match(prompt, /SCHEMA AND REASONING CONTRACT/); assert.match(prompt, /Independently check/); return { text:'{"issues":[]}' } })
-  assert.equal(result.stage, 2)
+  assert.equal(result.stage, 3)
   assert.equal(result.calls.length, 1)
   await assert.rejects(api(`/api/study-versions/evaluations/${reviewed.id}/recheck`, 'POST', {revision:original.revision}), /current check/)
 }))
