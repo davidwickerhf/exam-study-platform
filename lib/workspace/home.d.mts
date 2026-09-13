@@ -62,7 +62,7 @@ export type CalendarPayload = {
   }
   feeds?: Array<{ id: string; label: string; url?: string; eventCount?: number; lastSyncedAt?: string | null }>
   canvas?: { connected: boolean }
-  problems?: Array<{ id: string; label: string; error: string }>
+  problems?: Array<{ id: string; label: string; error: string; usingSaved?: boolean; savedAt?: string | null }>
 }
 
 export type CalendarChange = {

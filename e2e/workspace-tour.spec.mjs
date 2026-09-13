@@ -65,12 +65,13 @@ test('a failed page can be skipped without trapping the tour; Escape also dismis
   const tour = page.locator('[data-dashboard-tour]')
   for (let index = 0; index < 4; index++) {
     if (index === 3) {
-      // Calendar also reads academics; its error screen has no tour target.
-      await tour.getByRole('button', { name: 'Skip this stop', exact: true }).click()
-    } else {
-      await expect(tour).toHaveAttribute('data-tour-state', 'ready')
-      await tour.getByRole('button', { name: 'Next', exact: true }).click()
+      // Calendar keeps its successfully loaded events usable when the
+      // supporting academic record fails, so its tour stop remains available.
+      await expect(page.locator('[data-tour="calendar-controls"]')).toBeVisible()
+      await expect(page.locator('[role="alert"]').filter({ hasText: 'Temporary test outage' })).toBeVisible()
     }
+    await expect(tour).toHaveAttribute('data-tour-state', 'ready')
+    await tour.getByRole('button', { name: 'Next', exact: true }).click()
   }
   await expect(page.getByText('Your record could not be read')).toBeVisible()
   await expect(tour).toHaveAttribute('data-tour-state', 'loading')
