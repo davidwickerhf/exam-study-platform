@@ -220,3 +220,14 @@ test('parallel assignment discovery before the announcement still requires the l
   g.record('get_schedule',{})
   assert.deepEqual(g.requiredTools(),['get_canvas_assignment_detail'])
 })
+
+test('date confirmations constrain and validate empty widgets without suppressing requested planning',async()=>{
+  const {TUTOR_RESPONSE_FORMAT}=await import('../lib/tutor-response.mjs')
+  const history=[{role:'user',content:'When is the assignment due?'}]
+  const g=createTutorGrounding({message:'so its for tomorrow night',history})
+  assert.equal(g.responseFormat(TUTOR_RESPONSE_FORMAT).json_schema.schema.properties.priorities.maxItems,0)
+  assert.match(g.review(JSON.stringify({summary:'Tomorrow night.',evidenceIds:[],priorities:[{title:'Submit'}]})),/all widget arrays empty/)
+  assert.equal(g.review(JSON.stringify({summary:'Tomorrow night.',evidenceIds:[],priorities:[]})),null)
+  const planning=createTutorGrounding({message:'so its tomorrow night, make a plan',history})
+  assert.notEqual(planning.responseFormat(TUTOR_RESPONSE_FORMAT).json_schema.schema.properties.priorities.maxItems,0)
+})

@@ -12,7 +12,7 @@ canvas_updates preview_calendar study_generation_contract study_generation_sourc
 read_course_source read_original_chunk canvas_course_materials
 study_pipeline_status study_generation_queue study_module_guides
 canvas_groups canvas_assignment_detail canvas_sync_logs tutor_history tutor_conversation
-tutor_sources get_study_work get_attendance get_course_obligations get_study_readiness
+study_session_context tutor_sources get_study_work get_attendance get_course_obligations get_study_readiness
 get_weekly_review canvas_search_announcements get_study_diagnostic feedback_list feedback_read
 canvas_course_requirements canvas_list_remote_courses canvas_list_remote_course_modules
 admin_status admin_inventory_course_folder admin_list_canvas_courses
@@ -28,6 +28,7 @@ study_generation_start study_generation_add_notes tutor_prepare_context tutor_pr
 tutor_add_source create_flashcard record_chapter_read download_course_original prepare_original_download`.split(/\s+/))
 
 export function toolAnnotations(name) {
+  if (name === 'study_session_save') return { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   if (reads.has(name)) return { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: externalReads.has(name) }
   // Unclassified additions retain MCP's conservative mutation defaults.
   return { readOnlyHint: false, destructiveHint: !additiveWrites.has(name), idempotentHint: false, openWorldHint: true }

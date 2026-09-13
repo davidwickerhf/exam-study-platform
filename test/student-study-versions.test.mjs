@@ -1,3 +1,4 @@
+import { nextPedagogicalReview } from '../lib/study-pedagogical-review.mjs'
 import { teachingPlanSchema, pedagogyReviewSchema, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -115,11 +116,12 @@ async function finish(f, { reviewIssues = [] } = {}) {
   let calls = 0
   const generate = async (prompt, options) => {
     calls++
+    if(prompt.includes('Review payload: '))return teachingResponse(prompt, f.snapshot.chunks.map(c=>c.id),{reviewIssues})
     const expected = prompt.includes('PLAN THE TEACHING') ? teachingPlanSchema : prompt.includes('INDEPENDENT PEDAGOGICAL REVIEW') ? pedagogyReviewSchema : prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : teachingSchema
     const v = await ownStudyVersion(f.version.id),
       chunks = v.draft.snapshot.chunks,
       ids = chunks.map((c) => c.id)
-    assert.deepEqual(options.responseSchema, expected === teachingSchema ? teachingResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? pedagogicalResponseSchema(v.draft.chapters.find(c=>c.review==='pending')) : studyResponseSchema(expected, ids))
+    assert.deepEqual(options.responseSchema, expected === teachingSchema ? teachingResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? nextPedagogicalReview('',v.draft.chapters.find(c=>c.review==='pending')).responseSchema : studyResponseSchema(expected, ids))
     if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
     if (prompt.includes('Map this evidence batch'))
       return {
@@ -130,7 +132,7 @@ async function finish(f, { reviewIssues = [] } = {}) {
     return lesson(ids)
   }
   await f.run(async () => {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 70; i++) {
       await processStudyStep(f.version.id, { generate })
       const v = await ownStudyVersion(f.version.id)
       if (['complete', 'failed'].includes(v.draft.status)) break
@@ -174,7 +176,7 @@ test('invalid model output reports structural diagnostics without exposing conte
 test('private generation completes without editorial acceptance and preserves evidence, practice and history', async () => {
   const f = await fixture()
   try {
-    assert.equal(await finish(f), 5)
+    assert.equal(await finish(f), 13)
     await f.run(async () => {
       const v = await ownStudyVersion(f.version.id),
         r = await studyRevision(v)
@@ -420,9 +422,9 @@ test('a source-recall card receives one automatic correction before the paid evi
         else { assert.match(prompt, /smallest coherent changes/); assert.match(prompt, /academic concept directly/) }
         return value
       }
-      for (let i = 0; i < 10; i++) { await processStudyStep(f.version.id, {generate}); if ((await ownStudyVersion(f.version.id)).activeRevisionId) break }
+      for (let i = 0; i < 70; i++) { await processStudyStep(f.version.id, {generate}); if ((await ownStudyVersion(f.version.id)).activeRevisionId) break }
       assert.equal(generated, 2)
-      assert.equal(reviewed, 1)
+      assert.equal(reviewed, 0) // Exhaustive reviews use the dedicated fixture responses.
       assert.ok((await ownStudyVersion(f.version.id)).activeRevisionId)
     })
   } finally { await f.cleanup() }
@@ -707,7 +709,7 @@ test('refresh reuses an unchanged checked chapter and only generates the newly m
       )
       let lessonCalls = 0,
         reviewCalls = 0
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 70; i++) {
         await processStudyStep(f.version.id, {
           generate: async (prompt) => {
             const v = await ownStudyVersion(f.version.id),
@@ -738,7 +740,7 @@ test('refresh reuses an unchanged checked chapter and only generates the newly m
       assert.equal(v.draft.status, 'complete')
       assert.equal(v.history[0].reused, 1)
       assert.equal(lessonCalls, 1)
-      assert.equal(reviewCalls, 1)
+      assert.equal(reviewCalls, 0)
     })
   } finally {
     await f.cleanup()
@@ -877,9 +879,9 @@ test('targeted AI feedback reuses other chapters, waits for apply, and supports 
         result.sections[0].text += ' This additional worked example clarifies the steps.'
         return result
       }
-      for (let i = 0; i < 10; i++) await processStudyStep(version.id, { generate })
+      for (let i = 0; i < 70; i++) await processStudyStep(version.id, { generate })
       version = await ownStudyVersion(version.id)
-      assert.equal(calls, 4)
+      assert.equal(calls, 12)
       assert.equal(version.activeRevisionId, two.id)
       const proposal = await studyProposal(version)
       assert.ok(proposal)
@@ -896,7 +898,7 @@ test('targeted AI feedback reuses other chapters, waits for apply, and supports 
       assert.ok(await studyRevision(applied, two.id))
       await assert.rejects(decideStudyProposal(version.id, { revisionId: proposal.id, decision: 'apply' }), /no longer available/)
       await improveStudyChapter(version.id, { ...input, baseRevisionId: proposal.id })
-      for (let i = 0; i < 10; i++) await processStudyStep(version.id, { generate: async prompt => teachingResponse(prompt, original.snapshot.chunks.map(c => c.id)) || (prompt.includes('Independently check') ? { issues: [] } : lesson(original.snapshot.chunks.map(c => c.id))) })
+      for (let i = 0; i < 70; i++) await processStudyStep(version.id, { generate: async prompt => teachingResponse(prompt, original.snapshot.chunks.map(c => c.id)) || (prompt.includes('Independently check') ? { issues: [] } : lesson(original.snapshot.chunks.map(c => c.id))) })
       const pending = await studyProposal(await ownStudyVersion(version.id))
       const discarded = await decideStudyProposal(version.id, { revisionId: pending.id, decision: 'discard' })
       assert.equal(discarded.activeRevisionId, proposal.id)
@@ -953,20 +955,25 @@ test('review-only retry keeps the failed chapter and charges no generation call'
       const before = await ownStudyVersion(f.version.id), saved = structuredClone(before.draft.chapters[0])
       await controlStudyGeneration(before.id, 'retry', null, {recheck:true})
       let calls = 0
-      await processStudyStep(before.id, {generate: async prompt => { calls++; assert.match(prompt, /Independently check/); return {issues:[]} }})
-      await processStudyStep(before.id, { generate: async prompt => { calls++; return teachingResponse(prompt, f.snapshot.chunks.map(c => c.id)) } })
+      for (let i = 0; i < 70; i++) {
+        await processStudyStep(before.id, {generate: async prompt => {
+          calls++
+          assert.ok(prompt.includes('Review payload:') || prompt.includes('INDEPENDENT PEDAGOGICAL REVIEW'))
+          return teachingResponse(prompt, f.snapshot.chunks.map(c => c.id))
+        }})
+        if ((await ownStudyVersion(before.id)).draft.chapters?.[0]?.review === 'passed') break
+      }
       const next = await ownStudyVersion(before.id)
-      assert.equal(calls, 2)
+      assert.equal(calls, 10)
       assert.equal(next.draft.chapters[0].review, 'passed')
       assert.deepEqual(next.draft.chapters[0].sections, saved.sections)
       assert.deepEqual(next.draft.chapters[0].questions, saved.questions)
       await mutateStudyVersion(before.id, v => { v.draft.status = 'failed'; v.draft.chapters[0].review = 'failed'; v.draft.automaticRepairs = {} })
       await controlStudyGeneration(before.id, 'retry', null, {recheck:true})
-      const result = await processStudyStep(before.id, {generate: async prompt => {
-        assert.match(prompt, /Independently check/)
-        return {issues:[{topicId:saved.id,severity:'error',detail:'Still needs a correction.'}]}
-      }})
-      assert.equal(result.again, false)
+      for (let i = 0; i < 70; i++) {
+        await processStudyStep(before.id, {generate: async prompt => teachingResponse(prompt, f.snapshot.chunks.map(c => c.id), {reviewIssues:[{topicId:saved.id,severity:'error',detail:'Still needs a correction.'}]})})
+        if ((await ownStudyVersion(before.id)).draft.status === 'failed') break
+      }
       const rejected = await ownStudyVersion(before.id)
       assert.equal(rejected.draft.status, 'failed')
       assert.equal(rejected.draft.repair, undefined)

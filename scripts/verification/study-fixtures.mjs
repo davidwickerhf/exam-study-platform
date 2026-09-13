@@ -24,9 +24,18 @@ export function pedagogicalReview(chapter, { shallow = false } = {}) {
       guidedQuestionKey: path.guidedQuestionKeys[0], independentQuestionKey: path.independentQuestionKeys[0],
       rationale: 'Scripted plumbing fixture, not a live pedagogical judgment.',
       missingReasoning: shallow ? ['The definition does not teach the event trace required by its assessment.'] : [] }
-  }), issues: [] }
+  }), transferChecks:chapter.questions.filter(q=>q.practiceStage==='transfer').map(q=>({questionKey:q.key,closestExampleSectionId:chapter.sections[0].id,changedCondition:'Scripted fixture changes the conditions.',requiresNewReasoning:true,rationale:'Scripted plumbing fixture.'})), followUpChecks:chapter.questions.filter(q=>q.misconceptions?.length).map(q=>({questionKey:q.key,useful:true,rationale:'Scripted plumbing fixture.'})), issues: [] }
 }
-export function teachingResponse(prompt, ids) {
+export function teachingResponse(prompt, ids, {reviewIssues=[]}={}) {
+  if(prompt.includes('INDEPENDENT QUESTION SOLVING') || prompt.includes('ANSWER COMPARISON REVIEW') || prompt.includes('ITEM-BY-ITEM CONTENT REVIEW')) {
+    const payload=JSON.parse(prompt.split('Review payload: ').at(-1))
+    if(prompt.includes('INDEPENDENT QUESTION SOLVING'))return {items:Object.fromEntries(payload.map(q=>[q.key,{answer:'Scripted independent solution for plumbing tests.',assumptions:[],calculations:[]}]))}
+    return {items:Object.fromEntries(payload.map(item=>[item.key,{correct:!reviewIssues.some(i=>i.severity==='error'),rationale:'Scripted review for plumbing tests.',issues:reviewIssues.map(({detail,severity})=>({detail,severity}))}]))}
+  }
+  if(prompt.includes('REPAIR PRACTICE LINKS')) {
+    const payload=JSON.parse(prompt.split('Review payload: ').at(-1))
+    return {links:Object.fromEntries(payload.invalid.map(row=>[row.key,{followUpKey:row.candidates[0],changedCondition:'Scripted related follow-up.'}]))}
+  }
   if (prompt.includes('PLAN THE TEACHING')) return teachingPlan(ids)
   if (prompt.includes('INDEPENDENT PEDAGOGICAL REVIEW')) return pedagogicalReview(JSON.parse(prompt.split('Chapter: ').at(-1)))
   return null

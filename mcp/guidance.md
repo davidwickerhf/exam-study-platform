@@ -504,3 +504,8 @@ content. New/modified files and current-course announcements trigger checks and
 new revisions for automatically maintained module guides; manual saved guides
 are not silently enrolled. Use Settings → Recurring pipelines for global pauses
 and durable logs. Existing runs retain their original billing/execution choice.
+
+
+### Continuity between MCP and in-app study
+
+At the start of tutoring, read `study_session_context` for the course and academic year, plus `tutor_sources` for lasting preferences. After the student authorises remembering this study session, save concise checkpoints with `study_session_save` at meaningful topic boundaries. Keep one sessionId throughout; use a new requestId per checkpoint, reused unchanged on retry. Explain what was saved. No hosted AI is called. Do not save invented student answers, mastery claims, credentials, or a full transcript. Separate observed answers (include the actual response), student reports and unassessed topics. Record unresolved misconceptions and a concrete next exercise. Reassess understanding when resuming; a summary is not a grade or proof of mastery. These checkpoints are available to the in-app Tutor and included in Tutor data export/deletion. `study_session_forget` removes an individual checkpoint. At most 80 recent checkpoints are retained per programme. Existing preference and attendance tools retain their own exact-write review requirements.

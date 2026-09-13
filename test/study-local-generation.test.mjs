@@ -49,13 +49,17 @@ test('local generation uses the real staged pipeline without hosted dispatch and
   const duplicate = await answer(id,chapter.request,response)
   assert.equal(duplicate.duplicate,true)
   await assert.rejects(answer(id,chapter.request,{different:true}),/different result/)
-  const review = await nextLocalStudy(id)
-  assert.equal(review.request.stage,'quality')
-  assert.match(review.request.prompt,/Independently check/)
-  await answer(id,review.request,{issues:[]})
-  const pedagogical = await nextLocalStudy(id)
-  assert.match(pedagogical.request.prompt, /INDEPENDENT PEDAGOGICAL REVIEW/)
-  await answer(id, pedagogical.request, teachingResponse(pedagogical.request.prompt, ids))
+  let reviews = 0
+  for (let i = 0; i < 20; i++) {
+    const review = await nextLocalStudy(id)
+    if (!review.request) break
+    assert.equal(review.request.stage, 'quality')
+    const result = teachingResponse(review.request.prompt, ids)
+    assert.ok(result, 'all review stages use the shared contract')
+    await answer(id, review.request, result)
+    reviews++
+  }
+  assert.equal(reviews, 10)
   const finished = await nextLocalStudy(id)
   assert.equal(finished.version.status,'complete')
   assert.equal(finished.request,null)
@@ -71,9 +75,13 @@ test('local generation uses the real staged pipeline without hosted dispatch and
 test('local semantic findings trigger the same chapter repair and preserve useful work',async()=>fixture(async id=>{
   const ids=await map(id), chapter=await nextLocalStudy(id)
   await answer(id,chapter.request,lesson(ids))
-  const review=await nextLocalStudy(id)
-  await answer(id,review.request,{issues:[{topicId:'addition',severity:'error',detail:'The example assumes disjoint groups; explain that assumption before the calculation.'}]})
-  const repair=await nextLocalStudy(id)
+  let repair
+  for (let i = 0; i < 20; i++) {
+    const review = await nextLocalStudy(id)
+    if (review.request.prompt.includes('smallest coherent changes')) { repair = review; break }
+    await answer(id, review.request, teachingResponse(review.request.prompt, ids, {reviewIssues:[{topicId:'addition',severity:'error',detail:'The example assumes disjoint groups; explain that assumption before the calculation.'}]}))
+  }
+  assert.ok(repair)
   assert.match(repair.request.prompt,/smallest coherent changes/)
   assert.match(repair.request.prompt,/disjoint groups/)
   assert.equal((await ownStudyVersion(id)).activeRevisionId,null)

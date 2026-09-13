@@ -99,7 +99,7 @@ try {
       processStudyStep(id, { generate })
     ])
     assert.equal(mappingCalls, 1)
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 70; i++) {
       await processStudyStep(id, { generate })
       if ((await ownStudyVersion(id)).draft.status === 'complete') break
     }
@@ -254,7 +254,7 @@ try {
     const note=await local.addLocalStudyNotes({...course,title:'Local diagram notes',pages:[{page:1,text:'Two plus three is five. Addition combines disjoint quantities with matching units; subtraction checks the result.'}]})
     const {version}=await local.startLocalStudy({...course,sourceKeys:[note.id]})
     assert.equal((await pendingStudyVersions()).some(row=>row.key===version.id),false)
-    for(let i=0;i<12;i++){
+    for(let i=0;i<70;i++){
       const next=await local.nextLocalStudy(version.id)
       if(next.version.status==='complete')break
       assert.ok(next.request,JSON.stringify(next.version))

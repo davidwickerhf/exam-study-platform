@@ -7,7 +7,7 @@ import { deleteAllDocuments, listDocuments, deleteDocument } from '../lib/user-s
 import { studyVersionApi } from '../lib/study-version-api.mjs'
 import { addStudyNote } from '../lib/study-version-sources.mjs'
 import { runBudgetedStudyCall } from '../lib/study-ai-budget.mjs'
-import { lesson, course, teachingPlan, pedagogicalReview } from '../scripts/verification/study-fixtures.mjs'
+import { lesson, course, teachingPlan, teachingResponse, pedagogicalReview } from '../scripts/verification/study-fixtures.mjs'
 
 import { teachingSchema, reviewSchema, studyResponseSchema } from '../lib/study-version-content.mjs'
 
@@ -34,27 +34,25 @@ test('browser evaluation runs generation, independent review and corruption chec
     calls++
     if (row.stage === 0) return planned()
     if (row.stage === 1) return generated()
-    if (row.stage === 2) return { text: '{"issues":[]}' }
-    if ([3,5,6].includes(row.stage)) return {text: JSON.stringify(pedagogicalReview(spec.chapter, {shallow:row.stage === 6}))}
-    assert.match(prompt, /current 2026-2027 exam is 90 minutes/)
-    assert.match(prompt, /occupy four of the six faces/)
-    return { text: JSON.stringify({ issues: [
+    if (row.stage === 2) return { text: JSON.stringify(teachingResponse(prompt, ['e-current'])) }
+    if ([3,5,6].includes(row.stage)) return {text: JSON.stringify(pedagogicalReview(spec.pedagogical.chapter, {shallow:row.stage === 6}))}
+    return { text: JSON.stringify(teachingResponse(prompt, ['e-current'], {reviewIssues: [
       { topicId: 'probability', severity: 'error', detail: 'Even probability is 1/2, not 2/3.' },
       { topicId: 'probability', severity: 'error', detail: 'Historical exam rules are not current: use 120 minutes closed book.' },
         { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' },
         { topicId:'probability',severity:'error',detail:'The intersection range needs lower bound 0.2 because the union cannot exceed one.' }
-    ] }) }
+    ] })) }
   }
-  for (let i = 0; i < 7; i++) row = await step(row, generate)
+  for (let i = 0; i < 50 && row.status === 'pending'; i++) row = await step(row, generate)
   assert.equal(row.status, 'complete')
   assert.equal(row.checks.length, 7)
   assert.ok(row.checks.every(c => c.passed))
-  assert.equal(row.calls.length, 7)
+  assert.equal(row.calls.length, 29)
   assert.equal(row.calls[1].chargedUsd, 0.0032)
   assert.equal((await listDocuments('study-versions')).length, 0)
   assert.equal(row.billing.credentialRevision, undefined)
   await step(row, generate)
-  assert.equal(calls, 7)
+  assert.equal(calls, 29)
 }))
 
 test('duplicate delivery and stale revisions cannot trigger another paid model call', () => fixture(async () => {
@@ -124,8 +122,9 @@ test('a pre-provider concurrency rejection preserves evaluation results and can 
   assert.equal(row.calls.length, 2)
   assert.equal(row.checks.length, 2)
   assert.match(row.error, /No AI call was started/)
-  row = await step(row, async () => ({text:'{"issues":[]}'}))
-  assert.equal(row.stage, 3)
+  row = await step(row, async prompt => ({text:JSON.stringify(teachingResponse(prompt,['e-current']))}))
+  assert.equal(row.stage, 2)
+  assert.ok(Object.keys(row.generated.factualAudit.solutions).length)
   assert.equal(row.error, undefined)
   assert.equal(row.calls.length, 3)
 }))
@@ -144,8 +143,8 @@ test('rechecking preserves the exact artifact and prior failures without another
   const old = (await api(`/api/study-versions/evaluations/${reviewed.id}`, 'GET')).data
   assert.deepEqual(old.checks, reviewed.checks)
   assert.deepEqual(old.calls, reviewed.calls)
-  const result = await step(next, async prompt => { assert.match(prompt, /SCHEMA AND REASONING CONTRACT/); assert.match(prompt, /Independently check/); return { text:'{"issues":[]}' } })
-  assert.equal(result.stage, 3)
+  const result = await step(next, async prompt => { assert.match(prompt, /INDEPENDENT QUESTION SOLVING/); return { text:JSON.stringify(teachingResponse(prompt,['e-current'])) } })
+  assert.equal(result.stage, 2)
   assert.equal(result.calls.length, 1)
   await assert.rejects(api(`/api/study-versions/evaluations/${reviewed.id}/recheck`, 'POST', {revision:original.revision}), /current check/)
 }))

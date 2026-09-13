@@ -64,7 +64,7 @@ test.beforeAll(async () => {
     )
     versionId = version.id
     const ids = snapshot.chunks.map((c) => c.id)
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 70; i++) {
       await processStudyStep(versionId, {
         generate: async (prompt) =>
           teachingResponse(prompt, ids) || (prompt.includes('Map this evidence batch')
@@ -81,13 +81,13 @@ test.beforeAll(async () => {
     expect((await ownStudyVersion(versionId)).draft.status).toBe('complete')
     let evaluation = await createQualityEvaluation({}, { platform: { configured: true, provider: 'openai', model: 'gpt-5-mini' } })
     evaluationId = evaluation.id
-    for (let i = 0; i < 7; i++) evaluation = await stepQualityEvaluation(evaluation.id, evaluation.revision, {
-      generate: async prompt => ({ text: JSON.stringify(i >= 5 ? evaluationReview(JSON.parse(prompt.split('Chapter: ').at(-1)), { shallow: i === 6 }) : teachingResponse(prompt, ['e-current']) || (i === 1 ? lesson(['e-current']) : { issues: i === 2 ? [] : [
+    for (let i = 0; i < 50 && evaluation.status === 'pending'; i++) evaluation = await stepQualityEvaluation(evaluation.id, evaluation.revision, {
+      generate: async prompt => ({ text: JSON.stringify(evaluation.stage >= 5 ? evaluationReview(JSON.parse(prompt.split('Chapter: ').at(-1)), { shallow: evaluation.stage === 6 }) : teachingResponse(prompt, ['e-current'], {reviewIssues:evaluation.stage === 4 ? [
         { topicId: 'probability', severity: 'error', detail: 'Even outcomes have probability 1/2, not 2/3.' },
         { topicId: 'probability', severity: 'error', detail: 'Current exam duration is 120 minutes; the historical rules are outdated.' },
         { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' },
         { topicId:'probability',severity:'error',detail:'The intersection range needs lower bound 0.2 because the union cannot exceed one.' }
-      ] })), usage: { inputTokens: 800, outputTokens: 1500, estimated: false } })
+      ] : []}) || lesson(['e-current'])), usage: { inputTokens: 800, outputTokens: 1500, estimated: false } })
     })
   })
 })
@@ -103,8 +103,8 @@ test.afterAll(async () => {
 test('private quality report renders real persisted checks, costs, citations and exercise solutions', async ({ page }) => {
   await page.goto(`/app/study-evaluations/${evaluationId}`)
   await expect(page.getByRole('heading', { name: 'Inspect the teaching, then check the evidence.' })).toBeVisible()
-  await expect(page.getByText('7 calls recorded · $0.0224 recorded cost · complete')).toBeVisible()
-  await expect(page.getByText('Even outcomes have probability 1/2, not 2/3.', { exact: false })).toBeVisible()
+  await expect(page.getByText('29 calls recorded · $0.0928 recorded cost · complete')).toBeVisible()
+  await expect(page.getByText('Even outcomes have probability 1/2, not 2/3.', { exact: false }).first()).toBeVisible()
   await page.getByRole('button', { name: /Sources ·/ }).first().click()
   await expect(page.getByText('Current probability lecture', { exact: true }).first()).toBeVisible()
   await page.getByRole('tab', { name: /^Practice \(\d+\)$/ }).click()
@@ -763,7 +763,7 @@ test('chapter feedback proposes changes for review without a separate manual edi
   await run(async () => {
     const { improveStudyChapter } = await import('../lib/study-version-editing.mjs')
     await improveStudyChapter(versionId, { baseRevisionId: edited.revision.id, topicId: edited.revision.chapters[0].id, feedback: 'Add a worked example' })
-    for (let i = 0; i < 10; i++) await processStudyStep(versionId, { generate: async prompt => {
+    for (let i = 0; i < 70; i++) await processStudyStep(versionId, { generate: async prompt => {
       const supplemental = teachingResponse(prompt, (await ownStudyVersion(versionId)).draft.snapshot.chunks.map(c => c.id)); if (supplemental) return supplemental
       if (prompt.includes('Independently check')) return { issues: [] }
       const result = lesson(edited.revision.snapshot.chunks.map(c => c.id))
