@@ -134,7 +134,8 @@ test('personal billing bypasses included chapter caps but enforces its own month
   )
   const bounded = estimateStudyCall('🙂'.repeat(100), 50000, 'gpt-5-mini')
   assert.equal(bounded.inputTokens, 2448)
-  assert.equal(bounded.outputTokens, 12000)
+  assert.equal(bounded.outputTokens, 20000)
+  assert.equal(estimateStudyCall('Deep lesson', 20000, 'gpt-5-mini').outputTokens, 20000)
 })
 test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never falls back to platform billing', async () => {
   const oldKey = process.env.AI_CONNECTION_ENCRYPTION_KEY

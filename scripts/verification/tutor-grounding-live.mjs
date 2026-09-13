@@ -1,7 +1,8 @@
 // Opt-in model regression: uses the configured provider with synthetic course
 // fixtures. No real student records, Canvas writes, or proposals are persisted.
 import assert from 'node:assert/strict'
-import { runToolLoop, llmSettings } from '../../lib/model-loop.mjs'
+import { llmSettings } from '../../lib/model-loop.mjs'
+import { runTutorSdk } from '../../lib/tutor-sdk.mjs'
 import { TUTOR_TOOLS, tutorStableSystemPrompt, tutorTurnContextPrompt, evidenceFromTool, tutorToolResultForModel } from '../../lib/tutor-agent.mjs'
 import { TUTOR_RESPONSE_FORMAT, parseTutorResponse } from '../../lib/tutor-response.mjs'
 import { createTutorGrounding } from '../../lib/tutor-grounding.mjs'
@@ -11,10 +12,11 @@ const assignment={id:'33:44',canvasId:'44',courseId:'33',courseCode:code,title:'
 const announcement={id:'announcement:skill',course:code,title:'Skill Class Project Plan Writing - Intro and first assignment',postedAt:'2026-09-02T12:00:38Z',author:'Course team',text:'The skills training consists of four parts: an individual assignment in which you review three project plans; an onsite class attended by two representatives of your group; a group-internal meeting facilitated by the two representatives who explain what they have learned; a group assignment reviewing the current status of the project plan. You pass if you individually review the three plans reasonably, your group attends the onsite class with two representatives (you might want to plan a backup), AND your group reviews your project plan reasonably. The individual assignment deadline is already next week. The assignment description contains all details and instructions.',url:'https://canvas.example/courses/33/announcements/1'}
 const announcementEvidence={id:announcement.id,sourceType:'Canvas announcement',title:announcement.title,course:code,excerpt:announcement.text,url:announcement.url}
 const cases=[
+  {name:'polling-pulse-endpoints',message:'Explain briefly why a button pulse can be missed when polling every 100 ms. Use a pulse from 30 to 70 ms. Assume polls at 0,100,200 ms. Ask me one prediction question about a changed pulse.',check(a){const text=a.summary+' '+a.detail;assert.match(text,/miss|not detect|never detect/i);assert.doesNotMatch(text,/30%|70%/);assert.match(a.summary,/\?/);assert.doesNotMatch(a.summary,/do you want|would you like/i)}},
   {name:'tomorrow-priorities-completes',message:'aight tomorrow I am lazy, what do I have to do',check(a,calls){assert.ok(calls.includes('get_briefing'));assert.ok(a.summary.length>0);assert.ok(a.evidenceIds.length>0);assert.ok(a.evidenceIds.length<=10)}},
   {name:'oversized-priorities-completes',oversized:true,message:'aight tomorrow I am lazy, what do I have to do',check(a,calls){assert.ok(calls.includes('get_briefing'));assert.ok(a.summary.length>0);assert.ok(a.evidenceIds.length>0)}},
   {name:'assignment-deadline',message:'when is the group 3-1 paper review assignment thing due?',check(a,calls){assert.ok(calls.includes('get_canvas_assignments'));assert.match(a.summary,/9\s*(?:Sep|September)|tomorrow/i);assert.match(a.summary,/23:59/);assert.doesNotMatch(a.summary,/submissions? close|no later submissions|approval/i)}},
-  {name:'two-representative-skill-class',message:'tomorrow we have a meeting related to the project. two of my teammates are going. Do they need to prepare anything in advance?',check(a,calls){assert.ok(calls.includes('get_announcements'));assert.ok(calls.includes('get_schedule'));assert.match(a.summary,/skills?[-\s]*class|onsite class|skills training/i);assert.equal(a.priorities.length,0);assert.ok(!calls.some(name=>name.startsWith('propose_')));assert.doesNotMatch(a.summary,/(?:must|need to|required to) (?:bring|prepare) (?:a |the |your )?(?:one.page|status|draft|completed)/i)}},
+  {name:'two-representative-skill-class',message:'tomorrow we have a meeting related to the project. two of my teammates are going. Do they need to prepare anything in advance?',check(a,calls){assert.ok(calls.includes('get_announcements'));assert.ok(calls.includes('get_schedule'));assert.match(a.summary+' '+a.detail,/skills?[-\s]*class|onsite class|skills training/i);assert.doesNotMatch(a.summary+' '+a.detail,/\b(?:explicitly (?:says|states)|states|says)\b[^.!?\n]{0,65}\b(?:not require|no pre-class)/i);assert.equal(a.priorities.length,0);assert.ok(!calls.some(name=>name.startsWith('propose_')));assert.doesNotMatch(a.summary,/(?:must|need to|required to) (?:bring|prepare) (?:a |the |your )?(?:one.page|status|draft|completed)/i)}},
   {name:'later-deadline-does-not-cancel-prereading',message:'but bringing the results of the individual review doesnt make sense, its due AFTER the skill class',history:[{role:'user',content:'Do the two reps need to prepare anything before the skill class?'},{role:'assistant',content:'Bring completed individual reviews.'}],preparation:'Before the onsite skill class, the two representatives must read the three example project plans. Completed written reviews are submitted by the individual deadline, not brought to class.',check(a,calls){assert.ok(calls.includes('get_canvas_assignment_detail'));assert.match(a.summary,/read|reading/i);assert.match(a.summary,/before|advance/i);assert.equal(a.priorities.length,0);assert.doesNotMatch(a.summary,/no preparation|do not need to prepare/i)}},
   {name:'narrow-date-confirmation',message:'so its for tomorrow night',history:[{role:'user',content:'When is the individual review assignment due?'},{role:'assistant',content:'Canvas shows 9 September 2026 at 23:59:59 CEST.'}],check(a){assert.match(a.summary,/tomorrow|9 September|9 Sep/i);for(const key of ['priorities','courses','drafts','agenda','options'])assert.equal(a[key].length,0,key)}}
 ]
@@ -22,13 +24,13 @@ const settings=await llmSettings()
 assert.ok(settings.apiKey,'Configure the existing provider key before running this opt-in evaluation.')
 console.log(JSON.stringify({model:settings.model,reasoningEffort:'medium',cases:cases.length}))
 const failures=[]
-for(const scenario of cases){
+for(const scenario of cases.filter(item=>!process.env.TUTOR_EVAL_CASES || process.env.TUTOR_EVAL_CASES.split(',').includes(item.name))){
  try {
   const calls=[]
   const history=scenario.history||[]
   const grounding=createTutorGrounding({message:scenario.message,history})
   const started=Date.now()
-  const result=await runToolLoop({
+  const result=await runTutorSdk({
     signal:AbortSignal.timeout(180_000),
     onDiagnostic:diagnostic=>console.log(JSON.stringify({case:scenario.name,...diagnostic})),
     messages:[{role:'system',content:tutorStableSystemPrompt()},...history,{role:'system',content:tutorTurnContextPrompt({memory:{},context:{courseCode:code},now:new Date('2026-09-08T16:12:00Z')})},{role:'user',content:scenario.message}],

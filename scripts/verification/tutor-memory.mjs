@@ -16,7 +16,7 @@ mock.module('@neondatabase/serverless', { namedExports: { ...neonModule, neon: (
 process.env.DATABASE_URL = url.href
 const { withRequestContext } = await import('../../lib/request-context.mjs')
 const { writeDocument, readDocument, compareAndSwapDocument } = await import('../../lib/user-store.mjs')
-const { rememberFact, rememberPlan, saveTutorPreferences, readTutorMemory } = await import('../../lib/tutor-store.mjs')
+const { rememberFact, rememberPlan, saveTutorPreferences, readTutorMemory, saveStudySession, readStudySessions, forgetStudySession } = await import('../../lib/tutor-store.mjs')
 const { activeProgrammeId, scopedDocumentKey } = await import('../../lib/programme-scope.mjs')
 const { prepareExternalTutorUpdate, confirmExternalTutorUpdate } = await import('../../lib/tutor-external-updates.mjs')
 try {
@@ -42,6 +42,13 @@ try {
     assert.equal((await confirmExternalTutorUpdate(args, execute)).duplicate, true)
     assert.equal(writes, 1)
     assert.equal((await readTutorMemory()).facts.length, 4)
+    const checkpoint = {requestId:'sql-checkpoint-1',sessionId:'sql-study',courseCode:'CS101',academicYear:'2026-2027',summary:'Studied addition.',topics:['Addition'],observations:[],nextSteps:['Check subtraction.'],confirmed:true}
+    const checkpoints = await Promise.all([saveStudySession(checkpoint),saveStudySession(checkpoint)])
+    assert.equal(checkpoints.filter(r=>r.duplicate).length,1)
+    assert.equal((await readStudySessions()).length,1)
+    await forgetStudySession(checkpoints[0].checkpoint.id)
+    assert.equal((await readStudySessions()).length,0)
+
   })
   console.log('PostgreSQL memory: legacy migration, concurrent context/plans/preferences, exact confirmation and idempotent receipt passed.')
 } finally { await pool.end() }

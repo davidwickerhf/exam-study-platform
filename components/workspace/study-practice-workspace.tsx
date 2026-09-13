@@ -19,6 +19,7 @@ import {
 } from './study-ai-preferences'
 import { StudyBillingFields } from './study-billing-fields'
 import { StudySourceInspector } from './study-source-inspector'
+import { StudyHints, StudyRemediation } from './study-learning-support'
 import { StudyProse } from './study-prose'
 import { StudyEvidence } from './study-evidence'
 import {
@@ -40,6 +41,7 @@ type Question = StudyQuestion & {
   needsOriginal?: boolean
 }
 type Grade = {
+  diagnosedMisconceptions?: number[]
   assessable: boolean
   earned: number | null
   possible: number | null
@@ -617,16 +619,8 @@ export function StudyPracticeWorkspace({
                 </Button>
               </div>
               {preferenceError && <p role="alert">{preferenceError}</p>}
-              {question.hint && (
-                <details key={answerKey}>
-                  <summary className="cursor-pointer text-sm font-medium">
-                    Need a hint?
-                  </summary>
-                  <div className="mt-3">
-                    <StudyProse>{question.hint}</StudyProse>
-                  </div>
-                </details>
-              )}
+              <StudyHints key={answerKey} question={question} />
+              {(revealed || latest?.status === 'complete') && <StudyRemediation question={question} questions={questions} diagnosed={latest?.result?.diagnosedMisconceptions} onSelect={next => { setIndex(next); setRevealed(false) }} />}
               {revealed && (
                 <div className="space-y-3 rounded-lg border bg-muted/20 p-5">
                   <p className="text-xs font-medium text-muted-foreground">

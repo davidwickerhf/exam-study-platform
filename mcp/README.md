@@ -301,3 +301,22 @@ Connect to **https://study.wicker.life/api/mcp** using Streamable HTTP. Choose O
 Hosted tools share their schemas and implementations with this package. Filesystem imports and clipboard operations remain local. Hosted consumers can stream complete originals using `prepare_original_download` and native HTTP/file tools; verify the returned SHA-256 and byte size. `read_original_chunk` is a fallback. Only use tools listed by your connection. Guidance is served by MCP, so hosted clients reconnect to refresh it without npm or skill downloads.
 
 See [remote MCP operations](../docs/REMOTE_MCP.md) for limits and configuration. Disconnect OAuth services under [Connected services](https://study.wicker.life/connect/remote). Revoke API keys separately in Settings → API access.
+
+
+### Automatic local guide maintenance (2.16)
+
+Use `study_module_guides` to inspect a course edition and
+`study_module_guides_configure` to enable authorised local maintenance, choose
+inferred/weekly/topic/textbook organisation and optional past-year supplements.
+`study_pipeline_status` shows recurring controls, guide-check events and processing
+jobs; `study_generation_queue` lists work waiting for your agent. Continue with
+`study_generation_next` and `study_generation_submit`. Every new lesson uses the
+shared v5 objective plan, visible worked teaching, diagnostic questions and separate
+factual/pedagogical reviews. Local reviews retain local-agent provenance.
+
+Current-year scope and exclusions control old-year supplements. Missing textbook
+chapters or unclear scope pause readiness. Files and announcements are detected
+at the configured polling cadence. Automatic module revisions preserve the prior
+readable guide until the replacement passes; existing manually created guides
+are not silently enrolled. Global switches and logs are in Settings → Recurring
+pipelines, with settings opening in side drawers.

@@ -14,6 +14,7 @@ function TabLoading() {
 }
 
 const PersonalAiSettings = dynamic(() => import("@/components/workspace/personal-ai-settings").then((module) => module.PersonalAiSettings), { loading: TabLoading, ssr: false });
+const RecurringPipelinesTab = dynamic(() => import("../account/recurring-pipelines-tab").then(m => m.RecurringPipelinesTab), { loading: TabLoading, ssr: false });
 const ConnectionsTab = dynamic(() => import("../account/connections-tab").then((module) => module.ConnectionsTab), { loading: TabLoading, ssr: false });
 const ApiTab = dynamic(() => import("../account/api-tab").then((module) => module.ApiTab), { loading: TabLoading, ssr: false });
 const UsageTab = dynamic(() => import("../account/usage-tab").then((module) => module.UsageTab), { loading: TabLoading, ssr: false });
@@ -23,6 +24,7 @@ const AgentActivityTab = dynamic(() => import("../account/agent-activity-tab").t
 
 const TABS = [
   ["connections", "Connections"],
+  ["pipelines", "Recurring pipelines"],
   ["api", "API access"],
   ["activity", "AI activity"],
   ["usage", "AI usage"],
@@ -65,6 +67,7 @@ export default function SettingsPage() {
           </div>
         )}
         <TabsContent value="connections" className="min-w-0 p-4 sm:p-6 lg:px-8 lg:py-6">{tab === "connections" && <ConnectionsTab />}</TabsContent>
+        <TabsContent value="pipelines" className="min-w-0 p-4 sm:p-6 lg:px-8 lg:py-5">{tab === "pipelines" && <RecurringPipelinesTab />}</TabsContent>
         <TabsContent value="api" className="min-w-0 p-4 sm:p-6 lg:px-8 lg:py-5">{tab === "api" && <ApiTab />}</TabsContent>
         <TabsContent value="activity" className="min-w-0 p-4 sm:p-6 lg:px-8 lg:py-5">{tab === "activity" && <AgentActivityTab />}</TabsContent>
         <TabsContent value="ai-key" className="min-w-0 p-4 sm:p-6 lg:px-8 lg:py-5">{tab === "ai-key" && <PersonalAiSettings />}</TabsContent>

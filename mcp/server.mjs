@@ -21,7 +21,7 @@ import { guidanceInfo, guidanceInstructions, mcpVersion, registerGuidance } from
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { z } from 'zod'
+import { z } from 'zod/v3'
 import { createHash } from 'node:crypto'
 import { lstat, mkdir, readFile, readdir, realpath } from 'node:fs/promises'
 import { extname, join, relative, resolve, sep } from 'node:path'

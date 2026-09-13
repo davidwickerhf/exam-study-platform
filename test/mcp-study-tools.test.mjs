@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
+import { z } from 'zod/v3'
 import { readFileSync } from 'node:fs'
 import { registerStudyTools } from '../mcp/study-tools.mjs'
 
@@ -14,7 +14,7 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 37)
+  assert.equal(tools.size, 44)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
@@ -52,7 +52,7 @@ test('standalone MCP publishes the new tools and schemas over stdio', async () =
     assert.equal(client.getServerVersion().version, JSON.parse(readFileSync(new URL('../mcp/package.json', import.meta.url), 'utf8')).version)
     const listed = await client.listTools()
     for (const tool of listed.tools) assert.equal(typeof tool.annotations?.readOnlyHint, 'boolean', tool.name)
-    for (const name of ['list_courses', 'get_course', 'search_course', 'canvas_course_materials']) assert.equal(listed.tools.find(tool => tool.name === name).annotations.readOnlyHint, true, name)
+    for (const name of ['list_courses', 'get_course', 'search_course', 'canvas_course_materials', 'study_pipeline_status', 'study_generation_queue', 'study_module_guides']) assert.equal(listed.tools.find(tool => tool.name === name).annotations.readOnlyHint, true, name)
     const search = listed.tools.find(tool => tool.name === 'search_course')
     assert.deepEqual(search.inputSchema.anyOf, [{required:['courseId']}, {required:['courseCode']}, {required:['canonicalCourseId']}])
     assert.equal(listed.tools.find(tool => tool.name === 'study_generation_next').annotations.readOnlyHint, false)

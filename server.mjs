@@ -1,3 +1,4 @@
+import { scheduleModuleGuides } from './lib/study-module-automation.mjs'
 import { prepareOriginalDownload } from './lib/original-downloads.mjs'
 import { sendCorpusAsset } from './lib/corpus-asset-response.mjs'
 import { isMcpRoute, handleRemoteMcp, remoteMcpService } from './lib/mcp-service.mjs'
@@ -86,7 +87,7 @@ import { applyProgramme, applySecureValue, chooseElectiveGroups, chooseElectives
 import { studyBriefing } from './lib/study-briefing.mjs'
 import { beginTutorTurn, completeTutorTurn, completedTutorRetry, failTutorTurn, visibleTutorConversation } from './lib/tutor-turns.mjs'
 import { runTutorTurn, tutorAvailable, TUTOR_HANDLERS } from './lib/tutor-agent.mjs'
-import { TutorStoreError, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberFact, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
+import { TutorStoreError, saveStudySession, readStudySessions, forgetStudySession, deleteConversation, forgetFact, forgetPlan, listConversations, newConversation, readConversation, readTutorActionReceipts, readTutorMemory, rememberFact, rememberPlan, saveConversation, saveTutorActionReceipt, saveTutorPreferences, tutorActionReceipt, TUTOR_PREFERENCES } from './lib/tutor-store.mjs'
 import { TutorAttachmentError, deleteTutorAttachment, listTutorAttachments, readTutorAttachment, saveTutorAttachment } from './lib/tutor-attachments.mjs'
 import { assertPublicUrl, securityHeaders, isForbiddenCrossSite, clientIp } from './lib/security.mjs'
 import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, listCanvasConnections, removeCanvasConnection, saveCanvasConnection } from './lib/canvas-connections.mjs'
@@ -3648,7 +3649,7 @@ async function handleRequest(req, res) {
       }
       if (body.action === 'probe') { send(res, 200, JSON.stringify({ ok: true })); return }
       if (!queueWorkersEnabled()) { send(res, 200, JSON.stringify({ disabled: true })); return }
-      if (body.action === 'study-dispatch') { send(res, 200, JSON.stringify({ ids: [...await claimStudyDispatch(), ...await claimPaperDispatch()] })); return }
+      if (body.action === 'study-dispatch') { await scheduleModuleGuides({sourceOptions:studySourceOptions,platform:llmConfiguration()}); send(res, 200, JSON.stringify({ ids: [...await claimStudyDispatch(), ...await claimPaperDispatch()] })); return }
       if ((body.action === 'study-step' && /^sv-[a-f0-9-]{36}$/.test(body.jobId || '')) || (body.action === 'paper-step' && /^pap-[a-f0-9-]{36}$/.test(body.jobId || ''))) { send(res, 200, JSON.stringify(await runStudentStudyJob(body.jobId))); return }
       const queue = await import('./lib/canvas-queue-pipeline.mjs')
       let result
@@ -4608,6 +4609,23 @@ async function handleRequest(req, res) {
     // The permanent tutor. Conversations, the facts it has been asked to
     // remember, and how the student wants to be answered all persist; relevant past
     // conversations can be retrieved as clearly labelled historical context.
+    if (url.pathname === '/api/tutor/study-sessions' && ['GET', 'POST'].includes(req.method)) {
+      try {
+        const result = req.method === 'GET'
+          ? { checkpoints: await readStudySessions(Object.fromEntries(url.searchParams)) }
+          : await saveStudySession(await readBody(req, 24000))
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      } catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })) }
+      return
+    }
+    const studySessionMatch = url.pathname.match(/^\/api\/tutor\/study-sessions\/([^/]+)$/)
+    if (studySessionMatch && req.method === 'DELETE') {
+      try {
+        const removed = await forgetStudySession(decodeURIComponent(studySessionMatch[1]))
+        send(res, removed ? 200 : 404, JSON.stringify(removed ? { removed: true } : { error: 'No such study checkpoint.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })) }
+      return
+    }
     if (url.pathname === '/api/tutor/updates/prepare' && req.method === 'POST') {
       try { send(res, 200, JSON.stringify(await prepareExternalTutorUpdate(await readBody(req, 8192))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }); }
       catch (error) { send(res, error.status || 400, JSON.stringify({ error: error.message })); }
@@ -6717,7 +6735,7 @@ server.listen(port, hostname, () => {
 // Local recovery uses the same durable outbox as Vercel Cron. No browser worker.
 if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
   const recovery = setInterval(async () => {
-    try { for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key); for (const id of await claimPaperDispatch()) await wakeStudentStudy(id) }
+    try { await scheduleModuleGuides({sourceOptions:studySourceOptions,platform:llmConfiguration()}); for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key); for (const id of await claimPaperDispatch()) await wakeStudentStudy(id) }
     catch (error) { console.error('Study recovery deferred:', error.message) }
   }, 30000)
   recovery.unref()

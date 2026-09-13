@@ -220,3 +220,21 @@ test('parallel assignment discovery before the announcement still requires the l
   g.record('get_schedule',{})
   assert.deepEqual(g.requiredTools(),['get_canvas_assignment_detail'])
 })
+
+test('date confirmations constrain and validate empty widgets without suppressing requested planning',async()=>{
+  const {TUTOR_RESPONSE_FORMAT}=await import('../lib/tutor-response.mjs')
+  const history=[{role:'user',content:'When is the assignment due?'}]
+  const g=createTutorGrounding({message:'so its for tomorrow night',history})
+  assert.equal(g.responseFormat(TUTOR_RESPONSE_FORMAT).json_schema.schema.properties.priorities.maxItems,0)
+  assert.match(g.review(JSON.stringify({summary:'Tomorrow night.',evidenceIds:[],priorities:[{title:'Submit'}]})),/all widget arrays empty/)
+  assert.equal(g.review(JSON.stringify({summary:'Tomorrow night.',evidenceIds:[],priorities:[]})),null)
+  const planning=createTutorGrounding({message:'so its tomorrow night, make a plan',history})
+  assert.notEqual(planning.responseFormat(TUTOR_RESPONSE_FORMAT).json_schema.schema.properties.priorities.maxItems,0)
+})
+
+test('a requested learning question stays visible and is not an offer of more help',()=>{
+  const g=createTutorGrounding({message:'Explain polling and ask me one prediction question.'})
+  assert.match(g.review(JSON.stringify({summary:'The pulse is missed.',detail:'What if it lasts longer?',evidenceIds:[]})),/summary/)
+  assert.match(g.review(JSON.stringify({summary:'Do you want more examples?',evidenceIds:[]})),/prediction/)
+  assert.equal(g.review(JSON.stringify({summary:'The pulse is missed. What would the 100 ms poll read if the pulse ended at 170 ms?',evidenceIds:[]})),null)
+})

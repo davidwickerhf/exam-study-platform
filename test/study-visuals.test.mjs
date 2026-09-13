@@ -25,7 +25,7 @@ test('set visuals require actual membership and never accept executable or fetch
   spec.caption = '<img src="https://example.com/tracker">'
   assert.match(studyVisualIssues(spec).join(' '), /executable markup/)
 })
-test('teaching gate rejects dense prose, empty summaries and shallow repetitive practice even with valid JSON', () => {
+test('teaching gate permits necessary depth but rejects empty summaries and shallow repetitive practice even with valid JSON', () => {
   const good = lesson(['e-1'])
   assert.ok(teachingSchema.safeParse(good).success)
   assert.deepEqual(studyLessonQuality(good), [])
@@ -36,7 +36,7 @@ test('teaching gate rejects dense prose, empty summaries and shallow repetitive 
   bad.questions[0].question = 'Which exam rule applies this year?'
   bad.flashcards.forEach(c => {c.front='What is addition?';c.kind='definition'})
   const issues=studyLessonQuality(bad).join(' ')
-  for (const term of [/concise/,/visual/,/summary/,/progressive challenge/,/distinct prompts/,/exam-policy trivia/]) assert.match(issues,term)
+  for (const term of [/visual/,/summary/,/progressive challenge/,/distinct prompts/,/exam-policy trivia/]) assert.match(issues,term)
   const wrongCallout = structuredClone(good)
   wrongCallout.sections[0].callouts[0].text = 'The rule is $2+3=6$.'
   assert.match(studyLessonQuality(wrongCallout).join(' '), /arithmetic/)
@@ -72,4 +72,19 @@ test('title-only passages remain coverage gaps rather than licenses to invent ex
   assert.match(prompt, /COVERAGE-ONLY TITLES/)
   assert.match(prompt, /must NOT become teaching sections/)
   assert.equal(chunks[0].text, 'Welsh room', 'the original snapshot is unchanged')
+})
+
+
+test('ordinary prose about data is not confused with a data URI',()=>{
+  const process=lesson(['e-1']).sections[2].visual
+  process.diagram.nodes[0].description='Identify given data: the input values and their units.'
+  assert.deepEqual(studyVisualIssues(process),[])
+  process.diagram.nodes[0].description='data:image/svg+xml;base64,AAAA'
+  assert.match(studyVisualIssues(process).join(' '),/embedded/)
+})
+
+test('format 3 leaves proportional solution depth to semantic review, not a word quota',()=>{
+  const chapter=lesson(['e-1'])
+  chapter.questions[0].answer='Subtract three from five to recover two; the inverse operation checks the total.'
+  assert.equal(studyLessonQuality(chapter).some(i=>/Practice needs varied/.test(i)),false)
 })

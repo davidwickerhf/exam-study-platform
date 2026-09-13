@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Field, FieldLabel, FieldDescription } from '@/components/ui/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StudyChapterEditor } from './study-chapter-editor'
+import { StudyHints, StudyRemediation } from './study-learning-support'
 import { StudyLessonStory } from './study-lesson-story'
 import { StudyProse, StudyInline } from './study-prose'
 import { StudyEvidence } from './study-evidence'
@@ -184,7 +185,7 @@ export function StudyReader({
             {personal && <TabsTrigger value="notes">My notes</TabsTrigger>}
           </TabsList>
           <TabsContent value="lesson" className="flex flex-col gap-7">
-            {chapter.formatVersion === 2 ? <StudyLessonStory key={chapter.id} chapter={chapter} revision={revision} /> : chapter.sections.map((section, index) => (
+            {(chapter.formatVersion === 2 || chapter.formatVersion === 3) ? <StudyLessonStory key={chapter.id} chapter={chapter} revision={revision} /> : chapter.sections.map((section, index) => (
               <section key={index}>
                 <h3 className="mb-3 text-base font-semibold">
                   {section.title}
@@ -193,7 +194,7 @@ export function StudyReader({
                 <StudyEvidence ids={section.sourceIds} revision={revision} />
               </section>
             ))}
-            {walkthrough && chapter.formatVersion !== 2 && (
+            {walkthrough && chapter.formatVersion !== 2 && chapter.formatVersion !== 3 && (
               <section className="flex flex-col gap-4 rounded-lg border bg-muted/20 p-5">
                 <div>
                   <p className="text-muted-foreground text-xs">
@@ -273,7 +274,7 @@ export function StudyReader({
             )}
           </TabsContent>
           <TabsContent value="summary">
-            <p className="mb-6 text-sm text-muted-foreground">The ideas to take into your next problem. Try explaining each one without opening the lesson.</p>
+            <p className="mb-6 text-sm text-muted-foreground">Concise revision view. The ideas to take into your next problem. Try explaining each one without opening the lesson.</p>
             <ul className="grid gap-6 md:grid-cols-2">
               {chapter.summary.map((s, i) => (
                 <li key={i} className="border-t pt-4">
@@ -295,7 +296,7 @@ export function StudyReader({
                 </div>
                 {question.objective && <p className="text-xs text-muted-foreground">Practising: <StudyInline>{question.objective}</StudyInline></p>}
                 <StudyProse>{question.question}</StudyProse>
-                {question.hint && <details key={question.id} className="rounded-lg border px-4 py-3"><summary className="cursor-pointer text-sm font-medium">Need a hint?</summary><div className="mt-3"><StudyProse>{question.hint}</StudyProse></div></details>}
+                <StudyHints key={`hints-${question.id}`} question={question} />
                 <Field>
                   <FieldLabel htmlFor="study-answer">Your answer</FieldLabel>
                   <Textarea
@@ -339,6 +340,7 @@ export function StudyReader({
                     </Button>
                   )}
                 </div>
+                {showAnswer && <StudyRemediation key={`remediation-${question.id}`} question={question} questions={chapter.questions} onSelect={i=>{setQuestionIndex(i);setShowAnswer(false);setAnswer('')}}/>}
                 {showAnswer && (
                   <div className="rounded-lg border bg-muted/20 p-4">
                     <StudyProse>{question.answer}</StudyProse>

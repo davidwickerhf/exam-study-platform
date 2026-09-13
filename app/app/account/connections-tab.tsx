@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { CanvasRefreshSettings, type RefreshSettings } from "./canvas-refresh-settings";
 
 /**
@@ -477,7 +478,7 @@ export function ConnectionsTab() {
             <Button type="button" variant="ghost" size="sm" className="col-start-2 row-span-2 row-start-1 sm:col-auto sm:row-auto" onClick={() => setAddingHost(true)}>Connect</Button>
           </div>
         )}
-        {addingHost && (
+        <Sheet open={addingHost} onOpenChange={setAddingHost}><SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-2xl"><SheetHeader className="border-b p-6"><SheetTitle>Connect Canvas</SheetTitle><SheetDescription>Add a Canvas host and choose material collection.</SheetDescription></SheetHeader><div className="min-h-0 overflow-y-auto">
           <form
             onSubmit={connect}
             className="bg-muted/45 grid gap-4 border-b p-4 sm:grid-cols-2 sm:p-6 lg:px-8"
@@ -611,7 +612,7 @@ export function ConnectionsTab() {
               </p>
             )}
           </form>
-        )}
+        </div></SheetContent></Sheet>
         {!addingHost && !managingHosts && notice && <p role="status" className="border-b px-4 py-3 text-primary text-sm font-medium sm:px-6 lg:px-8">{notice}</p>}
         {!addingHost && !managingHosts && error && <p role="alert" className="border-b px-4 py-3 text-sm font-medium sm:px-6 lg:px-8">{error}</p>}
         <TimetableConnections />
@@ -623,7 +624,7 @@ export function ConnectionsTab() {
       </div>
 
       {saved.length > 0 && <Link href="/app/groups" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">View your Canvas groups <ArrowRightIcon className="size-4"/></Link>}
-      {saved.length > 0 && managingHosts && <div id="canvas-sync" className="mt-8 scroll-mt-6"><Section
+      {saved.length > 0 && <Sheet open={managingHosts} onOpenChange={setManagingHosts}><SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-2xl"><SheetHeader className="border-b p-6"><SheetTitle>Canvas settings</SheetTitle><SheetDescription>Manage collection, scheduled refreshes and this connection.</SheetDescription></SheetHeader><div id="canvas-sync" className="min-h-0 overflow-y-auto p-6"><Section
         title="Canvas management"
         note="Removing one deletes its encrypted token here and changes nothing in Canvas."
         action={
@@ -787,7 +788,7 @@ export function ConnectionsTab() {
                             }))
                           }
                         >
-                          <SelectTrigger className="min-w-72 flex-1">
+                          <SelectTrigger className="min-w-0 flex-1">
                             <SelectValue placeholder="Select any Canvas course edition" />
                           </SelectTrigger>
                           <SelectContent>
@@ -833,7 +834,7 @@ export function ConnectionsTab() {
             {error}
           </p>
         )}
-      </Section></div>}
+      </Section></div></SheetContent></Sheet>}
 
       <Confirm
         open={Boolean(removing)}
