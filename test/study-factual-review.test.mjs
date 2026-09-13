@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextFactualReview, acceptFactualReview, factualAuditIssues, factualReviewItems } from '../lib/study-factual-review.mjs'
-import { deriveObjectiveCoverage } from '../lib/study-pedagogy.mjs'
+import { deriveObjectiveCoverage, pedagogyPrompt } from '../lib/study-pedagogy.mjs'
 import { practiceLinkStep, applyPracticeLinks } from '../lib/study-practice-links.mjs'
 import { course, lesson, teachingPlan, teachingResponse } from '../scripts/verification/study-fixtures.mjs'
 const evidence=[{id:'e-current',sourceKey:'source',text:'Adding disjoint groups: two plus three equals five. Check with subtraction.'}]
@@ -122,4 +122,20 @@ test('flashcard-only correction preserves the lesson and practice instead of reg
   const fixed=applyQuestionRepair(draft,step,{flashcards})
   assert.deepEqual(fixed.questions,draft.questions);assert.deepEqual(fixed.sections,draft.sections)
   assert.deepEqual(fixed.flashcards.slice(4),draft.flashcards.slice(4));assert.notEqual(fixed.flashcards[0].back,draft.flashcards[0].back)
+})
+
+
+test('factual scope review preserves syllabus constraints without grading private drafting instructions as lesson text',()=>{
+  const draft=chapter()
+  draft.teachingPlan.objectives[0].teachingApproach='PRIVATE DRAFTING APPROACH'
+  draft.teachingPlan.objectives[0].demonstration='PRIVATE PLANNED EXAMPLE'
+  draft.teachingPlan.exclusions=['Current exam excludes advanced calculus.']
+  draft.sections[0].text='ACTUAL FINISHED TEACHING'
+  const items=factualReviewItems(draft),scope=items.find(item=>item.key==='scope')
+  assert.doesNotMatch(JSON.stringify(items),/PRIVATE DRAFTING|PRIVATE PLANNED/)
+  assert.doesNotMatch(pedagogyPrompt('',draft),/PRIVATE DRAFTING|PRIVATE PLANNED/)
+  assert.equal(scope.content.teachingPlan.objectives[0].goal,draft.teachingPlan.objectives[0].goal)
+  assert.deepEqual(scope.content.teachingPlan.objectives[0].sourceIds,draft.teachingPlan.objectives[0].sourceIds)
+  assert.deepEqual(scope.content.teachingPlan.exclusions,draft.teachingPlan.exclusions)
+  assert.match(JSON.stringify(items),/ACTUAL FINISHED TEACHING/)
 })

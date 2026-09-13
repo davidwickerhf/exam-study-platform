@@ -44,9 +44,10 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         await mutateStudyVersion(id,version=>{
           version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null}
           delete version.draft.localRequest
-          if(process.env.STUDY_PIPELINE_RECHECK_PEDAGOGY) {
+          if(process.env.STUDY_PIPELINE_RECHECK_PEDAGOGY || process.env.STUDY_PIPELINE_RECHECK_ALL) {
             for(const chapter of version.draft.chapters) {
               delete chapter.pedagogyAudit;delete chapter.pedagogicalReview
+              if(process.env.STUDY_PIPELINE_RECHECK_ALL){delete chapter.factualAudit;delete chapter.evidenceReview}
               chapter.review='pending'
             }
             version.draft.stage='review'
