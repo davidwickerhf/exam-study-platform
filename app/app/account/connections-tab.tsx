@@ -175,7 +175,7 @@ function TimetableConnections() {
             <span className="col-start-1 row-start-2 flex items-center gap-2 pl-[3.25rem] text-xs sm:col-auto sm:row-auto sm:pl-0"><span className={`${refreshing ? "animate-pulse bg-primary" : stale ? "bg-border-strong" : "bg-foreground"} size-1.5 rounded-full`} />{refreshing ? "Refreshing" : stale ? "Needs refresh" : "Connected"}</span>
             <span className={`text-muted-foreground hidden text-xs sm:block ${NUMERALS}`}>{link.eventCount} appointment{link.eventCount === 1 ? "" : "s"}</span>
             <span className={`text-muted-foreground hidden text-xs sm:block ${NUMERALS}`}>{link.lastSyncedAt ? relative(link.lastSyncedAt) : "Not synced"}</span>
-            <span className="col-start-2 row-span-2 row-start-1 flex justify-end gap-1 sm:col-auto sm:row-auto"><Button variant="ghost" size="sm" disabled={busy} onClick={() => void sync(link)}><RefreshCwIcon className="sm:hidden" aria-label="Refresh" /><span className="hidden sm:inline">Refresh</span></Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => setRemoving(link)}>Remove</Button></span>
+            <span className="col-start-2 row-span-2 row-start-1 flex justify-end gap-1 sm:col-auto sm:row-auto"><Button variant="ghost" size="sm" disabled={busy} onClick={() => void sync(link)}><RefreshCwIcon className={refreshing ? "animate-spin" : "sm:hidden"} aria-label={refreshing ? "Refreshing" : "Refresh"} /><span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span></Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => setRemoving(link)}>Remove</Button></span>
           </div>;
         })
       ) : (

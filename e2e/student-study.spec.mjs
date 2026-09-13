@@ -440,6 +440,31 @@ test('Home groups recurring rules and shows priorities from several courses with
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
 })
 
+test('calendar retains saved appointments and explains a failed refresh', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-07T08:00:00Z'))
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.route('**/api/calendar/events', async (route) => {
+    const response = await route.fetch(), body = await response.json()
+    await route.fulfill({ json: { ...body,
+      feeds: [{ id: 'offline-feed', label: 'University timetable' }],
+      problems: [{ id: 'offline-feed', label: 'University timetable', error: 'The timetable server did not respond in time.', usingSaved: true, savedAt: '2026-09-06T12:00:00Z' }],
+      events: [{ id: 'saved-lecture', title: 'Saved lecture', start: '2026-09-08T09:00:00', end: '2026-09-08T11:00:00', allDay: false, category: 'timetable', source: 'feed:offline-feed', stale: true }]
+    } })
+  })
+  await page.route('**/api/academics/calendars/offline-feed/sync', route => route.fulfill({ status: 400, json: { error: 'The timetable server did not respond in time. Try refreshing again later.' } }))
+  await page.goto('/app/calendar')
+  await expect(page.getByRole('status').filter({ hasText: 'Showing the saved timetable' })).toBeVisible()
+  await expect(page.locator('[data-calendar-event-id="saved-lecture"]')).toBeVisible()
+  await page.getByRole('button', { name: 'Manage University timetable' }).click()
+  await page.getByRole('menuitem', { name: 'Refresh now' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Try refreshing again later' })).toBeVisible()
+  await expect(page.locator('[data-calendar-event-id="saved-lecture"]')).toBeVisible()
+  await page.screenshot({ path: '/tmp/wicker-timetable-fallback.png' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByRole('status').filter({ hasText: 'Showing the saved timetable' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
 test('calendar keeps mandatory attendance prominent and filters obligations in week and agenda', async ({page}) => {
   await page.clock.setFixedTime(new Date('2026-09-07T08:00:00Z'))
   await page.route('**/api/calendar/events',async route=>{

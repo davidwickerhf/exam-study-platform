@@ -66,7 +66,7 @@ import { getActivitySummary, recordActivity } from './lib/activity.mjs'
 import { createAcademicProgramme, deleteAcademicProgramme, importAcademicProgramme, normalizeAcademicWorkspace, readAcademicState, readAcademicWorkspace, saveAcademicWorkspace, saveActiveAcademicWorkspace, selectAcademicProgramme } from './lib/academics.mjs'
 import { detectAcademicDocumentKind, fallbackAcademicIntake, mergeAcademicIntakeDrafts, normalizeAcademicIntakeDraft } from './lib/academic-intake.mjs'
 import { DOCUMENT_KINDS, applyChanges, buildChangeSet, calendarChangeSet, fetchCalendar, normalizeCalendarLink, parseIcs } from './lib/academic-documents.mjs'
-import { aggregateCalendar, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
+import { aggregateCalendar, calendarFeedsWithFallback, calendarPeriodCourseEvidence, clearFeedCache, feedEvents, resolveAcademicTimeContext, resolveExamWindow } from './lib/calendar-feed.mjs'
 import { dismissCalendarNotice, observeCalendarFeeds } from './lib/calendar-changes.mjs'
 import { discoverCourses } from './lib/course-repository.mjs'
 import { upsertAttendanceRecord } from './lib/attendance.mjs'
@@ -4530,17 +4530,12 @@ async function handleRequest(req, res) {
       }
       })()
       const links = workspace.calendars || []
-      const feedResults = await Promise.allSettled(links.map((link) => feedEvents(link)))
-      const feeds = []
-      for (const [index, outcome] of feedResults.entries()) {
-        const link = links[index]
-        if (outcome.status === 'fulfilled') feeds.push({ link, events: outcome.value })
-        else problems.push({ id: link.id, label: link.label, error: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason) })
-      }
+      const { feeds, freshFeeds, problems: feedProblems } = await calendarFeedsWithFallback(workspace.id, links)
+      problems.push(...feedProblems)
       await canvasRead
       const [result, changes] = await Promise.all([
         Promise.resolve(aggregateCalendar({ workspace, editorialCourses: state.courses || [], ruleCourses: programmePriorityCourses(workspace, state.courses, scans), institutionCalendar: academicCalendarFor(workspace, reference), feeds, canvas, date: url.searchParams.get('date') || undefined })),
-        observeCalendarFeeds(workspace.id, feeds, { activeFeedIds: links.map((link) => link.id) }).catch((error) => {
+        observeCalendarFeeds(workspace.id, freshFeeds, { activeFeedIds: links.map((link) => link.id) }).catch((error) => {
           problems.push({ id: 'calendar-change-detection', label: 'Timetable changes', error: error instanceof Error ? error.message : String(error) })
           return []
         })
@@ -5142,6 +5137,7 @@ async function handleRequest(req, res) {
         workspace.calendars = [...workspace.calendars.filter((item) => item.url !== link.url), syncedLink]
         const saved = await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
         clearFeedCache()
+        await observeCalendarFeeds(workspace.id, [{ link: syncedLink, events }], { activeFeedIds: workspace.calendars.map((item) => item.id) })
         send(res, 200, JSON.stringify({ ...saved, link: syncedLink, changeSet }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
@@ -5178,6 +5174,7 @@ async function handleRequest(req, res) {
         workspace.calendars = workspace.calendars.map((item) => item.id === link.id ? syncedLink : item)
         const saved = await saveActiveAcademicWorkspace(workspace, state.workspace.revision)
         clearFeedCache()
+        await observeCalendarFeeds(workspace.id, [{ link: syncedLink, events }], { activeFeedIds: workspace.calendars.map((item) => item.id) })
         send(res, 200, JSON.stringify({ ...saved, link: syncedLink, changeSet }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, /another tab/.test(error.message) ? 409 : 400, JSON.stringify({ error: error.message }))
