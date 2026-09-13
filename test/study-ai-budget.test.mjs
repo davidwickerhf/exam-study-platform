@@ -284,3 +284,8 @@ test('Sol and Astra preserve explicit model selection and reserve current long-c
     assert.equal(studyModelCost('gpt-6-astra',300000,1000),7575000)
   })
 })
+
+test('paid-call reservation remains exclusive beyond the old five-minute lease',()=>{
+  const first=reserveStudyLedger(null,input,limits)
+  assert.throws(()=>reserveStudyLedger(first.ledger,{...input,now:input.now+360000},limits),/Another chapter/)
+})

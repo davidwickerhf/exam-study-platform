@@ -1335,7 +1335,7 @@ async function runClaudeCli(prompt, { schemaPath, images = [], model = '' } = {}
   })
 }
 
-async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
+async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = [], providerTimeoutMs = 210000, maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY is not set. Either set the env var, add anthropicApiKey to data/llm-config.json, or switch provider to codex/claude.')
   }
@@ -1375,7 +1375,7 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
+      body: JSON.stringify(body), signal: AbortSignal.timeout(providerTimeoutMs)
     })
     if (!resp.ok) {
       throw await studyProviderError(resp)
@@ -1401,7 +1401,7 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
 }
 
 // OpenAI Chat Completions with JSON-schema structured output and image inputs.
-async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
+async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], providerTimeoutMs = 210000, maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
   }
@@ -1431,7 +1431,7 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
     const resp = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
+      body: JSON.stringify(body), signal: AbortSignal.timeout(providerTimeoutMs)
     })
     if (!resp.ok) {
       throw await studyProviderError(resp)

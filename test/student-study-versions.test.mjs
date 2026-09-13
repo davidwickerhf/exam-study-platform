@@ -980,3 +980,32 @@ test('review-only retry keeps the failed chapter and charges no generation call'
     })
   } finally { await f.cleanup() }
 })
+
+test('long guide calls keep their lease and reject duplicate workers beyond five minutes',async t=>{
+  const f=await fixture()
+  let now=Date.now()
+  const clock=t.mock.method(Date,'now',()=>now)
+  try {
+    await f.run(()=>processStudyStep(f.version.id,{generate:async(_prompt,options)=>{
+      assert.equal(options.providerTimeoutMs,600000)
+      now+=360000
+      let duplicates=0
+      await processStudyStep(f.version.id,{generate:async()=>{duplicates++;throw Error('duplicate worker')}})
+      assert.equal(duplicates,0)
+      return {topics:[{id:'addition',title:'Addition',sourceIds:f.snapshot.chunks.map(c=>c.id)}],gaps:[]}
+    }}))
+    const version=await f.run(()=>ownStudyVersion(f.version.id))
+    assert.equal(version.draft.maps.length,1)
+    assert.notEqual(version.draft.status,'failed')
+  } finally {clock.mock.restore();await f.cleanup()}
+})
+
+test('guide timeouts preserve checkpoints and name the actionable failure',async()=>{
+  const f=await fixture()
+  try {
+    await f.run(()=>processStudyStep(f.version.id,{generate:async()=>{throw new DOMException('timeout','TimeoutError')}}))
+    const version=await f.run(()=>ownStudyVersion(f.version.id))
+    assert.equal(version.draft.status,'failed')
+    assert.match(version.draft.error,/time allowance.*Finished work is saved/)
+  } finally {await f.cleanup()}
+})
