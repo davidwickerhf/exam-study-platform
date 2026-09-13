@@ -9,7 +9,7 @@ const {withRequestContext}=await import('../../lib/request-context.mjs')
 const {deleteAllDocuments}=await import('../../lib/user-store.mjs')
 const {readStudySourceSnapshot}=await import('../../lib/study-version-sources.mjs')
 const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=await import('../../lib/study-version-store.mjs')
-const {processStudyStep}=await import('../../lib/study-version-pipeline.mjs')
+const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const {evaluationCourse:course,evaluationSources,evaluationChunks}=await import('../../lib/study-quality-fixture.mjs')
 const sourceOptions={editorialSources:async()=>evaluationSources.map(s=>({...s,pages:evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))}
@@ -22,6 +22,7 @@ async function generate(prompt,options){
   report.calls++
   if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});throw new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`)}
   const result=await response.json();report.calculatedUsd+=((result.usage?.prompt_tokens||0)*0.25+(result.usage?.completion_tokens||0)*2)/1000000
+  if(result.choices?.[0]?.finish_reason==='length')throw new Error('Provider output budget exhausted before a complete correction was returned.')
   return result.choices?.[0]?.message?.content || ''
 }
 for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELINE_MODE || mode===process.env.STUDY_PIPELINE_MODE)){
@@ -40,7 +41,21 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         await mutateStudyVersion(id,version=>{
           version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null}
           delete version.draft.localRequest
+          if(process.env.STUDY_PIPELINE_RECHECK_PEDAGOGY) {
+            for(const chapter of version.draft.chapters) {
+              delete chapter.pedagogyAudit;delete chapter.pedagogicalReview
+              chapter.review='pending'
+            }
+            version.draft.stage='review'
+            version.draft.issues=[]
+            version.draft.reviewOnly=true
+          }
         })
+        if(process.env.STUDY_PIPELINE_CORRECT) {
+          await mutateStudyVersion(id,version=>{version.draft.status='failed'})
+          await controlStudyGeneration(id,'retry')
+          run.requestedCorrection=true
+        }
         run.resumedFrom=process.env.STUDY_PIPELINE_RESUME_FILE
       }
       for(let step=0;step<180;step++){

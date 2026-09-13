@@ -24,7 +24,7 @@ export function pedagogicalReview(chapter, { shallow = false } = {}) {
       guidedQuestionKey: path.guidedQuestionKeys[0], independentQuestionKey: path.independentQuestionKeys[0],
       rationale: 'Scripted plumbing fixture, not a live pedagogical judgment.',
       missingReasoning: shallow ? ['The definition does not teach the event trace required by its assessment.'] : [] }
-  }), transferChecks:chapter.questions.filter(q=>q.practiceStage==='transfer').map(q=>({questionKey:q.key,closestExampleSectionId:chapter.sections[0].id,changedCondition:'Scripted fixture changes the conditions.',requiresNewReasoning:true,rationale:'Scripted plumbing fixture.'})), followUpChecks:chapter.questions.filter(q=>q.misconceptions?.length).map(q=>({questionKey:q.key,useful:true,rationale:'Scripted plumbing fixture.'})), issues: [] }
+  }), transferChecks:chapter.questions.filter(q=>q.practiceStage==='transfer').map(q=>({questionKey:q.key,closestExampleSectionId:chapter.sections[0].id,changedCondition:'Scripted fixture changes the conditions.',variation:'diagnosis',rationale:'Scripted plumbing fixture.'})), followUpChecks:chapter.questions.filter(q=>q.misconceptions?.length).map(q=>({questionKey:q.key,useful:true,rationale:'Scripted plumbing fixture.'})), issues: [] }
 }
 export function teachingResponse(prompt, ids, {reviewIssues=[]}={}) {
   if(prompt.includes('INDEPENDENT QUESTION SOLVING') || prompt.includes('ANSWER COMPARISON REVIEW') || prompt.includes('ITEM-BY-ITEM CONTENT REVIEW')) {

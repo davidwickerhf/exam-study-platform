@@ -94,3 +94,21 @@ test('an objective review can inspect a linked follow-up from another objective'
   assert.ok(!step.chapter.questions.some(q=>q.key===draft.questions[1].key))
   assert.ok(step.chapter.relatedQuestions.every(q=>!Object.hasOwn(q,'answer')))
 })
+
+test('section-only correction preserves all practice and unflagged teaching',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter(),section=draft.sections[0]
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:`section:${section.id}`,detail:'Caption contradicts the example.'}])
+  assert.ok(step)
+  const fixed=applyQuestionRepair(draft,step,{sections:{[section.id]:{...section,text:section.text+' This illustration is a separate example.'}}})
+  assert.deepEqual(fixed.questions,draft.questions)
+  assert.deepEqual(fixed.sections.slice(1),draft.sections.slice(1))
+  assert.notEqual(fixed.sections[0].text,section.text)
+  assert.equal(questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:'section:unknown',detail:'Unknown section'}]),null)
+})
+
+test('null corruption blocks acceptance even when a model called it a formatting warning',async()=>{
+  const {studyLessonQuality}=await import('../lib/study-content-quality.mjs')
+  const draft=chapter();draft.sections[0].text='The complement is 1\u0000\u0000=5/6.'
+  assert.ok(studyLessonQuality(draft,evidence).some(issue=>issue.includes('null-character corruption')))
+})
