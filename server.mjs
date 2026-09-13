@@ -1442,6 +1442,7 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
       text,
       usage: {
         inputTokens: Number(data.usage?.prompt_tokens || estimateTokens(prompt)),
+        ...(Number.isSafeInteger(data.usage?.prompt_tokens_details?.cache_write_tokens) ? {cacheWriteInputTokens:data.usage.prompt_tokens_details.cache_write_tokens,cachedInputTokens:data.usage.prompt_tokens_details.cached_tokens || 0} : {}),
         outputTokens: Number(data.usage?.completion_tokens || estimateTokens(text)),
         estimated: !data.usage
       }

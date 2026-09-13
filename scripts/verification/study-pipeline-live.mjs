@@ -2,7 +2,7 @@
 // Stores only isolated local validation accounts; never writes production data.
 import { writeFile, readFile } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
-import { estimateStudyCall } from '../../lib/study-ai-budget.mjs'
+import { estimateStudyCall, studyModelCost } from '../../lib/study-ai-budget.mjs'
 if(process.env.DATABASE_URL)throw new Error('Live pipeline validation requires isolated local storage, not a database URL.')
 const key=process.env.OPENAI_API_KEY
 if(!key || key==='[SENSITIVE]')throw new Error('A usable OPENAI_API_KEY is required.')
@@ -14,15 +14,15 @@ const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-ve
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const {evaluationCourse:course,evaluationSources,evaluationChunks}=await import('../../lib/study-quality-fixture.mjs')
 const sourceOptions={editorialSources:async()=>evaluationSources.map(s=>({...s,pages:evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))}
-const report={contract:'student-source-teaching-v6',model:'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
+const report={contract:'student-source-teaching-v6',model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generate(prompt,options){
-  if(report.calculatedUsd+estimateStudyCall(prompt,options.maxOutputTokens,report.model).micros/1000000>5)throw new Error('Live pipeline validation spending cap reached.')
+  if(report.calculatedUsd+estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000>5)throw new Error('Live pipeline validation spending cap reached.')
   console.log(`Provider call ${report.calls+1}: ${options.stage || 'generation'}`)
   const response=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model:report.model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),signal:AbortSignal.timeout(210000)})
   report.calls++
   if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});throw new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`)}
-  const result=await response.json();report.calculatedUsd+=((result.usage?.prompt_tokens||0)*0.25+(result.usage?.completion_tokens||0)*2)/1000000
+  const result=await response.json();report.calculatedUsd+=studyModelCost(report.model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
   if(result.choices?.[0]?.finish_reason==='length')throw new Error('Provider output budget exhausted before a complete correction was returned.')
   return result.choices?.[0]?.message?.content || ''
 }

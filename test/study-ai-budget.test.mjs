@@ -6,6 +6,7 @@ import {
   settleStudyLedger,
   studyBudgetLimits,
   estimateStudyCall,
+  studyModelCost,
   resolveStudyBilling,
   runBudgetedStudyCall
 } from '../lib/study-ai-budget.mjs'
@@ -259,6 +260,27 @@ test('enhanced generation explicitly selects its priced model without relaxing b
     assert.ok(strong.micros > mini.micros * 7)
     assert.throws(() => reserveStudyLedger(null, { ...input, model: enhanced.model, estimate: strong, maxJobUsd: 0.05 }, limits), /cap|budget|spending/i)
     await assert.rejects(resolveStudyBilling({ quality: 'enhanced' }, { ...platform, provider: 'anthropic' }), /OpenAI/)
-    await assert.rejects(resolveStudyBilling({ quality: 'unknown' }, platform), /standard or enhanced/)
+    await assert.rejects(resolveStudyBilling({ quality: 'unknown' }, platform), /standard, enhanced/)
+  })
+})
+
+
+test('Sol and Astra preserve explicit model selection and reserve current long-context/cache-write prices',async()=>{
+  await withRequestContext({userId:`modern-model-${randomUUID()}`,mode:'hosted',email:'student@example.test'},async()=>{
+    const platform={configured:true,provider:'openai',model:'gpt-5-mini'}
+    for(const [quality,model] of [['sol','gpt-5.6-sol'],['astra','gpt-6-astra']]){
+      const billing=await resolveStudyBilling({quality,maxJobUsd:5},platform)
+      assert.equal(billing.model,model)
+      assert.equal(billing.maxJobUsd,5)
+      const estimate=estimateStudyCall('Complete lesson',64000,model)
+      assert.equal(estimate.outputTokens,64000)
+      assert.throws(()=>reserveStudyLedger(null,{...input,model,estimate,maxJobUsd:0.05},limits),/cap|budget|spending/i)
+      await assert.rejects(resolveStudyBilling({quality},{...platform,provider:'anthropic'}),/OpenAI/)
+    }
+    assert.equal(studyModelCost('gpt-5.6-sol',1000,1000),25000)
+    assert.equal(studyModelCost('gpt-6-astra',1000,1000),62500)
+    assert.equal(studyModelCost('gpt-6-astra',1000,1000,{cachedInputTokens:500,cacheWriteInputTokens:200}),56000)
+    assert.equal(studyModelCost('gpt-5.6-sol',300000,1000),3030000)
+    assert.equal(studyModelCost('gpt-6-astra',300000,1000),7575000)
   })
 })
