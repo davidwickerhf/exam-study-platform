@@ -85,7 +85,8 @@ test.beforeAll(async () => {
       generate: async prompt => ({ text: JSON.stringify(i >= 5 ? evaluationReview(JSON.parse(prompt.split('Chapter: ').at(-1)), { shallow: i === 6 }) : teachingResponse(prompt, ['e-current']) || (i === 1 ? lesson(['e-current']) : { issues: i === 2 ? [] : [
         { topicId: 'probability', severity: 'error', detail: 'Even outcomes have probability 1/2, not 2/3.' },
         { topicId: 'probability', severity: 'error', detail: 'Current exam duration is 120 minutes; the historical rules are outdated.' },
-        { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' }
+        { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' },
+        { topicId:'probability',severity:'error',detail:'The intersection range needs lower bound 0.2 because the union cannot exceed one.' }
       ] })), usage: { inputTokens: 800, outputTokens: 1500, estimated: false } })
     })
   })

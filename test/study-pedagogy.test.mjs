@@ -83,3 +83,14 @@ test('reviewer evidence choices are exact visible excerpts and bind to their sec
   const quote=choices[0].properties.quote.enum[0]
   assert.equal(validate({sectionId:chapter.sections[1].id,quote}),false)
 })
+
+
+test('live-evaluation regression rejects an incomplete feasible intersection range', async()=>{
+  const {intersectionRangeIssues}=await import('../lib/study-content-quality.mjs')
+  const q={question:'Given P(A)=0.7, P(B)=0.5, give the allowable intersection range.',answer:'The allowable range is [0,0.5].'}
+  assert.equal(intersectionRangeIssues(q).length,1)
+  assert.deepEqual(intersectionRangeIssues({...q,answer:'The allowable intersection range is [0.2,0.5].'}),[])
+  assert.deepEqual(intersectionRangeIssues({question:'Given P(A)=1/4 and P(B)=1/3.',answer:'The intersection range is [0,1/4].'}),[])
+  assert.deepEqual(intersectionRangeIssues({...q,answer:'An incorrect student claimed the range [0,0.5]; explain the mistake.'}),[])
+  assert.deepEqual(intersectionRangeIssues({...q,question:'First P(A)=0.7, then P(A)=0.1; P(B)=0.5.'}),[])
+})

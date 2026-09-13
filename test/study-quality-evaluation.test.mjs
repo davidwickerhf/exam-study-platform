@@ -41,7 +41,8 @@ test('browser evaluation runs generation, independent review and corruption chec
     return { text: JSON.stringify({ issues: [
       { topicId: 'probability', severity: 'error', detail: 'Even probability is 1/2, not 2/3.' },
       { topicId: 'probability', severity: 'error', detail: 'Historical exam rules are not current: use 120 minutes closed book.' },
-        { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' }
+        { topicId:'probability', severity:'error', detail:'The visual includes odd face 1 in the even set; its membership is incorrect.' },
+        { topicId:'probability',severity:'error',detail:'The intersection range needs lower bound 0.2 because the union cannot exceed one.' }
     ] }) }
   }
   for (let i = 0; i < 7; i++) row = await step(row, generate)
