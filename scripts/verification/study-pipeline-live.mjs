@@ -22,10 +22,10 @@ async function generate(prompt,options){
   console.log(`Provider call ${report.calls+1}: ${options.stage || 'generation'}`)
   report.calculatedUsd+=reserved
   report.calls++
-  const response=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model:report.model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),signal:AbortSignal.timeout(options.providerTimeoutMs || 600000)})
+  const response=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model:report.model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),signal:AbortSignal.timeout(options.providerTimeoutMs || 600000)}).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500)});throw error})
   if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});throw new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`)}
   const result=await response.json();report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(report.model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
-  if(result.choices?.[0]?.finish_reason==='length')throw new Error('Provider output budget exhausted before a complete correction was returned.')
+  if(result.choices?.[0]?.finish_reason==='length'){report.providerFailures ||= [];report.providerFailures.push({name:'OutputLimit',maxOutputTokens:options.maxOutputTokens});throw new Error('Provider output budget exhausted before a complete correction was returned.')}
   return result.choices?.[0]?.message?.content || ''
 }
 for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELINE_MODE || mode===process.env.STUDY_PIPELINE_MODE)){
