@@ -564,6 +564,7 @@ input/output/cache/reasoning tokens, credits and elapsed time. Supply actual ava
 truncated receipts cannot reconstruct the whole subscription bill. Use
 `study_generation_budget` to set an explicit review-task limit; it pauses issuance
 of new review packets at that limit without resetting any correction allowance.
+Cached checks can still be reconciled and the guide completed at the limit.
 Task projections describe one review round; context/output splitting may add tasks.
 
 For existing parsed papers call `study_paper_validate` with the next request's
@@ -585,6 +586,9 @@ original and cannot cite a private note as the original. The review packet requi
 one `originalChecks` entry per such question, matching that exact file hash/page.
 A reviewer must actually inspect the original before setting `reviewed:true`; use a
 blocking issue when inspection is unavailable. Hash/page/citation checks remain
-mandatory. Empty quiz exports still cannot be turned into invented questions.
+mandatory. Image-only pages may have no text chunks: use their bound original,
+not invented sourceIds. Selected textless supporting diagrams remain available
+in the manifest. Transcribed pages must be inside the selected page range.
+Empty quiz exports still cannot be turned into invented questions.
 New local guides default to a 128-review-task budget; existing runs retain their
 current allowance until the student explicitly configures one.

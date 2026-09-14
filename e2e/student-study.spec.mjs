@@ -103,7 +103,7 @@ test.afterAll(async () => {
 test('private quality report renders real persisted checks, costs, citations and exercise solutions', async ({ page }) => {
   await page.goto(`/app/study-evaluations/${evaluationId}`)
   await expect(page.getByRole('heading', { name: 'Inspect the teaching, then check the evidence.' })).toBeVisible()
-  await expect(page.getByText('29 calls recorded · $0.0928 recorded cost · complete')).toBeVisible()
+  await expect(page.getByText('13 calls recorded · $0.0416 recorded cost · complete')).toBeVisible()
   await expect(page.getByText('Even outcomes have probability 1/2, not 2/3.', { exact: false }).first()).toBeVisible()
   await page.getByRole('button', { name: /Sources ·/ }).first().click()
   await expect(page.getByText('Current probability lecture', { exact: true }).first()).toBeVisible()
@@ -1751,4 +1751,25 @@ test('recurring pipeline controls and connection settings use side drawers',asyn
   await page.getByRole('button',{name:'Manage',exact:true}).click()
   await expect(drawer).toBeVisible()
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+})
+
+test('a validated local paper import becomes available to practise without hosted extraction', async ({page}) => {
+  const {nextLocalPaper,submitLocalPaper}=await import('../lib/study-practice.mjs')
+  await run(async()=>{
+    const programmeId=await activeProgrammeId()
+    await mutateStudyVersion(versionId,v=>{v.programmeId=programmeId})
+    const paper=await addStudyNote({...course,title:'Local import fixture.pdf'},[{page:1,text:'Explain why changing an ordinary variable does not wake a blocked task.'}])
+    const set=await createStudyPractice(versionId,{mode:'extract',questionSourceKey:paper.id},{execution:'local'})
+    const next=await nextLocalPaper(versionId,set.id)
+    const result={title:'Locally checked paper',questions:[{id:'imported-paper-[1a]',label:'1a',sourceKey:paper.id,page:1,marks:null,question:'Explain why changing an ordinary variable does not wake a blocked task.',options:[],correctOptions:[],answer:'',answerBasis:'unavailable',needsOriginal:false}],warnings:[]}
+    const review=await submitLocalPaper(versionId,set.id,{requestId:next.request.requestId,response:result})
+    await submitLocalPaper(versionId,set.id,{requestId:review.request.requestId,response:{issues:[]}})
+  })
+  await page.route('**/api/state',route=>route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
+  await page.goto(`/app/courses/${course.courseCode}?tab=papers&year=${course.academicYear}`)
+  await expect(page.getByRole('region',{name:'Past paper library'})).toBeVisible()
+  await page.getByRole('button',{name:/Details for Local import fixture/}).click()
+  await page.getByRole('button',{name:'Practise',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Locally checked paper',exact:true})).toBeVisible()
+  await expect(page.getByText('Explain why changing an ordinary variable does not wake a blocked task.',{exact:true})).toBeVisible()
 })

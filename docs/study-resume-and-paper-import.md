@@ -31,6 +31,7 @@ Unknown fields remain null. Old trimmed/unclassified receipts do not reconstruct
 complete historical bill. `study_generation_budget` configures a review-task allowance;
 new local guides default to 128, and existing guides keep their current allowance.
 At the limit, no further reviewer packet is issued, with no hosted fallback or reset.
+Deterministic cache reconciliation and guide completion still run at that limit.
 This is a task budget, not a guarantee of an external subscription's dollar/credit bill.
 
 ## Private papers
@@ -54,7 +55,9 @@ still requires matching original text (whitespace and typographic ligatures only
 Image-only or interrupted text requires explicit originalTranscription metadata bound
 to the authorised original file's hash/page. It remains labelled client-transcribed,
 requires the original and requires a separate originalChecks review. Private notes
-cannot masquerade as original assets. This is client-reported visual verification,
+cannot masquerade as original assets. Textless originals remain in the selected
+manifest without fabricated chunks; transcriptions must fall within the selected
+page range. Supporting diagram originals are retained and hash-checked too. This is client-reported visual verification,
 not independent server-certified OCR. Metadata-only quiz exports remain missing bodies.
 
 ## Release evidence

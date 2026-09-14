@@ -96,6 +96,11 @@ test('original image transcription requires an explicit hash/page binding and ca
   response.questions[0].originalTranscription={sourceKey:'canvas-a',sha256:'original-sha',page:1,reason:'image'}
   const checked=validateLocalPaperImport(response,record)
   assert.equal(checked.valid,true)
+  record.snapshot.chunks=[]
+  assert.equal(validateLocalPaperImport(response,record).valid,true)
+  response.questions[0].sourceIds=['invented']
+  assert.equal(validateLocalPaperImport(response,record).valid,false)
+  delete response.questions[0].sourceIds
   assert.equal(checked.result.questions[0].questionProvenance,'client-transcribed-original')
   assert.equal(checked.result.questions[0].needsOriginal,true)
   response.questions[0].originalTranscription.sha256='wrong'
@@ -104,3 +109,27 @@ test('original image transcription requires an explicit hash/page binding and ca
   record.snapshot.sources[0].kind='notes'
   assert.equal(validateLocalPaperImport(response,record).valid,false)
 })
+
+test('a transcribed original cannot activate without a matching affirmative original-page review',()=>fixture(async()=>{
+  const sourceOptions={editorialSources:async()=>[{key:'image-original',title:'Exam.pdf',academicYear:course.academicYear,sha256:'image-sha',pages:[]},{key:'supporting-diagram',title:'Maze.pdf',academicYear:course.academicYear,sha256:'maze-sha',pages:[]}]}
+  const request=async(pathname,body)=>(await studyVersionApi({pathname,method:'POST',body,sourceOptions})).data
+  const start=await request('/api/study-versions/course-papers/local',{...course,questionSourceKey:'image-original',supportingSourceKeys:['supporting-diagram'],fromPage:1,toPage:2,confirmed:true})
+  assert.equal(start.request.evidenceManifest.chunks.length,0)
+  assert.deepEqual(start.request.evidenceManifest.questionPageRange,{from:1,to:2})
+  assert.ok(start.request.responseSchema.properties.questions.items.properties.originalTranscription)
+  assert.equal(start.request.responseSchema.properties.questions.items.properties.sourceIds.minItems,undefined)
+  assert.equal(start.request.evidenceManifest.sources.find(s=>s.key==='supporting-diagram').sha256,'maze-sha')
+  const route=`/api/study-versions/${start.set.versionId}/papers/${start.set.id}`
+  const response={title:'Transcribed paper',questions:[{id:'image-q1',label:'1',question:'Explain the original diagram.',page:1,marks:null,options:[],correctOptions:[],answerBasis:'unavailable',answer:'',needsOriginal:true,originalTranscription:{sourceKey:'image-original',sha256:'image-sha',page:1,reason:'image'}}],warnings:[]}
+  response.questions[0].dependencies=[{sourceKey:'supporting-diagram',page:1}]
+  const outside=structuredClone(response);outside.questions[0].page=3;outside.questions[0].originalTranscription.page=3
+  await assert.rejects(()=>request(`${route}/submit`,{requestId:start.request.requestId,response:outside}),/outside the selected page range/)
+  const review=await request(`${route}/submit`,{requestId:start.request.requestId,response})
+  await assert.rejects(()=>request(`${route}/submit`,{requestId:review.request.requestId,response:{issues:[]}}),/format/)
+  const original={questionId:'image-q1',sourceKey:'image-original',sha256:'image-sha',page:1,reviewed:false}
+  await assert.rejects(()=>request(`${route}/submit`,{requestId:review.request.requestId,response:{issues:[],originalChecks:[original]}}),/every transcribed/)
+  const ready=await request(`${route}/submit`,{requestId:review.request.requestId,response:{issues:[],originalChecks:[{...original,reviewed:true}]}})
+  assert.equal(ready.set.status,'complete')
+  assert.equal(ready.set.result.questions[0].questionProvenance,'client-transcribed-original')
+  assert.equal(ready.set.localReview.provenance,'client-reported')
+}))
