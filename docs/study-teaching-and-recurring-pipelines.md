@@ -208,3 +208,13 @@ Unit and pipeline tests verify these bounds and complete review coverage.
 The first live continuation after that change was refused for insufficient API
 credits; it did not establish a successful live recovery. Earlier costs remain
 part of the evaluation's cap on resumed runs.
+
+### Reviewer efficiency and explicit larger caps — 14 September
+
+Factual checkpoints now request concise, auditable verdicts with low reasoning effort; teaching generation and pedagogical review retain their existing capacity and reasoning settings. Every item still requires an independent solution/verdict, and arithmetic, source and teaching acceptance checks are unchanged. Responses telemetry now retains reasoning-token counts, including incomplete responses. The live pipeline evaluator honors each checkpoint's reasoning setting instead of overriding it with medium.
+
+The two notification questions that previously exhausted 32,000 output tokens completed in an isolated low-effort probe in 18 seconds, using 610 output tokens (37 reasoning). The production factual-review regression then caught all four seeded errors—incorrect die probability, an invalid intersection lower bound, outdated exam rules and incorrect diagram membership—in three calls, approximately $0.1671. This is a small regression set, not evidence of universal reviewer accuracy. Reproduce against a saved completed probability evaluation with `OPENAI_API_KEY` and `STUDY_REVIEW_BASE_FILE` set, then run `node scripts/verification/study-review-regression-live.mjs`; its hard cap is $5 and it refuses a database URL.
+
+The default allowance remains $10, and explicit per-guide/revision caps can now be selected up to $50 in manual generation and course automation. Saved caps and account/platform limits remain authoritative. The isolated full-pipeline evaluator accepts `STUDY_PIPELINE_MAX_USD` within the same range and carries prior evaluation spending on resume. Resuming explicitly clears the old scheduling delay and lease, while preserving draft content, review results and correction counts.
+
+Validation: `npm run verify` passed with 1,035 tests, type checking and the production build. The resumed IoT hosted evaluation uses a $25 total cap inclusive of the previously accounted $9.078921; its final result is pending.

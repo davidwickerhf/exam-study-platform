@@ -15,7 +15,7 @@ test('native Responses uses strict output caps and fresh independent contexts',a
  await fixture(async(req,res)=>{let body='';for await(const chunk of req)body+=chunk;requests.push({url:req.url,...JSON.parse(body)});res.setHeader('Content-Type','application/json');res.end(JSON.stringify(response()))},async options=>{
   const result=await runStudyAgentsSdk('author context',options)
   await runStudyAgentsSdk('review context',options)
-  assert.deepEqual(JSON.parse(result.text),{ok:true});assert.equal(result.usage.inputTokens,100);assert.equal(result.usage.cachedInputTokens,40)
+  assert.deepEqual(JSON.parse(result.text),{ok:true});assert.equal(result.usage.inputTokens,100);assert.equal(result.usage.cachedInputTokens,40);assert.equal(result.usage.reasoningTokens,10)
  })
  assert.equal(requests.length,2)
  for(const req of requests){assert.equal(req.url,'/v1/responses');assert.equal(req.max_output_tokens,1000);assert.equal(req.store,false);assert.equal(req.text.format.strict,true);assert.deepEqual(req.text.format.schema,schema);assert.equal(req.previous_response_id,undefined)}

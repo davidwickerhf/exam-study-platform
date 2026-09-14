@@ -130,3 +130,17 @@ test('account preferences require browser auth and direct chapter editing is ret
     }
   })
 })
+
+test('larger explicit guide caps persist while the maximum remains enforced', async () => {
+  await withRequestContext({userId: `large-cap-${randomUUID()}`, mode:'local'}, async () => {
+    try {
+      for (const maxJobUsd of [25, 50]) {
+        await saveStudyAiPreferences({billingSource:'platform', quality:'astra', maxJobUsd})
+        assert.equal((await readStudyAiPreferences()).maxJobUsd, maxJobUsd)
+        assert.equal((await resolveStudyBilling({maxJobUsd}, platform)).maxJobUsd, maxJobUsd)
+      }
+      await assert.rejects(saveStudyAiPreferences({billingSource:'platform',quality:'astra',maxJobUsd:50.01}))
+      await assert.rejects(resolveStudyBilling({maxJobUsd:50.01}, platform))
+    } finally { await deleteAllDocuments() }
+  })
+})

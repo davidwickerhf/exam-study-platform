@@ -1,4 +1,5 @@
 'use client'
+import { STUDY_GENERATION_LIMITS } from '@/lib/study-generation-limits.mjs'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
@@ -101,7 +102,7 @@ export function StudyBillingFields({
           id="study-spending-cap"
           type="number"
           min="0.05"
-          max="10"
+          max={STUDY_GENERATION_LIMITS.maxJobUsd}
           step="0.05"
           value={cap}
           onChange={(e) => setCap(e.target.value)}

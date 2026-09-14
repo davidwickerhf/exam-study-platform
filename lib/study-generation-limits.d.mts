@@ -7,4 +7,5 @@ export const STUDY_GENERATION_LIMITS: Readonly<{
   reviewTokens: number
   pedagogicalReviewTokens: number
   defaultJobUsd: number
+  maxJobUsd: number
 }>

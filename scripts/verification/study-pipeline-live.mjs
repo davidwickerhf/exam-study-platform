@@ -23,7 +23,8 @@ const sourceKeys=evaluationSources.map(source=>source.key)
 const sourceOptions={editorialSources:async()=>evaluationSources.map(s=>({...s,pages:evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))}
 const {STUDY_STANDARD}=await import('../../lib/study-version-content.mjs')
 const report={runtime:process.env.STUDY_PIPELINE_RUNTIME || 'chat-completions',fixture,callDetails:[],contract:STUDY_STANDARD,model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
-const spendingCap=STUDY_GENERATION_LIMITS.defaultJobUsd
+const spendingCap=Number(process.env.STUDY_PIPELINE_MAX_USD || STUDY_GENERATION_LIMITS.defaultJobUsd)
+if(!Number.isFinite(spendingCap) || spendingCap<0.05 || spendingCap>STUDY_GENERATION_LIMITS.maxJobUsd)throw new Error('Choose a validation spending cap between $0.05 and $50.')
 report.spendingCapUsd=spendingCap
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generateOnce(prompt,options){
@@ -41,7 +42,7 @@ async function generateOnce(prompt,options){
   if(report.runtime==='agents-sdk-responses') {
     let usage
     try {
-      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model:report.model,reasoningEffort:'medium'})
+      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model:report.model,reasoningEffort:options.reasoningEffort || 'medium'})
       usage=result.usage
       return result.text
     } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name};throw error}
@@ -82,7 +83,8 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         const saved=previous.runs.find(r=>r.execution===execution)?.draft
         if(!saved)throw new Error('No saved draft for this execution mode.')
         await mutateStudyVersion(id,version=>{
-          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null}
+          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}
+          version.draft.billing={...version.draft.billing,maxJobUsd:spendingCap}
           delete version.draft.localRequest
           if(process.env.STUDY_PIPELINE_RECHECK_PEDAGOGY || process.env.STUDY_PIPELINE_RECHECK_ALL) {
             for(const chapter of version.draft.chapters) {
