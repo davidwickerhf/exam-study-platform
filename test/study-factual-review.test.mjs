@@ -22,7 +22,7 @@ test('audit requires every item, records a failure among passes, and invalidates
     acceptFactualReview(draft,step,response);steps++
     if(nextFactualReview(course,[],evidence,draft))assert.ok(factualAuditIssues(draft).some(i=>i.severity==='error'))
   }
-  assert.equal(steps,7)
+  assert.equal(steps,3)
   const issues=factualAuditIssues(draft)
   assert.equal(issues.length,1);assert.equal(issues[0].itemKey,'question:question-4')
   assert.equal(Object.keys(draft.factualAudit.judgments).length,draft.questions.length+factualReviewItems(draft).length)
@@ -49,19 +49,19 @@ test('coverage comes from actual objective annotations and link repair cannot re
   assert.equal(practiceLinkStep(draft),null)
 })
 
-test('pedagogical review checkpoints one objective and never leaks previous verdicts',async()=>{
+test('pedagogical review batches coherent objectives and never leaks previous verdicts',async()=>{
   const {nextPedagogicalReview,acceptPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
   const {pedagogyReviewIssues}=await import('../lib/study-pedagogy.mjs')
   const draft=chapter();let aggregate=null,count=0
   while(!aggregate){
     const step=nextPedagogicalReview('Source context',draft)
-    assert.equal(step.responseSchema.properties.objectives.maxItems,1)
+    assert.equal(step.responseSchema.properties.objectives.maxItems,draft.teachingPlan.objectives.length)
     assert.doesNotMatch(step.prompt,/"pedagogyAudit"/)
     aggregate=acceptPedagogicalReview(draft,step,teachingResponse(step.prompt,['e-current']));count++
   }
-  assert.equal(count,draft.teachingPlan.objectives.length)
+  assert.equal(count,1)
   assert.deepEqual(pedagogyReviewIssues(draft,aggregate),[])
-  assert.equal(nextPedagogicalReview('',draft),null)
+  assert.equal(nextPedagogicalReview('Source context',draft),null)
   draft.questions[0].question+=' Changed condition.'
   assert.ok(nextPedagogicalReview('',draft))
 })
@@ -102,8 +102,8 @@ test('an objective review can inspect a linked follow-up from another objective'
   draft.questions[1].objectiveIds=[b]
   draft.questions[0].misconceptions[0].followUpKey=draft.questions[1].key
   const step=nextPedagogicalReview('',draft)
-  assert.ok(step.chapter.relatedQuestions.some(q=>q.key===draft.questions[1].key))
-  assert.ok(!step.chapter.questions.some(q=>q.key===draft.questions[1].key))
+  assert.ok([...step.chapter.questions,...step.chapter.relatedQuestions].some(q=>q.key===draft.questions[1].key))
+  assert.ok(step.chapter.questions.some(q=>q.key===draft.questions[1].key))
   assert.ok(step.chapter.relatedQuestions.every(q=>!Object.hasOwn(q,'answer')))
 })
 
@@ -237,17 +237,18 @@ test('flashcard variety failure repairs cards without regenerating teaching or p
 test('output-limit recovery halves batches twice without losing solutions or skipping verdicts',()=>{
   const draft=chapter(),content=JSON.stringify({...draft,factualAudit:undefined})
   let step=nextFactualReview(course,[],evidence,draft)
-  assert.equal(step.keys.length,4)
+  const initialSize=step.keys.length
+  assert.ok(initialSize>=4)
   acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))
   const solutions=structuredClone(draft.factualAudit.solutions)
   step=nextFactualReview(course,[],evidence,draft)
   assert.equal(reduceFactualReviewBatch(draft,step),true)
   assert.deepEqual(draft.factualAudit.solutions,solutions)
   step=nextFactualReview(course,[],evidence,draft)
-  assert.equal(step.keys.length,2)
+  assert.equal(step.keys.length,Math.floor(initialSize/2))
   assert.equal(reduceFactualReviewBatch(draft,step),true)
   step=nextFactualReview(course,[],evidence,draft)
-  assert.equal(step.keys.length,1)
+  assert.equal(step.keys.length,Math.max(1,Math.floor(initialSize/4)))
   assert.equal(reduceFactualReviewBatch(draft,step),false)
   for(let count=0;step && count<100;count++) {
     acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))
@@ -257,4 +258,21 @@ test('output-limit recovery halves batches twice without losing solutions or ski
   assert.deepEqual(factualAuditIssues(draft),[])
   assert.equal(Object.keys(draft.factualAudit.solutions).length,draft.questions.length)
   assert.equal(JSON.stringify({...draft,factualAudit:undefined}),content)
+})
+
+test('a card edit reuses independent solutions and unrelated verdicts; teaching and evidence invalidate dependencies', async()=>{
+  const {preserveFactualReview}=await import('../lib/study-factual-review.mjs')
+  const draft=chapter()
+  for(let step; (step=nextFactualReview(course,[],evidence,draft));)acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))
+  const corrected=structuredClone(draft);corrected.flashcards[0].back+=' Corrected sign.'
+  preserveFactualReview(draft,corrected,course,[],evidence)
+  assert.deepEqual(corrected.factualAudit.solutions,draft.factualAudit.solutions)
+  const next=nextFactualReview(course,[],evidence,corrected)
+  assert.equal(next.kind,'content');assert.deepEqual(next.keys,['cards:0'])
+  const teaching=structuredClone(draft);teaching.sections[0].text+=' A new mechanism.'
+  preserveFactualReview(draft,teaching,course,[],evidence)
+  const affected=draft.questions.filter(q=>q.objectiveIds.some(id=>draft.sections[0].objectiveIds.includes(id)))
+  for(const q of affected)assert.equal(teaching.factualAudit.solutions[q.key],undefined)
+  const changed=nextFactualReview(course,[],[{...evidence[0],text:'Changed source.'}],draft)
+  assert.equal(changed.kind,'solve');assert.equal(Object.keys(changed.state.solutions).length,0)
 })

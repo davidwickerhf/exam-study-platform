@@ -514,3 +514,81 @@ and durable logs. Existing runs retain their original billing/execution choice.
 ### Continuity between MCP and in-app study
 
 At the start of tutoring, read `study_session_context` for the course and academic year, plus `tutor_sources` for lasting preferences. After the student authorises remembering this study session, save concise checkpoints with `study_session_save` at meaningful topic boundaries. Keep one sessionId throughout; use a new requestId per checkpoint, reused unchanged on retry. Explain what was saved. No hosted AI is called. Do not save invented student answers, mastery claims, credentials, or a full transcript. Separate observed answers (include the actual response), student reports and unassessed topics. Record unresolved misconceptions and a concrete next exercise. Reassess understanding when resuming; a summary is not a grade or proof of mastery. These checkpoints are available to the in-app Tutor and included in Tutor data export/deletion. `study_session_forget` removes an individual checkpoint. At most 80 recent checkpoints are retained per programme. Existing preference and attendance tools retain their own exact-write review requirements.
+
+### Locally parsed papers → Mock papers
+
+Use `study_papers` to inspect original papers and active extracted sets, then
+`study_generation_sources` to select the exact original question source and optional
+solution source. With the student's authorisation, call `study_paper_start`.
+Its request contains the deployed extraction prompt, immutable evidence chunk IDs
+and JSON schema. Map locally parsed questions to those IDs; local filenames,
+source keys and page numbers are not citation IDs. Preserve every leaf question,
+original wording, page, context, options and explicit marks. Do not invent an answer
+when no official key is available. Use explicit page ranges for large papers.
+
+Submit with `study_paper_submit`, then follow `study_paper_next`. The review must
+run in a fresh critique context and check completeness against the original.
+The server labels this review client-reported, enforces schema and source checks,
+and activates the normal private paper-library set only after a passing review.
+One correction is permitted after review findings, retaining the previous candidate.
+A failed final review stops the run; do not repeatedly start equivalent runs.
+Invalid citations leave the current request available for repair. Network retries
+must reuse the identical request ID and payload. Changed/withdrawn originals require
+a fresh source selection. These tools make no hosted AI calls and do not cancel
+ongoing hosted paper or lesson-guide jobs. If the server has no readable original
+text, report that gap; never relabel local OCR notes as original paper evidence.
+
+### Resuming after a pipeline deployment
+
+Keep existing version IDs, source snapshots, authored drafts and completed revisions.
+Read the new guidance and `study_generation_contract`, then call
+`study_generation_next` on unfinished guides without `retry:true`. Incompatible
+pending packets receive new request IDs; old unaccepted submissions are rejected.
+Before reusing a locally prepared response, compare the exact prompt, schema,
+task and input hash with the new request. A changed packet requires fresh work.
+An accepted identical receipt remains replay-safe across deployments.
+
+Factual review now uses bounded chapter-scale packets (up to 24 items / 48,000
+artifact characters), with smaller packets on output exhaustion. Teaching review
+batches up to four coherent objectives. Keep blind solving, answer comparison and
+teaching critique in separate contexts; never seed a reviewer with prior verdicts.
+After correction, matching checks are reused only when their content, evidence,
+teaching dependencies and applicable review rules match. IDs alone never establish
+compatibility. Factual and teaching findings are collected before a consolidated
+correction; deterministic corruption/link defects are handled before model review.
+The same automatic/manual correction limits still apply.
+
+Use `study_generation_usage` for phase/chapter task counts, available client-reported
+input/output/cache/reasoning tokens, credits and elapsed time. Supply actual available
+`usage` with a submission; omit unavailable counts, never invent zeros. Historical
+truncated receipts cannot reconstruct the whole subscription bill. Use
+`study_generation_budget` to set an explicit review-task limit; it pauses issuance
+of new review packets at that limit without resetting any correction allowance.
+Cached checks can still be reconciled and the guide completed at the limit.
+Task projections describe one review round; context/output splitting may add tasks.
+
+For existing parsed papers call `study_paper_validate` with the next request's
+`evidenceManifest.hash` before submission. Include stable question `id`, original
+`sourceKey`, page/subquestion label, shared context, exact options/marks and original
+reference metadata. Select required diagram/lecture sources with supportingSourceKeys.
+When sourceIds are omitted, the validator resolves only the selected source's exact
+page and still checks verbatim question text. Unknown citations return question ID,
+field and offending citation. Generated answers stay labelled worked explanations;
+they never become official grading keys. A dry run does not activate or overwrite
+anything. Never represent selected historical pages as a complete original exam,
+or metadata-only quiz exports as extracted question bodies.
+
+When an original contains image-only question text or text interrupted by a figure,
+the local importer supports an explicit `originalTranscription` with the selected
+original's `sourceKey`, `sha256`, `page`, and `reason` (`image` or `fragmented-text`).
+This is a client transcription, not verified indexed text: it always requires the
+original and cannot cite a private note as the original. The review packet requires
+one `originalChecks` entry per such question, matching that exact file hash/page.
+A reviewer must actually inspect the original before setting `reviewed:true`; use a
+blocking issue when inspection is unavailable. Hash/page/citation checks remain
+mandatory. Image-only pages may have no text chunks: use their bound original,
+not invented sourceIds. Selected textless supporting diagrams remain available
+in the manifest. Transcribed pages must be inside the selected page range.
+Empty quiz exports still cannot be turned into invented questions.
+New local guides default to a 128-review-task budget; existing runs retain their
+current allowance until the student explicitly configures one.

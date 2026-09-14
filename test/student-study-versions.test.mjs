@@ -176,7 +176,7 @@ test('invalid model output reports structural diagnostics without exposing conte
 test('private generation completes without editorial acceptance and preserves evidence, practice and history', async () => {
   const f = await fixture()
   try {
-    assert.equal(await finish(f), 13)
+    assert.equal(await finish(f), 7)
     await f.run(async () => {
       const v = await ownStudyVersion(f.version.id),
         r = await studyRevision(v)
@@ -881,7 +881,7 @@ test('targeted AI feedback reuses other chapters, waits for apply, and supports 
       }
       for (let i = 0; i < 70; i++) await processStudyStep(version.id, { generate })
       version = await ownStudyVersion(version.id)
-      assert.equal(calls, 12)
+      assert.equal(calls, 6)
       assert.equal(version.activeRevisionId, two.id)
       const proposal = await studyProposal(version)
       assert.ok(proposal)
@@ -964,7 +964,7 @@ test('review-only retry keeps the failed chapter and charges no generation call'
         if ((await ownStudyVersion(before.id)).draft.chapters?.[0]?.review === 'passed') break
       }
       const next = await ownStudyVersion(before.id)
-      assert.equal(calls, 10)
+      assert.equal(calls, 4)
       assert.equal(next.draft.chapters[0].review, 'passed')
       assert.deepEqual(next.draft.chapters[0].sections, saved.sections)
       assert.deepEqual(next.draft.chapters[0].questions, saved.questions)
@@ -1038,7 +1038,7 @@ test('review output exhaustion persists smaller batches and credit failures neve
       assert.equal(saved.draft.chapters[0].factualRetry,undefined)
       assert.equal(calls,code==='provider_credits'?1:3)
       if(code==='provider_output_limit') {
-        assert.equal(saved.draft.chapters[0].factualAudit.batchSize,1)
+        assert.equal(saved.draft.chapters[0].factualAudit.batchSize,2)
         assert.equal(saved.draft.chapters[0].factualAudit.outputRecoveries,2)
         assert.equal(saved.draft.chapters[0].questions.length,lesson(ids).questions.length)
       }

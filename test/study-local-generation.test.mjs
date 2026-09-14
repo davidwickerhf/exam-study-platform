@@ -64,7 +64,7 @@ test('local generation uses the real staged pipeline without hosted dispatch and
     await answer(id, review.request, result)
     reviews++
   }
-  assert.equal(reviews, 10)
+  assert.equal(reviews, 4)
   const finished = await nextLocalStudy(id)
   assert.equal(finished.version.status,'complete')
   assert.equal(finished.nextAction.kind,'complete')
@@ -230,4 +230,55 @@ test('MCP scope correction persists in both the saved plan and prepared chapter'
   assert.deepEqual(draft.teachingPlans.addition.gaps,response.scope.gaps)
   assert.deepEqual(draft.chapters[0].teachingPlan.gaps,response.scope.gaps)
   assert.equal(draft.automaticRepairs.addition,1)
+}))
+
+test('accepted receipt replay survives a contract change without advancing or changing the draft',async()=>fixture(async id=>{
+  const {request}=await nextLocalStudy(id),ids=(await ownStudyVersion(id)).draft.snapshot.chunks.map(c=>c.id)
+  const response={topics:[{id:'addition',title:'Addition',sourceIds:ids}],gaps:[]}
+  await answer(id,request,response)
+  await mutateStudyVersion(id,v=>{v.localReceipts.find(r=>r.requestId===request.id).contractId='old-compatible-receipt'})
+  const before=await ownStudyVersion(id)
+  const replay=await submitLocalStudy(id,{requestId:request.id,contractId:'old-compatible-receipt',response})
+  assert.equal(replay.duplicate,true)
+  assert.deepEqual(await ownStudyVersion(id),before)
+}))
+test('exhausted local review-task budget does not mutate saved work or consume a correction',async()=>fixture(async id=>{
+  const {setLocalReviewBudget}=await import('../lib/study-local-usage.mjs')
+  const ids=await map(id),chapter=await nextLocalStudy(id)
+  await answer(id,chapter.request,lesson(ids))
+  await setLocalReviewBudget(id,1)
+  let review=await nextLocalStudy(id)
+  await answer(id,review.request,teachingResponse(review.request.prompt,ids))
+  const before=await ownStudyVersion(id)
+  const blocked=await nextLocalStudy(id)
+  assert.equal(blocked.nextAction.kind,'blocked');assert.equal(blocked.request,null)
+  assert.deepEqual((await ownStudyVersion(id)).draft,before.draft)
+  assert.deepEqual((await ownStudyVersion(id)).localReceipts,before.localReceipts)
+  await setLocalReviewBudget(id,5)
+  assert.ok((await nextLocalStudy(id)).request)
+}))
+
+test('cached reviews can finish at an exhausted budget without issuing another packet',async()=>fixture(async id=>{
+  const {setLocalReviewBudget}=await import('../lib/study-local-usage.mjs')
+  const ids=await map(id),author=await nextLocalStudy(id)
+  await answer(id,author.request,lesson(ids))
+  for(let i=0;i<4;i++) {
+    const next=await nextLocalStudy(id)
+    if(!next.request)break
+    await answer(id,next.request,teachingResponse(next.request.prompt,ids))
+  }
+  const complete=await ownStudyVersion(id)
+  assert.equal(complete.draft.chapters[0].review,'passed')
+  const reviewTasks=complete.localReceipts.filter(r=>['reviewer','independent-solver'].includes(r.task?.role)).length
+  await setLocalReviewBudget(id,reviewTasks)
+  await mutateStudyVersion(id,v=>{
+    v.draft.status='local-ready';v.draft.stage='review';v.draft.runAfter=0
+    v.draft.chapters[0].review='pending'
+    v.activeRevisionId=null
+  })
+  const finished=await nextLocalStudy(id)
+  assert.equal(finished.request,null)
+  assert.equal(finished.version.status,'complete')
+  assert.equal(finished.version.usage.remainingReviewTasks,0)
+  assert.equal((await ownStudyVersion(id)).localReceipts.length,complete.localReceipts.length)
 }))
