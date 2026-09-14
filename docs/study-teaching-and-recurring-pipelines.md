@@ -78,7 +78,7 @@ These are ceilings, not required lengths. Core explanations have no word target;
 | Full chapter output, including model reasoning | 20,000 tokens | 64,000 tokens |
 | Teaching plan output | 12,000 tokens | 24,000 tokens |
 | Selected section/question correction | 20,000 tokens | 32,000 tokens |
-| Factual/pedagogical review output | 7,000–9,000 tokens | 16,000 tokens |
+| Factual/pedagogical review output | 7,000–9,000 tokens | 32,000 tokens |
 | Section/answer text field | 16,000 characters | 32,000 characters |
 | Sections / practice questions / flashcards per chapter | 16 / 24 / 20 | 32 / 48 / 40 |
 | Default per-guide/revision spending cap | $1 | $5 |
@@ -125,3 +125,5 @@ Diagnostic repairs now include the flagged questions' linked targets, within the
 A fresh Sol run exposed a separate orchestration error: a misconception with no other same-objective question threw before entering correction. Missing targets now invoke whole-chapter correction with the saved content and explicit findings, using the same three-attempt allowance. Regression tests cover recovery, duplicate MCP next calls, and exhausted-budget draft retention. The fresh run stopped after three calls (approximately $0.2764); its recovery encountered a network fetch failure, retained its checkpoint, and resumed without resetting or consuming another correction. The failed call's $1.62815 reservation is not reported as actual spend.
 
 Validation after these fixes: `npm run verify` passed typecheck, 1,015 tests, and production build. Production's default model is unchanged.
+
+The fresh-run recovery then made 36 calls (approximately $2.3303 recorded token cost), correcting factual and missing-teaching findings, but its first final pedagogical review exhausted 16,000 output tokens. Review capacity is now 32,000 tokens, including reasoning; the spending cap is unchanged. The resumed final review made five calls (approximately $0.3849) and rejected the guide at three automatic corrections: a transfer question copied the worked example added during repair, and several diagnostic links did not target their misconceptions. No revision was activated. The stricter review fingerprint is version 3 so cached earlier reviews cannot satisfy the new policy. This remains a failed automatic quality evaluation, despite successful bounded recovery and passing software validation. A larger model/output allowance alone has not established reliable unattended teaching quality.
