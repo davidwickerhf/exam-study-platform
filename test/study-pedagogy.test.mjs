@@ -94,3 +94,20 @@ test('live-evaluation regression rejects an incomplete feasible intersection ran
   assert.deepEqual(intersectionRangeIssues({...q,answer:'An incorrect student claimed the range [0,0.5]; explain the mistake.'}),[])
   assert.deepEqual(intersectionRangeIssues({...q,question:'First P(A)=0.7, then P(A)=0.1; P(B)=0.5.'}),[])
 })
+
+test('terminal remediation breaks diagnostic cycles without replacing assessment coverage',()=>{
+  const chapter=lesson(['e-1'])
+  const source=chapter.questions[0]
+  const followUp={...structuredClone(source),id:'remediation-1',key:'remediation-1',practiceStage:'remediation',misconceptions:[]}
+  source.misconceptions[0].followUpKey=followUp.key
+  chapter.questions.push(followUp)
+  assert.deepEqual(objectiveCoverageIssues(chapter),[])
+  followUp.misconceptions=structuredClone(source.misconceptions)
+  assert.match(objectiveCoverageIssues(chapter).join(' '),/terminal follow-up/)
+  followUp.misconceptions=[]
+  source.misconceptions[0].followUpKey='question-4'
+  assert.match(objectiveCoverageIssues(chapter).join(' '),/linked from a diagnosed mistake/)
+  source.misconceptions[0].followUpKey=followUp.key
+  chapter.objectiveCoverage[0].independentQuestionKeys=[followUp.key]
+  assert.match(objectiveCoverageIssues(chapter).join(' '),/independent question/)
+})

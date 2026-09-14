@@ -14,7 +14,8 @@ const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-ve
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const {evaluationCourse:course,evaluationSources,evaluationChunks}=await import('../../lib/study-quality-fixture.mjs')
 const sourceOptions={editorialSources:async()=>evaluationSources.map(s=>({...s,pages:evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))}
-const report={contract:'student-source-teaching-v6',model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
+const {STUDY_STANDARD}=await import('../../lib/study-version-content.mjs')
+const report={contract:STUDY_STANDARD,model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generate(prompt,options){
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000

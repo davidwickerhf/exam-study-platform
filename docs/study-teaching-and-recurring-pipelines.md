@@ -1,6 +1,6 @@
 # Teaching quality and recurring course pipelines
 
-Implementation contract: `student-source-teaching-v6` (lesson format 3). Saved formats remain readable. These changes do not regenerate existing saved guides on deployment.
+Implementation contract: `student-source-teaching-v7` (lesson format 3). Saved formats remain readable. These changes do not regenerate existing saved guides on deployment.
 
 ## Teaching and acceptance
 
@@ -127,3 +127,16 @@ A fresh Sol run exposed a separate orchestration error: a misconception with no 
 Validation after these fixes: `npm run verify` passed typecheck, 1,015 tests, and production build. Production's default model is unchanged.
 
 The fresh-run recovery then made 36 calls (approximately $2.3303 recorded token cost), correcting factual and missing-teaching findings, but its first final pedagogical review exhausted 16,000 output tokens. Review capacity is now 32,000 tokens, including reasoning; the spending cap is unchanged. The resumed final review made five calls (approximately $0.3849) and rejected the guide at three automatic corrections: a transfer question copied the worked example added during repair, and several diagnostic links did not target their misconceptions. No revision was activated. The stricter review fingerprint is version 3 so cached earlier reviews cannot satisfy the new policy. This remains a failed automatic quality evaluation, despite successful bounded recovery and passing software validation. A larger model/output allowance alone has not established reliable unattended teaching quality.
+
+
+## Finite diagnostic practice and correction context (v7)
+
+Core difficult-objective questions still require diagnostic feedback. Dedicated `practiceStage=remediation` questions may end that path with `misconceptions=[]` and a complete reasoned answer. They must be linked from a diagnosed mistake, share the objective, and directly practise its reasoning. They cannot satisfy guided, independent or transfer coverage. This removes the requirement for every follow-up to have yet another follow-up, without weakening the assessment standard. Existing saved lessons and links remain readable.
+
+Corrections receive the saved per-chapter finding history as regression context, in addition to the latest draft and current findings. Earlier resolved findings are explicitly distinguished from current errors; the model must preserve their fixes. Reviewer contexts remain independent. Mixed section/question/card findings can now use a single schema-constrained patch, preserving unselected content; broader scope changes still require a coherent chapter correction. Worked-example repairs must retain distinct independent/transfer scenarios.
+
+### Managed Agents API evaluation
+
+The [Agents API](https://developers.openai.com/api/docs/guides/agents-api/overview) provides managed sessions, compaction and recovery. The existing application key successfully ran a two-turn, structured-output, no-tools/no-sandbox Sol session: the RTOS case returned 108 ms, then 38 ms after changing only task priority; both turns correctly rejected an ordinary flag write as notification. The disposable session was deleted. Reproduce with `OPENAI_API_KEY` set and `node scripts/verification/study-managed-agent-live.mjs`.
+
+This verifies access and context continuation, not full-guide quality or production budget enforcement. Both completed events and retrieved turns returned `usage=null` in the probe. The documented session configuration and installed SDK expose structured output and reasoning settings but not the existing per-call `max_output_tokens` boundary. A production adapter must enforce the guide's allowance, reconcile usage, cancel remote work, persist session ownership and retain independent reviewer contexts. The managed API is therefore not silently substituted for the current capped provider calls. No context-length error has been established as the cause of the saved guide failures; those failures included output exhaustion, missing dependencies and pedagogical mismatches. The v7 fixes address these shared generation rules for hosted and MCP execution.

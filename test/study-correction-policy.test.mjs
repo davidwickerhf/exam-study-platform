@@ -21,3 +21,14 @@ test('one persisted correction allowance covers every phase and manual retries d
   assert.equal(correctionLimit({correctionPolicy:{maxAttempts:0}}),0)
   assert.equal(correctionLimit({correctionPolicy:{maxAttempts:999}}),3)
 })
+
+test('correction context carries earlier fixes without leaking other chapters',async()=>{
+  const {correctionContext}=await import('../lib/study-correction-policy.mjs')
+  const draft={correctionHistory:[{chapterId:'a',phase:'factual',findings:[{detail:'Explain nonnegativity.'}]},{chapterId:'b',phase:'factual',findings:[{detail:'Other chapter secret.'}]}]}
+  const context=correctionContext(draft,'a')
+  assert.match(context,/Explain nonnegativity/)
+  assert.match(context,/Earlier findings may already be resolved/)
+  assert.match(context,/distinct from the independent and transfer/)
+  assert.ok(!context.includes('Other chapter secret'))
+  assert.equal(correctionContext({},'a'),'')
+})

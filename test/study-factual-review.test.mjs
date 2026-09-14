@@ -151,3 +151,16 @@ test('factual scope review preserves syllabus constraints without grading privat
   assert.deepEqual(scope.content.teachingPlan.exclusions,draft.teachingPlan.exclusions)
   assert.match(JSON.stringify(items),/ACTUAL FINISHED TEACHING/)
 })
+
+test('mixed section and card findings repair together without rewriting practice',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter(),section=draft.sections[0]
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:`section:${section.id}`,detail:'Explain the set condition.'},{severity:'error',itemKey:'cards:0',detail:'State necessity, not sufficiency.'}])
+  assert.equal(step.parts.length,2)
+  const response={sections:{[section.id]:{...section,text:section.text+' Additional condition.'}},flashcards:Object.fromEntries(draft.flashcards.slice(0,4).map((card,index)=>[`card-${index}`,{...card,back:card.back+' Corrected condition.'}]))}
+  const fixed=applyQuestionRepair(draft,step,response)
+  assert.deepEqual(fixed.questions,draft.questions)
+  assert.deepEqual(fixed.sections.slice(1),draft.sections.slice(1))
+  assert.deepEqual(fixed.flashcards.slice(4),draft.flashcards.slice(4))
+  assert.notEqual(fixed.sections[0].text,section.text)
+})
