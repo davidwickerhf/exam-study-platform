@@ -537,3 +537,54 @@ must reuse the identical request ID and payload. Changed/withdrawn originals req
 a fresh source selection. These tools make no hosted AI calls and do not cancel
 ongoing hosted paper or lesson-guide jobs. If the server has no readable original
 text, report that gap; never relabel local OCR notes as original paper evidence.
+
+### Resuming after a pipeline deployment
+
+Keep existing version IDs, source snapshots, authored drafts and completed revisions.
+Read the new guidance and `study_generation_contract`, then call
+`study_generation_next` on unfinished guides without `retry:true`. Incompatible
+pending packets receive new request IDs; old unaccepted submissions are rejected.
+Before reusing a locally prepared response, compare the exact prompt, schema,
+task and input hash with the new request. A changed packet requires fresh work.
+An accepted identical receipt remains replay-safe across deployments.
+
+Factual review now uses bounded chapter-scale packets (up to 24 items / 48,000
+artifact characters), with smaller packets on output exhaustion. Teaching review
+batches up to four coherent objectives. Keep blind solving, answer comparison and
+teaching critique in separate contexts; never seed a reviewer with prior verdicts.
+After correction, matching checks are reused only when their content, evidence,
+teaching dependencies and applicable review rules match. IDs alone never establish
+compatibility. Factual and teaching findings are collected before a consolidated
+correction; deterministic corruption/link defects are handled before model review.
+The same automatic/manual correction limits still apply.
+
+Use `study_generation_usage` for phase/chapter task counts, available client-reported
+input/output/cache/reasoning tokens, credits and elapsed time. Supply actual available
+`usage` with a submission; omit unavailable counts, never invent zeros. Historical
+truncated receipts cannot reconstruct the whole subscription bill. Use
+`study_generation_budget` to set an explicit review-task limit; it pauses issuance
+of new review packets at that limit without resetting any correction allowance.
+Task projections describe one review round; context/output splitting may add tasks.
+
+For existing parsed papers call `study_paper_validate` with the next request's
+`evidenceManifest.hash` before submission. Include stable question `id`, original
+`sourceKey`, page/subquestion label, shared context, exact options/marks and original
+reference metadata. Select required diagram/lecture sources with supportingSourceKeys.
+When sourceIds are omitted, the validator resolves only the selected source's exact
+page and still checks verbatim question text. Unknown citations return question ID,
+field and offending citation. Generated answers stay labelled worked explanations;
+they never become official grading keys. A dry run does not activate or overwrite
+anything. Never represent selected historical pages as a complete original exam,
+or metadata-only quiz exports as extracted question bodies.
+
+When an original contains image-only question text or text interrupted by a figure,
+the local importer supports an explicit `originalTranscription` with the selected
+original's `sourceKey`, `sha256`, `page`, and `reason` (`image` or `fragmented-text`).
+This is a client transcription, not verified indexed text: it always requires the
+original and cannot cite a private note as the original. The review packet requires
+one `originalChecks` entry per such question, matching that exact file hash/page.
+A reviewer must actually inspect the original before setting `reviewed:true`; use a
+blocking issue when inspection is unavailable. Hash/page/citation checks remain
+mandatory. Empty quiz exports still cannot be turned into invented questions.
+New local guides default to a 128-review-task budget; existing runs retain their
+current allowance until the student explicitly configures one.

@@ -65,3 +65,42 @@ test('changed paper content invalidates a pending import without activating stal
   await compareAndSwapDocument('study-notes',note.id,{...old,revision:randomUUID(),pages:[{page:1,text:'A changed paper.'}]},old.revision)
   await assert.rejects(()=>api(`${route}/submit`,{requestId:state.request.requestId,response}),/paper changed/)
 }))
+
+test('dry-run accepts parsed IDs/page bindings, reports exact bad citations, and preserves provenance on replay',()=>fixture(async()=>{
+  const {state,response,route,source}=await start()
+  const parsed=structuredClone(response);const q=parsed.questions[0]
+  q.id='paper-2025-p1-q1';q.sourceKey=source.key;delete q.sourceIds
+  q.paperId='selected-pages-not-a-complete-exam';q.visualPages=[1];q.needsOriginal=true
+  q.answerBasis='generated';q.answer='An illustrative explanation.'
+  const body={requestId:state.request.requestId,manifestHash:state.request.evidenceManifest.hash,response:parsed}
+  const dry=await api(`${route}/validate`,body)
+  assert.equal(dry.valid,true);assert.equal(dry.dryRun,true)
+  assert.equal((await api(`${route}/next`)).request.requestId,body.requestId)
+  const bad=structuredClone(body);bad.response.questions[0].sourceIds=['bad-citation']
+  const invalid=await api(`${route}/validate`,bad)
+  assert.equal(invalid.valid,false);assert.equal(invalid.issues[0].questionId,q.id);assert.equal(invalid.issues[0].citation,'bad-citation')
+  const review=await api(`${route}/submit`,body)
+  const complete=await api(`${route}/submit`,{requestId:review.request.requestId,response:{issues:[]}})
+  assert.equal(complete.set.result.questions[0].id,q.id)
+  assert.equal(complete.set.result.questions[0].original.paperId,q.paperId)
+  assert.equal(complete.set.result.questions[0].answerBasis,'unavailable')
+  assert.equal(complete.set.result.questions[0].workedAnswer.provenance,'generated-not-official')
+  assert.equal((await api(`${route}/submit`,body)).set.result.questions.length,1)
+}))
+
+test('original image transcription requires an explicit hash/page binding and cannot use private notes as an original',async()=>{
+  const {validateLocalPaperImport}=await import('../lib/study-practice.mjs')
+  const record={mode:'extract',questionSourceKey:'canvas-a',snapshot:{sources:[{key:'canvas-a',sha256:'original-sha',kind:'canvas'}],chunks:[{id:'e-a',sourceKey:'canvas-a',page:1,text:'Image label only.'}]}}
+  const response={title:'Image paper',questions:[{id:'stable-image-question',label:'6a',sourceKey:'canvas-a',page:1,marks:null,options:[],question:'An image question transcribed from the original.',answerBasis:'unavailable',answer:'',correctOptions:[],needsOriginal:true}],warnings:[]}
+  assert.equal(validateLocalPaperImport(response,record).valid,false)
+  response.questions[0].originalTranscription={sourceKey:'canvas-a',sha256:'original-sha',page:1,reason:'image'}
+  const checked=validateLocalPaperImport(response,record)
+  assert.equal(checked.valid,true)
+  assert.equal(checked.result.questions[0].questionProvenance,'client-transcribed-original')
+  assert.equal(checked.result.questions[0].needsOriginal,true)
+  response.questions[0].originalTranscription.sha256='wrong'
+  assert.equal(validateLocalPaperImport(response,record).valid,false)
+  response.questions[0].originalTranscription.sha256='original-sha'
+  record.snapshot.sources[0].kind='notes'
+  assert.equal(validateLocalPaperImport(response,record).valid,false)
+})

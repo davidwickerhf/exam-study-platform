@@ -47,12 +47,12 @@ test('browser evaluation runs generation, independent review and corruption chec
   assert.equal(row.status, 'complete')
   assert.equal(row.checks.length, 7)
   assert.ok(row.checks.every(c => c.passed))
-  assert.equal(row.calls.length, 29)
+  assert.equal(row.calls.length, 13)
   assert.equal(row.calls[1].chargedUsd, 0.0032)
   assert.equal((await listDocuments('study-versions')).length, 0)
   assert.equal(row.billing.credentialRevision, undefined)
   await step(row, generate)
-  assert.equal(calls, 29)
+  assert.equal(calls, 13)
 }))
 
 test('duplicate delivery and stale revisions cannot trigger another paid model call', () => fixture(async () => {
