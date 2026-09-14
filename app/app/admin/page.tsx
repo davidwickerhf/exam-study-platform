@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useJson } from "@/components/workspace/use-json";
+import { AiUsageDashboard } from '@/components/workspace/ai-usage-dashboard';
 import { AdminIntake } from "@/components/workspace/admin-intake";
 import { AdminProduction } from "@/components/workspace/admin-production";
 import { AdminCatalogue } from "@/components/workspace/admin-catalogue";
@@ -593,6 +594,7 @@ function CoverageTab() {
 
 const TABS = [
   ["overview", "Overview"],
+  ["usage", "AI usage"],
   ["intake", "Course intake"],
   ["coverage", "Coverage"],
   ["production", "Production"],
@@ -646,7 +648,7 @@ export default function AdminPage() {
   if (!me.data) {
     return (
       <div
-        className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 p-5 sm:p-8"
+        className="mx-auto flex min-w-0 w-full max-w-[1180px] flex-col gap-3 p-5 sm:p-8"
         aria-busy="true"
       >
         <Skeleton className="h-12 w-80" />
@@ -679,7 +681,7 @@ export default function AdminPage() {
   const openCount = openRequests(requests.data?.requests ?? []).length;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
+    <div className="mx-auto flex min-w-0 w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
       <header className="flex flex-col gap-1">
         <a href="/app/admin/feedback" className="text-primary mb-3 text-sm font-semibold">Feedback review →</a>
         <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
@@ -705,9 +707,9 @@ export default function AdminPage() {
         }}
         className="gap-6"
       >
-        <TabsList>
+        <TabsList className="max-w-full justify-start overflow-x-auto">
           {TABS.map(([id, label]) => (
-            <TabsTrigger key={id} value={id} className="gap-1.5">
+            <TabsTrigger key={id} value={id} className="shrink-0 gap-1.5">
               {label}
               {id === "intake" && openCount > 0 && (
                 <span className={`text-muted-foreground ${NUMERALS}`}>
@@ -718,6 +720,7 @@ export default function AdminPage() {
           ))}
         </TabsList>
 
+        <TabsContent value="usage"><AiUsageDashboard admin /></TabsContent>
         <TabsContent value="overview">
           {tab === "overview" && (
             <Overview

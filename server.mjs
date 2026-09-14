@@ -1,3 +1,5 @@
+import { withAiCallContext, trackAiCall } from './lib/ai-call-tracking.mjs'
+import { aiCallReport } from './lib/ai-call-store.mjs'
 import { runStudyAgentsSdk } from './lib/study-agents-sdk.mjs'
 import { providerFetch } from './lib/provider-fetch.mjs'
 import { scheduleModuleGuides } from './lib/study-module-automation.mjs'
@@ -1228,6 +1230,9 @@ async function writeAttemptImages(imagesBase64) {
  *                them through their image flags; the API provider encodes them.
  */
 async function runCodex(prompt, opts = {}) {
+  return withAiCallContext({feature:opts.usageMetadata?.feature || opts.usageFeature || 'editorial',phase:opts.usageMetadata?.phase || opts.stage},()=>runCodexWithUsage(prompt,opts))
+}
+async function runCodexWithUsage(prompt, opts = {}) {
   const feature = opts.usageFeature || null
   const maxOutputTokens = Math.min(
     opts.maxOutputTokens || (feature ? AI_LIMITS[feature].maxOutputTokens : 16000),
@@ -1245,8 +1250,8 @@ async function runCodex(prompt, opts = {}) {
     let result
     const model = opts.model || stageModel(opts.stage)
     switch (LLM_PROVIDER) {
-      case 'codex':  result = await runCodexCli(prompt, { ...opts, model }); break
-      case 'claude': result = await runClaudeCli(prompt, { ...opts, model }); break
+      case 'codex': result = await trackAiCall({provider:'codex-cli',model:model || CODEX_MODEL,payer:'subscription',requireUsage:false},()=>runCodexCli(prompt,{...opts,model})); break
+      case 'claude': result = await trackAiCall({provider:'claude-cli',model,payer:'subscription',requireUsage:false},()=>runClaudeCli(prompt,{...opts,model})); break
       case 'api':
       case 'anthropic': result = await runAnthropicApi(prompt, { ...opts, maxOutputTokens, model }); break
       case 'openai': result = await runOpenAiApi(prompt, { ...opts, maxOutputTokens, model }); break
@@ -3610,6 +3615,9 @@ const studySourceOptions = { editorialSources: async courseCode => {
   return result
 } }
 async function budgetedStudyGenerate(prompt, options, telemetry) {
+  return withAiCallContext({feature:options.usageMetadata?.feature || 'study-generation',phase:options.usageMetadata?.phase || options.usageMetadata?.stage || options.stage,jobId:options.jobKey,chapterId:options.usageMetadata?.chapterId,payer:options.billing?.source || 'platform'},()=>budgetedStudyGenerateTracked(prompt,options,telemetry))
+}
+async function budgetedStudyGenerateTracked(prompt, options, telemetry) {
   const capture = async pending => { const result = await pending; if (telemetry) telemetry.usage = result.usage; return result }
   return runBudgetedStudyCall(prompt, options, { billing: options.billing, jobKey: options.jobKey,
     callPlatform: (text, opts) => {
@@ -3771,7 +3779,7 @@ async function handleRequest(req, res) {
         if (!overall.allowed) { sendRateLimited(res, overall); return }
       }
       if (url.pathname.startsWith('/api/admin/') && req.method !== 'GET') console.info(`[admin] ${auth.userId}${auth.keyId ? ` key=${auth.keyId}` : ''} ${req.method} ${url.pathname}${url.search}`)
-      setRequestContext(auth)
+      setRequestContext({...auth,aiRoute:url.pathname})
       const feedbackStarted = Date.now()
       if(!url.pathname.startsWith('/api/feedback')&&!url.pathname.startsWith('/api/admin/feedback')&&url.pathname!=='/api/tutor')res.once('finish',()=>{
         if(res.statusCode>=500)void recordQualityEvent({code:'API_FAILURE',stage:'request',route:url.pathname,durationMs:Date.now()-feedbackStarted},{userId:auth.userId}).catch(()=>{})
@@ -4101,6 +4109,11 @@ async function handleRequest(req, res) {
       return
     }
 
+    if (url.pathname === '/api/ai/calls' && req.method === 'GET') {
+      try { send(res,200,JSON.stringify(await aiCallReport(Object.fromEntries(url.searchParams))),'application/json; charset=utf-8',{'Cache-Control':'no-store'}) }
+      catch(error) { send(res,error.status || 500,JSON.stringify({error:error.message})) }
+      return
+    }
     if (url.pathname === '/api/ai/usage' && req.method === 'GET') {
       send(res, 200, JSON.stringify(await getAiUsageSummary()))
       return
@@ -4355,6 +4368,7 @@ async function handleRequest(req, res) {
         const body = req.method === 'PUT' || req.method === 'POST' ? await readBody(req, 60 * 1024 * 1024) : null
         const ok = (payload, status = 200) => send(res, status, JSON.stringify(payload), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
         const seg = url.pathname.split('/').filter(Boolean).slice(2).map(decodeURIComponent) // after /api/admin
+        if (seg[0] === 'ai-usage' && req.method === 'GET') return ok(await aiCallReport(Object.fromEntries(url.searchParams),{global:true}))
         if (seg[0] === 'status' && req.method === 'GET') return ok(await admin.adminStatus())
         if (seg[0] === 'editorial-workspace' && req.method === 'GET') return ok(await listEditorialWorkspace({ editionId: url.searchParams.get('editionId') || null }))
         if (seg[0] === 'editorial-editions') {

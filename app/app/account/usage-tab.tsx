@@ -2,6 +2,7 @@
 
 /** AI usage: what the allowance is, and what has been spent against it. */
 
+import { AiUsageDashboard } from '@/components/workspace/ai-usage-dashboard';
 import { useMemo } from "react";
 import { RotateCcwIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ export function UsageTab() {
 
   return (
     <div className="flex flex-col gap-8">
+      <AiUsageDashboard />
       <Section
         title="Allowance"
         note="AI is used for the source-grounded tutor, extra exercises you ask for, and academic documents you explicitly ask to organise."
