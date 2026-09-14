@@ -215,6 +215,8 @@ test('pedagogical checkpoint omits revision payload while preserving teaching an
   assert.doesNotMatch(prompt,/UNNEEDED REVISION PAYLOAD|OPTIONAL EXTENSION PAYLOAD/)
   assert.deepEqual(artifact.teachingPlan.exclusions,draft.teachingPlan.exclusions)
   assert.equal(artifact.sections[0].text,draft.sections[0].text)
+  assert.deepEqual(artifact.sections[0].sourceIds,draft.sections[0].sourceIds)
+  assert.deepEqual(artifact.questions[0].sourceIds,draft.questions[0].sourceIds)
   assert.equal(artifact.questions.length,draft.questions.length)
   assert.ok(artifact.questions.every(q=>!('answer' in q)))
 })
