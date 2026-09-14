@@ -37,7 +37,12 @@
     "api": {
       "root": ".",
       "runtime": "container",
-      "entrypoint": "Containerfile"
+      "entrypoint": "Containerfile",
+      "functions": {
+        "**": {
+          "maxDuration": 800
+        }
+      }
     }
   },
   "rewrites": [

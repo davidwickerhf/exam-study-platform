@@ -15,7 +15,7 @@ test('generation distinguishes credit exhaustion, throttling and configuration w
     assert.match(error.message, message)
     assert.doesNotMatch(error.message, /private-account|HTTP|insufficient_quota/)
     assert.equal(error.status, 502)
-    assert.equal(error.retryAfter, undefined, 'no automatic paid retry')
+    assert.equal(error.retryAfter, ['provider_rate_limit','provider_unavailable'].includes(code) ? 10 : undefined)
   }
 })
 

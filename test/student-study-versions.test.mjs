@@ -380,7 +380,7 @@ test('failed independent evidence review cannot activate or publish a revision',
     await f.run(async () => {
       const v = await ownStudyVersion(f.version.id)
       assert.equal(v.draft.status, 'failed')
-      assert.equal(v.draft.automaticRepairs.addition, 1)
+      assert.equal(v.draft.automaticRepairs.addition, 3)
       assert.equal(v.activeRevisionId, null)
       await assert.rejects(
         publishStudyVersion(v.id, { revisionId: v.draft.id }),
@@ -392,7 +392,7 @@ test('failed independent evidence review cannot activate or publish a revision',
       assert.deepEqual(retry.draft.repair.chapter, v.draft.chapters[0])
       await processStudyStep(v.id, {generate: async prompt => {
         assert.match(prompt, /smallest coherent changes/)
-        assert.ok(prompt.includes(JSON.stringify(v.draft.chapters[0])))
+        assert.ok(prompt.includes(JSON.stringify(v.draft.chapters[0].sections)))
         assert.match(prompt, /Solution contradicts the supplied source/)
         return lesson(f.snapshot.chunks.map(c => c.id))
       }})
@@ -979,4 +979,69 @@ test('review-only retry keeps the failed chapter and charges no generation call'
       assert.equal(rejected.draft.repair, undefined)
     })
   } finally { await f.cleanup() }
+})
+
+test('long guide calls keep their lease and reject duplicate workers beyond five minutes',async t=>{
+  const f=await fixture()
+  let now=Date.now()
+  const clock=t.mock.method(Date,'now',()=>now)
+  try {
+    await f.run(()=>processStudyStep(f.version.id,{generate:async(_prompt,options)=>{
+      assert.equal(options.providerTimeoutMs,600000)
+      assert.equal(options.generationRuntime,'agents-sdk-responses')
+      now+=360000
+      let duplicates=0
+      await processStudyStep(f.version.id,{generate:async()=>{duplicates++;throw Error('duplicate worker')}})
+      assert.equal(duplicates,0)
+      return {topics:[{id:'addition',title:'Addition',sourceIds:f.snapshot.chunks.map(c=>c.id)}],gaps:[]}
+    }}))
+    const version=await f.run(()=>ownStudyVersion(f.version.id))
+    assert.equal(version.draft.maps.length,1)
+    assert.notEqual(version.draft.status,'failed')
+  } finally {clock.mock.restore();await f.cleanup()}
+})
+
+test('guide timeouts preserve checkpoints and name the actionable failure',async()=>{
+  const f=await fixture()
+  try {
+    let calls=0
+    for(let attempt=1;attempt<=3;attempt++) {
+      const before=await f.run(()=>ownStudyVersion(f.version.id))
+      const result=await f.run(()=>processStudyStep(f.version.id,{now:Math.max(Date.now(),before.draft.runAfter || 0),generate:async()=>{calls++;throw new DOMException('timeout','TimeoutError')}}))
+      assert.equal(result.again,attempt<3)
+      const saved=await f.run(()=>ownStudyVersion(f.version.id))
+      assert.equal(saved.draft.attempts,attempt)
+      assert.equal(saved.draft.maps.length,0)
+      if(attempt<3)assert.equal(saved.draft.status,'queued')
+    }
+    assert.equal(calls,3)
+    const version=await f.run(()=>ownStudyVersion(f.version.id))
+    assert.equal(version.draft.status,'failed')
+    assert.match(version.draft.error,/time allowance.*Finished work is saved/)
+  } finally {await f.cleanup()}
+})
+
+test('review output exhaustion persists smaller batches and credit failures never become validation retries',async()=>{
+  for(const code of ['provider_output_limit','provider_credits']) {
+    const f=await fixture()
+    try{await f.run(async()=>{
+      const ids=f.snapshot.chunks.map(c=>c.id)
+      await mutateStudyVersion(f.version.id,v=>{
+        v.draft.stage='review';v.draft.topics=[{id:'addition',title:'Addition',sourceIds:ids}]
+        v.draft.chapters=[{...lesson(ids),id:'addition',review:'pending',teachingPlan:teachingPlan(ids)}]
+      })
+      let calls=0
+      const generate=async()=>{calls++;throw Object.assign(new Error('bounded provider failure'),{status:502,code})}
+      for(let attempt=0;attempt<(code==='provider_credits'?1:3);attempt++)await processStudyStep(f.version.id,{generate})
+      const saved=await ownStudyVersion(f.version.id)
+      assert.equal(saved.draft.status,'failed')
+      assert.equal(saved.draft.chapters[0].factualRetry,undefined)
+      assert.equal(calls,code==='provider_credits'?1:3)
+      if(code==='provider_output_limit') {
+        assert.equal(saved.draft.chapters[0].factualAudit.batchSize,1)
+        assert.equal(saved.draft.chapters[0].factualAudit.outputRecoveries,2)
+        assert.equal(saved.draft.chapters[0].questions.length,lesson(ids).questions.length)
+      }
+    })}finally{await f.cleanup()}
+  }
 })

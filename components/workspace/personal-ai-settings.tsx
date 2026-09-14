@@ -80,7 +80,7 @@ export function PersonalAiSettings() {
         <>
           <div className="rounded-xl border bg-card p-5">
             <h3 className="mb-3 text-sm font-semibold">
-              {budget.unlimited ? 'Unlimited AI usage' : 'Included study allowance'}
+              {budget.unlimited ? 'General AI quotas waived' : 'Included study allowance'}
             </h3>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -117,7 +117,7 @@ export function PersonalAiSettings() {
               </div>
             </dl>
             <p className="text-muted-foreground mt-4 text-xs">
-              {budget.unlimited ? 'No spending, chapter, token or request quota applies. Actual costs are still recorded; execution and duplicate-job safeguards remain active.' : <>Reading, saved questions and unchanged chapter reuse do not
+              {budget.unlimited ? 'General spending, chapter, token and request quotas are waived. Your per-generation spending cap still applies. Actual costs are recorded; execution and duplicate-job safeguards remain active.' : <>Reading, saved questions and unchanged chapter reuse do not
               trigger new AI calls. Mapping, writing, checks and retries count
               toward token and spending limits. The shared platform budget also
               applies.</>}

@@ -1,4 +1,5 @@
 'use client'
+import { STUDY_GENERATION_LIMITS } from '@/lib/study-generation-limits.mjs'
 import { StudyBillingFields } from './study-billing-fields'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -48,8 +49,8 @@ export function StudySourceForm({
 }) {
   const [execution, setExecution] = useState<'hosted' | 'local'>(initialExecution)
   const [billingSource, setBillingSource] = useState('platform'),
-    [cap, setCap] = useState('1'),
-    [quality, setQuality] = useState('standard'),
+    [cap, setCap] = useState(String(STUDY_GENERATION_LIMITS.defaultJobUsd)),
+    [quality, setQuality] = useState('astra'),
     [estimate, setEstimate] = useState<StudyEstimate | null>(null)
   const [year, setYear] = useState(
     course.academicYear === 'all' ? '' : course.academicYear
@@ -415,7 +416,7 @@ export function StudySourceForm({
               Approximately {estimate.chapterRange[0]}–
               {estimate.chapterRange[1]} chapters · estimated $
               {estimate.estimatedUsd[0].toFixed(2)}–$
-              {estimate.estimatedUsd[1].toFixed(2)}. {estimate.unlimited ? 'No usage cap.' : `Spending cap: $${estimate.maxJobUsd.toFixed(2)}.`} Model: {estimate.model}.
+              {estimate.estimatedUsd[1].toFixed(2)}. {`Spending cap: $${estimate.maxJobUsd.toFixed(2)}.`} Model: {estimate.model}.
             </span>
             <span>{estimate.explanation}</span>
           </AlertDescription>

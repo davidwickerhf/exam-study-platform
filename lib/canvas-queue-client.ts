@@ -11,7 +11,7 @@ export async function callCanvasService(payload: Record<string, unknown>): Promi
   const response = await fetch(new URL('api/internal/canvas-queue', `${origin.replace(/\/$/, '')}/`), {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'x-canvas-task': signCanvasTask(body),
       ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}) },
-    body, signal: AbortSignal.timeout(240_000), cache: 'no-store',
+    body, signal: AbortSignal.timeout(payload.action === 'study-step' ? 660_000 : 240_000), cache: 'no-store',
   })
   if (!response.ok) throw new Error(`Canvas task service returned ${response.status}.`)
   return response.json()

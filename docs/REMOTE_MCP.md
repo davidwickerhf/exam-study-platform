@@ -139,9 +139,9 @@ Budgets and concurrency leases are stored in PostgreSQL and apply across replica
 | --- | --- |
 | MCP requests per account and connection | 60/minute |
 | Concurrent requests per account | 4 |
-| Request body | 256 KiB |
-| Tool result | 128 KiB |
-| Transport token units | 1,000,000/minute; 4,000,000/day |
+| Request body | 4 MiB |
+| Tool result | 2 MiB |
+| Transport token units | 12,000,000/minute; 64,000,000/day |
 | Public connection requests per IP | 120/minute |
 | Client registrations per IP | 10/10 minutes |
 | Token exchanges/revocations per IP | 30/10 minutes per endpoint |

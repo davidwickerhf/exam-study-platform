@@ -6,6 +6,7 @@ import {
   settleStudyLedger,
   studyBudgetLimits,
   estimateStudyCall,
+  studyModelCost,
   resolveStudyBilling,
   runBudgetedStudyCall
 } from '../lib/study-ai-budget.mjs'
@@ -134,7 +135,9 @@ test('personal billing bypasses included chapter caps but enforces its own month
   )
   const bounded = estimateStudyCall('🙂'.repeat(100), 50000, 'gpt-5-mini')
   assert.equal(bounded.inputTokens, 2448)
-  assert.equal(bounded.outputTokens, 20000)
+  assert.equal(bounded.outputTokens, 50000)
+  assert.equal(estimateStudyCall('Deep lesson', 64000, 'gpt-5-mini').outputTokens, 64000)
+  assert.equal(estimateStudyCall('Deep lesson', 100000, 'gpt-5-mini').outputTokens, 64000)
   assert.equal(estimateStudyCall('Deep lesson', 20000, 'gpt-5-mini').outputTokens, 20000)
 })
 test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never falls back to platform billing', async () => {
@@ -195,6 +198,7 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
         callPersonal: async (_prompt, opts) => {
           calls++
           assert.equal(opts.apiKey, key)
+          assert.equal(opts.maxOutputTokens, 64000)
           started()
           await pending
           return {
@@ -203,7 +207,7 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
           }
         }
       }
-      const first = runBudgetedStudyCall('hello', {}, config)
+      const first = runBudgetedStudyCall('hello', {maxOutputTokens:64000}, config)
       await entered
       await assert.rejects(
         runBudgetedStudyCall('hello', {}, config),
@@ -212,6 +216,12 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
       release()
       assert.equal(await first, 'ok')
       assert.equal(calls, 1)
+      const month=new Date().toISOString().slice(0,7)
+      const beforeFailure=await readDocument('study-ai-personal-budget',month)
+      const incomplete=Object.assign(new Error('incomplete'),{usage:{inputTokens:10,outputTokens:10,estimated:false}})
+      await assert.rejects(runBudgetedStudyCall('hello',{maxOutputTokens:64000},{...config,callPersonal:async()=>{throw incomplete}}),/incomplete/)
+      const afterFailure=await readDocument('study-ai-personal-budget',month)
+      assert.equal(afterFailure.total-beforeFailure.total,studyModelCost(billing.model,10,10))
       await removePersonalAiKey()
       await assert.rejects(
         runBudgetedStudyCall('hello', {}, config),
@@ -232,10 +242,11 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
   }
 })
 
-test('quota exemption bypasses usage ceilings while retaining metering and duplicate protection', () => {
+test('quota exemption preserves the job cap, metering and duplicate protection', () => {
   const zero={platformDayUsd:0,platformMonthUsd:0,userDayUsd:0,userMonthUsd:0,chaptersDay:0,chaptersMonth:0,requestsMinute:0,tokensDay:0,personalTokensDay:0,maxJobUsd:0}
-  const input={user:'owner',jobKey:'uncapped',source:'platform',model:'gpt-5-mini',estimate:{micros:9000000,inputTokens:2000000,outputTokens:10000},chapterKey:'chapter',maxJobUsd:0,personalMonthUsd:0,quotaExempt:true}
+  const input={user:'owner',jobKey:'uncapped',source:'platform',model:'gpt-5-mini',estimate:{micros:9000000,inputTokens:2000000,outputTokens:10000},chapterKey:'chapter',maxJobUsd:10,personalMonthUsd:0,quotaExempt:true}
   for (const source of ['platform','personal']) {
+    assert.throws(()=>reserveStudyLedger(null,{...input,source,maxJobUsd:1},zero),/spending cap/)
     const reserved=reserveStudyLedger(null,{...input,source},zero)
     assert.equal(reserved.ledger.total,9000000)
     assert.equal(reserved.reservation.quotaExempt,true)
@@ -256,6 +267,51 @@ test('enhanced generation explicitly selects its priced model without relaxing b
     assert.ok(strong.micros > mini.micros * 7)
     assert.throws(() => reserveStudyLedger(null, { ...input, model: enhanced.model, estimate: strong, maxJobUsd: 0.05 }, limits), /cap|budget|spending/i)
     await assert.rejects(resolveStudyBilling({ quality: 'enhanced' }, { ...platform, provider: 'anthropic' }), /OpenAI/)
-    await assert.rejects(resolveStudyBilling({ quality: 'unknown' }, platform), /standard or enhanced/)
+    await assert.rejects(resolveStudyBilling({ quality: 'unknown' }, platform), /standard, enhanced/)
+  })
+})
+
+
+test('Sol and Astra preserve explicit model selection and reserve current long-context/cache-write prices',async()=>{
+  await withRequestContext({userId:`modern-model-${randomUUID()}`,mode:'hosted',email:'student@example.test'},async()=>{
+    const platform={configured:true,provider:'openai',model:'gpt-5-mini'}
+    for(const [quality,model] of [['sol','gpt-5.6-sol'],['astra','gpt-6-astra']]){
+      const billing=await resolveStudyBilling({quality,maxJobUsd:5},platform)
+      assert.equal(billing.model,model)
+      assert.equal(billing.maxJobUsd,5)
+      const estimate=estimateStudyCall('Complete lesson',64000,model)
+      assert.equal(estimate.outputTokens,64000)
+      assert.throws(()=>reserveStudyLedger(null,{...input,model,estimate,maxJobUsd:0.05},limits),/cap|budget|spending/i)
+      await assert.rejects(resolveStudyBilling({quality},{...platform,provider:'anthropic'}),/OpenAI/)
+    }
+    assert.equal(studyModelCost('gpt-5.6-sol',1000,1000),25000)
+    assert.equal(studyModelCost('gpt-6-astra',1000,1000),62500)
+    assert.equal(studyModelCost('gpt-6-astra',1000,1000,{cachedInputTokens:500,cacheWriteInputTokens:200}),56000)
+    assert.equal(studyModelCost('gpt-5.6-sol',300000,1000),3030000)
+    assert.equal(studyModelCost('gpt-6-astra',300000,1000),7575000)
+  })
+})
+
+test('paid-call reservation remains exclusive beyond the old five-minute lease',()=>{
+  const first=reserveStudyLedger(null,input,limits)
+  assert.throws(()=>reserveStudyLedger(first.ledger,{...input,now:input.now+360000},limits),/Another chapter/)
+})
+
+test('guide defaults use Astra without rerouting assessments or changing an existing job',async()=>{
+  const {resolveGuideBilling}=await import('../lib/study-ai-budget.mjs')
+  const userId=`guide-routing-${randomUUID()}`
+  await withRequestContext({userId,mode:'hosted',email:'student@example.test'},async()=>{
+    try{
+      const platform={configured:true,provider:'openai',model:'gpt-5-mini'}
+      assert.equal((await resolveGuideBilling({},platform)).model,'gpt-6-astra')
+      assert.equal((await resolveStudyBilling({},platform)).model,'gpt-5-mini')
+      const existing={source:'platform',model:'gpt-5.6-sol',maxJobUsd:0.75}
+      const resumed=await resolveGuideBilling({},platform,existing)
+      assert.equal(resumed.model,existing.model)
+      assert.equal(resumed.maxJobUsd,existing.maxJobUsd)
+      assert.equal((await resolveGuideBilling({quality:'astra'},platform,existing)).model,'gpt-6-astra')
+      assert.equal((await resolveGuideBilling({quality:'standard'},platform)).model,'gpt-5-mini')
+      await assert.rejects(resolveGuideBilling({source:'personal'},platform),/key|connect|configured/i)
+    }finally{await deleteAllDocuments()}
   })
 })

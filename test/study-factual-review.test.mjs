@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextFactualReview, acceptFactualReview, factualAuditIssues, factualReviewItems } from '../lib/study-factual-review.mjs'
-import { deriveObjectiveCoverage } from '../lib/study-pedagogy.mjs'
+import { reduceFactualReviewBatch, nextFactualReview, acceptFactualReview, factualAuditIssues, factualReviewItems } from '../lib/study-factual-review.mjs'
+import { deriveObjectiveCoverage, pedagogyPrompt } from '../lib/study-pedagogy.mjs'
 import { practiceLinkStep, applyPracticeLinks } from '../lib/study-practice-links.mjs'
 import { course, lesson, teachingPlan, teachingResponse } from '../scripts/verification/study-fixtures.mjs'
 const evidence=[{id:'e-current',sourceKey:'source',text:'Adding disjoint groups: two plus three equals five. Check with subtraction.'}]
@@ -83,6 +83,18 @@ test('question-only correction preserves all other teaching and cannot drop obje
   assert.equal(questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:'Untaught prerequisite across objectives'}]),null)
 })
 
+test('diagnostic corrections can repair linked targets while retaining unrelated questions',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter(),q=draft.questions[0]
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:q.key+': follow-up does not target the misconception'}])
+  assert.ok(step.keys.includes(q.key))
+  for(const m of q.misconceptions)assert.ok(step.keys.includes(m.followUpKey))
+  const replacements=Object.fromEntries(draft.questions.filter(q=>step.keys.includes(q.key)).map(q=>[q.key,{...q,question:q.question+' Explain the changed condition.'}]))
+  const fixed=applyQuestionRepair(draft,step,{questions:replacements})
+  assert.deepEqual(fixed.questions.filter(q=>!step.keys.includes(q.key)),draft.questions.filter(q=>!step.keys.includes(q.key)))
+  assert.deepEqual(fixed.sections,draft.sections)
+})
+
 test('an objective review can inspect a linked follow-up from another objective',async()=>{
   const {nextPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
   const draft=chapter(),[a,b]=draft.teachingPlan.objectives.map(o=>o.id)
@@ -111,4 +123,138 @@ test('null corruption blocks acceptance even when a model called it a formatting
   const {studyLessonQuality}=await import('../lib/study-content-quality.mjs')
   const draft=chapter();draft.sections[0].text='The complement is 1\u0000\u0000=5/6.'
   assert.ok(studyLessonQuality(draft,evidence).some(issue=>issue.includes('null-character corruption')))
+})
+
+test('flashcard-only correction preserves the lesson and practice instead of regenerating them',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter();draft.factualAudit={marker:'DO NOT COPY ACCEPTANCE METADATA'}
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:'cards:0',detail:'Clarify the illustrative assumption.'}])
+  assert.ok(step);assert.doesNotMatch(step.prompt,/DO NOT COPY ACCEPTANCE METADATA/)
+  const flashcards=Object.fromEntries(step.cardIndexes.map(index=>[`card-${index}`,{...draft.flashcards[index],back:'Assume disjoint groups. '+draft.flashcards[index].back}]))
+  const fixed=applyQuestionRepair(draft,step,{flashcards})
+  assert.deepEqual(fixed.questions,draft.questions);assert.deepEqual(fixed.sections,draft.sections)
+  assert.deepEqual(fixed.flashcards.slice(4),draft.flashcards.slice(4));assert.notEqual(fixed.flashcards[0].back,draft.flashcards[0].back)
+})
+
+
+test('factual scope review preserves syllabus constraints without grading private drafting instructions as lesson text',()=>{
+  const draft=chapter()
+  draft.teachingPlan.objectives[0].teachingApproach='PRIVATE DRAFTING APPROACH'
+  draft.teachingPlan.objectives[0].demonstration='PRIVATE PLANNED EXAMPLE'
+  draft.teachingPlan.exclusions=['Current exam excludes advanced calculus.']
+  draft.sections[0].text='ACTUAL FINISHED TEACHING'
+  const items=factualReviewItems(draft),scope=items.find(item=>item.key==='scope')
+  assert.doesNotMatch(JSON.stringify(items),/PRIVATE DRAFTING|PRIVATE PLANNED/)
+  assert.doesNotMatch(pedagogyPrompt('',draft),/PRIVATE DRAFTING|PRIVATE PLANNED/)
+  assert.equal(scope.content.teachingPlan.objectives[0].goal,draft.teachingPlan.objectives[0].goal)
+  assert.deepEqual(scope.content.teachingPlan.objectives[0].sourceIds,draft.teachingPlan.objectives[0].sourceIds)
+  assert.deepEqual(scope.content.teachingPlan.exclusions,draft.teachingPlan.exclusions)
+  assert.match(JSON.stringify(items),/ACTUAL FINISHED TEACHING/)
+})
+
+test('mixed section and card findings repair together without rewriting practice',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter(),section=draft.sections[0]
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:`section:${section.id}`,detail:'Explain the set condition.'},{severity:'error',itemKey:'cards:0',detail:'State necessity, not sufficiency.'}])
+  assert.equal(step.parts.length,2)
+  const response={sections:{[section.id]:{...section,text:section.text+' Additional condition.'}},flashcards:Object.fromEntries(draft.flashcards.slice(0,4).map((card,index)=>[`card-${index}`,{...card,back:card.back+' Corrected condition.'}]))}
+  const fixed=applyQuestionRepair(draft,step,response)
+  assert.deepEqual(fixed.questions,draft.questions)
+  assert.deepEqual(fixed.sections.slice(1),draft.sections.slice(1))
+  assert.deepEqual(fixed.flashcards.slice(4),draft.flashcards.slice(4))
+  assert.notEqual(fixed.sections[0].text,section.text)
+})
+
+test('scope-note repair can correct immutable-plan metadata without changing learning objectives',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter()
+  draft.teachingPlan.gaps=['No assessment rules were provided.']
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:'scope',detail:'The source supplies assessment rules; correct the denial.'}])
+  assert.equal(step.scope,true)
+  const fixed=applyQuestionRepair(draft,step,{caveats:['No explicit topic exclusions were provided.'],scope:{gaps:['No explicit topic exclusions were provided.'],exclusions:[]}})
+  assert.deepEqual(fixed.teachingPlan.objectives,draft.teachingPlan.objectives)
+  assert.deepEqual(fixed.questions,draft.questions)
+  assert.deepEqual(fixed.sections,draft.sections)
+  assert.ok(!fixed.teachingPlan.gaps.includes('No assessment rules were provided.'))
+})
+
+test('review prose naming a target does not force a full chapter rewrite',async()=>{
+  const {questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter(),question=draft.questions[0],target=question.misconceptions[0].followUpKey
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:`Revise ${target} to address this misconception.`},{severity:'error',detail:`${question.key}: its follow-up does not test the mistake.`}])
+  assert.ok(step.keys.includes(question.key))
+  assert.ok(step.keys.includes(target))
+})
+
+test('review excerpt identifiers resolve to exact visible quotations and reject wrong sections',async()=>{
+  const {nextPedagogicalReview,acceptPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
+  const {pedagogicalReview}=await import('../scripts/verification/study-fixtures.mjs')
+  const draft=chapter(),step=nextPedagogicalReview('',draft)
+  const response=pedagogicalReview(step.chapter)
+  for(const field of ['explanation','workedExample']){
+    const value=response.objectives[0][field]
+    const entry=Object.entries(step.quoteReferences).find(([,ref])=>ref.sectionId===value.sectionId)
+    value.quote=entry[0]
+  }
+  const wrong=structuredClone(response);wrong.objectives[0].explanation.sectionId='wrong-section'
+  assert.throws(()=>acceptPedagogicalReview(draft,step,wrong),/different section/)
+  acceptPedagogicalReview(draft,step,response)
+  const saved=draft.pedagogyAudit.reviews[step.objectiveId].objectives[0].explanation
+  assert.ok(draft.sections.find(s=>s.id===saved.sectionId).text.includes(saved.quote))
+  assert.ok(!saved.quote.startsWith('excerpt-'))
+})
+
+
+test('pedagogical checkpoint omits revision payload while preserving teaching and assessment scope',()=>{
+  const draft=chapter()
+  draft.flashcards[0].back='UNNEEDED REVISION PAYLOAD'
+  draft.sections[0].detail='OPTIONAL EXTENSION PAYLOAD'
+  draft.teachingPlan.exclusions=['Official assessment excludes recursion.']
+  const prompt=pedagogyPrompt('',draft)
+  const artifact=JSON.parse(prompt.split('Chapter: ').at(-1))
+  assert.doesNotMatch(prompt,/UNNEEDED REVISION PAYLOAD|OPTIONAL EXTENSION PAYLOAD/)
+  assert.deepEqual(artifact.teachingPlan.exclusions,draft.teachingPlan.exclusions)
+  assert.equal(artifact.sections[0].text,draft.sections[0].text)
+  assert.deepEqual(artifact.sections[0].sourceIds,draft.sections[0].sourceIds)
+  assert.deepEqual(artifact.questions[0].sourceIds,draft.questions[0].sourceIds)
+  assert.equal(artifact.questions.length,draft.questions.length)
+  assert.ok(artifact.questions.every(q=>!('answer' in q)))
+})
+
+
+test('flashcard variety failure repairs cards without regenerating teaching or practice',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter()
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:'Flashcards need distinct prompts spanning definitions, contrasts, applications and misconceptions.'}])
+  assert.ok(step)
+  const fixed=applyQuestionRepair(draft,step,{flashcards:draft.flashcards.map((card,i)=>({...card,front:`Case ${i+1}: ${card.front}`}))})
+  assert.deepEqual(fixed.sections,draft.sections)
+  assert.deepEqual(fixed.questions,draft.questions)
+  assert.notDeepEqual(fixed.flashcards,draft.flashcards)
+})
+
+
+test('output-limit recovery halves batches twice without losing solutions or skipping verdicts',()=>{
+  const draft=chapter(),content=JSON.stringify({...draft,factualAudit:undefined})
+  let step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(step.keys.length,4)
+  acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))
+  const solutions=structuredClone(draft.factualAudit.solutions)
+  step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(reduceFactualReviewBatch(draft,step),true)
+  assert.deepEqual(draft.factualAudit.solutions,solutions)
+  step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(step.keys.length,2)
+  assert.equal(reduceFactualReviewBatch(draft,step),true)
+  step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(step.keys.length,1)
+  assert.equal(reduceFactualReviewBatch(draft,step),false)
+  for(let count=0;step && count<100;count++) {
+    acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))
+    step=nextFactualReview(course,[],evidence,draft)
+  }
+  assert.equal(step,null)
+  assert.deepEqual(factualAuditIssues(draft),[])
+  assert.equal(Object.keys(draft.factualAudit.solutions).length,draft.questions.length)
+  assert.equal(JSON.stringify({...draft,factualAudit:undefined}),content)
 })

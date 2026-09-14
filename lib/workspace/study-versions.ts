@@ -34,7 +34,7 @@ export type StudyVisualSpec = {
 export type StudyQuestion = {
   key?: string
   objectiveIds?: string[]
-  practiceStage?: 'guided' | 'independent' | 'transfer'
+  practiceStage?: 'guided' | 'independent' | 'transfer' | 'remediation'
   hints?: string[]
   misconceptions?: { mistake: string; explanation: string; followUpKey: string }[]
   type?: 'written' | 'mc' | 'multi' | 'tf' | 'calc' | 'pseudocode'

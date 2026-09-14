@@ -1,3 +1,5 @@
+import { runStudyAgentsSdk } from './lib/study-agents-sdk.mjs'
+import { providerFetch } from './lib/provider-fetch.mjs'
 import { scheduleModuleGuides } from './lib/study-module-automation.mjs'
 import { prepareOriginalDownload } from './lib/original-downloads.mjs'
 import { sendCorpusAsset } from './lib/corpus-asset-response.mjs'
@@ -1335,7 +1337,7 @@ async function runClaudeCli(prompt, { schemaPath, images = [], model = '' } = {}
   })
 }
 
-async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
+async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = [], providerTimeoutMs = 210000, maxOutputTokens = 16000, apiKey = ANTHROPIC_API_KEY, model = ANTHROPIC_MODEL } = {}) {
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY is not set. Either set the env var, add anthropicApiKey to data/llm-config.json, or switch provider to codex/claude.')
   }
@@ -1368,15 +1370,15 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
       max_tokens: maxOutputTokens,
       messages: [{ role: 'user', content }]
     }
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await providerFetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
-    })
+      body: JSON.stringify(body)
+    }, providerTimeoutMs)
     if (!resp.ok) {
       throw await studyProviderError(resp)
     }
@@ -1401,7 +1403,7 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
 }
 
 // OpenAI Chat Completions with JSON-schema structured output and image inputs.
-async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
+async function runOpenAiApi(prompt, { generationRuntime, schemaPath, responseSchema, images = [], providerTimeoutMs = 210000, maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
   }
@@ -1409,6 +1411,7 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
   if (!schema && schemaPath) {
     try { schema = JSON.parse(await readFile(schemaPath, 'utf8')) } catch {}
   }
+  if(generationRuntime==='agents-sdk-responses')return runStudyAgentsSdk(prompt,{apiKey,baseUrl,model,responseSchema:schema,maxOutputTokens,providerTimeoutMs,reasoningEffort})
   try {
     const content = [{ type: 'text', text: prompt }]
     for (const imagePath of images) {
@@ -1428,11 +1431,11 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
       ],
       ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: Boolean(responseSchema) } } } : {})
     }
-    const resp = await fetch(`${baseUrl}/chat/completions`, {
+    const resp = await providerFetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(210000)
-    })
+      body: JSON.stringify(body)
+    }, providerTimeoutMs)
     if (!resp.ok) {
       throw await studyProviderError(resp)
     }
@@ -1442,6 +1445,7 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], m
       text,
       usage: {
         inputTokens: Number(data.usage?.prompt_tokens || estimateTokens(prompt)),
+        ...(Number.isSafeInteger(data.usage?.prompt_tokens_details?.cache_write_tokens) ? {cacheWriteInputTokens:data.usage.prompt_tokens_details.cache_write_tokens,cachedInputTokens:data.usage.prompt_tokens_details.cached_tokens || 0} : {}),
         outputTokens: Number(data.usage?.completion_tokens || estimateTokens(text)),
         estimated: !data.usage
       }

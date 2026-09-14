@@ -1,6 +1,6 @@
 # Teaching quality and recurring course pipelines
 
-Implementation contract: `student-source-teaching-v6` (lesson format 3). Saved formats remain readable. These changes do not regenerate existing saved guides on deployment.
+Implementation contract: `student-source-teaching-v7` (lesson format 3). Saved formats remain readable. These changes do not regenerate existing saved guides on deployment.
 
 ## Teaching and acceptance
 
@@ -59,7 +59,7 @@ Factual review first solves every question without seeing the generated lesson, 
 
 Pedagogical review has a separate checkpoint for each objective, retaining the visible lesson and relevant assessments. Every transfer and misconception-follow-up question receives a specific check. Aggregation keeps a negative verdict when overlapping objectives disagree. Selected quotations remain exact lesson substrings and avoid provider-invalid quote literals.
 
-Structural and content corrections have separate one-attempt budgets. Invalid factual-review responses can retry once without rewriting the chapter. Question-only findings use a bounded replacement schema that preserves other questions and all teaching; broader findings still request a coherent chapter correction. All corrected content is reviewed again. Spending limits remain in effect and estimates now account for repeated evidence and review calls. A failed correction preserves the prior active guide.
+Structural, link, factual and pedagogical corrections share a persisted limit of three automatic attempts per chapter. Each correction starts from the latest saved draft and findings. Exhaustion retains that draft and stops generation; an explicit retry requests an additional correction without resetting the automatic count. API and MCP status expose the limit, attempt counts and correction history (phase, base hash and blocking findings). Invalid factual-review responses can retry once without rewriting the chapter. Question-only, section-only and flashcard-only findings use bounded replacement schemas that preserve unaffected content; broader findings request a coherent chapter correction. All corrected content is reviewed again. Spending limits remain in effect and estimates now account for repeated evidence and review calls. A failed correction preserves the prior active guide.
 
 ## Tutor SDK and shared MCP study context (2.17)
 
@@ -68,3 +68,153 @@ Tutor tool dispatch and continuation use OpenAI Agents SDK 0.18. Existing accoun
 MCP adds `study_session_context`, `study_session_save` and `study_session_forget`. An authorised study session can save checkpoints without paying for a hosted Tutor call. Each checkpoint contains course/year, a concise summary, topics, observations with their basis, and next steps. An observed-answer claim requires the actual student response. Checkpoints cannot update grades or mastery. The same memory enters the in-app Tutor's turn context; a read tool retrieves older or other-course sessions. These are labelled untrusted historical learning context, not course evidence.
 
 Checkpoints use immutable request IDs for retries, compare payloads independently of JSON database key order, and use the existing account/programme-scoped atomic memory store. Read-only MCP credentials cannot save or delete them. Up to 80 recent checkpoints are retained per programme; individual deletion, Tutor export and Tutor-data erasure include them. Existing lasting-preference/context and attendance tools retain their exact-change review workflow. No raw external transcript is imported automatically.
+
+## Generation capacity
+
+These are ceilings, not required lengths. Core explanations have no word target; the concise revision summary is separate.
+
+| Capacity | Previous | Current |
+| --- | ---: | ---: |
+| Full chapter output, including model reasoning | 20,000 tokens | 64,000 tokens |
+| Teaching plan output | 12,000 tokens | 24,000 tokens |
+| Selected section/question correction | 20,000 tokens | 32,000 tokens |
+| Factual/pedagogical review output | 7,000–9,000 tokens | 32,000 tokens |
+| Section/answer text field | 16,000 characters | 32,000 characters |
+| Sections / practice questions / flashcards per chapter | 16 / 24 / 20 | 32 / 48 / 40 |
+| Default per-guide/revision spending cap | $1 | $5 |
+| Default platform-funded account daily / monthly allowance | $0.50 / $3 | $5 / $30 |
+| Default account token allowance (platform / personal key), daily | 300,000 / 2,000,000 | 5,000,000 / 10,000,000 |
+| MCP request / response envelope | 256 KiB / 128 KiB | 4 MiB / 2 MiB |
+| MCP transport bytes, minute / day | 1 million / 4 million | 12 million / 64 million |
+
+Existing saved spending choices, personal monthly caps and environment overrides are preserved. The selectable per-guide maximum remains $10. Shared platform daily/monthly spending caps and account chapter/rate limits still apply; reaching an allowance pauses progress. Local MCP generation does not charge platform AI. No existing guide is regenerated by this change. Source selection and focused evidence batching remain bounded to avoid loading an entire textbook into a single chapter request. Provider timeouts, malformed outputs and access failures still stop safely; larger output capacity does not guarantee successful model review.
+
+## Modern model choices
+
+Hosted generation offers explicit GPT-5.6 Sol (`sol`) and GPT-6 Astra (`astra`) choices alongside the configured platform model and existing GPT-5.4 enhanced option. The same choices are available for automatic module guides; personal-key users select their provider model in AI settings. Existing saved preferences and in-flight billing/model choices are preserved. MCP-led generation uses the model selected in the connected client and does not silently invoke a hosted model.
+
+Official model pricing verified 14 September 2026: [Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol) costs $4 input / $20 output per million tokens; [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra) costs $10 / $50. Spending reservations account for cache-write prices and the >272K long-context surcharge. When the provider returns cache-write/read token counts, settlement uses those counts; otherwise accounting remains conservative. Cache hits are never assumed for a reservation. Structured-output schemas are included in the input reservation.
+
+Guide generation uses structured JSON without model tool calls. Astra's Chat Completions support is sufficient for this path; its tool-calling requirement for Responses means this addition does not migrate the Tutor to Astra. Medium reasoning is retained for guide/review calls. A live Astra structured-output probe correctly returned 108 ms and no notification wake-up from an ordinary variable write. This is compatibility evidence, not an end-to-end teaching-quality evaluation. Sol is being evaluated through the full generation/review/correction pipeline before any default production-model switch.
+
+### Long guide steps
+
+The first Sol end-to-end attempt stopped before returning its initial chapter at the previous 210-second fetch boundary. Guide calls now allow 600 seconds; their draft and paid-call leases last 750 seconds. The study queue callback allows 800 seconds and uses a 900-second message visibility window, with a 660-second service request timeout. The API service also allows 800 seconds. Canvas callbacks retain their existing 300-second runtime/visibility. Timeout failures now identify the time allowance explicitly and retain checkpoints. A regression simulates a six-minute call, rejects a duplicate worker, and verifies that the original result can still commit.
+
+The expanded-capacity GPT-5 mini run made 33 completed model calls (approximately $0.2834 recorded provider-token cost), then stopped after three automatic corrections. Final pedagogical findings concerned two misconception follow-ups that did not target the diagnosed mistake. The draft was retained and never activated. This is evidence of bounded failure, not evidence that automatic generation is consistently successful. Sol comparison resumed from its saved plan after the timeout fix; its final outcome must be reported separately.
+
+### Review the finished lesson
+
+Sol's comparison exposed a review/repair mismatch: factual review rejected a teaching-approach sentence in the immutable plan after the actual lesson was corrected. Chapter corrections cannot edit that internal prose. Factual review version 2 therefore retains objective goals, source authority, exclusions and gaps, while grading examples and explanations in the finished artifact. Pedagogical review likewise does not receive the author's internal approach/demonstration text as evidence of teaching. Source and assessment checks remain intact. Review guidance also distinguishes necessary conditions from sufficient ones. The regression checks that internal prose is excluded while actual teaching and syllabus constraints remain reviewable. A full-review recheck option in the isolated evaluation script clears stale review checkpoints; it does not fabricate acceptance or reset correction counts.
+
+### Evaluation outcome, 14 September 2026
+
+- GPT-5 mini, expanded capacity: 33 completed calls, approximately $0.2834 recorded token cost, failed after three automatic corrections with two diagnostic-follow-up findings. No activation.
+- Sol after extending the timeout, still using the previous reviewer: 44 calls, approximately $2.2255 recorded token cost, failed at three corrections. The final finding was a follow-up question that did not practise recovering an unknown intersection from a supplied union. Internal planning prose had also consumed correction attempts earlier in the run.
+- Recheck with the corrected review scope: interrupted before a final verdict. A checkpoint retry confirmed HTTP 429 with “You have no credits remaining.” Failed requests retain conservative reservations in the evaluation report; those reservations are not a claim of actual provider charges. Production Vercel masks its protected key on export, so no alternate usable credential was recovered. No production database configuration was loaded for these tests.
+- Astra: accessible to the key and passed the live structured-output RTOS compatibility probe; full guide quality has not been evaluated.
+
+The preview is configured for Sol/medium and renders enabled Sol/Astra choices. The production default was not switched. The implementation passes typecheck, 1,012 tests and build; these results do not establish that either modern model reliably produces accepted guides. The credit-restored follow-up below supersedes this temporary billing blocker; automatic correction counts were not reset.
+
+### Credit-restored evaluation and diagnostic recovery
+
+After credits were restored, the saved Sol review completed (4 calls, approximately $0.3497 recorded token cost) and confirmed the unresolved reverse-inference follow-up mismatch. One explicit correction under the earlier question-only repair passed model review (14 calls, approximately $0.5964), but inspection found the target still supplied the quantity the student needed to practise inferring. This result is **not counted as a teaching-quality pass**.
+
+Diagnostic repairs now include the flagged questions' linked targets, within the existing six-question patch bound; larger dependencies use a complete chapter correction. Reviewer guidance checks each misconception against its own target, rather than accepting broad topical relevance or one useful link. A subsequent controlled correction fixed the original reverse-inference target, but the stricter reviewer rejected other mismatched links (14 calls, approximately $0.6049). The old guide remained unpublished with three prior automatic corrections and one explicit correction recorded. These experiments demonstrate repair and rejection behavior, not reliable automatic success.
+
+A fresh Sol run exposed a separate orchestration error: a misconception with no other same-objective question threw before entering correction. Missing targets now invoke whole-chapter correction with the saved content and explicit findings, using the same three-attempt allowance. Regression tests cover recovery, duplicate MCP next calls, and exhausted-budget draft retention. The fresh run stopped after three calls (approximately $0.2764); its recovery encountered a network fetch failure, retained its checkpoint, and resumed without resetting or consuming another correction. The failed call's $1.62815 reservation is not reported as actual spend.
+
+Validation after these fixes: `npm run verify` passed typecheck, 1,015 tests, and production build. Production's default model is unchanged.
+
+The fresh-run recovery then made 36 calls (approximately $2.3303 recorded token cost), correcting factual and missing-teaching findings, but its first final pedagogical review exhausted 16,000 output tokens. Review capacity is now 32,000 tokens, including reasoning; the spending cap is unchanged. The resumed final review made five calls (approximately $0.3849) and rejected the guide at three automatic corrections: a transfer question copied the worked example added during repair, and several diagnostic links did not target their misconceptions. No revision was activated. The stricter review fingerprint is version 3 so cached earlier reviews cannot satisfy the new policy. This remains a failed automatic quality evaluation, despite successful bounded recovery and passing software validation. A larger model/output allowance alone has not established reliable unattended teaching quality.
+
+
+## Finite diagnostic practice and correction context (v7)
+
+Core difficult-objective questions still require diagnostic feedback. Dedicated `practiceStage=remediation` questions may end that path with `misconceptions=[]` and a complete reasoned answer. They must be linked from a diagnosed mistake, share the objective, and directly practise its reasoning. They cannot satisfy guided, independent or transfer coverage. This removes the requirement for every follow-up to have yet another follow-up, without weakening the assessment standard. Existing saved lessons and links remain readable.
+
+Corrections receive the saved per-chapter finding history as regression context, in addition to the latest draft and current findings. Earlier resolved findings are explicitly distinguished from current errors; the model must preserve their fixes. Reviewer contexts remain independent. Mixed section/question/card findings can now use a single schema-constrained patch, preserving unselected content; broader scope changes still require a coherent chapter correction. Worked-example repairs must retain distinct independent/transfer scenarios.
+
+### Managed Agents API evaluation
+
+The [Agents API](https://developers.openai.com/api/docs/guides/agents-api/overview) provides managed sessions, compaction and recovery. The existing application key successfully ran a two-turn, structured-output, no-tools/no-sandbox Sol session: the RTOS case returned 108 ms, then 38 ms after changing only task priority; both turns correctly rejected an ordinary flag write as notification. The disposable session was deleted. Reproduce with `OPENAI_API_KEY` set and `node scripts/verification/study-managed-agent-live.mjs`.
+
+This verifies access and context continuation, not full-guide quality or production budget enforcement. Both completed events and retrieved turns returned `usage=null` in the probe. The documented session configuration and installed SDK expose structured output and reasoning settings but not the existing per-call `max_output_tokens` boundary. A production adapter must enforce the guide's allowance, reconcile usage, cancel remote work, persist session ownership and retain independent reviewer contexts. The managed API is therefore not silently substituted for the current capped provider calls. No context-length error has been established as the cause of the saved guide failures; those failures included output exhaustion, missing dependencies and pedagogical mismatches. The v7 fixes address these shared generation rules for hosted and MCP execution.
+
+
+### Focused correction and context capacity
+
+The default per-guide allowance is now $10 (saved preferences and environment overrides remain authoritative). Pedagogical checkpoints allow 64,000 output/reasoning tokens; factual checkpoints remain at 32,000. These are ceilings, not generation targets. The three automatic corrections per chapter remain shared across review phases.
+
+Pedagogical checkpoints receive core section text, the selected objective, its questions and linked targets, prerequisites and scope constraints. They omit flashcards, optional detail, answers, internal drafting instructions and prior reviews. Short excerpt identifiers replace repeated mathematical quotations in the response grammar; acceptance resolves them to exact visible text and rejects mismatched sections. Full source constraints remain available when planning: filtering administrative evidence had incorrectly produced claims that supplied assessment rules were missing.
+
+Source scope notes can now be corrected without changing objectives or regenerating the chapter. Mixed findings can also patch summary/walkthrough metadata alongside affected sections, questions or cards. Findings that name existing question keys in prose are localized; missing targets still require a complete correction capable of adding practice. The isolated evaluation records reservation-cap failures explicitly and reports prior checkpoint-run costs separately, instead of implying a resumed run was a fresh generation.
+
+
+Long provider requests now use matching Undici fetch/dispatcher implementations with parser timeouts delegated to the finite request deadline. The default five-minute HTTP header/body timers could otherwise undercut the ten-minute generation timeout. Tests verify cancellation both before headers and during response consumption, caller cancellation and normal responses. The observed Astra network failure lacked a cause code, so this is a confirmed configuration defect rather than a proven diagnosis of that individual failure. Subsequent evaluation reports capture transport cause codes. Runtime Node minimum is 20.18.1, matching the explicit Undici dependency.
+
+
+### v7 resumed evaluation results
+
+With the focused review payload and $10 default, resumed Sol hosted generation made 48 calls (approximately $2.3248 recorded token cost) and MCP/local generation made 44 calls (approximately $2.2809). Both exhausted three automatic corrections and retained their drafts without activation. The remaining substantive findings were transfer questions repeating worked-example procedures with changed numbers. Sol also received an incorrect classification of a linked independent question as a dedicated remediation question; guidance now explicitly distinguishes incoming links from `practiceStage=remediation`. This does not negate the other failed checks or turn that evaluation into a pass. Review fingerprint 5 invalidates stale pedagogical checkpoints.
+
+The first transport-change preview failed because the API container uses `deploy/runtime/package.json` independently of the main manifest. Undici is now declared in both manifests; an isolated production-only install successfully imports the provider transport. This runtime packaging check is separate from the passing Next build and tests.
+
+
+A subsequent live review exposed over-trimming in the pedagogical payload: omitted item-level source IDs were incorrectly reported as absent from the saved content. Section and question citation IDs are now preserved alongside core text; regression assertions cover both. Fingerprint 6 refreshes those checkpoints. The active isolated runs were checkpointed and resumed without resetting correction counts. This means the attempted fresh Sol comparison is now also a resumed run and must not be reported as a cold pass. The slimmer payload still omits flashcards, optional detail, answers and prior reviews.
+
+
+Astra subsequently completed both chapters of the isolated fixture: 25 questions, 26 flashcards and eight core sections, with two probability-chapter corrections and one die-chapter correction retained. The final resumed segment made 12 calls at approximately $0.9938 recorded token cost; this is not the total cost of the multi-checkpoint experiment, whose earlier reports include a failed-call reservation. Direct inspection confirmed the repaired complement follow-up and meaningful reverse-inference, model-selection and missing-fairness transfer tasks. This is one successful resumed evaluation, not evidence of reliable unattended generation across courses or a measured learning outcome.
+
+Flashcard-variety validation now has a dedicated collection repair: duplicate prompts or insufficient card variety no longer require regenerating teaching sections and practice. The same bounded correction allowance still applies; model output must pass validation after the patch.
+
+### Native Responses execution and hard guide caps
+
+Hosted OpenAI guide checkpoints now use `Agent` / `Runner` with
+`OpenAIResponsesModel`, strict structured output, a bounded output allowance,
+`maxTurns: 1`, no tools, no stored provider conversation and no automatic client
+retries. Authoring and independent reviewers start fresh SDK runs; the application
+retains durable checkpoints and the existing three-correction limit. External SDK
+tracing is disabled to avoid exporting student evidence. Managed Agents API
+sessions remain an isolated experiment, not the production execution path.
+
+Transient service failures and timeouts allow two delayed retries per checkpoint.
+Every attempt must reserve its own conservative maximum. Unknown usage retains
+the entire reservation; measured usage is settled even when the SDK rejects an
+incomplete response. Credit and model-access failures pause immediately. Account
+quota exemptions no longer bypass the explicitly selected per-generation cap.
+The cap remains visible and editable for exempt accounts.
+
+New hosted OpenAI guides default to Astra. Existing jobs preserve their selected
+model, payer and allowance on retry; general AI workloads retain their existing
+model routing. Both root and service-runtime manifests declare the native client.
+
+Adapter regression tests cover native `/responses` requests, strict schema and
+output caps, reviewer context isolation, one request on upstream failure,
+incomplete-response usage, and caller cancellation. Pipeline tests verify bounded
+transient retries and durable state. The live evaluator supports separate IoT and
+probability fixtures, native Responses execution, and cold starts through hosted
+and local next/submit flows. Live results are recorded separately; successful
+transport tests do not establish pedagogical quality.
+
+A fresh native Responses Astra run passed both probability chapters through local
+next/submit generation (49 provider calls; calculated usage cost $5.463826).
+IoT accepted its polling chapter after a targeted misconception-follow-up repair,
+then a four-question blind-solver batch exhausted its 32,000-token output limit.
+The adapter now reports that failure explicitly and factual review can halve its
+batch twice (4 → 2 → 1), preserving accepted solutions and all required verdicts.
+Credit/access errors are never mistaken for review-format validation failures.
+Unit and pipeline tests verify these bounds and complete review coverage.
+The first live continuation after that change was refused for insufficient API
+credits; it did not establish a successful live recovery. Earlier costs remain
+part of the evaluation's cap on resumed runs.
+
+### Reviewer efficiency and explicit larger caps — 14 September
+
+Factual checkpoints now request concise, auditable verdicts with low reasoning effort; teaching generation and pedagogical review retain their existing capacity and reasoning settings. Every item still requires an independent solution/verdict, and arithmetic, source and teaching acceptance checks are unchanged. Responses telemetry now retains reasoning-token counts, including incomplete responses. The live pipeline evaluator honors each checkpoint's reasoning setting instead of overriding it with medium.
+
+The two notification questions that previously exhausted 32,000 output tokens completed in an isolated low-effort probe in 18 seconds, using 610 output tokens (37 reasoning). The production factual-review regression then caught all four seeded errors—incorrect die probability, an invalid intersection lower bound, outdated exam rules and incorrect diagram membership—in three calls, approximately $0.1671. This is a small regression set, not evidence of universal reviewer accuracy. Reproduce against a saved completed probability evaluation with `OPENAI_API_KEY` and `STUDY_REVIEW_BASE_FILE` set, then run `node scripts/verification/study-review-regression-live.mjs`; its hard cap is $5 and it refuses a database URL.
+
+The default allowance remains $10, and explicit per-guide/revision caps can now be selected up to $50 in manual generation and course automation. Saved caps and account/platform limits remain authoritative. The isolated full-pipeline evaluator accepts `STUDY_PIPELINE_MAX_USD` within the same range and carries prior evaluation spending on resume. Resuming explicitly clears the old scheduling delay and lease, while preserving draft content, review results and correction counts.
+
+Validation: `npm run verify` passed with 1,035 tests, type checking and the production build. The resumed IoT hosted evaluation uses a $25 total cap inclusive of the previously accounted $9.078921; its final result is pending.
