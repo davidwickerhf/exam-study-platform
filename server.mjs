@@ -1,3 +1,4 @@
+import { providerFetch } from './lib/provider-fetch.mjs'
 import { scheduleModuleGuides } from './lib/study-module-automation.mjs'
 import { prepareOriginalDownload } from './lib/original-downloads.mjs'
 import { sendCorpusAsset } from './lib/corpus-asset-response.mjs'
@@ -1368,15 +1369,15 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
       max_tokens: maxOutputTokens,
       messages: [{ role: 'user', content }]
     }
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await providerFetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(providerTimeoutMs)
-    })
+      body: JSON.stringify(body)
+    }, providerTimeoutMs)
     if (!resp.ok) {
       throw await studyProviderError(resp)
     }
@@ -1428,11 +1429,11 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], p
       ],
       ...(schema ? { response_format: { type: 'json_schema', json_schema: { name: 'wicker_output', schema, strict: Boolean(responseSchema) } } } : {})
     }
-    const resp = await fetch(`${baseUrl}/chat/completions`, {
+    const resp = await providerFetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(providerTimeoutMs)
-    })
+      body: JSON.stringify(body)
+    }, providerTimeoutMs)
     if (!resp.ok) {
       throw await studyProviderError(resp)
     }
