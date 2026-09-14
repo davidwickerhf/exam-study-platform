@@ -43,7 +43,7 @@ export function UsageTab() {
       <AiUsageDashboard />
       <Section
         title="Allowance"
-        note="AI is used for the source-grounded tutor, extra exercises you ask for, and academic documents you explicitly ask to organise."
+        note="These allowance counters cover tutor chat, extra exercises and academic imports. Guide generation has separate spending caps; its calls appear in the history above."
         action={
           <Button variant="secondary" size="sm" onClick={usage.reload}>
             <RotateCcwIcon data-icon="inline-start" />
@@ -105,7 +105,7 @@ export function UsageTab() {
 
       <Section
         title="Recent requests"
-        note="Every AI request this month, newest first. A pending request reserves its maximum output so concurrent calls cannot exceed your limit."
+        note="Requests counted against these allowances this month, newest first. The AI call history above includes other features and guide generation. Pending requests reserve their maximum output."
       >
         {!usage.data ? null : !usage.data.recent.length ? (
           <Empty>
