@@ -285,14 +285,25 @@ Official client references: [Codex MCP configuration](https://developers.openai.
 
 ## Local study generation
 
-Both hosted MCP and package 2.14.2 expose `study_generation_contract`, `study_generation_sources`, `study_generation_start`, `study_generation_next`, `study_generation_submit`, `study_generation_refresh`, `study_generation_stop`, and `study_generation_add_notes`. The package is not required for this workflow; an agent can use its own model and file tools with the hosted connection.
+Connect another agent to **https://study.wicker.life/api/mcp** and authorize the connection. Give it this task, filling in the exact course/year and desired scope:
 
-1. Read the current contract and list the course edition’s sources. If needed, obtain originals through `prepare_original_download` and stream/verify them with the client’s file tools, or use the optional package’s download/import helpers. Inspect graphics and preserve page numbers. Add supplementary extraction as explicitly labelled local notes.
-2. Start the student-requested private run with its exact source selection, or continue a version prepared in the web UI.
-3. Fetch `study_generation_next`. Use its exact evidence, prompt and response schema to compute one complete response locally. Use a fresh critique context for review steps and report real findings.
-4. Submit with its `requestId` and `contractId`. Retry network failures with the identical payload. Fetch next again until complete. Failed content can be corrected with `retry:true`; ready chapters remain saved.
+> Use Wicker MCP to generate a private lesson guide for [course], [academic year], [module or source scope], using this agent's local model/subscription. Read wicker_status, wicker_guidance and study_generation_contract first. Resume existing requested work if present. Inspect the loaded Canvas sources and any necessary originals, then follow the deployed next/submit workflow, including isolated factual and pedagogical reviews and bounded corrections. Save the guide back to Wicker and return its link, coverage gaps and remaining warnings. Do not use hosted AI or publish/share the guide.
 
-Prompts and schemas are fetched from the deployed platform every step. An implementation fingerprint rejects submissions after pipeline changes; fetch next again. No platform generation worker, model call or AI allowance is used. Your local provider/subscription costs still apply. Local semantic reviews are agent-supplied; platform schema, citations and deterministic quality checks are enforced. This is not independent editorial verification, and nothing is shared automatically.
+The server returns a `handoff` workflow from `study_generation_contract`. Every `study_generation_next` supplies the current prompt/schema plus `request.task` (phase, chapter, role and context requirements) and `nextAction`. The controlling agent orchestrates isolated local workers where its client supports them. A client without isolated review contexts should stop and hand off, not pretend to satisfy independence.
+
+| nextAction.kind | Agent action |
+| --- | --- |
+| generate | Compute the complete JSON locally, then call the returned submit tool/args with the result in `response`. |
+| next | Call the specified next tool/args; some cached stages require no model work. |
+| wait | Wait retryAfterMs, then call the specified next tool/args. |
+| complete | Verify revisionId and return the guide URL and warnings. |
+| blocked / stopped | Report findings and pause; never automatically loop `retry:true`. |
+
+Save `versionId`, `requestId`, `contractId` and the pending exact response outside the model conversation if the client can checkpoint. Retry an uncertain submission unchanged; fetch next for stale requests/contracts. Do not restart an entire run to recover a single step. A successful submission is not final guide acceptance.
+
+Original materials are obtained with `canvas_course_materials` and `prepare_original_download` plus native file tools, without an npm importer. Supplemental extraction retains page/source provenance and is selected before starting. The hosted connection receives refreshed guidance with each release; reconnect clients that cache tools. An optional pinned stdio package needs its own update for newly bundled guidance, but generation prompts/schemas always come from the deployed server.
+
+MCP 2.18 adds these explicit handoff/task/action fields without replacing the existing next/submit protocol. The same server schema, citation, teaching-quality, correction and activation checks apply. Semantic reviews are supplied by the local agent; no hosted reviewer is secretly called, and local provider/subscription costs remain separate.
 
 ## Hosted connections
 
@@ -311,7 +322,7 @@ inferred/weekly/topic/textbook organisation and optional past-year supplements.
 `study_pipeline_status` shows recurring controls, guide-check events and processing
 jobs; `study_generation_queue` lists work waiting for your agent. Continue with
 `study_generation_next` and `study_generation_submit`. Every new lesson uses the
-shared v5 objective plan, visible worked teaching, diagnostic questions and separate
+shared deployed objective plan, visible worked teaching, diagnostic questions and separate
 factual/pedagogical reviews. Local reviews retain local-agent provenance.
 
 Current-year scope and exclusions control old-year supplements. Missing textbook
