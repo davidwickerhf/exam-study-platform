@@ -63,6 +63,7 @@
     "lucide-react": "^1.39.0",
     "mammoth": "^1.12.2",
     "next": "^16.3.3",
+    "openai": "^7.15.0",
     "pdfjs-dist": "^6.3.289",
     "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
@@ -87,7 +88,6 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "ajv": "^8.20.0",
-    "openai": "^7.15.0",
     "pg": "^8.23.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"

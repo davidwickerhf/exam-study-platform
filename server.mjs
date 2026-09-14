@@ -1,3 +1,4 @@
+import { runStudyAgentsSdk } from './lib/study-agents-sdk.mjs'
 import { providerFetch } from './lib/provider-fetch.mjs'
 import { scheduleModuleGuides } from './lib/study-module-automation.mjs'
 import { prepareOriginalDownload } from './lib/original-downloads.mjs'
@@ -1402,7 +1403,7 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
 }
 
 // OpenAI Chat Completions with JSON-schema structured output and image inputs.
-async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], providerTimeoutMs = 210000, maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
+async function runOpenAiApi(prompt, { generationRuntime, schemaPath, responseSchema, images = [], providerTimeoutMs = 210000, maxOutputTokens = 16000, reasoningEffort = OPENAI_REASONING_EFFORT, apiKey = OPENAI_API_KEY, model = OPENAI_MODEL, baseUrl = OPENAI_BASE_URL } = {}) {
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not set. Set the env var (or openaiApiKey in data/llm-config.json), or switch LLM_PROVIDER.')
   }
@@ -1410,6 +1411,7 @@ async function runOpenAiApi(prompt, { schemaPath, responseSchema, images = [], p
   if (!schema && schemaPath) {
     try { schema = JSON.parse(await readFile(schemaPath, 'utf8')) } catch {}
   }
+  if(generationRuntime==='agents-sdk-responses')return runStudyAgentsSdk(prompt,{apiKey,baseUrl,model,responseSchema:schema,maxOutputTokens,providerTimeoutMs,reasoningEffort})
   try {
     const content = [{ type: 'text', text: prompt }]
     for (const imagePath of images) {

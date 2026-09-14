@@ -1,3 +1,5 @@
+import { runStudyAgentsSdk } from '../../lib/study-agents-sdk.mjs'
+import { transientStudyFailure } from '../../lib/study-provider-errors.mjs'
 import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Real provider responses through hosted and local next/submit state machines.
 // Stores only isolated local validation accounts; never writes production data.
@@ -14,37 +16,66 @@ const {readStudySourceSnapshot}=await import('../../lib/study-version-sources.mj
 const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=await import('../../lib/study-version-store.mjs')
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
-const {evaluationCourse:course,evaluationSources,evaluationChunks}=await import('../../lib/study-quality-fixture.mjs')
+const fixture=process.env.STUDY_PIPELINE_FIXTURE || 'probability'
+if(!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
+const {evaluationCourse:course,evaluationSources,evaluationChunks}=await import(fixture==='iot'?'./study-iot-fixture.mjs':'../../lib/study-quality-fixture.mjs')
+const sourceKeys=evaluationSources.map(source=>source.key)
 const sourceOptions={editorialSources:async()=>evaluationSources.map(s=>({...s,pages:evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))}
 const {STUDY_STANDARD}=await import('../../lib/study-version-content.mjs')
-const report={contract:STUDY_STANDARD,model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
+const report={runtime:process.env.STUDY_PIPELINE_RUNTIME || 'chat-completions',fixture,callDetails:[],contract:STUDY_STANDARD,model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
 const spendingCap=STUDY_GENERATION_LIMITS.defaultJobUsd
 report.spendingCapUsd=spendingCap
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
-async function generate(prompt,options){
+async function generateOnce(prompt,options){
+  const started=Date.now()
+  const call={phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000
-  if(report.calculatedUsd+reserved>spendingCap){
-    report.budgetFailure={spentUsd:report.calculatedUsd,reservationUsd:reserved,capUsd:spendingCap}
+  if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>spendingCap){
+    report.budgetFailure={spentUsd:report.calculatedUsd,priorUsd:report.priorEvaluationUsd || 0,reservationUsd:reserved,capUsd:spendingCap}
     throw new Error('Live pipeline validation spending cap reached.')
   }
   console.log(`Provider call ${report.calls+1}: ${options.stage || 'generation'}`)
   report.calculatedUsd+=reserved
   report.calls++
+  if(report.runtime==='agents-sdk-responses') {
+    let usage
+    try {
+      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model:report.model,reasoningEffort:'medium'})
+      usage=result.usage
+      return result.text
+    } catch(error) {usage=error.usage;throw error}
+    finally {
+      call.elapsedMs=Date.now()-started;call.usage=usage
+      if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(report.model,usage.inputTokens,usage.outputTokens,usage)/1000000}
+    }
+  }
   const response=await providerFetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model:report.model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),},options.providerTimeoutMs || 600000).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500),causeCode:error.cause?.code});throw error})
-  if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});throw new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`)}
-  const result=await response.json();report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(report.model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
+  if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});const error=new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`);error.retryable=response.status>=500;throw error}
+  const result=await response.json();call.elapsedMs=Date.now()-started;call.usage=result.usage;call.finishReason=result.choices?.[0]?.finish_reason;report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(report.model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
   if(result.choices?.[0]?.finish_reason==='length'){report.providerFailures ||= [];report.providerFailures.push({name:'OutputLimit',maxOutputTokens:options.maxOutputTokens});throw new Error('Provider output budget exhausted before a complete correction was returned.')}
   return result.choices?.[0]?.message?.content || ''
+}
+async function generate(prompt,options){
+  if(report.runs.at(-1)?.execution==='hosted')return generateOnce(prompt,options)
+  for(let attempt=1;attempt<=3;attempt++){
+    try{return await generateOnce(prompt,options)}
+    catch(error){
+      if(attempt===3 || !transientStudyFailure(error))throw error
+      console.log(`Temporary provider failure; retry ${attempt} of 2 with a new budget reservation.`)
+      await new Promise(resolve=>setTimeout(resolve,1000*attempt))
+    }
+  }
 }
 for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELINE_MODE || mode===process.env.STUDY_PIPELINE_MODE)){
   const run={execution,steps:[],passed:false};report.runs.push(run)
   await withRequestContext({userId:`live-validation-${randomUUID()}`,mode:'local'},async()=>{
+    let id
     try{
-      let id
       if(execution==='hosted'){
-        const snapshot=await readStudySourceSnapshot(course,['current','old'],{...sourceOptions,includeHistorical:true})
+        const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true})
         id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
-      }else id=(await startLocalStudy({...course,sourceKeys:['current','old'],includeHistorical:true,title:'Isolated live validation'},sourceOptions)).version.id
+      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,title:'Isolated live validation'},sourceOptions)).version.id
       if(process.env.STUDY_PIPELINE_RESUME_FILE) {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
         report.priorEvaluationUsd=(previous.priorEvaluationUsd || 0)+previous.calculatedUsd
@@ -75,6 +106,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         const before=await ownStudyVersion(id)
         console.log(`${execution}: ${before.draft.stage} / ${before.draft.status}`)
         if(['complete','failed','stopped'].includes(before.draft.status))break
+        if(before.draft.runAfter>Date.now()){await new Promise(resolve=>setTimeout(resolve,Math.min(60000,before.draft.runAfter-Date.now())));step--;continue}
         if(execution==='hosted')await processStudyStep(id,{sourceOptions,generate})
         else{
           const next=await nextLocalStudy(id,{},sourceOptions)
@@ -94,7 +126,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       run.status=version.draft.status;run.error=version.draft.error;run.issues=version.draft.issues
       run.revision=await studyRevision(version);run.passed=run.status==='complete' && !!run.revision
       if(!run.passed)run.draft=version.draft
-    }catch(error){run.error=error.message}
+    }catch(error){run.error=error.message;if(id)run.draft=(await ownStudyVersion(id).catch(()=>null))?.draft}
     finally{await deleteAllDocuments()}
   })
   await writeFile(artifact,JSON.stringify(report,null,2))

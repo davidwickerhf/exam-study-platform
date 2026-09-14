@@ -988,6 +988,7 @@ test('long guide calls keep their lease and reject duplicate workers beyond five
   try {
     await f.run(()=>processStudyStep(f.version.id,{generate:async(_prompt,options)=>{
       assert.equal(options.providerTimeoutMs,600000)
+      assert.equal(options.generationRuntime,'agents-sdk-responses')
       now+=360000
       let duplicates=0
       await processStudyStep(f.version.id,{generate:async()=>{duplicates++;throw Error('duplicate worker')}})
@@ -1003,7 +1004,17 @@ test('long guide calls keep their lease and reject duplicate workers beyond five
 test('guide timeouts preserve checkpoints and name the actionable failure',async()=>{
   const f=await fixture()
   try {
-    await f.run(()=>processStudyStep(f.version.id,{generate:async()=>{throw new DOMException('timeout','TimeoutError')}}))
+    let calls=0
+    for(let attempt=1;attempt<=3;attempt++) {
+      const before=await f.run(()=>ownStudyVersion(f.version.id))
+      const result=await f.run(()=>processStudyStep(f.version.id,{now:Math.max(Date.now(),before.draft.runAfter || 0),generate:async()=>{calls++;throw new DOMException('timeout','TimeoutError')}}))
+      assert.equal(result.again,attempt<3)
+      const saved=await f.run(()=>ownStudyVersion(f.version.id))
+      assert.equal(saved.draft.attempts,attempt)
+      assert.equal(saved.draft.maps.length,0)
+      if(attempt<3)assert.equal(saved.draft.status,'queued')
+    }
+    assert.equal(calls,3)
     const version=await f.run(()=>ownStudyVersion(f.version.id))
     assert.equal(version.draft.status,'failed')
     assert.match(version.draft.error,/time allowance.*Finished work is saved/)

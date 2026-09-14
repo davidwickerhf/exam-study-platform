@@ -216,6 +216,12 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
       release()
       assert.equal(await first, 'ok')
       assert.equal(calls, 1)
+      const month=new Date().toISOString().slice(0,7)
+      const beforeFailure=await readDocument('study-ai-personal-budget',month)
+      const incomplete=Object.assign(new Error('incomplete'),{usage:{inputTokens:10,outputTokens:10,estimated:false}})
+      await assert.rejects(runBudgetedStudyCall('hello',{maxOutputTokens:64000},{...config,callPersonal:async()=>{throw incomplete}}),/incomplete/)
+      const afterFailure=await readDocument('study-ai-personal-budget',month)
+      assert.equal(afterFailure.total-beforeFailure.total,studyModelCost(billing.model,10,10))
       await removePersonalAiKey()
       await assert.rejects(
         runBudgetedStudyCall('hello', {}, config),
@@ -236,10 +242,11 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
   }
 })
 
-test('quota exemption bypasses usage ceilings while retaining metering and duplicate protection', () => {
+test('quota exemption preserves the job cap, metering and duplicate protection', () => {
   const zero={platformDayUsd:0,platformMonthUsd:0,userDayUsd:0,userMonthUsd:0,chaptersDay:0,chaptersMonth:0,requestsMinute:0,tokensDay:0,personalTokensDay:0,maxJobUsd:0}
-  const input={user:'owner',jobKey:'uncapped',source:'platform',model:'gpt-5-mini',estimate:{micros:9000000,inputTokens:2000000,outputTokens:10000},chapterKey:'chapter',maxJobUsd:0,personalMonthUsd:0,quotaExempt:true}
+  const input={user:'owner',jobKey:'uncapped',source:'platform',model:'gpt-5-mini',estimate:{micros:9000000,inputTokens:2000000,outputTokens:10000},chapterKey:'chapter',maxJobUsd:10,personalMonthUsd:0,quotaExempt:true}
   for (const source of ['platform','personal']) {
+    assert.throws(()=>reserveStudyLedger(null,{...input,source,maxJobUsd:1},zero),/spending cap/)
     const reserved=reserveStudyLedger(null,{...input,source},zero)
     assert.equal(reserved.ledger.total,9000000)
     assert.equal(reserved.reservation.quotaExempt,true)
@@ -288,4 +295,23 @@ test('Sol and Astra preserve explicit model selection and reserve current long-c
 test('paid-call reservation remains exclusive beyond the old five-minute lease',()=>{
   const first=reserveStudyLedger(null,input,limits)
   assert.throws(()=>reserveStudyLedger(first.ledger,{...input,now:input.now+360000},limits),/Another chapter/)
+})
+
+test('guide defaults use Astra without rerouting assessments or changing an existing job',async()=>{
+  const {resolveGuideBilling}=await import('../lib/study-ai-budget.mjs')
+  const userId=`guide-routing-${randomUUID()}`
+  await withRequestContext({userId,mode:'hosted',email:'student@example.test'},async()=>{
+    try{
+      const platform={configured:true,provider:'openai',model:'gpt-5-mini'}
+      assert.equal((await resolveGuideBilling({},platform)).model,'gpt-6-astra')
+      assert.equal((await resolveStudyBilling({},platform)).model,'gpt-5-mini')
+      const existing={source:'platform',model:'gpt-5.6-sol',maxJobUsd:0.75}
+      const resumed=await resolveGuideBilling({},platform,existing)
+      assert.equal(resumed.model,existing.model)
+      assert.equal(resumed.maxJobUsd,existing.maxJobUsd)
+      assert.equal((await resolveGuideBilling({quality:'astra'},platform,existing)).model,'gpt-6-astra')
+      assert.equal((await resolveGuideBilling({quality:'standard'},platform)).model,'gpt-5-mini')
+      await assert.rejects(resolveGuideBilling({source:'personal'},platform),/key|connect|configured/i)
+    }finally{await deleteAllDocuments()}
+  })
 })

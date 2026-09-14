@@ -167,3 +167,32 @@ A subsequent live review exposed over-trimming in the pedagogical payload: omitt
 Astra subsequently completed both chapters of the isolated fixture: 25 questions, 26 flashcards and eight core sections, with two probability-chapter corrections and one die-chapter correction retained. The final resumed segment made 12 calls at approximately $0.9938 recorded token cost; this is not the total cost of the multi-checkpoint experiment, whose earlier reports include a failed-call reservation. Direct inspection confirmed the repaired complement follow-up and meaningful reverse-inference, model-selection and missing-fairness transfer tasks. This is one successful resumed evaluation, not evidence of reliable unattended generation across courses or a measured learning outcome.
 
 Flashcard-variety validation now has a dedicated collection repair: duplicate prompts or insufficient card variety no longer require regenerating teaching sections and practice. The same bounded correction allowance still applies; model output must pass validation after the patch.
+
+### Native Responses execution and hard guide caps
+
+Hosted OpenAI guide checkpoints now use `Agent` / `Runner` with
+`OpenAIResponsesModel`, strict structured output, a bounded output allowance,
+`maxTurns: 1`, no tools, no stored provider conversation and no automatic client
+retries. Authoring and independent reviewers start fresh SDK runs; the application
+retains durable checkpoints and the existing three-correction limit. External SDK
+tracing is disabled to avoid exporting student evidence. Managed Agents API
+sessions remain an isolated experiment, not the production execution path.
+
+Transient service failures and timeouts allow two delayed retries per checkpoint.
+Every attempt must reserve its own conservative maximum. Unknown usage retains
+the entire reservation; measured usage is settled even when the SDK rejects an
+incomplete response. Credit and model-access failures pause immediately. Account
+quota exemptions no longer bypass the explicitly selected per-generation cap.
+The cap remains visible and editable for exempt accounts.
+
+New hosted OpenAI guides default to Astra. Existing jobs preserve their selected
+model, payer and allowance on retry; general AI workloads retain their existing
+model routing. Both root and service-runtime manifests declare the native client.
+
+Adapter regression tests cover native `/responses` requests, strict schema and
+output caps, reviewer context isolation, one request on upstream failure,
+incomplete-response usage, and caller cancellation. Pipeline tests verify bounded
+transient retries and durable state. The live evaluator supports separate IoT and
+probability fixtures, native Responses execution, and cold starts through hosted
+and local next/submit flows. Live results are recorded separately; successful
+transport tests do not establish pedagogical quality.
