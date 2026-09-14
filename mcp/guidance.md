@@ -514,3 +514,26 @@ and durable logs. Existing runs retain their original billing/execution choice.
 ### Continuity between MCP and in-app study
 
 At the start of tutoring, read `study_session_context` for the course and academic year, plus `tutor_sources` for lasting preferences. After the student authorises remembering this study session, save concise checkpoints with `study_session_save` at meaningful topic boundaries. Keep one sessionId throughout; use a new requestId per checkpoint, reused unchanged on retry. Explain what was saved. No hosted AI is called. Do not save invented student answers, mastery claims, credentials, or a full transcript. Separate observed answers (include the actual response), student reports and unassessed topics. Record unresolved misconceptions and a concrete next exercise. Reassess understanding when resuming; a summary is not a grade or proof of mastery. These checkpoints are available to the in-app Tutor and included in Tutor data export/deletion. `study_session_forget` removes an individual checkpoint. At most 80 recent checkpoints are retained per programme. Existing preference and attendance tools retain their own exact-write review requirements.
+
+### Locally parsed papers → Mock papers
+
+Use `study_papers` to inspect original papers and active extracted sets, then
+`study_generation_sources` to select the exact original question source and optional
+solution source. With the student's authorisation, call `study_paper_start`.
+Its request contains the deployed extraction prompt, immutable evidence chunk IDs
+and JSON schema. Map locally parsed questions to those IDs; local filenames,
+source keys and page numbers are not citation IDs. Preserve every leaf question,
+original wording, page, context, options and explicit marks. Do not invent an answer
+when no official key is available. Use explicit page ranges for large papers.
+
+Submit with `study_paper_submit`, then follow `study_paper_next`. The review must
+run in a fresh critique context and check completeness against the original.
+The server labels this review client-reported, enforces schema and source checks,
+and activates the normal private paper-library set only after a passing review.
+One correction is permitted after review findings, retaining the previous candidate.
+A failed final review stops the run; do not repeatedly start equivalent runs.
+Invalid citations leave the current request available for repair. Network retries
+must reuse the identical request ID and payload. Changed/withdrawn originals require
+a fresh source selection. These tools make no hosted AI calls and do not cancel
+ongoing hosted paper or lesson-guide jobs. If the server has no readable original
+text, report that gap; never relabel local OCR notes as original paper evidence.
