@@ -152,3 +152,10 @@ Source scope notes can now be corrected without changing objectives or regenerat
 
 
 Long provider requests now use matching Undici fetch/dispatcher implementations with parser timeouts delegated to the finite request deadline. The default five-minute HTTP header/body timers could otherwise undercut the ten-minute generation timeout. Tests verify cancellation both before headers and during response consumption, caller cancellation and normal responses. The observed Astra network failure lacked a cause code, so this is a confirmed configuration defect rather than a proven diagnosis of that individual failure. Subsequent evaluation reports capture transport cause codes. Runtime Node minimum is 20.18.1, matching the explicit Undici dependency.
+
+
+### v7 resumed evaluation results
+
+With the focused review payload and $10 default, resumed Sol hosted generation made 48 calls (approximately $2.3248 recorded token cost) and MCP/local generation made 44 calls (approximately $2.2809). Both exhausted three automatic corrections and retained their drafts without activation. The remaining substantive findings were transfer questions repeating worked-example procedures with changed numbers. Sol also received an incorrect classification of a linked independent question as a dedicated remediation question; guidance now explicitly distinguishes incoming links from `practiceStage=remediation`. This does not negate the other failed checks or turn that evaluation into a pass. Review fingerprint 5 invalidates stale pedagogical checkpoints.
+
+The first transport-change preview failed because the API container uses `deploy/runtime/package.json` independently of the main manifest. Undici is now declared in both manifests; an isolated production-only install successfully imports the provider transport. This runtime packaging check is separate from the passing Next build and tests.
