@@ -6,7 +6,7 @@ import { providerFetch } from '../../lib/provider-fetch.mjs'
 import { writeFile, readFile } from 'node:fs/promises'
 import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
-import { estimateStudyCall, studyModelCost } from '../../lib/study-ai-budget.mjs'
+import { estimateStudyCall, studyModelCost, StudyBudgetError } from '../../lib/study-ai-budget.mjs'
 if(process.env.DATABASE_URL)throw new Error('Live pipeline validation requires isolated local storage, not a database URL.')
 const key=process.env.OPENAI_API_KEY
 if(!key || key==='[SENSITIVE]')throw new Error('A usable OPENAI_API_KEY is required.')
@@ -33,7 +33,7 @@ async function generateOnce(prompt,options){
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>spendingCap){
     report.budgetFailure={spentUsd:report.calculatedUsd,priorUsd:report.priorEvaluationUsd || 0,reservationUsd:reserved,capUsd:spendingCap}
-    throw new Error('Live pipeline validation spending cap reached.')
+    throw new StudyBudgetError('Live pipeline validation spending cap reached; the next full reservation would exceed the allowance.')
   }
   console.log(`Provider call ${report.calls+1}: ${options.stage || 'generation'}`)
   report.calculatedUsd+=reserved
@@ -44,7 +44,7 @@ async function generateOnce(prompt,options){
       const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model:report.model,reasoningEffort:'medium'})
       usage=result.usage
       return result.text
-    } catch(error) {usage=error.usage;throw error}
+    } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name};throw error}
     finally {
       call.elapsedMs=Date.now()-started;call.usage=usage
       if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(report.model,usage.inputTokens,usage.outputTokens,usage)/1000000}

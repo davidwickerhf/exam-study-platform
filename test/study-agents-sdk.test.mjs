@@ -29,16 +29,15 @@ test('transient provider failure makes exactly one paid request',async()=>{
 })
 test('incomplete output retains measured usage for settlement',async()=>{
  await fixture((req,res)=>{const data=response();data.status='incomplete';data.incomplete_details={reason:'max_output_tokens'};res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data))},async options=>{
-  await assert.rejects(runStudyAgentsSdk('test',options),error=>error.usage?.outputTokens===20)
+  await assert.rejects(runStudyAgentsSdk('test',options),error=>error.code==='provider_output_limit' && error.usage?.outputTokens===20)
  })
 })
 
 test('caller cancellation stops the native SDK request without retrying',async()=>{
  let calls=0
- await fixture((req,res)=>{calls++},async options=>{
-  const controller=new AbortController()
+ const controller=new AbortController()
+ await fixture((req,res)=>{calls++;controller.abort()},async options=>{
   const pending=runStudyAgentsSdk('test',{...options,signal:controller.signal})
-  setTimeout(()=>controller.abort(),100)
   await assert.rejects(pending)
  });assert.equal(calls,1)
 })

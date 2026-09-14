@@ -196,3 +196,15 @@ transient retries and durable state. The live evaluator supports separate IoT an
 probability fixtures, native Responses execution, and cold starts through hosted
 and local next/submit flows. Live results are recorded separately; successful
 transport tests do not establish pedagogical quality.
+
+A fresh native Responses Astra run passed both probability chapters through local
+next/submit generation (49 provider calls; calculated usage cost $5.463826).
+IoT accepted its polling chapter after a targeted misconception-follow-up repair,
+then a four-question blind-solver batch exhausted its 32,000-token output limit.
+The adapter now reports that failure explicitly and factual review can halve its
+batch twice (4 → 2 → 1), preserving accepted solutions and all required verdicts.
+Credit/access errors are never mistaken for review-format validation failures.
+Unit and pipeline tests verify these bounds and complete review coverage.
+The first live continuation after that change was refused for insufficient API
+credits; it did not establish a successful live recovery. Earlier costs remain
+part of the evaluation's cap on resumed runs.

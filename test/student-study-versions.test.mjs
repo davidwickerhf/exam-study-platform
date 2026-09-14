@@ -1020,3 +1020,28 @@ test('guide timeouts preserve checkpoints and name the actionable failure',async
     assert.match(version.draft.error,/time allowance.*Finished work is saved/)
   } finally {await f.cleanup()}
 })
+
+test('review output exhaustion persists smaller batches and credit failures never become validation retries',async()=>{
+  for(const code of ['provider_output_limit','provider_credits']) {
+    const f=await fixture()
+    try{await f.run(async()=>{
+      const ids=f.snapshot.chunks.map(c=>c.id)
+      await mutateStudyVersion(f.version.id,v=>{
+        v.draft.stage='review';v.draft.topics=[{id:'addition',title:'Addition',sourceIds:ids}]
+        v.draft.chapters=[{...lesson(ids),id:'addition',review:'pending',teachingPlan:teachingPlan(ids)}]
+      })
+      let calls=0
+      const generate=async()=>{calls++;throw Object.assign(new Error('bounded provider failure'),{status:502,code})}
+      for(let attempt=0;attempt<(code==='provider_credits'?1:3);attempt++)await processStudyStep(f.version.id,{generate})
+      const saved=await ownStudyVersion(f.version.id)
+      assert.equal(saved.draft.status,'failed')
+      assert.equal(saved.draft.chapters[0].factualRetry,undefined)
+      assert.equal(calls,code==='provider_credits'?1:3)
+      if(code==='provider_output_limit') {
+        assert.equal(saved.draft.chapters[0].factualAudit.batchSize,1)
+        assert.equal(saved.draft.chapters[0].factualAudit.outputRecoveries,2)
+        assert.equal(saved.draft.chapters[0].questions.length,lesson(ids).questions.length)
+      }
+    })}finally{await f.cleanup()}
+  }
+})

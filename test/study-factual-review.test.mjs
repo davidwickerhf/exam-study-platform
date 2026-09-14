@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { nextFactualReview, acceptFactualReview, factualAuditIssues, factualReviewItems } from '../lib/study-factual-review.mjs'
+import { reduceFactualReviewBatch, nextFactualReview, acceptFactualReview, factualAuditIssues, factualReviewItems } from '../lib/study-factual-review.mjs'
 import { deriveObjectiveCoverage, pedagogyPrompt } from '../lib/study-pedagogy.mjs'
 import { practiceLinkStep, applyPracticeLinks } from '../lib/study-practice-links.mjs'
 import { course, lesson, teachingPlan, teachingResponse } from '../scripts/verification/study-fixtures.mjs'
@@ -231,4 +231,30 @@ test('flashcard variety failure repairs cards without regenerating teaching or p
   assert.deepEqual(fixed.sections,draft.sections)
   assert.deepEqual(fixed.questions,draft.questions)
   assert.notDeepEqual(fixed.flashcards,draft.flashcards)
+})
+
+
+test('output-limit recovery halves batches twice without losing solutions or skipping verdicts',()=>{
+  const draft=chapter(),content=JSON.stringify({...draft,factualAudit:undefined})
+  let step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(step.keys.length,4)
+  acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))
+  const solutions=structuredClone(draft.factualAudit.solutions)
+  step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(reduceFactualReviewBatch(draft,step),true)
+  assert.deepEqual(draft.factualAudit.solutions,solutions)
+  step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(step.keys.length,2)
+  assert.equal(reduceFactualReviewBatch(draft,step),true)
+  step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(step.keys.length,1)
+  assert.equal(reduceFactualReviewBatch(draft,step),false)
+  for(let count=0;step && count<100;count++) {
+    acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))
+    step=nextFactualReview(course,[],evidence,draft)
+  }
+  assert.equal(step,null)
+  assert.deepEqual(factualAuditIssues(draft),[])
+  assert.equal(Object.keys(draft.factualAudit.solutions).length,draft.questions.length)
+  assert.equal(JSON.stringify({...draft,factualAudit:undefined}),content)
 })

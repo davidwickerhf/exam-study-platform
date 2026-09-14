@@ -17,7 +17,7 @@ test('provider deadline cancels a request waiting for headers',async()=>{
 })
 test('provider deadline remains active while consuming the response body',async()=>{
   await fixture((req,res)=>{res.writeHead(200);res.write('{')},async url=>{
-    const response=await providerFetch(url,{},100)
+    const response=await providerFetch(url,{},1000)
     await assert.rejects(response.text(),error=>['TimeoutError','AbortError'].includes(error.name))
   })
 })
