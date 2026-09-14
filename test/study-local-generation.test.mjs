@@ -199,3 +199,27 @@ for(const rejectedDrafts of [2,99])test(`local correction loop ${rejectedDrafts=
     assert.equal(retry.version.corrections.manualAttempts.addition,1)
   }
 }))
+
+test('MCP scope correction persists in both the saved plan and prepared chapter',async()=>fixture(async id=>{
+  const ids=await map(id),next=await nextLocalStudy(id)
+  await answer(id,next.request,lesson(ids))
+  await mutateStudyVersion(id,version=>{
+    const chapter=version.draft.chapters[0]
+    chapter.teachingPlan.gaps=['No assessment rules were supplied.']
+    version.draft.teachingPlans.addition=structuredClone(chapter.teachingPlan)
+    version.draft.repair={topicId:'addition',phase:'factual',chapter:structuredClone(chapter)}
+    version.draft.chapters=[]
+    version.draft.stage='chapters'
+    version.draft.issues=[{topicId:'addition',severity:'error',itemKey:'scope',detail:'Correct the false claim that assessment rules were absent.'}]
+    version.draft.automaticRepairs={addition:1}
+  })
+  const repair=await nextLocalStudy(id)
+  assert.match(repair.request.prompt,/REPAIR SOURCE SCOPE NOTES/)
+  const response={caveats:['No explicit exam-topic exclusions.'],scope:{gaps:['No explicit exam-topic exclusions.'],exclusions:[]}}
+  await answer(id,repair.request,response)
+  assert.equal((await answer(id,repair.request,response)).duplicate,true)
+  const draft=(await ownStudyVersion(id)).draft
+  assert.deepEqual(draft.teachingPlans.addition.gaps,response.scope.gaps)
+  assert.deepEqual(draft.chapters[0].teachingPlan.gaps,response.scope.gaps)
+  assert.equal(draft.automaticRepairs.addition,1)
+}))

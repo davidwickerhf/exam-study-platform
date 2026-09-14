@@ -18,7 +18,7 @@ test('AI defaults persist per account and resolve billing without repeated selec
         assert.deepEqual(await readStudyAiPreferences(), {
           billingSource: 'platform',
           quality: 'standard',
-          maxJobUsd: 5,
+          maxJobUsd: 10,
         })
         const saved = await saveStudyAiPreferences({
           billingSource: 'platform',

@@ -1,6 +1,7 @@
 // Real provider responses through hosted and local next/submit state machines.
 // Stores only isolated local validation accounts; never writes production data.
 import { writeFile, readFile } from 'node:fs/promises'
+import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
 import { estimateStudyCall, studyModelCost } from '../../lib/study-ai-budget.mjs'
 if(process.env.DATABASE_URL)throw new Error('Live pipeline validation requires isolated local storage, not a database URL.')
@@ -16,10 +17,15 @@ const {evaluationCourse:course,evaluationSources,evaluationChunks}=await import(
 const sourceOptions={editorialSources:async()=>evaluationSources.map(s=>({...s,pages:evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))}
 const {STUDY_STANDARD}=await import('../../lib/study-version-content.mjs')
 const report={contract:STUDY_STANDARD,model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
+const spendingCap=STUDY_GENERATION_LIMITS.defaultJobUsd
+report.spendingCapUsd=spendingCap
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generate(prompt,options){
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000
-  if(report.calculatedUsd+reserved>5)throw new Error('Live pipeline validation spending cap reached.')
+  if(report.calculatedUsd+reserved>spendingCap){
+    report.budgetFailure={spentUsd:report.calculatedUsd,reservationUsd:reserved,capUsd:spendingCap}
+    throw new Error('Live pipeline validation spending cap reached.')
+  }
   console.log(`Provider call ${report.calls+1}: ${options.stage || 'generation'}`)
   report.calculatedUsd+=reserved
   report.calls++
@@ -36,10 +42,11 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       let id
       if(execution==='hosted'){
         const snapshot=await readStudySourceSnapshot(course,['current','old'],{...sourceOptions,includeHistorical:true})
-        id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:5}})).id
+        id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
       }else id=(await startLocalStudy({...course,sourceKeys:['current','old'],includeHistorical:true,title:'Isolated live validation'},sourceOptions)).version.id
       if(process.env.STUDY_PIPELINE_RESUME_FILE) {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
+        report.priorEvaluationUsd=(previous.priorEvaluationUsd || 0)+previous.calculatedUsd
         const saved=previous.runs.find(r=>r.execution===execution)?.draft
         if(!saved)throw new Error('No saved draft for this execution mode.')
         await mutateStudyVersion(id,version=>{

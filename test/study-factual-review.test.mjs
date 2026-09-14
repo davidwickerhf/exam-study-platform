@@ -164,3 +164,57 @@ test('mixed section and card findings repair together without rewriting practice
   assert.deepEqual(fixed.flashcards.slice(4),draft.flashcards.slice(4))
   assert.notEqual(fixed.sections[0].text,section.text)
 })
+
+test('scope-note repair can correct immutable-plan metadata without changing learning objectives',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter()
+  draft.teachingPlan.gaps=['No assessment rules were provided.']
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:'scope',detail:'The source supplies assessment rules; correct the denial.'}])
+  assert.equal(step.scope,true)
+  const fixed=applyQuestionRepair(draft,step,{caveats:['No explicit topic exclusions were provided.'],scope:{gaps:['No explicit topic exclusions were provided.'],exclusions:[]}})
+  assert.deepEqual(fixed.teachingPlan.objectives,draft.teachingPlan.objectives)
+  assert.deepEqual(fixed.questions,draft.questions)
+  assert.deepEqual(fixed.sections,draft.sections)
+  assert.ok(!fixed.teachingPlan.gaps.includes('No assessment rules were provided.'))
+})
+
+test('review prose naming a target does not force a full chapter rewrite',async()=>{
+  const {questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter(),question=draft.questions[0],target=question.misconceptions[0].followUpKey
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:`Revise ${target} to address this misconception.`},{severity:'error',detail:`${question.key}: its follow-up does not test the mistake.`}])
+  assert.ok(step.keys.includes(question.key))
+  assert.ok(step.keys.includes(target))
+})
+
+test('review excerpt identifiers resolve to exact visible quotations and reject wrong sections',async()=>{
+  const {nextPedagogicalReview,acceptPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
+  const {pedagogicalReview}=await import('../scripts/verification/study-fixtures.mjs')
+  const draft=chapter(),step=nextPedagogicalReview('',draft)
+  const response=pedagogicalReview(step.chapter)
+  for(const field of ['explanation','workedExample']){
+    const value=response.objectives[0][field]
+    const entry=Object.entries(step.quoteReferences).find(([,ref])=>ref.sectionId===value.sectionId)
+    value.quote=entry[0]
+  }
+  const wrong=structuredClone(response);wrong.objectives[0].explanation.sectionId='wrong-section'
+  assert.throws(()=>acceptPedagogicalReview(draft,step,wrong),/different section/)
+  acceptPedagogicalReview(draft,step,response)
+  const saved=draft.pedagogyAudit.reviews[step.objectiveId].objectives[0].explanation
+  assert.ok(draft.sections.find(s=>s.id===saved.sectionId).text.includes(saved.quote))
+  assert.ok(!saved.quote.startsWith('excerpt-'))
+})
+
+
+test('pedagogical checkpoint omits revision payload while preserving teaching and assessment scope',()=>{
+  const draft=chapter()
+  draft.flashcards[0].back='UNNEEDED REVISION PAYLOAD'
+  draft.sections[0].detail='OPTIONAL EXTENSION PAYLOAD'
+  draft.teachingPlan.exclusions=['Official assessment excludes recursion.']
+  const prompt=pedagogyPrompt('',draft)
+  const artifact=JSON.parse(prompt.split('Chapter: ').at(-1))
+  assert.doesNotMatch(prompt,/UNNEEDED REVISION PAYLOAD|OPTIONAL EXTENSION PAYLOAD/)
+  assert.deepEqual(artifact.teachingPlan.exclusions,draft.teachingPlan.exclusions)
+  assert.equal(artifact.sections[0].text,draft.sections[0].text)
+  assert.equal(artifact.questions.length,draft.questions.length)
+  assert.ok(artifact.questions.every(q=>!('answer' in q)))
+})
