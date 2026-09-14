@@ -29,14 +29,14 @@ report.spendingCapUsd=spendingCap
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generateOnce(prompt,options){
   const started=Date.now()
-  const call={phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  const call={chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>spendingCap){
     report.budgetFailure={spentUsd:report.calculatedUsd,priorUsd:report.priorEvaluationUsd || 0,reservationUsd:reserved,capUsd:spendingCap}
     throw new StudyBudgetError('Live pipeline validation spending cap reached; the next full reservation would exceed the allowance.')
   }
-  console.log(`Provider call ${report.calls+1}: ${options.stage || 'generation'}`)
+  console.log(`Provider call ${report.calls+1}: ${call.phase}${call.chapterId?' / '+call.chapterId:''}`)
   report.calculatedUsd+=reserved
   report.calls++
   if(report.runtime==='agents-sdk-responses') {
@@ -121,6 +121,8 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
           }
         }
         const after=await ownStudyVersion(id)
+        // Keep a resumable checkpoint even if the evaluation process is interrupted.
+        run.draft=after.draft
         run.steps.push({stage:before.draft.stage,status:after.draft.status,error:after.draft.error,issues:after.draft.issues})
         await writeFile(artifact,JSON.stringify(report,null,2))
       }
@@ -128,6 +130,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       run.status=version.draft.status;run.error=version.draft.error;run.issues=version.draft.issues
       run.revision=await studyRevision(version);run.passed=run.status==='complete' && !!run.revision
       if(!run.passed)run.draft=version.draft
+      else delete run.draft
     }catch(error){run.error=error.message;if(id)run.draft=(await ownStudyVersion(id).catch(()=>null))?.draft}
     finally{await deleteAllDocuments()}
   })
