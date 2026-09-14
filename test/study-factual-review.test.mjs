@@ -220,3 +220,15 @@ test('pedagogical checkpoint omits revision payload while preserving teaching an
   assert.equal(artifact.questions.length,draft.questions.length)
   assert.ok(artifact.questions.every(q=>!('answer' in q)))
 })
+
+
+test('flashcard variety failure repairs cards without regenerating teaching or practice',async()=>{
+  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter()
+  const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',detail:'Flashcards need distinct prompts spanning definitions, contrasts, applications and misconceptions.'}])
+  assert.ok(step)
+  const fixed=applyQuestionRepair(draft,step,{flashcards:draft.flashcards.map((card,i)=>({...card,front:`Case ${i+1}: ${card.front}`}))})
+  assert.deepEqual(fixed.sections,draft.sections)
+  assert.deepEqual(fixed.questions,draft.questions)
+  assert.notDeepEqual(fixed.flashcards,draft.flashcards)
+})

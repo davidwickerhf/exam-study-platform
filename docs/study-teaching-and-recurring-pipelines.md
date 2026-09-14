@@ -162,3 +162,8 @@ The first transport-change preview failed because the API container uses `deploy
 
 
 A subsequent live review exposed over-trimming in the pedagogical payload: omitted item-level source IDs were incorrectly reported as absent from the saved content. Section and question citation IDs are now preserved alongside core text; regression assertions cover both. Fingerprint 6 refreshes those checkpoints. The active isolated runs were checkpointed and resumed without resetting correction counts. This means the attempted fresh Sol comparison is now also a resumed run and must not be reported as a cold pass. The slimmer payload still omits flashcards, optional detail, answers and prior reviews.
+
+
+Astra subsequently completed both chapters of the isolated fixture: 25 questions, 26 flashcards and eight core sections, with two probability-chapter corrections and one die-chapter correction retained. The final resumed segment made 12 calls at approximately $0.9938 recorded token cost; this is not the total cost of the multi-checkpoint experiment, whose earlier reports include a failed-call reservation. Direct inspection confirmed the repaired complement follow-up and meaningful reverse-inference, model-selection and missing-fairness transfer tasks. This is one successful resumed evaluation, not evidence of reliable unattended generation across courses or a measured learning outcome.
+
+Flashcard-variety validation now has a dedicated collection repair: duplicate prompts or insufficient card variety no longer require regenerating teaching sections and practice. The same bounded correction allowance still applies; model output must pass validation after the patch.
