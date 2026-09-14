@@ -341,8 +341,11 @@ test('refresh source selection and BYOK settings render on mobile without overfl
   await expect(
     page.getByRole('heading', { name: 'Update your source selection' })
   ).toBeVisible()
-  await expect(page.getByText('No AI usage quota applies to this account or environment.',{exact:false})).toBeVisible()
-  await expect(page.getByLabel('Spending cap for this generation (USD)')).toHaveCount(0)
+  await expect(page.getByText('Your per-generation spending cap still applies',{exact:false})).toBeVisible()
+  const spendingCap=page.getByLabel('Spending cap for this generation (USD)')
+  await expect(spendingCap).toBeVisible()
+  await spendingCap.fill('2')
+  await expect(spendingCap).toHaveValue('2')
   await page.evaluate(() => document.fonts.ready)
   const layout = await page.evaluate(() => ({
     width: innerWidth,
