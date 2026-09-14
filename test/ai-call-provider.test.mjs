@@ -15,12 +15,12 @@ test('real conversation adapter requests stream usage and rejects its omission',
   globalThis.fetch=async(_url,options)=>{
    calls++;assert.deepEqual(JSON.parse(options.body).stream_options,{include_usage:true})
    const events=[{choices:[{delta:{content:'Answer'},finish_reason:'stop'}]},...(include?[{choices:[],usage:{prompt_tokens:25,completion_tokens:5,total_tokens:30,prompt_tokens_details:{cached_tokens:10},completion_tokens_details:{reasoning_tokens:2}}}]:[])]
-   return new Response(events.map(e=>`data: ${JSON.stringify(e)}\n\n`).join('')+'data: [DONE]\n\n',{headers:{'content-type':'text/event-stream'}})
+   return new Response(events.map(e=>`data: ${JSON.stringify(e)}\n\n`).join('')+'data: [DONE]\n\n',{headers:{'content-type':'text/event-stream','x-request-id':'req-fixture'}})
   }
   const result=await callModel([],{onContent:()=>{},usageFeature:'tutor'});assert.equal(result.usage.total_tokens,30)
   include=false;await assert.rejects(callModel([],{onContent:()=>{}}),e=>e.code==='provider_usage_missing')
   assert.equal(calls,2)
-  const report=await aiCallReport();assert.equal(report.totals.calls,2);assert.equal(report.totals.totalTokens,30);assert.equal(report.totals.unknownUsageCalls,1)
+  const report=await aiCallReport();assert.equal(report.totals.calls,2);assert.equal(report.totals.totalTokens,30);assert.equal(report.totals.unknownUsageCalls,1);assert.ok(report.recent.every(e=>e.providerRequestId==='req-fixture'))
  })}finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;await withRequestContext({userId},deleteAllDocuments)}
 })
 test('embedding adapter persists input-only usage and rejects missing counts',async()=>{
