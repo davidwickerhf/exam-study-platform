@@ -124,6 +124,16 @@ attempts are allowed, with a rejected proposal supplied to its correction. These
 calls count against the same course ledger. This is an experiment continuation
 helper, not a new production control or a reset of the generation budget.
 
+The first live whole-course bundle run accepted all 71 source-mapping batches and
+then lost the run on one outline call that omitted two mapped concepts, because
+the bundle outline had no correction loop. The outline stage now feeds a rejected
+proposal and its exact issues back into the same `course-outline` phase, at most
+twice per outline, counted in the draft's persisted automatic-correction ledger
+so a pilot resume continues that bound instead of resetting it. A `stage: outline,
+status: failed` draft therefore resumes into the correction path with its maps
+intact, and an exhausted bound fails with the same error without buying another
+proposal.
+
 Set `STUDY_PIPELINE_PAUSE_FILE` to a private file path before starting a pilot.
 Creating that file pauses before the next paid call after preserving the current
 response; remove it before resuming. Failed or paused runs keep their isolated
