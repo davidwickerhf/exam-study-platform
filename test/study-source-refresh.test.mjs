@@ -21,3 +21,16 @@ test('source refresh rejects duplicate and conflicting patch identities',()=>{
  assert.throws(()=>applySourceRefresh(step,{...patch,sections:[chapter.sections[0],chapter.sections[0]]}),/identities/)
  assert.throws(()=>applySourceRefresh(step,{...patch,removeQuestionKeys:['invented']}),/identities/)
 })
+
+test('activation validates every enrolled binding and module membership',async()=>{
+ const {assertAutomaticSourceScope}=await import('../lib/study-version-pipeline.mjs')
+ const refs=[{bindingId:'first',moduleId:'one'},{bindingId:'second',moduleId:'two'}]
+ const version={automation:{candidate:{bindingId:'first',moduleRefs:refs}}}
+ const sources=refs.map(r=>({key:r.bindingId,bindingId:r.bindingId,sourcePath:r.bindingId+'.pdf',locations:[{moduleId:r.moduleId}]}))
+ const inventories=refs.map(r=>({bindingId:r.bindingId,sourcePaths:[r.bindingId+'.pdf']}))
+ const snapshot={sources}
+ assert.doesNotThrow(()=>assertAutomaticSourceScope(version,snapshot,sources,inventories))
+ assert.throws(()=>assertAutomaticSourceScope(version,snapshot,sources,[inventories[0],{...inventories[1],sourcePaths:[]}]),/disappeared/)
+ assert.throws(()=>assertAutomaticSourceScope(version,snapshot,[sources[0],{...sources[1],locations:[{moduleId:'other'}]}],inventories),/left its enrolled/)
+ assert.throws(()=>assertAutomaticSourceScope(version,snapshot,sources,[inventories[0]]),/unavailable/)
+})

@@ -54,3 +54,44 @@ test('new material queues one local revision; unchanged sources, active work and
  assert.deepEqual((await ownStudyVersion(version.id)).draft,updated.draft)
  assert.equal((await recurringStatus()).jobs[0].status,'paused')
 }))
+
+test('a stale re-enable cannot activate a policy before the version mutation succeeds',()=>fixture(async({version,input,sourceOptions,data})=>{
+ await enrollGuideMaintenance({...input,dryRun:false},{sourceOptions})
+ await enrollGuideMaintenance({...input,enabled:false,dryRun:false},{sourceOptions})
+ const paused=await ownStudyVersion(version.id)
+ const racingSources={editorialSources:async()=>{
+   await mutateStudyVersion(version.id,v=>{v.activeRevisionId='newer-revision'})
+   return data
+ }}
+ await assert.rejects(()=>enrollGuideMaintenance({...input,dryRun:false},{sourceOptions:racingSources}),/changed during enrollment/)
+ assert.deepEqual((await ownStudyVersion(version.id)).automation,paused.automation)
+ assert.equal(await automaticGuideAllowed(paused.automation,'local'),false)
+ assert.equal((await recurringStatus()).jobs[0].status,'paused')
+}))
+
+test('withdrawal of a source adopted after enrollment requires attention without replacing the guide',()=>fixture(async({version,input,sourceOptions,data})=>{
+ await enrollGuideMaintenance({...input,dryRun:false},{sourceOptions})
+ const key=(await ownStudyVersion(version.id)).automation.settingsKey
+ data.push({...data[0],key:'adopted-later',sha256:'new',pages:[{page:2,text:'A newly released exercise.'}]})
+ await reconcileModuleGuides(key,{sourceOptions})
+ const updated=await ownStudyVersion(version.id),completed={...updated.draft,status:'complete'}
+ await saveStudyRevision(updated,completed)
+ await mutateStudyVersion(version.id,v=>{v.activeRevisionId=completed.id;v.history.unshift({id:completed.id,chapters:0});v.draft=completed})
+ data.pop()
+ await reconcileModuleGuides(key,{sourceOptions,now:Date.now()+86400001})
+ const saved=await ownStudyVersion(version.id)
+ assert.equal(saved.activeRevisionId,completed.id);assert.deepEqual(saved.draft,completed)
+ const event=(await readDocument('study-module-settings',key,null)).events[0].maintenance[0]
+ assert.equal(event.status,'needs-attention');assert.match(event.message,/withdrawn/)
+}))
+
+
+test('material moved out of an enrolled module cannot start a source revision',()=>fixture(async({version,input,sourceOptions,data})=>{
+ await enrollGuideMaintenance({...input,dryRun:false},{sourceOptions})
+ const key=(await ownStudyVersion(version.id)).automation.settingsKey
+ data[0]={...data[0],locations:[{moduleId:'outside'}]}
+ await reconcileModuleGuides(key,{sourceOptions})
+ assert.deepEqual((await ownStudyVersion(version.id)).draft,version.draft)
+ const event=(await readDocument('study-module-settings',key,null)).events[0].maintenance[0]
+ assert.equal(event.status,'needs-attention');assert.match(event.message,/left its enrolled/)
+}))
