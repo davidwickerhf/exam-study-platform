@@ -1,3 +1,4 @@
+import { STUDY_GENERATION_LIMITS } from '../lib/study-generation-limits.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
@@ -281,4 +282,16 @@ test('cached reviews can finish at an exhausted budget without issuing another p
   assert.equal(finished.version.status,'complete')
   assert.equal(finished.version.usage.remainingReviewTasks,0)
   assert.equal((await ownStudyVersion(id)).localReceipts.length,complete.localReceipts.length)
+}))
+
+
+test('combined source outlines use the planning allowance and preserve mapped evidence',async()=>fixture(async id=>{
+  const version=await ownStudyVersion(id)
+  const sourceIds=version.draft.snapshot.chunks.map(c=>c.id)
+  const maps=[{topics:[{id:'addition',title:'Addition',sourceIds}],gaps:[]},{topics:[{id:'units',title:'Matching units',sourceIds}],gaps:[]}]
+  await mutateStudyVersion(id,next=>{next.draft.stage='outline';next.draft.maps=maps})
+  const step=await nextLocalStudy(id)
+  assert.equal(step.request.maxOutputTokens,STUDY_GENERATION_LIMITS.planTokens)
+  assert.deepEqual((await ownStudyVersion(id)).draft.maps,maps)
+  assert.equal((await ownStudyVersion(id)).activeRevisionId,null)
 }))

@@ -38,13 +38,18 @@ for every course file.
 
 ## Live execution status
 
-The first Blockchains mapping call was rejected by the configured OpenAI
-connection for exhausted credits/billing quota. No chapter was generated. No
-provider usage was returned: $1.200650 remains an unresolved reservation, not a
-measured token bill. Vercel's production environment export redacts its sensitive
-key, so it cannot supply an alternate local test credential. IUI model generation
-has not started. The earlier synthetic two-chapter $3.06 pilot is not a result for
-either full course.
+The first Blockchains mapping call was rejected for exhausted provider credits.
+No usage was returned: $1.200650 remains an unresolved reservation, not a measured
+token bill. After recharge, the saved run resumed and IUI started. Both are still
+in progress; no full-course cost or quality result is available yet.
+
+The IUI outline exhausted a hard-coded 10,000-token output limit after its 16
+source maps completed ($4.935302 in measured-usage cost across that attempt).
+Combined outlines now use the existing 24,000-token planning allowance. The
+retry resumes only that stage with its maps and cumulative spending preserved.
+The first Blockchains guide's outline contains 23 chapters, highlighting chapter
+granularity as a cost concern to evaluate, not evidence of completed coverage.
+The earlier synthetic two-chapter $3.06 pilot is not a result for either course.
 
 Each course experiment has a $50 cumulative ceiling, including initial guides,
 reviews, corrections, retries and update calls. The default student allowance is
