@@ -1706,7 +1706,8 @@ test('course material polling preserves the list and scroll, and desktop navigat
   const navigation = page.locator('.course-navigation-content')
   await expect.poll(() => navigation.evaluate(node => node.getBoundingClientRect().top)).toBe(0)
   await expect(page.getByRole('tab', { name: 'Study guides', exact: true })).toBeInViewport()
-  await expect(page.getByText('Academic year', { exact: true })).toBeInViewport()
+  await expect(navigation.getByText('Academic year', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('group', { name: 'Material academic year' })).toBeAttached()
 
   // Use the real status-polling handler, holding the downstream material read.
   hold = true
@@ -1733,7 +1734,8 @@ test('course material polling preserves the list and scroll, and desktop navigat
   await page.setViewportSize({ width: 1440, height: 480 })
   await expect.poll(() => navigation.evaluate(node => node.clientHeight)).toBeLessThanOrEqual(480)
   await navigation.evaluate(node => { node.scrollTop = node.scrollHeight })
-  await expect(page.getByText('Academic year', { exact: true })).toBeInViewport()
+  await expect(navigation.getByText('Academic year', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('group', { name: 'Material academic year' })).toBeAttached()
   for (const width of [1024, 390]) {
     await page.setViewportSize({ width, height: 844 })
     await expect(navigation).toHaveCSS('position', 'static')
