@@ -28,6 +28,12 @@ if(!Number.isFinite(spendingCap) || spendingCap<0.05 || spendingCap>STUDY_GENERA
 report.spendingCapUsd=spendingCap
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generateOnce(prompt,options){
+  if(process.env.STUDY_PIPELINE_OUTPUT_LIMIT){
+    const limit=Number(process.env.STUDY_PIPELINE_OUTPUT_LIMIT)
+    if(!Number.isSafeInteger(limit)||limit<1000||limit>128000)throw Error('Invalid pilot output limit.')
+    options={...options,maxOutputTokens:Math.min(options.maxOutputTokens,limit)}
+    report.pilotOutputLimit=limit
+  }
   const started=Date.now()
   const call={chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)

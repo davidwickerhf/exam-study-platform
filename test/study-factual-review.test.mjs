@@ -276,3 +276,26 @@ test('a card edit reuses independent solutions and unrelated verdicts; teaching 
   const changed=nextFactualReview(course,[],[{...evidence[0],text:'Changed source.'}],draft)
   assert.equal(changed.kind,'solve');assert.equal(Object.keys(changed.state.solutions).length,0)
 })
+
+test('JSONB key ordering cannot invalidate unchanged teaching, cards or question checks after a targeted repair',async()=>{
+  const {preserveFactualReview}=await import('../lib/study-factual-review.mjs')
+  const {canonicalReviewValue}=await import('../lib/study-review-dependencies.mjs')
+  const draft=chapter()
+  while(true){const step=nextFactualReview(course,[],evidence,draft);if(!step)break;acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']))}
+  // Simulate the recursively reordered objects returned by PostgreSQL JSONB.
+  const stored=canonicalReviewValue(draft),fixed=structuredClone(draft)
+  fixed.questions[0].answer+=' Check the boundary condition.'
+  preserveFactualReview(stored,fixed,course,[],evidence)
+  for(const item of factualReviewItems(draft))assert.ok(fixed.factualAudit.judgments[item.key],item.key)
+  assert.ok(fixed.factualAudit.solutions[fixed.questions[1].key])
+  assert.equal(fixed.factualAudit.judgments['question:'+fixed.questions[0].key],undefined)
+  assert.equal(nextFactualReview(course,[],evidence,canonicalReviewValue(draft)),null)
+})
+
+test('a bounded correction includes an already located teaching warning without changing stored severity',async()=>{
+ const {questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter(),issues=[{severity:'error',itemKey:'question:'+draft.questions[0].key,detail:'Correct this answer.'},{severity:'warning',itemKey:'section:'+draft.sections[0].id,detail:'Clarify the known prerequisite.'}]
+ const repair=questionRepairStep(course,[],evidence,draft,issues)
+ assert.ok(repair.parts?.some(p=>p.sectionIds?.includes(draft.sections[0].id)))
+ assert.equal(issues[1].severity,'warning')
+})

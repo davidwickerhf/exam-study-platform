@@ -592,3 +592,28 @@ in the manifest. Transcribed pages must be inside the selected page range.
 Empty quiz exports still cannot be turned into invented questions.
 New local guides default to a 128-review-task budget; existing runs retain their
 current allowance until the student explicitly configures one.
+
+### Maintaining existing guides economically
+
+Use `study_guide_maintenance` with `dryRun:true` to preview enrollment of a completed
+local guide. Select explicit current-edition Canvas module boundaries and the exact
+active revision ID; do not infer enrollment from a similar title. With student
+authorization, repeat with `dryRun:false`. This retains the existing guide ID and
+revision and enables local maintenance only. It does not grant hosted spending or
+Canvas consent. `enabled:false` pauses that guide's future maintenance. Global
+pipeline and Canvas pause controls still apply. `study_module_guides` includes
+`maintainedGuides`; check its activity for withdrawn/unreadable sources.
+
+A material change queues a revision of the same guide. Active generation is not
+interrupted, and the published revision stays readable until all checks pass. Source
+refresh requests return patches: omitted teaching/questions remain unchanged; removals
+must be explicit. Follow the exact current schema. Scope amendments and changed
+citations must still be reviewed. Do not delete a guide and regenerate it to perform
+an update.
+
+Keep coordination deterministic and small: store request packets and responses in
+files, pass only the current packet to each isolated reviewer, and return IDs/status
+and usage to the coordinator rather than whole chapters. Do not repeatedly read every
+guide to poll progress. External model usage must come from actual provider/client
+counters; unavailable counters remain unknown. A local subscription API-equivalent
+estimate is not an invoice or a production cost-per-student measurement.
