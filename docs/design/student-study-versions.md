@@ -222,6 +222,20 @@ typed `bundle` (parent: child guides and status) and `managed` (child: owning
 parent) blocks so the UI and MCP clients can navigate between a course run and
 its guides without inferring the relationship from raw fields.
 
+A rejected course outline is corrected rather than fatal. When the resolver
+refuses a proposed plan — dropped mapped concepts, one concept owned by two
+guides, unknown or repeated refs, duplicate ids, or the chapter ceiling — the
+rejected proposal and a structured issue list (missing concept ids with their
+titles and the group already teaching that concept) are saved on the draft, and
+the next step re-issues the same `course-outline` phase with those issues and
+the previous proposal instead of re-sending evidence. At most two corrections
+are allowed per outline, counted in the draft's ordinary automatic-correction
+ledger (`stage:outline`), so a resume, hosted retry or local `next` continues
+the same budget rather than restarting it; when it is spent the run fails with
+the same clear error, its source maps and rejected proposal intact, and
+re-entering that failed stage costs no further call. The same bound applies to
+the non-bundle combined outline.
+
 Source mapping now recovers from a `provider_output_limit` response by halving
 the offending batch, at most two levels, while keeping already-accepted maps
 and citations; the split is persisted so a resumed run repeats the same batch
@@ -229,7 +243,10 @@ boundaries. `STUDY_MODEL_ROUTES` / `STUDY_PIPELINE_MODEL_ROUTES` entries may
 also be `{model, reasoning}` pairs, validated against the efforts the OpenAI
 provider layer accepts. Nothing here changes pricing or is enabled by default.
 
-Known limits: no real model run has exercised the bundle path end to end yet;
+Known limits: the first real whole-course bundle run reached the outline stage
+but its single outline call omitted two mapped concepts, which is what the
+bounded correction above now absorbs; no real run has yet produced published
+guides end to end;
 concept duplicate detection across the shared plan is exact-name only, not
 semantic; automatic Canvas onboarding still uses the existing per-module
 maintenance workflow — a course run is opt-in from the creation form or MCP,
