@@ -17,7 +17,7 @@ if(!key || key==='[SENSITIVE]')throw new Error('A usable OPENAI_API_KEY is requi
 const {withRequestContext}=await import('../../lib/request-context.mjs')
 const {deleteAllDocuments}=await import('../../lib/user-store.mjs')
 const {readStudySourceSnapshot}=await import('../../lib/study-version-sources.mjs')
-const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=await import('../../lib/study-version-store.mjs')
+const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion,listCourseBundleChildren}=await import('../../lib/study-version-store.mjs')
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
@@ -109,8 +109,11 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       if(savedReport?.isolatedVersionId){
         id=savedReport.isolatedVersionId
       }else if(execution==='hosted'){
-        const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true})
-        id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
+        // Both execution modes must plan the same course: a bundle pilot that
+        // silently became a single hosted guide would not be hosted parity.
+        const courseBundle=pilot?.courseBundle===true
+        const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true,courseBundle})
+        id=(await createStudyVersion(course,'default',snapshot,{execution,courseBundle,title:pilot?.title || 'Isolated live validation',billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
       }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,courseBundle:pilot?.courseBundle===true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
       report.isolatedVersionId=id
       if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
@@ -189,6 +192,25 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       const version=await ownStudyVersion(id)
       run.status=version.draft.status;run.error=version.draft.error;run.issues=version.draft.issues
       run.revision=await studyRevision(version);run.passed=run.status==='complete' && !!run.revision
+      // A completed course run is not a completed course: every derived guide
+      // must itself be readable, complete and non-empty before this run passes.
+      if(version.courseBundle){
+        const published=version.bundleGuides || []
+        run.guides=[]
+        for(const guide of published){
+          const child=await ownStudyVersion(guide.id).catch(()=>null)
+          const childRevision=child ? await studyRevision(child).catch(()=>null) : null
+          run.guides.push({versionId:guide.id,guideId:guide.guideId||child?.courseBundleParent?.guideId||null,title:child?.title||guide.title,
+            status:child?.draft?.status || 'missing',state:child?.courseBundleParent?.state || null,activeRevisionId:child?.activeRevisionId||null,chapters:childRevision?.chapters.length||0})
+        }
+        const derived=(await listCourseBundleChildren(id)).filter(v=>v.courseBundleParent?.state!=='archived')
+        const complete=run.guides.filter(g=>g.status==='complete' && g.state==='published' && g.activeRevisionId && g.guideId && g.chapters>0)
+        run.bundle={plannedGuides:version.draft.guides?.length||published.length,publishedGuides:published.length,derivedGuides:derived.length,completeGuides:complete.length,publication:version.bundlePublication||null}
+        if(run.passed && (!published.length || complete.length!==published.length || derived.length!==published.length)){
+          run.passed=false
+          run.error=run.error || `Course bundle published ${complete.length} complete guides of ${published.length} (${derived.length} derived documents).`
+        }
+      }
       if(!run.passed)run.draft=version.draft
       else delete run.draft
       if(cycle===0 && pilot?.updateSourceKeys.length && process.env.STUDY_PIPELINE_DEFER_UPDATE!=='1' && run.passed){

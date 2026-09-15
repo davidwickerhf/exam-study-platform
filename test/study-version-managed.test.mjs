@@ -145,7 +145,7 @@ test('a course bundle counts as one version while forks count on their own', asy
       await assert.rejects(studyVersionApi({
         pathname: '/api/study-versions', method: 'POST', query: {},
         body: { ...course, sourceKeys: f.snapshot.sources.map(s => s.key), courseBundle: true }, platform: {}
-      }), /before planning a whole course/)
+      }), /instead of planning a whole course/)
       // Materializing more managed children remains possible at the cap.
       const extra = await createStudyVersion(course, 'programme-test', f.snapshot, { title: 'Late guide', execution: 'local', courseBundleParent: { versionId: parent.id, guideId: 'late', active: true } })
       assert.equal(extra.courseBundleParent.versionId, parent.id)
