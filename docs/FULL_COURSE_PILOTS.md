@@ -290,3 +290,24 @@ was also the one that exhausted its reasoning budget.
 `STUDY_MODEL_ROUTES` / `STUDY_PIPELINE_MODEL_ROUTES` can now also set a phase's
 reasoning effort, so a cheaper mapping effort can be measured without changing
 the model or raising any price. No profile is enabled by default.
+
+### Hosted parity and course top-up coverage
+
+The bundle is now exercised in both execution modes without a provider. A hosted
+suite drives `processStudyStep` with mocked responses through mapping (including
+one `provider_output_limit` recovery), the bundle outline, chapters and the
+fenced publication: it asserts that guides are staged invisibly, that no guide is
+ever listed, claimed or discoverable as hosted work, that a half-finished
+publication converges on retry with the same identities, and that every call
+reserves against the parent course run's single job key and chapter allowance.
+`study-pipeline-live.mjs` now passes the bundle flag in its hosted creation
+branch too, and a run only passes when every derived guide is itself published,
+complete and non-empty.
+
+A second suite covers the top-up: republishing a course keeps surviving guide
+identities, keeps the previous guides readable until the replacement passes,
+adopts new guides and archives dropped ones instead of deleting them; a local
+course run refreshed with an added source reuses unchanged chapters, stays local
+and keeps its guides out of the hosted queue. Maintenance is enrolled on the
+course run, never on a managed guide, and a withheld source that arrives later
+is processed through the parent.
