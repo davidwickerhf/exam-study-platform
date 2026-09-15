@@ -109,7 +109,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       }else if(execution==='hosted'){
         const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true})
         id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
-      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
+      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,courseBundle:pilot?.courseBundle===true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
       report.isolatedVersionId=id
       if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
