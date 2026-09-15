@@ -396,3 +396,39 @@ test('scope goals have room for a complete qualified statement without relaxing 
  const response={learningGoals:[goal],caveats:[],scope:{...draft.teachingPlan,objectives:Object.fromEntries(draft.teachingPlan.objectives.map(o=>[o.id,{...o,goal}]))}}
  assert.equal(applyQuestionRepair(draft,step,response).learningGoals[0],goal)
 })
+
+
+test('saved pedagogical item locations survive chapter normalization without guessing', async () => {
+ const {locateReviewIssues,questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter(),question=draft.questions[0],section=draft.sections[0]
+ const original={topicId:question.key,severity:'error',detail:'The follow-up does not target this misconception.'}
+ draft.pedagogicalReview={issues:[original]}
+ const normalized={...original,topicId:draft.id}
+ assert.equal(locateReviewIssues(draft,[original])[0].itemKey,`question:${question.key}`)
+ assert.equal(locateReviewIssues(draft,[normalized])[0].itemKey,`question:${question.key}`)
+ assert.ok(questionRepairStep(course,[],evidence,draft,[normalized]))
+ assert.equal(locateReviewIssues(draft,[{...normalized,detail:'Different finding'}])[0].itemKey,undefined)
+ assert.equal(locateReviewIssues(draft,[{...normalized,severity:'warning'}])[0].itemKey,undefined)
+ draft.pedagogicalReview.issues.push({...original,topicId:section.id})
+ assert.equal(locateReviewIssues(draft,[normalized])[0].itemKey,undefined)
+ const explicit={...normalized,itemKey:'scope'}
+ assert.deepEqual(locateReviewIssues(draft,[explicit]),[explicit])
+})
+
+
+test('an explicitly located objective repair cannot rewrite other objectives',async()=>{
+ const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter(),first=draft.teachingPlan.objectives[0]
+ draft.teachingPlan.objectives.push({...structuredClone(first),id:'another-objective',goal:'Keep this goal unchanged.'})
+ const issue={severity:'error',itemKey:'scope',detail:'Objective 1 needs an explicit background clarification.'}
+ const step=questionRepairStep(course,[],evidence,draft,[issue,{severity:'warning',itemKey:'scope',detail:'The caveat needs a historical label.'}])
+ assert.deepEqual(Object.keys(step.schema.shape.scope.shape.objectives.shape),[first.id])
+ const response={learningGoals:draft.learningGoals,caveats:['Historical explanation is provisional.'],scope:{exclusions:[],gaps:[],objectives:{[first.id]:{...first,goal:'A supported goal.'}}}}
+ const corrected=applyQuestionRepair(draft,step,response)
+ assert.deepEqual(corrected.teachingPlan.objectives[1],draft.teachingPlan.objectives[1])
+ assert.equal(corrected.teachingPlan.objectives[0].goal,'A supported goal.')
+ response.scope.objectives['another-objective']={...draft.teachingPlan.objectives[1],goal:'Unrequested rewrite'}
+ assert.throws(()=>applyQuestionRepair(draft,step,response))
+ const broad=questionRepairStep(course,[],evidence,draft,[issue,{severity:'error',itemKey:'scope',detail:'The remaining objectives also overstate source support.'}])
+ assert.equal(Object.keys(broad.schema.shape.scope.shape.objectives.shape).length,draft.teachingPlan.objectives.length)
+})

@@ -1,3 +1,4 @@
+import {coursePilotCompletion} from './study-pilot-planning.mjs'
 import {readPilotLedger,writePilotJson} from './study-pilot-ledger.mjs'
 import {pilotAccounting} from './study-pilot-accounting.mjs'
 // A whole-course experiment is a bundle of focused guides sharing one hard
@@ -22,8 +23,11 @@ let ledger=await readPilotLedger(ledgerPath,manifest,units)
 ledger.isolatedUserId ||= `live-validation-${randomUUID()}`
 const covered=new Set(units.flatMap(u=>u.pilot.sources.filter(s=>!u.pilot.updateSourceKeys.includes(s.key)).map(s=>s.key)))
 if(manifest.sourceKeys.some(key=>!covered.has(key)))throw new Error('The guide bundle omits course sources.')
+const planOnly=process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
 const jobs=[...units.map((_,index)=>({index,phase:'initial'})),...units.flatMap((u,index)=>u.pilot.updateSourceKeys.length?[{index,phase:'update'}]:[])]
 for(const {index,phase} of jobs){
+ if(planOnly && phase==='update')continue
+ if(planOnly && ledger.units.some(u=>u.index===index&&(u.phase||'initial')===phase&&u.planned))continue
  if(ledger.units.some(u=>u.index===index&&(u.phase||'initial')===phase&&u.passed))continue
  const prior=ledger.attempts.reduce((n,a)=>n+a.costUsd,0),previous=ledger.attempts.findLast(a=>a.index===index&&(a.phase||'initial')===phase)
  const path=output+`/guide-${index+1}-${phase}-attempt-${ledger.attempts.filter(a=>a.index===index&&(a.phase||'initial')===phase).length+1}.json`
@@ -41,14 +45,15 @@ for(const {index,phase} of jobs){
  if(!result)throw new Error('Pilot has no durable result; inspect the process before any retry.')
  ledger.attempts.push({index,phase,report:path,costUsd:result.calculatedUsd,calls:result.calls,accounting:pilotAccounting(result),exitCode:code})
  if(!Number.isFinite(result.calculatedUsd)||result.calculatedUsd<0)throw Error('Invalid attempt spending; preserve pending reservation for investigation.')
+ const planned=code===0&&result.runs?.some(r=>r.phase===phase&&r.planned)
  const passed=code===0&&result.runs?.some(r=>r.phase===phase&&r.passed)&&result.runs.every(r=>r.passed)
- ledger.units=ledger.units.filter(u=>u.index!==index||(u.phase||'initial')!==phase).concat({index,phase,title:units[index].pilot.title,passed,report:path})
+ ledger.units=ledger.units.filter(u=>u.index!==index||(u.phase||'initial')!==phase).concat({index,phase,title:units[index].pilot.title,passed,planned,report:path})
  ledger.knownUsageUsd=ledger.attempts.reduce((n,a)=>n+(a.accounting?.knownUsageUsd||0),0);ledger.unsettledReservationUsd=ledger.attempts.reduce((n,a)=>n+(a.accounting?.unsettledReservationUsd??a.costUsd),0)
- ledger.totalUsd=ledger.attempts.reduce((n,a)=>n+a.costUsd,0);ledger.complete=ledger.units.length===jobs.length&&ledger.units.every(u=>u.passed)
+ ledger.totalUsd=ledger.attempts.reduce((n,a)=>n+a.costUsd,0);Object.assign(ledger,coursePilotCompletion(ledger.units,jobs,units.length))
  delete ledger.pending
  await writePilotJson(ledgerPath,ledger)
- if(!passed){process.exitCode=1;break}
+ if(!passed && !(planOnly&&planned)){process.exitCode=1;break}
 }
-console.log(JSON.stringify({course:ledger.course.courseCode,complete:ledger.complete,knownUsageUsd:ledger.knownUsageUsd,unsettledReservationUsd:ledger.unsettledReservationUsd,committedBudgetUsd:ledger.totalUsd,units:ledger.units},null,2))
+console.log(JSON.stringify({course:ledger.course.courseCode,complete:ledger.complete,planningComplete:ledger.planningComplete,knownUsageUsd:ledger.knownUsageUsd,unsettledReservationUsd:ledger.unsettledReservationUsd,committedBudgetUsd:ledger.totalUsd,units:ledger.units},null,2))
 
 }finally{await lock.close();await unlink(lockPath)}

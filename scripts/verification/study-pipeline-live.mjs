@@ -1,3 +1,4 @@
+import {pilotPlanReady} from './study-pilot-planning.mjs'
 import { routeStudyModel } from '../../lib/study-model-routing.mjs'
 import { pilotAccounting } from './study-pilot-accounting.mjs'
 import { runStudyAgentsSdk } from '../../lib/study-agents-sdk.mjs'
@@ -20,6 +21,8 @@ const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=awai
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
+const planOnly=!!pilot && process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
+if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning or updates.')
 const fixture=pilot ? 'course:'+pilot.course.courseCode : process.env.STUDY_PIPELINE_FIXTURE || 'probability'
 if(!pilot&&!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
 if(pilot && (process.env.STUDY_PIPELINE_MODE!=='local' || !Array.isArray(pilot.updateSourceKeys)))throw new Error('Course maintenance pilots require local mode and explicit synthetic update source keys.')
@@ -158,6 +161,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       for(let step=0;step<500;step++){
         const before=await ownStudyVersion(id)
         run.draft=before.draft
+        if(planOnly && pilotPlanReady(before.draft)){run.planned=true;break}
         if(pilot)assertPilotChapterTarget(before.draft,process.env.STUDY_PIPELINE_STOP_CHECKED_CHAPTERS)
         console.log(`${run.phase}: ${execution}: ${before.draft.stage} / ${before.draft.status}`)
         if(run.maintenance && before.draft.status!=='complete' && before.activeRevisionId!==run.maintenance.readableRevisionId)throw Error('Readable revision changed before maintenance passed.')
@@ -202,7 +206,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
     finally{if(!pilot)await deleteAllDocuments()}
   })
   await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
-  console.log(`${execution}: ${run.passed?'PASS':'FAIL'} ${run.error||''}`)
+  console.log(`${execution}: ${run.passed?'PASS':run.planned?'PLANNED':'FAIL'} ${run.error||''}`)
 }
 console.log(JSON.stringify({calls:report.calls,calculatedUsd:report.calculatedUsd,runs:report.runs.map(({execution,passed,status,error})=>({execution,passed,status,error}))},null,2))
-if(report.runs.some(r=>!r.passed))process.exitCode=1
+if(report.runs.some(r=>!r.passed && !(planOnly && r.planned)))process.exitCode=1

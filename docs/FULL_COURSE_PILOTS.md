@@ -234,3 +234,13 @@ $7.519222 for the fresh experiment and its repair. The full course and top-up te
 remain paused. See `GUIDE_GENERATION_ECONOMICS.md` for the repaired schema/prompt
 constraints and the distinction between offline regression results and live
 teaching-quality results. The final goal-limit change has not been model-tested.
+
+### Whole-bundle planning checkpoint
+
+Use `STUDY_PIPELINE_PLAN_ONLY=1` with the existing course-suite command to collect
+all initial guide outlines before paying for chapter authors and reviewers. It
+preserves the same ledger and version IDs and can resume into generation without
+that flag. Inspect the saved `draft.planning` and `draft.topics` for each unit.
+`planningComplete` does not mean generated or reviewed; `complete` still requires
+every initial guide and every requested source-update experiment to pass. Existing
+IUI authored drafts have not been discarded or replaced by this new mode.

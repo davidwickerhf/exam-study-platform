@@ -199,3 +199,31 @@ IUI measured spending is $34.332206, leaving $15.667794 under the unchanged $50 
 These fixes are not evidence of model-quality parity or affordable course
 completion. The three consumed automatic retries and one explicitly requested
 manual retry remain recorded; the full-course run is paused.
+
+## Review locations and split chapter responsibilities
+
+The next live IUI repair cost $1.247918 across five measured calls. Its diagnostic
+follow-up passed, but a rewritten objective introduced another attribution error;
+no chapter passed in that attempt. Cumulative measured spending reached $36.106184.
+The implementation now keeps item-level review locations when attaching findings
+to a chapter, and recovers lost locations only from an exact saved finding. An
+explicitly identified objective repair exposes only those objective keys; generic
+blocking scope findings retain broad repair access. Unselected objectives are
+preserved automatically. These changes do not alter retry counters or verdicts.
+
+Outline consolidation now retains each mapped concept's supporting evidence.
+When evidence capacity requires multiple chapter parts, each part receives its
+supported concepts instead of copying the entire parent's responsibilities.
+Scope-only concepts belong to the first part while scope evidence remains in every
+part. All evidence survives; legacy authored plans stay intact. Changed concept
+support invalidates reuse, while a redundant single-concept annotation preserves
+legacy input hashes. This addresses within-guide duplication, not yet semantic
+overlap between independently selected guide bundles.
+
+The course pilot supports `STUDY_PIPELINE_PLAN_ONLY=1`: it maps/outlines every
+initial guide and stops before authoring. Planning uses the same cumulative ledger,
+provider caps, isolated account and resumable version IDs. `planningComplete` is
+separate from `complete`; planned guides and missing top-up tests never count as
+finished output. Inspect all guide outlines and overlapping responsibilities before
+resuming without the flag. Planning-only mode rejects correction/recheck/update
+flags to avoid accidentally changing authored work during a planning audit.

@@ -86,3 +86,26 @@ test('historical administration is not automatic current-year scope, but stays a
  assert.ok(selected.topics.some(t=>t.sourceIds.includes('e-historical')))
  assert.equal(s.chunks.at(-1).text.length,30000,'original historical evidence remains intact')
 })
+
+
+test('evidence splits retain only supported concept responsibilities and every source',()=>{
+ const s=snapshot([25000,25000,25000])
+ const maps=[{topics:[
+  {id:'a',title:'First mechanism',sourceIds:['e-0']},
+  {id:'b',title:'Second mechanism',sourceIds:['e-1']},
+  {id:'c',title:'Third mechanism',sourceIds:['e-2']},
+  {id:'scope',title:'Shared scope concept',sourceIds:['e-scope']},
+  {id:'cross',title:'Connecting mechanism',sourceIds:['e-0','e-2']}
+ ],gaps:[]}]
+ const grouped=resolveOutlineGroups({topics:[{id:'combined',title:'Mechanisms',topicRefs:maps[0].topics.map((_,i)=>`map-0-topic-${i}`)}],gaps:[]},maps)
+ const result=normalizeStudyOutline(grouped,s)
+ assert.equal(result.topics.length,2)
+ assert.deepEqual(result.topics[0].concepts,['First mechanism','Second mechanism','Shared scope concept','Connecting mechanism'])
+ assert.deepEqual(result.topics[1].concepts,['Third mechanism','Connecting mechanism'])
+ assert.deepEqual(result.topics[1].conceptEvidence.find(c=>c.title==='Connecting mechanism').sourceIds,['e-2'])
+ assert.deepEqual(new Set(result.topics.flatMap(t=>t.conceptEvidence.flatMap(c=>c.sourceIds))),new Set(s.chunks.map(c=>c.id)))
+ assert.deepEqual(result.unmappedSourceIds,[])
+ assert.deepEqual(grouped.topics[0].conceptEvidence.at(-1).sourceIds,['e-0','e-2'],'input plan stays immutable')
+ const changed=structuredClone(result.topics[0]);changed.conceptEvidence[0].sourceIds=['e-1']
+ assert.notEqual(inputHash(changed,s.chunks),inputHash(result.topics[0],s.chunks),'changed concept support invalidates teaching reuse')
+})
