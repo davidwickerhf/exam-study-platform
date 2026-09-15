@@ -62,7 +62,11 @@ function hostedProvider(versionId, ledger) {
         // One output limit on the first batch: hosted recovery must halve it.
         if (!limited) { limited = true; throw outputLimit() }
         const ids = JSON.parse(prompt.split('\nEvidence: ')[1].split('\nMap this evidence batch')[0]).map(c => c.id)
-        return { topics: [{ id: `concept-${draft.maps.length}`, title: draft.maps.length ? 'Checking totals' : 'Combining quantities', sourceIds: ids }], gaps: [] }
+        // Batches may be mapped concurrently, so name the concept from the
+        // batch itself rather than from how much of the draft happens to be
+        // saved when this call runs.
+        const batch = draft.mappingBatches.findIndex(entry => entry[0] === ids[0])
+        return { topics: [{ id: `concept-${batch}`, title: batch ? 'Checking totals' : 'Combining quantities', sourceIds: ids }], gaps: [] }
       }
       if (prompt.includes('WHOLE-COURSE GUIDE BUNDLE')) {
         const mapped = JSON.parse(prompt.split('Mapped concepts: ')[1].split('\nSource gaps:')[0])
