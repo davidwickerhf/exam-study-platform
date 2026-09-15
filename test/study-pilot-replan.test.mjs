@@ -53,3 +53,12 @@ test('invalid grouping gets one correction with its base proposal, then stops du
  await assert.rejects(replanPilotRemainder(id,async()=>{calls++;return JSON.stringify(valid)}),/after two attempts/)
  assert.equal(calls,2)
 }))
+
+
+test('a now-valid saved proposal is reused without resetting attempts or making another model call',async()=>fixture(async id=>{
+ await mutateStudyVersion(id,next=>{next.draft.pilotReplan={attempts:[{error:'Previous deterministic capacity check',candidate:valid},{error:'Previous deterministic capacity check',candidate:valid}]}})
+ const result=await replanPilotRemainder(id,async()=>{throw Error('must reuse exact saved response')})
+ assert.equal(result.revalidatedFromSavedProposal,true)
+ assert.equal(result.attempts.length,2)
+ assert.equal(result.afterChapters,2)
+}))

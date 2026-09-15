@@ -71,3 +71,18 @@ test('concept regrouping invalidates teaching inputs without invalidating unchan
  assert.equal(inputHash(topic,s.chunks),inputHash({...topic,concepts:[topic.title]},s.chunks))
  assert.notEqual(inputHash(topic,s.chunks),inputHash({...topic,concepts:[topic.title,'Another mechanism']},s.chunks))
 })
+
+
+test('historical administration is not automatic current-year scope, but stays available when selected',()=>{
+ const s=snapshot([12000,12000,12000,12000])
+ s.sources[1].academicYear='2026-2027'
+ s.sources.push({key:'historical',title:'Course manual',academicYear:'2025-2026'})
+ s.chunks.push({id:'e-historical',sourceKey:'historical',text:'h'.repeat(30000)})
+ const result=outline(s);result.topics[0].sourceIds=result.topics[0].sourceIds.filter(id=>id!=='e-historical')
+ assert.equal(normalizeStudyOutline(result,s,[],{academicYear:'2026-2027'}).topics.length,1)
+ assert.equal(normalizeStudyOutline(result,s).topics.length,2,'unknown edition retains conservative scope context')
+ const selected=normalizeStudyOutline(outline(s),s,[],{academicYear:'2026-2027'})
+ assert.equal(selected.topics.length,2)
+ assert.ok(selected.topics.some(t=>t.sourceIds.includes('e-historical')))
+ assert.equal(s.chunks.at(-1).text.length,30000,'original historical evidence remains intact')
+})

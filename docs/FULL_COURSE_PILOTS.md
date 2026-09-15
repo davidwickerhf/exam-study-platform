@@ -126,3 +126,13 @@ Set `STUDY_PIPELINE_PAUSE_FILE` to a private file path before starting a pilot.
 Creating that file pauses before the next paid call after preserving the current
 response; remove it before resuming. Failed or paused runs keep their isolated
 account. A full-course pass still requires every initial guide and update test.
+
+The live Blockchains regrouping reduced its first guide from 23 to 9 chapters.
+IUI initially failed the regrouping guard because old-year syllabi/announcements
+were automatically copied into every chapter: 55,800 scope characters. Automatic
+scope now uses the target edition (and conservatively retains undated scope).
+Historical originals stay in the snapshot and are included whenever explicitly
+selected as teaching evidence. IUI's automatic scope becomes 28,846 characters;
+its exact saved proposal revalidates to 16 chapters instead of 26 without another
+model call or resetting its two planning attempts. These are planning results,
+not completed-course cost or teaching-quality results.
