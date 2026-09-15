@@ -24,3 +24,16 @@ test('pilot resume preserves spending and rejects changed inputs, corrupt ledger
   await assert.rejects(readPilotLedger(path,manifest,units),SyntaxError)
  }finally{await rm(directory,{recursive:true,force:true})}
 })
+
+test('bounded pilot segments never raise the course cap and stop only at a checked checkpoint',async()=>{
+ const {pilotAttemptCap,assertPilotChapterTarget}=await import('../scripts/verification/study-pilot-ledger.mjs')
+ assert.equal(pilotAttemptCap(50,26.5,'5'),31.5)
+ assert.equal(pilotAttemptCap(50,48,'5'),50)
+ assert.equal(pilotAttemptCap(50,26.5,undefined),50)
+ for(const invalid of ['', 'NaN','-1','0'])assert.throws(()=>pilotAttemptCap(50,26.5,invalid))
+ const draft={chapters:[{review:'passed',evidenceReview:{},pedagogicalReview:{}},{review:'pending',evidenceReview:{}}]}
+ assert.doesNotThrow(()=>assertPilotChapterTarget(draft,'2'))
+ assert.throws(()=>assertPilotChapterTarget(draft,'1'),{code:'pilot_paused'})
+ assert.throws(()=>assertPilotChapterTarget(draft,'0'),/Invalid/)
+ assert.doesNotThrow(()=>assertPilotChapterTarget(draft,undefined))
+})

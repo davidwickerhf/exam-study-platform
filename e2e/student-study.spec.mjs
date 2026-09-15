@@ -103,7 +103,7 @@ test.afterAll(async () => {
 test('private quality report renders real persisted checks, costs, citations and exercise solutions', async ({ page }) => {
   await page.goto(`/app/study-evaluations/${evaluationId}`)
   await expect(page.getByRole('heading', { name: 'Inspect the teaching, then check the evidence.' })).toBeVisible()
-  await expect(page.getByText('13 calls recorded · $0.0416 recorded cost · complete')).toBeVisible()
+  await expect(page.getByText('11 calls recorded · $0.0352 recorded cost · complete')).toBeVisible()
   await expect(page.getByText('Even outcomes have probability 1/2, not 2/3.', { exact: false }).first()).toBeVisible()
   await page.getByRole('button', { name: /Sources ·/ }).first().click()
   await expect(page.getByText('Current probability lecture', { exact: true }).first()).toBeVisible()

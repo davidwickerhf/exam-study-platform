@@ -26,3 +26,18 @@ export async function assertPilotNotPaused(path){
  error.code='pilot_paused'
  throw error
 }
+
+export function pilotAttemptCap(courseCap,priorUsd,rawAllowance){
+ if(rawAllowance===undefined)return courseCap
+ const allowance=Number(rawAllowance)
+ if(!Number.isFinite(allowance)||allowance<=0)throw Error('Invalid additional pilot allowance.')
+ return Math.min(courseCap,priorUsd+allowance)
+}
+
+export function assertPilotChapterTarget(draft,rawTarget){
+ if(rawTarget===undefined)return
+ const target=Number(rawTarget)
+ if(!Number.isSafeInteger(target)||target<1)throw Error('Invalid checked-chapter pilot target.')
+ const checked=(draft?.chapters||[]).filter(c=>c.review==='passed'&&c.evidenceReview&&c.pedagogicalReview).length
+ if(checked>=target){const error=new Error(`Measured pilot checkpoint reached: ${checked} checked chapters. Course remains unfinished.`);error.code='pilot_paused';throw error}
+}

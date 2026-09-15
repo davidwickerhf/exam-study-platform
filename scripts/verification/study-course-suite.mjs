@@ -5,6 +5,7 @@ import {pilotAccounting} from './study-pilot-accounting.mjs'
 import {readFile,mkdir,open,unlink} from 'node:fs/promises'
 import {resolve,dirname} from 'node:path'
 import {spawn} from 'node:child_process'
+import {randomUUID} from 'node:crypto'
 if(process.env.DATABASE_URL)throw new Error('Course pilots require isolated local storage.')
 const manifestPath=resolve(process.argv[2]||''),manifest=JSON.parse(await readFile(manifestPath,'utf8'))
 const output=resolve(process.argv[3]||dirname(manifestPath)+'/results-'+manifest.course.courseCode)
@@ -18,6 +19,7 @@ const lock=await open(lockPath,'wx',0o600)
 await lock.writeFile(JSON.stringify({pid:process.pid,startedAt:new Date().toISOString()}))
 try{
 let ledger=await readPilotLedger(ledgerPath,manifest,units)
+ledger.isolatedUserId ||= `live-validation-${randomUUID()}`
 const covered=new Set(units.flatMap(u=>u.pilot.sources.filter(s=>!u.pilot.updateSourceKeys.includes(s.key)).map(s=>s.key)))
 if(manifest.sourceKeys.some(key=>!covered.has(key)))throw new Error('The guide bundle omits course sources.')
 const jobs=[...units.map((_,index)=>({index,phase:'initial'})),...units.flatMap((u,index)=>u.pilot.updateSourceKeys.length?[{index,phase:'update'}]:[])]
@@ -27,6 +29,7 @@ for(const {index,phase} of jobs){
  const path=output+`/guide-${index+1}-${phase}-attempt-${ledger.attempts.filter(a=>a.index===index&&(a.phase||'initial')===phase).length+1}.json`
  const env={...process.env,STUDY_PIPELINE_RUNTIME:'agents-sdk-responses',STUDY_PIPELINE_MODEL:'gpt-6-astra',STUDY_PIPELINE_MODE:'local',STUDY_PIPELINE_COURSE_FILE:units[index].path,STUDY_PIPELINE_MAX_USD:String(manifest.maximumUsd),STUDY_PIPELINE_PRIOR_USD:String(prior),STUDY_PIPELINE_OUTPUT_LIMIT:process.env.STUDY_PIPELINE_OUTPUT_LIMIT||'32000',STUDY_PIPELINE_REPORT:path}
  delete env.DATABASE_URL;delete env.STUDY_PIPELINE_RESUME_FILE;delete env.STUDY_PIPELINE_UPDATE_ONLY;delete env.STUDY_PIPELINE_DEFER_UPDATE
+ env.STUDY_PIPELINE_ISOLATED_USER_ID=ledger.isolatedUserId
  if(phase==='initial')env.STUDY_PIPELINE_DEFER_UPDATE='1'
  else if(!previous){env.STUDY_PIPELINE_UPDATE_ONLY='1';env.STUDY_PIPELINE_RESUME_FILE=ledger.units.find(u=>u.index===index&&(u.phase||'initial')==='initial'&&u.passed)?.report;if(!env.STUDY_PIPELINE_RESUME_FILE)throw Error('No completed initial guide for update.')}
  if(previous)env.STUDY_PIPELINE_RESUME_FILE=previous.report

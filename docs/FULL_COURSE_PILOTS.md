@@ -181,3 +181,34 @@ model calls were made to validate these changes. A future configured model-profi
 experiment must remain in the same cumulative course accounting; per-call model
 identity now determines measured pricing. Completed-course and live top-up results
 are still outstanding.
+
+## Fresh IUI baseline, requested 15 September
+
+A short continuation using Sol factual reviewers was stopped after three calls
+($0.310388 measured), before another call. The original IUI account and drafts
+remain intact. Cumulative prior IUI experiments now total $26.812984.
+
+A separate empty isolated account is running all nine original IUI guide groups
+from source mapping onward. No old maps, authored chapters or reviews were copied.
+Its ledger carries the prior experiments as historical cost, leaving $23.187016
+under the original cumulative $50 ceiling. Fresh baseline usage is separately
+identifiable; the experiment must not report historical costs as fresh generation
+costs, or discard them from cap enforcement.
+
+The experimental profile routes mapping, outlining, teaching plans, authoring,
+factual review and correction to `gpt-5.6-sol`, retaining `gpt-6-astra` for
+pedagogical review. It is not enabled in production. Completion, total fresh
+course cost and quality results are pending; no price-per-course claim follows
+from starting this run.
+
+The suite now retains one isolated account across its guides, allowing genuine
+within-course source-map reuse. Saved legacy attempts retain their original
+account on resume. Completed pilot accounts are retained for inspection instead
+of being deleted when a unit without a top-up finishes. Source updates still run
+only after the complete initial bundle, and initial/update costs remain separate.
+
+For bounded diagnostic segments, `STUDY_PIPELINE_ATTEMPT_MAX_USD` restricts
+additional spending without raising the course ceiling, and
+`STUDY_PIPELINE_STOP_CHECKED_CHAPTERS` pauses at a checked chapter checkpoint.
+Neither option is set for the fresh full-course run. An interrupted or capped
+run remains an incomplete full-course measurement, never a passing sample.

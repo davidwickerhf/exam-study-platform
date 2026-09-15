@@ -6,7 +6,7 @@ import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Real provider responses through hosted and local next/submit state machines.
 // Stores only isolated local validation accounts; never writes production data.
 import { readFile } from 'node:fs/promises'
-import { writePilotJson, assertPilotNotPaused } from './study-pilot-ledger.mjs'
+import { writePilotJson, assertPilotNotPaused, pilotAttemptCap, assertPilotChapterTarget } from './study-pilot-ledger.mjs'
 import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
 import { estimateStudyCall, studyModelCost, StudyBudgetError } from '../../lib/study-ai-budget.mjs'
@@ -35,6 +35,8 @@ if(!Number.isFinite(spendingCap) || spendingCap<0.05 || spendingCap>STUDY_GENERA
 report.spendingCapUsd=spendingCap
 report.priorEvaluationUsd=Number(process.env.STUDY_PIPELINE_PRIOR_USD || 0)
 if(!Number.isFinite(report.priorEvaluationUsd)||report.priorEvaluationUsd<0)throw new Error('Invalid prior pilot spending.')
+const attemptCap=pilotAttemptCap(spendingCap,report.priorEvaluationUsd,process.env.STUDY_PIPELINE_ATTEMPT_MAX_USD)
+report.attemptCapUsd=attemptCap
 if(pilot)report.coursePilot={course,initialSourceKeys:sourceKeys,updateSourceKeys:pilot.updateSourceKeys,sourceGaps:pilot.gaps||[],selection:pilot.selection||null}
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generateOnce(prompt,options){
@@ -51,8 +53,8 @@ async function generateOnce(prompt,options){
   const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,model).micros/1000000
-  if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>spendingCap){
-    report.budgetFailure={spentUsd:report.calculatedUsd,priorUsd:report.priorEvaluationUsd || 0,reservationUsd:reserved,capUsd:spendingCap}
+  if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>attemptCap){
+    report.budgetFailure={spentUsd:report.calculatedUsd,priorUsd:report.priorEvaluationUsd || 0,reservationUsd:reserved,capUsd:attemptCap}
     throw new StudyBudgetError('Live pipeline validation spending cap reached; the next full reservation would exceed the allowance.')
   }
   console.log(`Provider call ${report.calls+1}: ${call.phase}${call.chapterId?' / '+call.chapterId:''}`)
@@ -93,7 +95,9 @@ async function generate(prompt,options){
 for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELINE_MODE || mode===process.env.STUDY_PIPELINE_MODE)){
   let run={execution,phase:'initial',steps:[],passed:false};report.runs.push(run)
   const savedReport=pilot && process.env.STUDY_PIPELINE_RESUME_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8')) : null
-  report.isolatedUserId=savedReport?.isolatedUserId || `live-validation-${randomUUID()}`
+  const suiteUser=process.env.STUDY_PIPELINE_ISOLATED_USER_ID
+  if(suiteUser && !/^live-validation-[a-f0-9-]{36}$/.test(suiteUser))throw Error('Invalid isolated course account.')
+  report.isolatedUserId=savedReport?.isolatedUserId || suiteUser || `live-validation-${randomUUID()}`
   await withRequestContext({userId:report.isolatedUserId,mode:'local'},async()=>{
     let id
     try{
@@ -106,7 +110,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       report.isolatedVersionId=id
       if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
-        report.priorEvaluationUsd=(previous.priorEvaluationUsd || 0)+previous.calculatedUsd
+        report.priorEvaluationUsd=Math.max(report.priorEvaluationUsd,(previous.priorEvaluationUsd || 0)+previous.calculatedUsd)
         const savedRun=previous.runs.findLast(r=>r.execution===execution&&r.draft)
         const saved=savedRun?.draft
         if(!saved)throw new Error('No saved draft for this execution mode.')
@@ -154,6 +158,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       for(let step=0;step<500;step++){
         const before=await ownStudyVersion(id)
         run.draft=before.draft
+        if(pilot)assertPilotChapterTarget(before.draft,process.env.STUDY_PIPELINE_STOP_CHECKED_CHAPTERS)
         console.log(`${run.phase}: ${execution}: ${before.draft.stage} / ${before.draft.status}`)
         if(run.maintenance && before.draft.status!=='complete' && before.activeRevisionId!==run.maintenance.readableRevisionId)throw Error('Readable revision changed before maintenance passed.')
         if(['complete','failed','stopped'].includes(before.draft.status))break
@@ -194,7 +199,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         if(pilot.updateSourceKeys.some(key=>!report.runs[1].revision.snapshot.sources.some(s=>s.key===key)))throw Error('Updated revision omitted a newly released source.')
       }
     }catch(error){if(error.code==='pilot_paused')run.pausedAtCompletedCall=true;run.passed=false;if(!report.runs.includes(run))report.runs.push(run);run.error=error.message;if(id)run.draft=(await ownStudyVersion(id).catch(()=>null))?.draft}
-    finally{if(!pilot || (report.runs.every(r=>r.passed) && !(pilot.updateSourceKeys.length&&process.env.STUDY_PIPELINE_DEFER_UPDATE==='1')))await deleteAllDocuments()}
+    finally{if(!pilot)await deleteAllDocuments()}
   })
   await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
   console.log(`${execution}: ${run.passed?'PASS':'FAIL'} ${run.error||''}`)
