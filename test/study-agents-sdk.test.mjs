@@ -18,7 +18,7 @@ test('native Responses uses strict output caps and fresh independent contexts',a
   assert.deepEqual(JSON.parse(result.text),{ok:true});assert.equal(result.usage.inputTokens,100);assert.equal(result.usage.cachedInputTokens,40);assert.equal(result.usage.reasoningTokens,10)
  })
  assert.equal(requests.length,2)
- for(const req of requests){assert.equal(req.url,'/v1/responses');assert.equal(req.max_output_tokens,1000);assert.equal(req.store,false);assert.equal(req.text.format.strict,true);assert.deepEqual(req.text.format.schema,schema);assert.equal(req.previous_response_id,undefined)}
+ for(const req of requests){assert.equal(req.url,'/v1/responses');assert.equal(req.max_output_tokens,1000);assert.equal(req.store,false);assert.deepEqual(req.prompt_cache_options,{mode:'explicit',ttl:'30m'});assert.equal(req.text.format.strict,true);assert.deepEqual(req.text.format.schema,schema);assert.equal(req.previous_response_id,undefined)}
  assert.doesNotMatch(JSON.stringify(requests[1]),/author context/)
 })
 test('transient provider failure makes exactly one paid request',async()=>{
@@ -47,4 +47,13 @@ for(const usage of [null,{}, {input_tokens:100}, {input_tokens:'100',output_toke
  await fixture((req,res)=>{const data=response();data.usage=usage;res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data))},async options=>{
   await assert.rejects(runStudyAgentsSdk('test',options),error=>error.code==='provider_missing_usage'&&!error.usage)
  })
+})
+
+
+test('legacy models do not receive unsupported explicit cache options',async()=>{
+ let request
+ await fixture(async(req,res)=>{let body='';for await(const chunk of req)body+=chunk;request=JSON.parse(body);res.setHeader('Content-Type','application/json');res.end(JSON.stringify(response()))},async options=>{
+  await runStudyAgentsSdk('test',{...options,model:'gpt-5.4'})
+ })
+ assert.equal(request.prompt_cache_options,undefined)
 })
