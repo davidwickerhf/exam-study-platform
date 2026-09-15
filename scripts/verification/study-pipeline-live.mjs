@@ -1,9 +1,11 @@
+import { pilotAccounting } from './study-pilot-accounting.mjs'
 import { runStudyAgentsSdk } from '../../lib/study-agents-sdk.mjs'
 import { transientStudyFailure } from '../../lib/study-provider-errors.mjs'
 import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Real provider responses through hosted and local next/submit state machines.
 // Stores only isolated local validation accounts; never writes production data.
-import { writeFile, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { writePilotJson } from './study-pilot-ledger.mjs'
 import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
 import { estimateStudyCall, studyModelCost, StudyBudgetError } from '../../lib/study-ai-budget.mjs'
@@ -16,16 +18,23 @@ const {readStudySourceSnapshot}=await import('../../lib/study-version-sources.mj
 const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=await import('../../lib/study-version-store.mjs')
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
-const fixture=process.env.STUDY_PIPELINE_FIXTURE || 'probability'
-if(!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
-const {evaluationCourse:course,evaluationSources,evaluationChunks}=await import(fixture==='iot'?'./study-iot-fixture.mjs':'../../lib/study-quality-fixture.mjs')
+const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
+const fixture=pilot ? 'course:'+pilot.course.courseCode : process.env.STUDY_PIPELINE_FIXTURE || 'probability'
+if(!pilot&&!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
+if(pilot && (process.env.STUDY_PIPELINE_MODE!=='local' || !Array.isArray(pilot.updateSourceKeys)))throw new Error('Course maintenance pilots require local mode and explicit synthetic update source keys.')
+const builtIn=pilot ? null : await import(fixture==='iot'?'./study-iot-fixture.mjs':'../../lib/study-quality-fixture.mjs')
+const course=pilot?.course || builtIn.evaluationCourse
+let evaluationSources=pilot ? pilot.sources.filter(s=>!pilot.updateSourceKeys.includes(s.key)) : builtIn.evaluationSources.map(s=>({...s,pages:builtIn.evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))
 const sourceKeys=evaluationSources.map(source=>source.key)
-const sourceOptions={editorialSources:async()=>evaluationSources.map(s=>({...s,pages:evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))}
+const sourceOptions={editorialSources:async()=>evaluationSources}
 const {STUDY_STANDARD}=await import('../../lib/study-version-content.mjs')
 const report={runtime:process.env.STUDY_PIPELINE_RUNTIME || 'chat-completions',fixture,callDetails:[],contract:STUDY_STANDARD,model:process.env.STUDY_PIPELINE_MODEL || 'gpt-5-mini',calls:0,calculatedUsd:0,runs:[],limitation:'Live provider plus real state machines in isolated local storage. Queue delivery, database isolation and browser behavior are validated separately.'}
 const spendingCap=Number(process.env.STUDY_PIPELINE_MAX_USD || STUDY_GENERATION_LIMITS.defaultJobUsd)
 if(!Number.isFinite(spendingCap) || spendingCap<0.05 || spendingCap>STUDY_GENERATION_LIMITS.maxJobUsd)throw new Error('Choose a validation spending cap between $0.05 and $50.')
 report.spendingCapUsd=spendingCap
+report.priorEvaluationUsd=Number(process.env.STUDY_PIPELINE_PRIOR_USD || 0)
+if(!Number.isFinite(report.priorEvaluationUsd)||report.priorEvaluationUsd<0)throw new Error('Invalid prior pilot spending.')
+if(pilot)report.coursePilot={course,initialSourceKeys:sourceKeys,updateSourceKeys:pilot.updateSourceKeys,sourceGaps:pilot.gaps||[],selection:pilot.selection||null}
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generateOnce(prompt,options){
   if(process.env.STUDY_PIPELINE_OUTPUT_LIMIT){
@@ -35,7 +44,7 @@ async function generateOnce(prompt,options){
     report.pilotOutputLimit=limit
   }
   const started=Date.now()
-  const call={chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  const call={experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>spendingCap){
@@ -45,6 +54,9 @@ async function generateOnce(prompt,options){
   console.log(`Provider call ${report.calls+1}: ${call.phase}${call.chapterId?' / '+call.chapterId:''}`)
   report.calculatedUsd+=reserved
   report.calls++
+  call.reservationUsd=reserved
+  // Persist an unresolved reservation before making a potentially interrupted call.
+  await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
   if(report.runtime==='agents-sdk-responses') {
     let usage
     try {
@@ -75,18 +87,29 @@ async function generate(prompt,options){
   }
 }
 for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELINE_MODE || mode===process.env.STUDY_PIPELINE_MODE)){
-  const run={execution,steps:[],passed:false};report.runs.push(run)
-  await withRequestContext({userId:`live-validation-${randomUUID()}`,mode:'local'},async()=>{
+  let run={execution,phase:'initial',steps:[],passed:false};report.runs.push(run)
+  const savedReport=pilot && process.env.STUDY_PIPELINE_RESUME_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8')) : null
+  report.isolatedUserId=savedReport?.isolatedUserId || `live-validation-${randomUUID()}`
+  await withRequestContext({userId:report.isolatedUserId,mode:'local'},async()=>{
     let id
     try{
-      if(execution==='hosted'){
+      if(savedReport?.isolatedVersionId){
+        id=savedReport.isolatedVersionId
+      }else if(execution==='hosted'){
         const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true})
         id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
-      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,title:'Isolated live validation'},sourceOptions)).version.id
-      if(process.env.STUDY_PIPELINE_RESUME_FILE) {
+      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
+      report.isolatedVersionId=id
+      if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
         report.priorEvaluationUsd=(previous.priorEvaluationUsd || 0)+previous.calculatedUsd
-        const saved=previous.runs.find(r=>r.execution===execution)?.draft
+        const savedRun=previous.runs.findLast(r=>r.execution===execution&&r.draft)
+        const saved=savedRun?.draft
+        if(!saved)throw new Error('No saved draft for this execution mode.')
+        if(savedReport){
+          evaluationSources=savedRun.phase==='update'?pilot.sources:evaluationSources
+          run={...savedRun,steps:[...savedRun.steps],passed:false};report.runs=[...previous.runs.filter(r=>r.passed),run]
+        }
         if(!saved)throw new Error('No saved draft for this execution mode.')
         await mutateStudyVersion(id,version=>{
           version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}
@@ -110,9 +133,19 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         }
         run.resumedFrom=process.env.STUDY_PIPELINE_RESUME_FILE
       }
-      for(let step=0;step<180;step++){
+      if(pilot && savedReport && process.env.STUDY_PIPELINE_UPDATE_ONLY==='1'){
+        if(!savedReport.runs.every(r=>r.passed))throw Error('Finish initial generation before the update experiment.')
+        report.runs=[...savedReport.runs]
+        const {queuePilotMaintenance}=await import('./study-pilot-maintenance.mjs')
+        const maintenance=await queuePilotMaintenance(id,pilot,sourceOptions,async()=>{evaluationSources=pilot.sources})
+        run={execution,phase:'update',steps:[],passed:false,maintenance,initialRevisionId:savedReport.runs[0].revision.id};report.runs.push(run)
+      }
+      for(let cycle=run.phase==='update'?1:0;cycle<(pilot?.updateSourceKeys.length&&process.env.STUDY_PIPELINE_DEFER_UPDATE!=='1'?2:1);cycle++){
+      for(let step=0;step<500;step++){
         const before=await ownStudyVersion(id)
-        console.log(`${execution}: ${before.draft.stage} / ${before.draft.status}`)
+        run.draft=before.draft
+        console.log(`${run.phase}: ${execution}: ${before.draft.stage} / ${before.draft.status}`)
+        if(run.maintenance && before.draft.status!=='complete' && before.activeRevisionId!==run.maintenance.readableRevisionId)throw Error('Readable revision changed before maintenance passed.')
         if(['complete','failed','stopped'].includes(before.draft.status))break
         if(before.draft.runAfter>Date.now()){await new Promise(resolve=>setTimeout(resolve,Math.min(60000,before.draft.runAfter-Date.now())));step--;continue}
         if(execution==='hosted')await processStudyStep(id,{sourceOptions,generate})
@@ -130,17 +163,30 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         // Keep a resumable checkpoint even if the evaluation process is interrupted.
         run.draft=after.draft
         run.steps.push({stage:before.draft.stage,status:after.draft.status,error:after.draft.error,issues:after.draft.issues})
-        await writeFile(artifact,JSON.stringify(report,null,2))
+        await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
       }
       const version=await ownStudyVersion(id)
       run.status=version.draft.status;run.error=version.draft.error;run.issues=version.draft.issues
       run.revision=await studyRevision(version);run.passed=run.status==='complete' && !!run.revision
       if(!run.passed)run.draft=version.draft
       else delete run.draft
-    }catch(error){run.error=error.message;if(id)run.draft=(await ownStudyVersion(id).catch(()=>null))?.draft}
-    finally{await deleteAllDocuments()}
+      if(cycle===0 && pilot?.updateSourceKeys.length && process.env.STUDY_PIPELINE_DEFER_UPDATE!=='1' && run.passed){
+        const initial=run
+        const {queuePilotMaintenance}=await import('./study-pilot-maintenance.mjs')
+        const maintenance=await queuePilotMaintenance(id,pilot,sourceOptions,async()=>{evaluationSources=pilot.sources})
+        run={execution,phase:'update',steps:[],passed:false,maintenance,initialRevisionId:initial.revision.id};report.runs.push(run)
+        await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
+      }else break
+      }
+      if(pilot && report.runs.length===2 && report.runs.every(r=>r.passed)){
+        const {pilotReuse}=await import('./study-pilot-maintenance.mjs')
+        report.reuse=pilotReuse(report.runs[0].revision,report.runs[1].revision)
+        if(pilot.updateSourceKeys.some(key=>!report.runs[1].revision.snapshot.sources.some(s=>s.key===key)))throw Error('Updated revision omitted a newly released source.')
+      }
+    }catch(error){run.passed=false;if(!report.runs.includes(run))report.runs.push(run);run.error=error.message;if(id)run.draft=(await ownStudyVersion(id).catch(()=>null))?.draft}
+    finally{if(!pilot || (report.runs.every(r=>r.passed) && !(pilot.updateSourceKeys.length&&process.env.STUDY_PIPELINE_DEFER_UPDATE==='1')))await deleteAllDocuments()}
   })
-  await writeFile(artifact,JSON.stringify(report,null,2))
+  await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
   console.log(`${execution}: ${run.passed?'PASS':'FAIL'} ${run.error||''}`)
 }
 console.log(JSON.stringify({calls:report.calls,calculatedUsd:report.calculatedUsd,runs:report.runs.map(({execution,passed,status,error})=>({execution,passed,status,error}))},null,2))

@@ -113,3 +113,22 @@ with zipfile.ZipFile(sys.argv[2],'w') as z:
     assert.equal(limited.status,'failed');assert.match(limited.error,/safe expansion limits/)
   } finally {await rm(root,{recursive:true,force:true})}
 })
+
+
+test('archive build caches do not consume teaching context while authored scripts remain',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'archive-teaching-context-'))
+ try {
+  const path=join(root,'lab.zip')
+  await exec('python3',['-c',`import zipfile,sys
+with zipfile.ZipFile(sys.argv[1],'w') as z:
+ z.writestr('VR/.utmp/arm64/CMakeCache.txt','GENERATED_CACHE_CONTENT')
+ z.writestr('VR/node_modules/library/index.js','INSTALLED_DEPENDENCY_CONTENT')
+ z.writestr('VR/Assets/Scripts/CleaningTask.cs','Authored lab task: count touched targets.')
+ z.writestr('VR/README.md','Study the CleaningTask script.')`,path])
+  const result=await extracted(await readFile(path),'lab.zip')
+  assert.equal(result.status,'complete')
+  assert.match(result.text,/Authored lab task/);assert.match(result.text,/Study the CleaningTask/)
+  assert.match(result.text,/2 build-cache, version-control or installed-dependency members/)
+  assert.doesNotMatch(result.text,/GENERATED_CACHE_CONTENT|INSTALLED_DEPENDENCY_CONTENT/)
+ }finally{await rm(root,{recursive:true,force:true})}
+})

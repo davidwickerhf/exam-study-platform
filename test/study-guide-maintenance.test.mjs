@@ -11,7 +11,7 @@ import {reconcileModuleGuides,moduleGuideStatus} from '../lib/study-module-autom
 import {saveRecurringPolicy,automaticGuideAllowed,recurringStatus} from '../lib/study-recurring-policy.mjs'
 const course={courseCode:'AI101',courseName:'AI',academicYear:'2026-2027',period:'1'}
 async function fixture(fn){await withRequestContext({userId:'maintenance-'+randomUUID(),mode:'local'},async()=>{try{
- const data=[{key:'slide',title:'Lecture',academicYear:course.academicYear,period:'1',bindingId:'binding',locations:[{moduleId:'one'}],sha256:'one',pages:[{page:1,text:'Current course explanation.'}]}],sourceOptions={editorialSources:async()=>data}
+ const data=[{key:'slide',sourcePath:'slides.pdf',title:'Lecture',academicYear:course.academicYear,period:'1',bindingId:'binding',locations:[{moduleId:'one'}],sha256:'one',pages:[{page:1,text:'Current course explanation.'}]}],sourceOptions={editorialSources:async()=>data}
  await writeDocument('canvas-module-inventories','binding',{bindingId:'binding',course,modules:[{id:'one',name:'AI',items:1}]})
  const snapshot=await readStudySourceSnapshot(course,['slide'],sourceOptions),version=await createStudyVersion(course,await activeProgrammeId(),snapshot,{execution:'local',title:'Existing manual guide'})
  const draft={...version.draft,status:'complete',chapters:[],topics:[]};await saveStudyRevision(version,draft)
@@ -94,4 +94,15 @@ test('material moved out of an enrolled module cannot start a source revision',(
  assert.deepEqual((await ownStudyVersion(version.id)).draft,version.draft)
  const event=(await readDocument('study-module-settings',key,null)).events[0].maintenance[0]
  assert.equal(event.status,'needs-attention');assert.match(event.message,/left its enrolled/)
+}))
+
+
+test('course pilot exercises no-change and added-material scheduler without touching the readable revision',()=>fixture(async({version,data})=>{
+ const {queuePilotMaintenance}=await import('../scripts/verification/study-pilot-maintenance.mjs')
+ const added={...data[0],key:'pilot-added',sourcePath:'new.pdf',sha256:'new',pages:[{page:1,text:'New learning example.'}]}
+ let visible=data
+ const pilot={course,sources:[...data,added],updateSourceKeys:[added.key]}
+ const result=await queuePilotMaintenance(version.id,pilot,{editorialSources:async()=>visible},async()=>{visible=pilot.sources})
+ assert.equal(result.noChangePassed,true);assert.equal(result.readableRevisionId,version.activeRevisionId)
+ assert.equal((await ownStudyVersion(version.id)).draft.execution,'local')
 }))
