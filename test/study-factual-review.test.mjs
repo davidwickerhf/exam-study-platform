@@ -432,3 +432,23 @@ test('an explicitly located objective repair cannot rewrite other objectives',as
  const broad=questionRepairStep(course,[],evidence,draft,[issue,{severity:'error',itemKey:'scope',detail:'The remaining objectives also overstate source support.'}])
  assert.equal(Object.keys(broad.schema.shape.scope.shape.objectives.shape).length,draft.teachingPlan.objectives.length)
 })
+
+
+test('objective-level findings select coherent teaching and practice instead of losing their location',async()=>{
+ const {questionRepairStep,locateReviewIssues}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter(),id=draft.teachingPlan.objectives[0].id
+ const original={topicId:id,severity:'error',detail:'The definition and follow-up disagree.'}
+ draft.pedagogicalReview={issues:[original]}
+ const issue={...original,topicId:draft.id}
+ assert.equal(locateReviewIssues(draft,[issue])[0].itemKey,`objective:${id}`)
+ assert.equal(questionRepairStep(course,[],evidence,draft,[issue]),null,'large objective retains broad fallback')
+ draft.questions.forEach((q,index)=>{q.objectiveIds=[index<2?id:draft.teachingPlan.objectives[1].id]})
+ draft.sections.forEach((section,index)=>{section.objectiveIds=[index<2?id:draft.teachingPlan.objectives[1].id]})
+ const step=questionRepairStep(course,[],evidence,draft,[issue])
+ assert.ok(step?.parts)
+ const keys=step.parts.flatMap(part=>part.keys||[]),sections=step.parts.flatMap(part=>part.sectionIds||[])
+ for(const q of draft.questions.filter(q=>q.objectiveIds.includes(id)))assert.ok(keys.includes(q.key))
+ for(const section of draft.sections.filter(s=>s.objectiveIds.includes(id)))assert.ok(sections.includes(section.id))
+ assert.equal(locateReviewIssues(draft,[{...original,topicId:'unknown'}])[0].itemKey,`objective:${id}`)
+ assert.equal(locateReviewIssues(draft,[{...issue,detail:'An unrelated issue.'}])[0].itemKey,undefined)
+})

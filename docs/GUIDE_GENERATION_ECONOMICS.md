@@ -227,3 +227,12 @@ separate from `complete`; planned guides and missing top-up tests never count as
 finished output. Inspect all guide outlines and overlapping responsibilities before
 resuming without the flag. Planning-only mode rejects correction/recheck/update
 flags to avoid accidentally changing authored work during a planning audit.
+
+A subsequent five-call correction cost $1.108752 and passed its factual checks,
+but teaching review found that the revised immersive-interface criterion no longer
+matched a linked remediation prompt. Cumulative IUI spending reached $37.214936;
+there was still no accepted chapter. Objective-level reviewer locations now select
+the objective's teaching and practice together, within the existing bounded patch
+limits. Large or unlocated findings still require a broader correction. Saved
+review locations, severities and actual findings are retained rather than guessed
+from similar wording.
