@@ -144,7 +144,12 @@ They demonstrate that input trimming alone will not solve the course economics.
 ### Phase-specific model routing, disabled by default
 
 An operator can configure `STUDY_MODEL_ROUTES` as a versioned JSON profile:
-`{"version":1,"routes":{"source-mapping":"gpt-5-mini"}}`.
+`{"version":1,"routes":{"source-mapping":"gpt-5-mini"}}`. A route value may also
+be an object that additionally selects the phase's reasoning effort:
+`{"source-mapping":{"model":"gpt-5-mini","reasoning":"low"}}`. Only the efforts
+the OpenAI provider layer accepts (`minimal`, `low`, `medium`, `high`) are
+allowed; anything else fails before a provider call, and the effective effort
+actually sent is recorded in the route metadata.
 This is configuration syntax, not an evaluated model recommendation. Allowed
 phases are `source-mapping`, `course-outline`, `teaching-plan`, `authoring`,
 `factual-review`, `pedagogical-review` and `correction`.

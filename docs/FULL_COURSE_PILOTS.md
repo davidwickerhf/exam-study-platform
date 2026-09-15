@@ -265,3 +265,28 @@ identical draft and version ID. It reported `planned=true`, `passed=false`; the
 next guide stopped at the pause boundary before a provider call. The full bundle
 and top-up remain incomplete. This is resume/control validation, not a quality
 pass or an affordable-course claim.
+
+### Mapping output-limit behaviour (whole-course bundle attempt)
+
+The whole-course bundle attempt made four `source-mapping` calls on `gpt-5-mini`
+at medium effort under a 10,000-token output cap (the pilot ceiling was 32,000;
+mapping asks for 10,000). Three maps were accepted with 5,952 / 4,736 / 5,888
+reasoning tokens and only 1,815 / 1,442 / 1,204 visible output tokens. The fourth
+call spent all 9,984 tokens on reasoning, returned nothing and settled as
+`provider_output_limit`. The cap was never tight for the visible map: accepted
+maps are 3.8-6.4 KB of JSON, 4-5 concepts and 11-31 citation entries. It was
+tight for reasoning, which varied by more than a thousand tokens between calls.
+
+Mapping therefore gets the same bounded recovery the factual review already has:
+an output limit halves that one batch, at most twice, and the split is recorded
+in the persisted batch list so a resumed run repeats the same boundaries. Accepted
+maps and their citations are kept, batches stay identified by content, each
+recovery reserves and settles on its own, and no model, effort or cap is raised
+automatically. The 36,000-character mapping batch size is unchanged; four calls
+are not evidence for a better bound. Note that 17 of the 71 planned batches hold
+more than 48 evidence passages (up to 79), and the largest batch in this attempt
+was also the one that exhausted its reasoning budget.
+
+`STUDY_MODEL_ROUTES` / `STUDY_PIPELINE_MODEL_ROUTES` can now also set a phase's
+reasoning effort, so a cheaper mapping effort can be measured without changing
+the model or raising any price. No profile is enabled by default.
