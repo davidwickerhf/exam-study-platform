@@ -299,3 +299,50 @@ test('a bounded correction includes an already located teaching warning without 
  assert.ok(repair.parts?.some(p=>p.sectionIds?.includes(draft.sections[0].id)))
  assert.equal(issues[1].severity,'warning')
 })
+
+
+test('chapter-scale factual batches retain every verdict and bound the transmitted answer payload',()=>{
+  const draft=chapter(),base=structuredClone(draft.questions[0])
+  draft.questions=Array.from({length:32},(_,i)=>({...structuredClone(base),key:`question-${i+1}`}))
+  let steps=0
+  for(let step;(step=nextFactualReview(course,[],evidence,draft));){
+    if(step.kind==='solve'||step.kind==='answers')assert.equal(step.keys.length,32)
+    acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current']));steps++
+  }
+  assert.equal(steps,3)
+  assert.deepEqual(factualAuditIssues(draft),[])
+  // Large author answers must not shrink a blind packet; they do bound comparison.
+  delete draft.factualAudit
+  for(const q of draft.questions)q.answer='x'.repeat(10000)
+  const blind=nextFactualReview(course,[],evidence,draft)
+  assert.equal(blind.keys.length,32)
+  acceptFactualReview(draft,blind,teachingResponse(blind.prompt,['e-current']))
+  const comparison=nextFactualReview(course,[],evidence,draft)
+  assert.ok(comparison.keys.length<32)
+  assert.ok(comparison.prompt.split('Review payload: ')[1].length<=48000)
+})
+
+test('chapter-scale solver splits at its item bound without dropping questions',()=>{
+  const draft=chapter(),base=structuredClone(draft.questions[0])
+  draft.questions=Array.from({length:49},(_,i)=>({...structuredClone(base),key:`question-${i+1}`}))
+  const first=nextFactualReview(course,[],evidence,draft)
+  assert.equal(first.keys.length,48)
+  acceptFactualReview(draft,first,teachingResponse(first.prompt,['e-current']))
+  const second=nextFactualReview(course,[],evidence,draft)
+  assert.equal(second.kind,'solve');assert.deepEqual(second.keys,['question-49'])
+})
+
+
+test('teaching review includes eight coherent objectives and rejects missing objective verdicts',async()=>{
+  const {nextPedagogicalReview,acceptPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
+  const draft=chapter(),base=draft.teachingPlan.objectives[0]
+  draft.teachingPlan.objectives=Array.from({length:8},(_,i)=>({...structuredClone(base),id:`objective-${i+1}`}))
+  draft.objectiveCoverage=draft.teachingPlan.objectives.map(o=>({...structuredClone(draft.objectiveCoverage[0]),objectiveId:o.id}))
+  const step=nextPedagogicalReview('Source context',draft)
+  assert.equal(step.objectiveIds.length,8)
+  assert.equal(step.responseSchema.properties.objectives.maxItems,8)
+  const response=teachingResponse(step.prompt,['e-current'])
+  response.objectives.pop()
+  assert.throws(()=>acceptPedagogicalReview(draft,step,response),/every requested teaching objective/)
+  assert.equal(draft.pedagogyAudit,undefined)
+})
