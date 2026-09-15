@@ -124,6 +124,16 @@ attempts are allowed, with a rejected proposal supplied to its correction. These
 calls count against the same course ledger. This is an experiment continuation
 helper, not a new production control or a reset of the generation budget.
 
+The first live whole-course bundle run accepted all 71 source-mapping batches and
+then lost the run on one outline call that omitted two mapped concepts, because
+the bundle outline had no correction loop. The outline stage now feeds a rejected
+proposal and its exact issues back into the same `course-outline` phase, at most
+twice per outline, counted in the draft's persisted automatic-correction ledger
+so a pilot resume continues that bound instead of resetting it. A `stage: outline,
+status: failed` draft therefore resumes into the correction path with its maps
+intact, and an exhausted bound fails with the same error without buying another
+proposal.
+
 Set `STUDY_PIPELINE_PAUSE_FILE` to a private file path before starting a pilot.
 Creating that file pauses before the next paid call after preserving the current
 response; remove it before resuming. Failed or paused runs keep their isolated
@@ -265,3 +275,49 @@ identical draft and version ID. It reported `planned=true`, `passed=false`; the
 next guide stopped at the pause boundary before a provider call. The full bundle
 and top-up remain incomplete. This is resume/control validation, not a quality
 pass or an affordable-course claim.
+
+### Mapping output-limit behaviour (whole-course bundle attempt)
+
+The whole-course bundle attempt made four `source-mapping` calls on `gpt-5-mini`
+at medium effort under a 10,000-token output cap (the pilot ceiling was 32,000;
+mapping asks for 10,000). Three maps were accepted with 5,952 / 4,736 / 5,888
+reasoning tokens and only 1,815 / 1,442 / 1,204 visible output tokens. The fourth
+call spent all 9,984 tokens on reasoning, returned nothing and settled as
+`provider_output_limit`. The cap was never tight for the visible map: accepted
+maps are 3.8-6.4 KB of JSON, 4-5 concepts and 11-31 citation entries. It was
+tight for reasoning, which varied by more than a thousand tokens between calls.
+
+Mapping therefore gets the same bounded recovery the factual review already has:
+an output limit halves that one batch, at most twice, and the split is recorded
+in the persisted batch list so a resumed run repeats the same boundaries. Accepted
+maps and their citations are kept, batches stay identified by content, each
+recovery reserves and settles on its own, and no model, effort or cap is raised
+automatically. The 36,000-character mapping batch size is unchanged; four calls
+are not evidence for a better bound. Note that 17 of the 71 planned batches hold
+more than 48 evidence passages (up to 79), and the largest batch in this attempt
+was also the one that exhausted its reasoning budget.
+
+`STUDY_MODEL_ROUTES` / `STUDY_PIPELINE_MODEL_ROUTES` can now also set a phase's
+reasoning effort, so a cheaper mapping effort can be measured without changing
+the model or raising any price. No profile is enabled by default.
+
+### Hosted parity and course top-up coverage
+
+The bundle is now exercised in both execution modes without a provider. A hosted
+suite drives `processStudyStep` with mocked responses through mapping (including
+one `provider_output_limit` recovery), the bundle outline, chapters and the
+fenced publication: it asserts that guides are staged invisibly, that no guide is
+ever listed, claimed or discoverable as hosted work, that a half-finished
+publication converges on retry with the same identities, and that every call
+reserves against the parent course run's single job key and chapter allowance.
+`study-pipeline-live.mjs` now passes the bundle flag in its hosted creation
+branch too, and a run only passes when every derived guide is itself published,
+complete and non-empty.
+
+A second suite covers the top-up: republishing a course keeps surviving guide
+identities, keeps the previous guides readable until the replacement passes,
+adopts new guides and archives dropped ones instead of deleting them; a local
+course run refreshed with an added source reuses unchanged chapters, stays local
+and keeps its guides out of the hosted queue. Maintenance is enrolled on the
+course run, never on a managed guide, and a withheld source that arrives later
+is processed through the parent.

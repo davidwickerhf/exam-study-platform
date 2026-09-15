@@ -17,7 +17,7 @@ if(!key || key==='[SENSITIVE]')throw new Error('A usable OPENAI_API_KEY is requi
 const {withRequestContext}=await import('../../lib/request-context.mjs')
 const {deleteAllDocuments}=await import('../../lib/user-store.mjs')
 const {readStudySourceSnapshot}=await import('../../lib/study-version-sources.mjs')
-const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=await import('../../lib/study-version-store.mjs')
+const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion,listCourseBundleChildren}=await import('../../lib/study-version-store.mjs')
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
@@ -52,8 +52,10 @@ async function generateOnce(prompt,options){
   }
   const route=routeStudyModel({source:'platform',provider:'openai',model:report.model},{...options,generationRuntime:report.runtime},process.env.STUDY_PIPELINE_MODEL_ROUTES)
   const model=route?.model || report.model
+  // A route may also set the phase's reasoning effort; record the effective one.
+  const reasoningEffort=route?.reasoningEffort || options.reasoningEffort || 'medium'
   const started=Date.now()
-  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort,phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>attemptCap){
@@ -69,7 +71,7 @@ async function generateOnce(prompt,options){
   if(report.runtime==='agents-sdk-responses') {
     let usage
     try {
-      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model,reasoningEffort:options.reasoningEffort || 'medium'})
+      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model,reasoningEffort})
       usage=result.usage
       return result.text
     } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name,providerStatus:error.providerStatus,providerRequestId:error.providerRequestId};throw error}
@@ -78,7 +80,7 @@ async function generateOnce(prompt,options){
       if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,usage.inputTokens,usage.outputTokens,usage)/1000000}
     }
   }
-  const response=await providerFetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),},options.providerTimeoutMs || 600000).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500),causeCode:error.cause?.code});throw error})
+  const response=await providerFetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:reasoningEffort,messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),},options.providerTimeoutMs || 600000).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500),causeCode:error.cause?.code});throw error})
   if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});const error=new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`);error.retryable=response.status>=500;throw error}
   const result=await response.json();call.elapsedMs=Date.now()-started;call.usage=result.usage;call.finishReason=result.choices?.[0]?.finish_reason;if(!Number.isSafeInteger(result.usage?.prompt_tokens)||result.usage.prompt_tokens<0||!Number.isSafeInteger(result.usage?.completion_tokens)||result.usage.completion_tokens<0){const error=new Error('Provider omitted valid input/output usage; reservation remains held.');error.code='provider_missing_usage';throw error}report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
   if(result.choices?.[0]?.finish_reason==='length'){report.providerFailures ||= [];report.providerFailures.push({name:'OutputLimit',maxOutputTokens:options.maxOutputTokens});throw new Error('Provider output budget exhausted before a complete correction was returned.')}
@@ -107,9 +109,12 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       if(savedReport?.isolatedVersionId){
         id=savedReport.isolatedVersionId
       }else if(execution==='hosted'){
-        const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true})
-        id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
-      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
+        // Both execution modes must plan the same course: a bundle pilot that
+        // silently became a single hosted guide would not be hosted parity.
+        const courseBundle=pilot?.courseBundle===true
+        const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true,courseBundle})
+        id=(await createStudyVersion(course,'default',snapshot,{execution,courseBundle,title:pilot?.title || 'Isolated live validation',billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
+      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,courseBundle:pilot?.courseBundle===true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
       report.isolatedVersionId=id
       if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
@@ -187,6 +192,25 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       const version=await ownStudyVersion(id)
       run.status=version.draft.status;run.error=version.draft.error;run.issues=version.draft.issues
       run.revision=await studyRevision(version);run.passed=run.status==='complete' && !!run.revision
+      // A completed course run is not a completed course: every derived guide
+      // must itself be readable, complete and non-empty before this run passes.
+      if(version.courseBundle){
+        const published=version.bundleGuides || []
+        run.guides=[]
+        for(const guide of published){
+          const child=await ownStudyVersion(guide.id).catch(()=>null)
+          const childRevision=child ? await studyRevision(child).catch(()=>null) : null
+          run.guides.push({versionId:guide.id,guideId:guide.guideId||child?.courseBundleParent?.guideId||null,title:child?.title||guide.title,
+            status:child?.draft?.status || 'missing',state:child?.courseBundleParent?.state || null,activeRevisionId:child?.activeRevisionId||null,chapters:childRevision?.chapters.length||0})
+        }
+        const derived=(await listCourseBundleChildren(id)).filter(v=>v.courseBundleParent?.state!=='archived')
+        const complete=run.guides.filter(g=>g.status==='complete' && g.state==='published' && g.activeRevisionId && g.guideId && g.chapters>0)
+        run.bundle={plannedGuides:version.draft.guides?.length||published.length,publishedGuides:published.length,derivedGuides:derived.length,completeGuides:complete.length,publication:version.bundlePublication||null}
+        if(run.passed && (!published.length || complete.length!==published.length || derived.length!==published.length)){
+          run.passed=false
+          run.error=run.error || `Course bundle published ${complete.length} complete guides of ${published.length} (${derived.length} derived documents).`
+        }
+      }
       if(!run.passed)run.draft=version.draft
       else delete run.draft
       if(cycle===0 && pilot?.updateSourceKeys.length && process.env.STUDY_PIPELINE_DEFER_UPDATE!=='1' && run.passed){

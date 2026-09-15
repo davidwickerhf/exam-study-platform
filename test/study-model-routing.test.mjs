@@ -21,11 +21,25 @@ test('unpriced models, provider changes, malformed routes and price escalation f
  for(const p of ['not-json',{version:1,routes:{typo:'gpt-5-mini'}},{version:1,routes:{'source-mapping':'unknown'}},{version:1,routes:{'source-mapping':'claude-sonnet-4-5'}}])assert.throws(()=>routeStudyModel(billing,options,p))
  assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},options,{version:1,routes:{'source-mapping':'gpt-6-astra'}}),/cannot increase/)
 })
+test('a route may set a supported reasoning effort without changing the model or raising price',()=>{
+ const effort={version:1,routes:{'source-mapping':{model:'gpt-5-mini',reasoning:'low'}}}
+ assert.deepEqual(routeStudyModel(billing,options,effort),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'source-mapping',policyVersion:1,reasoningEffort:'low'})
+ assert.deepEqual(routeStudyModel(billing,options,{version:1,routes:{'source-mapping':{model:'gpt-5-mini'}}}),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'source-mapping',policyVersion:1})
+ // Same model, lower effort only: still routed so the effort is recorded.
+ assert.deepEqual(routeStudyModel({...billing,model:'gpt-5-mini'},options,effort),{model:'gpt-5-mini',baseModel:'gpt-5-mini',phase:'source-mapping',policyVersion:1,reasoningEffort:'low'})
+ // Astra has no minimal effort; the provider layer's supported value is recorded.
+ assert.equal(routeStudyModel(billing,options,{version:1,routes:{'source-mapping':{model:'gpt-6-astra',reasoning:'minimal'}}}).reasoningEffort,'low')
+ for(const route of [{model:'gpt-5-mini',reasoning:'exhaustive'},{model:'gpt-5-mini',reasoning:'MEDIUM'},{model:'gpt-5-mini',reasoning:true},{model:'gpt-5-mini',effort:'low'},{reasoning:'low'},['gpt-5-mini']])
+  assert.throws(()=>routeStudyModel(billing,options,{version:1,routes:{'source-mapping':route}}))
+ assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},options,{version:1,routes:{'source-mapping':{model:'gpt-6-astra',reasoning:'low'}}}),/cannot increase/)
+})
 test('routed call reserves and settles the actual model; exhausted caps still prevent calls',async()=>{
  await withRequestContext({userId:'route-'+randomUUID(),mode:'local'},async()=>{try{
   let called=0;const jobKey='test-route-'+randomUUID();const usage={inputTokens:100,outputTokens:20,estimated:false,cachedInputTokens:0,cacheWriteInputTokens:0}
   const callPlatform=async(prompt,opts)=>{called++;assert.equal(opts.model,'gpt-5-mini');assert.equal(opts.billing.model,'gpt-5-mini');assert.equal(opts.usageMetadata.modelRoute.baseModel,'gpt-6-astra');return {text:'result',usage}}
   assert.equal(await runBudgetedStudyCall('test',options,{billing,jobKey,callPlatform,modelRouting:policy}),'result')
+  const withEffort=async(prompt,opts)=>{assert.equal(opts.reasoningEffort,'low');assert.equal(opts.usageMetadata.modelRoute.reasoningEffort,'low');return {text:'result',usage}}
+  assert.equal(await runBudgetedStudyCall('test',options,{billing,jobKey:'effort-route-'+randomUUID(),callPlatform:withEffort,modelRouting:{version:1,routes:{'source-mapping':{model:'gpt-5-mini',reasoning:'low'}}}}),'result')
   await assert.rejects(()=>runBudgetedStudyCall('test',options,{billing:{...billing,maxJobUsd:0.000001},jobKey:'blocked-route',callPlatform,modelRouting:policy}))
   assert.equal(called,1)
   await withRequestContext({userId:'wicker-study-platform-budget',mode:'study-budget'},async()=>{

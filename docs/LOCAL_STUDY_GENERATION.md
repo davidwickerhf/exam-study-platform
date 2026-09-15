@@ -13,3 +13,10 @@ Local drafts use `local-ready`, `local-running`, and `waiting-local` statuses. H
 Prepare/submit are owner and programme scoped, require write access, and recheck source availability. Mutation leases fence concurrent steps, pause, refresh and expired workers. Exact repeated submissions return saved receipts; changed responses under the same request ID are rejected. The request ID and contract are checked again inside the atomic claim. Receipts are bounded to 240; beyond that, old replays remain stale rather than creating work. Nothing automatically shares or publishes a guide.
 
 Verification: unit tests exercise a complete local run, repeated submissions, stale contracts, ownership/source revocation, schema/citation/teaching rejection, correction prompts, hosted-worker exclusion and billing separation. Stdio MCP tests verify the exported tools and required fields. Browser tests start local generation through the real HTTP API and confirm the resumable reader state without a billing request. Model-generated content quality still depends on the local model and honest semantic review; synthetic fixtures do not prove real-model outcomes.
+
+`study_generation_start` also accepts `courseBundle:true` to plan the whole selected
+course once and split it into several managed guides staged and published together
+under one run, instead of one guide per start. The local next/submit loop and its
+checks are unchanged; a bundle just addresses a shared plan and several child guides
+across its steps. See [Student study versions](design/student-study-versions.md#whole-course-bundles-and-managed-guides)
+for the managed-guide read-only contract and fork route.
