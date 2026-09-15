@@ -39,7 +39,7 @@ import {
   selectStudyPublication
 } from '../lib/study-version-sharing.mjs'
 import {
-  mapSchema,
+  mapSchema, outlineSchema,
   lessonSchema,
   teachingSchema, teachingResponseSchema,
   reviewSchema,
@@ -117,10 +117,17 @@ async function finish(f, { reviewIssues = [] } = {}) {
   const generate = async (prompt, options) => {
     calls++
     if(prompt.includes('Review payload: '))return teachingResponse(prompt, f.snapshot.chunks.map(c=>c.id),{reviewIssues})
+    if(prompt.includes('Mapped concepts: ')){
+      const mapped=JSON.parse(prompt.split('Mapped concepts: ')[1].split('\nSource gaps:')[0]);assert.deepEqual(options.responseSchema,studyResponseSchema(outlineSchema));return {topics:[{id:'addition',title:'Addition',topicRefs:mapped.map(t=>t.ref)}],gaps:[]}
+    }
     const expected = prompt.includes('PLAN THE TEACHING') ? teachingPlanSchema : prompt.includes('INDEPENDENT PEDAGOGICAL REVIEW') ? pedagogyReviewSchema : prompt.includes('Map this evidence batch') ? mapSchema : prompt.includes('Independently check') ? reviewSchema : teachingSchema
     const v = await ownStudyVersion(f.version.id),
       chunks = v.draft.snapshot.chunks,
-      ids = chunks.map((c) => c.id)
+      ids = prompt.includes('Map this evidence batch') ? JSON.parse(prompt.split('\nEvidence: ')[1].split('\nMap this evidence batch')[0]).map(c=>c.id) : chunks.map((c) => c.id)
+    if(prompt.includes('INCREMENTAL SOURCE REFRESH')) {
+      const value=lesson(ids)
+      return {sections:value.sections,removeSectionIds:[],questions:value.questions,removeQuestionKeys:[],flashcards:value.flashcards,summary:value.summary,caveats:value.caveats,learningGoals:value.learningGoals,walkthrough:value.walkthrough}
+    }
     assert.deepEqual(options.responseSchema, expected === teachingSchema ? teachingResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? nextPedagogicalReview('',v.draft.chapters.find(c=>c.review==='pending')).responseSchema : studyResponseSchema(expected, ids))
     if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
     if (prompt.includes('Map this evidence batch'))
@@ -717,14 +724,10 @@ test('refresh reuses an unchanged checked chapter and only generates the newly m
                 .filter((c) => c.sourceKey === added.id)
                 .map((c) => c.id)
             if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
-            if (prompt.includes('Map this evidence batch'))
-              return {
-                topics: [
-                  { id: 'addition', title: 'Addition', sourceIds: firstIds },
-                  { id: 'zero', title: 'Zero', sourceIds: ids }
-                ],
-                gaps: []
-              }
+            if (prompt.includes('Map this evidence batch'))return {topics:[{id:'zero',title:'Zero',sourceIds:ids}],gaps:[]}
+            if(prompt.includes('Mapped concepts: ')){
+              const mapped=JSON.parse(prompt.split('Mapped concepts: ')[1].split('\nSource gaps:')[0]);return {topics:mapped.map(t=>({id:t.id,title:t.title,topicRefs:[t.ref]})),gaps:[]}
+            }
             if (prompt.includes('Independently check')) {
               reviewCalls++
               return { issues: [] }
@@ -1044,4 +1047,21 @@ test('review output exhaustion persists smaller batches and credit failures neve
       }
     })}finally{await f.cleanup()}
   }
+})
+
+
+test('a new guide consumes the private course map without a second model mapping call',async()=>{
+ const f=await fixture()
+ try{
+  await finish(f)
+  await f.run(async()=>{
+   const second=await createStudyVersion(course,'programme-test',f.snapshot)
+   let calls=0
+   await processStudyStep(second.id,{generate:async()=>{calls++;throw new Error('Mapping should have been reused')}})
+   const saved=await ownStudyVersion(second.id)
+   assert.equal(calls,0);assert.equal(saved.draft.reusedSourceMaps,1)
+   assert.equal(saved.draft.maps.length,1);assert.equal(saved.draft.stage,'outline')
+   assert.equal((await ownStudyVersion(f.version.id)).activeRevisionId,f.version.draft.id)
+  })
+ }finally{await f.cleanup()}
 })

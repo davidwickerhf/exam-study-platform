@@ -62,6 +62,22 @@ try {
  INSERT INTO canvas_corpus_access(user_id,binding_id) VALUES('owner','binding'),('peer','binding');
  INSERT INTO canvas_source_snapshots(id,binding_id,asset_id,contribution_id,contributor_user_id,resource_key,source_path,sha256) VALUES('snapshot','binding','asset','contribution','owner','file:1','Lecture.pdf','abc');
  INSERT INTO editorial_source_retrieval_chunks(edition_id,asset_id,page_number,chunk_index,content) VALUES('edition','asset',1,0,'Two plus three is five. Addition combines disjoint quantities with matching units; subtraction checks the result.');`)
+  await as('owner',async()=>{
+    const {writeDocument,readDocument}=await import('../../lib/user-store.mjs')
+    const {nextFactualReview,acceptFactualReview,preserveFactualReview,factualReviewItems}=await import('../../lib/study-factual-review.mjs')
+    const {teachingPlan}=await import('./study-fixtures.mjs')
+    const evidence=[{id:'e-current',sourceKey:'source',text:'Two plus three equals five.'}]
+    const chapter={...lesson(['e-current']),id:'addition',teachingPlan:teachingPlan(['e-current'])}
+    for(;;){const step=nextFactualReview(course,[],evidence,chapter);if(!step)break;acceptFactualReview(chapter,step,teachingResponse(step.prompt,['e-current']))}
+    await writeDocument('review-roundtrip','chapter',chapter)
+    const stored=await readDocument('review-roundtrip','chapter',null)
+    assert.equal(nextFactualReview(course,[],evidence,stored),null,'JSONB round trip must preserve exact accepted reviews')
+    const repaired=structuredClone(chapter);repaired.questions[0].answer+=' Check the boundary.'
+    preserveFactualReview(stored,repaired,course,[],evidence)
+    for(const item of factualReviewItems(chapter))assert.ok(repaired.factualAudit.judgments[item.key],item.key)
+    assert.ok(repaired.factualAudit.solutions[repaired.questions[1].key])
+    assert.equal(repaired.factualAudit.judgments['question:'+repaired.questions[0].key],undefined)
+  })
   assert.equal((await as('peer', () => listStudySources(course))).length, 0)
   const sources = await as('owner', () => listStudySources(course))
   assert.equal(sources.length, 1)
