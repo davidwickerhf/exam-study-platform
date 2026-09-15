@@ -41,3 +41,10 @@ test('caller cancellation stops the native SDK request without retrying',async()
   await assert.rejects(pending)
  });assert.equal(calls,1)
 })
+
+
+for(const usage of [null,{}, {input_tokens:100}, {input_tokens:'100',output_tokens:20}, {input_tokens:100,output_tokens:-1}])test(`missing or invalid provider counters cannot settle a reservation: ${JSON.stringify(usage)}`,async()=>{
+ await fixture((req,res)=>{const data=response();data.usage=usage;res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data))},async options=>{
+  await assert.rejects(runStudyAgentsSdk('test',options),error=>error.code==='provider_missing_usage'&&!error.usage)
+ })
+})

@@ -11,3 +11,11 @@ test('measured initial and update calls are accounted separately, including cach
  assert.equal(summary.measuredCalls,2);assert.ok(Math.abs(summary.knownUsageUsd-0.035)<1e-9)
  assert.equal(summary.phases.initial.inputTokens,1000);assert.equal(summary.phases.update.calls,1);assert.equal(summary.unsettledReservationUsd,0)
 })
+
+
+test('estimated and invalid counters remain unknown rather than measured cost',()=>{
+ const result=pilotAccounting({model:'gpt-6-astra',calls:2,calculatedUsd:2,callDetails:[{usage:{inputTokens:100,outputTokens:20,estimated:true}},{usage:{inputTokens:100,outputTokens:-1}}]})
+ assert.equal(result.measuredCalls,0)
+ assert.equal(result.unknownUsageCalls,2)
+ assert.equal(result.unsettledReservationUsd,2)
+})
