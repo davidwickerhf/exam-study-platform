@@ -163,3 +163,39 @@ models correctly under the cumulative course ledger. Existing pause files still
 prevent paid continuation. Before enabling a profile, compare it on grounded
 teaching, independent solving, source conflicts and deliberately shallow lessons;
 passing mock-provider routing tests is not evidence of model quality.
+
+## IUI correction-path findings
+
+The fresh nine-guide IUI experiment stopped on its first chapter after the three
+automatic corrections: $6.685974 measured across 35 calls, with no accepted
+chapters. Mapping/outlining accounted for $1.675264; this is not a completed
+chapter or course price.
+
+Two implementation defects were found in the saved failure. Scope review could
+flag objective goals/basis while the repair schema allowed only exclusions,
+gaps and caveats. Combined repairs also discarded the specialized transfer and
+diagnostic repair directives. Objective repairs now retain stable IDs and
+complexity while allowing supported goal/provenance changes, and persist the
+updated plan through MCP submission and chapter preparation. Combined packets
+carry each selected directive once with one source context and chapter body.
+Unselected fields remain unchanged and independent review is still required.
+
+Large repair schemas now share identical citation enums through JSON Schema
+`$defs`, preserving exact constraints and local evidence validation. The saved
+IUI combined repair schema fell from 82,499 to 26,026 characters; its conservative
+Sol reservation fell from $3.793530 to $1.774400. This removes repeated schema
+text, not course evidence or review criteria. The first reservation was rejected
+before any provider call under a $3 additional validation cap.
+
+The bounded live repair made five calls for $0.833248, retained 14 unchanged
+factual judgments after repair, and stopped before Astra teaching review because
+its $3.739738 reservation exceeded the remaining $3 segment allowance. Factual
+review still found truncated objective/learning-goal wording. The goal ceiling
+has since increased from 180 to 400 characters, with explicit complete-sentence
+and caveat-disclosure instructions; that subsequent change has offline regression
+coverage but no additional paid validation. No chapter was approved. Cumulative
+IUI measured spending is $34.332206, leaving $15.667794 under the unchanged $50 cap.
+
+These fixes are not evidence of model-quality parity or affordable course
+completion. The three consumed automatic retries and one explicitly requested
+manual retry remain recorded; the full-course run is paused.

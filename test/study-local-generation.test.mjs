@@ -223,13 +223,17 @@ test('MCP scope correction persists in both the saved plan and prepared chapter'
     version.draft.automaticRepairs={addition:1}
   })
   const repair=await nextLocalStudy(id)
-  assert.match(repair.request.prompt,/REPAIR SOURCE SCOPE NOTES/)
-  const response={caveats:['No explicit exam-topic exclusions.'],scope:{gaps:['No explicit exam-topic exclusions.'],exclusions:[]}}
+  assert.match(repair.request.prompt,/REPAIR OBJECTIVE SCOPE/)
+  const plan=(await ownStudyVersion(id)).draft.teachingPlans.addition
+  const response={learningGoals:['Explain supported addition.'],caveats:['No explicit exam-topic exclusions.'],scope:{objectives:Object.fromEntries(plan.objectives.map(o=>[o.id,{...o,goal:o.id==='objective-1'?'Explain supported addition.':o.goal}])),gaps:['No explicit exam-topic exclusions.'],exclusions:[]}}
   await answer(id,repair.request,response)
   assert.equal((await answer(id,repair.request,response)).duplicate,true)
   const draft=(await ownStudyVersion(id)).draft
   assert.deepEqual(draft.teachingPlans.addition.gaps,response.scope.gaps)
   assert.deepEqual(draft.chapters[0].teachingPlan.gaps,response.scope.gaps)
+  assert.equal(draft.teachingPlans.addition.objectives[0].goal,'Explain supported addition.')
+  assert.equal(draft.chapters[0].teachingPlan.objectives[0].goal,'Explain supported addition.')
+  assert.deepEqual(draft.chapters[0].learningGoals,response.learningGoals)
   assert.equal(draft.automaticRepairs.addition,1)
 }))
 

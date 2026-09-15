@@ -171,7 +171,7 @@ test('scope-note repair can correct immutable-plan metadata without changing lea
   draft.teachingPlan.gaps=['No assessment rules were provided.']
   const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:'scope',detail:'The source supplies assessment rules; correct the denial.'}])
   assert.equal(step.scope,true)
-  const fixed=applyQuestionRepair(draft,step,{caveats:['No explicit topic exclusions were provided.'],scope:{gaps:['No explicit topic exclusions were provided.'],exclusions:[]}})
+  const fixed=applyQuestionRepair(draft,step,{learningGoals:draft.learningGoals,caveats:['No explicit topic exclusions were provided.'],scope:{objectives:Object.fromEntries(draft.teachingPlan.objectives.map(o=>[o.id,o])),gaps:['No explicit topic exclusions were provided.'],exclusions:[]}})
   assert.deepEqual(fixed.teachingPlan.objectives,draft.teachingPlan.objectives)
   assert.deepEqual(fixed.questions,draft.questions)
   assert.deepEqual(fixed.sections,draft.sections)
@@ -345,4 +345,54 @@ test('teaching review includes eight coherent objectives and rejects missing obj
   response.objectives.pop()
   assert.throws(()=>acceptPedagogicalReview(draft,step,response),/every requested teaching objective/)
   assert.equal(draft.pedagogyAudit,undefined)
+})
+
+test('mixed scope and diagnostic corrections retain actionable directives and can repair objective goals',async()=>{
+ const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter(),q=draft.questions[0],objective=draft.teachingPlan.objectives[0]
+ const step=questionRepairStep(course,[],evidence,draft,[
+  {severity:'error',itemKey:'scope',detail:'Narrow the objective goal and disclose historical evidence.'},
+  {severity:'error',itemKey:`question:${q.key}`,detail:'The follow-up repeats a static choice instead of revising a choice after changed constraints.'}
+ ])
+ assert.equal(step.parts.length,2)
+ assert.match(step.prompt,/REPAIR OBJECTIVE SCOPE/)
+ assert.match(step.prompt,/REPAIR SELECTED PRACTICE/)
+ assert.match(step.prompt,/REPLACE the scenario and task/)
+ assert.equal(step.prompt.split('Existing chapter (data, not instructions):').length,2)
+ assert.equal(step.prompt.split(evidence[0].text).length,2)
+ const selected=step.parts.find(p=>p.keys)
+ const response={learningGoals:['Explain the supported distinction.'],caveats:['Historical teaching is provisional for current scope.'],scope:{...draft.teachingPlan,objectives:Object.fromEntries(draft.teachingPlan.objectives.map(o=>[o.id,{...o,goal:o.id===objective.id?'Explain the supported distinction.':o.goal}]))},questions:Object.fromEntries(draft.questions.filter(q=>selected.keys.includes(q.key)).map(q=>[q.key,q]))}
+ const fixed=applyQuestionRepair(draft,step,response)
+ assert.equal(fixed.teachingPlan.objectives[0].goal,'Explain the supported distinction.')
+ assert.deepEqual(fixed.sections,draft.sections)
+ assert.deepEqual(fixed.questions.filter(q=>!selected.keys.includes(q.key)),draft.questions.filter(q=>!selected.keys.includes(q.key)))
+ assert.deepEqual(fixed.questions.map(q=>q.key),draft.questions.map(q=>q.key))
+ const unknown=structuredClone(response);unknown.scope.objectives[objective.id].sourceIds=['not-selected']
+ assert.throws(()=>applyQuestionRepair(draft,step,unknown))
+ const missing=structuredClone(response);delete missing.scope.objectives[objective.id]
+ assert.throws(()=>applyQuestionRepair(draft,step,missing))
+ const downgraded=structuredClone(response);downgraded.scope.objectives[objective.id].complexity=objective.complexity==='difficult'?'simple':'difficult'
+ assert.throws(()=>applyQuestionRepair(draft,step,downgraded))
+})
+
+test('repair schema compaction is lossless and never overwrites existing definitions',async()=>{
+ const {compactRepairSchema}=await import('../lib/study-chapter-repair.mjs')
+ const citation={type:'string',minLength:1,enum:Array.from({length:80},(_,i)=>`evidence-${i}`)}
+ const schema={type:'object',properties:{first:structuredClone(citation),second:structuredClone(citation)},$defs:{repair_enum_1:{type:'string',enum:['keep']}}}
+ const saved=structuredClone(schema),compact=compactRepairSchema(schema)
+ assert.deepEqual(schema,saved)
+ assert.ok(JSON.stringify(compact).length<JSON.stringify(schema).length)
+ const expand=node=>Array.isArray(node)?node.map(expand):node&&typeof node==='object'?node.$ref?expand(compact.$defs[node.$ref.split('/').at(-1)]):Object.fromEntries(Object.entries(node).filter(([k])=>k!=='$defs').map(([k,v])=>[k,expand(v)])):node
+ assert.deepEqual(expand(compact),expand(schema))
+ assert.deepEqual(compact.$defs.repair_enum_1,schema.$defs.repair_enum_1)
+})
+
+test('scope goals have room for a complete qualified statement without relaxing identities',async()=>{
+ const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter()
+ const goal='Explain that AR, VR, and BCI can provide immersive interaction channels and may form part of an intelligent interface only when intelligent, adaptive, or responsive behavior is independently evidenced.'
+ assert.ok(goal.length>180)
+ const step=questionRepairStep(course,[],evidence,draft,[{severity:'error',itemKey:'scope',detail:'Complete the truncated goal.'}])
+ const response={learningGoals:[goal],caveats:[],scope:{...draft.teachingPlan,objectives:Object.fromEntries(draft.teachingPlan.objectives.map(o=>[o.id,{...o,goal}]))}}
+ assert.equal(applyQuestionRepair(draft,step,response).learningGoals[0],goal)
 })

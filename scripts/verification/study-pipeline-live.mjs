@@ -116,7 +116,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(savedReport){
           evaluationSources=savedRun.phase==='update'?pilot.sources:evaluationSources
-          run={...savedRun,steps:[...savedRun.steps],passed:false};report.runs=[...previous.runs.filter(r=>r.passed),run]
+          run={...savedRun,steps:[...savedRun.steps],passed:false,error:undefined,status:undefined};report.runs=[...previous.runs.filter(r=>r.passed),run]
         }
         if(!saved)throw new Error('No saved draft for this execution mode.')
         await mutateStudyVersion(id,version=>{

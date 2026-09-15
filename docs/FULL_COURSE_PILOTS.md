@@ -212,3 +212,25 @@ additional spending without raising the course ceiling, and
 `STUDY_PIPELINE_STOP_CHECKED_CHAPTERS` pauses at a checked chapter checkpoint.
 Neither option is set for the fresh full-course run. An interrupted or capped
 run remains an incomplete full-course measurement, never a passing sample.
+
+### Fresh IUI outcome and bounded repair
+
+The fresh run stopped on its first chapter at the three-correction limit:
+$6.685974 measured, 35 calls, 803,588 input and 123,098 output tokens. No guide
+or chapter passed. $1.675264 was first-guide source mapping and outlining; the
+remainder was planning, authoring and review/correction. The other eight guides
+and the live source-update experiment were not reached.
+
+A subsequent explicitly requested repair retained the saved draft and all three
+automatic attempts, recording one manual attempt. An initial $3 segment admitted
+no call because the repair reservation was too large. After lossless citation-enum
+schema compaction, five paid calls cost $0.833248. Fourteen unchanged factual
+judgments were retained after the patch. Factual review still found incomplete
+goal wording; teaching review was not called because its conservative reservation
+exceeded the remaining segment allowance. The chapter remains unapproved.
+
+Cumulative IUI measured spending is $34.332206 with no unknown usage, including
+$7.519222 for the fresh experiment and its repair. The full course and top-up tests
+remain paused. See `GUIDE_GENERATION_ECONOMICS.md` for the repaired schema/prompt
+constraints and the distinction between offline regression results and live
+teaching-quality results. The final goal-limit change has not been model-tested.
