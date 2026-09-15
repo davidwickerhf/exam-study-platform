@@ -66,6 +66,49 @@ export type StudyChapter = {
   walkthrough: { title: string; steps: GroundedText[] } | null
   caveats: string[]
 }
+// Raw fields mirror what studyVersionSummary passes through untouched
+// (lib/study-version-api.mjs); the two typed blocks below are its derived
+// navigation for a whole-course run: `bundle` on the parent lists its guides,
+// `managed` on a managed guide points back to the parent that owns it.
+export type StudyBundleGuideRaw = {
+  id: string
+  guideId: string
+  title: string
+  revisionId?: string
+  chapters?: number | null
+  createdAt?: string
+}
+export type StudyBundleParentRaw = {
+  versionId: string
+  guideId?: string | null
+  state?: 'staged' | 'published' | 'archived'
+  active?: boolean
+  stagedRevisionId?: string
+  stagedTitle?: string
+  stagedParentRevisionId?: string
+  parentRevisionId?: string
+  archivedAt?: string
+} | null
+export type StudyBundleGuide = {
+  guideId: string
+  versionId: string | null
+  title: string
+  chapters: number | null
+  status: 'complete' | 'planned'
+}
+export type StudyBundleSummary = {
+  guides: StudyBundleGuide[]
+  planningComplete: boolean
+  complete: boolean
+}
+export type StudyManagedSummary = {
+  parentVersionId: string
+  guideId: string | null
+  guideTitle: string
+  active: boolean
+  editable: false
+  forkable: boolean
+}
 export type StudyEdit = { kind: string; label: string; topicId?: string; feedback?: string; baseRevisionId: string }
 export type StudyRevision = {
   edit?: StudyEdit
@@ -90,6 +133,11 @@ export type StudyVersion = {
   id: string
   title: string
   course: StudyCourseIdentity
+  courseBundle: boolean
+  bundleGuides: StudyBundleGuideRaw[]
+  courseBundleParent: StudyBundleParentRaw
+  bundle: StudyBundleSummary | null
+  managed: StudyManagedSummary | null
   activeRevisionId: string | null
   createdAt: string
   updatedAt: string

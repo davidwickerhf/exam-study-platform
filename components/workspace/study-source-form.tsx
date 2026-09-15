@@ -233,8 +233,8 @@ export function StudySourceForm({
             </Select>
             <FieldDescription id="study-guide-scope-help">
               {courseBundle
-                ? 'Plan the selected course material together, then create separate guides for its topics. Hosted generation shares one spending limit across the course.'
-                : 'Create a guide for a selected module, topic or assessment.'}
+                ? 'Plan the selected course material together, then create separate guides for its topics. Hosted generation shares one spending limit across the course. Whole-course scope allows up to 500 sources and 5,000,000 characters.'
+                : 'Create a guide for a selected module, topic or assessment. Up to 100 sources and 600,000 characters.'}
             </FieldDescription>
           </Field>
         )}
