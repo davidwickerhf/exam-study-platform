@@ -40,11 +40,13 @@ for every course file.
 
 The first Blockchains mapping call was rejected for exhausted provider credits.
 No usage was returned: $1.200650 remains an unresolved reservation, not a measured
-token bill. After recharge, the saved run resumed and IUI started. Both were paused at completed-call checkpoints for planning optimization; no
-full-course cost or quality result is available yet. Each has two authored
-chapters, one checked. Usage-based baseline costs are $12.780713 for Blockchains
-and $12.557338 for IUI, including IUI's outline retry. The earlier Blockchains
-reservation remains separate. These figures are not complete course prices.
+token bill. After recharge, the saved run resumed and IUI started. Planning and
+review optimizations were applied at completed-call checkpoints without discarding
+authored work. At the 15 September 09:30 UTC checkpoint, each course had three
+checked chapters in its first guide. Measured-usage costs were $27.315904 for
+Blockchains and $23.568986 for IUI; the earlier Blockchains reservation is separate.
+Both full-course bundles and their subsequent update tests remain unfinished.
+These figures include prior attempts and optimization, and are not course prices.
 
 The IUI outline exhausted a hard-coded 10,000-token output limit after its 16
 source maps completed ($4.935302 in measured-usage cost across that attempt).
@@ -136,3 +138,29 @@ selected as teaching evidence. IUI's automatic scope becomes 28,846 characters;
 its exact saved proposal revalidates to 16 chapters instead of 26 without another
 model call or resetting its two planning attempts. These are planning results,
 not completed-course cost or teaching-quality results.
+
+
+## Review and request-cost optimizations
+
+Blind solving and answer comparison accept up to 48 items within a 48K-character
+payload bound. The bound counts the actual transmitted fields, including independent
+solutions in answer comparison. Teaching review groups up to eight objectives
+within its existing size bound. All verdicts remain required, reviewer contexts
+remain isolated, and bounded output-limit recovery still splits factual batches.
+The scripted browser evaluation retains all seven checks in 11 calls instead of
+13. This plumbing result is not a measured live quality or cost comparison.
+
+The first hosted calls showed only approximately 2% cached-input reuse. The
+single-message prompts and strict output schemas change between checkpoints.
+On GPT-5.6/6, these SDK checkpoints now use explicit cache mode without breakpoints
+to avoid writing single-use input. The first live corrected-question call returned
+43,664 input / 1,266 output tokens, zero cache writes and zero cache reads: avoiding
+$0.10916 of write premium at the configured Astra rates. Hard reservations remain
+conservative; this does not assume a cache hit or lower the safety bound. Future
+shared-prefix caching requires stable message boundaries and compatible schemas;
+merely enabling a retention setting does not establish reuse. See the
+[official cache behavior](https://developers.openai.com/api/docs/guides/prompt-caching).
+
+Missing or malformed actual input/output counters cannot settle a reservation.
+Estimated usage remains separate from measured usage. The latest local verification
+passed 1,090 tests plus TypeScript and the production build.
