@@ -209,3 +209,40 @@ test('generated questions preserve Practice types and reject broken choice keys 
     true,
   )
 })
+
+test('the global question bank includes checked original papers without a guide and preserves provenance and isolation', async () => {
+  await withRequestContext({ userId: `paper-overview-${randomUUID()}`, mode: 'local' }, async () => {
+    try {
+      const programmeId = await activeProgrammeId()
+      const host = await coursePracticeHost(course, programmeId)
+      const other = await coursePracticeHost(course, 'another-programme')
+      const note = await addStudyNote({ ...course, title: 'Original mock exam.pdf' }, [{ page: 1, text: 'Question 1. Explain why addition requires disjoint groups. [2 marks]' }])
+      const snapshot = await readStudySourceSnapshot(course, [note.id])
+      const set = { id: 'paper-set', versionId: host.id, revisionId: host.activeRevisionId, topicId: 'course-paper', chapterTitle: 'Original mock exam', course, snapshot, kind: 'set', mode: 'extract', status: 'complete', result: { title: 'Original mock exam · pages 1–2', questions: [{ id: 'q1', label: 'Q1(a)', question: 'Explain why addition requires disjoint groups.', answer: 'An overlap would be counted twice.', marks: 2, type: 'written' }] } }
+      await writeDocument('study-practice', set.id, set)
+      await writeDocument('study-practice', 'pending-paper', { ...set, id: 'pending-paper', status: 'pending' })
+      await writeDocument('study-practice', 'other-paper', { ...set, id: 'other-paper', versionId: other.id })
+      const bank = await courseExerciseBank(course.courseCode)
+      assert.equal(bank.questions.length, 1)
+      assert.equal(bank.questions[0].practiceOrigin, 'paper')
+      assert.equal(bank.questions[0].paperLabel, 'Q1(a)')
+      assert.equal(bank.questions[0].marks, 2)
+      assert.equal(bank.questions[0].guideTitle, set.result.title)
+      assert.equal(bank.questions[0].study.setId, set.id)
+      assert.match(bank.questions[0].source, /^Course paper/)
+      assert.equal((await courseExerciseBank('UNRELATED')).questions.length, 0)
+      const assessment = { id: 'saved-answer', kind: 'assessment', versionId: host.id, revisionId: host.activeRevisionId, topicId: set.topicId, setId: set.id, question: set.result.questions[0], answer: 'The overlap would be counted twice.', status: 'complete', createdAt: '2026-09-15T10:00:00Z', result: { assessable: true, earned: 1, possible: 2, feedback: 'Correct idea.', nextStep: 'Give an example.' } }
+      await writeDocument('study-practice', assessment.id, assessment)
+      await writeDocument('study-practice', 'exam-answer', { ...assessment, id: 'exam-answer', examId: 'timed-exam', answer: 'Separate exam answer.', createdAt: '2026-09-15T12:00:00Z' })
+      const restored = (await courseExerciseBank(course.courseCode)).questions[0].savedAttempt
+      assert.equal(restored.answer, assessment.answer)
+      assert.equal(restored.result.score, 5)
+      assert.match(restored.result.correction, /Correct idea/)
+      await writeDocument('study-practice', assessment.id, { ...assessment, status: 'pending', result: null })
+      assert.equal((await courseExerciseBank(course.courseCode)).questions[0].savedAttempt.result, null)
+
+      await writeDocument('study-notes', note.id, { ...note, deleted: true })
+      assert.equal((await courseExerciseBank(course.courseCode)).questions.length, 0)
+    } finally { await deleteAllDocuments() }
+  })
+})

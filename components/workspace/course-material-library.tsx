@@ -87,16 +87,20 @@ export function CourseMaterialLibrary({
   academicYear,
   revision = 0,
   collectionAction,
+  editions = [],
+  onYearChange,
 }: {
   courseCode: string;
   courseCodes?: string[];
   academicYear?: string;
   revision?: number;
   collectionAction?: ReactNode;
+  editions?: {year: string}[];
+  onYearChange?: (year: string) => void;
 }) {
   const desk=useStudyDesk();
   function openMaterial(item:Material) {
-    if(desk && !/^(video|audio|image)\//.test(item.mediaType)) desk.openDocument({key:item.assetId,assetId:item.assetId,title:item.filename,kind:'canvas',academicYear:item.academicYear,period:item.period,sha256:'',url:item.url},[],1,true);
+    if(desk && !/^(video|audio|image)\//.test(item.mediaType)) desk.openDocument({key:item.assetId,assetId:item.assetId,title:item.filename,kind:'canvas',academicYear:item.academicYear,period:item.period,sha256:'',url:item.url},[],1,false);
     else setPreview(item);
   }
   const [materials, setMaterials] = useState<Material[] | null>(null);
@@ -231,7 +235,7 @@ export function CourseMaterialLibrary({
   });
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="course-material-library flex flex-col gap-4">
       <header className="course-section-heading !mb-2">
         <div>
           <h2 className="font-heading text-xl font-semibold">
@@ -245,7 +249,8 @@ export function CourseMaterialLibrary({
         </div>
         <div className="flex items-center gap-2">{collectionAction}<Button variant="ghost" size="icon-sm" onClick={load} aria-label="Refresh material list"><RefreshCwIcon className="size-4"/></Button></div>
       </header>
-      <div className="flex flex-wrap items-center gap-2 border-b pb-4">
+      {onYearChange && <div className="material-year-picker rounded-lg bg-muted/50 px-4 py-3"><div className="flex flex-wrap items-center gap-3"><span className="text-sm font-medium">Course materials by year</span><div className="flex flex-wrap gap-2" role="group" aria-label="Material academic year">{[...new Set([...(academicYear && academicYear !== 'all' ? [academicYear] : []), ...editions.map(e=>e.year)])].sort().reverse().map(entry=><Button key={entry} size="sm" variant={academicYear===entry ? 'default' : 'outline'} aria-pressed={academicYear===entry} onClick={()=>onYearChange(entry)}>{entry==='undated'?'Undated':entry}</Button>)}<Button size="sm" variant={academicYear==='all'?'default':'outline'} aria-pressed={academicYear==='all'} onClick={()=>onYearChange('all')}>All years</Button></div></div><p className="material-help mt-2 text-xs text-muted-foreground">Switch editions to find earlier slides, readings and exam material.</p></div>}
+      <details className="material-filters text-sm"><summary className="cursor-pointer">Filter materials</summary><div className="mt-3 flex flex-wrap items-center gap-2 border-b pb-4">
           {!!materials?.length && (
             <>
               <select aria-label="Canvas module" value={moduleName} onChange={e=>setModuleName(e.target.value)} className="h-9 max-w-60 rounded-md border bg-background px-3 text-sm">
@@ -296,7 +301,7 @@ export function CourseMaterialLibrary({
               </Select>
             </>
           )}
-      </div>
+      </div></details>
 
       {!!materials?.length && (
         <label className="flex items-center gap-2 rounded-md border bg-background px-3 py-2">
@@ -311,6 +316,7 @@ export function CourseMaterialLibrary({
         </label>
       )}
 
+      {desk && <p className="material-help text-xs text-muted-foreground">Select a document to read beside this list. Use Expand for more space, or Ask tutor to work through it together.</p>}
       {error && (
         <p role="alert" className="text-sm font-medium">
           {error}

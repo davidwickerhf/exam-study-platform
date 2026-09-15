@@ -12,3 +12,10 @@
 .paper-row-actions { display:flex; flex-wrap:wrap; align-items:center; gap:2px; }
 .paper-detail [data-slot=sheet-title] { line-height:1.4; overflow-wrap:anywhere; }
 @media(max-width:767px) { .paper-row { flex-wrap:wrap; gap:8px 12px; padding:16px 0; } .paper-row-copy { flex-basis:calc(100% - 32px); } .paper-row-actions { width:100%; padding-left:32px; justify-content:flex-start; } .paper-row-actions > button:last-child { margin-left:auto; } .paper-toolbar > div { flex-basis:100%; max-width:none; } }
+
+.paper-library { container: paper-library / inline-size; }
+.paper-sections { padding: 0 0 20px 32px; }
+.paper-section { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 16px; background:var(--muted); }
+.paper-section + .paper-section { border-top:1px solid var(--border); }
+.paper-section > div { min-width:0; overflow-wrap:anywhere; }
+@container paper-library (max-width:600px) { .paper-row { flex-wrap:wrap; } .paper-row-copy { flex-basis:calc(100% - 32px); } .paper-row-actions { width:100%; padding-left:32px; } .paper-section { align-items:flex-start; flex-direction:column; gap:12px; } .paper-sections { padding-left:0; } }
