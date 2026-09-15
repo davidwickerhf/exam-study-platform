@@ -14,7 +14,7 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 52)
+  assert.equal(tools.size, 53)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
@@ -38,6 +38,10 @@ test('MCP writes preserve exact proposals, identities and idempotency keys', asy
   assert.equal((await call('canvas_sync_control', { jobId: 'job', action: 'retry' })).body.action, 'retry')
   const diagnostic = await call('answer_study_diagnostic', { diagnosticId: 'quiz', answers: { q1: 2 }, requestId: 'attempt-1234' })
   assert.deepEqual(diagnostic.body, { answers: { q1: 2 }, requestId: 'attempt-1234' })
+  assert.throws(() => call('study_guide_fork', { versionId: 'sv-1' }))
+  const fork = await call('study_guide_fork', { versionId: 'sv-1', title: 'My copy', confirmed: true })
+  assert.equal(fork.path, '/api/study-versions/sv-1/fork')
+  assert.deepEqual(fork.body, { title: 'My copy' })
   const source = await call('tutor_add_source', { name: 'Draft', text: 'My draft' })
   assert.equal(source.body.dataUrl, 'data:text/plain;base64,TXkgZHJhZnQ=')
 })
