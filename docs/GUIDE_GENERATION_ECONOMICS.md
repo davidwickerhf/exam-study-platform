@@ -109,6 +109,21 @@ Source access is checked by the pipeline before cache use. Existing in-progress
 mapping boundaries and authored/reviewed chapters remain intact. Old artifacts
 without this provenance are not silently backfilled into the shared cache.
 
+Independent batches are mapped concurrently in both hosted execution and the
+local next/submit protocol, bounded by `STUDY_MAPPING_CONCURRENCY` (default 4,
+minimum 1, hard-capped at 8). Each call still takes and settles its own budget
+reservation against the same per-job spending cap, so a 71-batch course finishes
+in fewer wall-clock minutes at exactly the same per-token price; concurrency is
+not a discount and does not change the reserved maximum per call. A per-account
+reservation may now be held by several calls of the same job at once, but only
+one generation job at a time per account, as before. The per-minute request
+allowance is unchanged, so a non-exempt platform account is still throttled to
+that allowance and simply reaches it sooner. A provider rate limit or spending
+refusal on one batch stops the round safely: every map its peers accepted is
+kept and never remapped, the refused batch retries with the existing bounded
+retry-delay diagnostics, and no model, effort or output cap is raised. A
+`provider_output_limit` still halves only the batch that produced it.
+
 The index reports named concepts and their guide/chapter assignments through
 `study_generation_usage` (`coursePlans`). Exact name overlaps are potential duplicate
 responsibilities, not proof of redundant teaching. Nothing is discarded solely

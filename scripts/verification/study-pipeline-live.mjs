@@ -20,6 +20,7 @@ const {readStudySourceSnapshot}=await import('../../lib/study-version-sources.mj
 const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion,listCourseBundleChildren}=await import('../../lib/study-version-store.mjs')
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
+const {studyMappingConcurrency}=await import('../../lib/study-course-plan.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
 const planOnly=!!pilot && process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
 if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning or updates.')
@@ -175,13 +176,19 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         if(execution==='hosted')await processStudyStep(id,{sourceOptions,generate})
         else{
           const next=await nextLocalStudy(id,{},sourceOptions)
-          if(next.request){
-            const response=await generate(next.request.prompt,next.request)
-            const submission={requestId:next.request.id,contractId:next.request.contractId,response}
+          // Source mapping may hand out several independent packets. Drive them
+          // together under the same bound the server used: each records its own
+          // usage and price in the shared ledger and against the same attempt
+          // cap, so concurrency changes elapsed time, not spending.
+          const outstanding=next.requests?.length?next.requests:next.request?[next.request]:[]
+          if(outstanding.length>1)run.concurrentRequests=Math.max(run.concurrentRequests||0,outstanding.length)
+          await Promise.all(outstanding.slice(0,studyMappingConcurrency()).map(async request=>{
+            const response=await generate(request.prompt,request)
+            const submission={requestId:request.id,contractId:request.contractId,response}
             await submitLocalStudy(id,submission,sourceOptions)
             const duplicate=await submitLocalStudy(id,submission,sourceOptions)
             if(!duplicate.duplicate)throw new Error('Identical local submission was not idempotent.')
-          }
+          }))
         }
         const after=await ownStudyVersion(id)
         // Keep a resumable checkpoint even if the evaluation process is interrupted.
