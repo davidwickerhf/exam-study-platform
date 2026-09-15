@@ -41,3 +41,10 @@ test('caller cancellation stops the native SDK request without retrying',async()
   await assert.rejects(pending)
  });assert.equal(calls,1)
 })
+
+test('native SDK rejects missing provider counts without retrying',async()=>{
+ let calls=0
+ await fixture((req,res)=>{calls++;const data=response();delete data.usage;res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data))},async options=>{
+  await assert.rejects(runStudyAgentsSdk('test',options),error=>error.code==='provider_usage_missing' && error.retryable===false)
+ });assert.equal(calls,1)
+})
