@@ -186,6 +186,59 @@ restricted to the evidence IDs supplied to that exact generation step. Structura
 errors report field paths and validator codes without logging private source text.
 Format conformance does not replace deterministic and independent evidence checks.
 
+## Whole-course bundles and managed guides
+
+A course run (`courseBundle:true` on `POST /api/study-versions/local` or
+`study_generation_start`) maps the selected sources once, plans one curriculum
+for the whole course with a primary home for every concept, and splits that
+plan into 2–12 guides with stable ids instead of generating one guide per
+source selection. Chapters are authored and reviewed per guide against the
+shared plan. Child guides are staged invisibly (`courseBundleParent.state:
+'staged'`, no active revision, never listed, claimed or readable) and only
+become visible when the parent run records their publication inside its own
+lease-fenced commit. A lease expiry, worker stop, or partial failure cannot
+expose a half-built guide, a superseded worker cannot repoint one, and a
+retried commit converges on the same guide identities and archives any guide
+the new plan drops. Children reference the parent's immutable snapshot by
+reference — the scoped sources and evidence they actually cite, not a copy of
+the whole course — and hydrate the shared parts on read. A bundle counts as
+one version against the 20-version course limit regardless of guide count;
+see [Guide generation economics](../GUIDE_GENERATION_ECONOMICS.md) for the
+per-chapter budget mechanics and [Full-course pilots](../FULL_COURSE_PILOTS.md)
+for how source mapping and outline recovery are being exercised at course
+scale.
+
+Guides produced by a course run are **managed guides**: read-only derivatives
+of the parent's plan. `edit`, `improve`, `restore`, `refresh`, `control` and
+maintenance-enroll all return 409 naming the parent course run instead of
+acting on the child, because the parent's next publication replaces that
+child's content wholesale. `POST /api/study-versions/:id/fork` (and the MCP
+`study_guide_fork` tool) copies one saved revision of a managed guide into an
+independent, editable private version — no model call, no hosted job, no
+billing — and that fork is never touched by the parent again; it counts as
+its own version. Sharing a managed guide is still allowed, with its private
+source references stripped from the shared copy. `studyVersionSummary` carries
+typed `bundle` (parent: child guides and status) and `managed` (child: owning
+parent) blocks so the UI and MCP clients can navigate between a course run and
+its guides without inferring the relationship from raw fields.
+
+Source mapping now recovers from a `provider_output_limit` response by halving
+the offending batch, at most two levels, while keeping already-accepted maps
+and citations; the split is persisted so a resumed run repeats the same batch
+boundaries. `STUDY_MODEL_ROUTES` / `STUDY_PIPELINE_MODEL_ROUTES` entries may
+also be `{model, reasoning}` pairs, validated against the efforts the OpenAI
+provider layer accepts. Nothing here changes pricing or is enabled by default.
+
+Known limits: no real model run has exercised the bundle path end to end yet;
+concept duplicate detection across the shared plan is exact-name only, not
+semantic; automatic Canvas onboarding still uses the existing per-module
+maintenance workflow — a course run is opt-in from the creation form or MCP,
+not the automatic path; `bundle.guides` status is derived from the parent, not
+polled per child; and there is a residual window where children are visible
+while the parent's final completion commit is still pending — a retry
+converges on the same result, but a reader mid-window may briefly see an
+incomplete bundle.
+
 ### Personal edits, feedback and revision history
 
 The chapter's **Improve chapter** side panel accepts feedback and requests an AI
