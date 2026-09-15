@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Fragment } from 'react'
 import { ArrowLeftIcon, FileTextIcon, SearchIcon, LoaderCircleIcon, ChevronRightIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { paperSelection, paperReadiness } from '@/lib/workspace/paper-library.mjs'
@@ -316,7 +316,7 @@ export function StudyPaperBank({
   return (
     <section aria-label="Past paper library" className="paper-library">
       <header className="course-section-heading">
-        <div><h2>Mock papers</h2><p>Choose an original paper, or practise its checked questions.</p></div>
+        <div><h2>Mock papers</h2><p>Read the original exam or work through a practice section below.</p></div>
         {!!bank && <Button variant="outline" size="sm" onClick={()=>setActivityOpen(true)}><span className={`size-1.5 rounded-full ${attention.length ? 'bg-amber-600' : activeJobs.length ? 'bg-primary' : 'bg-muted-foreground'}`}/>{attention.length ? `${attention.length} paused` : activeJobs.length ? `${activeJobs.length} preparing` : 'Preparation status'}</Button>}
       </header>
       <div className="paper-toolbar">
@@ -328,12 +328,14 @@ export function StudyPaperBank({
       {!bank && !error ? <div role="status" aria-label="Loading papers" className="space-y-3 py-6">{[1,2,3].map(n=><div key={n} className="h-16 animate-pulse rounded bg-muted"/>)}</div> : bank && !visible.length ? <div className="py-12"><h3 className="text-lg font-semibold">{search || year!=='all' ? 'No papers match these filters' : 'No past papers found yet'}</h3><p className="mt-2 text-sm text-muted-foreground">{search || year!=='all' ? 'Clear the filters to see the full library.' : 'Papers and exercise sheets appear here after your course materials are collected.'}</p>{(search || year!=='all') && <Button className="mt-4" variant="outline" size="sm" onClick={resetFilters}>Clear filters</Button>}</div> : groups.map(([kind,label])=>{
         const papers=visible.filter(p=>kind==='paper' ? !['exercises','solutions'].includes(p.paperKind) : p.paperKind===kind).sort((a,b)=>b.academicYear.localeCompare(a.academicYear)||title(a.title).localeCompare(title(b.title)))
         return papers.length ? <section key={kind} aria-label={label} className="paper-group"><h3 className="paper-group-label">{label}<span>{papers.length}</span></h3>{papers.map(p=>{
-          const {ready,job}=info(p)
-          return <article key={p.key} className="paper-row">
+          const {ready,job,sets}=info(p)
+          return <Fragment key={p.key}><article key={p.key} className="paper-row">
             <FileTextIcon className="paper-row-icon"/>
             <div className="paper-row-copy"><h4><button className="paper-name" onClick={()=>{setDetailKey(p.key);setError('')}}>{title(p.title)}</button></h4><div className="paper-row-meta"><span>{p.academicYear}</span>{p.paperKind!=='solutions' && <span className={ready ? 'text-foreground' : ''}>{paperReadiness(ready,job)}</span>}</div></div>
-            <div className="paper-row-actions">{p.url || p.assetId ? <StudySourceInspector focusDocument source={p} chunks={[]} label={p.paperKind==='solutions' ? 'View solutions' : 'View paper'}/> : <span className="text-xs text-muted-foreground">Original unavailable</span>}{ready && <Button size="sm" onClick={()=>void openSet(ready)}>{job?.setId===ready.id && job.status==='complete' ? 'Practise' : 'Practise section'}</Button>}<Button size="icon-sm" variant="ghost" aria-label={`Details for ${title(p.title)}`} onClick={()=>{setDetailKey(p.key);setError('')}}><ChevronRightIcon/></Button></div>
+            <div className="paper-row-actions">{p.url || p.assetId ? <StudySourceInspector source={p} chunks={[]} label={p.paperKind==='solutions' ? 'View solutions' : 'View paper'}/> : <span className="text-xs text-muted-foreground">Original unavailable</span>}{ready && <Button size="sm" onClick={()=>void openSet(ready)}>{job?.setId===ready.id && job.status==='complete' ? 'Practise' : 'Practise section'}</Button>}<Button size="icon-sm" variant="ghost" aria-label={`Details for ${title(p.title)}`} onClick={()=>{setDetailKey(p.key);setError('')}}><ChevronRightIcon/></Button></div>
           </article>
+          {sets.some(s=>s.status==='complete') && <div className="paper-sections" aria-label={`Practice sections for ${title(p.title)}`}>{sets.filter(s=>s.status==='complete').map(s=><div className="paper-section" key={s.id}><div><p className="text-sm font-medium">{s.title}</p><p className="mt-1 text-xs text-muted-foreground">{s.questionCount} questions{s.sourcePages?.length ? ` · Pages ${s.sourcePages[0]}–${s.sourcePages.at(-1)}` : ''}</p></div><Button size="sm" variant="outline" onClick={()=>void openSet(s)}>Start practice</Button></div>)}</div>}
+          </Fragment>
         })}</section> : null
       })}
       <p className="mt-6 text-xs leading-5 text-muted-foreground">Originals stay available while questions are prepared. Older papers may cover a different syllabus.</p>
@@ -343,7 +345,7 @@ export function StudyPaperBank({
           {detail && detailInfo && <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
             {error && <p role="alert" className="my-4 text-sm text-destructive">{error}</p>}
             {busy && operation && <p role="status" className="flex items-center gap-2 pt-5 text-sm"><LoaderCircleIcon className="size-4 animate-spin"/>{operation==='prepare' ? 'Preparing questions…' : 'Resuming questions…'}</p>}
-            <div className="flex flex-wrap items-center gap-2 py-5">{(detail.url || detail.assetId) && <StudySourceInspector focusDocument source={detail} chunks={[]} label="View paper" onOpen={()=>setDetailKey(null)}/>}{detailInfo.ready && <Button size="sm" disabled={busy} onClick={()=>void openSet(detailInfo.ready!)}>Practise</Button>}</div>
+            <div className="flex flex-wrap items-center gap-2 py-5">{(detail.url || detail.assetId) && <StudySourceInspector source={detail} chunks={[]} label="View paper" onOpen={()=>setDetailKey(null)}/>}{detailInfo.ready && <Button size="sm" disabled={busy} onClick={()=>void openSet(detailInfo.ready!)}>Practise</Button>}</div>
             <section className="border-t py-5"><h3 className="font-semibold">Practice questions</h3><p className="mt-2 text-sm text-muted-foreground">{paperReadiness(detailInfo.ready,detailInfo.job)}</p>
               {detailInfo.sets.length>0 && <div className="mt-4 space-y-3"><label className="block text-sm">Saved question set<select aria-label={`Prepared questions for ${title(detail.title)}`} className="mt-2 w-full rounded-md border bg-card p-2 text-sm" value={detailInfo.chosen?.id || ''} onChange={e=>setSetChoices(old=>({...old,[detail.key]:e.target.value}))}>{detailInfo.sets.map(s=><option key={s.id} value={s.id}>{s.sourcePages?.length ? `Pages ${s.sourcePages[0]}–${s.sourcePages.at(-1)} · ` : ''}{s.title} · {s.questionCount} questions · {s.status==='complete'?'Ready':s.status}</option>)}</select></label>{!!detailInfo.chosen?.sourcePages?.length && <p className="text-xs text-muted-foreground">Prepared source pages: {detailInfo.chosen.sourcePages[0]}–{detailInfo.chosen.sourcePages.at(-1)}. This set covers these pages only.</p>}</div>}
               {detail.paperKind!=='solutions' && <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={busy} onClick={()=>choosePages(detail)}>{detailInfo.sets.length ? 'Prepare another section' : 'Choose pages to prepare'}</Button>{detailInfo.chosen && detailInfo.chosen.status!=='complete' && <Button size="sm" variant="outline" disabled={busy} onClick={()=>void resume(detailInfo.chosen!)}>{busy && operation==='resume' ? 'Resuming…' : 'Resume questions'}</Button>}</div>}

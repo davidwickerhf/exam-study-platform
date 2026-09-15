@@ -99,3 +99,18 @@
 .course-panel .course-band { margin-inline: calc(-1 * var(--course-gutter)); padding-inline: var(--course-gutter); }
 .course-panel .course-chapters { margin-inline: calc(-1 * var(--course-gutter)); }
 .course-panel .course-chapter { padding-inline: var(--course-gutter); }
+
+@media (max-width:640px) {
+  .course-heading { padding:8px 16px 12px; }
+  .course-identity { flex-direction:row; align-items:center; gap:12px; margin-top:6px; }
+  .course-identity h1 { font-size:20px; }
+  .course-facts { margin-top:6px; font-size:12px; }
+  .course-heading > div:first-child { min-height:32px; }
+  .course-panel { padding-block:16px; }
+  .course-material-library { gap:12px; }
+  .course-material-library .course-section-heading { gap:8px; align-items:center; }
+  .course-material-library .course-section-heading h2 { font-size:20px; }
+  .course-material-library .course-section-heading p, .course-material-library .material-help { display:none; }
+  .material-year-picker { padding:12px; }
+  .material-year-picker > div { gap:8px; }
+}

@@ -1,0 +1,8 @@
+.study-story { container: study-story / inline-size; min-width: 0; }
+.study-story-layout { display: grid; min-width: 0; align-items: start; gap: 32px; }
+.study-story-side-visual { display: none; }
+@container study-story (min-width: 820px) {
+  .study-story-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; }
+  .study-story-side-visual { display: block; }
+  .study-story-inline-visual { display: none; }
+}

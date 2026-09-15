@@ -282,7 +282,7 @@ export function StudyPracticeWorkspace({
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             {fixedSetId
               ? 'Original questions and marks. Your answers stay saved with this paper.'
-              : 'Targeted practice generated from this chapter. These are not past-exam questions.'}
+              : 'Work through the chapter, check your reasoning, and revisit anything you miss.'}
           </p>
         </div>
         {!fixedSetId && (
@@ -311,7 +311,7 @@ export function StudyPracticeWorkspace({
           </select>
         </label>
       )}
-      {!fixedSetId && (
+      {!fixedSetId && readySets.length > 0 && (
         <label className="block text-sm font-medium">
           Exercise set
           <select
@@ -321,7 +321,7 @@ export function StudyPracticeWorkspace({
             onChange={(e) => choose(e.target.value)}
           >
             <option value="chapter">
-              Generated chapter questions · {chapter?.questions.length}
+              Chapter questions · {chapter?.questions.length}
             </option>
             {readySets.map((r) => (
               <option key={r.id} value={r.id}>
@@ -371,14 +371,14 @@ export function StudyPracticeWorkspace({
               <Badge variant="outline">
                 {set?.mode === 'extract'
                   ? 'Extracted course paper'
-                  : 'AI-generated practice'}
+                  : 'Chapter practice'}
               </Badge>
               {set?.revisionId && set.revisionId !== revision.id && (
                 <Badge variant="secondary">Earlier revision</Badge>
               )}
               <span className="text-xs text-muted-foreground">
                 {questions.length} questions
-                {set?.model ? ` · ${set.model}` : ''}
+
               </span>
             </div>
             {set?.result?.warnings?.map((w, i) => (
@@ -405,29 +405,11 @@ export function StudyPracticeWorkspace({
               aria-label="Practice questions"
               className="flex flex-wrap gap-2"
             >
-              {questions.length > 10 ? (
-                <label className="flex items-center gap-3 text-sm">
-                  Question
-                  <select
-                    aria-label="Jump to question"
-                    className="h-10 max-w-full rounded-md border bg-background px-3"
-                    value={index}
-                    onChange={(e) => {
-                      setIndex(Number(e.target.value))
-                      setRevealed(false)
-                    }}
-                  >
-                    {questions.map((q, i) => (
-                      <option key={q.id} value={i}>
-                        {q.label || i + 1} of {questions.length}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : (
+              {
                 questions.map((q, i) => (
                   <Button
                     key={q.id}
+                    disabled={busy}
                     size="sm"
                     variant={index === i ? 'secondary' : 'outline'}
                     aria-current={index === i ? 'step' : undefined}
@@ -449,12 +431,12 @@ export function StudyPracticeWorkspace({
                       : ''}
                   </Button>
                 ))
-              )}
+              }
             </nav>
             <div data-study-task={question.id} className="scroll-mt-16 space-y-5 border-y py-6">
               <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
                 <span>
-                  Question {question.label || index + 1}
+                  Question {question.label || index + 1} of {questions.length}
                   {question.difficulty && (
                     <Badge variant="secondary" className="ml-2">
                       {question.difficulty}
@@ -544,7 +526,7 @@ export function StudyPracticeWorkspace({
                   <Textarea
                     aria-label="Your practice answer"
                     className="mt-2"
-                    rows={6}
+                    rows={4}
                     maxLength={12000}
                     value={answer}
                     onChange={(e) =>
