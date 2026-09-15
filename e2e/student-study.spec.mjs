@@ -947,6 +947,35 @@ test('chapter workspace restores course papers, free answer-key grading, source 
 })
 
 
+test('course guide list shows every guide and its own chapter or generation link', async ({ page }) => {
+  const guides = [
+    { id: 'guide-ready', title: 'Intro to AI 1 — AI, Agents and Python', activeRevisionId: 'revision-ready', chapterPreviews: [{ id: 'chapter-one', title: 'Agents and environments' }] },
+    { id: 'guide-pending', title: 'Intro to AI 2 — Search', activeRevisionId: null, draft: { status: 'waiting-local' } },
+    { id: 'guide-paused', title: 'Intro to AI 6 — Ethics and Responsible AI (provisional historical supplements)', activeRevisionId: null, draft: { status: 'stopped' } },
+    { id: 'guide-old', title: 'Previous year guide', course: { ...course, academicYear: '2020-2021' }, activeRevisionId: null, draft: { status: 'pending' } }
+  ].map(guide => ({ course, history: [], ...guide }))
+  await page.route('**/api/state', route => route.fulfill({json:{courses:[{id:course.courseCode,code:course.courseCode,name:course.courseName,chapters:[],items:[]}]}}))
+  await page.route('**/api/study-versions?*', route => route.fulfill({json:{versions:guides}}))
+  await page.route('**/api/study-versions/shared?*', route => route.fulfill({json:{publications:[]}}))
+  await page.addInitScript(code => localStorage.setItem(`course-guide:${code}`, 'guide-pending'), course.courseCode)
+  await page.goto(`/app/courses/${course.courseCode}?tab=study&year=${course.academicYear}`)
+  const list = page.getByRole('list', { name: 'Study guides', exact: true })
+  await expect(list.getByRole('article')).toHaveCount(3)
+  await expect(page.getByRole('combobox', { name: 'Study guide', exact: true })).toHaveCount(0)
+  for (const guide of guides.slice(0, 3)) {
+    const row = list.getByRole('article', { name: guide.title, exact: true })
+    await expect(row.getByRole('heading', { name: guide.title, exact: true })).toBeVisible()
+    await expect(row.getByRole('link', { name: guide.activeRevisionId ? 'Open guide' : 'View generation', exact: true })).toHaveAttribute('href', `/app/study/${guide.id}`)
+  }
+  await expect(list.getByRole('link', { name: /Agents and environments/ })).toHaveAttribute('href', '/app/study/guide-ready?chapter=chapter-one')
+  await expect(page.getByText('Previous year guide', { exact: true })).toHaveCount(0)
+  await page.screenshot({path:'/tmp/wicker-all-guides-desktop.png',fullPage:true})
+  await page.setViewportSize({width:390,height:844})
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await expect(list.getByRole('article')).toHaveCount(3)
+  await page.screenshot({path:'/tmp/wicker-all-guides-mobile.png',fullPage:true})
+})
+
 test('course exercises reuse Practice, include personal guides and keep course navigation compact', async ({ page }) => {
   await run(async () => {
     const v = await ownStudyVersion(versionId), r = await studyRevision(v), c = r.chapters[0]
