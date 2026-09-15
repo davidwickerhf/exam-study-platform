@@ -236,3 +236,12 @@ the objective's teaching and practice together, within the existing bounded patc
 limits. Large or unlocated findings still require a broader correction. Saved
 review locations, severities and actual findings are retained rather than guessed
 from similar wording.
+
+Final checkpoint for this iteration: $38.363684 measured, $7.654250 unresolved
+provider reservations, $46.017934 committed under the cumulative $50 ceiling.
+The latest coherent repair still failed source interpretation review; it does
+not establish a stable or affordable course. Paid continuation is paused. A
+zero-cost planning checkpoint preserved the draft byte-for-byte and correctly
+reported planned rather than generated. Further design work must resolve shared
+course-context versus guide teaching responsibilities before another full-course
+baseline; the present split fix does not solve cross-guide semantic ownership.

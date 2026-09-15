@@ -2,7 +2,7 @@ import {pilotPlanReady} from './study-pilot-planning.mjs'
 import { routeStudyModel } from '../../lib/study-model-routing.mjs'
 import { pilotAccounting } from './study-pilot-accounting.mjs'
 import { runStudyAgentsSdk } from '../../lib/study-agents-sdk.mjs'
-import { transientStudyFailure } from '../../lib/study-provider-errors.mjs'
+import { transientStudyFailure, studyRetryDelayMs } from '../../lib/study-provider-errors.mjs'
 import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Real provider responses through hosted and local next/submit state machines.
 // Stores only isolated local validation accounts; never writes production data.
@@ -72,7 +72,7 @@ async function generateOnce(prompt,options){
       const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model,reasoningEffort:options.reasoningEffort || 'medium'})
       usage=result.usage
       return result.text
-    } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name};throw error}
+    } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name,providerStatus:error.providerStatus,providerRequestId:error.providerRequestId};throw error}
     finally {
       call.elapsedMs=Date.now()-started;call.usage=usage
       if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,usage.inputTokens,usage.outputTokens,usage)/1000000}
@@ -91,7 +91,7 @@ async function generate(prompt,options){
     catch(error){
       if(attempt===3 || !transientStudyFailure(error))throw error
       console.log(`Temporary provider failure; retry ${attempt} of 2 with a new budget reservation.`)
-      await new Promise(resolve=>setTimeout(resolve,1000*attempt))
+      await new Promise(resolve=>setTimeout(resolve,studyRetryDelayMs(error,attempt)))
     }
   }
 }
@@ -119,10 +119,10 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(savedReport){
           evaluationSources=savedRun.phase==='update'?pilot.sources:evaluationSources
-          run={...savedRun,steps:[...savedRun.steps],passed:false,error:undefined,status:undefined};report.runs=[...previous.runs.filter(r=>r.passed),run]
+          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined};report.runs=[...previous.runs.filter(r=>r.passed),run]
         }
         if(!saved)throw new Error('No saved draft for this execution mode.')
-        await mutateStudyVersion(id,version=>{
+        if(!planOnly || !pilotPlanReady(saved))await mutateStudyVersion(id,version=>{
           version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}
           version.draft.billing={...version.draft.billing,maxJobUsd:spendingCap}
           delete version.draft.localRequest

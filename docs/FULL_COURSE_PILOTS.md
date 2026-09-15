@@ -244,3 +244,24 @@ that flag. Inspect the saved `draft.planning` and `draft.topics` for each unit.
 `planningComplete` does not mean generated or reviewed; `complete` still requires
 every initial guide and every requested source-update experiment to pass. Existing
 IUI authored drafts have not been discarded or replaced by this new mode.
+
+### Latest IUI checkpoint (15 September)
+
+The coherent objective repair made five measured calls for $1.148748 plus two
+failed provider requests with unknown usage. Independent review still rejected an
+overly formal interpretation of a descriptive historical IUI definition. No IUI
+chapter or guide has passed. Four manual corrections and the original three
+automatic corrections remain recorded; no counters were reset.
+
+The cumulative ledger records $38.363684 measured and $7.654250 in unresolved
+reservations ($46.017934 committed against the unchanged $50 ceiling). Unknown
+usage is not reported as zero or as confirmed spending. Paid continuation is paused.
+Provider errors now retain a validated request correlation ID when supplied, and
+the pilot respects bounded retry delays instead of immediately repeating outages.
+The two historical failed calls did not retain correlation IDs and remain held.
+
+A zero-call planning-only run reused the saved first-guide outline with an
+identical draft and version ID. It reported `planned=true`, `passed=false`; the
+next guide stopped at the pause boundary before a provider call. The full bundle
+and top-up remain incomplete. This is resume/control validation, not a quality
+pass or an affordable-course claim.
