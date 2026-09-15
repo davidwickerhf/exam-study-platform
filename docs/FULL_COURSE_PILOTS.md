@@ -212,3 +212,56 @@ additional spending without raising the course ceiling, and
 `STUDY_PIPELINE_STOP_CHECKED_CHAPTERS` pauses at a checked chapter checkpoint.
 Neither option is set for the fresh full-course run. An interrupted or capped
 run remains an incomplete full-course measurement, never a passing sample.
+
+### Fresh IUI outcome and bounded repair
+
+The fresh run stopped on its first chapter at the three-correction limit:
+$6.685974 measured, 35 calls, 803,588 input and 123,098 output tokens. No guide
+or chapter passed. $1.675264 was first-guide source mapping and outlining; the
+remainder was planning, authoring and review/correction. The other eight guides
+and the live source-update experiment were not reached.
+
+A subsequent explicitly requested repair retained the saved draft and all three
+automatic attempts, recording one manual attempt. An initial $3 segment admitted
+no call because the repair reservation was too large. After lossless citation-enum
+schema compaction, five paid calls cost $0.833248. Fourteen unchanged factual
+judgments were retained after the patch. Factual review still found incomplete
+goal wording; teaching review was not called because its conservative reservation
+exceeded the remaining segment allowance. The chapter remains unapproved.
+
+Cumulative IUI measured spending is $34.332206 with no unknown usage, including
+$7.519222 for the fresh experiment and its repair. The full course and top-up tests
+remain paused. See `GUIDE_GENERATION_ECONOMICS.md` for the repaired schema/prompt
+constraints and the distinction between offline regression results and live
+teaching-quality results. The final goal-limit change has not been model-tested.
+
+### Whole-bundle planning checkpoint
+
+Use `STUDY_PIPELINE_PLAN_ONLY=1` with the existing course-suite command to collect
+all initial guide outlines before paying for chapter authors and reviewers. It
+preserves the same ledger and version IDs and can resume into generation without
+that flag. Inspect the saved `draft.planning` and `draft.topics` for each unit.
+`planningComplete` does not mean generated or reviewed; `complete` still requires
+every initial guide and every requested source-update experiment to pass. Existing
+IUI authored drafts have not been discarded or replaced by this new mode.
+
+### Latest IUI checkpoint (15 September)
+
+The coherent objective repair made five measured calls for $1.148748 plus two
+failed provider requests with unknown usage. Independent review still rejected an
+overly formal interpretation of a descriptive historical IUI definition. No IUI
+chapter or guide has passed. Four manual corrections and the original three
+automatic corrections remain recorded; no counters were reset.
+
+The cumulative ledger records $38.363684 measured and $7.654250 in unresolved
+reservations ($46.017934 committed against the unchanged $50 ceiling). Unknown
+usage is not reported as zero or as confirmed spending. Paid continuation is paused.
+Provider errors now retain a validated request correlation ID when supplied, and
+the pilot respects bounded retry delays instead of immediately repeating outages.
+The two historical failed calls did not retain correlation IDs and remain held.
+
+A zero-call planning-only run reused the saved first-guide outline with an
+identical draft and version ID. It reported `planned=true`, `passed=false`; the
+next guide stopped at the pause boundary before a provider call. The full bundle
+and top-up remain incomplete. This is resume/control validation, not a quality
+pass or an affordable-course claim.

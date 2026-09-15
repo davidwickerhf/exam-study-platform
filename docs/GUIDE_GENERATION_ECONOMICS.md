@@ -163,3 +163,93 @@ models correctly under the cumulative course ledger. Existing pause files still
 prevent paid continuation. Before enabling a profile, compare it on grounded
 teaching, independent solving, source conflicts and deliberately shallow lessons;
 passing mock-provider routing tests is not evidence of model quality.
+
+## IUI correction-path findings
+
+The fresh nine-guide IUI experiment stopped on its first chapter after the three
+automatic corrections: $6.685974 measured across 35 calls, with no accepted
+chapters. Mapping/outlining accounted for $1.675264; this is not a completed
+chapter or course price.
+
+Two implementation defects were found in the saved failure. Scope review could
+flag objective goals/basis while the repair schema allowed only exclusions,
+gaps and caveats. Combined repairs also discarded the specialized transfer and
+diagnostic repair directives. Objective repairs now retain stable IDs and
+complexity while allowing supported goal/provenance changes, and persist the
+updated plan through MCP submission and chapter preparation. Combined packets
+carry each selected directive once with one source context and chapter body.
+Unselected fields remain unchanged and independent review is still required.
+
+Large repair schemas now share identical citation enums through JSON Schema
+`$defs`, preserving exact constraints and local evidence validation. The saved
+IUI combined repair schema fell from 82,499 to 26,026 characters; its conservative
+Sol reservation fell from $3.793530 to $1.774400. This removes repeated schema
+text, not course evidence or review criteria. The first reservation was rejected
+before any provider call under a $3 additional validation cap.
+
+The bounded live repair made five calls for $0.833248, retained 14 unchanged
+factual judgments after repair, and stopped before Astra teaching review because
+its $3.739738 reservation exceeded the remaining $3 segment allowance. Factual
+review still found truncated objective/learning-goal wording. The goal ceiling
+has since increased from 180 to 400 characters, with explicit complete-sentence
+and caveat-disclosure instructions; that subsequent change has offline regression
+coverage but no additional paid validation. No chapter was approved. Cumulative
+IUI measured spending is $34.332206, leaving $15.667794 under the unchanged $50 cap.
+
+These fixes are not evidence of model-quality parity or affordable course
+completion. The three consumed automatic retries and one explicitly requested
+manual retry remain recorded; the full-course run is paused.
+
+## Review locations and split chapter responsibilities
+
+The next live IUI repair cost $1.247918 across five measured calls. Its diagnostic
+follow-up passed, but a rewritten objective introduced another attribution error;
+no chapter passed in that attempt. Cumulative measured spending reached $36.106184.
+The implementation now keeps item-level review locations when attaching findings
+to a chapter, and recovers lost locations only from an exact saved finding. An
+explicitly identified objective repair exposes only those objective keys; generic
+blocking scope findings retain broad repair access. Unselected objectives are
+preserved automatically. These changes do not alter retry counters or verdicts.
+
+Outline consolidation now retains each mapped concept's supporting evidence.
+When evidence capacity requires multiple chapter parts, each part receives its
+supported concepts instead of copying the entire parent's responsibilities.
+Scope-only concepts belong to the first part while scope evidence remains in every
+part. All evidence survives; legacy authored plans stay intact. Changed concept
+support invalidates reuse, while a redundant single-concept annotation preserves
+legacy input hashes. This addresses within-guide duplication, not yet semantic
+overlap between independently selected guide bundles.
+
+The course pilot supports `STUDY_PIPELINE_PLAN_ONLY=1`: it maps/outlines every
+initial guide and stops before authoring. Planning uses the same cumulative ledger,
+provider caps, isolated account and resumable version IDs. `planningComplete` is
+separate from `complete`; planned guides and missing top-up tests never count as
+finished output. Inspect all guide outlines and overlapping responsibilities before
+resuming without the flag. Planning-only mode rejects correction/recheck/update
+flags to avoid accidentally changing authored work during a planning audit.
+
+A subsequent five-call correction cost $1.108752 and passed its factual checks,
+but teaching review found that the revised immersive-interface criterion no longer
+matched a linked remediation prompt. Cumulative IUI spending reached $37.214936;
+there was still no accepted chapter. Objective-level reviewer locations now select
+the objective's teaching and practice together, within the existing bounded patch
+limits. Large or unlocated findings still require a broader correction. Saved
+review locations, severities and actual findings are retained rather than guessed
+from similar wording.
+
+Final checkpoint for this iteration: $38.363684 measured, $7.654250 unresolved
+provider reservations, $46.017934 committed under the cumulative $50 ceiling.
+The latest coherent repair still failed source interpretation review; it does
+not establish a stable or affordable course. Paid continuation is paused. A
+zero-cost planning checkpoint preserved the draft byte-for-byte and correctly
+reported planned rather than generated. Further design work must resolve shared
+course-context versus guide teaching responsibilities before another full-course
+baseline; the present split fix does not solve cross-guide semantic ownership.
+
+Batch teaching-review findings are also scoped to their exact objective, question
+or section ownership before saving/reusing objective checks. A located defect no
+longer marks every objective in that review batch as defective. Unknown and
+course-wide findings remain shared; dependency fingerprints still reject changed
+inputs. Existing saved batch rows are scoped on read without discarding the
+original review artifact. This reuse fix has regression coverage, including old
+rows with duplicated findings, but has not been included in another paid IUI run.
