@@ -452,3 +452,21 @@ test('objective-level findings select coherent teaching and practice instead of 
  assert.equal(locateReviewIssues(draft,[{...original,topicId:'unknown'}])[0].itemKey,`objective:${id}`)
  assert.equal(locateReviewIssues(draft,[{...issue,detail:'An unrelated issue.'}])[0].itemKey,undefined)
 })
+
+
+test('batch findings invalidate their own objectives while global findings stay shared',async()=>{
+ const {nextPedagogicalReview,acceptPedagogicalReview,preservePedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
+ for(const global of [false,true]){
+  const draft=chapter(),context='Source evidence',step=nextPedagogicalReview(context,draft)
+  const response=teachingResponse(step.prompt,['e-current']),id=draft.teachingPlan.objectives[0].id
+  response.issues=[{topicId:global?'course-wide':id,severity:'error',detail:'A required correction.'}]
+  acceptPedagogicalReview(draft,step,response)
+  assert.equal(combinedIssueCount(draft),global?draft.teachingPlan.objectives.length:1)
+  // Legacy batches copied the same issues into every saved objective row.
+  for(const row of Object.values(draft.pedagogyAudit.reviews))row.issues=structuredClone(response.issues)
+  const next=structuredClone(draft)
+  preservePedagogicalReview(draft,next,context)
+  assert.deepEqual(nextPedagogicalReview(context,next).objectiveIds,global?draft.teachingPlan.objectives.map(o=>o.id):[id])
+ }
+ function combinedIssueCount(chapter){return Object.values(chapter.pedagogyAudit.reviews).filter(review=>review.issues.length).length}
+})

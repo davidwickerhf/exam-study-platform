@@ -245,3 +245,11 @@ zero-cost planning checkpoint preserved the draft byte-for-byte and correctly
 reported planned rather than generated. Further design work must resolve shared
 course-context versus guide teaching responsibilities before another full-course
 baseline; the present split fix does not solve cross-guide semantic ownership.
+
+Batch teaching-review findings are also scoped to their exact objective, question
+or section ownership before saving/reusing objective checks. A located defect no
+longer marks every objective in that review batch as defective. Unknown and
+course-wide findings remain shared; dependency fingerprints still reject changed
+inputs. Existing saved batch rows are scoped on read without discarding the
+original review artifact. This reuse fix has regression coverage, including old
+rows with duplicated findings, but has not been included in another paid IUI run.
