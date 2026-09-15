@@ -18,3 +18,11 @@ export async function readPilotLedger(path,manifest,units){
  if(ledger.pending)throw Error(`An unfinished attempt is recorded at ${ledger.pending.report}. Inspect its process and reconcile its reservation before resuming; do not reset the ledger.`)
  return {...ledger,fingerprint}
 }
+
+export async function assertPilotNotPaused(path){
+ if(!path)return
+ try{await readFile(path)}catch(error){if(error.code==='ENOENT')return;throw error}
+ const error=new Error('Paused at a completed-call checkpoint for course-planning optimization.')
+ error.code='pilot_paused'
+ throw error
+}

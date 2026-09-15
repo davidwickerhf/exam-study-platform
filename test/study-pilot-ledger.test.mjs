@@ -3,12 +3,16 @@ import assert from 'node:assert/strict'
 import {mkdtemp,writeFile,rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
-import {readPilotLedger,writePilotJson} from '../scripts/verification/study-pilot-ledger.mjs'
+import {readPilotLedger,writePilotJson,assertPilotNotPaused} from '../scripts/verification/study-pilot-ledger.mjs'
 
 test('pilot resume preserves spending and rejects changed inputs, corrupt ledgers and unfinished attempts',async()=>{
  const directory=await mkdtemp(join(tmpdir(),'pilot-ledger-'))
  const path=join(directory,'suite.json'),manifest={course:{courseCode:'TEST'},maximumUsd:50},units=[{sources:['source-a']}]
  try{
+  await assertPilotNotPaused(path)
+  await writeFile(path,'pause')
+  await assert.rejects(assertPilotNotPaused(path),{code:'pilot_paused'})
+  await rm(path)
   const ledger=await readPilotLedger(path,manifest,units)
   ledger.attempts.push({costUsd:1.2})
   await writePilotJson(path,ledger)

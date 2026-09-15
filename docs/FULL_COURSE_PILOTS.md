@@ -40,8 +40,11 @@ for every course file.
 
 The first Blockchains mapping call was rejected for exhausted provider credits.
 No usage was returned: $1.200650 remains an unresolved reservation, not a measured
-token bill. After recharge, the saved run resumed and IUI started. Both are still
-in progress; no full-course cost or quality result is available yet.
+token bill. After recharge, the saved run resumed and IUI started. Both were paused at completed-call checkpoints for planning optimization; no
+full-course cost or quality result is available yet. Each has two authored
+chapters, one checked. Usage-based baseline costs are $12.780713 for Blockchains
+and $12.557338 for IUI, including IUI's outline retry. The earlier Blockchains
+reservation remains separate. These figures are not complete course prices.
 
 The IUI outline exhausted a hard-coded 10,000-token output limit after its 16
 source maps completed ($4.935302 in measured-usage cost across that attempt).
@@ -96,3 +99,30 @@ and reviewed. Reports include initial/update token usage separately, retained
 chapter/section/question counts, source gaps, review findings and retry history.
 Full-course success requires all initial units and planned update experiments to
 pass. No production guides, course sources or automation preferences are changed.
+
+## Planning optimization under the same caps
+
+Combined outlines now return short mapped-concept references. The server resolves
+their full evidence unions and rejects missing, unknown or duplicate assignments.
+This removes long citation-list copying from model output. Consolidation retains
+concept titles for teaching plans and source gaps; teaching quality still needs
+its existing independent review, not just a successful structural check.
+
+Chapter splitting now uses the actual remaining 72,000-character packet capacity
+after scope context, rather than the 36,000-character mapping batch size. Shared
+scope is counted once and every evidence passage survives any necessary split.
+No context ceiling or spending allowance was raised. The teaching planner sees
+neighboring chapter responsibilities to reduce duplicate objectives and practice
+while keeping necessary prerequisite explanations.
+
+`STUDY_PIPELINE_REPLAN_REMAINING=1` lets the isolated pilot regroup only unstarted
+chapters when resuming. Authored chapters, checks, maps and correction counters
+remain; the old outline/plans are archived in the draft. At most two regrouping
+attempts are allowed, with a rejected proposal supplied to its correction. These
+calls count against the same course ledger. This is an experiment continuation
+helper, not a new production control or a reset of the generation budget.
+
+Set `STUDY_PIPELINE_PAUSE_FILE` to a private file path before starting a pilot.
+Creating that file pauses before the next paid call after preserving the current
+response; remove it before resuming. Failed or paused runs keep their isolated
+account. A full-course pass still requires every initial guide and update test.

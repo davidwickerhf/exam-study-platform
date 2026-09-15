@@ -294,4 +294,10 @@ test('combined source outlines use the planning allowance and preserve mapped ev
   assert.equal(step.request.maxOutputTokens,STUDY_GENERATION_LIMITS.planTokens)
   assert.deepEqual((await ownStudyVersion(id)).draft.maps,maps)
   assert.equal((await ownStudyVersion(id)).activeRevisionId,null)
+  await answer(id,step.request,{topics:[{id:'addition-units',title:'Adding quantities with matching units',topicRefs:['map-0-topic-0','map-1-topic-0']}],gaps:[]})
+  const plan=await nextLocalStudy(id)
+  assert.match(plan.request.prompt,/Adding quantities with matching units/)
+  const draft=(await ownStudyVersion(id)).draft
+  assert.deepEqual(draft.topics[0].sourceIds,sourceIds)
+  assert.deepEqual(draft.topics[0].concepts,['Addition','Matching units'])
 }))

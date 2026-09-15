@@ -5,7 +5,7 @@ import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Real provider responses through hosted and local next/submit state machines.
 // Stores only isolated local validation accounts; never writes production data.
 import { readFile } from 'node:fs/promises'
-import { writePilotJson } from './study-pilot-ledger.mjs'
+import { writePilotJson, assertPilotNotPaused } from './study-pilot-ledger.mjs'
 import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
 import { estimateStudyCall, studyModelCost, StudyBudgetError } from '../../lib/study-ai-budget.mjs'
@@ -37,6 +37,7 @@ if(!Number.isFinite(report.priorEvaluationUsd)||report.priorEvaluationUsd<0)thro
 if(pilot)report.coursePilot={course,initialSourceKeys:sourceKeys,updateSourceKeys:pilot.updateSourceKeys,sourceGaps:pilot.gaps||[],selection:pilot.selection||null}
 const artifact=process.env.STUDY_PIPELINE_REPORT || '/tmp/wicker-study-pipeline-live.json'
 async function generateOnce(prompt,options){
+  await assertPilotNotPaused(pilot ? process.env.STUDY_PIPELINE_PAUSE_FILE : null)
   if(process.env.STUDY_PIPELINE_OUTPUT_LIMIT){
     const limit=Number(process.env.STUDY_PIPELINE_OUTPUT_LIMIT)
     if(!Number.isSafeInteger(limit)||limit<1000||limit>128000)throw Error('Invalid pilot output limit.')
@@ -133,6 +134,12 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         }
         run.resumedFrom=process.env.STUDY_PIPELINE_RESUME_FILE
       }
+      if(pilot && savedReport && run.phase==='initial' && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1' && process.env.STUDY_PIPELINE_REPLAN_REMAINING==='1'){
+        const {replanPilotRemainder}=await import('./study-pilot-replan.mjs')
+        run.outlineOptimization=await replanPilotRemainder(id,async(prompt,options)=>{run.draft=(await ownStudyVersion(id)).draft;return generate(prompt,options)})
+        run.draft=(await ownStudyVersion(id)).draft
+        await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
+      }
       if(pilot && savedReport && process.env.STUDY_PIPELINE_UPDATE_ONLY==='1'){
         if(!savedReport.runs.every(r=>r.passed))throw Error('Finish initial generation before the update experiment.')
         report.runs=[...savedReport.runs]
@@ -183,7 +190,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         report.reuse=pilotReuse(report.runs[0].revision,report.runs[1].revision)
         if(pilot.updateSourceKeys.some(key=>!report.runs[1].revision.snapshot.sources.some(s=>s.key===key)))throw Error('Updated revision omitted a newly released source.')
       }
-    }catch(error){run.passed=false;if(!report.runs.includes(run))report.runs.push(run);run.error=error.message;if(id)run.draft=(await ownStudyVersion(id).catch(()=>null))?.draft}
+    }catch(error){if(error.code==='pilot_paused')run.pausedAtCompletedCall=true;run.passed=false;if(!report.runs.includes(run))report.runs.push(run);run.error=error.message;if(id)run.draft=(await ownStudyVersion(id).catch(()=>null))?.draft}
     finally{if(!pilot || (report.runs.every(r=>r.passed) && !(pilot.updateSourceKeys.length&&process.env.STUDY_PIPELINE_DEFER_UPDATE==='1')))await deleteAllDocuments()}
   })
   await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
