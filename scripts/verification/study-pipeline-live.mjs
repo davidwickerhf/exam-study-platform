@@ -1,3 +1,4 @@
+import { routeStudyModel } from '../../lib/study-model-routing.mjs'
 import { pilotAccounting } from './study-pilot-accounting.mjs'
 import { runStudyAgentsSdk } from '../../lib/study-agents-sdk.mjs'
 import { transientStudyFailure } from '../../lib/study-provider-errors.mjs'
@@ -44,10 +45,12 @@ async function generateOnce(prompt,options){
     options={...options,maxOutputTokens:Math.min(options.maxOutputTokens,limit)}
     report.pilotOutputLimit=limit
   }
+  const route=routeStudyModel({source:'platform',provider:'openai',model:report.model},{...options,generationRuntime:report.runtime},process.env.STUDY_PIPELINE_MODEL_ROUTES)
+  const model=route?.model || report.model
   const started=Date.now()
-  const call={experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
-  const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,report.model).micros/1000000
+  const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>spendingCap){
     report.budgetFailure={spentUsd:report.calculatedUsd,priorUsd:report.priorEvaluationUsd || 0,reservationUsd:reserved,capUsd:spendingCap}
     throw new StudyBudgetError('Live pipeline validation spending cap reached; the next full reservation would exceed the allowance.')
@@ -61,18 +64,18 @@ async function generateOnce(prompt,options){
   if(report.runtime==='agents-sdk-responses') {
     let usage
     try {
-      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model:report.model,reasoningEffort:options.reasoningEffort || 'medium'})
+      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model,reasoningEffort:options.reasoningEffort || 'medium'})
       usage=result.usage
       return result.text
     } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name};throw error}
     finally {
       call.elapsedMs=Date.now()-started;call.usage=usage
-      if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(report.model,usage.inputTokens,usage.outputTokens,usage)/1000000}
+      if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,usage.inputTokens,usage.outputTokens,usage)/1000000}
     }
   }
-  const response=await providerFetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model:report.model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),},options.providerTimeoutMs || 600000).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500),causeCode:error.cause?.code});throw error})
+  const response=await providerFetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),},options.providerTimeoutMs || 600000).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500),causeCode:error.cause?.code});throw error})
   if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});const error=new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`);error.retryable=response.status>=500;throw error}
-  const result=await response.json();call.elapsedMs=Date.now()-started;call.usage=result.usage;call.finishReason=result.choices?.[0]?.finish_reason;if(!Number.isSafeInteger(result.usage?.prompt_tokens)||result.usage.prompt_tokens<0||!Number.isSafeInteger(result.usage?.completion_tokens)||result.usage.completion_tokens<0){const error=new Error('Provider omitted valid input/output usage; reservation remains held.');error.code='provider_missing_usage';throw error}report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(report.model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
+  const result=await response.json();call.elapsedMs=Date.now()-started;call.usage=result.usage;call.finishReason=result.choices?.[0]?.finish_reason;if(!Number.isSafeInteger(result.usage?.prompt_tokens)||result.usage.prompt_tokens<0||!Number.isSafeInteger(result.usage?.completion_tokens)||result.usage.completion_tokens<0){const error=new Error('Provider omitted valid input/output usage; reservation remains held.');error.code='provider_missing_usage';throw error}report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
   if(result.choices?.[0]?.finish_reason==='length'){report.providerFailures ||= [];report.providerFailures.push({name:'OutputLimit',maxOutputTokens:options.maxOutputTokens});throw new Error('Provider output budget exhausted before a complete correction was returned.')}
   return result.choices?.[0]?.message?.content || ''
 }

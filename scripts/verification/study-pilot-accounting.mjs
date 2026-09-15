@@ -8,7 +8,7 @@ export function pilotAccounting(report) {
   const inputTokens=usage.inputTokens??usage.prompt_tokens,outputTokens=usage.outputTokens??usage.completion_tokens
   if(!Number.isSafeInteger(inputTokens)||inputTokens<0||!Number.isSafeInteger(outputTokens)||outputTokens<0)continue
   const normalized={...usage,cachedInputTokens:usage.cachedInputTokens??usage.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:usage.cacheWriteInputTokens??usage.prompt_tokens_details?.cache_write_tokens}
-  const usd=studyModelCost(report.model,inputTokens,outputTokens,normalized)/1000000
+  const usd=studyModelCost(call.model || report.model,inputTokens,outputTokens,normalized)/1000000
   knownUsageUsd+=usd;measuredCalls++
   const phase=call.experimentPhase||'initial'
   phases[phase]||={knownUsageUsd:0,inputTokens:0,outputTokens:0,calls:0}

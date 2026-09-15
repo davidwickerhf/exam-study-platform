@@ -19,3 +19,11 @@ test('estimated and invalid counters remain unknown rather than measured cost',(
  assert.equal(result.unknownUsageCalls,2)
  assert.equal(result.unsettledReservationUsd,2)
 })
+
+
+test('mixed-model pilots use each call’s actual model for cost rather than the default model',()=>{
+ const usage={inputTokens:1000,outputTokens:100,cachedInputTokens:0,cacheWriteInputTokens:0}
+ const summary=pilotAccounting({model:'gpt-6-astra',calls:2,calculatedUsd:0.01545,callDetails:[{model:'gpt-5-mini',usage},{usage}]})
+ assert.ok(Math.abs(summary.knownUsageUsd-0.01545)<1e-9)
+ assert.equal(summary.unsettledReservationUsd,0)
+})

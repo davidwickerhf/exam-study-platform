@@ -164,3 +164,20 @@ merely enabling a retention setting does not establish reuse. See the
 Missing or malformed actual input/output counters cannot settle a reservation.
 Estimated usage remains separate from measured usage. The latest local verification
 passed 1,090 tests plus TypeScript and the production build.
+
+## Paid continuation paused for economics redesign
+
+The later 09:39 UTC checkpoint is a deliberate stop: Blockchains $30.302604
+measured plus its $1.200650 unresolved reservation; IUI $26.502596 measured.
+Current responses were saved before stopping. There are no active paid pilot
+processes. Keep the configured pause files present while implementing and
+validating the redesign. Do not spend the rest of the $50 ceilings merely to
+reach a spending-limit failure.
+
+New offline changes and their limits are documented in
+`GUIDE_GENERATION_ECONOMICS.md`: shared course map/index reuse, planning reports,
+focused reviewer evidence and opt-in phase-specific routing. No additional real
+model calls were made to validate these changes. A future configured model-profile
+experiment must remain in the same cumulative course accounting; per-call model
+identity now determines measured pricing. Completed-course and live top-up results
+are still outstanding.
