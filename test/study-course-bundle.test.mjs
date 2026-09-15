@@ -52,8 +52,8 @@ test('MCP course generation produces distinct checked guides idempotently withou
     assert.equal(child.courseBundleParent.versionId,parent.id)
     assert.equal((await pendingStudyVersions()).some(row=>row.key===child.id),false)
    }
-   const again=await materializeCourseBundle(parent,revision)
-   assert.deepEqual(again.map(g=>g.id),parent.bundleGuides.map(g=>g.id))
+   const again=await materializeCourseBundle(parent,revision,{})
+   assert.deepEqual(again.guides.map(g=>g.id),parent.bundleGuides.map(g=>g.id))
    for(const child of visible)assert.equal((await ownStudyVersion(child.id)).history.length,1)
    assert.equal((await nextLocalStudy(version.id)).request,null)
   }finally{await deleteAllDocuments()}
