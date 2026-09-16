@@ -213,3 +213,108 @@ test('the local protocol returns the outline correction as its next request and 
   assert.equal(saved.draft.outlineCorrection, undefined)
   assert.equal(saved.draft.automaticRepairs[OUTLINE_CORRECTION_KEY], 1)
 }))
+
+// CHAPTER CEILINGS ARE PER GUIDE. A large course is simulated with a shared
+// course-manual scope passage that leaves 2000 characters per chapter, so each
+// 2000-character teaching passage fills exactly one chapter. No model is called.
+const SCOPE = 70000, PASSAGE = 2000
+async function largeBundle(passages, passageSize = PASSAGE) {
+  const notes = await addStudyNote({ ...course, title: 'Course notes' }, [{ page: 1, text: PAGE }])
+  const manual = await addStudyNote({ ...course, title: 'Course manual' }, [{ page: 1, text: PAGE }])
+  const snapshot = await readStudySourceSnapshot(course, [notes.id, manual.id], { courseBundle: true })
+  const version = await createStudyVersion(course, 'programme-test', snapshot, { courseBundle: true, billing, title: 'Whole course plan' })
+  await mutateStudyVersion(version.id, next => {
+    const scopeKey = next.draft.snapshot.sources.find(s => s.title === 'Course manual').key
+    const key = next.draft.snapshot.sources.find(s => s.key !== scopeKey).key
+    next.draft.snapshot.chunks = [{ id: 'e-scope', sourceKey: scopeKey, text: 's'.repeat(SCOPE) },
+      ...Array.from({ length: passages }, (_, i) => ({ id: `e-t-${i}`, sourceKey: key, text: 'x'.repeat(passageSize) }))]
+    next.draft.stage = 'outline'
+    next.draft.maps = Array.from({ length: passages }, (_, i) => ({ topics: [{ id: `concept-${i}`, title: `Concept ${i}`, sourceIds: [`e-t-${i}`] }], gaps: [] }))
+  })
+  return version
+}
+// guides: [[[passage indexes of chapter], ...], ...]
+const plannedBundle = guides => ({
+  guides: guides.map((chapters, g) => ({ id: `guide-${g}`, title: `Guide ${g}`,
+    topics: chapters.map((refs, c) => ({ id: `guide-${g}-chapter-${c}`, title: `Guide ${g} chapter ${c}`, topicRefs: refs.map(i => `map-${i}-topic-0`) })) })),
+  gaps: []
+})
+const range = (from, to) => Array.from({ length: to - from }, (_, i) => from + i)
+
+test('a guide that expands past its chapter ceiling is corrected with the expansion issues', () => run(async () => {
+  const version = await largeBundle(43)
+  // Guide 0 plans one chapter whose 42 passages split into 42 parts.
+  const overfull = plannedBundle([[range(0, 42)], [[42]]])
+  const corrected = plannedBundle([[range(0, 21)], [range(21, 43)]])
+  const mock = provider([overfull, corrected], [])
+  await processStudyStep(version.id, { generate: mock.generate })
+  const rejected = await ownStudyVersion(version.id)
+  assert.equal(rejected.draft.stage, 'outline')
+  assert.notEqual(rejected.draft.status, 'failed', rejected.draft.error || '')
+  const pending = rejected.draft.outlineCorrection
+  assert.deepEqual(pending.proposal, overfull)
+  assert.equal(pending.correctable, true)
+  assert.equal(pending.exhausted, false)
+  assert.equal(pending.status, 422)
+  assert.equal(pending.issues.length, 1)
+  const [issue] = pending.issues
+  assert.equal(issue.kind, 'chapter-expansion')
+  assert.equal(issue.guideId, 'guide-0')
+  assert.equal(issue.count, 42)
+  assert.equal(issue.limit, 40)
+  assert.equal(issue.excess, 2)
+  assert.deepEqual(issue.expandedChapters, [{ topicId: 'guide-0-chapter-0', parts: 42, evidenceCharacters: 42 * PASSAGE }])
+  assert.equal(rejected.draft.automaticRepairs[OUTLINE_CORRECTION_KEY], 1)
+
+  const planned = await plan(version.id, mock.generate)
+  assert.equal(planned.draft.stage, 'chapters', planned.draft.error || '')
+  assert.equal(mock.outlines().length, 2)
+  const correction = mock.outlines()[1].prompt
+  assert.match(correction, /OUTLINE CORRECTION/)
+  assert.match(correction, /"kind":"chapter-expansion"/)
+  assert.match(correction, /"parts":42/)
+  assert.equal(planned.draft.outlineCorrection, undefined)
+  assert.equal(planned.draft.topics.length, 43)
+  assert.equal(planned.draft.automaticRepairs[OUTLINE_CORRECTION_KEY], 1)
+}))
+
+test('a course whose evidence needs about 60 chapters plans across four guides', () => run(async () => {
+  const version = await largeBundle(60)
+  // Four guides, three planned chapters each, every chapter splitting into five parts.
+  const proposal = plannedBundle(range(0, 4).map(g => range(0, 3).map(c => range(g * 15 + c * 5, g * 15 + c * 5 + 5))))
+  const mock = provider([proposal], [])
+  const planned = await plan(version.id, mock.generate)
+  assert.equal(planned.draft.stage, 'chapters', planned.draft.error || '')
+  assert.equal(mock.outlines().length, 1)
+  assert.equal(planned.draft.topics.length, 60)
+  assert.equal(planned.draft.guides.length, 4)
+  for (const guide of planned.draft.guides) assert.equal(planned.draft.topics.filter(t => t.guideId === guide.id).length, 15)
+  const prompt = mock.outlines()[0].prompt
+  assert.match(prompt, /CHAPTER BUDGET \(per guide, not per course\)/)
+  assert.match(prompt, /at most 24 chapters IN EACH GUIDE/)
+  assert.match(prompt, /at most 40 chapters/)
+  assert.match(prompt, /at most 2000 characters of teaching evidence/)
+  assert.match(prompt, /Part 2/)
+  assert.match(prompt, /needs at least 60 chapters and therefore at least 2 guides/)
+  assert.equal(/At most 40 chapters in total/.test(prompt), false)
+}))
+
+test('a non-correctable outline failure still persists the paid proposal', () => run(async () => {
+  // One passage exceeds the chapter allowance: no regrouping can fix it.
+  const version = await largeBundle(2, PASSAGE + 1)
+  const proposal = plannedBundle([[[0]], [[1]]])
+  const mock = provider([proposal, proposal], [])
+  const failed = await plan(version.id, mock.generate)
+  assert.equal(failed.draft.status, 'failed')
+  assert.equal(failed.draft.stage, 'outline')
+  assert.match(failed.draft.error, /exceeds the remaining chapter allowance/)
+  assert.deepEqual(failed.draft.outlineCorrection.proposal, proposal)
+  assert.equal(failed.draft.outlineCorrection.correctable, false)
+  assert.deepEqual(failed.draft.outlineCorrection.issues, [])
+  assert.equal(failed.draft.automaticRepairs?.[OUTLINE_CORRECTION_KEY] || 0, 0)
+  // A retry behaves as before: a fresh proposal, never a correction of this one.
+  await controlStudyGeneration(version.id, 'retry')
+  await plan(version.id, mock.generate)
+  assert.equal(mock.outlines().length, 2)
+  assert.equal(/OUTLINE CORRECTION/.test(mock.outlines()[1].prompt), false)
+}))

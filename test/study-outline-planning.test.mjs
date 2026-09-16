@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {normalizeStudyOutline} from '../lib/study-version-pipeline.mjs'
+import {normalizeStudyOutline,studyOutlineCapacity} from '../lib/study-version-pipeline.mjs'
 import {teachingPlanPrompt} from '../lib/study-pedagogy.mjs'
 import {outlinePrompt,resolveOutlineGroups,inputHash} from '../lib/study-version-content.mjs'
 
@@ -108,4 +108,31 @@ test('evidence splits retain only supported concept responsibilities and every s
  assert.deepEqual(grouped.topics[0].conceptEvidence.at(-1).sourceIds,['e-0','e-2'],'input plan stays immutable')
  const changed=structuredClone(result.topics[0]);changed.conceptEvidence[0].sourceIds=['e-1']
  assert.notEqual(inputHash(changed,s.chunks),inputHash(result.topics[0],s.chunks),'changed concept support invalidates teaching reuse')
+})
+
+test('single-guide outlines keep the 40-chapter post-split ceiling, now as a correctable rejection',()=>{
+ const s=snapshot(Array(41).fill(2000),70000)
+ const error=(()=>{try{normalizeStudyOutline(outline(s),s)}catch(e){return e}})()
+ assert.equal(error?.message,'This selection needs more than 40 chapters. Generate a smaller source selection.')
+ assert.equal(error.status,422)
+ assert.equal(error.outlineIssues[0].kind,'too-many-chapters')
+ assert.equal(error.outlineIssues[0].count,41)
+ assert.deepEqual(error.outlineIssues[0].expandedChapters.map(c=>c.parts),[41])
+ const fits=snapshot(Array(40).fill(2000),70000)
+ assert.equal(normalizeStudyOutline(outline(fits),fits).topics.length,40)
+ assert.match(outlinePrompt({},[],[],null),/At most 24 chapters\./)
+ assert.deepEqual(Object.keys(studyOutlineCapacity(fits,{})),['chapterEvidenceCharacters','scopeCharacters','scopeEvidenceIds','evidenceSizes'])
+})
+
+test('a bundle applies the post-split ceiling per guide, not to the whole course',()=>{
+ const s=snapshot(Array(80).fill(2000),70000)
+ const ids=s.chunks.filter(c=>c.sourceKey==='teaching').map(c=>c.id)
+ const bundle={guides:[{id:'one',title:'One'},{id:'two',title:'Two'}],gaps:[],topics:[
+  {id:'first',title:'First',guideId:'one',sourceIds:ids.slice(0,40)},{id:'second',title:'Second',guideId:'two',sourceIds:ids.slice(40)}]}
+ assert.equal(normalizeStudyOutline(bundle,s).topics.length,80)
+ bundle.topics[0].sourceIds=ids.slice(0,41);bundle.topics[1].sourceIds=ids.slice(41)
+ const error=(()=>{try{normalizeStudyOutline(bundle,s)}catch(e){return e}})()
+ assert.equal(error?.outlineIssues?.length,1)
+ assert.equal(error.outlineIssues[0].guideId,'one')
+ assert.equal(error.outlineIssues[0].excess,1)
 })

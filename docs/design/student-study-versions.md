@@ -236,6 +236,15 @@ the same clear error, its source maps and rejected proposal intact, and
 re-entering that failed stage costs no further call. The same bound applies to
 the non-bundle combined outline.
 
+Chapter ceilings apply per guide, not per course: each child is an ordinary
+guide, so a guide may plan at most 24 chapters and hold at most 40 after the
+evidence-capacity split, and a bundle of 2–12 guides is bounded by guides × 40.
+The bundle prompt states the per-chapter evidence allowance, that oversized
+chapters are split into parts, and the minimum chapters and guides the selected
+evidence needs. A guide that still expands past 40 is a correctable rejection
+listing the guide, the chapters split into parts and the excess; any other
+outline failure also saves the rejected proposal on the draft before failing.
+
 Source mapping now recovers from a `provider_output_limit` response by halving
 the offending batch, at most two levels, while keeping already-accepted maps
 and citations; the split is persisted so a resumed run repeats the same batch

@@ -134,6 +134,14 @@ status: failed` draft therefore resumes into the correction path with its maps
 intact, and an exhausted bound fails with the same error without buying another
 proposal.
 
+The next resumed run reached a structurally valid 71-map outline that failed
+only because evidence-capacity splitting pushed the whole course past a single
+guide's 40-chapter ceiling, outside the correction path. Chapter ceilings now
+apply per guide (24 planned, 40 after splitting, 2–12 guides), the prompt states
+the per-chapter evidence allowance and minimum chapter count, and a post-split
+breach becomes a correctable rejection with the proposal saved. A `stage: outline`
+draft with no saved correction resumes into one fresh outline call under these rules.
+
 Set `STUDY_PIPELINE_PAUSE_FILE` to a private file path before starting a pilot.
 Creating that file pauses before the next paid call after preserving the current
 response; remove it before resuming. Failed or paused runs keep their isolated
