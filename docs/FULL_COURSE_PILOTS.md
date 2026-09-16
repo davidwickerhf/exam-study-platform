@@ -134,6 +134,14 @@ status: failed` draft therefore resumes into the correction path with its maps
 intact, and an exhausted bound fails with the same error without buying another
 proposal.
 
+A later 320-concept/71-map run still exhausted the correction bound: the base
+call and both corrections each omitted 1-2 concepts, last `map-67-topic-3`.
+Below max(3, 2% of all mapped concepts) a dropped concept with no other
+error-level issue is now placed deterministically instead of rejected, and an
+exhausted `stage: outline` draft re-checks its saved proposal under the current
+rules on resume, so that exact saved attempt is accepted with zero provider
+calls instead of repeating the same failure.
+
 The next resumed run reached a structurally valid 71-map outline that failed
 only because evidence-capacity splitting pushed the whole course past a single
 guide's 40-chapter ceiling, outside the correction path. Chapter ceilings now

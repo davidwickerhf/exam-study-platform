@@ -236,6 +236,15 @@ the same clear error, its source maps and rejected proposal intact, and
 re-entering that failed stage costs no further call. The same bound applies to
 the non-bundle combined outline.
 
+Below max(3, 2% of all mapped concepts), a dropped concept with no other
+error-level issue is instead placed deterministically into the chapter that
+already holds the most refs from its source map (tie-broken by shared
+evidence, then plan order) rather than rejected, with every placement recorded
+in `planning.autoPlaced`; larger gaps and unplaceable concepts still follow the
+correction path above, and re-entering an outline stage with a saved rejected
+proposal re-checks it under the current rules first, accepting it with no
+provider call if it now passes.
+
 Chapter ceilings apply per guide, not per course: each child is an ordinary
 guide, so a guide may plan at most 24 chapters and hold at most 40 after the
 evidence-capacity split, and a bundle of 2–12 guides is bounded by guides × 40.

@@ -62,7 +62,11 @@ test('compact outline groups preserve all concept and evidence provenance exactl
  assert.deepEqual(result.topics[0].sourceIds,['e-1','e-2','e-3'])
  assert.deepEqual(result.topics[0].concepts,['Mechanism A','Mechanism B'])
  assert.deepEqual(result.gaps,maps[0].gaps)
- for(const refs of [['map-0-topic-0'],['unknown'],['map-0-topic-0','map-0-topic-0']])assert.throws(()=>resolveOutlineGroups({topics:[{id:'combined',title:'Combined',topicRefs:refs}],gaps:[]},maps),/omitted|unknown|twice/)
+ // A single dropped ref from the same map as an already-placed sibling is now
+ // auto-placed instead of rejected; genuinely invalid input still throws.
+ const placed=resolveOutlineGroups({topics:[{id:'combined',title:'Combined',topicRefs:['map-0-topic-0']}],gaps:[]},maps)
+ assert.deepEqual(placed.autoPlaced,[{ref:'map-0-topic-1',title:'Mechanism B',guideId:null,chapterId:'combined',reason:'same-source-map'}])
+ for(const refs of [['unknown'],['map-0-topic-0','map-0-topic-0']])assert.throws(()=>resolveOutlineGroups({topics:[{id:'combined',title:'Combined',topicRefs:refs}],gaps:[]},maps),/unknown|twice/)
 })
 
 

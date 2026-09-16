@@ -42,7 +42,10 @@ test('pilot regrouping retains authored chapters, review checks, maps and correc
 
 test('invalid grouping gets one correction with its base proposal, then stops durably',async()=>fixture(async id=>{
  const before=await ownStudyVersion(id);let calls=0
- const invalid={...valid,topics:[{...valid.topics[0],topicRefs:['map-0-topic-0']}]}
+ // An unknown ref is never a placement candidate (unlike a dropped concept
+ // from the same small remainder, which deterministic placement would now
+ // silently fix), so it still exhausts the correction bound.
+ const invalid={...valid,topics:[{...valid.topics[0],topicRefs:['unknown']}]}
  await assert.rejects(replanPilotRemainder(id,async prompt=>{
   if(calls++)assert.match(prompt,/"candidate"/)
   return JSON.stringify(invalid)

@@ -9,14 +9,17 @@ import {ownStudyVersion,studyRevision,listOwnStudyVersions,pendingStudyVersions}
 import {course,lesson,teachingResponse} from '../scripts/verification/study-fixtures.mjs'
 
 test('whole-course outlines assign every mapped concept once and reject repeated guide ownership',()=>{
- const maps=[{topics:[{id:'a',title:'Mechanism A',sourceIds:['e-a']},{id:'b',title:'Mechanism B',sourceIds:['e-b']},{id:'a2',title:'Mechanism A',sourceIds:['e-a2']}],gaps:[]}]
- const candidate={guides:[{id:'one',title:'First guide',topics:[{id:'a',title:'Mechanism A',topicRefs:['map-0-topic-0','map-0-topic-2']}]},{id:'two',title:'Second guide',topics:[{id:'b',title:'Mechanism B',topicRefs:['map-0-topic-1']}]}],gaps:[]}
+ // "orphan" lives on its own map with its own evidence, so dropping it alone
+ // (unlike dropping a same-map sibling) has no deterministic placement
+ // candidate and must still be reported as an omitted concept.
+ const maps=[{topics:[{id:'a',title:'Mechanism A',sourceIds:['e-a']},{id:'b',title:'Mechanism B',sourceIds:['e-b']},{id:'a2',title:'Mechanism A',sourceIds:['e-a2']}],gaps:[]},{topics:[{id:'orphan',title:'Mechanism Orphan',sourceIds:['e-orphan']}],gaps:[]}]
+ const candidate={guides:[{id:'one',title:'First guide',topics:[{id:'a',title:'Mechanism A',topicRefs:['map-0-topic-0','map-0-topic-2']}]},{id:'two',title:'Second guide',topics:[{id:'b',title:'Mechanism B',topicRefs:['map-0-topic-1','map-1-topic-0']}]}],gaps:[]}
  const result=resolveCourseBundle(candidate,maps)
  assert.deepEqual(result.topics.map(t=>t.guideId),['one','two'])
  assert.deepEqual(result.topics[0].sourceIds,['e-a','e-a2'])
  const repeated=structuredClone(candidate);repeated.guides[0].topics[0].topicRefs.pop();repeated.guides[1].topics[0].topicRefs.push('map-0-topic-2')
  assert.throws(()=>resolveCourseBundle(repeated,maps),/multiple guide owners/)
- const omitted=structuredClone(candidate);omitted.guides[0].topics[0].topicRefs.pop()
+ const omitted=structuredClone(candidate);omitted.guides[1].topics[0].topicRefs.pop()
  assert.throws(()=>resolveCourseBundle(omitted,maps),/omitted/)
  const duplicate=structuredClone(candidate);duplicate.guides[1].topics[0].id='a'
  assert.throws(()=>resolveCourseBundle(duplicate,maps),/unique/)
