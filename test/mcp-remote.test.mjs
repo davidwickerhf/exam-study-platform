@@ -220,3 +220,15 @@ test('real Streamable HTTP client discovers tools/guidance, preserves account is
   assert.match((await throttled.json()).error.message,/token budget/)
   assert.equal(calls.length,callsBefore,'a rejected reservation must not execute the tool')
 })
+
+test('dynamic registration without a scope grants every supported scope', async () => {
+  const oauth=createMcpOAuth({store:createMcpStore(),origin})
+  const registered=await oauth.register({client_name:'Scope default client',redirect_uris:[redirect],token_endpoint_auth_method:'none'})
+  assert.equal(registered.scope,'read write')
+  const verifier=randomBytes(32).toString('base64url')
+  const location=await oauth.authorize({client_id:registered.client_id,redirect_uri:redirect,resource:oauth.protectedMetadata.resource,response_type:'code',scope:'read write',code_challenge_method:'S256',code_challenge:createHash('sha256').update(verifier).digest('base64url'),state:'caller-state'})
+  assert.ok(new URL(location).searchParams.get('request'))
+  const narrow=await oauth.register({client_name:'Read only client',redirect_uris:[redirect],token_endpoint_auth_method:'none',scope:'read'})
+  assert.equal(narrow.scope,'read')
+  await assert.rejects(()=>oauth.authorize({client_id:narrow.client_id,redirect_uri:redirect,resource:oauth.protectedMetadata.resource,response_type:'code',scope:'read write',code_challenge_method:'S256',code_challenge:createHash('sha256').update(verifier).digest('base64url')}),/Scope was not registered/)
+})
