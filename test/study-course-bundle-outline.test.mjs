@@ -260,7 +260,8 @@ test('a guide that expands past its chapter ceiling is corrected with the expans
   const version = await largeBundle(43)
   // Guide 0 plans one chapter whose 42 passages split into 42 parts.
   const overfull = plannedBundle([[range(0, 42)], [[42]]])
-  const corrected = plannedBundle([[range(0, 21)], [range(21, 43)]])
+  // The correction also respects the automatic 10-chapters-per-guide budget.
+  const corrected = plannedBundle([[range(0, 9)], [range(9, 18)], [range(18, 27)], [range(27, 36)], [range(36, 43)]])
   const mock = provider([overfull, corrected], [])
   await processStudyStep(version.id, { generate: mock.generate })
   const rejected = await ownStudyVersion(version.id)
@@ -293,25 +294,27 @@ test('a guide that expands past its chapter ceiling is corrected with the expans
   assert.equal(planned.draft.automaticRepairs[OUTLINE_CORRECTION_KEY], 1)
 }))
 
-test('a course whose evidence needs about 60 chapters plans across four guides', () => run(async () => {
+test('a course whose core evidence needs 60 chapters plans across six guides within the automatic budget', () => run(async () => {
   const version = await largeBundle(60)
-  // Four guides, three planned chapters each, every chapter splitting into five parts.
-  const proposal = plannedBundle(range(0, 4).map(g => range(0, 3).map(c => range(g * 15 + c * 5, g * 15 + c * 5 + 5))))
+  // Six guides, two planned chapters each, every chapter splitting into five parts.
+  const proposal = plannedBundle(range(0, 6).map(g => range(0, 2).map(c => range(g * 10 + c * 5, g * 10 + c * 5 + 5))))
   const mock = provider([proposal], [])
   const planned = await plan(version.id, mock.generate)
   assert.equal(planned.draft.stage, 'chapters', planned.draft.error || '')
   assert.equal(mock.outlines().length, 1)
   assert.equal(planned.draft.topics.length, 60)
-  assert.equal(planned.draft.guides.length, 4)
-  for (const guide of planned.draft.guides) assert.equal(planned.draft.topics.filter(t => t.guideId === guide.id).length, 15)
+  assert.equal(planned.draft.guides.length, 6)
+  for (const guide of planned.draft.guides) assert.equal(planned.draft.topics.filter(t => t.guideId === guide.id).length, 10)
   const prompt = mock.outlines()[0].prompt
-  assert.match(prompt, /CHAPTER BUDGET \(per guide, not per course\)/)
-  assert.match(prompt, /at most 24 chapters IN EACH GUIDE/)
-  assert.match(prompt, /at most 40 chapters/)
-  assert.match(prompt, /at most 2000 characters of teaching evidence/)
+  assert.match(prompt, /AUTOMATIC SCOPE AND CHAPTER POLICY/)
+  assert.match(prompt, /at most 60 chapters in total/)
+  assert.match(prompt, /each guide should hold 3-10 chapters/)
+  assert.match(prompt, /at most 2000 characters of core teaching evidence/)
   assert.match(prompt, /Part 2/)
-  assert.match(prompt, /needs at least 60 chapters and therefore at least 2 guides/)
-  assert.equal(/At most 40 chapters in total/.test(prompt), false)
+  assert.match(prompt, /needs at least 60 chapters, so choose at least 6 guides/)
+  assert.equal(/at most 24 chapters IN EACH GUIDE/.test(prompt), false)
+  assert.equal(planned.draft.planningPolicy, 'scope-roles-v1')
+  assert.equal(planned.draft.planning.budget.course, 60)
 }))
 
 test('a non-correctable outline failure still persists the paid proposal', () => run(async () => {

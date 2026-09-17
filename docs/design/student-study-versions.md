@@ -254,6 +254,29 @@ evidence needs. A guide that still expands past 40 is a correctable rejection
 listing the guide, the chapters split into parts and the excess; any other
 outline failure also saves the rejected proposal on the draft before failing.
 
+Scope and granularity are decided automatically for every whole-course bundle
+(`scope-roles-v1`, `lib/study-course-scope-policy.mjs`); students are never
+asked. The outline gives each mapped concept a role: `core` (assessed in the
+current edition), `supporting` (prerequisite or practical/project material,
+carried by the core chapter that needs it or by at most one compact reference
+chapter per guide) or `excluded`. An exclusion needs a reason and a citation of
+current scope context or current-edition lecture material, may cover at most
+35% of mapped concepts, cannot also be taught, and is saved as a visible scope
+note; violations are correctable outline issues. The chapter budget is computed
+from core evidence only (current lecture evidence, or historical lecture
+evidence for concepts with nothing current; code, archives and datasets never
+count): about one chapter per 36,000 characters, at least 6, capped at 60 but
+never below what the evidence capacity physically needs, with 3–10 chapters per
+guide. Parts are sized by core evidence; supporting evidence fills remaining
+capacity by relevance and the rest is trimmed and recorded in `evidenceTrims`.
+A budget breach goes through the same bounded correction. Review, citation and
+pedagogy standards are unchanged, and no assessed concept is dropped to fit.
+A saved bundle outline from an older policy with no authored chapters or
+teaching plans re-enters the outline stage on resume from its saved maps; the
+superseded plan and its outline-correction count are archived in
+`replannedOutlines`, other correction counters are kept. Single-guide outlines
+are unchanged.
+
 Source mapping now recovers from a `provider_output_limit` response by halving
 the offending batch, at most two levels, while keeping already-accepted maps
 and citations; the split is persisted so a resumed run repeats the same batch

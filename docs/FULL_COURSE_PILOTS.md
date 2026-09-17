@@ -271,6 +271,20 @@ that flag. Inspect the saved `draft.planning` and `draft.topics` for each unit.
 every initial guide and every requested source-update experiment to pass. Existing
 IUI authored drafts have not been discarded or replaced by this new mode.
 
+The IUI plan-only checkpoint (attempt 6: 115 sources, about 2.49M characters,
+71 maps, 320 concepts) produced 10 guides and 167 chapters, 668 baseline review
+tasks, and paused at the 128-task guard. About 1.06M of those characters are
+code and project archives, and 1.33M are older-edition material. Whole-course
+bundles now plan under the automatic scope-roles policy described in
+`docs/design/student-study-versions.md`: for that saved draft the server derives
+about 1.27M characters of core evidence and a 37-chapter course budget (capacity
+minimum 30, 3–10 per guide), before any exclusions. That draft has no authored
+chapters, so rerunning the suite with `STUDY_PIPELINE_PLAN_ONLY=1` replans only
+its outline from the saved maps (one outline call plus at most two corrections,
+no mapping calls); the suite no longer skips a planned unit whose saved plan is
+stale. The review-task guard still applies when drafting resumes. This is a
+planning change, not yet a measured result.
+
 ### Latest IUI checkpoint (15 September)
 
 The coherent objective repair made five measured calls for $1.148748 plus two

@@ -1,4 +1,4 @@
-import {coursePilotCompletion} from './study-pilot-planning.mjs'
+import {coursePilotCompletion,pilotPlanReady} from './study-pilot-planning.mjs'
 import {readPilotLedger,writePilotJson} from './study-pilot-ledger.mjs'
 import {pilotAccounting} from './study-pilot-accounting.mjs'
 // A whole-course experiment is a bundle of focused guides sharing one hard
@@ -27,7 +27,9 @@ const planOnly=process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
 const jobs=[...units.map((_,index)=>({index,phase:'initial'})),...units.flatMap((u,index)=>u.pilot.updateSourceKeys.length?[{index,phase:'update'}]:[])]
 for(const {index,phase} of jobs){
  if(planOnly && phase==='update')continue
- if(planOnly && ledger.units.some(u=>u.index===index&&(u.phase||'initial')===phase&&u.planned))continue
+ const plannedUnit=planOnly&&ledger.units.find(u=>u.index===index&&(u.phase||'initial')===phase&&u.planned)
+ // A saved plan made under an older planning policy is replanned, not skipped.
+ if(plannedUnit && await readFile(plannedUnit.report,'utf8').then(r=>pilotPlanReady(JSON.parse(r).runs?.findLast(run=>run.draft)?.draft),()=>true))continue
  if(ledger.units.some(u=>u.index===index&&(u.phase||'initial')===phase&&u.passed))continue
  const prior=ledger.attempts.reduce((n,a)=>n+a.costUsd,0),previous=ledger.attempts.findLast(a=>a.index===index&&(a.phase||'initial')===phase)
  const path=output+`/guide-${index+1}-${phase}-attempt-${ledger.attempts.filter(a=>a.index===index&&(a.phase||'initial')===phase).length+1}.json`
