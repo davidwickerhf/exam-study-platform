@@ -10,7 +10,20 @@ MCP 2.11.0 adds eight `study_generation_*` tools. Start with the live contract a
 
 Local drafts use `local-ready`, `local-running`, and `waiting-local` statuses. Hosted workers, including older deployments that only pick queued/running statuses, cannot claim them. No platform generation model or embedding call is made. Hosting/storage requests and the local agent’s own model/subscription usage remain separate costs.
 
-Prepare/submit are owner and programme scoped, require write access, and recheck source availability. Mutation leases fence concurrent steps, pause, refresh and expired workers. Exact repeated submissions return saved receipts; changed responses under the same request ID are rejected. The request ID and contract are checked again inside the atomic claim. Receipts are bounded to 240; beyond that, old replays remain stale rather than creating work. Nothing automatically shares or publishes a guide.
+Source mapping issues several packets at once. `next` returns a bounded set in
+`requests`, each with its own request ID, batch identity, scoped evidence, prompt,
+response schema and output budget, and they may be computed and submitted in any
+order. `request` stays the first of that set, so a client that reads only
+`request`/`nextAction` still completes a run, one packet at a time; contract
+`schemaVersion` is 2 for the added field, and the wire `protocol` remains 1. The
+bound is `STUDY_MAPPING_CONCURRENCY` (default 4, minimum 1, hard-capped at 8); at
+1 the protocol is exactly the previous one-request-per-step loop. Only mapping is
+parallelised: outline, teaching plans, authoring, reviews and corrections each
+still issue one request. Cost is per token, so a wider pool changes elapsed time,
+not spending. A provider rate limit retries that one batch with the existing
+bounded retry-delay diagnostics and never escalates model, effort or output caps.
+
+Prepare/submit are owner and programme scoped, require write access, and recheck source availability. Mutation leases fence concurrent steps, pause, refresh and expired workers. Exact repeated submissions return saved receipts; changed responses under the same request ID are rejected. Submissions for different outstanding requests serialize their commits on the same mutation lease instead of rejecting each other: a submission that finds the lease held waits and retries the identical payload, and its pending peers are reissued with their original request IDs. A contract change reissues every outstanding request while accepted maps stay saved. The request ID and contract are checked again inside the atomic claim. Receipts are bounded to 240; beyond that, old replays remain stale rather than creating work. Nothing automatically shares or publishes a guide.
 
 Verification: unit tests exercise a complete local run, repeated submissions, stale contracts, ownership/source revocation, schema/citation/teaching rejection, correction prompts, hosted-worker exclusion and billing separation. Stdio MCP tests verify the exported tools and required fields. Browser tests start local generation through the real HTTP API and confirm the resumable reader state without a billing request. Model-generated content quality still depends on the local model and honest semantic review; synthetic fixtures do not prove real-model outcomes.
 
