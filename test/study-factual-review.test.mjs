@@ -18,7 +18,7 @@ test('audit requires every item, records a failure among passes, and invalidates
   for(;;){
     const step=nextFactualReview(course,[],evidence,draft);if(!step)break
     const response=teachingResponse(step.prompt,['e-current'])
-    if(step.kind==='answers' && step.keys.includes('question:question-4'))response.items['question:question-4']={correct:false,rationale:'The lower bound violates the union constraint.',issues:[]}
+    if(step.kind==='answers' && step.keys.includes('question:question-4'))response.items['question:question-4']={correct:false,rationale:'The lower bound violates the union constraint.',issues:[],fault:'authored'}
     acceptFactualReview(draft,step,response);steps++
     if(nextFactualReview(course,[],evidence,draft))assert.ok(factualAuditIssues(draft).some(i=>i.severity==='error'))
   }
@@ -69,6 +69,69 @@ test('a question that keeps failing its arithmetic check becomes a bounded factu
   const finding=issues.find(i=>i.itemKey===`question:${badKey}`)
   assert.ok(finding)
   assert.equal(finding.severity,'error')
+})
+test('an answers judgment blaming the independent solution re-solves only that question instead of creating a chapter finding',()=>{
+  const draft=chapter()
+  const solveStep=nextFactualReview(course,[],evidence,draft)
+  acceptFactualReview(draft,solveStep,teachingResponse(solveStep.prompt,['e-current']))
+  const step=nextFactualReview(course,[],evidence,draft)
+  assert.equal(step.kind,'answers')
+  const badKey=step.keys[0],qkey=badKey.slice('question:'.length)
+  const raw=teachingResponse(step.prompt,['e-current'])
+  raw.items[badKey]={correct:false,rationale:'The independent solution lists inconsistent option sets.',issues:[{detail:'Lists A,C,D,E in one place and A,C,D elsewhere.',severity:'error'}],fault:'independent-solution'}
+  acceptFactualReview(draft,step,raw)
+  assert.equal(draft.factualAudit.solutions[qkey],undefined)
+  assert.equal(draft.factualAudit.judgments[badKey],undefined)
+  assert.equal(draft.factualAudit.solveRetries[qkey],1)
+  // No error is recorded against this question specifically: it is simply
+  // pending a fresh solve, not a chapter finding.
+  assert.ok(!factualAuditIssues(draft).some(i=>i.itemKey===badKey))
+  const next=nextFactualReview(course,[],evidence,draft)
+  assert.equal(next.kind,'solve')
+  assert.deepEqual(next.keys,[qkey]) // isolated re-solve, like an arithmetic failure
+})
+test('an authored-fault answers judgment still creates a chapter finding',()=>{
+  const draft=chapter()
+  const solveStep=nextFactualReview(course,[],evidence,draft)
+  acceptFactualReview(draft,solveStep,teachingResponse(solveStep.prompt,['e-current']))
+  const step=nextFactualReview(course,[],evidence,draft)
+  const badKey=step.keys[0],qkey=badKey.slice('question:'.length)
+  const raw=teachingResponse(step.prompt,['e-current'])
+  raw.items[badKey]={correct:false,rationale:'The authored key omits a supported option.',issues:[{detail:'The authored key omits a supported option.',severity:'error'}],fault:'authored'}
+  acceptFactualReview(draft,step,raw)
+  assert.ok(draft.factualAudit.solutions[qkey]) // the blind solution is not discarded
+  assert.deepEqual(draft.factualAudit.judgments[badKey],raw.items[badKey])
+  assert.equal(draft.factualAudit.solveRetries[qkey],undefined)
+  for(let s;(s=nextFactualReview(course,[],evidence,draft));)acceptFactualReview(draft,s,teachingResponse(s.prompt,['e-current']))
+  const finding=factualAuditIssues(draft).find(i=>i.itemKey===badKey)
+  assert.ok(finding);assert.equal(finding.severity,'error')
+})
+test('an independent-solution fault that keeps recurring becomes a bounded question-level finding instead of retrying forever',()=>{
+  const draft=chapter()
+  const solveStep=nextFactualReview(course,[],evidence,draft)
+  acceptFactualReview(draft,solveStep,teachingResponse(solveStep.prompt,['e-current']))
+  let step=nextFactualReview(course,[],evidence,draft)
+  const badKey=step.keys[0],qkey=badKey.slice('question:'.length)
+  for(let attempt=1;attempt<=3;attempt++) {
+    const raw=teachingResponse(step.prompt,['e-current'])
+    raw.items[badKey]={correct:false,rationale:'Still internally inconsistent.',issues:[{detail:'Still internally inconsistent.',severity:'error'}],fault:'independent-solution'}
+    acceptFactualReview(draft,step,raw)
+    if(attempt<3) {
+      assert.equal(draft.factualAudit.solveRetries[qkey],attempt) // the bound keeps counting across re-solves
+      step=nextFactualReview(course,[],evidence,draft)
+      assert.equal(step.kind,'solve');assert.deepEqual(step.keys,[qkey])
+      acceptFactualReview(draft,step,teachingResponse(step.prompt,['e-current'])) // the re-solve itself succeeds
+      step=nextFactualReview(course,[],evidence,draft)
+      assert.equal(step.kind,'answers');assert.ok(step.keys.includes(badKey))
+    }
+  }
+  const judgment=draft.factualAudit.judgments[badKey]
+  assert.equal(judgment.correct,false)
+  assert.match(judgment.issues[0].detail,/could not produce a consistent solution/)
+  assert.equal(judgment.issues[0].severity,'error')
+  for(let s;(s=nextFactualReview(course,[],evidence,draft));)acceptFactualReview(draft,s,teachingResponse(s.prompt,['e-current']))
+  const finding=factualAuditIssues(draft).find(i=>i.itemKey===badKey)
+  assert.ok(finding);assert.equal(finding.severity,'error')
 })
 test('coverage comes from actual objective annotations and link repair cannot rewrite content',()=>{
   const draft=chapter();draft.objectiveCoverage[0].independentQuestionKeys=['invented']

@@ -174,6 +174,7 @@ solutions in answer comparison. Teaching review groups up to eight objectives
 within its existing size bound. All verdicts remain required, reviewer contexts
 remain isolated, and bounded output-limit recovery still splits factual batches.
 The blind solver's arithmetic check accepts a rounded result within half a unit of its last written decimal place, and a calculation that still fails is isolated to its own question (re-solved alone, bounded to two re-solves, then handed to the ordinary correction path) instead of discarding the rest of the batch or failing the pipeline.
+Answer comparison also attributes a failing verdict's fault (authored, independent-solution, both or none); a verdict blaming only the independent solution clears that question's solution and judgment and re-solves it alone under the same bounded retry counter instead of recording a chapter finding, and a chapter that failed review purely on now-stale answers judgments (for example after this attribution was added) re-enters review for free instead of needing a fresh correction.
 The scripted browser evaluation retains all seven checks in 11 calls instead of
 13. This plumbing result is not a measured live quality or cost comparison.
 

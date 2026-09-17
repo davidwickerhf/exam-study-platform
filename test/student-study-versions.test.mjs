@@ -30,8 +30,10 @@ import {
 import {
   processStudyStep,
   refreshStudyVersion,
-  controlStudyGeneration
+  controlStudyGeneration,
+  recoverFailedChapterByStaleFactualJudgments
 } from '../lib/study-version-pipeline.mjs'
+import { nextFactualReview, acceptFactualReview, factualAuditIssues } from '../lib/study-factual-review.mjs'
 import {
   publishStudyVersion,
   readStudyPublication,
@@ -1092,6 +1094,91 @@ test('a draft failed at stage review resumes straight back into factual review, 
     assert.equal(draftCalls, 1) // resume + completion spent zero authoring calls
     assert.equal(solveCalls, 1) // the saved solutions were reused, never re-solved
   } finally { await f.cleanup() }
+})
+
+test('a chapter failed only on now-stale answers judgments re-enters review for free, reusing solutions, content and pedagogy', () => {
+  const staleEvidence = [{ id: 'e-current', sourceKey: 'source', text: 'Adding disjoint groups: two plus three equals five. Check with subtraction.' }]
+  const draft = { ...lesson(['e-current']), id: 'addition', teachingPlan: teachingPlan(['e-current']) }
+  for (let step; (step = nextFactualReview(course, [], staleEvidence, draft));) acceptFactualReview(draft, step, teachingResponse(step.prompt, ['e-current']))
+  assert.deepEqual(factualAuditIssues(draft), [])
+  const badKey = `question:${draft.questions[0].key}`
+  const savedSolutions = structuredClone(draft.factualAudit.solutions)
+  const savedJudgments = structuredClone(draft.factualAudit.judgments)
+  // Simulate an answers judgment saved under a superseded answers schema:
+  // its recorded error is stale under the current review rules even though
+  // nothing about the question, evidence or content changed.
+  draft.factualAudit.judgments[badKey] = { correct: false, rationale: 'Stale verdict from a superseded answers schema.', issues: [{ detail: 'Stale verdict from a superseded answers schema.', severity: 'error' }] }
+  draft.factualAudit.dependencies.judgments[badKey] = 'stale-legacy-hash'
+  const pedagogicalReview = { stub: 'unaffected pedagogical review' }
+  const finding = { topicId: draft.id, severity: 'error', itemKey: badKey, detail: 'Stale verdict from a superseded answers schema.' }
+  const work = {
+    chapters: [{ ...draft, review: 'failed', evidenceReview: { issues: [finding] }, pedagogicalReview }],
+    topics: [{ id: draft.id, sourceIds: ['e-current'] }],
+    issues: [finding],
+    snapshot: { chunks: staleEvidence, sources: [] },
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByStaleFactualJudgments(work, course), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.equal(chapter.evidenceReview, undefined)
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  assert.equal(chapter.pedagogicalReview, pedagogicalReview) // reused untouched
+  for (const key of Object.keys(savedSolutions)) assert.deepEqual(chapter.factualAudit.solutions[key], savedSolutions[key])
+  for (const key of Object.keys(savedJudgments)) if (key !== badKey) assert.deepEqual(chapter.factualAudit.judgments[key], savedJudgments[key])
+})
+
+test('a chapter failed for a genuine, still-current authored answers fault is not re-opened', () => {
+  const staleEvidence = [{ id: 'e-current', sourceKey: 'source', text: 'Adding disjoint groups: two plus three equals five. Check with subtraction.' }]
+  const draft = { ...lesson(['e-current']), id: 'addition', teachingPlan: teachingPlan(['e-current']) }
+  let step = nextFactualReview(course, [], staleEvidence, draft)
+  acceptFactualReview(draft, step, teachingResponse(step.prompt, ['e-current']))
+  step = nextFactualReview(course, [], staleEvidence, draft)
+  const badKey = step.keys[0]
+  const raw = teachingResponse(step.prompt, ['e-current'])
+  raw.items[badKey] = { correct: false, rationale: 'The authored key omits a supported option.', issues: [{ detail: 'The authored key omits a supported option.', severity: 'error' }], fault: 'authored' }
+  acceptFactualReview(draft, step, raw)
+  for (let s; (s = nextFactualReview(course, [], staleEvidence, draft));) acceptFactualReview(draft, s, teachingResponse(s.prompt, ['e-current']))
+  const finding = factualAuditIssues(draft).find(i => i.itemKey === badKey)
+  assert.ok(finding)
+  const beforeAudit = structuredClone(draft.factualAudit)
+  const work = {
+    chapters: [{ ...draft, review: 'failed', evidenceReview: { issues: [finding] }, pedagogicalReview: { stub: true } }],
+    topics: [{ id: draft.id, sourceIds: ['e-current'] }],
+    issues: [{ ...finding, topicId: draft.id }],
+    snapshot: { chunks: staleEvidence, sources: [] },
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByStaleFactualJudgments(work, course), false)
+  assert.equal(work.chapters[0].review, 'failed')
+  assert.deepEqual(work.chapters[0].factualAudit, beforeAudit)
+})
+
+test('a chapter failed for a content-review (non-answers) finding is never re-opened by the factual-judgment recovery', () => {
+  const staleEvidence = [{ id: 'e-current', sourceKey: 'source', text: 'Adding disjoint groups: two plus three equals five. Check with subtraction.' }]
+  const draft = { ...lesson(['e-current']), id: 'addition', teachingPlan: teachingPlan(['e-current']) }
+  for (let step; (step = nextFactualReview(course, [], staleEvidence, draft));) acceptFactualReview(draft, step, teachingResponse(step.prompt, ['e-current']))
+  const sectionKey = `section:${draft.sections[0].id}`
+  // Corrupt this content item's dependency the same way the answers test
+  // does, to prove the guard is the item's kind, not merely staleness.
+  draft.factualAudit.dependencies.judgments[sectionKey] = 'stale-legacy-hash'
+  const finding = { topicId: draft.id, severity: 'error', itemKey: sectionKey, detail: 'An authored content error.' }
+  const work = {
+    chapters: [{ ...draft, review: 'failed', evidenceReview: { issues: [finding] }, pedagogicalReview: { stub: true } }],
+    topics: [{ id: draft.id, sourceIds: ['e-current'] }],
+    issues: [finding],
+    snapshot: { chunks: staleEvidence, sources: [] },
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByStaleFactualJudgments(work, course), false)
+  assert.equal(work.chapters[0].review, 'failed')
 })
 
 test('long guide calls keep their lease and reject duplicate workers beyond five minutes',async t=>{

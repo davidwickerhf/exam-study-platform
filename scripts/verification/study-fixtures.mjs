@@ -30,7 +30,9 @@ export function teachingResponse(prompt, ids, {reviewIssues=[]}={}) {
   if(prompt.includes('INDEPENDENT QUESTION SOLVING') || prompt.includes('ANSWER COMPARISON REVIEW') || prompt.includes('ITEM-BY-ITEM CONTENT REVIEW')) {
     const payload=JSON.parse(prompt.split('Review payload: ').at(-1))
     if(prompt.includes('INDEPENDENT QUESTION SOLVING'))return {items:Object.fromEntries(payload.map(q=>[q.key,{answer:'Scripted independent solution for plumbing tests.',assumptions:[],calculations:[]}]))}
-    return {items:Object.fromEntries(payload.map(item=>[item.key,{correct:!reviewIssues.some(i=>i.severity==='error'),rationale:'Scripted review for plumbing tests.',issues:reviewIssues.map(({detail,severity})=>({detail,severity}))}]))}
+    const failing=reviewIssues.some(i=>i.severity==='error')
+    const answers=prompt.includes('ANSWER COMPARISON REVIEW')
+    return {items:Object.fromEntries(payload.map(item=>[item.key,{correct:!failing,rationale:'Scripted review for plumbing tests.',issues:reviewIssues.map(({detail,severity})=>({detail,severity})),...(answers?{fault:failing?'authored':'none'}:{})}]))}
   }
   if(prompt.includes('REPAIR PRACTICE LINKS')) {
     const payload=JSON.parse(prompt.split('Review payload: ').at(-1))
