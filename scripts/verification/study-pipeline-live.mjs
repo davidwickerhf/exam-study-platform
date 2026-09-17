@@ -1,7 +1,8 @@
+import {pilotPlanReady} from './study-pilot-planning.mjs'
 import { routeStudyModel } from '../../lib/study-model-routing.mjs'
 import { pilotAccounting } from './study-pilot-accounting.mjs'
 import { runStudyAgentsSdk } from '../../lib/study-agents-sdk.mjs'
-import { transientStudyFailure } from '../../lib/study-provider-errors.mjs'
+import { transientStudyFailure, studyRetryDelayMs } from '../../lib/study-provider-errors.mjs'
 import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Real provider responses through hosted and local next/submit state machines.
 // Stores only isolated local validation accounts; never writes production data.
@@ -20,6 +21,8 @@ const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=awai
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
+const planOnly=!!pilot && process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
+if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning or updates.')
 const fixture=pilot ? 'course:'+pilot.course.courseCode : process.env.STUDY_PIPELINE_FIXTURE || 'probability'
 if(!pilot&&!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
 if(pilot && (process.env.STUDY_PIPELINE_MODE!=='local' || !Array.isArray(pilot.updateSourceKeys)))throw new Error('Course maintenance pilots require local mode and explicit synthetic update source keys.')
@@ -69,7 +72,7 @@ async function generateOnce(prompt,options){
       const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model,reasoningEffort:options.reasoningEffort || 'medium'})
       usage=result.usage
       return result.text
-    } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name};throw error}
+    } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name,providerStatus:error.providerStatus,providerRequestId:error.providerRequestId};throw error}
     finally {
       call.elapsedMs=Date.now()-started;call.usage=usage
       if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,usage.inputTokens,usage.outputTokens,usage)/1000000}
@@ -88,7 +91,7 @@ async function generate(prompt,options){
     catch(error){
       if(attempt===3 || !transientStudyFailure(error))throw error
       console.log(`Temporary provider failure; retry ${attempt} of 2 with a new budget reservation.`)
-      await new Promise(resolve=>setTimeout(resolve,1000*attempt))
+      await new Promise(resolve=>setTimeout(resolve,studyRetryDelayMs(error,attempt)))
     }
   }
 }
@@ -116,10 +119,10 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(savedReport){
           evaluationSources=savedRun.phase==='update'?pilot.sources:evaluationSources
-          run={...savedRun,steps:[...savedRun.steps],passed:false};report.runs=[...previous.runs.filter(r=>r.passed),run]
+          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined};report.runs=[...previous.runs.filter(r=>r.passed),run]
         }
         if(!saved)throw new Error('No saved draft for this execution mode.')
-        await mutateStudyVersion(id,version=>{
+        if(!planOnly || !pilotPlanReady(saved))await mutateStudyVersion(id,version=>{
           version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}
           version.draft.billing={...version.draft.billing,maxJobUsd:spendingCap}
           delete version.draft.localRequest
@@ -158,6 +161,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       for(let step=0;step<500;step++){
         const before=await ownStudyVersion(id)
         run.draft=before.draft
+        if(planOnly && pilotPlanReady(before.draft)){run.planned=true;break}
         if(pilot)assertPilotChapterTarget(before.draft,process.env.STUDY_PIPELINE_STOP_CHECKED_CHAPTERS)
         console.log(`${run.phase}: ${execution}: ${before.draft.stage} / ${before.draft.status}`)
         if(run.maintenance && before.draft.status!=='complete' && before.activeRevisionId!==run.maintenance.readableRevisionId)throw Error('Readable revision changed before maintenance passed.')
@@ -202,7 +206,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
     finally{if(!pilot)await deleteAllDocuments()}
   })
   await writePilotJson(artifact,{...report,accounting:pilotAccounting(report)})
-  console.log(`${execution}: ${run.passed?'PASS':'FAIL'} ${run.error||''}`)
+  console.log(`${execution}: ${run.passed?'PASS':run.planned?'PLANNED':'FAIL'} ${run.error||''}`)
 }
 console.log(JSON.stringify({calls:report.calls,calculatedUsd:report.calculatedUsd,runs:report.runs.map(({execution,passed,status,error})=>({execution,passed,status,error}))},null,2))
-if(report.runs.some(r=>!r.passed))process.exitCode=1
+if(report.runs.some(r=>!r.passed && !(planOnly && r.planned)))process.exitCode=1

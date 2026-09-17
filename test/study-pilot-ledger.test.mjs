@@ -37,3 +37,18 @@ test('bounded pilot segments never raise the course cap and stop only at a check
  assert.throws(()=>assertPilotChapterTarget(draft,'0'),/Invalid/)
  assert.doesNotThrow(()=>assertPilotChapterTarget(draft,undefined))
 })
+
+
+test('course planning checkpoints never report generated guides or skip required updates',async()=>{
+ const {pilotPlanReady,coursePilotCompletion}=await import('../scripts/verification/study-pilot-planning.mjs')
+ for(const stage of ['mapping','outline','readiness'])assert.equal(pilotPlanReady({stage,topics:[{id:'x'}]}),false)
+ assert.equal(pilotPlanReady({stage:'chapters',topics:[{id:'x'}]}),true)
+ assert.equal(pilotPlanReady({stage:'chapters',topics:[]}),false)
+ const jobs=[{index:0,phase:'initial'},{index:1,phase:'initial'},{index:1,phase:'update'}]
+ const planned=[{index:0,phase:'initial',planned:true},{index:1,phase:'initial',planned:true}]
+ assert.deepEqual(coursePilotCompletion(planned,jobs,2),{planningComplete:true,complete:false})
+ const generated=planned.map(unit=>({...unit,passed:true}))
+ assert.equal(coursePilotCompletion(generated,jobs,2).complete,false)
+ assert.equal(coursePilotCompletion([...generated,{index:1,phase:'update',passed:true}],jobs,2).complete,true)
+ assert.equal(coursePilotCompletion(planned.slice(0,1),jobs,2).planningComplete,false)
+})
