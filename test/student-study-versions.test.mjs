@@ -984,6 +984,64 @@ test('review-only retry keeps the failed chapter and charges no generation call'
   } finally { await f.cleanup() }
 })
 
+test('a chapter saved as review:failed only for a stray objective-coverage link recovers on resume with zero new authoring/correction calls', async () => {
+  const f = await fixture()
+  try {
+    const ids = f.snapshot.chunks.map(c => c.id)
+    let draftCalls = 0
+    const generate = async prompt => {
+      if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
+      if (prompt.includes('Independently check')) return { issues: [] }
+      if (prompt.includes('Map this evidence batch')) return { topics: [{ id: 'addition', title: 'Addition', sourceIds: ids }], gaps: [] }
+      draftCalls++
+      return lesson(ids)
+    }
+    // Drive a real mapping + teaching-plan + lesson draft, producing a chapter
+    // pending review with no defect of its own.
+    for (let i = 0; i < 10; i++) {
+      await f.run(() => processStudyStep(f.version.id, { generate }))
+      const v = await f.run(() => ownStudyVersion(f.version.id))
+      if (v.draft.stage === 'review' && v.draft.chapters?.[0]?.review === 'pending') break
+    }
+    assert.equal(draftCalls, 1)
+    // Simulate exactly the real-world failure this fixes: under the pre-fix
+    // pipeline, this chapter was saved as review:'failed' after exhausting its
+    // correction budget on a single stray cross-objective worked-example
+    // reference (a section that exists and is fine, but is not tagged for
+    // the objective that lists it).
+    await f.run(() => mutateStudyVersion(f.version.id, v => {
+      const chapter = v.draft.chapters[0]
+      chapter.sections.push({ ...chapter.sections[2], id: 'section-stray', objectiveIds: ['objective-2'] })
+      chapter.objectiveCoverage[0].workedExampleSectionIds = ['section-3', 'section-stray']
+      chapter.review = 'failed'
+      v.draft.status = 'failed'
+      v.draft.automaticRepairs = { addition: 3 }
+      v.draft.issues = [{ topicId: 'addition', severity: 'error', detail: 'objective-1: workedExampleSectionIds must point to visible teaching for this objective.' }]
+    }))
+    await f.run(() => controlStudyGeneration(f.version.id, 'retry'))
+    const recovered = await f.run(() => ownStudyVersion(f.version.id))
+    assert.equal(recovered.draft.repair, undefined)
+    assert.equal(recovered.draft.reviewOnly, false)
+    assert.equal(recovered.draft.stage, 'review')
+    assert.equal(recovered.draft.chapters[0].review, 'pending')
+    assert.deepEqual(recovered.draft.issues, [])
+    assert.deepEqual(recovered.draft.chapters[0].objectiveCoverage[0].workedExampleSectionIds, ['section-3'])
+    assert.equal(recovered.draft.chapters[0].linkRepairs.length, 1)
+    assert.deepEqual(recovered.draft.chapters[0].linkRepairs[0], { objectiveId: 'objective-1', list: 'workedExampleSectionIds', ref: 'section-stray', reason: 'section is not tagged with this objective' })
+    assert.equal(recovered.draft.automaticRepairs.addition, 3) // unchanged: no correction spent recovering the link
+    assert.equal(draftCalls, 1) // resume itself made no authoring/correction call
+    // It now continues straight into factual and pedagogical review.
+    for (let i = 0; i < 20; i++) {
+      await f.run(() => processStudyStep(f.version.id, { generate }))
+      const v = await f.run(() => ownStudyVersion(f.version.id))
+      if (['complete', 'failed'].includes(v.draft.status)) break
+    }
+    const done = await f.run(() => ownStudyVersion(f.version.id))
+    assert.equal(done.draft.status, 'complete')
+    assert.equal(draftCalls, 1) // still no draft/correction call spent on the link recovery
+  } finally { await f.cleanup() }
+})
+
 test('long guide calls keep their lease and reject duplicate workers beyond five minutes',async t=>{
   const f=await fixture()
   let now=Date.now()

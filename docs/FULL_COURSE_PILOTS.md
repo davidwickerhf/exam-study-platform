@@ -361,3 +361,7 @@ course run refreshed with an added source reuses unchanged chapters, stays local
 and keeps its guides out of the hosted queue. Maintenance is enrolled on the
 course run, never on a managed guide, and a withheld source that arrives later
 is processed through the parent.
+
+### Stray objective-coverage links no longer burn a correction
+
+The `guide-1-initial-attempt` chapter had failed after exhausting all three automatic corrections on a single stray `workedExampleSectionIds` reference to a section tagged for a different objective; drafted chapters are now normalized to drop such invalid coverage links (recorded in `linkRepairs`) whenever a valid reference remains, instead of rejecting the whole chapter. A chapter saved as `review: failed` for only that reason now resumes straight into factual/pedagogical review on retry, with no new authoring or correction call and an unchanged correction ledger.
