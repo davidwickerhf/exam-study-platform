@@ -1042,6 +1042,58 @@ test('a chapter saved as review:failed only for a stray objective-coverage link 
   } finally { await f.cleanup() }
 })
 
+test('a draft failed at stage review resumes straight back into factual review, reusing saved solutions with zero draft or re-solve calls', async () => {
+  const f = await fixture()
+  try {
+    const ids = f.snapshot.chunks.map(c => c.id)
+    let draftCalls = 0, solveCalls = 0
+    const generate = async prompt => {
+      if (prompt.includes('INDEPENDENT QUESTION SOLVING')) solveCalls++
+      if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
+      if (prompt.includes('Independently check')) return { issues: [] }
+      if (prompt.includes('Map this evidence batch')) return { topics: [{ id: 'addition', title: 'Addition', sourceIds: ids }], gaps: [] }
+      draftCalls++
+      return lesson(ids)
+    }
+    for (let i = 0; i < 10; i++) {
+      await f.run(() => processStudyStep(f.version.id, { generate }))
+      const v = await f.run(() => ownStudyVersion(f.version.id))
+      if (v.draft.stage === 'review' && v.draft.chapters?.[0]?.review === 'pending' && !v.draft.chapters[0].factualAudit) break
+    }
+    assert.equal(draftCalls, 1)
+    // Complete exactly the blind-solve checkpoint (one batch covers every
+    // question here), then simulate the real-world failure this fixes: the
+    // draft is left at status 'failed', stage 'review', with the chapter
+    // still 'pending' and its solved questions already saved.
+    await f.run(() => processStudyStep(f.version.id, { generate }))
+    const solved = await f.run(() => ownStudyVersion(f.version.id))
+    const savedSolutions = structuredClone(solved.draft.chapters[0].factualAudit.solutions)
+    assert.equal(Object.keys(savedSolutions).length, lesson(ids).questions.length)
+    assert.equal(solveCalls, 1)
+    await f.run(() => mutateStudyVersion(f.version.id, v => {
+      v.draft.status = 'failed'
+      v.draft.error = 'The independent solution contains an invalid arithmetic check for question-1. Retry the review step.'
+    }))
+    // Pilot resume restores 'local-ready'; a hosted retry goes through here.
+    await f.run(() => controlStudyGeneration(f.version.id, 'retry'))
+    const resumed = await f.run(() => ownStudyVersion(f.version.id))
+    assert.equal(resumed.draft.stage, 'review')
+    assert.equal(resumed.draft.chapters[0].review, 'pending')
+    assert.deepEqual(resumed.draft.chapters[0].factualAudit.solutions, savedSolutions)
+    assert.equal(resumed.draft.automaticRepairs?.addition ?? 0, 0) // correction counters untouched
+    assert.equal(draftCalls, 1) // resume itself made no authoring call
+    for (let i = 0; i < 30; i++) {
+      await f.run(() => processStudyStep(f.version.id, { generate }))
+      const v = await f.run(() => ownStudyVersion(f.version.id))
+      if (['complete', 'failed'].includes(v.draft.status)) break
+    }
+    const done = await f.run(() => ownStudyVersion(f.version.id))
+    assert.equal(done.draft.status, 'complete')
+    assert.equal(draftCalls, 1) // resume + completion spent zero authoring calls
+    assert.equal(solveCalls, 1) // the saved solutions were reused, never re-solved
+  } finally { await f.cleanup() }
+})
+
 test('long guide calls keep their lease and reject duplicate workers beyond five minutes',async t=>{
   const f=await fixture()
   let now=Date.now()

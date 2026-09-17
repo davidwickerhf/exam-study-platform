@@ -30,11 +30,45 @@ test('audit requires every item, records a failure among passes, and invalidates
   assert.match(factualAuditIssues(draft)[0].detail,/exact current chapter/)
   assert.equal(nextFactualReview(course,[],evidence,draft).kind,'solve')
 })
-test('blind-solver arithmetic witnesses cannot silently contain wrong calculations',()=>{
+test('a rounded blind-solver result is accepted while a genuinely wrong calculation is isolated and scheduled alone',()=>{
   const draft=chapter(),step=nextFactualReview(course,[],evidence,draft),raw=teachingResponse(step.prompt,['e-current'])
-  raw.items[step.keys[0]].calculations=[{expression:'0.7 + 0.5 - 1',result:0}]
-  assert.throws(()=>acceptFactualReview(draft,step,raw),/invalid arithmetic/)
-  assert.equal(draft.factualAudit,undefined)
+  const [goodKey,roundedKey,wrongKey]=step.keys
+  raw.items[goodKey].calculations=[{expression:'2+3',result:5}]
+  raw.items[roundedKey].calculations=[{expression:'2/3',result:0.667}] // rounded to 3 decimals
+  raw.items[wrongKey].calculations=[{expression:'2/3',result:0.2}] // genuinely wrong
+  acceptFactualReview(draft,step,raw)
+  assert.ok(draft.factualAudit.solutions[goodKey])
+  assert.ok(draft.factualAudit.solutions[roundedKey])
+  assert.equal(draft.factualAudit.solutions[wrongKey],undefined)
+  assert.equal(draft.factualAudit.solveRetries[wrongKey],1)
+  const next=nextFactualReview(course,[],evidence,draft)
+  assert.equal(next.kind,'solve')
+  assert.deepEqual(next.keys,[wrongKey])
+})
+test('a question that keeps failing its arithmetic check becomes a bounded factual finding instead of failing the whole review',()=>{
+  const draft=chapter()
+  let step=nextFactualReview(course,[],evidence,draft)
+  const badKey=step.keys[0]
+  for(let attempt=1;attempt<=3;attempt++) {
+    const raw=teachingResponse(step.prompt,['e-current'])
+    raw.items[badKey].calculations=[{expression:'2/3',result:0.2}]
+    acceptFactualReview(draft,step,raw)
+    if(attempt<3) {
+      step=nextFactualReview(course,[],evidence,draft)
+      assert.deepEqual(step.keys,[badKey]) // re-solved alone, bounded to 2 re-solves
+    }
+  }
+  assert.equal(draft.factualAudit.solutions[badKey],undefined)
+  const judgment=draft.factualAudit.judgments[`question:${badKey}`]
+  assert.equal(judgment.correct,false)
+  assert.match(judgment.issues[0].detail,/could not verify the arithmetic/)
+  assert.equal(judgment.issues[0].severity,'error')
+  // The review continues to completion without ever throwing for this question.
+  for(let s;(s=nextFactualReview(course,[],evidence,draft));)acceptFactualReview(draft,s,teachingResponse(s.prompt,['e-current']))
+  const issues=factualAuditIssues(draft)
+  const finding=issues.find(i=>i.itemKey===`question:${badKey}`)
+  assert.ok(finding)
+  assert.equal(finding.severity,'error')
 })
 test('coverage comes from actual objective annotations and link repair cannot rewrite content',()=>{
   const draft=chapter();draft.objectiveCoverage[0].independentQuestionKeys=['invented']
