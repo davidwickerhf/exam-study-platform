@@ -285,6 +285,16 @@ no mapping calls); the suite no longer skips a planned unit whose saved plan is
 stale. The review-task guard still applies when drafting resumes. This is a
 planning change, not yet a measured result.
 
+A later attempt under that same scope-roles-v1 policy returned six guides that
+were each essentially one giant topic, so the server's evidence-capacity split
+mechanically produced 30 chapters (29 numbered "Part" slices with no
+conceptual chapter structure) while still fitting the aggregate course and
+guide budgets. The policy is now `scope-roles-v2`, which also rejects a
+planned chapter needing more than a two-part fallback split or a guide whose
+planned chapter count cannot hold its own core evidence, and gives the
+planner each concept's core-evidence size so it can shape chapters before the
+call is paid for.
+
 ### Latest IUI checkpoint (15 September)
 
 The coherent objective repair made five measured calls for $1.148748 plus two

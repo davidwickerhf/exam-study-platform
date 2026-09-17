@@ -7,7 +7,7 @@ import { addStudyNote, readStudySourceSnapshot } from '../lib/study-version-sour
 import { createStudyVersion, ownStudyVersion, mutateStudyVersion } from '../lib/study-version-store.mjs'
 import { processStudyStep, normalizeStudyOutline, studyOutlineCapacity, OUTLINE_CORRECTION_KEY } from '../lib/study-version-pipeline.mjs'
 import { resolveCourseBundle, courseBundlePrompt } from '../lib/study-course-bundle.mjs'
-import { courseBundlePolicy, outlinePlanningStale, COURSE_BUNDLE_PLANNING_POLICY } from '../lib/study-course-scope-policy.mjs'
+import { courseBundlePolicy, outlinePlanningStale, assertBundleChapterShape, COURSE_BUNDLE_PLANNING_POLICY } from '../lib/study-course-scope-policy.mjs'
 import { pilotPlanReady } from '../scripts/verification/study-pilot-planning.mjs'
 import { course } from '../scripts/verification/study-fixtures.mjs'
 
@@ -67,6 +67,13 @@ test('the chapter budget is derived from core evidence only and stated in the pr
   assert.match(prompt, /derived from 110000 characters of core teaching evidence/)
   assert.match(prompt, /the 48000 characters of code, archives and datasets are excluded/)
   assert.match(prompt, /excluded:\[\{topicRefs,reason,scopeSourceIds\}\]/)
+  // The compact per-concept core-evidence size list, and the instruction that
+  // numbered parts are a fallback, not a plan.
+  assert.match(prompt, /CORE EVIDENCE SIZE PER CONCEPT/)
+  assert.match(prompt, new RegExp(`${ref(0)}:60000`))
+  assert.match(prompt, new RegExp(`${ref(1)}:0`))
+  assert.match(prompt, /will be sent back for correction/)
+  assert.match(prompt, /not numbered parts/)
 })
 
 test('a cited exclusion counts as covered and is reported as a scope note', () => {
@@ -202,4 +209,86 @@ test('a stale planned draft with no authored chapters replans from its saved map
   assert.equal(after.draft.replannedOutlines[0].outlineCorrections, 2)
   assert.equal(outlinePlanningStale(after.draft), false)
   assert.equal(pilotPlanReady(after.draft), true)
+}))
+
+// PLANNED CHAPTER SHAPE. Aggregate budgets can pass while a bundle still has
+// almost no real chapter structure: one giant per-guide topic that the split
+// then explodes into a wall of "· Part N" chapters. assertBundleChapterShape
+// catches that shape before/alongside the aggregate checks.
+const shapePolicy = { availableChapterCharacters: 3000, guideChapterMin: 3, guideChapterMax: 10 }
+
+test('a planned chapter needing more than a 2-part fallback is a correctable oversized-chapter issue', () => {
+  const expansion = [{ topicId: 't1', title: 'Giant topic', guideId: 'g1', parts: 3, evidenceCharacters: 9000 }]
+  const guides = [{ id: 'g1', title: 'Guide one' }]
+  const error = rejection(() => assertBundleChapterShape(expansion, guides, shapePolicy))
+  assert.equal(error.status, 422)
+  const oversized = error.outlineIssues.find(i => i.kind === 'oversized-chapter')
+  assert.deepEqual(oversized, {
+    severity: 'error', kind: 'oversized-chapter', guideId: 'g1', guideTitle: 'Guide one', topicId: 't1', topicTitle: 'Giant topic',
+    coreCharacters: 9000, charactersPerChapter: 3000, minimumChapters: 3, detail: oversized.detail
+  })
+  // The same guide also under-plans overall: one chapter cannot hold evidence
+  // that needs three, so a shortfall is reported alongside it.
+  assert.ok(error.outlineIssues.some(i => i.kind === 'guide-chapter-shortfall'))
+})
+
+test('a 2-part fallback split is not an oversized-chapter issue', () => {
+  const expansion = [
+    { topicId: 't1', title: 'Two-part topic', guideId: 'g1', parts: 2, evidenceCharacters: 6000 },
+    { topicId: 't2', title: 'Padding topic', guideId: 'g1', parts: 1, evidenceCharacters: 0 }
+  ]
+  const guides = [{ id: 'g1', title: 'Guide one' }]
+  assert.doesNotThrow(() => assertBundleChapterShape(expansion, guides, shapePolicy))
+})
+
+test('a guide planning too few chapters for its core evidence is a correctable guide-chapter-shortfall issue', () => {
+  const expansion = [{ topicId: 't1', title: 'Chapter one', guideId: 'g1', parts: 1, evidenceCharacters: 9000 }]
+  const guides = [{ id: 'g1', title: 'Guide one' }]
+  const error = rejection(() => assertBundleChapterShape(expansion, guides, shapePolicy))
+  assert.deepEqual(error.outlineIssues.map(i => i.kind), ['guide-chapter-shortfall'])
+  assert.deepEqual(error.outlineIssues[0], {
+    severity: 'error', kind: 'guide-chapter-shortfall', guideId: 'g1', guideTitle: 'Guide one', plannedChapters: 1, requiredChapters: 3,
+    guideCoreCharacters: 9000, charactersPerChapter: 3000, detail: error.outlineIssues[0].detail
+  })
+})
+
+test('a draft planned under the superseded scope-roles-v1 policy is stale under v2', () => {
+  const base = { guides: [{ id: 'g' }], topics: [{ id: 't' }], stage: 'chapters', chapters: [] }
+  assert.equal(outlinePlanningStale({ ...base, planningPolicy: 'scope-roles-v1' }), true)
+  assert.equal(outlinePlanningStale({ ...base, planningPolicy: COURSE_BUNDLE_PLANNING_POLICY }), false)
+})
+
+test('a single giant topic per guide is corrected into distinct chapters', () => run(async () => {
+  const version = await bundleVersion(10)
+  // Guide 0 plans one giant chapter for 9 of the 10 concepts; guide 1 plans
+  // the remaining one. Exactly the production shape: a bundle proposal that
+  // technically covers every concept but has no real per-chapter structure.
+  const giant = {
+    guides: [
+      { id: 'guide-0', title: 'Guide 0', topics: [{ id: 'guide-0-chapter-0', title: 'Guide 0 chapter 0', topicRefs: Array.from({ length: 9 }, (_, i) => `map-${i}-topic-0`) }] },
+      { id: 'guide-1', title: 'Guide 1', topics: [{ id: 'guide-1-chapter-0', title: 'Guide 1 chapter 0', topicRefs: ['map-9-topic-0'] }] }
+    ], gaps: []
+  }
+  const corrected = planned([9, 1])
+  const mock = provider([giant, corrected])
+  await processStudyStep(version.id, { generate: mock.generate })
+  const rejected = await ownStudyVersion(version.id)
+  assert.equal(rejected.draft.stage, 'outline')
+  assert.notEqual(rejected.draft.status, 'failed', rejected.draft.error || '')
+  const kinds = rejected.draft.outlineCorrection.issues.map(i => i.kind).sort()
+  assert.deepEqual(kinds, ['guide-chapter-shortfall', 'oversized-chapter'])
+  const oversized = rejected.draft.outlineCorrection.issues.find(i => i.kind === 'oversized-chapter')
+  assert.equal(oversized.guideId, 'guide-0')
+  assert.equal(oversized.minimumChapters, 9)
+  const shortfall = rejected.draft.outlineCorrection.issues.find(i => i.kind === 'guide-chapter-shortfall')
+  assert.equal(shortfall.guideId, 'guide-0')
+  assert.equal(shortfall.plannedChapters, 1)
+  assert.equal(shortfall.requiredChapters, 9)
+
+  await processStudyStep(version.id, { generate: mock.generate })
+  const accepted = await ownStudyVersion(version.id)
+  assert.equal(accepted.draft.stage, 'chapters', accepted.draft.error || '')
+  assert.equal(accepted.draft.topics.length, 10)
+  // The corrected plan needed no part splits at all.
+  assert.equal(accepted.draft.topics.every(t => !t.title.includes('Part')), true)
 }))

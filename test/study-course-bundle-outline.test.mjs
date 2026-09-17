@@ -9,6 +9,7 @@ import { processStudyStep, controlStudyGeneration, OUTLINE_CORRECTION_KEY } from
 import { startLocalStudy, nextLocalStudy, submitLocalStudy, addLocalStudyNotes } from '../lib/study-local-generation.mjs'
 import { resolveOutlineGroups } from '../lib/study-version-content.mjs'
 import { resolveCourseBundle } from '../lib/study-course-bundle.mjs'
+import { COURSE_BUNDLE_PLANNING_POLICY } from '../lib/study-course-scope-policy.mjs'
 import { course } from '../scripts/verification/study-fixtures.mjs'
 
 // A whole-course outline is one expensive call over every accepted source map.
@@ -261,7 +262,13 @@ test('a guide that expands past its chapter ceiling is corrected with the expans
   // Guide 0 plans one chapter whose 42 passages split into 42 parts.
   const overfull = plannedBundle([[range(0, 42)], [[42]]])
   // The correction also respects the automatic 10-chapters-per-guide budget.
-  const corrected = plannedBundle([[range(0, 9)], [range(9, 18)], [range(18, 27)], [range(27, 36)], [range(36, 43)]])
+  // Each guide plans one distinct chapter per passage (not one giant chapter
+  // relying on the part split), so the corrected shape also satisfies the
+  // per-chapter and per-guide evidence-shape checks.
+  const corrected = plannedBundle([
+    range(0, 9).map(i => [i]), range(9, 18).map(i => [i]), range(18, 27).map(i => [i]),
+    range(27, 36).map(i => [i]), range(36, 43).map(i => [i])
+  ])
   const mock = provider([overfull, corrected], [])
   await processStudyStep(version.id, { generate: mock.generate })
   const rejected = await ownStudyVersion(version.id)
@@ -296,8 +303,9 @@ test('a guide that expands past its chapter ceiling is corrected with the expans
 
 test('a course whose core evidence needs 60 chapters plans across six guides within the automatic budget', () => run(async () => {
   const version = await largeBundle(60)
-  // Six guides, two planned chapters each, every chapter splitting into five parts.
-  const proposal = plannedBundle(range(0, 6).map(g => range(0, 2).map(c => range(g * 10 + c * 5, g * 10 + c * 5 + 5))))
+  // Six guides, ten distinct single-passage chapters each: within capacity,
+  // so none relies on the server's part-fallback split.
+  const proposal = plannedBundle(range(0, 6).map(g => range(0, 10).map(c => [g * 10 + c])))
   const mock = provider([proposal], [])
   const planned = await plan(version.id, mock.generate)
   assert.equal(planned.draft.stage, 'chapters', planned.draft.error || '')
@@ -313,7 +321,7 @@ test('a course whose core evidence needs 60 chapters plans across six guides wit
   assert.match(prompt, /Part 2/)
   assert.match(prompt, /needs at least 60 chapters, so choose at least 6 guides/)
   assert.equal(/at most 24 chapters IN EACH GUIDE/.test(prompt), false)
-  assert.equal(planned.draft.planningPolicy, 'scope-roles-v1')
+  assert.equal(planned.draft.planningPolicy, COURSE_BUNDLE_PLANNING_POLICY)
   assert.equal(planned.draft.planning.budget.course, 60)
 }))
 
