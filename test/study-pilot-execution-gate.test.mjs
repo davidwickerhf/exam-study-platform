@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { assertPilotExecutionMode, resolveSavedPilotRun } from '../scripts/verification/study-pilot-execution-gate.mjs'
 
 const pilotWithUpdates = { updateSourceKeys: ['update-1'] }
@@ -60,4 +61,12 @@ test('resuming a saved draft under a different execution mode is refused without
 test('no saved run at all resolves to null without throwing', () => {
   const previous = { runs: [] }
   assert.deepEqual(resolveSavedPilotRun(previous, 'hosted', true), { savedRun: null, executionConverted: null })
+})
+
+test('the course suite forwards hosted mode only for the initial phase', async () => {
+  const source = await readFile(new URL('../scripts/verification/study-course-suite.mjs', import.meta.url), 'utf8')
+  const mode = /STUDY_PIPELINE_MODE:\(([^)]*)\)\?'hosted':'local'/.exec(source)
+  assert.ok(mode, 'the suite must choose its child execution mode from the requested mode')
+  assert.match(mode[1], /phase==='initial'/)
+  assert.match(mode[1], /process\.env\.STUDY_PIPELINE_MODE==='hosted'/)
 })

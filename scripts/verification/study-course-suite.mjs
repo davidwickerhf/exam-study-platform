@@ -33,7 +33,7 @@ for(const {index,phase} of jobs){
  if(ledger.units.some(u=>u.index===index&&(u.phase||'initial')===phase&&u.passed))continue
  const prior=ledger.attempts.reduce((n,a)=>n+a.costUsd,0),previous=ledger.attempts.findLast(a=>a.index===index&&(a.phase||'initial')===phase)
  const path=output+`/guide-${index+1}-${phase}-attempt-${ledger.attempts.filter(a=>a.index===index&&(a.phase||'initial')===phase).length+1}.json`
- const env={...process.env,STUDY_PIPELINE_RUNTIME:'agents-sdk-responses',STUDY_PIPELINE_MODEL:'gpt-6-astra',STUDY_PIPELINE_MODE:'local',STUDY_PIPELINE_COURSE_FILE:units[index].path,STUDY_PIPELINE_MAX_USD:String(manifest.maximumUsd),STUDY_PIPELINE_PRIOR_USD:String(prior),STUDY_PIPELINE_OUTPUT_LIMIT:process.env.STUDY_PIPELINE_OUTPUT_LIMIT||'32000',STUDY_PIPELINE_REPORT:path}
+ const env={...process.env,STUDY_PIPELINE_RUNTIME:'agents-sdk-responses',STUDY_PIPELINE_MODEL:'gpt-6-astra',STUDY_PIPELINE_MODE:(phase==='initial' && process.env.STUDY_PIPELINE_MODE==='hosted')?'hosted':'local',STUDY_PIPELINE_COURSE_FILE:units[index].path,STUDY_PIPELINE_MAX_USD:String(manifest.maximumUsd),STUDY_PIPELINE_PRIOR_USD:String(prior),STUDY_PIPELINE_OUTPUT_LIMIT:process.env.STUDY_PIPELINE_OUTPUT_LIMIT||'32000',STUDY_PIPELINE_REPORT:path}
  delete env.DATABASE_URL;delete env.STUDY_PIPELINE_RESUME_FILE;delete env.STUDY_PIPELINE_UPDATE_ONLY;delete env.STUDY_PIPELINE_DEFER_UPDATE
  env.STUDY_PIPELINE_ISOLATED_USER_ID=ledger.isolatedUserId
  if(phase==='initial')env.STUDY_PIPELINE_DEFER_UPDATE='1'
