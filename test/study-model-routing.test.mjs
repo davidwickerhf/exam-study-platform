@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
-import {routeStudyModel} from '../lib/study-model-routing.mjs'
+import {routeStudyModel,studyModelPhase} from '../lib/study-model-routing.mjs'
 import {runBudgetedStudyCall,studyModelCost} from '../lib/study-ai-budget.mjs'
 import {withRequestContext} from '../lib/request-context.mjs'
 import {deleteAllDocuments,readDocument} from '../lib/user-store.mjs'
@@ -16,6 +16,25 @@ test('routing is opt-in, phase-specific and leaves personal/local and unrelated 
  assert.equal(routeStudyModel(billing,{...options,usageMetadata:{versionId:'sv-test',phase:'pedagogical-review'}},policy),null)
  assert.equal(routeStudyModel(billing,options,policy).model,'gpt-5-mini')
  assert.equal(routeStudyModel(billing,{...options,usageMetadata:{versionId:'sv-test',phase:'factual-solve'}},policy).model,'gpt-5.6-sol')
+})
+test('a repair-triggered whole-chapter rewrite is billed and routed as a correction, while a first draft stays authoring',()=>{
+ // The chapters-stage generate call for a genuine first draft never sets an
+ // explicit phase; it is derived from options.usageMetadata.stage==='chapters'.
+ assert.equal(studyModelPhase({usageMetadata:{stage:'chapters'}}),'authoring')
+ // study-version-pipeline.mjs tags a repair-triggered whole-chapter rewrite
+ // (questionRepairStep found no bounded question-only patch) with an explicit
+ // '*-correction' phase so it is never silently billed/routed as authoring.
+ assert.equal(studyModelPhase({usageMetadata:{stage:'chapters',phase:'whole-chapter-correction'}}),'correction')
+ const draftRoute={version:1,routes:{authoring:'gpt-5-mini','correction':'gpt-5.6-sol'}}
+ const firstDraftOptions={...options,usageMetadata:{versionId:'sv-test',stage:'chapters'}}
+ const correctionOptions={...options,usageMetadata:{versionId:'sv-test',stage:'chapters',chapterId:'ch-1',phase:'whole-chapter-correction',correctionAttempt:1}}
+ assert.equal(routeStudyModel(billing,firstDraftOptions,draftRoute).model,'gpt-5-mini')
+ assert.equal(routeStudyModel(billing,correctionOptions,draftRoute).model,'gpt-5.6-sol')
+ // Every other correction call site (question/section/scope/flashcard/links/
+ // source-refresh repairs) already tags its own '*-correction' phase and
+ // routes identically through the shared 'correction' phase.
+ for(const phase of ['revision-correction','scope-correction','content-correction','section-correction','flashcard-correction','practice-correction','source-refresh'])
+  assert.equal(studyModelPhase({usageMetadata:{stage:'chapters',phase}}),'correction')
 })
 test('unpriced models, provider changes, malformed routes and price escalation fail closed',()=>{
  for(const p of ['not-json',{version:1,routes:{typo:'gpt-5-mini'}},{version:1,routes:{'source-mapping':'unknown'}},{version:1,routes:{'source-mapping':'claude-sonnet-4-5'}}])assert.throws(()=>routeStudyModel(billing,options,p))

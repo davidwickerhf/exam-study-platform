@@ -192,6 +192,25 @@ test('diagnostic corrections can repair linked targets while retaining unrelated
   assert.deepEqual(fixed.sections,draft.sections)
 })
 
+test('seven misconception follow-up mismatches, all question-scoped, still produce one question-only patch past the old six-key bound',async()=>{
+  const {questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter()
+  const issues=draft.questions.slice(0,7).map(q=>({severity:'error',itemKey:`question:${q.key}`,detail:'A misconception follow-up must point to a different question testing the same objective.'}))
+  const step=questionRepairStep(course,[],evidence,draft,issues)
+  assert.ok(step,'expected a bounded question-only patch instead of a whole-chapter fallback')
+  assert.ok(!step.parts,'a fully question-scoped finding set does not need the combined multi-category path')
+  for(const q of draft.questions.slice(0,7))assert.ok(step.keys.includes(q.key))
+})
+test('a mixed finding set (question-scoped plus a missing-practice finding) still takes the broader path',async()=>{
+  const {questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+  const draft=chapter()
+  const issues=[
+    ...draft.questions.slice(0,7).map(q=>({severity:'error',itemKey:`question:${q.key}`,detail:'A misconception follow-up must point to a different question testing the same objective.'})),
+    {severity:'error',detail:'Missing related practice for question-8.'}
+  ]
+  assert.equal(questionRepairStep(course,[],evidence,draft,issues),null)
+})
+
 test('an objective review can inspect a linked follow-up from another objective',async()=>{
   const {nextPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
   const draft=chapter(),[a,b]=draft.teachingPlan.objectives.map(o=>o.id)

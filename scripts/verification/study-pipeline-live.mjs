@@ -8,6 +8,7 @@ import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Stores only isolated local validation accounts; never writes production data.
 import { readFile } from 'node:fs/promises'
 import { writePilotJson, assertPilotNotPaused, pilotAttemptCap, assertPilotChapterTarget } from './study-pilot-ledger.mjs'
+import { assertPilotExecutionMode, resolveSavedPilotRun } from './study-pilot-execution-gate.mjs'
 import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
 import { estimateStudyCall, studyModelCost, StudyBudgetError } from '../../lib/study-ai-budget.mjs'
@@ -25,7 +26,7 @@ const planOnly=!!pilot && process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
 if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning or updates.')
 const fixture=pilot ? 'course:'+pilot.course.courseCode : process.env.STUDY_PIPELINE_FIXTURE || 'probability'
 if(!pilot&&!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
-if(pilot && (process.env.STUDY_PIPELINE_MODE!=='local' || !Array.isArray(pilot.updateSourceKeys)))throw new Error('Course maintenance pilots require local mode and explicit synthetic update source keys.')
+assertPilotExecutionMode(pilot, process.env)
 const builtIn=pilot ? null : await import(fixture==='iot'?'./study-iot-fixture.mjs':'../../lib/study-quality-fixture.mjs')
 const course=pilot?.course || builtIn.evaluationCourse
 let evaluationSources=pilot ? pilot.sources.filter(s=>!pilot.updateSourceKeys.includes(s.key)) : builtIn.evaluationSources.map(s=>({...s,pages:builtIn.evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))
@@ -119,13 +120,20 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
         report.priorEvaluationUsd=Math.max(report.priorEvaluationUsd,(previous.priorEvaluationUsd || 0)+previous.calculatedUsd)
-        const savedRun=previous.runs.findLast(r=>r.execution===execution&&r.draft)
+        // Prefer a saved run from the exact same execution mode. A saved
+        // draft from the OTHER mode (for example, this course's saved draft
+        // was generated locally and this pass is STUDY_PIPELINE_MODE=hosted)
+        // is a genuine mode mismatch: never resume it silently. Require an
+        // explicit opt-in that converts the draft's execution for this
+        // isolated pilot account, and record the conversion in the report;
+        // otherwise refuse with a clear message naming both modes.
+        const {savedRun,executionConverted}=resolveSavedPilotRun(previous,execution,process.env.STUDY_PIPELINE_CONVERT_EXECUTION==='1')
         const saved=savedRun?.draft
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(savedReport){
           evaluationSources=savedRun.phase==='update'?pilot.sources:evaluationSources
-          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined};report.runs=[...previous.runs.filter(r=>r.passed),run]
-        }
+          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined,...(executionConverted?{executionConverted}:{})};report.runs=[...previous.runs.filter(r=>r.passed),run]
+        }else if(executionConverted)run.executionConverted=executionConverted
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(!planOnly || !pilotPlanReady(saved))await mutateStudyVersion(id,version=>{
           version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}

@@ -367,3 +367,69 @@ is processed through the parent.
 ### Stray objective-coverage links no longer burn a correction
 
 The `guide-1-initial-attempt` chapter had failed after exhausting all three automatic corrections on a single stray `workedExampleSectionIds` reference to a section tagged for a different objective; drafted chapters are now normalized to drop such invalid coverage links (recorded in `linkRepairs`) whenever a valid reference remains, instead of rejecting the whole chapter. A chapter saved as `review: failed` for only that reason now resumes straight into factual/pedagogical review on retry, with no new authoring or correction call and an unchanged correction ledger.
+
+### Question-only corrections, unsupported-evidence hygiene, and hosted course pilots
+
+`iui-foundations-scope-and-hci` had failed review three times in a row (10, then
+14, then 11 error findings), each retry rewriting the entire chapter with
+`gpt-5-mini`. Four changes target that failure mode directly:
+
+- A correction rewrite — automatic or a manual retry through
+  `controlStudyGeneration(id,'retry')` — now tags its generate call with an
+  explicit `*-correction` phase in `usageMetadata`, so a configured
+  `STUDY_MODEL_ROUTES`/`STUDY_PIPELINE_MODEL_ROUTES` `correction` route applies
+  to it and it is billed under that phase. A genuine first draft is unaffected:
+  it still carries no explicit phase and resolves to `authoring`.
+- Before review, `stripUnsupportedEvidenceIds` removes any evidence identifier
+  cited in a chapter's caveats, teaching-plan gaps or teaching-plan exclusions
+  that was never part of that chapter's supplied evidence set — the id token
+  only, never the surrounding prose — and records each removal in
+  `chapter.evidenceIdRepairs`, mirroring `linkRepairs`. An entry that is only
+  the identifier is left alone so review still flags it, rather than emptying a
+  required field.
+- `questionRepairStep` no longer falls back to a whole-chapter rewrite merely
+  because more than six questions are affected. When every error-severity
+  finding for a chapter resolves to a specific question — misconception/
+  follow-up link mismatches, a question assessing untaught content, a
+  duplicated transfer scenario — the correction is a question-only patch over
+  exactly those questions (and their diagnosed follow-up targets), preserving
+  every other question, section, card and the teaching plan. The seven
+  misconception-link mismatches that previously exceeded the old six-key bound
+  now patch in one bounded call. A mixed finding set (for example a
+  question-scoped finding alongside a missing-practice finding) still takes the
+  broader combined or whole-chapter path.
+- The shared correction prompt (`correctionContext`) now tells the model that
+  when a finding says a mechanism or claim is not established by the supplied
+  evidence, it must remove that content or clearly relabel it as background
+  outside the taught scope, and remove or replace any question assessing it —
+  never add new teaching to justify unsupported content.
+
+`study-pipeline-live.mjs` previously required `STUDY_PIPELINE_MODE=local` for
+every course pilot. A course pilot may now run its **initial phase** hosted
+(`STUDY_PIPELINE_MODE=hosted`, through `processStudyStep`); the
+maintenance/update phase still always requires local mode and explicit
+synthetic update source keys, and a hosted run with real
+`updateSourceKeys` is refused unless it explicitly sets
+`STUDY_PIPELINE_DEFER_UPDATE=1` to defer the update phase to a separate local
+run. Hosted bundle creation already passed the course-bundle flag. Resuming a
+saved draft now prefers a saved run from the exact same execution mode; a saved
+draft from the *other* mode (for example, a course's saved draft was generated
+locally and this pass is hosted) is never resumed silently — it is refused with
+a message naming both modes unless `STUDY_PIPELINE_CONVERT_EXECUTION=1`
+explicitly converts the draft's execution for the pilot's isolated account,
+which is then recorded on the run as `executionConverted`. Hosted and local
+reservations and settlement already shared the same `generate` wrapper, so both
+execution modes flow through the same cumulative ledger and attempt cap. This
+gating lives in `scripts/verification/study-pilot-execution-gate.mjs`
+(`assertPilotExecutionMode`, `resolveSavedPilotRun`), unit-tested without any
+provider call.
+
+To run the IUI course pilot in hosted mode for the initial phase only:
+
+```
+STUDY_PIPELINE_COURSE_FILE=<pilot-manifest.json> \
+STUDY_PIPELINE_MODE=hosted \
+STUDY_PIPELINE_DEFER_UPDATE=1 \
+OPENAI_API_KEY=<key> \
+node scripts/verification/study-pipeline-live.mjs
+```
