@@ -33,7 +33,7 @@ test('a repair-triggered whole-chapter rewrite is billed and routed as a correct
  // Every other correction call site (question/section/scope/flashcard/links/
  // source-refresh repairs) already tags its own '*-correction' phase and
  // routes identically through the shared 'correction' phase.
- for(const phase of ['revision-correction','scope-correction','content-correction','section-correction','flashcard-correction','practice-correction','source-refresh'])
+ for(const phase of ['revision-correction','scope-correction','objective-correction','content-correction','section-correction','flashcard-correction','practice-correction','source-refresh'])
   assert.equal(studyModelPhase({usageMetadata:{stage:'chapters',phase}}),'correction')
 })
 test('unpriced models, provider changes, malformed routes and price escalation fail closed',()=>{

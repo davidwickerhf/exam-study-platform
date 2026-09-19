@@ -586,3 +586,131 @@ test('batch findings invalidate their own objectives while global findings stay 
  }
  function combinedIssueCount(chapter){return Object.values(chapter.pedagogyAudit.reviews).filter(review=>review.issues.length).length}
 })
+
+// A correction should emit only what it must change. The combined patch path
+// covers the sections, plan objectives and questions the findings actually
+// name; a whole-chapter rewrite (~10k output tokens) is reserved for findings
+// that span most of the chapter or cannot be located at all.
+test('a mixed section, objective and question finding set produces one combined patch and preserves unflagged content byte-identically',async()=>{
+ const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter()
+ const [first,second,third]=draft.teachingPlan.objectives
+ draft.sections[0].objectiveIds=[first.id];draft.sections[1].objectiveIds=[first.id]
+ draft.sections[2].objectiveIds=[second.id];draft.sections[3].objectiveIds=[third.id]
+ draft.questions.forEach((q,index)=>{q.objectiveIds=[index<4?first.id:second.id]})
+ const section=draft.sections[2],question=draft.questions[5]
+ const issues=[
+  {severity:'error',itemKey:`section:${section.id}`,detail:'The caption contradicts the worked example.'},
+  {severity:'error',itemKey:`objective:${third.id}`,detail:'The goal claims reasoning the evidence does not support.'},
+  {severity:'error',itemKey:`question:${question.key}`,detail:'The answer contradicts its own calculation.'}
+ ]
+ const saved=JSON.stringify(issues)
+ const step=questionRepairStep(course,[],evidence,draft,issues)
+ assert.ok(step?.parts,'expected a bounded combined patch instead of a whole-chapter rewrite')
+ assert.equal(saved,JSON.stringify(issues),'locating findings never mutates the stored review')
+ // The objective finding also selects the teaching it owns, so section-4
+ // joins the patch; everything the findings do not name stays untouched.
+ assert.deepEqual(step.parts.find(p=>p.sectionIds)?.sectionIds,[section.id,draft.sections[3].id])
+ assert.deepEqual(step.parts.find(p=>p.planObjectiveIds)?.planObjectiveIds,[third.id])
+ assert.deepEqual(step.parts.find(p=>p.keys)?.keys,[question.key])
+ assert.match(step.prompt,/REPAIR SELECTED TEACHING SECTIONS/)
+ assert.match(step.prompt,/REPAIR SELECTED TEACHING OBJECTIVES/)
+ assert.match(step.prompt,/REPAIR SELECTED PRACTICE/)
+ const owned=draft.sections[3]
+ const response={
+  sections:{[section.id]:{...structuredClone(section),text:section.text+' The caption states the same assumption.'},[owned.id]:structuredClone(owned)},
+  objectives:{[third.id]:{...structuredClone(third),goal:'Check a total using subtraction on supported cases.'}},
+  questions:{[question.key]:{...structuredClone(question),answer:question.answer+' The conclusion matches the calculation.'}}
+ }
+ const fixed=applyQuestionRepair(draft,step,response)
+ const patched=new Set([section.id,owned.id])
+ assert.equal(JSON.stringify(fixed.sections.filter(s=>!patched.has(s.id))),JSON.stringify(draft.sections.filter(s=>!patched.has(s.id))))
+ assert.equal(JSON.stringify(fixed.sections.find(s=>s.id===owned.id)),JSON.stringify(owned),'an unchanged replacement leaves the section byte-identical')
+ assert.equal(JSON.stringify(fixed.questions.filter(q=>q.key!==question.key)),JSON.stringify(draft.questions.filter(q=>q.key!==question.key)))
+ assert.equal(JSON.stringify(fixed.teachingPlan.objectives.filter(o=>o.id!==third.id)),JSON.stringify(draft.teachingPlan.objectives.filter(o=>o.id!==third.id)))
+ assert.equal(JSON.stringify(fixed.flashcards),JSON.stringify(draft.flashcards))
+ assert.equal(JSON.stringify(fixed.summary),JSON.stringify(draft.summary))
+ assert.equal(JSON.stringify(fixed.learningGoals),JSON.stringify(draft.learningGoals))
+ assert.equal(fixed.teachingPlan.objectives.find(o=>o.id===third.id).goal,'Check a total using subtraction on supported cases.')
+ assert.ok(fixed.sections.find(s=>s.id===section.id).text.endsWith('The caption states the same assumption.'))
+})
+
+test('chapter-wide and unlocatable finding sets still fall back to a whole-chapter rewrite',async()=>{
+ const {questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter()
+ const everySection=draft.sections.map(s=>({severity:'error',itemKey:`section:${s.id}`,detail:'The teaching is not supported by the evidence.'}))
+ assert.equal(questionRepairStep(course,[],evidence,draft,[...everySection,{severity:'error',itemKey:`question:${draft.questions[0].key}`,detail:'The answer is wrong.'}]),null)
+ assert.equal(questionRepairStep(course,[],evidence,draft,[
+  {severity:'error',itemKey:`question:${draft.questions[0].key}`,detail:'The answer is wrong.'},
+  {severity:'error',detail:'Internal identifiers are printed somewhere in the student-facing prose.'}
+ ]),null,'an unlocatable finding can concern anything and needs the coherent rewrite')
+ // The section bound is relative: a minority of a longer chapter is patched.
+ const long=chapter()
+ long.sections=Array.from({length:10},(_,i)=>({...structuredClone(long.sections[0]),id:`section-${i+1}`}))
+ const flagged=long.sections.slice(0,4).map(s=>({severity:'error',itemKey:`section:${s.id}`,detail:'The caption contradicts the example.'}))
+ assert.deepEqual(questionRepairStep(course,[],evidence,long,flagged)?.sectionIds,long.sections.slice(0,4).map(s=>s.id))
+})
+
+test('a bounded objective patch keeps the existing correction counters and reuse rules',async()=>{
+ const {recordCorrection,correctionLimit}=await import('../lib/study-correction-policy.mjs')
+ const draft=chapter(),work={}
+ const findings=[{severity:'error',itemKey:`objective:${draft.teachingPlan.objectives[0].id}`,detail:'The goal overstates the supported reasoning.'}]
+ const limit=correctionLimit(work)
+ assert.equal(recordCorrection(work,draft,findings,'pedagogical'),1)
+ assert.equal(work.automaticRepairs[draft.id],1)
+ assert.equal(correctionLimit(work),limit)
+ assert.equal(work.correctionHistory.length,1)
+ assert.deepEqual(work.correctionHistory[0].findings,[{detail:findings[0].detail,itemKey:findings[0].itemKey}])
+})
+
+// Per-objective dependency hashing: a correction re-reviews only the
+// objectives whose own teaching, practice, plan or evidence changed.
+function scopedChapter() {
+ const draft=chapter()
+ const [first,second,third]=draft.teachingPlan.objectives
+ draft.sections[0].objectiveIds=[first.id]
+ draft.sections[1].objectiveIds=[first.id,second.id]
+ draft.sections[2].objectiveIds=[second.id]
+ draft.sections[3].objectiveIds=[third.id]
+ const owners={'question-1':first,'question-3':first,'question-7':first,'question-2':second,'question-4':second,'question-8':second,'question-5':third,'question-6':third}
+ for(const q of draft.questions)q.objectiveIds=[owners[q.key].id]
+ // Every objective needs its own guided and independent practice to be reviewable.
+ draft.questions.find(q=>q.key==='question-6').practiceStage='guided'
+ draft.objectiveCoverage=[[first,'section-2'],[second,'section-3'],[third,'section-4']].map(([objective,worked])=>({objectiveId:objective.id,workedExampleSectionIds:[worked]}))
+ deriveObjectiveCoverage(draft)
+ return draft
+}
+async function reviewed(draft,context) {
+ const {nextPedagogicalReview,acceptPedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
+ for(let step;(step=nextPedagogicalReview(context,draft));)acceptPedagogicalReview(draft,step,teachingResponse(step.prompt,['e-current']))
+ return draft
+}
+test('a correction touching one objective re-reviews only that objective and reuses the other saved verdicts',async()=>{
+ const {nextPedagogicalReview,preservePedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
+ const context='Source evidence',draft=await reviewed(scopedChapter(),context)
+ const [first,second,third]=draft.teachingPlan.objectives
+ assert.deepEqual(Object.keys(draft.pedagogyAudit.reviews).sort(),[first.id,second.id,third.id].sort())
+ const corrected=structuredClone(draft)
+ corrected.questions.find(q=>q.key==='question-2').question+=' Justify which group is removed first.'
+ preservePedagogicalReview(draft,corrected,context)
+ const step=nextPedagogicalReview(context,corrected)
+ assert.deepEqual(step.objectiveIds,[second.id],'only the objective whose practice changed is re-reviewed')
+ assert.equal(step.chapter.teachingPlan.objectives.length,1,'the re-review call carries only the invalidated objective')
+ assert.ok(corrected.pedagogyAudit.reviews[first.id] && corrected.pedagogyAudit.reviews[third.id],'unchanged objectives keep their saved verdicts')
+ assert.equal(corrected.pedagogyAudit.reviews[second.id],undefined)
+})
+test('changing a section invalidates every objective depending on it and no others',async()=>{
+ const {nextPedagogicalReview,preservePedagogicalReview}=await import('../lib/study-pedagogical-review.mjs')
+ const context='Source evidence',draft=await reviewed(scopedChapter(),context)
+ const [first,second,third]=draft.teachingPlan.objectives
+ const shared=structuredClone(draft)
+ shared.sections.find(s=>s.id==='section-2').text+=' Each group is counted exactly once.'
+ preservePedagogicalReview(draft,shared,context)
+ assert.deepEqual(nextPedagogicalReview(context,shared).objectiveIds.sort(),[first.id,second.id].sort())
+ assert.ok(shared.pedagogyAudit.reviews[third.id],'an objective that does not depend on that section keeps its verdict')
+ const isolated=structuredClone(draft)
+ isolated.sections.find(s=>s.id==='section-4').text+=' State the unit before adding.'
+ preservePedagogicalReview(draft,isolated,context)
+ assert.deepEqual(nextPedagogicalReview(context,isolated).objectiveIds,[third.id])
+ assert.ok(isolated.pedagogyAudit.reviews[first.id] && isolated.pedagogyAudit.reviews[second.id])
+})
