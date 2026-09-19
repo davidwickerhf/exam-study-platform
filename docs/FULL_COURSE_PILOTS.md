@@ -380,13 +380,15 @@ The `guide-1-initial-attempt` chapter had failed after exhausting all three auto
   `STUDY_MODEL_ROUTES`/`STUDY_PIPELINE_MODEL_ROUTES` `correction` route applies
   to it and it is billed under that phase. A genuine first draft is unaffected:
   it still carries no explicit phase and resolves to `authoring`.
-- Before review, `stripUnsupportedEvidenceIds` removes any evidence identifier
-  cited in a chapter's caveats, teaching-plan gaps or teaching-plan exclusions
-  that was never part of that chapter's supplied evidence set — the id token
-  only, never the surrounding prose — and records each removal in
-  `chapter.evidenceIdRepairs`, mirroring `linkRepairs`. An entry that is only
-  the identifier is left alone so review still flags it, rather than emptying a
-  required field.
+- Before structural checks and review, `stripUnsupportedEvidenceIds` removes
+  every internal evidence identifier — supported or not — from a chapter's
+  caveats, teaching-plan gaps and teaching-plan exclusions (the id token only,
+  never the surrounding prose; an entry left with no words is dropped instead
+  of kept), and records each removal in `chapter.evidenceIdRepairs`, mirroring
+  `linkRepairs`; it now runs on every accepted draft, first attempt or
+  correction, and a chapter saved `review: failed` for only that reason
+  recovers on retry with no new authoring or correction call, the same as the
+  stray-link recovery above.
 - `questionRepairStep` no longer falls back to a whole-chapter rewrite merely
   because more than six questions are affected. When every error-severity
   finding for a chapter resolves to a specific question — misconception/

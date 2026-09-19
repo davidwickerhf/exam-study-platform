@@ -31,7 +31,9 @@ import {
   processStudyStep,
   refreshStudyVersion,
   controlStudyGeneration,
-  recoverFailedChapterByStaleFactualJudgments
+  recoverFailedChapterByStaleFactualJudgments,
+  recoverFailedChapterByEvidenceIdHygiene,
+  prepareLesson
 } from '../lib/study-version-pipeline.mjs'
 import { nextFactualReview, acceptFactualReview, factualAuditIssues } from '../lib/study-factual-review.mjs'
 import {
@@ -1178,6 +1180,100 @@ test('a chapter failed for a content-review (non-answers) finding is never re-op
     status: 'failed'
   }
   assert.equal(recoverFailedChapterByStaleFactualJudgments(work, course), false)
+  assert.equal(work.chapters[0].review, 'failed')
+})
+
+test('the chapter-acceptance point strips internal evidence ids from prose before review, for a first draft and a correction alike', () => {
+  const ids = ['e-abc123def456']
+  const evidence = ids.map(id => ({ id }))
+  const topic = { id: 'addition', title: 'Addition', sourceIds: ids }
+  // A first draft: the objective plan itself (generated once, ahead of any
+  // draft or correction) carries a stray identifier in its gaps prose.
+  const dirtyGapsPlan = { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${ids[0]}).`], exclusions: [] }
+  const draftChapter = prepareLesson(lesson(ids), topic, evidence, dirtyGapsPlan)
+  assert.doesNotMatch(draftChapter.teachingPlan.gaps.join(' '), /\be-[0-9a-f]{6,}\b/)
+  assert.ok(draftChapter.evidenceIdRepairs?.some(r => r.field === 'teachingPlan.gaps'))
+  // A correction's raw response resolves to the identical prepareLesson call
+  // (see the pipeline's stage:'chapters' handling: the refresh, repair and
+  // whole-chapter-correction branches all feed prepareLesson the same way as
+  // a first draft), so its own regenerated caveats must be hygienised too.
+  const correctionRaw = { ...lesson(ids), caveats: [`Historical rule predates this edition (${ids[0]}).`] }
+  const correctionChapter = prepareLesson(correctionRaw, topic, evidence, teachingPlan(ids))
+  assert.doesNotMatch(correctionChapter.caveats.join(' '), /\be-[0-9a-f]{6,}\b/)
+  assert.ok(correctionChapter.evidenceIdRepairs?.some(r => r.field === 'caveats'))
+})
+
+test('a chapter failed only because student-facing prose printed an internal evidence id re-enters review for free, with zero model calls', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${ids[0]}).`], exclusions: [] } }
+  const finding = { topicId: draft.id, severity: 'error', detail: `The teaching-plan gap prose prints an internal evidence identifier (${ids[0]}) that must not appear in student-facing text.` }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.doesNotMatch(chapter.teachingPlan.gaps.join(' '), /\be-[0-9a-f]{6,}\b/)
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+})
+
+test('an unrelated warning on the same chapter does not block the evidence-id hygiene recovery: only error-severity findings gate it', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${ids[0]}).`], exclusions: [] } }
+  const findings = [
+    { topicId: draft.id, severity: 'error', detail: `Prints an internal identifier ${ids[0]} in prose.` },
+    { topicId: draft.id, severity: 'warning', detail: 'The gaps subsection could be phrased more concisely.' }
+  ]
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: findings,
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  assert.equal(work.chapters[0].review, 'pending')
+  assert.deepEqual(work.issues, [])
+})
+
+test('a chapter failed for a genuine pedagogical/factual finding with no evidence-id mention is not reopened by the hygiene recovery', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition' }
+  const finding = { topicId: draft.id, severity: 'error', detail: 'The worked example computes the wrong total.' }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
+  assert.equal(work.chapters[0].review, 'failed')
+})
+
+test('a chapter failed on a mix of an evidence-id finding and a genuine finding is not reopened by the hygiene recovery', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: { ...teachingPlan(ids), gaps: [`Missing proof (${ids[0]}).`], exclusions: [] } }
+  const findings = [
+    { topicId: draft.id, severity: 'error', detail: `Prints an internal identifier ${ids[0]} in prose.` },
+    { topicId: draft.id, severity: 'error', detail: 'The worked example computes the wrong total.' }
+  ]
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: findings,
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
   assert.equal(work.chapters[0].review, 'failed')
 })
 
