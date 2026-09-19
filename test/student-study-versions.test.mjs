@@ -33,6 +33,7 @@ import {
   controlStudyGeneration,
   recoverFailedChapterByStaleFactualJudgments,
   recoverFailedChapterByEvidenceIdHygiene,
+  recoverFailedChapterByLinkNormalization,
   prepareLesson
 } from '../lib/study-version-pipeline.mjs'
 import { nextFactualReview, acceptFactualReview, factualAuditIssues } from '../lib/study-factual-review.mjs'
@@ -1275,6 +1276,69 @@ test('a chapter failed on a mix of an evidence-id finding and a genuine finding 
   }
   assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
   assert.equal(work.chapters[0].review, 'failed')
+})
+
+test('a chapter whose identifiers were already stripped by an earlier hygiene pass, with the stale finding still recorded, still re-enters review for free with zero model calls', () => {
+  const ids = ['e-abc123def456']
+  // No identifier remains in any student-facing field the hygiene pass
+  // cleans (an earlier pass already did that, recorded on evidenceIdRepairs)
+  // — only the stale finding from that earlier failed review is still here.
+  const draft = {
+    ...lesson(ids),
+    id: 'addition',
+    teachingPlan: { ...teachingPlan(ids), gaps: ['No worked proof was supplied for this method.'], exclusions: [] },
+    evidenceIdRepairs: [{ field: 'teachingPlan.gaps', index: 0, ref: ids[0] }]
+  }
+  const finding = { topicId: draft.id, severity: 'error', detail: `The teaching-plan gap prose printed an internal evidence identifier (${ids[0]}) that must not appear in student-facing text.` }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  // Re-running is stable: the chapter is no longer 'failed', so it is a no-op.
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
+  assert.equal(work.chapters[0].review, 'pending')
+})
+
+test('a chapter whose stray objective-coverage link was already normalized by an earlier pass, with the stale finding still recorded, still re-enters review for free with zero model calls', () => {
+  const ids = ['e-abc123def456']
+  // objectiveCoverage is already fully valid (as if an earlier normalization
+  // pass already dropped the stray reference, recorded on linkRepairs) —
+  // only the stale finding from that earlier failed review is still here.
+  const draft = {
+    ...lesson(ids),
+    id: 'addition',
+    linkRepairs: [{ objectiveId: 'objective-1', list: 'workedExampleSectionIds', ref: 'section-stray', reason: 'section is not tagged with this objective' }]
+  }
+  const finding = { topicId: draft.id, severity: 'error', detail: 'objective-1: workedExampleSectionIds must point to visible teaching for this objective.' }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByLinkNormalization(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  // Re-running is stable: the chapter is no longer 'failed', so it is a no-op.
+  assert.equal(recoverFailedChapterByLinkNormalization(work), false)
+  assert.equal(work.chapters[0].review, 'pending')
 })
 
 test('long guide calls keep their lease and reject duplicate workers beyond five minutes',async t=>{
