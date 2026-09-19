@@ -124,6 +124,32 @@ attempts are allowed, with a rejected proposal supplied to its correction. These
 calls count against the same course ledger. This is an experiment continuation
 helper, not a new production control or a reset of the generation budget.
 
+The first live whole-course bundle run accepted all 71 source-mapping batches and
+then lost the run on one outline call that omitted two mapped concepts, because
+the bundle outline had no correction loop. The outline stage now feeds a rejected
+proposal and its exact issues back into the same `course-outline` phase, at most
+twice per outline, counted in the draft's persisted automatic-correction ledger
+so a pilot resume continues that bound instead of resetting it. A `stage: outline,
+status: failed` draft therefore resumes into the correction path with its maps
+intact, and an exhausted bound fails with the same error without buying another
+proposal.
+
+A later 320-concept/71-map run still exhausted the correction bound: the base
+call and both corrections each omitted 1-2 concepts, last `map-67-topic-3`.
+Below max(3, 2% of all mapped concepts) a dropped concept with no other
+error-level issue is now placed deterministically instead of rejected, and an
+exhausted `stage: outline` draft re-checks its saved proposal under the current
+rules on resume, so that exact saved attempt is accepted with zero provider
+calls instead of repeating the same failure.
+
+The next resumed run reached a structurally valid 71-map outline that failed
+only because evidence-capacity splitting pushed the whole course past a single
+guide's 40-chapter ceiling, outside the correction path. Chapter ceilings now
+apply per guide (24 planned, 40 after splitting, 2–12 guides), the prompt states
+the per-chapter evidence allowance and minimum chapter count, and a post-split
+breach becomes a correctable rejection with the proposal saved. A `stage: outline`
+draft with no saved correction resumes into one fresh outline call under these rules.
+
 Set `STUDY_PIPELINE_PAUSE_FILE` to a private file path before starting a pilot.
 Creating that file pauses before the next paid call after preserving the current
 response; remove it before resuming. Failed or paused runs keep their isolated
@@ -147,6 +173,8 @@ payload bound. The bound counts the actual transmitted fields, including indepen
 solutions in answer comparison. Teaching review groups up to eight objectives
 within its existing size bound. All verdicts remain required, reviewer contexts
 remain isolated, and bounded output-limit recovery still splits factual batches.
+The blind solver's arithmetic check accepts a rounded result within half a unit of its last written decimal place, and a calculation that still fails is isolated to its own question (re-solved alone, bounded to two re-solves, then handed to the ordinary correction path) instead of discarding the rest of the batch or failing the pipeline.
+Answer comparison also attributes a failing verdict's fault (authored, independent-solution, both or none); a verdict blaming only the independent solution clears that question's solution and judgment and re-solves it alone under the same bounded retry counter instead of recording a chapter finding, and a chapter that failed review purely on now-stale answers judgments (for example after this attribution was added) re-enters review for free instead of needing a fresh correction.
 The scripted browser evaluation retains all seven checks in 11 calls instead of
 13. This plumbing result is not a measured live quality or cost comparison.
 
@@ -245,6 +273,30 @@ that flag. Inspect the saved `draft.planning` and `draft.topics` for each unit.
 every initial guide and every requested source-update experiment to pass. Existing
 IUI authored drafts have not been discarded or replaced by this new mode.
 
+The IUI plan-only checkpoint (attempt 6: 115 sources, about 2.49M characters,
+71 maps, 320 concepts) produced 10 guides and 167 chapters, 668 baseline review
+tasks, and paused at the 128-task guard. About 1.06M of those characters are
+code and project archives, and 1.33M are older-edition material. Whole-course
+bundles now plan under the automatic scope-roles policy described in
+`docs/design/student-study-versions.md`: for that saved draft the server derives
+about 1.27M characters of core evidence and a 37-chapter course budget (capacity
+minimum 30, 3–10 per guide), before any exclusions. That draft has no authored
+chapters, so rerunning the suite with `STUDY_PIPELINE_PLAN_ONLY=1` replans only
+its outline from the saved maps (one outline call plus at most two corrections,
+no mapping calls); the suite no longer skips a planned unit whose saved plan is
+stale. The review-task guard still applies when drafting resumes. This is a
+planning change, not yet a measured result.
+
+A later attempt under that same scope-roles-v1 policy returned six guides that
+were each essentially one giant topic, so the server's evidence-capacity split
+mechanically produced 30 chapters (29 numbered "Part" slices with no
+conceptual chapter structure) while still fitting the aggregate course and
+guide budgets. The policy is now `scope-roles-v2`, which also rejects a
+planned chapter needing more than a two-part fallback split or a guide whose
+planned chapter count cannot hold its own core evidence, and gives the
+planner each concept's core-evidence size so it can shape chapters before the
+call is paid for.
+
 ### Latest IUI checkpoint (15 September)
 
 The coherent objective repair made five measured calls for $1.148748 plus two
@@ -265,3 +317,121 @@ identical draft and version ID. It reported `planned=true`, `passed=false`; the
 next guide stopped at the pause boundary before a provider call. The full bundle
 and top-up remain incomplete. This is resume/control validation, not a quality
 pass or an affordable-course claim.
+
+### Mapping output-limit behaviour (whole-course bundle attempt)
+
+The whole-course bundle attempt made four `source-mapping` calls on `gpt-5-mini`
+at medium effort under a 10,000-token output cap (the pilot ceiling was 32,000;
+mapping asks for 10,000). Three maps were accepted with 5,952 / 4,736 / 5,888
+reasoning tokens and only 1,815 / 1,442 / 1,204 visible output tokens. The fourth
+call spent all 9,984 tokens on reasoning, returned nothing and settled as
+`provider_output_limit`. The cap was never tight for the visible map: accepted
+maps are 3.8-6.4 KB of JSON, 4-5 concepts and 11-31 citation entries. It was
+tight for reasoning, which varied by more than a thousand tokens between calls.
+
+Mapping therefore gets the same bounded recovery the factual review already has:
+an output limit halves that one batch, at most twice, and the split is recorded
+in the persisted batch list so a resumed run repeats the same boundaries. Accepted
+maps and their citations are kept, batches stay identified by content, each
+recovery reserves and settles on its own, and no model, effort or cap is raised
+automatically. The 36,000-character mapping batch size is unchanged; four calls
+are not evidence for a better bound. Note that 17 of the 71 planned batches hold
+more than 48 evidence passages (up to 79), and the largest batch in this attempt
+was also the one that exhausted its reasoning budget.
+
+`STUDY_MODEL_ROUTES` / `STUDY_PIPELINE_MODEL_ROUTES` can now also set a phase's
+reasoning effort, so a cheaper mapping effort can be measured without changing
+the model or raising any price. No profile is enabled by default.
+
+### Hosted parity and course top-up coverage
+
+The bundle is now exercised in both execution modes without a provider. A hosted
+suite drives `processStudyStep` with mocked responses through mapping (including
+one `provider_output_limit` recovery), the bundle outline, chapters and the
+fenced publication: it asserts that guides are staged invisibly, that no guide is
+ever listed, claimed or discoverable as hosted work, that a half-finished
+publication converges on retry with the same identities, and that every call
+reserves against the parent course run's single job key and chapter allowance.
+`study-pipeline-live.mjs` now passes the bundle flag in its hosted creation
+branch too, and a run only passes when every derived guide is itself published,
+complete and non-empty.
+
+A second suite covers the top-up: republishing a course keeps surviving guide
+identities, keeps the previous guides readable until the replacement passes,
+adopts new guides and archives dropped ones instead of deleting them; a local
+course run refreshed with an added source reuses unchanged chapters, stays local
+and keeps its guides out of the hosted queue. Maintenance is enrolled on the
+course run, never on a managed guide, and a withheld source that arrives later
+is processed through the parent.
+
+### Stray objective-coverage links no longer burn a correction
+
+The `guide-1-initial-attempt` chapter had failed after exhausting all three automatic corrections on a single stray `workedExampleSectionIds` reference to a section tagged for a different objective; drafted chapters are now normalized to drop such invalid coverage links (recorded in `linkRepairs`) whenever a valid reference remains, instead of rejecting the whole chapter. A chapter saved as `review: failed` for only that reason now resumes straight into factual/pedagogical review on retry, with no new authoring or correction call and an unchanged correction ledger.
+
+### Question-only corrections, unsupported-evidence hygiene, and hosted course pilots
+
+`iui-foundations-scope-and-hci` had failed review three times in a row (10, then
+14, then 11 error findings), each retry rewriting the entire chapter with
+`gpt-5-mini`. Four changes target that failure mode directly:
+
+- A correction rewrite — automatic or a manual retry through
+  `controlStudyGeneration(id,'retry')` — now tags its generate call with an
+  explicit `*-correction` phase in `usageMetadata`, so a configured
+  `STUDY_MODEL_ROUTES`/`STUDY_PIPELINE_MODEL_ROUTES` `correction` route applies
+  to it and it is billed under that phase. A genuine first draft is unaffected:
+  it still carries no explicit phase and resolves to `authoring`.
+- Before structural checks and review, `stripUnsupportedEvidenceIds` removes
+  every internal evidence identifier — supported or not — from a chapter's
+  caveats, teaching-plan gaps and teaching-plan exclusions (the id token only,
+  never the surrounding prose; an entry left with no words is dropped instead
+  of kept), and records each removal in `chapter.evidenceIdRepairs`, mirroring
+  `linkRepairs`; it now runs on every accepted draft, first attempt or
+  correction, and a chapter saved `review: failed` for only that reason
+  recovers on retry with no new authoring or correction call, the same as the
+  stray-link recovery above.
+- `questionRepairStep` no longer falls back to a whole-chapter rewrite merely
+  because more than six questions are affected. When every error-severity
+  finding for a chapter resolves to a specific question — misconception/
+  follow-up link mismatches, a question assessing untaught content, a
+  duplicated transfer scenario — the correction is a question-only patch over
+  exactly those questions (and their diagnosed follow-up targets), preserving
+  every other question, section, card and the teaching plan. The seven
+  misconception-link mismatches that previously exceeded the old six-key bound
+  now patch in one bounded call. A mixed finding set (for example a
+  question-scoped finding alongside a missing-practice finding) still takes the
+  broader combined or whole-chapter path.
+- The shared correction prompt (`correctionContext`) now tells the model that
+  when a finding says a mechanism or claim is not established by the supplied
+  evidence, it must remove that content or clearly relabel it as background
+  outside the taught scope, and remove or replace any question assessing it —
+  never add new teaching to justify unsupported content.
+
+`study-pipeline-live.mjs` previously required `STUDY_PIPELINE_MODE=local` for
+every course pilot. A course pilot may now run its **initial phase** hosted
+(`STUDY_PIPELINE_MODE=hosted`, through `processStudyStep`); the
+maintenance/update phase still always requires local mode and explicit
+synthetic update source keys, and a hosted run with real
+`updateSourceKeys` is refused unless it explicitly sets
+`STUDY_PIPELINE_DEFER_UPDATE=1` to defer the update phase to a separate local
+run. Hosted bundle creation already passed the course-bundle flag. Resuming a
+saved draft now prefers a saved run from the exact same execution mode; a saved
+draft from the *other* mode (for example, a course's saved draft was generated
+locally and this pass is hosted) is never resumed silently — it is refused with
+a message naming both modes unless `STUDY_PIPELINE_CONVERT_EXECUTION=1`
+explicitly converts the draft's execution for the pilot's isolated account,
+which is then recorded on the run as `executionConverted`. Hosted and local
+reservations and settlement already shared the same `generate` wrapper, so both
+execution modes flow through the same cumulative ledger and attempt cap. This
+gating lives in `scripts/verification/study-pilot-execution-gate.mjs`
+(`assertPilotExecutionMode`, `resolveSavedPilotRun`), unit-tested without any
+provider call.
+
+To run the IUI course pilot in hosted mode for the initial phase only:
+
+```
+STUDY_PIPELINE_COURSE_FILE=<pilot-manifest.json> \
+STUDY_PIPELINE_MODE=hosted \
+STUDY_PIPELINE_DEFER_UPDATE=1 \
+OPENAI_API_KEY=<key> \
+node scripts/verification/study-pipeline-live.mjs
+```

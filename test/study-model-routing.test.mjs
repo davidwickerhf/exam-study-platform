@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
-import {routeStudyModel} from '../lib/study-model-routing.mjs'
+import {routeStudyModel,studyModelPhase} from '../lib/study-model-routing.mjs'
 import {runBudgetedStudyCall,studyModelCost} from '../lib/study-ai-budget.mjs'
 import {withRequestContext} from '../lib/request-context.mjs'
 import {deleteAllDocuments,readDocument} from '../lib/user-store.mjs'
@@ -17,15 +17,48 @@ test('routing is opt-in, phase-specific and leaves personal/local and unrelated 
  assert.equal(routeStudyModel(billing,options,policy).model,'gpt-5-mini')
  assert.equal(routeStudyModel(billing,{...options,usageMetadata:{versionId:'sv-test',phase:'factual-solve'}},policy).model,'gpt-5.6-sol')
 })
+test('a repair-triggered whole-chapter rewrite is billed and routed as a correction, while a first draft stays authoring',()=>{
+ // The chapters-stage generate call for a genuine first draft never sets an
+ // explicit phase; it is derived from options.usageMetadata.stage==='chapters'.
+ assert.equal(studyModelPhase({usageMetadata:{stage:'chapters'}}),'authoring')
+ // study-version-pipeline.mjs tags a repair-triggered whole-chapter rewrite
+ // (questionRepairStep found no bounded question-only patch) with an explicit
+ // '*-correction' phase so it is never silently billed/routed as authoring.
+ assert.equal(studyModelPhase({usageMetadata:{stage:'chapters',phase:'whole-chapter-correction'}}),'correction')
+ const draftRoute={version:1,routes:{authoring:'gpt-5-mini','correction':'gpt-5.6-sol'}}
+ const firstDraftOptions={...options,usageMetadata:{versionId:'sv-test',stage:'chapters'}}
+ const correctionOptions={...options,usageMetadata:{versionId:'sv-test',stage:'chapters',chapterId:'ch-1',phase:'whole-chapter-correction',correctionAttempt:1}}
+ assert.equal(routeStudyModel(billing,firstDraftOptions,draftRoute).model,'gpt-5-mini')
+ assert.equal(routeStudyModel(billing,correctionOptions,draftRoute).model,'gpt-5.6-sol')
+ // Every other correction call site (question/section/scope/flashcard/links/
+ // source-refresh repairs) already tags its own '*-correction' phase and
+ // routes identically through the shared 'correction' phase.
+ for(const phase of ['revision-correction','scope-correction','objective-correction','content-correction','section-correction','flashcard-correction','practice-correction','source-refresh'])
+  assert.equal(studyModelPhase({usageMetadata:{stage:'chapters',phase}}),'correction')
+})
 test('unpriced models, provider changes, malformed routes and price escalation fail closed',()=>{
  for(const p of ['not-json',{version:1,routes:{typo:'gpt-5-mini'}},{version:1,routes:{'source-mapping':'unknown'}},{version:1,routes:{'source-mapping':'claude-sonnet-4-5'}}])assert.throws(()=>routeStudyModel(billing,options,p))
  assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},options,{version:1,routes:{'source-mapping':'gpt-6-astra'}}),/cannot increase/)
+})
+test('a route may set a supported reasoning effort without changing the model or raising price',()=>{
+ const effort={version:1,routes:{'source-mapping':{model:'gpt-5-mini',reasoning:'low'}}}
+ assert.deepEqual(routeStudyModel(billing,options,effort),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'source-mapping',policyVersion:1,reasoningEffort:'low'})
+ assert.deepEqual(routeStudyModel(billing,options,{version:1,routes:{'source-mapping':{model:'gpt-5-mini'}}}),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'source-mapping',policyVersion:1})
+ // Same model, lower effort only: still routed so the effort is recorded.
+ assert.deepEqual(routeStudyModel({...billing,model:'gpt-5-mini'},options,effort),{model:'gpt-5-mini',baseModel:'gpt-5-mini',phase:'source-mapping',policyVersion:1,reasoningEffort:'low'})
+ // Astra has no minimal effort; the provider layer's supported value is recorded.
+ assert.equal(routeStudyModel(billing,options,{version:1,routes:{'source-mapping':{model:'gpt-6-astra',reasoning:'minimal'}}}).reasoningEffort,'low')
+ for(const route of [{model:'gpt-5-mini',reasoning:'exhaustive'},{model:'gpt-5-mini',reasoning:'MEDIUM'},{model:'gpt-5-mini',reasoning:true},{model:'gpt-5-mini',effort:'low'},{reasoning:'low'},['gpt-5-mini']])
+  assert.throws(()=>routeStudyModel(billing,options,{version:1,routes:{'source-mapping':route}}))
+ assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},options,{version:1,routes:{'source-mapping':{model:'gpt-6-astra',reasoning:'low'}}}),/cannot increase/)
 })
 test('routed call reserves and settles the actual model; exhausted caps still prevent calls',async()=>{
  await withRequestContext({userId:'route-'+randomUUID(),mode:'local'},async()=>{try{
   let called=0;const jobKey='test-route-'+randomUUID();const usage={inputTokens:100,outputTokens:20,estimated:false,cachedInputTokens:0,cacheWriteInputTokens:0}
   const callPlatform=async(prompt,opts)=>{called++;assert.equal(opts.model,'gpt-5-mini');assert.equal(opts.billing.model,'gpt-5-mini');assert.equal(opts.usageMetadata.modelRoute.baseModel,'gpt-6-astra');return {text:'result',usage}}
   assert.equal(await runBudgetedStudyCall('test',options,{billing,jobKey,callPlatform,modelRouting:policy}),'result')
+  const withEffort=async(prompt,opts)=>{assert.equal(opts.reasoningEffort,'low');assert.equal(opts.usageMetadata.modelRoute.reasoningEffort,'low');return {text:'result',usage}}
+  assert.equal(await runBudgetedStudyCall('test',options,{billing,jobKey:'effort-route-'+randomUUID(),callPlatform:withEffort,modelRouting:{version:1,routes:{'source-mapping':{model:'gpt-5-mini',reasoning:'low'}}}}),'result')
   await assert.rejects(()=>runBudgetedStudyCall('test',options,{billing:{...billing,maxJobUsd:0.000001},jobKey:'blocked-route',callPlatform,modelRouting:policy}))
   assert.equal(called,1)
   await withRequestContext({userId:'wicker-study-platform-budget',mode:'study-budget'},async()=>{

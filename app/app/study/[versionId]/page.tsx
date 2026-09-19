@@ -2,12 +2,13 @@
 import { StudyDesk, useStudyDesk } from '@/components/workspace/study-desk'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { ArrowLeftIcon, RefreshCwIcon, ShareIcon, MessageCircleIcon } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { ArrowLeftIcon, ArrowRightIcon, RefreshCwIcon, ShareIcon, LibraryIcon, MessageCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Select,
   SelectContent,
@@ -37,12 +38,14 @@ function StudentStudyContent() {
   const desk = useStudyDesk()
   const [pageView, setPageView] = useState('study')
   const { versionId } = useParams<{ versionId: string }>(),
+    router = useRouter(),
     [data, setData] = useState<StudyVersionPayload | null>(null),
     [error, setError] = useState(''),
     [selected, setSelected] = useState(''),
     [refreshing, setRefreshing] = useState(false),
     [sharing, setSharing] = useState(false),
-    [busy, setBusy] = useState(false)
+    [busy, setBusy] = useState(false),
+    [forking, setForking] = useState(false)
   const [resume, setResume] = useState(false),
     [billingSource, setBillingSource] = useState('platform'),
     [cap, setCap] = useState('1'),
@@ -99,6 +102,21 @@ function StudentStudyContent() {
       window.removeEventListener('study-job-changed', wakePoll)
     }
   }, [versionId, selected])
+  async function fork() {
+    setForking(true)
+    setError('')
+    try {
+      const result = await studyRequest<{ version: { id: string } }>(
+        `/api/study-versions/${versionId}/fork`,
+        {},
+      )
+      router.push(`/app/study/${result.version.id}`)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setForking(false)
+    }
+  }
   async function control(action: string) {
     setBusy(true)
     try {
@@ -215,7 +233,7 @@ function StudentStudyContent() {
             <Button
               variant="outline"
               size="sm"
-              disabled={busy || active || Boolean(data.proposal)}
+              disabled={busy || active || Boolean(data.proposal) || Boolean(version.managed)}
               onClick={async () => {
                 setBusy(true)
                 try {
@@ -259,18 +277,20 @@ function StudentStudyContent() {
         </div></details>
       )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={active || Boolean(data.proposal)}
-              onClick={() => {
-                setRefreshing(!refreshing)
-                setSharing(false)
-              }}
-            >
-              <RefreshCwIcon data-icon="inline-start" />
-              Refresh sources
-            </Button>
+            {!version.managed && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={active || Boolean(data.proposal)}
+                onClick={() => {
+                  setRefreshing(!refreshing)
+                  setSharing(false)
+                }}
+              >
+                <RefreshCwIcon data-icon="inline-start" />
+                Refresh sources
+              </Button>
+            )}
             {data.revision && (
               <Button
                 variant="outline"
@@ -288,6 +308,77 @@ function StudentStudyContent() {
           </div>
         </div>
       </header>
+      {version.managed && (
+        <Alert>
+          <AlertDescription>
+            <span className="inline-flex flex-wrap items-center gap-1.5">
+              <LibraryIcon className="size-3.5" />
+              Managed by a course run · read-only ·{' '}
+              <Link
+                href={`/app/study/${version.managed.parentVersionId}`}
+                className="text-primary underline"
+              >
+                View course run
+              </Link>
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={forking || !version.managed.forkable}
+              onClick={() => void fork()}
+            >
+              {forking && <Spinner data-icon="inline-start" />}
+              Fork to edit
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {version.bundle && (
+        <section
+          className="flex flex-col gap-3 rounded-xl border bg-card p-5"
+          aria-label="Course guides"
+        >
+          <div>
+            <h2 className="text-sm font-semibold">
+              Whole course · {version.bundle.guides.length}{' '}
+              {version.bundle.guides.length === 1 ? 'guide' : 'guides'} planned
+            </h2>
+            <p className="text-muted-foreground mt-1 text-xs">
+              {version.bundle.complete
+                ? 'Guides publish independently as each one finishes.'
+                : 'Planning the course material into separate guides.'}
+            </p>
+          </div>
+          <ul className="divide-y">
+            {version.bundle.guides.map((guide) => (
+              <li
+                key={guide.guideId}
+                className="flex items-center justify-between gap-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{guide.title}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {guide.status === 'complete'
+                      ? `${guide.chapters ?? 0} ${guide.chapters === 1 ? 'chapter' : 'chapters'}`
+                      : 'Planned'}
+                  </p>
+                </div>
+                {guide.status === 'complete' && guide.versionId ? (
+                  <Link
+                    href={`/app/study/${guide.versionId}`}
+                    className="text-primary inline-flex shrink-0 items-center gap-1 text-xs font-medium hover:underline"
+                  >
+                    Open
+                    <ArrowRightIcon className="size-3" />
+                  </Link>
+                ) : (
+                  <Badge variant="outline">Planned</Badge>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -311,7 +402,7 @@ function StudentStudyContent() {
             <Button
               variant="outline"
               size="sm"
-              disabled={busy}
+              disabled={busy || Boolean(version.managed)}
               onClick={() => {
                 if (active) void control('stop')
                 else if (local) void studyRequest(`/api/study-versions/${versionId}/local/next`, {retry:true}).then(load).catch(e=>setError(e.message))
@@ -352,6 +443,7 @@ function StudentStudyContent() {
       )}
       {data.proposal &&
         data.revision &&
+        !version.managed &&
         data.revision.id === version.activeRevisionId && (
           <StudyProposal
             proposal={data.proposal}
@@ -435,7 +527,8 @@ function StudentStudyContent() {
                 Boolean(data.revision) &&
                 revision.id === version.activeRevisionId &&
                 !active &&
-                !data.proposal
+                !data.proposal &&
+                !version.managed
               }
               onEdited={() => {
                 setSelected('')

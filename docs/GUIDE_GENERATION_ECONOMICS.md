@@ -144,7 +144,12 @@ They demonstrate that input trimming alone will not solve the course economics.
 ### Phase-specific model routing, disabled by default
 
 An operator can configure `STUDY_MODEL_ROUTES` as a versioned JSON profile:
-`{"version":1,"routes":{"source-mapping":"gpt-5-mini"}}`.
+`{"version":1,"routes":{"source-mapping":"gpt-5-mini"}}`. A route value may also
+be an object that additionally selects the phase's reasoning effort:
+`{"source-mapping":{"model":"gpt-5-mini","reasoning":"low"}}`. Only the efforts
+the OpenAI provider layer accepts (`minimal`, `low`, `medium`, `high`) are
+allowed; anything else fails before a provider call, and the effective effort
+actually sent is recorded in the route metadata.
 This is configuration syntax, not an evaluated model recommendation. Allowed
 phases are `source-mapping`, `course-outline`, `teaching-plan`, `authoring`,
 `factual-review`, `pedagogical-review` and `correction`.
@@ -253,3 +258,36 @@ course-wide findings remain shared; dependency fingerprints still reject changed
 inputs. Existing saved batch rows are scoped on read without discarding the
 original review artifact. This reuse fix has regression coverage, including old
 rows with duplicated findings, but has not been included in another paid IUI run.
+
+## Measured per-chapter split and the three cost changes (not yet re-measured live)
+
+The newest saved IUI attempt (`guide-1-initial-attempt-21.json`, chapter
+`iui-foundations-scope-and-hci-part-2`) records a reviewed chapter at about
+$0.60 for its first round: teaching plan 21,648 in / 4,681 out and draft 24,817
+in / 12,664 out on gpt-5-mini ($0.046), three factual review calls on gpt-5-mini
+($0.025), pedagogical review 19,632 in / 5,529 out on gpt-5.6-sol ($0.189), and
+a whole-chapter correction 35,663 in / 10,045 out on gpt-5.6-sol ($0.344).
+Output tokens on the correction model dominate: the correction alone is roughly
+60% of the chapter.
+
+Three changes target that shape. Bounded repair now also patches named teaching
+objectives, so a mixed finding set produces one combined section + objective +
+question patch instead of a ~10k-output whole-chapter rewrite; the section bound
+is relative to chapter length, and a whole-chapter rewrite is still used when
+findings span most of the chapter or cannot be located. The drafting and
+teaching-plan prompts state the recurring, evidenced failure classes explicitly
+(misconception follow-up targeting, genuine transfer, no unsupported mechanisms,
+no internal evidence identifiers in prose, current-edition citation for the core
+idea) so fewer chapters earn a correction at all. Pedagogical dependency hashing
+is now scoped per objective over that objective's own sections, so a correction
+re-reviews only the objectives whose teaching, practice, plan or evidence
+changed; other sections still travel as read-only context.
+
+Assuming a patch replaces roughly a quarter of the authored artifact (~2,500
+output tokens instead of ~10,000) with the existing chapter still supplied as
+input, and that a post-correction re-review carries one of three objectives, the
+same first round would cost about $0.45 instead of $0.60, and the full two-round
+trace recorded in attempt 21 about $0.77 instead of the $1.14 actually spent.
+These are arithmetic projections over the saved call sizes only. No paid run has
+been made since the change, so the saving is estimated, not measured, and the
+quality effect of the added prompt rules is entirely unverified.

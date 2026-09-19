@@ -48,6 +48,7 @@ export function StudySourceForm({
   onCancel: () => void
 }) {
   const [execution, setExecution] = useState<'hosted' | 'local'>(initialExecution)
+  const [courseBundle, setCourseBundle] = useState(false)
   const [billingSource, setBillingSource] = useState('platform'),
     [cap, setCap] = useState(String(STUDY_GENERATION_LIMITS.defaultJobUsd)),
     [quality, setQuality] = useState('astra'),
@@ -143,7 +144,7 @@ export function StudySourceForm({
   }
   useEffect(() => {
     setEstimate(null)
-  }, [chosen.join(','), billingSource, cap, year, quality])
+  }, [chosen.join(','), billingSource, cap, year, quality, courseBundle])
   async function generate() {
     setBusy(true)
     setError('')
@@ -151,6 +152,7 @@ export function StudySourceForm({
       const payload = {
         ...identity,
         title,
+        courseBundle,
         sourceKeys: chosen,
         includeHistorical: historical,
         billingSource,
@@ -219,6 +221,23 @@ export function StudySourceForm({
         </p>
       </div>
       <FieldGroup>
+        {!versionId && (
+          <Field>
+            <FieldLabel htmlFor="study-guide-scope">Study scope</FieldLabel>
+            <Select value={courseBundle ? 'course' : 'guide'} onValueChange={(value) => setCourseBundle(value === 'course')}>
+              <SelectTrigger id="study-guide-scope" aria-describedby="study-guide-scope-help"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectGroup>
+                <SelectItem value="guide">One guide</SelectItem>
+                <SelectItem value="course">Whole course · multiple guides</SelectItem>
+              </SelectGroup></SelectContent>
+            </Select>
+            <FieldDescription id="study-guide-scope-help">
+              {courseBundle
+                ? 'Plan the selected course material together, then create separate guides for its topics. Hosted generation shares one spending limit across the course. Whole-course scope allows up to 500 sources and 5,000,000 characters.'
+                : 'Create a guide for a selected module, topic or assessment. Up to 100 sources and 600,000 characters.'}
+            </FieldDescription>
+          </Field>
+        )}
         {!versionId && (
           <Field>
             <FieldLabel htmlFor="study-version-title">Version name</FieldLabel>
