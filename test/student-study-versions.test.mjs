@@ -1,4 +1,4 @@
-import { nextPedagogicalReview } from '../lib/study-pedagogical-review.mjs'
+import { nextPedagogicalReview, acceptPedagogicalReview, combinedPedagogicalReview } from '../lib/study-pedagogical-review.mjs'
 import { teachingPlanSchema, pedagogyReviewSchema, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -36,7 +36,7 @@ import {
   recoverFailedChapterByLinkNormalization,
   prepareLesson
 } from '../lib/study-version-pipeline.mjs'
-import { nextFactualReview, acceptFactualReview, factualAuditIssues } from '../lib/study-factual-review.mjs'
+import { nextFactualReview, acceptFactualReview, factualAuditIssues, factualFingerprint } from '../lib/study-factual-review.mjs'
 import {
   publishStudyVersion,
   readStudyPublication,
@@ -1305,6 +1305,77 @@ test('a chapter whose identifiers were already stripped by an earlier hygiene pa
   assert.equal(work.stage, 'review')
   assert.equal(work.error, undefined)
   assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  // Re-running is stable: the chapter is no longer 'failed', so it is a no-op.
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
+  assert.equal(work.chapters[0].review, 'pending')
+})
+
+test('a successful evidence-id hygiene recovery drops the matching stale finding from every cache that held it — evidenceReview, factualAudit.judgments, pedagogyAudit.reviews and pedagogicalReview — reusing every other cached judgment and repeating stably', () => {
+  const ids = ['e-abc123def456']
+  const strayId = 'e-999999999999'
+  const evidence = [{ id: ids[0], sourceKey: 'source', text: 'Adding disjoint groups: two plus three equals five. Check with subtraction.' }]
+  const dirtyPlan = { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${strayId}).`], exclusions: [] }
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: dirtyPlan }
+  // A genuinely reviewed factualAudit (blind solve, answer check and content
+  // check all pass), then the 'scope' item's verdict is corrected the way the
+  // real reviewer actually reported it: the stray-id finding plus one
+  // genuine, unrelated content warning that must survive the recovery.
+  for (let step; (step = nextFactualReview(course, [], evidence, draft));) acceptFactualReview(draft, step, teachingResponse(step.prompt, ids))
+  const matching = { detail: `The 'gaps' text references non-existent evidence IDs (${strayId}) that are not part of the supplied evidence list.`, severity: 'error' }
+  const unrelatedWarning = { detail: 'The scope note could name the specific slide deck more precisely.', severity: 'warning' }
+  draft.factualAudit.judgments.scope = { correct: false, rationale: matching.detail, issues: [matching, unrelatedWarning] }
+  draft.evidenceReview = { issues: factualAuditIssues(draft) }
+  assert.ok(draft.evidenceReview.issues.some(i => i.detail === matching.detail && i.severity === 'error'))
+  // A genuinely reviewed pedagogyAudit, then every objective's cached verdict
+  // is corrected with the same pair — mirroring the real saved state, where
+  // every per-objective review carried the identical chapter-wide finding
+  // because the reviewer sees the whole teaching plan each time.
+  for (let step; (step = nextPedagogicalReview('evidence context', draft));) acceptPedagogicalReview(draft, step, teachingResponse(step.prompt, ids))
+  const pedMatching = { topicId: 'source-integrity', severity: 'error', detail: `The teaching-plan gap prose prints an internal evidence identifier (${strayId}) that must not appear in student-facing text.` }
+  const pedUnrelatedWarning = { topicId: 'original-figure-referral', severity: 'warning', detail: 'The gaps direct students to an original figure that is not established as missing.' }
+  for (const id of Object.keys(draft.pedagogyAudit.reviews)) draft.pedagogyAudit.reviews[id] = { ...draft.pedagogyAudit.reviews[id], issues: [pedMatching, pedUnrelatedWarning] }
+  draft.pedagogicalReview = combinedPedagogicalReview(draft)
+  assert.ok(draft.pedagogicalReview.issues.some(i => i.detail === pedMatching.detail))
+
+  const findings = [...draft.evidenceReview.issues, ...pedagogyReviewIssues(draft, draft.pedagogicalReview)].map(i => ({ ...i, topicId: draft.id }))
+  assert.equal(findings.filter(i => i.severity === 'error').length, 2) // both stale error findings present, matching the real symptom
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: findings,
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  // The repaired content — not the original dirty prose — is what's persisted.
+  assert.doesNotMatch(chapter.teachingPlan.gaps.join(' '), /\be-[0-9a-f]{6,}\b/)
+
+  // The matching finding is gone from every cache; the unrelated one survives.
+  assert.ok(!chapter.evidenceReview.issues.some(i => i.detail === matching.detail))
+  assert.ok(chapter.evidenceReview.issues.some(i => i.detail === unrelatedWarning.detail))
+  assert.equal(chapter.factualAudit.judgments.scope.correct, true)
+  assert.deepEqual(chapter.factualAudit.judgments.scope.issues, [unrelatedWarning])
+  assert.equal(chapter.factualAudit.fingerprint, factualFingerprint(chapter))
+  for (const review of Object.values(chapter.pedagogyAudit.reviews)) {
+    assert.ok(!review.issues.some(i => i.detail === pedMatching.detail))
+    assert.ok(review.issues.some(i => i.detail === pedUnrelatedWarning.detail))
+  }
+  assert.ok(!chapter.pedagogicalReview.issues.some(i => i.detail === pedMatching.detail))
+  assert.ok(chapter.pedagogicalReview.issues.some(i => i.detail === pedUnrelatedWarning.detail))
+
+  // The exact gate processStudyStep applies at the 'finish' stage before
+  // activation now passes cleanly, proving no further model call is needed.
+  assert.equal(chapter.evidenceReview.issues.some(i => i.severity === 'error'), false)
+  assert.equal(factualAuditIssues(chapter).some(i => i.severity === 'error'), false)
+  assert.equal(pedagogyReviewIssues(chapter, chapter.pedagogicalReview).some(i => i.severity === 'error'), false)
+
   // Re-running is stable: the chapter is no longer 'failed', so it is a no-op.
   assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
   assert.equal(work.chapters[0].review, 'pending')
