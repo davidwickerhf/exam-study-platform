@@ -575,7 +575,7 @@ test('batch findings invalidate their own objectives while global findings stay 
  for(const global of [false,true]){
   const draft=chapter(),context='Source evidence',step=nextPedagogicalReview(context,draft)
   const response=teachingResponse(step.prompt,['e-current']),id=draft.teachingPlan.objectives[0].id
-  response.issues=[{topicId:global?'course-wide':id,severity:'error',detail:'A required correction.'}]
+  response.issues=[{topicId:global?'course-wide':id,scope:global?'chapter':'objective',severity:'error',detail:'A required correction.'}]
   acceptPedagogicalReview(draft,step,response)
   assert.equal(combinedIssueCount(draft),global?draft.teachingPlan.objectives.length:1)
   // Legacy batches copied the same issues into every saved objective row.
@@ -713,4 +713,68 @@ test('changing a section invalidates every objective depending on it and no othe
  preservePedagogicalReview(draft,isolated,context)
  assert.deepEqual(nextPedagogicalReview(context,isolated).objectiveIds,[third.id])
  assert.ok(isolated.pedagogyAudit.reviews[first.id] && isolated.pedagogyAudit.reviews[second.id])
+})
+
+// Every finding names what it is about, so an expensive whole-chapter rewrite
+// is reserved for problems that really are chapter-wide.
+test('scoped findings patch their own target, quoted evidence rescues an unscoped one, and a chapter scope still rewrites',async()=>{
+ const {questionRepairStep,locateReviewIssues,repairScopeDecision}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter()
+ const [first,second,third]=draft.teachingPlan.objectives
+ draft.sections[0].objectiveIds=[first.id];draft.sections[1].objectiveIds=[first.id]
+ draft.sections[2].objectiveIds=[second.id];draft.sections[3].objectiveIds=[third.id]
+ draft.questions.forEach((q,index)=>{q.objectiveIds=[index<4?first.id:second.id]})
+ const section=draft.sections[1],objective=third,question=draft.questions[0]
+ const scopedSection=[{severity:'error',scope:'section',topicId:section.id,detail:'The explanation contradicts the cited evidence.'}]
+ assert.equal(locateReviewIssues(draft,scopedSection)[0].itemKey,`section:${section.id}`)
+ assert.deepEqual(questionRepairStep(course,[],evidence,draft,scopedSection)?.sectionIds,[section.id])
+ const scopedObjective=[{severity:'error',scope:'objective',topicId:objective.id,detail:'The goal overstates the taught reasoning.'}]
+ assert.equal(locateReviewIssues(draft,scopedObjective)[0].itemKey,`objective:${objective.id}`)
+ // An objective finding also selects the teaching that objective owns, which
+ // is still a bounded patch rather than a whole-chapter rewrite.
+ const objectiveStep=questionRepairStep(course,[],evidence,draft,scopedObjective)
+ assert.deepEqual(objectiveStep?.parts?.find(part=>part.planObjectiveIds)?.planObjectiveIds,[objective.id])
+ assert.deepEqual(objectiveStep.parts.find(part=>part.sectionIds)?.sectionIds,[draft.sections[3].id])
+ assert.equal(locateReviewIssues(draft,[{severity:'error',scope:'question',topicId:question.key,detail:'The answer contradicts its own calculation.'}])[0].itemKey,`question:${question.key}`)
+ assert.deepEqual(questionRepairStep(course,[],evidence,draft,[{severity:'error',scope:'question',topicId:question.key,detail:'The answer contradicts its own calculation.'}])?.keys,[question.key])
+ // A finding that named no target at all, but quoted text present in exactly
+ // one section, is located by exact match rather than rewritten blind.
+ const unique=' The checking step subtracts the smaller addend from the recorded total.'
+ draft.sections[2].text+=unique
+ const quoted=[{severity:'error',detail:`The claim "${unique.trim()}" is not supported by the evidence.`}]
+ assert.equal(locateReviewIssues(draft,quoted)[0].itemKey,`section:${draft.sections[2].id}`)
+ assert.deepEqual(questionRepairStep(course,[],evidence,draft,quoted)?.sectionIds,[draft.sections[2].id])
+ // An ambiguous quote is never guessed at: shared boilerplate stays unscoped.
+ const shared=draft.sections[0].text.slice(0,60)
+ assert.equal(locateReviewIssues(draft,[{severity:'error',detail:`The passage "${shared}" is wrong.`}])[0].itemKey,undefined)
+ // A genuinely chapter-wide finding is never relocated and still rewrites.
+ const chapterWide=[{severity:'error',scope:'chapter',topicId:draft.id,detail:'The chapter teaches a different subject from the one it was planned for.'}]
+ assert.equal(locateReviewIssues(draft,chapterWide)[0].itemKey,undefined)
+ assert.equal(questionRepairStep(course,[],evidence,draft,chapterWide),null)
+ // The decision itself is recorded, with the reason for the expensive path.
+ assert.deepEqual(repairScopeDecision(draft,scopedSection,questionRepairStep(course,[],evidence,draft,scopedSection)),
+  {path:'patch',repair:'section-correction',findings:1,targets:[`section:${section.id}`]})
+ const rewrite=repairScopeDecision(draft,chapterWide,null)
+ assert.equal(rewrite.path,'whole-chapter')
+ assert.equal(rewrite.repair,'whole-chapter-correction')
+ assert.equal(rewrite.reason,'chapter-scoped findings')
+ assert.equal(rewrite.chapterScoped.length,1)
+ const unlocatable=repairScopeDecision(draft,[{severity:'error',detail:'Something somewhere in the prose is unsupported.'}],null)
+ assert.equal(unlocatable.reason,'findings could not be located in the chapter')
+ assert.equal(unlocatable.unlocated.length,1)
+})
+
+test('a content review finding scoped to the whole chapter drops its item key',()=>{
+ const draft=chapter()
+ let step
+ while((step=nextFactualReview(course,[],evidence,draft))){
+  const raw=teachingResponse(step.prompt,['e-current'])
+  if(step.kind==='content')raw.items[step.keys[0]]={correct:false,rationale:'A fault no single item owns.',issues:[{detail:'The chapter as a whole teaches the wrong subject.',severity:'error',scope:'chapter'}]}
+  acceptFactualReview(draft,step,raw)
+ }
+ const issues=factualAuditIssues(draft).filter(i=>i.severity==='error')
+ const wide=issues.find(i=>i.scope==='chapter')
+ assert.ok(wide,'a chapter-scoped finding is preserved as chapter-scoped')
+ assert.equal(wide.itemKey,undefined)
+ assert.equal(issues.filter(i=>i.itemKey).length,0)
 })

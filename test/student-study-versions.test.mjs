@@ -412,13 +412,19 @@ test('failed independent evidence review cannot activate or publish a revision',
       assert.equal(corrected.draft.repair, undefined)
       assert.equal(corrected.draft.stage, 'review')
       assert.equal(corrected.activeRevisionId, null)
+      // How the correction was scoped is recorded on the draft.
+      const scope = corrected.draft.correctionScopes.at(-1)
+      assert.equal(scope.chapterId, 'addition')
+      assert.equal(scope.path, 'whole-chapter')
+      assert.equal(scope.repair, 'whole-chapter-correction')
+      assert.ok(scope.reason)
     })
   } finally {
     await f.cleanup()
   }
 })
 
-test('a source-recall card receives one automatic correction before the paid evidence review', async () => {
+test('a source-recall card names its own group and is corrected by a bounded flashcard patch', async () => {
   const f = await fixture()
   try {
     await f.run(async () => {
@@ -430,14 +436,53 @@ test('a source-recall card receives one automatic correction before the paid evi
         if (prompt.includes('Independently check')) { reviewed++; return {issues:[]} }
         generated++
         const value = lesson(ids)
-        if (generated === 1) value.flashcards[0].front = 'What question summarizes addition on the slide?'
-        else { assert.match(prompt, /smallest coherent changes/); assert.match(prompt, /academic concept directly/) }
-        return value
+        if (generated === 1) { value.flashcards[0].front = 'What question summarizes addition on the slide?'; return value }
+        // The deterministic rule names the offending card group, so the
+        // correction re-buys four cards instead of the whole chapter.
+        assert.match(prompt, /REPAIR SELECTED FLASHCARDS/)
+        assert.match(prompt, /academic concept directly/)
+        return {flashcards: Object.fromEntries([0, 1, 2, 3].map(i => [`card-${i}`, value.flashcards[i]]))}
       }
       for (let i = 0; i < 70; i++) { await processStudyStep(f.version.id, {generate}); if ((await ownStudyVersion(f.version.id)).activeRevisionId) break }
       assert.equal(generated, 2)
       assert.equal(reviewed, 0) // Exhaustive reviews use the dedicated fixture responses.
-      assert.ok((await ownStudyVersion(f.version.id)).activeRevisionId)
+      const done = await ownStudyVersion(f.version.id)
+      assert.ok(done.activeRevisionId)
+      const scope = done.draft.correctionScopes.at(-1)
+      assert.equal(scope.path, 'patch')
+      assert.equal(scope.repair, 'flashcard-correction')
+      assert.deepEqual(scope.targets, ['cards:0'])
+    })
+  } finally { await f.cleanup() }
+})
+
+// Every retry buys a fresh reservation, so an identical review step that keeps
+// failing must stop with an explicit saved error instead of looping.
+test('a review step that keeps failing the same way stops at its cap', async () => {
+  const f = await fixture()
+  try {
+    await f.run(async () => {
+      const ids = f.snapshot.chunks.map(c => c.id)
+      await mutateStudyVersion(f.version.id, v => { v.draft.stage = 'chapters'; v.draft.topics = [{id:'addition',title:'Addition',sourceIds:ids}] })
+      let solves = 0
+      const generate = async prompt => {
+        if (prompt.includes('INDEPENDENT QUESTION SOLVING')) {
+          solves++
+          throw Object.assign(new Error('The AI service is receiving too many requests.'), {status: 429, retryAfter: 1})
+        }
+        return teachingResponse(prompt, ids) || lesson(ids)
+      }
+      for (let i = 0; i < 40; i++) {
+        await processStudyStep(f.version.id, {generate})
+        if ((await ownStudyVersion(f.version.id)).draft.status === 'failed') break
+        await mutateStudyVersion(f.version.id, v => { v.draft.runAfter = 0 })
+      }
+      const failed = await ownStudyVersion(f.version.id)
+      assert.equal(failed.draft.status, 'failed')
+      assert.equal(solves, 3, 'the same review step is re-bought at most three times')
+      assert.equal(failed.draft.stepFailures.count, 3)
+      assert.match(failed.draft.stepFailures.key, /^factual:addition:solve:/)
+      assert.match(failed.draft.error, /failed 3 times in a row/)
     })
   } finally { await f.cleanup() }
 })

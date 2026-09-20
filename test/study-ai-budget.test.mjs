@@ -222,6 +222,13 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
       await assert.rejects(runBudgetedStudyCall('hello',{maxOutputTokens:64000},{...config,callPersonal:async()=>{throw incomplete}}),/incomplete/)
       const afterFailure=await readDocument('study-ai-personal-budget',month)
       assert.equal(afterFailure.total-beforeFailure.total,studyModelCost(billing.model,10,10))
+      // A call abandoned at its own deadline reports no usage at all, so it
+      // settles exactly like any other unknown-usage failure: the whole
+      // reservation stays charged rather than being written off as free.
+      const timedOut=Object.assign(new Error('deadline'),{name:'TimeoutError',code:'provider_timeout',retryable:true})
+      await assert.rejects(runBudgetedStudyCall('hello',{maxOutputTokens:64000},{...config,callPersonal:async()=>{throw timedOut}}),/deadline/)
+      const afterTimeout=await readDocument('study-ai-personal-budget',month)
+      assert.ok(afterTimeout.total-afterFailure.total>studyModelCost(billing.model,10,10),'an abandoned call retains its full reservation')
       await removePersonalAiKey()
       await assert.rejects(
         runBudgetedStudyCall('hello', {}, config),

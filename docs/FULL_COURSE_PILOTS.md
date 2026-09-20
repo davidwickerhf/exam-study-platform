@@ -435,3 +435,33 @@ STUDY_PIPELINE_DEFER_UPDATE=1 \
 OPENAI_API_KEY=<key> \
 node scripts/verification/study-pipeline-live.mjs
 ```
+
+## Two defects from the BCS2130 hosted attempt (20 September 2026)
+
+The newest hosted attempt exposed two faults that have now been fixed. First,
+four consecutive `factual-solve` calls recorded no usage, ran for 17–24 minutes
+each and then died inside our own error handling with
+`error.cause?.code?.startsWith is not a function`: an aborted or stalled request
+surfaces a `DOMException` whose legacy `code` is a *number*, so the provider
+classifier crashed over the failure it was meant to describe and the real error
+never reached the draft. Classification now matches `cause.code` by value
+(`providerErrorCode`), can never throw over the original failure, and preserves
+its sanitized `x-request-id`; each call also carries an explicit per-call
+deadline (`STUDY_GENERATION_LIMITS.callDeadlineMs`, default 420 s, overridable
+with `STUDY_CALL_DEADLINE_MS`) that aborts the transport and the SDK together,
+settles the abandoned call as an unknown-usage failure that keeps its full
+reservation, and is backed by an explicitly-referenced abort controller in
+`providerFetch` instead of a collectable `AbortSignal.timeout`; three identical
+consecutive failures of one review step now stop the run with a saved error
+naming that step. Second, the third chapter's single error finding named no
+section, objective or question, so the combined patch path could not place it
+and fell back to a whole-chapter rewrite costing about $0.56 — the largest
+single cost in that chapter. Pedagogical and factual content review findings now
+carry an explicit scope (a section id, objective id, question key, or `chapter`
+for genuinely chapter-wide faults), deterministic quality rules name the
+question or flashcard group they flag, and `locateReviewIssues` recovers an
+unscoped finding by exact-matching its named ids or quoted evidence against the
+chapter; only a genuinely chapter-wide or unlocatable finding still forces a
+full rewrite. Each correction records its scope decision on the draft
+(`correctionScopes`: patch or whole-chapter, the repair kind, its targets, and
+the reason), so a pilot report shows which path was taken and why.

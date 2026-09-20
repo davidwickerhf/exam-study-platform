@@ -32,7 +32,8 @@ export function teachingResponse(prompt, ids, {reviewIssues=[]}={}) {
     if(prompt.includes('INDEPENDENT QUESTION SOLVING'))return {items:Object.fromEntries(payload.map(q=>[q.key,{answer:'Scripted independent solution for plumbing tests.',assumptions:[],calculations:[]}]))}
     const failing=reviewIssues.some(i=>i.severity==='error')
     const answers=prompt.includes('ANSWER COMPARISON REVIEW')
-    return {items:Object.fromEntries(payload.map(item=>[item.key,{correct:!failing,rationale:'Scripted review for plumbing tests.',issues:reviewIssues.map(({detail,severity})=>({detail,severity})),...(answers?{fault:failing?'authored':'none'}:{})}]))}
+    // The content review scopes each finding; the answers review does not.
+    return {items:Object.fromEntries(payload.map(item=>[item.key,{correct:!failing,rationale:'Scripted review for plumbing tests.',issues:reviewIssues.map(({detail,severity,scope})=>({detail,severity,...(answers?{}:{scope:scope==='chapter'?'chapter':'item'})})),...(answers?{fault:failing?'authored':'none'}:{})}]))}
   }
   if(prompt.includes('REPAIR PRACTICE LINKS')) {
     const payload=JSON.parse(prompt.split('Review payload: ').at(-1))
