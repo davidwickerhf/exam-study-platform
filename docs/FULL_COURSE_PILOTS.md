@@ -465,3 +465,37 @@ chapter; only a genuinely chapter-wide or unlocatable finding still forces a
 full rewrite. Each correction records its scope decision on the draft
 (`correctionScopes`: patch or whole-chapter, the repair kind, its targets, and
 the reason), so a pilot report shows which path was taken and why.
+
+## Corrupt teaching-plan prose (BCS2130 attempt 24)
+
+In the same bundle run, chapter `iui-input-reasoning-output-and-feedback` failed
+review twice for one reason: its teaching plan's `gaps` list held a fourth entry
+that was not prose at all but a fragment of JSON scaffolding (curly quotes
+included), emitted by the objective-plan call and copied onto every draft of the
+chapter. Both reviewers rightly flagged it, and each flag bought a whole-chapter
+correction on gpt-5.6-sol — about $0.58 each, $1.16 of that attempt's $1.77 —
+which had no way to rewrite a string it was never asked to touch. Our own
+post-processing was not the cause and did not catch it either:
+`stripUnsupportedEvidenceIds` only rewrites an entry that contains an
+`e-<hex>` token, and the saved chapter carried no `evidenceIdRepairs`. A
+deterministic pass now runs beside the other pre-review checks (invisible
+control characters, duplicate identities and JSON keys, malformed maths
+escapes): every caveat and teaching-plan gap/exclusion that is not coherent
+prose — a `":"` key fragment, unbalanced brackets or double quotes, a JSON
+opener, an entry truncated on `[`, `{` or a trailing comma — is repaired by
+deleting only the corrupt scaffolding, or dropped outright when no sentence
+survives, and every action is recorded on `chapter.proseRepairs` like
+`evidenceIdRepairs` and `linkRepairs`. Ordinary punctuation (quoted phrases,
+colons, parentheses, bracketed citations) is left byte-identical; across the 296
+real gap/caveat/exclusion entries in the saved pilot artifacts exactly one entry
+is flagged, the corrupt one. The repair runs at the chapter-acceptance point
+(`prepareLesson`), on any pending chapter re-entering the review stage from a
+saved draft, and the saved objective plan is kept in step so no later correction
+is handed the corruption again. A chapter already saved as `review: 'failed'`
+whose remaining error findings are all about this corruption is repaired and
+re-enters review for free (`recoverFailedChapterByCorruptPlanProse`), including
+when its correction allowance is exhausted: no model call, no counter reset, and
+the matching stale findings are cleared from the cached factual and pedagogical
+audits — exactly as the evidence-id hygiene recovery does. Any other error
+finding still blocks it, and a chapter that never carried the corruption is
+never eligible.
