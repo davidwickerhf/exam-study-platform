@@ -136,7 +136,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
         }else if(executionConverted)run.executionConverted=executionConverted
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(!planOnly || !pilotPlanReady(saved))await mutateStudyVersion(id,version=>{
-          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}
+          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0,attempts:0}
           version.draft.billing={...version.draft.billing,maxJobUsd:spendingCap}
           delete version.draft.localRequest
           if(process.env.STUDY_PIPELINE_RECHECK_PEDAGOGY || process.env.STUDY_PIPELINE_RECHECK_ALL) {
