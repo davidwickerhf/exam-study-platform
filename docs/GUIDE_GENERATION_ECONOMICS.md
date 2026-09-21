@@ -291,3 +291,42 @@ trace recorded in attempt 21 about $0.77 instead of the $1.14 actually spent.
 These are arithmetic projections over the saved call sizes only. No paid run has
 been made since the change, so the saving is estimated, not measured, and the
 quality effect of the added prompt rules is entirely unverified.
+
+## BCS2130 chapter 4: judgment questions, patch packets and review rounds (not yet re-measured live)
+
+In the newest saved BCS2130 bundle attempt, the chapter
+`requirements-elicitation-and-specification` cost $1.93 and still failed after
+three of three corrections. By phase: one whole-chapter correction $0.59
+(62,782 input / 17,099 output tokens), forced by the deterministic finding
+"Practice needs varied skills, …", which named no question; two practice patches
+$0.52 (47,627 and 46,766 input tokens, although output fell to 4,676 and 2,398);
+three pedagogical reviews $0.63; everything else $0.19. Two of the three final
+errors disputed the blind solver's MoSCoW classification, not the lesson.
+
+Four changes follow. Answer comparison now treats prioritisation, classification,
+trade-off and "most appropriate" questions as judgments: a written or choice
+question whose wording matches that pattern, or one the reviewer marks
+`judgment: true` (never a calc, pseudocode or true/false question). A supported
+key with a different but defensible solver answer (`defensibleAlternative`)
+yields at most a warning. Only an unsupported key or a wrong justification is
+still an error. Every answers issue now says whether it is `about` the authored
+answer or the independent solution, and solver-only disputes are never chapter
+errors. Bounded patches send the targeted items, their objectives, the teaching
+they depend on, linked practice without answers, the evidence those cite, and an
+id/title outline of the rest of the chapter, instead of the full chapter and
+evidence. Replayed against the saved chapter and evidence (82 chunks, 105k
+characters of evidence prompt, 85k characters of chapter), the round-2 patch
+(8 questions after follow-up expansion) would send about 76k characters,
+roughly 19k input tokens instead of 47.6k. The round-3 patch (2 questions) would
+send about 29k characters, roughly 7k tokens instead of 46.8k. At $4 per million
+input tokens that is about $0.27 less across the two patches. After a correction,
+the next review is told which findings it must verify and which items changed.
+New errors about accepted, unchanged questions or sections are held as warnings,
+and passing transfer and follow-up rows are kept when their own dependencies are
+unchanged. Changed content is still fully judged, and factual findings are never
+relaxed this way. `draft.reviewRounds` records the resolved, carried and newly
+introduced findings for each round. The practice-quality rule now names each
+question missing a hint, objective or reasoned answer, and the locator also
+matches single-quoted, plan and scope text and "Objective N". The patch
+figures come from replaying the saved artifact, not from a live call. The
+pedagogical-review saving and the quality effect have not been measured.

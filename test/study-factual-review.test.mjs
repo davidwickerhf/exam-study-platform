@@ -100,7 +100,8 @@ test('an authored-fault answers judgment still creates a chapter finding',()=>{
   raw.items[badKey]={correct:false,rationale:'The authored key omits a supported option.',issues:[{detail:'The authored key omits a supported option.',severity:'error'}],fault:'authored'}
   acceptFactualReview(draft,step,raw)
   assert.ok(draft.factualAudit.solutions[qkey]) // the blind solution is not discarded
-  assert.deepEqual(draft.factualAudit.judgments[badKey],raw.items[badKey])
+  const saved=draft.factualAudit.judgments[badKey]
+  assert.deepEqual({correct:saved.correct,fault:saved.fault,issues:saved.issues.map(({detail,severity})=>({detail,severity}))},{correct:false,fault:'authored',issues:raw.items[badKey].issues})
   assert.equal(draft.factualAudit.solveRetries[qkey],undefined)
   for(let s;(s=nextFactualReview(course,[],evidence,draft));)acceptFactualReview(draft,s,teachingResponse(s.prompt,['e-current']))
   const finding=factualAuditIssues(draft).find(i=>i.itemKey===badKey)

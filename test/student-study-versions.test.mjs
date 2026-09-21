@@ -452,6 +452,13 @@ test('a source-recall card names its own group and is corrected by a bounded fla
       assert.equal(scope.path, 'patch')
       assert.equal(scope.repair, 'flashcard-correction')
       assert.deepEqual(scope.targets, ['cards:0'])
+      // The review round after the patch records the finding as resolved and
+      // nothing newly introduced.
+      const round = done.draft.reviewRounds.at(-1)
+      assert.equal(round.chapterId, 'addition')
+      assert.deepEqual(round.resolved.map(f => f.itemKey), ['cards:0'])
+      assert.deepEqual(round.carried, [])
+      assert.deepEqual(round.introduced, [])
     })
   } finally { await f.cleanup() }
 })
