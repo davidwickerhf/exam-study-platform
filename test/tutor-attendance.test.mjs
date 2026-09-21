@@ -59,3 +59,11 @@ test('attendance response resolves tool report IDs, ignoring model-authored coun
   assert.equal(parsed.presentation.attendance[0].attended, 0)
   assert.match(parsed.content, /1 unmarked/)
 })
+
+test('staging matches a 165-character calendar event ID exactly', () => {
+  const longId = `feed:${'l'.repeat(36)}:${'9f2c4e1a7b3d'.repeat(9)}#${'a1b2c3d4e5'}#lab`
+  assert.equal(longId.length, 165)
+  const staged = stageTutorAttendance({ workspace: workspace(), events: [event(longId), event('short')] }, { eventIds: [longId], status: 'attended' }, now)
+  assert.ok(JSON.stringify(staged).includes(longId))
+  assert.ok(!JSON.stringify(staged).includes('"short"'))
+})

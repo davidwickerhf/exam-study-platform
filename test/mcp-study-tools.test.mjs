@@ -110,3 +110,15 @@ test('local paper tools preserve evidence identity and continuation request IDs'
   const submission=await call('study_paper_submit',{versionId:'sv-test',setId:'sp-test',requestId:'request-test',response:{issues:[]}})
   assert.deepEqual(submission.body,{requestId:'request-test',response:{issues:[]}})
 })
+
+// A timetable feed builds event IDs as feed:<link>:<provider event id>; Maastricht lab sessions reach 165 characters.
+const longEventId = `feed:${'l'.repeat(36)}:${'9f2c4e1a7b3d'.repeat(9)}#${'a1b2c3d4e5'}#lab`
+test('attendance preparation accepts the long calendar event IDs get_attendance returns', async () => {
+  assert.equal(longEventId.length, 165)
+  const { call } = fixture()
+  const prepared = await call('tutor_prepare_attendance_update', { eventIds: [longEventId], status: 'attended' })
+  assert.deepEqual(prepared.body.eventIds, [longEventId])
+  assert.equal(prepared.body.kind, 'attendance')
+  await assert.rejects(async () => call('tutor_prepare_attendance_update', { eventIds: ['x'.repeat(513)], status: 'attended' }))
+  await assert.rejects(async () => call('tutor_prepare_attendance_update', { eventIds: [''], status: 'attended' }))
+})
