@@ -440,3 +440,15 @@ quality result.
 
 The next measured profile is:
 `{"version":1,"routes":{"teaching-plan":"gpt-5-mini","authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","pedagogical-precheck":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.
+
+A clean-account target run then completed all 71 source-map batches for
+$0.453056, but the segment guard refused the course outline before calling the
+model: its prompt was 423,256 characters and conservatively reserved $4.99173.
+The outline response contains mapped refs, never citation arrays or mapper gap
+prose, while the resolver already restores both from the immutable maps. Bundle
+outline prompts now send only each concept's ref, id and title; omit per-passage
+capacity arrays already represented by the scope policy's per-concept sizes;
+and leave the complete saved gap ledger to deterministic resolution. On the
+same 363-concept checkpoint this reduces the prompt to 77,843 characters and
+the full-call reservation to $0.88017 without changing the stored map, resolver
+or response schema. The stopped outline made no model call.

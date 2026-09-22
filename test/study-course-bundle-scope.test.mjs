@@ -61,7 +61,9 @@ test('the chapter budget is derived from core evidence only and stated in the pr
   assert.equal(policy.guideChapterMax, 10)
   // Ten times more code does not change the budget.
   assert.equal(policyFor(courseSnapshot(400000)).courseChapterBudget, 6)
-  const prompt = courseBundlePrompt(course, MAPS, null, studyOutlineCapacity(courseSnapshot(), course, { bundle: true }), policy)
+  const noisyMaps=structuredClone(MAPS)
+  noisyMaps[0].gaps=['VERBOSE-SAVED-MAPPER-GAP '.repeat(40)]
+  const prompt = courseBundlePrompt(course, noisyMaps, null, studyOutlineCapacity(courseSnapshot(), course, { bundle: true }), policy)
   assert.match(prompt, /AUTOMATIC SCOPE AND CHAPTER POLICY/)
   assert.match(prompt, /at most 6 chapters in total/)
   assert.match(prompt, /derived from 110000 characters of core teaching evidence/)
@@ -74,6 +76,10 @@ test('the chapter budget is derived from core evidence only and stated in the pr
   assert.match(prompt, new RegExp(`${ref(1)}:0`))
   assert.match(prompt, /will be sent back for correction/)
   assert.match(prompt, /not numbered parts/)
+  const mapped=JSON.parse(prompt.split('Mapped concepts: ')[1].split('\nSource gaps:')[0])
+  assert.deepEqual(Object.keys(mapped[0]).sort(),['id','ref','title'])
+  assert.doesNotMatch(prompt,/"evidenceSizes"|"scopeEvidenceIds"|VERBOSE-SAVED-MAPPER-GAP/)
+  assert.ok(resolveCourseBundle(proposal(),noisyMaps,policy).gaps.some(gap=>gap.includes('VERBOSE-SAVED-MAPPER-GAP')),'the resolver restores gaps omitted from the prompt')
 })
 
 test('a cited exclusion counts as covered and is reported as a scope note', () => {
