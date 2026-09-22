@@ -174,6 +174,36 @@ test('a trial-route patch rejected by its re-review is redone on the correction 
   } finally { await f.cleanup() }
 })
 
+test('a question-only mini patch that exhausts its output limit falls back without spending another correction',async()=>{
+  const f=await fixture([{severity:'error',itemKey:'question:question-3',detail:'question-3: the answer omits the inverse check.'}])
+  try{
+    await withRoutes({correction:'gpt-5.6-sol','question-correction':'gpt-5-mini'},()=>f.run(async()=>{
+      const fixed={...teachingSchema.shape.questions.element.parse(f.draft.questions[2]),answer:`${f.draft.questions[2].answer} Check by subtraction.`}
+      const routes=[]
+      await processStudyStep(f.version.id,{generate:async(_prompt,options)=>{
+        routes.push(options.usageMetadata.routePhase || 'correction')
+        const error=new Error('The provider exhausted its output allowance.')
+        error.code='provider_output_limit'
+        throw error
+      }})
+      let draft=await draftOf(f.version.id)
+      assert.equal(draft.status,'running')
+      assert.equal(draft.repair.modelTrial.route,'correction')
+      assert.equal(draft.repair.modelTrial.fallbackReason,'output-limit')
+      assert.equal(draft.automaticRepairs[ID],1)
+      await processStudyStep(f.version.id,{generate:async(_prompt,options)=>{
+        routes.push(options.usageMetadata.routePhase || 'correction')
+        return {questions:{'question-3':fixed}}
+      }})
+      draft=await draftOf(f.version.id)
+      assert.deepEqual(routes,['question-correction','correction'])
+      assert.equal(draft.chapters.length,1)
+      assert.equal(draft.automaticRepairs[ID],1)
+      assert.equal(draft.correctionTrials.at(-1).fallbackReason,'output-limit')
+    }))
+  }finally{await f.cleanup()}
+})
+
 test('several non-overlapping patches are applied as one correction round and checked after each merge', async () => {
   const findings=[
     {severity:'error',itemKey:'question:question-3',detail:'question-3: the answer omits the inverse check.'},
