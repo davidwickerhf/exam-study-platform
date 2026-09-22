@@ -143,6 +143,16 @@ test('a trial-route patch rejected by its re-review is redone on the correction 
   const f = await fixture([{severity: 'error', itemKey: 'question:question-3', detail: 'question-3: the answer omits the inverse check.'}])
   try {
     await withRoutes({correction: 'gpt-5.6-sol', 'question-correction': 'gpt-5-mini'}, () => f.run(async () => {
+      const earlierPatchText=`${f.base.sections[0].text} Accepted earlier patch.`
+      await mutateStudyVersion(f.version.id,version=>{
+        const current=structuredClone(version.draft.repair.chapter)
+        current.sections[0].text=earlierPatchText
+        version.draft.repair.chapter=current
+        // Model the final question patch of a mixed series. Its semantic
+        // fallback must start after accepted earlier patches, not from the
+        // original whole-round base.
+        version.draft.repair.series={index:0,count:1,base:structuredClone(f.base)}
+      })
       const q3 = teachingSchema.shape.questions.element.parse(f.draft.questions[2])
       const fixed = {...q3, answer: `${q3.answer} Check by subtracting one group from the total.`}
       const routes = []
@@ -159,6 +169,7 @@ test('a trial-route patch rejected by its re-review is redone on the correction 
       assert.equal(trial.route, 'correction')
       assert.equal(draft.automaticRepairs[ID], 1, 'no correction slot is spent on the fallback')
       assert.ok(!draft.issues.some(issue => issue.topicId === ID && /still incomplete/.test(issue.detail)), 'the fallback repeats the original correction, not the review round')
+      assert.equal(draft.chapters[0].sections[0].text,earlierPatchText,'the fallback preserves patches accepted earlier in the same round')
     }))
   } finally { await f.cleanup() }
 })
