@@ -58,6 +58,19 @@ test('mechanical violations are repaired for free before any check, and every re
   assert.ok(prepared.contractRepairs.some(row => row.rule === 'question.duplicate-identity'))
 })
 
+test('an unreachable remediation question is removed for free while a linked target is preserved',()=>{
+  const chapter=lesson(['e-1'])
+  const linked={...chapter.questions[0],key:'linked-remediation',practiceStage:'remediation'}
+  const orphan={...chapter.questions[1],key:'orphan-remediation',practiceStage:'remediation'}
+  chapter.questions[2]={...chapter.questions[2],misconceptions:[{mistake:'Counts overlap twice.',explanation:'The shared item is counted once.',followUpKey:linked.key}]}
+  chapter.questions.push(linked,orphan)
+  const repaired=repairContractMechanics(chapter)
+  assert.ok(repaired.questions.some(row=>row.key===linked.key))
+  assert.ok(!repaired.questions.some(row=>row.key===orphan.key))
+  assert.deepEqual(repaired.contractRepairs.at(-1),{rule:'question.orphan-remediation',key:orphan.key,action:'removed'})
+  assert.ok(!contractIssues(repaired,[{id:'e-1'}]).some(row=>row.rule==='question.remediation-linked'))
+})
+
 test('a missing-item finding is never routed to a stage-locked bounded patch', () => {
   const ids = ['e-1']
   const {plan, draft} = draftChapter(ids)

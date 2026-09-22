@@ -204,6 +204,28 @@ test('a question-only mini patch that exhausts its output limit falls back witho
   }finally{await f.cleanup()}
 })
 
+test('a saved correction checkpoint adopts a new free mechanical repair before another model call',async()=>{
+  const detail='orphan-remediation: remediation must be linked from a diagnosed mistake.'
+  const f=await fixture([{severity:'error',rule:'question.remediation-linked',itemKey:'question:orphan-remediation',detail}])
+  try{
+    await f.run(async()=>{
+      await mutateStudyVersion(f.version.id,version=>{
+        const orphan={...structuredClone(version.draft.repair.chapter.questions[0]),key:'orphan-remediation',practiceStage:'remediation'}
+        version.draft.repair.chapter.questions.push(orphan)
+      })
+      let calls=0
+      await processStudyStep(f.version.id,{generate:async()=>{calls++;throw new Error('must not call')}})
+      const draft=await draftOf(f.version.id)
+      assert.equal(calls,0)
+      assert.equal(draft.stage,'review')
+      assert.equal(draft.chapters.length,1)
+      assert.ok(!draft.chapters[0].questions.some(row=>row.key==='orphan-remediation'))
+      assert.equal(draft.mechanicalRecoveryLog.at(-1).resolved,1)
+      assert.equal(draft.automaticRepairs[ID],1,'free recovery does not alter the existing correction ledger')
+    })
+  }finally{await f.cleanup()}
+})
+
 test('several non-overlapping patches are applied as one correction round and checked after each merge', async () => {
   const findings=[
     {severity:'error',itemKey:'question:question-3',detail:'question-3: the answer omits the inverse check.'},
