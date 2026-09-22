@@ -53,6 +53,19 @@ test('provider failures pause paid work, explicit retry resumes, revoked sources
   await drain(job.id,{platform,generate:fail})
   assert.equal(calls,1);assert.match((await readDocument(PAPER_JOBS,job.id,null)).error,/access|changed/)
 }))
+test('explicit retry invalidates a paused worker lease',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'Leased mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
+  const [job]=await queueCoursePapers(course)
+  const paused={...job,status:'paused',error:'Provider unavailable',lease:{token:'stale-worker',until:Date.now()+300000},revision:randomUUID()}
+  await writeDocument(PAPER_JOBS,job.id,paused)
+  const retried=await retryPaperJob(job.id)
+  assert.equal(retried.status,'queued')
+  assert.equal(retried.lease,null)
+  const calls=[]
+  await drain(job.id,{platform,generate:generation(calls)})
+  assert.equal((await readDocument(PAPER_JOBS,job.id,null)).status,'complete')
+  assert.ok(calls.length>0)
+}))
 test('paper job identities isolate owners and content changes; ranges never drop pages and conflicting overlaps fail',()=>{
   const source={key:'x',title:'exam.pdf',sha256:'one'}
   assert.notEqual(paperJobRecord('a','p',course,source).id,paperJobRecord('b','p',course,source).id)
