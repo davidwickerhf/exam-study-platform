@@ -447,8 +447,8 @@ revision. Review accounting is now excluded from that hash. The structurally
 valid blueprint also broadened its source objectives into latency engineering,
 fault localisation, online vector updates and high-stakes control design. The
 new opt-in `teaching-plan-check` route reviews objectives and blueprint tasks
-against their cited evidence before drafting. Blocking findings receive one
-re-plan; a second failed check stops with its findings instead of buying a
+against their cited evidence before drafting. Blocking findings receive at
+most two evidence-narrowing re-plans; a third failed check stops with its findings instead of buying a
 known-bad draft and whole-chapter rewrite. `planSemanticLog` records the checks.
 
 The next measured profile is:

@@ -25,7 +25,7 @@ test('the semantic plan gate is opt-in and routable',()=>{
  assert.equal(studyModelPhase({usageMetadata:{phase:'teaching-plan-check'}}),'teaching-plan-check')
 })
 
-test('a failed semantic plan gate schedules exactly one re-plan before drafting',async()=>{
+test('a failed semantic plan gate schedules at most two narrowing re-plans before drafting',async()=>{
  const userId=`study-plan-precheck-${randomUUID()}`
  const run=fn=>withRequestContext({userId,mode:'local'},fn)
  const saved=process.env.STUDY_MODEL_ROUTES
@@ -53,8 +53,9 @@ test('a failed semantic plan gate schedules exactly one re-plan before drafting'
    assert.match(draft.planValidation.addition.issues[0],/practice:/)
    assert.equal(draft.stage,'chapters')
 
-   await processStudyStep(version.id,{generate:async(_prompt,options)=>{
+   await processStudyStep(version.id,{generate:async(prompt,options)=>{
     calls++;assert.equal(options.usageMetadata.phase,'teaching-plan')
+    assert.match(prompt,/Remove every unsupported mechanism/)
     return {...plan,practice}
    }})
    draft=(await ownStudyVersion(version.id)).draft
@@ -66,8 +67,22 @@ test('a failed semantic plan gate schedules exactly one re-plan before drafting'
    }})
    draft=(await ownStudyVersion(version.id)).draft
    assert.equal(calls,3)
+   assert.equal(draft.status,'running')
+   assert.equal(draft.planSemanticAttempts.addition,2)
+   assert.equal(draft.teachingPlans.addition,undefined)
+
+   await processStudyStep(version.id,{generate:async(prompt,options)=>{
+    calls++;assert.equal(options.usageMetadata.phase,'teaching-plan');assert.match(prompt,/Remove every unsupported mechanism/)
+    return {...plan,practice}
+   }})
+   await processStudyStep(version.id,{generate:async(_prompt,options)=>{
+    calls++;assert.equal(options.usageMetadata.phase,'teaching-plan-check')
+    return {findings:[finding]}
+   }})
+   draft=(await ownStudyVersion(version.id)).draft
+   assert.equal(calls,5)
    assert.equal(draft.status,'failed')
-   assert.equal(draft.planSemanticAttempts.addition,1,'no second re-plan is scheduled')
+   assert.equal(draft.planSemanticAttempts.addition,2,'no third re-plan is scheduled')
    assert.equal(draft.planSemanticChecks.addition.status,'failed')
    assert.match(draft.error,/still exceeds its evidence/)
   })
