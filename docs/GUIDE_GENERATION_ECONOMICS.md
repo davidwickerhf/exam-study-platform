@@ -480,3 +480,9 @@ or administrative citation is a warning-level hygiene issue, not grounds to
 reject teaching already supported by another cited passage. Saved semantic
 checks are versioned so a rule correction rechecks the plan instead of reusing
 a stale verdict.
+
+Pedagogical review output is capped at 20,000 tokens. The measured six-objective
+review used 5,338 output tokens, so this retains nearly fourfold headroom while
+avoiding a 32k/64k worst-case reservation that can refuse an otherwise
+affordable review before it starts. This changes the capacity ceiling, not the
+review schema, prompt or acceptance standard.
