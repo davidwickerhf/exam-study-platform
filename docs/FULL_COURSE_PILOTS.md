@@ -528,3 +528,5 @@ with exactly this error resumes straight into the split, before any provider
 call, through the same `controlStudyGeneration('retry')` path used by both a
 pilot resume and a hosted retry. Passed chapters and every other topic are
 untouched.
+
+The same chapter later failed a bounded correction with `objectiveCoverage.5.independentQuestionKeys (too_small)`: `prepareLesson`, the single acceptance point for every draft, a whole-chapter correction and a bounded patch alike, validated the strict chapter schema before `deriveObjectiveCoverage` recomputed coverage from the merged content, so a patch that never touches `objectiveCoverage` was rejected on the chapter's own pre-existing (in this case genuinely deficient) coverage rather than the truth of its current sections and questions; the fix derives coverage from the merged chapter first, so an untouched objective's links now survive a patch unchanged and only a genuine gap — like this one — is caught, and it is now caught by retrying the same step once with the validation error, then routing it through the ordinary correction budget instead of crashing the run.
