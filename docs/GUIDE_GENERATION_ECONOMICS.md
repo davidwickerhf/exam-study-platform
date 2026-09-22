@@ -394,3 +394,38 @@ premium on every call would exceed the expected reads with today's
 selective evidence packets. `cachedInputTokens` is recorded per call for the
 next measured run.
 
+## Multi-patch rounds and the cheap pre-review (22 September 2026, not yet measured live)
+
+The first fresh chapter under the contract-first pipeline had ten located
+pedagogical findings. Its corrections converged without the old regressions,
+but the mixed finding set exceeded one bounded schema and therefore bought two
+whole-chapter rewrites at about $0.55 each.
+
+Located mixed findings now become up to four non-overlapping patches in one
+correction round. Each patch is applied to the working chapter and checked
+against the complete contract before the next patch runs; the round consumes
+one correction attempt. `STUDY_MAX_CORRECTION_PATCHES` may set a bound from two
+to eight (default four). Chapter-scoped or unlocated findings, and a partition
+over the cap, still use a whole-chapter rewrite. `correctionScopes[].partition`
+records each part's kind, finding count, targets, planned and actual route,
+fallback and outcome.
+
+An offline replay of that chapter's first ten findings produces three patches:
+one practice packet (12 questions including linked targets), one two-section
+packet and one objective-plan packet. Based on their prompt/schema sizes and
+the configured mini-first question route, the correction is estimated at
+about $0.14 instead of the measured $0.55 whole rewrite; this is a projection,
+not a measured saving.
+
+A new opt-in `pedagogical-precheck` route runs once on an uncorrected chapter
+after deterministic checks and before the independent reviews. It sends a lean
+view of objectives, visible teaching, questions and only cited evidence to look
+for the four recurring faults: mismatched misconception follow-ups, untaught or
+unsupported assessment, copied transfer, and incomplete objective teaching.
+It returns located findings only. Those findings use the same bounded patches
+as one free pre-review repair pass and do not increment the chapter correction
+counter. Existing mid-correction drafts skip the pre-review. The ordinary
+factual review and full gpt-5.6-sol pedagogical review always run afterwards.
+
+The next measured profile is:
+`{"version":1,"routes":{"teaching-plan":"gpt-5-mini","authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","pedagogical-precheck":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.

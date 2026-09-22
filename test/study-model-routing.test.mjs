@@ -89,6 +89,13 @@ test('the structural fill and question-only corrections have their own routes th
  assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},at('practice-correction',{routePhase:'question-correction'}),{version:1,routes:{'question-correction':'gpt-6-astra'}}),/cannot increase/)
 })
 
+test('the opt-in pedagogical pre-review has its own cheap route',()=>{
+ const billing={source:'platform',provider:'openai',model:'gpt-6-astra'}
+ const options={generationRuntime:'agents-sdk-responses',usageMetadata:{versionId:'sv-test',phase:'pedagogical-precheck'}}
+ const policy={version:1,routes:{'pedagogical-precheck':'gpt-5-mini'}}
+ assert.deepEqual(routeStudyModel(billing,options,policy),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'pedagogical-precheck',policyVersion:1})
+})
+
 test('the question-only trial is switched on only by a distinct question-correction route',async()=>{
  const {questionCorrectionTrial}=await import('../lib/study-model-routing.mjs')
  const profile=routes=>JSON.stringify({version:1,routes})

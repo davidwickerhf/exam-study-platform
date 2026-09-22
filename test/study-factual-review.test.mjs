@@ -657,6 +657,27 @@ test('chapter-wide and unlocatable finding sets still fall back to a whole-chapt
  assert.deepEqual(questionRepairStep(course,[],evidence,long,flagged)?.sectionIds,long.sections.slice(0,4).map(s=>s.id))
 })
 
+test('a located repair too large for one bounded schema becomes non-overlapping patches in one round',async()=>{
+ const {questionRepairStep,questionRepairSteps,repairPhase}=await import('../lib/study-chapter-repair.mjs')
+ const draft=chapter()
+ // Six sections make the single-patch section bound three. Four section
+ // findings plus a question used to force a whole-chapter rewrite.
+ draft.sections.push(...[5,6].map(index=>({...structuredClone(draft.sections[0]),id:`section-${index}`})))
+ const issues=[
+  ...draft.sections.slice(0,4).map(section=>({severity:'error',itemKey:`section:${section.id}`,detail:`${section.id}: correct its worked reasoning.`})),
+  {severity:'error',itemKey:`question:${draft.questions[0].key}`,detail:`${draft.questions[0].key}: replace the copied transfer task.`}
+ ]
+ assert.equal(questionRepairStep(course,[],evidence,draft,issues),null)
+ const steps=questionRepairSteps(course,[],evidence,draft,issues)
+ assert.deepEqual(steps.map(repairPhase),['section-correction','section-correction','practice-correction'])
+ assert.deepEqual(steps.flatMap(step=>step.sectionIds || []),draft.sections.slice(0,4).map(section=>section.id))
+ assert.deepEqual(steps.flatMap(step=>step.keys || []),[draft.questions[0].key])
+ const targets=steps.flatMap(step=>[...(step.sectionIds || []).map(id=>`section:${id}`),...(step.keys || []).map(id=>`question:${id}`)])
+ assert.equal(new Set(targets).size,targets.length,'a field is changed by at most one patch')
+ assert.deepEqual(questionRepairSteps(course,[],evidence,draft,issues,{maxPatches:2}),[],'the configured cap keeps the whole-chapter fallback')
+ assert.deepEqual(questionRepairSteps(course,[],evidence,draft,[{severity:'error',scope:'chapter',topicId:draft.id,detail:'The whole chapter lacks a coherent progression.'}]),[])
+})
+
 test('a bounded objective patch keeps the existing correction counters and reuse rules',async()=>{
  const {recordCorrection,correctionLimit}=await import('../lib/study-correction-policy.mjs')
  const draft=chapter(),work={}

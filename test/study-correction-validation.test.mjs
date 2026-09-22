@@ -163,6 +163,38 @@ test('a trial-route patch rejected by its re-review is redone on the correction 
   } finally { await f.cleanup() }
 })
 
+test('several non-overlapping patches are applied as one correction round and checked after each merge', async () => {
+  const findings=[
+    {severity:'error',itemKey:'question:question-3',detail:'question-3: the answer omits the inverse check.'},
+    {severity:'error',itemKey:'section:section-3',detail:'section-3: the worked reasoning skips an intermediate step.'}
+  ]
+  const f=await fixture(findings)
+  try{
+    await f.run(async()=>{
+      const question={...teachingSchema.shape.questions.element.parse(f.draft.questions[2]),answer:f.draft.questions[2].answer+' Subtract one term to check the total.'}
+      const section={...teachingSchema.shape.sections.element.parse(f.draft.sections[2]),text:f.draft.sections[2].text+' The intermediate subtraction check is explicit.'}
+      const phases=[]
+      const generate=async(_prompt,options)=>{
+        phases.push(options.usageMetadata.phase)
+        if(options.usageMetadata.phase==='practice-correction')return {questions:{'question-3':question}}
+        return {sections:{'section-3':section}}
+      }
+      await processStudyStep(f.version.id,{generate})
+      let draft=await draftOf(f.version.id)
+      assert.equal(draft.repair.series.index,1)
+      assert.equal(draft.automaticRepairs[ID],1)
+      await processStudyStep(f.version.id,{generate})
+      draft=await draftOf(f.version.id)
+      assert.deepEqual(phases,['practice-correction','section-correction'])
+      assert.equal(draft.stage,'review')
+      assert.equal(draft.automaticRepairs[ID],1,'two provider patches still consume one correction attempt')
+      assert.deepEqual(draft.mergeValidations.map(row=>[row.patch,row.patches,row.outcome]),[[1,2,'accepted-patch'],[2,2,'accepted']])
+      assert.equal(draft.correctionScopes[0].path,'patch-series')
+      assert.equal(draft.correctionScopes[0].patches,2)
+    })
+  }finally{await f.cleanup()}
+})
+
 test('complexity is locked in scope and objective patches; only an explicit understated-complexity finding unlocks it, with additions validated on the merge', async () => {
   const ids = ['e-1']
   const {plan, draft} = validDraft(ids)
