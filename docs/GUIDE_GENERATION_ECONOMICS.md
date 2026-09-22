@@ -473,3 +473,10 @@ duplicates before resolving evidence, recording each removal in
 `deduplicatedRefs`. Unknown refs, omitted concepts and different refs that give
 the same concept multiple guide owners are still rejected; only identical ref
 placement is repaired mechanically.
+
+The semantic plan reviewer judges each objective's citations collectively: a
+claim needs support from at least one cited passage. An additional irrelevant
+or administrative citation is a warning-level hygiene issue, not grounds to
+reject teaching already supported by another cited passage. Saved semantic
+checks are versioned so a rule correction rechecks the plan instead of reusing
+a stale verdict.

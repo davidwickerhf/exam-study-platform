@@ -15,6 +15,7 @@ test('the plan precheck validates exact objective and practice targets',()=>{
  const plan=teachingPlan(['e-1']),practice=practiceBlueprint(plan)
  const step=studyPlanPrecheckStep(evidence,plan,practice)
  assert.match(step.prompt,/before any chapter is drafted/)
+ assert.match(step.prompt,/cited evidence collectively/)
  assert.equal(step.accept({findings:[{targetType:'practice',targetId:practice[0].key,detail:'The changed condition introduces an untaught mechanism.',severity:'error'}]}).length,1)
  assert.throws(()=>step.accept({findings:[{targetType:'practice',targetId:'missing',detail:'Unknown target.',severity:'error'}]}),/unknown practice missing/)
 })
