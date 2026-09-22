@@ -28,7 +28,7 @@ async function fixture() {
     return createStudyVersion(course, 'programme-test', await readStudySourceSnapshot(course, [note.id], { courseBundle: true }),
       { courseBundle: true, billing, title: 'Whole course plan' })
   })
-  return { run, version, cleanup: () => run(deleteAllDocuments) }
+  return { userId, run, version, cleanup: () => run(deleteAllDocuments) }
 }
 
 // Reserve and settle every mocked call exactly as runBudgetedStudyCall does, so
@@ -93,7 +93,7 @@ test('a hosted course bundle maps, plans, authors and publishes its guides under
       const ledger = jobLedger(), provider = hostedProvider(f.version.id, ledger)
       const draftId = f.version.draft.id
       // The dispatcher offers the course run itself, never a derived guide.
-      assert.equal((await claimStudyDispatch()).includes(f.version.id), true)
+      assert.equal((await claimStudyDispatch({ owners: [f.userId] })).includes(f.version.id), true)
 
       // Stop the publication half-way: the second guide's derived identity is
       // taken by an unrelated run, so the first guide stays staged on disk.
@@ -121,7 +121,7 @@ test('a hosted course bundle maps, plans, authors and publishes its guides under
       assert.equal(staged[0].draft.status, 'managed')
       await assert.rejects(() => ownStudyVersion(staged[0].id), /not found/)
       assert.deepEqual((await listOwnStudyVersions(course.courseCode)).map(v => v.id), [f.version.id])
-      assert.equal((await claimStudyDispatch()).includes(f.version.id), false)
+      assert.equal((await claimStudyDispatch({ owners: [f.userId] })).includes(f.version.id), false)
 
       // Release the identity and retry: the same fenced finish step converges.
       await deleteDocument('study-versions', blocked)
@@ -155,7 +155,7 @@ test('a hosted course bundle maps, plans, authors and publishes its guides under
         assert.equal((await studyRevision(child)).chapters.length, 1)
         assert.equal((await pendingStudyVersions()).some(row => row.key === child.id), false)
       }
-      assert.equal((await claimStudyDispatch()).some(id => id === f.version.id || version.bundleGuides.some(g => g.id === id)), false)
+      assert.equal((await claimStudyDispatch({ owners: [f.userId] })).some(id => id === f.version.id || version.bundleGuides.some(g => g.id === id)), false)
 
       // Every provider call was reserved against the parent course run: one job
       // key, one version in the usage metadata and one chapter allowance.
@@ -184,7 +184,7 @@ test('hosted work is refused for a managed guide and is never dispatched to one'
       // Even a hand-forced queue status cannot make a child hosted work.
       await mutateStudyVersion(child.id, next => { next.draft = { ...next.draft, status: 'queued', execution: 'hosted', runAfter: 0 } })
       assert.equal((await pendingStudyVersions()).some(row => row.key === child.id), false)
-      assert.equal((await claimStudyDispatch()).includes(child.id), false)
+      assert.equal((await claimStudyDispatch({ owners: [f.userId] })).includes(child.id), false)
       assert.deepEqual(await processStudyStep(child.id, { generate: async () => { throw new Error('a managed guide must not call a model') } }),
         { again: false, managedBy: f.version.id })
     })

@@ -843,11 +843,14 @@ test('outbox claims prevent fan-out while another course is waiting for delivery
     second = await fixture()
   try {
     const claims = (
-      await Promise.all([claimStudyDispatch(), claimStudyDispatch()])
+      await Promise.all([
+        claimStudyDispatch({ owners: [first.context.userId, second.context.userId] }),
+        claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })
+      ])
     ).flat()
     assert.equal(claims.filter((id) => id === first.version.id).length, 1)
     assert.equal(claims.filter((id) => id === second.version.id).length, 1)
-    assert.equal((await claimStudyDispatch()).includes(first.version.id), false)
+    assert.equal((await claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })).includes(first.version.id), false)
     await first.run(() =>
       processStudyStep(first.version.id, {
         generate: async () => ({
@@ -862,7 +865,7 @@ test('outbox claims prevent fan-out while another course is waiting for delivery
         })
       })
     )
-    const next = await claimStudyDispatch()
+    const next = await claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })
     assert.equal(next.includes(first.version.id), true)
     assert.equal(next.includes(second.version.id), false)
     await second.run(() =>
@@ -870,7 +873,7 @@ test('outbox claims prevent fan-out while another course is waiting for delivery
         v.queueDeliveryUntil = Date.now() - 1
       })
     )
-    assert.equal((await claimStudyDispatch()).includes(second.version.id), true)
+    assert.equal((await claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })).includes(second.version.id), true)
   } finally {
     await first.cleanup()
     await second.cleanup()
