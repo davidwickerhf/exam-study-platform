@@ -25,6 +25,18 @@ test('whole-course outlines assign every mapped concept once and reject repeated
  assert.throws(()=>resolveCourseBundle(duplicate,maps),/unique/)
 })
 
+test('whole-course outlines keep the first exact ref owner and remove later duplicate placements',()=>{
+ const maps=[{topics:[{id:'a',title:'Mechanism A',sourceIds:['e-a']},{id:'b',title:'Mechanism B',sourceIds:['e-b']},{id:'c',title:'Mechanism C',sourceIds:['e-c']}],gaps:[]}]
+ const candidate={guides:[
+  {id:'one',title:'First guide',topics:[{id:'a',title:'Mechanism A',topicRefs:['map-0-topic-0'],supportingRefs:['map-0-topic-1']}]},
+  {id:'two',title:'Second guide',topics:[{id:'b',title:'Mechanism B',topicRefs:['map-0-topic-1','map-0-topic-2'],supportingRefs:[]}]}
+ ],gaps:[]}
+ const result=resolveCourseBundle(candidate,maps)
+ assert.deepEqual(result.deduplicatedRefs,[{ref:'map-0-topic-1',keptGuideId:'one',keptChapterId:'a',removedGuideId:'two',removedChapterId:'b',removedKind:'core'}])
+ assert.deepEqual(result.topics[0].concepts,['Mechanism A','Mechanism B'])
+ assert.deepEqual(result.topics[1].concepts,['Mechanism C'])
+})
+
 test('MCP course generation produces distinct checked guides idempotently without hosted work',async()=>{
  await withRequestContext({userId:'bundle-'+randomUUID(),mode:'local'},async()=>{
   try{

@@ -465,3 +465,11 @@ and leave the complete saved gap ledger to deterministic resolution. On the
 same 363-concept checkpoint this reduces the prompt to 77,843 characters and
 the full-call reservation to $0.88017 without changing the stored map, resolver
 or response schema. The stopped outline made no model call.
+
+A subsequent clean run exposed a second deterministic outline cost: three
+proposals repeatedly placed the same mapped ref in two chapters. Bundle
+resolution now retains the ref's first declared owner and removes later exact
+duplicates before resolving evidence, recording each removal in
+`deduplicatedRefs`. Unknown refs, omitted concepts and different refs that give
+the same concept multiple guide owners are still rejected; only identical ref
+placement is repaired mechanically.
