@@ -248,7 +248,7 @@ test('several non-overlapping patches are applied as one correction round and ch
       assert.equal(draft.automaticRepairs[ID],1)
       await processStudyStep(f.version.id,{generate})
       draft=await draftOf(f.version.id)
-      assert.deepEqual(phases,['practice-correction','section-correction'])
+      assert.deepEqual(phases,['section-correction','practice-correction'])
       assert.equal(draft.stage,'review')
       assert.equal(draft.automaticRepairs[ID],1,'two provider patches still consume one correction attempt')
       assert.deepEqual(draft.mergeValidations.map(row=>[row.patch,row.patches,row.outcome]),[[1,2,'accepted-patch'],[2,2,'accepted']])

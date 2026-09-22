@@ -394,7 +394,7 @@ premium on every call would exceed the expected reads with today's
 selective evidence packets. `cachedInputTokens` is recorded per call for the
 next measured run.
 
-## Multi-patch rounds and the cheap pre-review (22 September 2026, not yet measured live)
+## Multi-patch rounds and the cheap pre-review (22 September 2026)
 
 The first fresh chapter under the contract-first pipeline had ten located
 pedagogical findings. Its corrections converged without the old regressions,
@@ -417,15 +417,26 @@ the configured mini-first question route, the correction is estimated at
 about $0.14 instead of the measured $0.55 whole rewrite; this is a projection,
 not a measured saving.
 
-A new opt-in `pedagogical-precheck` route runs once on an uncorrected chapter
-after deterministic checks and before the independent reviews. It sends a lean
+A new opt-in `pedagogical-precheck` route runs once for each new chapter content
+hash after deterministic checks and before the independent reviews. It sends a lean
 view of objectives, visible teaching, questions and only cited evidence to look
 for the four recurring faults: mismatched misconception follow-ups, untaught or
 unsupported assessment, copied transfer, and incomplete objective teaching.
 It returns located findings only. Those findings use the same bounded patches
 as one free pre-review repair pass and do not increment the chapter correction
-counter. Existing mid-correction drafts skip the pre-review. The ordinary
+counter. It therefore checks both first drafts and merged corrections before
+the expensive full review; a repaired hash is recorded so the check cannot
+loop. The ordinary
 factual review and full gpt-5.6-sol pedagogical review always run afterwards.
+
+The first live mixed repair used one mini question patch and one Sol section
+patch rather than a whole-chapter rewrite, but the full review found semantic
+regressions: a shared remediation had been rewritten without seeing all of its
+incoming misconceptions, and new assessment reasoning was not explicitly
+taught. Patch packets now include the complete incoming misconception context,
+teaching patches run before practice patches, and the pre-review runs again on
+the merged correction. This run is diagnostic evidence, not a passing cost or
+quality result.
 
 The next measured profile is:
 `{"version":1,"routes":{"teaching-plan":"gpt-5-mini","authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","pedagogical-precheck":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.

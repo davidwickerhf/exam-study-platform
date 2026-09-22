@@ -28,7 +28,7 @@ test('the pedagogical pre-check adds no call unless its route is explicit',()=>{
  assert.equal(studyModelPhase({usageMetadata:{phase:'pedagogical-precheck'}}),'pedagogical-precheck')
 })
 
-test('the pipeline runs the configured pre-check once before full review without consuming a correction',async()=>{
+test('the pipeline runs the configured pre-check once per content revision without consuming a correction',async()=>{
  const userId=`study-precheck-${randomUUID()}`
  const run=fn=>withRequestContext({userId,mode:'local'},fn)
  const saved=process.env.STUDY_MODEL_ROUTES
@@ -60,6 +60,7 @@ test('the pipeline runs the configured pre-check once before full review without
    assert.deepEqual(phases,['pedagogical-precheck','practice-correction'])
    assert.equal(draft.stage,'review')
    assert.equal(draft.pedagogicalPrechecks.addition.status,'complete')
+   assert.ok(draft.pedagogicalPrechecks.addition.contentHash)
    assert.equal(draft.chapters[0].questions[0].answer,replacement.answer)
    assert.deepEqual(draft.automaticRepairs,{})
    assert.equal(draft.chapters[0].evidenceReview,undefined,'the full reviews still remain to run')
@@ -79,8 +80,18 @@ test('the pipeline runs the configured pre-check once before full review without
    const cleanDraft=(await ownStudyVersion(cleanVersion.id)).draft
    assert.equal(cleanCalls,1,'a clean pre-review costs exactly one model call')
    assert.equal(cleanDraft.pedagogicalPrechecks.addition.status,'complete')
+   assert.ok(cleanDraft.pedagogicalPrechecks.addition.contentHash)
    assert.equal(cleanDraft.stage,'review','the independent reviews remain queued for later checkpoints')
    assert.deepEqual(cleanDraft.automaticRepairs,{})
+   await mutateStudyVersion(cleanVersion.id,next=>{
+    next.draft.chapters[0].sections[0].text+=' A corrected teaching sentence.'
+   })
+   await processStudyStep(cleanVersion.id,{generate:async(_prompt,options)=>{
+    cleanCalls++
+    assert.equal(options.usageMetadata.phase,'pedagogical-precheck')
+    return {issues:[]}
+   }})
+   assert.equal(cleanCalls,2,'changed content receives a fresh pre-review before the full review')
   })
  }finally{
   if(saved===undefined)delete process.env.STUDY_MODEL_ROUTES;else process.env.STUDY_MODEL_ROUTES=saved

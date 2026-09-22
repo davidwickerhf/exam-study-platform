@@ -598,7 +598,7 @@ test('batch findings invalidate their own objectives while global findings stay 
 // name; a whole-chapter rewrite (~10k output tokens) is reserved for findings
 // that span most of the chapter or cannot be located at all.
 test('a mixed section, objective and question finding set produces one combined patch and preserves unflagged content byte-identically',async()=>{
- const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
+ const {questionRepairStep,questionRepairSteps,repairPhase,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
  const draft=chapter()
  const [first,second,third]=draft.teachingPlan.objectives
  draft.sections[0].objectiveIds=[first.id];draft.sections[1].objectiveIds=[first.id]
@@ -613,6 +613,8 @@ test('a mixed section, objective and question finding set produces one combined 
  const saved=JSON.stringify(issues)
  const step=questionRepairStep(course,[],evidence,draft,issues)
  assert.ok(step?.parts,'expected a bounded combined patch instead of a whole-chapter rewrite')
+ const ordered=questionRepairSteps(course,[],evidence,draft,issues)
+ assert.equal(repairPhase(ordered.at(-1)),'practice-correction','teaching patches precede the question-model trial')
  assert.equal(saved,JSON.stringify(issues),'locating findings never mutates the stored review')
  // The objective finding also selects the teaching it owns, so section-4
  // joins the patch; everything the findings do not name stays untouched.

@@ -127,6 +127,17 @@ test('a patch request carries only the targeted items, their objectives, depende
   assert.ok(step.prompt.length<full*0.5,`patch prompt ${step.prompt.length} should be far below the full-chapter ${full}`)
 })
 
+test('a remediation patch sees every incoming diagnosed misconception it must continue to serve',()=>{
+  const draft=scopedChapter()
+  const source=draft.questions.find(question=>question.misconceptions?.length)
+  const target=source.misconceptions[0].followUpKey
+  const step=questionRepairStep(course,scopedSources,scopedEvidence,draft,[{severity:'error',itemKey:`question:${target}`,detail:`${target}: the remediation answer is incomplete.`}])
+  const packet=JSON.parse(step.prompt.split('preserved automatically: ').at(-1))
+  const incoming=packet.linkedPractice.find(question=>question.key===source.key)
+  assert.deepEqual(incoming.misconceptions,source.misconceptions)
+  assert.equal(incoming.answer,undefined)
+})
+
 test('a reassembled patch keeps untouched content byte-identical and validates against the packet evidence',()=>{
   const draft=scopedChapter(),q=draft.questions.find(q=>q.key==='question-2')
   const step=questionRepairStep(course,scopedSources,scopedEvidence,draft,[{severity:'error',itemKey:'question:question-2',detail:'The answer skips the disjointness check.'}])
