@@ -499,3 +499,32 @@ the matching stale findings are cleared from the cached factual and pedagogical
 audits — exactly as the evidence-id hygiene recovery does. Any other error
 finding still blocks it, and a chapter that never carried the corruption is
 never eligible.
+
+## Chapter output-limit recovery (BCS2130 course-bundle attempt)
+
+The first draft of chapter `requirements-research-and-prioritisation` (52
+evidence sources, 6 planned objectives, on `gpt-5-mini`) spent 44,685 input
+tokens and hit the 32,000-token output cap with only 1,024 reasoning tokens:
+genuine visible output, not reasoning burn. The run failed with the ordinary
+output-limit error and saved everything up to that point; earlier chapters in
+the same guide drafted fine near 19,800 output tokens. A first CHAPTER DRAFT
+(never a correction, a source refresh or a student edit) that exhausts the
+output cap now splits along its already-saved teaching plan instead of
+failing outright, mirroring the mapping-batch recovery
+(`splitMappingBatch`/`MAPPING_OUTPUT_RECOVERY_LIMIT`, `study-course-plan.mjs`)
+and reusing the outline's own "· Part N" convention
+(`splitChapterDraft`, `study-version-pipeline.mjs`). The plan's objectives are
+divided into two halves; each half keeps its own objectives' complete
+definitions (goal, prerequisites, cited evidence) and the scope/context
+evidence the chapter already carried, so no objective or evidence ID is ever
+dropped — verified directly against this saved draft: 6 objectives split 3+3,
+52 evidence IDs split 45/12 with every original ID present in the union and
+nothing outside the chapter's valid evidence universe. At most one split per
+chapter (a produced half is marked and can never split again), and a split
+that would push its guide over `GUIDE_CHAPTER_LIMIT` chapters fails safely
+instead of breaching that cap. The split is committed onto the draft, so a
+resumed run repeats the same two chapters; a draft already saved as `failed`
+with exactly this error resumes straight into the split, before any provider
+call, through the same `controlStudyGeneration('retry')` path used by both a
+pilot resume and a hosted retry. Passed chapters and every other topic are
+untouched.
