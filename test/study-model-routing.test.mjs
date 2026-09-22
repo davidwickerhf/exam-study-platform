@@ -68,3 +68,33 @@ test('routed call reserves and settles the actual model; exhausted caps still pr
   })
  }finally{await deleteAllDocuments()}})
 })
+
+test('the structural fill and question-only corrections have their own routes that fall back to authoring and correction',()=>{
+ const billing={source:'platform',provider:'openai',model:'gpt-6-astra'}
+ const at=(phase,extra={})=>({generationRuntime:'agents-sdk-responses',usageMetadata:{versionId:'sv-test',stage:'chapters',phase,...extra}})
+ assert.equal(studyModelPhase(at('structural-fill')),'structural-fill')
+ assert.equal(studyModelPhase(at('practice-correction',{routePhase:'question-correction'})),'question-correction')
+ assert.equal(studyModelPhase(at('section-correction',{routePhase:'question-correction'})),'question-correction')
+ assert.equal(studyModelPhase(at('practice-correction')),'correction')
+ // Unconfigured specific phases route exactly as their general phase did.
+ const general={version:1,routes:{authoring:'gpt-5-mini',correction:'gpt-5.6-sol'}}
+ assert.deepEqual(routeStudyModel(billing,at('structural-fill'),general),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'authoring',requestedPhase:'structural-fill',policyVersion:1})
+ assert.equal(routeStudyModel(billing,at('practice-correction',{routePhase:'question-correction'}),general).model,'gpt-5.6-sol')
+ // Configured, they route on their own.
+ const trial={version:1,routes:{authoring:'gpt-5-mini','structural-fill':'gpt-5-mini',correction:'gpt-5.6-sol','question-correction':'gpt-5-mini'}}
+ assert.equal(routeStudyModel(billing,at('practice-correction',{routePhase:'question-correction'}),trial).model,'gpt-5-mini')
+ assert.equal(routeStudyModel(billing,at('practice-correction',{routePhase:'question-correction'}),trial).phase,'question-correction')
+ assert.equal(routeStudyModel(billing,at('practice-correction'),trial).model,'gpt-5.6-sol')
+ // The price guard applies to the new phases too.
+ assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},at('practice-correction',{routePhase:'question-correction'}),{version:1,routes:{'question-correction':'gpt-6-astra'}}),/cannot increase/)
+})
+
+test('the question-only trial is switched on only by a distinct question-correction route',async()=>{
+ const {questionCorrectionTrial}=await import('../lib/study-model-routing.mjs')
+ const profile=routes=>JSON.stringify({version:1,routes})
+ assert.equal(questionCorrectionTrial({}).active,false)
+ assert.equal(questionCorrectionTrial({STUDY_MODEL_ROUTES:profile({correction:'gpt-5.6-sol'})}).active,false)
+ assert.equal(questionCorrectionTrial({STUDY_MODEL_ROUTES:profile({correction:'gpt-5.6-sol','question-correction':'gpt-5.6-sol'})}).active,false)
+ assert.deepEqual(questionCorrectionTrial({STUDY_PIPELINE_MODEL_ROUTES:profile({correction:'gpt-5.6-sol','question-correction':{model:'gpt-5-mini',reasoning:'medium'}})}),{active:true,model:'gpt-5-mini',fallbackModel:'gpt-5.6-sol'})
+ assert.equal(questionCorrectionTrial({STUDY_MODEL_ROUTES:'not json'}).active,false)
+})

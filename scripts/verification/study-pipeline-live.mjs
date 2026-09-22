@@ -56,7 +56,11 @@ async function generateOnce(prompt,options){
   // A route may also set the phase's reasoning effort; record the effective one.
   const reasoningEffort=route?.reasoningEffort || options.reasoningEffort || 'medium'
   const started=Date.now()
-  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort,phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  const meta=options.usageMetadata || {}
+  // Pipeline-path markers for the measured run: the question-only trial route
+  // and its fallback, merge-validation re-prompts, plan re-plans and fills.
+  const path=Object.fromEntries(['modelTrial','mergeReprompt','replan','fillAttempt','correctionAttempt'].filter(key=>meta[key]!==undefined).map(key=>[key,meta[key]]))
+  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:meta.chapterId,reasoningEffort,phase:meta.phase || options.stage || 'generation',...path,promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>attemptCap){

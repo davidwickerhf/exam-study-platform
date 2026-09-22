@@ -82,6 +82,8 @@ test('a correction that breaks an untouched objective is re-prompted once with t
       await processStudyStep(f.version.id, {generate})
       draft = await draftOf(f.version.id)
       assert.match(prompts[1].prompt, /MERGE VALIDATION RETRY/)
+      // Cache-friendly: the re-prompt is the identical prompt with the note appended.
+      assert.ok(prompts[1].prompt.startsWith(prompts[0].prompt))
       assert.match(prompts[1].prompt, /obj-b: difficult objectives need worked reasoning/)
       assert.deepEqual(draft.mergeValidations.map(row => row.outcome), ['reprompt', 'discarded'])
       assert.equal(draft.chapters.length, 0)
