@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { pedagogicalPrecheckStep, acceptPedagogicalPrecheck } from '../lib/study-pedagogical-precheck.mjs'
+import { teachingContent } from '../lib/study-chapter-repair.mjs'
 import { pedagogicalPrecheckEnabled, studyModelPhase } from '../lib/study-model-routing.mjs'
 import { course, lesson, teachingResponse } from '../scripts/verification/study-fixtures.mjs'
 import { randomUUID } from 'node:crypto'
@@ -26,6 +27,11 @@ test('the pedagogical pre-check adds no call unless its route is explicit',()=>{
  assert.equal(pedagogicalPrecheckEnabled({STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'pedagogical-review':'gpt-5.6-sol'}})}),false)
  assert.equal(pedagogicalPrecheckEnabled({STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'pedagogical-precheck':'gpt-5-mini'}})}),true)
  assert.equal(studyModelPhase({usageMetadata:{phase:'pedagogical-precheck'}}),'pedagogical-precheck')
+})
+
+test('review accounting does not invalidate the pedagogical content hash',()=>{
+ const chapter=lesson(ids)
+ assert.deepEqual(teachingContent({...chapter,reviewCalls:{factual:3,factualItems:20}}),teachingContent(chapter))
 })
 
 test('the pipeline runs the configured pre-check once per content revision without consuming a correction',async()=>{

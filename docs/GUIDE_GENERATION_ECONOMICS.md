@@ -151,9 +151,10 @@ the OpenAI provider layer accepts (`minimal`, `low`, `medium`, `high`) are
 allowed; anything else fails before a provider call, and the effective effort
 actually sent is recorded in the route metadata.
 This is configuration syntax, not an evaluated model recommendation. Allowed
-phases are `source-mapping`, `course-outline`, `teaching-plan`, `authoring`,
-`structural-fill`, `factual-review`, `pedagogical-review`, `correction` and
-`question-correction`. `structural-fill` and `question-correction` fall back to
+phases are `source-mapping`, `course-outline`, `teaching-plan`,
+`teaching-plan-check`, `authoring`, `structural-fill`, `pedagogical-precheck`,
+`factual-review`, `pedagogical-review`, `correction` and `question-correction`.
+`structural-fill` and `question-correction` fall back to
 the `authoring` and `correction` routes when a profile leaves them out.
 
 Routing applies only to platform-billed OpenAI guide checkpoints using Agents SDK
@@ -438,8 +439,20 @@ teaching patches run before practice patches, and the pre-review runs again on
 the merged correction. This run is diagnostic evidence, not a passing cost or
 quality result.
 
+The first clean chapter then exposed two earlier-stage causes. `reviewCalls`
+accounting was accidentally included in the lesson-content hash, so every
+factual checkpoint invalidated the precheck: 11 prechecks and four free repair
+cycles ran around what should have been one precheck per actual content
+revision. Review accounting is now excluded from that hash. The structurally
+valid blueprint also broadened its source objectives into latency engineering,
+fault localisation, online vector updates and high-stakes control design. The
+new opt-in `teaching-plan-check` route reviews objectives and blueprint tasks
+against their cited evidence before drafting. Blocking findings receive one
+re-plan; a second failed check stops with its findings instead of buying a
+known-bad draft and whole-chapter rewrite. `planSemanticLog` records the checks.
+
 The next measured profile is:
-`{"version":1,"routes":{"teaching-plan":"gpt-5-mini","authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","pedagogical-precheck":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.
+`{"version":1,"routes":{"teaching-plan":"gpt-5-mini","teaching-plan-check":{"model":"gpt-5-mini","reasoning":"low"},"authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","pedagogical-precheck":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.
 
 A clean-account target run then completed all 71 source-map batches for
 $0.453056, but the segment guard refused the course outline before calling the

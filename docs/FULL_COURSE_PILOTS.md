@@ -558,10 +558,9 @@ A zero-cost replay against the saved live-account draft showed the following:
 
 For the measured run, set the base model to `STUDY_PIPELINE_MODEL=gpt-6-astra`
 as before, with this route profile:
-`{"version":1,"routes":{"teaching-plan":"gpt-5-mini","authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.
+`{"version":1,"routes":{"teaching-plan":"gpt-5-mini","teaching-plan-check":{"model":"gpt-5-mini","reasoning":"low"},"authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","pedagogical-precheck":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.
 For the Sol baseline chapters, drop `question-correction`. Per chapter, the
-draft records `planChecks`, `planProseRepairs`, `structuralFillLog`,
+draft records `planChecks`, `planSemanticLog`, `planProseRepairs`, `structuralFillLog`,
 `mergeValidations`, `correctionTrials` and `reviewRounds[].calls`. The pilot
 report's `callDetails` also carries the trial, re-prompt, re-plan and fill
 markers.
-
