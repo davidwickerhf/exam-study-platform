@@ -152,14 +152,17 @@ allowed; anything else fails before a provider call, and the effective effort
 actually sent is recorded in the route metadata.
 This is configuration syntax, not an evaluated model recommendation. Allowed
 phases are `source-mapping`, `course-outline`, `teaching-plan`, `authoring`,
-`factual-review`, `pedagogical-review` and `correction`.
+`structural-fill`, `factual-review`, `pedagogical-review`, `correction` and
+`question-correction`. `structural-fill` and `question-correction` fall back to
+the `authoring` and `correction` routes when a profile leaves them out.
 
 Routing applies only to platform-billed OpenAI guide checkpoints using Agents SDK
 + Responses. Personal-key model selections, local-subscription execution and
 unrelated AI calls are unchanged. Unsupported providers/models, malformed profiles
 and any route with higher input/output pricing fail before a provider call. Each
 reservation and settlement uses the actual routed model; routing does not raise
-any cap or add automatic fallback/retry calls. Model-route metadata accompanies
+any cap. The only automatic fallback is the opt-in question-only correction
+trial described below, which falls back to the ordinary correction route. Model-route metadata accompanies
 usage metadata. No profile has been enabled as part of this change.
 
 The isolated pilot client supports the same policy via
@@ -330,3 +333,64 @@ question missing a hint, objective or reasoned answer, and the locator also
 matches single-quoted, plan and scope text and "Objective N". The patch
 figures come from replaying the saved artifact, not from a live call. The
 pedagogical-review saving and the quality effect have not been measured.
+
+## Contract-first lesson pipeline (22 September 2026, not yet measured live)
+
+The chapter pipeline now follows the order in the 22 September diagnosis.
+Every deterministic check runs free before any paid call:
+
+1. **Plan and practice blueprint.** The teaching-plan call also returns a
+   per-objective practice skeleton (keys, stage, skill, difficulty, kind and a
+   diagnosed misconception with its follow-up for every core question of a
+   difficult objective). It is checked against the chapter contract before
+   drafting; a failing blueprint is re-planned once on the plan route with the
+   exact issues. Gap/exclusion entries that are leaked schema vocabulary or
+   placeholders are dropped and recorded. A plan whose estimated draft exceeds
+   the output budget is split along its objectives before drafting.
+2. **Draft against the contract.** The draft prompt carries the rendered
+   per-objective contract and the blueprint, and the response schema keys
+   practice by objective and stage with the contract minimums, so a missing
+   stage question or diagnosis cannot be emitted.
+3. **Free repair, then structural fill.** Mechanical violations (duplicate
+   identities, a missing first hint or objective, a reversed true/false pair)
+   are repaired deterministically. A chapter that still lacks an item goes to
+   an additive fill on the authoring route: it may only add keyed items for
+   the named objectives, is validated on the merged chapter, is retried at
+   most three times and never uses a correction slot.
+4. **Review** is unchanged: factual review on its route, pedagogical review on
+   its own route (gpt-5.6-sol in the pilot profile).
+5. **Corrections that cannot regress.** Every correction is told the full
+   contract for its packet. Replacement questions keep difficulty, skill and
+   kind unless a finding names them. Scope and objective patches cannot
+   change complexity, except that an explicit understated-complexity finding
+   may upgrade an objective and add the practice it then needs. An unnamed
+   scope finding patches only the scope fields. The merged chapter is
+   validated before acceptance: a regression anywhere, or a targeted
+   deterministic finding left unresolved, is re-prompted once and then
+   discarded, keeping the saved chapter and plan. No review is bought for a
+   rejected result. Review focus no longer holds back an error on an
+   unchanged question whose dependencies changed.
+6. **Scoped re-review.** Each round records its factual and pedagogical calls
+   (`reviewRounds[].calls`), so re-review cost can be measured.
+
+**Question-only correction A/B trial.** A route profile that sets a
+`question-correction` route distinct from its `correction` route switches the
+trial on. Question-only patches then try that route first. If the merged-chapter
+validation (after its one re-prompt) or the scoped re-review rejects the
+result, the same correction is redone on the `correction` route without
+spending another correction. `draft.correctionTrials` records, per correction,
+the first route, the route whose patch was accepted, whether a fallback
+occurred and why, and the review outcome. Without the route there is no trial.
+No saving has been measured yet. The only prior evidence on gpt-5-mini
+corrections is negative (whole-chapter rewrites), so this is an experiment,
+not a default.
+
+**Prompt caching.** Retries, re-plans, fill retries and merge re-prompts re-send
+the identical prompt with their note appended last, so a same-schema retry can
+reuse a cached prefix. Cross-phase prefix sharing is not attempted: each phase
+sends a different structured-output schema, and OpenAI documents the schema as
+part of the cached prefix. Explicit gpt-5.6 breakpoints stay off. Their write
+premium on every call would exceed the expected reads with today's
+selective evidence packets. `cachedInputTokens` is recorded per call for the
+next measured run.
+

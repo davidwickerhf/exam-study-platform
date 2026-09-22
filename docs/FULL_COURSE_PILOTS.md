@@ -530,3 +530,38 @@ pilot resume and a hosted retry. Passed chapters and every other topic are
 untouched.
 
 The same chapter later failed a bounded correction with `objectiveCoverage.5.independentQuestionKeys (too_small)`: `prepareLesson`, the single acceptance point for every draft, a whole-chapter correction and a bounded patch alike, validated the strict chapter schema before `deriveObjectiveCoverage` recomputed coverage from the merged content, so a patch that never touches `objectiveCoverage` was rejected on the chapter's own pre-existing (in this case genuinely deficient) coverage rather than the truth of its current sections and questions; the fix derives coverage from the merged chapter first, so an untouched objective's links now survive a patch unchanged and only a genuine gap — like this one — is caught, and it is now caught by retrying the same step once with the validation error, then routing it through the ordinary correction budget instead of crashing the run.
+
+## Contract-first pipeline and the chapter-5 resume path (22 September 2026)
+
+The pipeline now implements the ordered plan from the 22 September diagnosis:
+plan-time blueprint validation, drafting against the contract, a free
+mechanical repair plus an additive structural fill, and corrections validated
+on the merged chapter before acceptance. See `GUIDE_GENERATION_ECONOMICS.md`
+for the order and the question-only correction A/B trial. None of it has run
+live yet, and no saving is claimed.
+
+A zero-cost replay against the saved live-account draft showed the following:
+
+- Chapters 1–4 raise no contract finding and stay passed.
+- Chapter 5's only saved error is `obj-5` (difficult) lacking guided and
+  transfer practice.
+- On `controlStudyGeneration('retry')`, the new
+  `recoverFailedChapterByStructuralFill` recovery (after the four existing
+  ones) moves chapter 5 into the structural fill for `obj-5`. No counter
+  changes: automatic corrections stay 3/3 and no manual correction is
+  recorded. The saved review judgments for unchanged items are preserved.
+- Rebuilding the round-3 edit with `obj-5` reset to `simple`, the merge
+  validator rejects the upgrade as a regression.
+- The round-3 scope finding would now patch only the scope fields, without
+  shipping the whole chapter.
+- The prose gate flags the 7 corrupt `gaps` entries in the attempt-4 plan.
+
+For the measured run, set the base model to `STUDY_PIPELINE_MODEL=gpt-6-astra`
+as before, with this route profile:
+`{"version":1,"routes":{"teaching-plan":"gpt-5-mini","authoring":"gpt-5-mini","structural-fill":"gpt-5-mini","factual-review":"gpt-5-mini","pedagogical-review":"gpt-5.6-sol","correction":"gpt-5.6-sol","question-correction":"gpt-5-mini"}}`.
+For the Sol baseline chapters, drop `question-correction`. Per chapter, the
+draft records `planChecks`, `planProseRepairs`, `structuralFillLog`,
+`mergeValidations`, `correctionTrials` and `reviewRounds[].calls`. The pilot
+report's `callDetails` also carries the trial, re-prompt, re-plan and fill
+markers.
+
