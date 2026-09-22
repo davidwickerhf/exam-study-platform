@@ -105,6 +105,16 @@ test('paper bank classifies the observed Canvas names, collapses duplicate bytes
   assert.equal(distinctTitleBank.papers.length,13)
   assert.equal(distinctTitleBank.papers.filter(p=>p.title===files[0][0]).length,2)
 
+  await writeDocument('study-versions','moved-version',{id:'moved-version',programmeId})
+  await writeDocument('study-practice','moved-set',{
+    id:'moved-set',versionId:'moved-version',revisionId:'revision',topicId:'course-paper',course,
+    kind:'set',mode:'extract',questionSourceKey:'retired-placement',status:'complete',createdAt:'2026-09-22T09:00:00.000Z',
+    snapshot:{sources:[{key:'retired-placement',sha256:'sha-0'}],chunks:[{id:'old-chunk',sourceKey:'retired-placement',page:1,text:'Question one.'}]},
+    result:{title:'Moved paper',questions:[{id:'question-one'}]},
+  })
+  bank=await coursePaperBank({course,programmeId},{sourceOptions})
+  assert.equal(bank.sets.find(set=>set.id==='moved-set').questionSourceKey,canonical.key)
+
   const base={programmeId,course,sha256:'sha-0',title:files[0][0],revision:randomUUID(),sections:[{id:'saved'}],createdAt:'2026-09-22T10:00:00.000Z',runAfter:0,queueDeliveryUntil:0,lease:null}
   await writeDocument(PAPER_JOBS,'legacy-paused',{...base,id:'legacy-paused',sourceKey:'source-0',status:'paused',completedSections:3})
   await writeDocument(PAPER_JOBS,'legacy-complete',{...base,id:'legacy-complete',sourceKey:'duplicate-1',status:'complete',completedSections:1,setId:'ready'})
