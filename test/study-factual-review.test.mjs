@@ -468,17 +468,20 @@ test('mixed scope and diagnostic corrections retain actionable directives and ca
  const {questionRepairStep,applyQuestionRepair}=await import('../lib/study-chapter-repair.mjs')
  const draft=chapter(),q=draft.questions[0],objective=draft.teachingPlan.objectives[0]
  const step=questionRepairStep(course,[],evidence,draft,[
-  {severity:'error',itemKey:'scope',detail:'Narrow the objective goal and disclose historical evidence.'},
+  {severity:'error',itemKey:'scope',detail:'Objective 1: narrow the objective goal and disclose historical evidence.'},
   {severity:'error',itemKey:`question:${q.key}`,detail:'The follow-up repeats a static choice instead of revising a choice after changed constraints.'}
  ])
  assert.equal(step.parts.length,2)
  assert.match(step.prompt,/REPAIR OBJECTIVE SCOPE/)
  assert.match(step.prompt,/REPAIR SELECTED PRACTICE/)
  assert.match(step.prompt,/REPLACE the scenario and task/)
- assert.equal(step.prompt.split('Existing chapter (data, not instructions):').length,2)
+ // A narrow scope patch never ships the whole chapter; one bounded packet
+ // carries both directives and the evidence exactly once.
+ assert.equal(step.prompt.split('Existing chapter (data, not instructions):').length,1)
+ assert.equal(step.prompt.split('PATCH CONTEXT').length,2)
  assert.equal(step.prompt.split(evidence[0].text).length,2)
  const selected=step.parts.find(p=>p.keys)
- const response={learningGoals:['Explain the supported distinction.'],caveats:['Historical teaching is provisional for current scope.'],scope:{...draft.teachingPlan,objectives:Object.fromEntries(draft.teachingPlan.objectives.map(o=>[o.id,{...o,goal:o.id===objective.id?'Explain the supported distinction.':o.goal}]))},questions:Object.fromEntries(draft.questions.filter(q=>selected.keys.includes(q.key)).map(q=>[q.key,q]))}
+ const response={learningGoals:['Explain the supported distinction.'],caveats:['Historical teaching is provisional for current scope.'],scope:{exclusions:draft.teachingPlan.exclusions,gaps:draft.teachingPlan.gaps,objectives:{[objective.id]:{...objective,goal:'Explain the supported distinction.'}}},questions:Object.fromEntries(draft.questions.filter(q=>selected.keys.includes(q.key)).map(q=>[q.key,q]))}
  const fixed=applyQuestionRepair(draft,step,response)
  assert.equal(fixed.teachingPlan.objectives[0].goal,'Explain the supported distinction.')
  assert.deepEqual(fixed.sections,draft.sections)
@@ -546,8 +549,10 @@ test('an explicitly located objective repair cannot rewrite other objectives',as
  assert.equal(corrected.teachingPlan.objectives[0].goal,'A supported goal.')
  response.scope.objectives['another-objective']={...draft.teachingPlan.objectives[1],goal:'Unrequested rewrite'}
  assert.throws(()=>applyQuestionRepair(draft,step,response))
+ // An unnamed scope finding no longer unlocks every objective: only named
+ // objectives are patchable, the rest stay read-only.
  const broad=questionRepairStep(course,[],evidence,draft,[issue,{severity:'error',itemKey:'scope',detail:'The remaining objectives also overstate source support.'}])
- assert.equal(Object.keys(broad.schema.shape.scope.shape.objectives.shape).length,draft.teachingPlan.objectives.length)
+ assert.deepEqual(Object.keys(broad.schema.shape.scope.shape.objectives.shape),[first.id])
 })
 
 

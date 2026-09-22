@@ -112,6 +112,6 @@ test('a bounded patch that drops an objective is a schema-format error the pipel
   const chapter = twoObjectiveChapter()
   chapter.questions[1].objectiveIds = ['obj-a', 'obj-b']
   const step = questionRepairStep(course, [], [{id: 'e-1', sourceKey: 's', text: 'Evidence.'}], chapter, [{severity: 'error', itemKey: 'question:question-2', detail: 'question-2: the answer is wrong.'}])
-  const replacement = {...chapter.questions[1], objectiveIds: ['obj-b']}
+  const replacement = {...chapter.questions[1], objectiveIds: ['obj-b'], misconceptions: [{mistake: 'm', explanation: 'e', followUpKey: 'question-8'}]}
   assert.throws(() => applyQuestionRepair(chapter, step, {questions: {'question-2': replacement}}), error => isSchemaFormatError(error) && /cannot drop its teaching objectives/.test(error.message))
 })

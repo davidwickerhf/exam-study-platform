@@ -171,16 +171,17 @@ test('after a correction the next review verifies prior findings, judges only ch
   const combined=acceptPedagogicalReview(corrected,step,raw)
   const located=locateReviewIssues(corrected,pedagogyReviewIssues(corrected,combined))
   const errors=located.filter(issue=>issue.severity==='error').map(issue=>issue.itemKey)
-  assert.ok(!errors.includes('question:question-4'),'accepted, unchanged practice keeps its verdict')
-  assert.ok(located.some(issue=>issue.itemKey==='question:question-4' && issue.severity==='warning' && issue.carried==='accepted-unchanged'))
+  // question-4 is itself unchanged, but its objective's teaching (section-3)
+  // changed, so a new error about it is no longer held back as accepted.
+  assert.ok(errors.includes('question:question-4'),'an unchanged question whose objective teaching changed is judged again')
+  assert.ok(!located.some(issue=>issue.itemKey==='question:question-4' && issue.carried==='accepted-unchanged'))
   assert.ok(errors.includes('section:section-3'),'a still-open prior finding is reported')
   assert.ok(errors.includes('question:question-8'),'a severe new issue on content whose dependency changed is reported')
   assert.ok(corrected.pedagogyAudit.reviews['objective-1'] && corrected.pedagogyAudit.reviews['objective-3'])
   const outcome=reviewRoundOutcome(corrected,located)
   assert.deepEqual(outcome.resolved.map(f=>f.itemKey),['question:question-2'])
   assert.deepEqual(outcome.carried.map(f=>f.itemKey),['section:section-3'])
-  assert.deepEqual(outcome.introduced.map(f=>f.itemKey),['question:question-8'])
-  assert.ok(outcome.heldAsWarnings>=1)
+  assert.deepEqual(outcome.introduced.map(f=>f.itemKey).sort(),['question:question-4','question:question-8'])
   // The answer check re-verifies the prior finding for its question; the blind
   // solver never sees it.
   const solve=nextFactualReview(course,[],evidence,corrected)
@@ -222,4 +223,20 @@ test('findings quoting plan or scope text, or naming an objective by ordinal, ar
   assert.equal(ordinal.itemKey,'objective:objective-3')
   assert.equal(apostrophe.itemKey,undefined,'an apostrophe span that is not chapter text locates nothing')
   assert.equal(ambiguous.itemKey,undefined,'a quote found in several items is never guessed')
+})
+
+test('an accepted, unchanged question is held to a warning only while everything it depends on is unchanged',async()=>{
+  const {applyReviewFocus}=await import('../lib/study-review-rounds.mjs')
+  const chapter=changed=>({
+    sections:[{id:'s1',objectiveIds:['o1']},{id:'s2',objectiveIds:['o2']}],
+    questions:[{key:'q1',objectiveIds:['o1'],practiceStage:'independent',misconceptions:[{followUpKey:'q2'}]},{key:'q2',objectiveIds:['o1'],practiceStage:'remediation',misconceptions:[]},{key:'q3',objectiveIds:['o2'],practiceStage:'independent',misconceptions:[]}],
+    teachingPlan:{objectives:[{id:'o1'},{id:'o2'}]},
+    reviewFocus:{accepted:['question:q1','question:q2','question:q3'],changed},reviewBaseline:{transferChecks:{},followUpChecks:{}}
+  })
+  const review={issues:['q1','q2','q3'].map(topicId=>({topicId,scope:'question',severity:'error',detail:'New complaint.'})),transferChecks:[],followUpChecks:[]}
+  const held=focus=>applyReviewFocus(chapter(focus),review).issues.filter(issue=>issue.carried==='accepted-unchanged').map(issue=>issue.topicId)
+  assert.deepEqual(held(['section:s2']),['q1','q2'],'q3 depends on the changed teaching of o2')
+  assert.deepEqual(held(['question:q2']).includes('q1'),false,'q1 links to the changed follow-up q2')
+  assert.deepEqual(held(['objective:o1']),['q3'],'a changed plan entry reopens every question of that objective')
+  assert.deepEqual(held(['question:q1']).includes('q2'),false,'a remediation question whose incoming diagnostic link changed is judged again')
 })

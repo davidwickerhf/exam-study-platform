@@ -6,7 +6,7 @@ import { deleteAllDocuments } from '../lib/user-store.mjs'
 import { addStudyNote, readStudySourceSnapshot } from '../lib/study-version-sources.mjs'
 import { createStudyVersion, ownStudyVersion, mutateStudyVersion } from '../lib/study-version-store.mjs'
 import { processStudyStep, prepareLesson } from '../lib/study-version-pipeline.mjs'
-import { isSchemaFormatError } from '../lib/study-version-content.mjs'
+import { isSchemaFormatError, teachingSchema } from '../lib/study-version-content.mjs'
 import { course, lesson, teachingPlan } from '../scripts/verification/study-fixtures.mjs'
 
 // A chapter with two CLEANLY SEPARATED objectives (unlike the shared lesson()
@@ -135,122 +135,92 @@ test('a bounded patch merges and passes using the untouched objective\'s existin
   }
 })
 
-test('a schema-invalid merge is retried once with the validation error, then routed to correction instead of crashing', async () => {
+// A bounded patch on objective-1 of a chapter whose objective-2 genuinely has
+// no independent question. The merge is validated against the full contract:
+// the gap was there before and was not targeted, so it is not a regression
+// and the patch is accepted; the gap itself is a missing item, which goes to
+// the structural fill instead of a schema crash, a format retry or a paid
+// correction round.
+async function seedBrokenRepair(f, automaticRepairs = {}) {
+  const ids = f.snapshot.chunks.map((c) => c.id)
+  const chapter = twoObjectiveChapter(ids, { breakObjective2: true })
+  await mutateStudyVersion(f.version.id, (v) => {
+    v.draft.stage = 'chapters'
+    v.draft.topics = [{ id: 'two-objective-chapter', title: 'Two Objective Chapter', sourceIds: ids }]
+    v.draft.teachingPlans = { 'two-objective-chapter': chapter.teachingPlan }
+    v.draft.chapters = []
+    v.draft.automaticRepairs = automaticRepairs
+    v.draft.issues = [{ severity: 'error', topicId: 'two-objective-chapter', itemKey: 'question:question-3', detail: 'question-3: fix the reasoning.' }]
+    v.draft.repair = { topicId: 'two-objective-chapter', phase: 'structure', chapter }
+  })
+  return { ids, chapter, correctedQuestion3: { ...chapter.questions[2], answer: 'Corrected reasoning for question-3.' } }
+}
+const independentForObjective2 = (chapter) => ({ ...teachingSchema.shape.questions.element.parse(chapter.questions[5]), key: 'question-9', practiceStage: 'independent', objectiveIds: ['objective-2'], misconceptions: [], question: 'Two groups of four and three items share no members. What is the total, and how do you check it?' })
+
+test('a merge over an untouched objective\'s pre-existing gap is accepted and the gap goes to the structural fill, not a schema crash or a paid round', async () => {
   const f = await fixture()
   try {
     await f.run(async () => {
-      const ids = f.snapshot.chunks.map((c) => c.id)
-      // objective-2 is genuinely broken; the finding only targets objective-1's
-      // question-3, and the provider's bounded response is itself schema-valid
-      // both times, so this reproduces the real failure: the merge is rejected
-      // on objective-2, not on anything the patch actually returned.
-      const chapter = twoObjectiveChapter(ids, { breakObjective2: true })
-      const correctedQuestion3 = { ...chapter.questions[2], answer: 'Corrected reasoning for question-3.' }
-      await mutateStudyVersion(f.version.id, (v) => {
-        v.draft.stage = 'chapters'
-        v.draft.topics = [{ id: 'two-objective-chapter', title: 'Two Objective Chapter', sourceIds: ids }]
-        v.draft.teachingPlans = { 'two-objective-chapter': chapter.teachingPlan }
-        v.draft.chapters = []
-        v.draft.automaticRepairs = {}
-        v.draft.issues = [{ severity: 'error', topicId: 'two-objective-chapter', itemKey: 'question:question-3', detail: 'question-3: fix the reasoning.' }]
-        v.draft.repair = { topicId: 'two-objective-chapter', phase: 'structure', chapter }
-      })
-      let calls = 0
+      const { correctedQuestion3 } = await seedBrokenRepair(f)
       const prompts = []
       await processStudyStep(f.version.id, {
-        generate: async (prompt) => { calls++; prompts.push(prompt); return { questions: { 'question-3': correctedQuestion3 } } }
+        generate: async (prompt) => { prompts.push(prompt); return { questions: { 'question-3': correctedQuestion3 } } }
       })
-      // Bounded to exactly one retry: the original attempt plus one retry, never more.
-      assert.equal(calls, 2)
+      assert.equal(prompts.length, 1)
       assert.doesNotMatch(prompts[0], /FORMAT RETRY/)
-      assert.match(prompts[1], /FORMAT RETRY/)
-      assert.match(prompts[1], /independentQuestionKeys/)
+      assert.match(prompts[0], /CHAPTER CONTRACT/)
       const draft = await draftOf(f.version.id)
-      // Not exhausted (default limit is 3, this is the first attempt): routed
-      // through the ordinary correction budget instead of failing the run.
       assert.notEqual(draft.status, 'failed')
-      assert.equal(draft.automaticRepairs['two-objective-chapter'], 1)
-      assert.ok(draft.repair?.chapter, 'a fresh repair round is queued instead of the run crashing')
-      assert.equal(draft.chapters.length, 0)
+      assert.equal(draft.repair, undefined)
+      assert.equal(draft.structuralFill.findings[0].rule, 'objective.explain-assess')
+      assert.equal(draft.structuralFill.chapter.questions.find((q) => q.key === 'question-3').answer, 'Corrected reasoning for question-3.')
+      assert.ok(draft.structuralFill.base, 'the saved chapter is the fill base, so its reviews are preserved')
+      assert.equal(draft.automaticRepairs['two-objective-chapter'], undefined, 'no correction slot was spent on the gap')
+      assert.equal(draft.mergeValidations.at(-1).outcome, 'accepted')
     })
   } finally {
     await f.cleanup()
   }
 })
 
-test('resuming after a routed format failure uses the fixed path without resetting the correction counter', async () => {
+test('the fill then supplies the untouched objective\'s missing question without touching the correction counter', async () => {
   const f = await fixture()
   try {
     await f.run(async () => {
-      const ids = f.snapshot.chunks.map((c) => c.id)
-      const broken = twoObjectiveChapter(ids, { breakObjective2: true })
-      const correctedQuestion3 = { ...broken.questions[2], answer: 'Corrected reasoning for question-3.' }
-      await mutateStudyVersion(f.version.id, (v) => {
-        v.draft.stage = 'chapters'
-        v.draft.topics = [{ id: 'two-objective-chapter', title: 'Two Objective Chapter', sourceIds: ids }]
-        v.draft.teachingPlans = { 'two-objective-chapter': broken.teachingPlan }
-        v.draft.chapters = []
-        v.draft.automaticRepairs = {}
-        v.draft.issues = [{ severity: 'error', topicId: 'two-objective-chapter', itemKey: 'question:question-3', detail: 'question-3: fix the reasoning.' }]
-        v.draft.repair = { topicId: 'two-objective-chapter', phase: 'structure', chapter: broken }
-      })
-      // Round 1: the same schema-invalid merge as above, routed to correction.
+      const { chapter, correctedQuestion3 } = await seedBrokenRepair(f, { 'two-objective-chapter': 1 })
+      await processStudyStep(f.version.id, { generate: async () => ({ questions: { 'question-3': correctedQuestion3 } }) })
+      const phases = []
       await processStudyStep(f.version.id, {
-        generate: async () => ({ questions: { 'question-3': correctedQuestion3 } })
+        generate: async (prompt, options) => { phases.push(options.usageMetadata.phase); return { sections: [], questions: [independentForObjective2(chapter)], workedExamples: {} } }
       })
-      const afterRound1 = await draftOf(f.version.id)
-      assert.notEqual(afterRound1.status, 'failed')
-      assert.equal(afterRound1.automaticRepairs['two-objective-chapter'], 1)
-      // The unlocated format finding forces the next round to a whole-chapter
-      // rewrite (a bounded patch can never add a missing independent
-      // question), so RESUME here supplies one, with objective-2 genuinely
-      // fixed this time.
-      const fixedChapter = twoObjectiveChapter(ids)
-      let calls = 0
-      await processStudyStep(f.version.id, {
-        generate: async () => { calls++; return fixedChapter }
-      })
-      assert.equal(calls, 1)
-      const afterResume = await draftOf(f.version.id)
-      assert.notEqual(afterResume.status, 'failed')
-      assert.equal(afterResume.chapters.length, 1)
-      // The correction counter carries forward from round 1; resume never
-      // resets it back to zero.
-      assert.equal(afterResume.automaticRepairs['two-objective-chapter'], 1)
-      const objective2 = afterResume.chapters[0].objectiveCoverage.find((c) => c.objectiveId === 'objective-2')
-      assert.ok(objective2.independentQuestionKeys.length > 0)
+      assert.deepEqual(phases, ['structural-fill'])
+      const draft = await draftOf(f.version.id)
+      assert.notEqual(draft.status, 'failed')
+      assert.equal(draft.chapters.length, 1)
+      assert.equal(draft.stage, 'review')
+      assert.equal(draft.automaticRepairs['two-objective-chapter'], 1, 'the counter carries forward unchanged')
+      const objective2 = draft.chapters[0].objectiveCoverage.find((c) => c.objectiveId === 'objective-2')
+      assert.deepEqual(objective2.independentQuestionKeys, ['question-9'])
     })
   } finally {
     await f.cleanup()
   }
 })
 
-test('an exhausted correction budget fails cleanly with the saved error instead of looping', async () => {
+test('an exhausted correction budget does not block the fill of a missing item', async () => {
   const f = await fixture()
   try {
     await f.run(async () => {
-      const ids = f.snapshot.chunks.map((c) => c.id)
-      const chapter = twoObjectiveChapter(ids, { breakObjective2: true })
-      const correctedQuestion3 = { ...chapter.questions[2], answer: 'Corrected reasoning for question-3.' }
-      await mutateStudyVersion(f.version.id, (v) => {
-        v.draft.stage = 'chapters'
-        v.draft.topics = [{ id: 'two-objective-chapter', title: 'Two Objective Chapter', sourceIds: ids }]
-        v.draft.teachingPlans = { 'two-objective-chapter': chapter.teachingPlan }
-        v.draft.chapters = []
-        // Already at the default correction limit: this attempt cannot buy
-        // another round.
-        v.draft.automaticRepairs = { 'two-objective-chapter': 3 }
-        v.draft.issues = [{ severity: 'error', topicId: 'two-objective-chapter', itemKey: 'question:question-3', detail: 'question-3: fix the reasoning.' }]
-        v.draft.repair = { topicId: 'two-objective-chapter', phase: 'structure', chapter }
-      })
+      const { correctedQuestion3 } = await seedBrokenRepair(f, { 'two-objective-chapter': 3 })
       let calls = 0
       await processStudyStep(f.version.id, {
         generate: async () => { calls++; return { questions: { 'question-3': correctedQuestion3 } } }
       })
-      assert.equal(calls, 2, 'still bounded to exactly one retry even when the budget is already spent')
+      assert.equal(calls, 1)
       const draft = await draftOf(f.version.id)
-      assert.equal(draft.status, 'failed')
-      assert.match(draft.error, /automatic correction attempts/)
+      assert.notEqual(draft.status, 'failed')
+      assert.ok(draft.structuralFill)
+      assert.equal(draft.automaticRepairs['two-objective-chapter'], 3)
     })
   } finally {
     await f.cleanup()
