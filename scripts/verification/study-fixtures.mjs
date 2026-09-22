@@ -143,3 +143,22 @@ export function practiceBlueprint(plan) {
     misconception: {mistake: 'Counting an item twice.', followUpKey: `${objective.id}-${['independent', 'transfer', 'guided'][s]}`, changedCondition: 'The groups now overlap.'}
   })))
 }
+// lesson(ids) split across one simple objective (sections 1-2, questions 1-4)
+// and one difficult objective (sections 3-4, questions 5-8) with complete
+// guided, independent and transfer practice and diagnosed follow-ups.
+export function twoObjectiveLesson(ids) {
+  const base = lesson(ids)
+  const plan = {objectives: [
+    {id: 'obj-a', goal: 'Combine disjoint quantities.', complexity: 'simple', basis: 'course', sourceIds: ids, prerequisites: [], demonstration: 'Add two groups.', teachingApproach: 'Explain and practise.'},
+    {id: 'obj-b', goal: 'Diagnose double counting.', complexity: 'difficult', basis: 'course', sourceIds: ids, prerequisites: [], demonstration: 'Diagnose an overlap.', teachingApproach: 'Work a case, then vary it.'}
+  ], exclusions: [], gaps: []}
+  const stages = ['guided', 'independent', 'independent', 'independent', 'guided', 'independent', 'transfer', 'transfer']
+  const questions = base.questions.map((q, i) => ({...q, objectiveIds: [i < 4 ? 'obj-a' : 'obj-b'], practiceStage: stages[i], hints: ['Count each group.', 'Remove the overlap first.'],
+    misconceptions: i < 4 ? [] : [{mistake: 'Counting shared items twice.', explanation: 'Shared items belong to both groups.', followUpKey: base.questions[i === 7 ? 6 : 7].key}]}))
+  const sections = base.sections.map((s, i) => ({...s, objectiveIds: [i < 2 ? 'obj-a' : 'obj-b']}))
+  const {teachingPlan: _plan, ...content} = base
+  return {plan, draft: {...content, sections, questions, objectiveCoverage: [
+    {objectiveId: 'obj-a', explanationSectionIds: ['section-1'], workedExampleSectionIds: ['section-1'], guidedQuestionKeys: ['question-1'], independentQuestionKeys: ['question-2'], transferQuestionKeys: []},
+    {objectiveId: 'obj-b', explanationSectionIds: ['section-3'], workedExampleSectionIds: ['section-3'], guidedQuestionKeys: ['question-5'], independentQuestionKeys: ['question-6'], transferQuestionKeys: ['question-7']}
+  ]}}
+}
