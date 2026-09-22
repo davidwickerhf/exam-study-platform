@@ -1,5 +1,5 @@
 import { nextPedagogicalReview, acceptPedagogicalReview, combinedPedagogicalReview } from '../lib/study-pedagogical-review.mjs'
-import { teachingPlanSchema, pedagogyReviewSchema, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
+import { teachingPlanResponseSchema as teachingPlanSchema, pedagogyReviewSchema, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
