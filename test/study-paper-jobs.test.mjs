@@ -144,10 +144,11 @@ test('duplicate source placements enqueue only one canonical automatic job',asyn
     {key:'second-placement',title:'Practice exam.pdf',academicYear:course.academicYear,period:course.period,sha256:'same-bytes',pages:[{page:1,text:'Question one.'}]},
   ]}
   const first=await queueCoursePapers(course,{sourceOptions})
-  const second=await queueCoursePapers(course,{sourceOptions})
+  const second=await queueCoursePapers({...course,period:''},{sourceOptions})
   assert.equal(first.length,1)
   assert.equal(second.length,1)
   assert.equal(first[0].id,second[0].id)
+  assert.equal(second[0].course.period,course.period)
   assert.equal((await listDocuments(PAPER_JOBS)).length,1)
 }))
 

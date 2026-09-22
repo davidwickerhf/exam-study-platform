@@ -79,9 +79,11 @@ const title = (s: string) =>
 export function StudyPaperBank({
   revision,
   course: courseProp,
+  active = true,
 }: {
   revision?: StudyRevision
   course?: StudyRevision['course']
+  active?: boolean
 }) {
   const course = courseProp || revision!.course
   const courseMode = !revision
@@ -114,6 +116,7 @@ export function StudyPaperBank({
     setError('')
   }
   useEffect(() => {
+    if (!active) return
     let live = true
     setError(''); setBank(null)
     void studyRequest<Bank>(courseMode ? paperUrl : `${base}/paper-bank`)
@@ -122,7 +125,7 @@ export function StudyPaperBank({
     return () => {
       live = false
     }
-  }, [base, paperUrl, courseMode])
+  }, [active, base, paperUrl, courseMode])
   // Backfill earlier imports once. New files are queued by ingestion itself;
   // closing this page never stops processing.
   useEffect(() => {
