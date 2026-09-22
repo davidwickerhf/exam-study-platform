@@ -131,3 +131,15 @@ export function lesson(ids, { wrong = false } = {}) {
     caveats: []
   }
 }
+
+// A practice blueprint satisfying the chapter contract for teachingPlan(ids):
+// guided, independent and transfer rows for every difficult objective, each
+// diagnosed with a follow-up inside its own objective.
+export function practiceBlueprint(plan) {
+  const skills = ['apply', 'compare', 'diagnose', 'transfer']
+  return plan.objectives.flatMap((objective, o) => ['guided', 'independent', 'transfer'].map((stage, s) => ({
+    key: `${objective.id}-${stage}`, objectiveId: objective.id, stage, skill: skills[(o + s) % 4],
+    difficulty: s === 2 ? 'challenge' : 'standard', kind: 'application',
+    misconception: {mistake: 'Counting an item twice.', followUpKey: `${objective.id}-${['independent', 'transfer', 'guided'][s]}`, changedCondition: 'The groups now overlap.'}
+  })))
+}

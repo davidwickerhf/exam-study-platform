@@ -46,7 +46,7 @@ import {
 import {
   mapSchema, outlineSchema,
   lessonSchema,
-  teachingSchema, teachingResponseSchema,
+  teachingSchema, teachingResponseSchema, draftResponseSchema,
   reviewSchema,
   studyResponseSchema,
   pedagogicalResponseSchema,
@@ -133,7 +133,7 @@ async function finish(f, { reviewIssues = [] } = {}) {
       const value=lesson(ids)
       return {sections:value.sections,removeSectionIds:[],questions:value.questions,removeQuestionKeys:[],flashcards:value.flashcards,summary:value.summary,caveats:value.caveats,learningGoals:value.learningGoals,walkthrough:value.walkthrough}
     }
-    assert.deepEqual(options.responseSchema, expected === teachingSchema ? teachingResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? nextPedagogicalReview('',v.draft.chapters.find(c=>c.review==='pending')).responseSchema : studyResponseSchema(expected, ids))
+    assert.deepEqual(options.responseSchema, expected === teachingSchema ? draftResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? nextPedagogicalReview('',v.draft.chapters.find(c=>c.review==='pending')).responseSchema : studyResponseSchema(expected, ids))
     if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
     if (prompt.includes('Map this evidence batch'))
       return {

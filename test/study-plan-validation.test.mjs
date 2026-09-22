@@ -8,19 +8,9 @@ import { createStudyVersion, ownStudyVersion, mutateStudyVersion } from '../lib/
 import { processStudyStep } from '../lib/study-version-pipeline.mjs'
 import { incoherentProseReason, repairIncoherentProse } from '../lib/study-preflight.mjs'
 import { blueprintIssues, estimateDraftOutput, DRAFT_OUTPUT_BUDGET } from '../lib/study-chapter-contract.mjs'
-import { course, teachingPlan } from '../scripts/verification/study-fixtures.mjs'
+import { course, teachingPlan, practiceBlueprint } from '../scripts/verification/study-fixtures.mjs'
 
-// A blueprint that satisfies the contract for the fixture's three difficult
-// objectives: guided, independent and transfer each, every core row diagnosed
-// with a follow-up inside its own objective.
-export function validBlueprint(plan) {
-  const skills = ['apply', 'compare', 'diagnose', 'transfer']
-  return plan.objectives.flatMap((objective, o) => ['guided', 'independent', 'transfer'].map((stage, s) => ({
-    key: `${objective.id}-${stage}`, objectiveId: objective.id, stage, skill: skills[(o + s) % 4],
-    difficulty: s === 2 ? 'challenge' : 'standard', kind: 'application',
-    misconception: {mistake: 'Counting an item twice.', followUpKey: `${objective.id}-${['independent', 'transfer', 'guided'][s]}`, changedCondition: 'The groups now overlap.'}
-  })))
-}
+const validBlueprint = practiceBlueprint
 
 test('the prose gate drops leaked schema vocabulary and placeholders but leaves real sentences byte-identical', () => {
   for (const entry of ['prerequisites', 'teachingApproach', 'placeholder_for_schema_compliance_repair', 'Placeholder entry for schema compliance.', 'TBD', 'See the sourceIds field for this objective.'])
