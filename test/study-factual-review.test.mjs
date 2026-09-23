@@ -409,11 +409,12 @@ test('JSONB key ordering cannot invalidate unchanged teaching, cards or question
   assert.equal(nextFactualReview(course,[],evidence,canonicalReviewValue(draft)),null)
 })
 
-test('a bounded correction includes an already located teaching warning without changing stored severity',async()=>{
- const {questionRepairStep}=await import('../lib/study-chapter-repair.mjs')
+test('non-blocking warnings never broaden a bounded correction',async()=>{
+ const {questionRepairSteps}=await import('../lib/study-chapter-repair.mjs')
  const draft=chapter(),issues=[{severity:'error',itemKey:'question:'+draft.questions[0].key,detail:'Correct this answer.'},{severity:'warning',itemKey:'section:'+draft.sections[0].id,detail:'Clarify the known prerequisite.'}]
- const repair=questionRepairStep(course,[],evidence,draft,issues)
- assert.ok(repair.parts?.some(p=>p.sectionIds?.includes(draft.sections[0].id)))
+ const repairs=questionRepairSteps(course,[],evidence,draft,issues)
+ assert.equal(repairs.length,1)
+ assert.deepEqual(repairs[0].keys,[draft.questions[0].key])
  assert.equal(issues[1].severity,'warning')
 })
 

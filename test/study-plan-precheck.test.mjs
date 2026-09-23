@@ -6,7 +6,7 @@ import { deleteAllDocuments } from '../lib/user-store.mjs'
 import { addStudyNote, readStudySourceSnapshot } from '../lib/study-version-sources.mjs'
 import { createStudyVersion, ownStudyVersion, mutateStudyVersion } from '../lib/study-version-store.mjs'
 import { processStudyStep } from '../lib/study-version-pipeline.mjs'
-import { studyPlanPrecheckStep, semanticPlanRetryPrompt } from '../lib/study-plan-precheck.mjs'
+import { studyPlanPrecheckStep, semanticPlanRetryPrompt, structuralPlanRetryPrompt } from '../lib/study-plan-precheck.mjs'
 import { studyPlanPrecheckEnabled, studyModelPhase } from '../lib/study-model-routing.mjs'
 import { course, teachingPlan, practiceBlueprint } from '../scripts/verification/study-fixtures.mjs'
 
@@ -32,6 +32,16 @@ test('a semantic retry carries the complete proposal but only its cited evidence
  assert.match(prompt,/COMPLETE corrected plan/)
  assert.match(prompt,/question-1/)
  assert.match(prompt,/Addition combines disjoint groups/)
+ assert.doesNotMatch(prompt,/UNRELATED-CONTEXT/)
+ assert.ok(prompt.length<JSON.stringify(evidence).length/4)
+})
+
+test('a deterministic blueprint retry is compact and retains the complete contract',()=>{
+ const evidence=[{id:'e-1',text:'Addition combines disjoint groups.'},{id:'e-2',text:'UNRELATED-CONTEXT '.repeat(5000)}]
+ const plan=teachingPlan(['e-1']),practice=practiceBlueprint(plan)
+ const prompt=structuralPlanRetryPrompt(evidence,{...plan,practice},['The difficult objective needs transfer practice.'])
+ assert.match(prompt,/Every difficult objective needs guided and transfer rows/)
+ assert.match(prompt,/COMPLETE corrected plan/)
  assert.doesNotMatch(prompt,/UNRELATED-CONTEXT/)
  assert.ok(prompt.length<JSON.stringify(evidence).length/4)
 })

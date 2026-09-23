@@ -74,7 +74,7 @@ test('an invalid blueprint is re-planned once with its exact issues, then drafti
       const calls = []
       const generate = async (prompt, options) => {
         calls.push({prompt, phase: options.usageMetadata.phase, replan: options.usageMetadata.replan})
-        if (prompt.includes('PLAN THE TEACHING')) {
+        if (prompt.includes('PLAN THE TEACHING') || prompt.includes('PRACTICE-BLUEPRINT CORRECTION')) {
           assert.ok(options.responseSchema.properties.practice, 'the provider is asked for a blueprint')
           if (calls.length === 1) return {...plan, gaps: ['prerequisites', 'The recorded lecture was not transcribed.'], practice: validBlueprint(plan).filter(row => row.stage !== 'transfer' || row.objectiveId !== 'objective-3')}
           return {...plan, practice: validBlueprint(plan)}
@@ -91,7 +91,7 @@ test('an invalid blueprint is re-planned once with its exact issues, then drafti
       assert.equal(calls.length, 2)
       assert.equal(calls[1].phase, 'teaching-plan')
       assert.equal(calls[1].replan, 1)
-      assert.match(calls[1].prompt, /PLAN VALIDATION RETRY/)
+      assert.match(calls[1].prompt, /PRACTICE-BLUEPRINT CORRECTION/)
       assert.match(calls[1].prompt, /objective-3 \(difficult\) plans no transfer question/)
       assert.ok(draft.teachingPlans['plan-chapter'])
       assert.equal(draft.practiceBlueprints['plan-chapter'].valid, true)
@@ -112,7 +112,7 @@ test('a blueprint still invalid after the one re-plan is kept as guidance and dr
       const invalid = validBlueprint(plan).map(row => ({...row, difficulty: 'standard'}))
       let plans = 0
       const generate = async prompt => {
-        if (prompt.includes('PLAN THE TEACHING')) { plans++; return {...plan, practice: invalid} }
+        if (prompt.includes('PLAN THE TEACHING') || prompt.includes('PRACTICE-BLUEPRINT CORRECTION')) { plans++; return {...plan, practice: invalid} }
         throw new Error('stop at the draft')
       }
       await processStudyStep(f.version.id, {generate})
