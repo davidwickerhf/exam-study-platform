@@ -510,3 +510,50 @@ review used 5,338 output tokens, so this retains nearly fourfold headroom while
 avoiding a 32k/64k worst-case reservation that can refuse an otherwise
 affordable review before it starts. This changes the capacity ceiling, not the
 review schema, prompt or acceptance standard.
+
+## GPT-6 Sol standard and variance-reduction result (23 September 2026)
+
+The standard hosted OpenAI profile now uses GPT-6 Sol at medium reasoning for
+authoring, pedagogical review and corrections. It also uses Sol only after a
+plan has exhausted its three cheap GPT-5 Mini evidence-narrowing attempts: up
+to two compact Sol plan repairs are independently arbitrated by Sol, and the
+plan is rejected if the final arbitration still reports an error. Mini remains
+the standard route for mapping, ordinary planning and plan checks, structural
+fill, pedagogical pre-check and factual review.
+
+The deterministic plan retry no longer resends the full course construction
+packet. It sends the saved structured proposal, the cited evidence and the
+accumulated exact findings. Earlier measured retry prompts were 151,524,
+156,652 and 142,071 characters. The new live sequence ranged from 15,604 to
+22,014 characters, roughly an 85–90% reduction. This directly lowers the main
+planning variance while preserving the same semantic gate and the full error
+history that prevents oscillating substitutions.
+
+Focused correction work now excludes warning-only findings from mandatory
+patch scope. A sequence of non-overlapping patches also carries its current
+merged plan forward; previously, a later practice patch could restore the old
+saved plan and undo an accepted objective edit. After a correction, unchanged
+factual-content judgments are reused while changed answers and pedagogical
+dependencies are rechecked. These changes reduce input and review repetition;
+they do not suppress errors.
+
+A free rendering-hygiene pass handles the malformed invisible controls observed
+in old saved plan text. It records each repair and can reopen a saved chapter
+whose only remaining failure is rendering corruption, without spending a
+correction. This avoids paying a whole-chapter rewrite for text that the
+correction schema is not allowed to change.
+
+The continuation cost $2.642884 and ended with 18 passed chapters and no failed
+chapters. Clean target behavior was zero corrections for both IUI sensing,
+reasoning and feedback parts, one bounded practice correction for user and
+context modelling part 2, and one real bounded question correction after free
+recovery for user and context modelling part 1. A historical prototyping
+chapter also passed after its plan-state replay and one final bounded practice
+patch. No target case required a whole-chapter rewrite.
+
+The cumulative measured ledger is $47.470427 of $50, leaving $2.529573. The
+pipeline has met the aggregate cost target and the at-most-one-correction target
+on clean fresh chapters. The remaining roadmap is operational: sample fresh
+chapters for regressions, watch the compact-plan escalation rate and focused
+review reuse, and change the architecture only in response to a measured new
+failure mode.

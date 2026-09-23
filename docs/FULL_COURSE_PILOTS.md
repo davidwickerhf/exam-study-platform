@@ -693,3 +693,61 @@ $0.50. The cumulative conservative pilot ledger is $43.061274 of $50. The
 pipeline has therefore reached the stated aggregate target. The next roadmap
 work is variance reduction, chiefly plan retries and the cost of a focused
 second review, without relaxing the evidence or acceptance gates.
+
+### Variance-reduction continuation and final target result
+
+The next continuation made GPT-6 Sol the standard model wherever the pipeline
+needs generative teaching judgment: authoring, pedagogical review, correction,
+and the final repair/arbitration path for a plan that exhausts its cheap
+narrowing retries. GPT-5 Mini remains standard for bounded mapping, ordinary
+plan generation and checks, structural fill, pre-checks and factual review.
+
+Plan retries now send the saved proposal, cited evidence and exact accumulated
+findings instead of rebuilding the full course packet. In the measured run,
+the compact retry prompts were 15,604–22,014 characters; the comparable earlier
+prompts were 142,071–156,652 characters, a reduction of roughly 85–90%. Three
+Mini narrowing attempts remain available. If all three fail, the pipeline may
+make at most two compact GPT-6 Sol repairs, each followed by an independent Sol
+arbitration. It still fails closed if the last arbiter reports an error.
+
+The continuation also found and fixed two state-recovery defects rather than
+masking them with model calls:
+
+- A later practice patch reapplied the originally saved plan and could silently
+  undo an accepted objective-plan patch from the same correction round. Patch
+  series now carry the current merged plan forward, and an integration test
+  covers the objective-then-practice sequence.
+- Malformed invisible control characters in previously generated text could
+  survive every model rewrite because the relevant plan text was immutable to a
+  chapter correction. A deterministic rendering-hygiene pass now repairs the
+  observed arrow/hyphen corruption, records `renderRepairs`, and reopens any
+  saved render-only failure without consuming a correction. Recovery searches
+  for an eligible later chapter instead of being blocked by an older genuine
+  failure.
+
+The measured continuation spent $2.642884, moving the cumulative isolated
+ledger from $44.827543 to $47.470427 of the $50 ceiling. Its final report has
+18 passed chapters and zero failed chapters. The newly exercised target cases
+were:
+
+- IUI sensing, reasoning and feedback parts 1 and 2: both passed with zero
+  corrections. Part 2 exercised all three compact Mini re-plans, two bounded
+  Sol plan repairs and their arbiters before its first draft; the draft then
+  passed without correction.
+- User and context modelling part 2: passed with one bounded practice
+  correction. Its post-patch review reused unchanged factual-content results
+  and reran only the necessary factual-answer and pedagogical checks.
+- User and context modelling part 1: after free recovery from the obsolete
+  rendering failure, one real linked-question finding was fixed by one bounded
+  question patch and focused review.
+- Prototyping and inspecting intelligent behaviour part 2: after replaying the
+  historical correction under the state-carrying fix, one remaining local
+  follow-up error passed after one bounded practice patch and focused review.
+
+The last two chapters retain inflated historical correction counters because
+their saved attempts include calls made before the state and rendering fixes;
+they are recovery evidence, not clean cost samples. The clean new chapters
+still meet the target of at most one correction, and no target case required a
+whole-chapter rewrite or a weakened acceptance rule. The remaining budget is
+$2.529573. Further paid work should be reserved for regression sampling rather
+than more architecture changes unless a new failure mode appears.
