@@ -32,12 +32,14 @@ test('render hygiene repairs observed truncated Unicode escapes without a model 
 })
 test('a chapter failed only on render controls re-enters review for free',()=>{
  const chapter={id:'chapter-1',review:'failed',teachingPlan:{objectives:[{goal:'acquisition \u000212 inference'}],gaps:[],exclusions:[]}}
- const work={stage:'chapters',chapters:[chapter],teachingPlans:{'chapter-1':chapter.teachingPlan},issues:[{topicId:'chapter-1',severity:'error',detail:'chapter.teachingPlan.objectives[0].goal: invisible control character; reconstruct the affected notation from its source.'}]}
+ const earlier={id:'earlier',review:'failed',teachingPlan:{objectives:[],gaps:[],exclusions:[]}}
+ const work={stage:'chapters',chapters:[earlier,chapter],teachingPlans:{'chapter-1':chapter.teachingPlan},issues:[{topicId:'earlier',severity:'error',detail:'A genuine teaching problem.'},{topicId:'chapter-1',severity:'error',detail:'chapter.teachingPlan.objectives[0].goal: invisible control character; reconstruct the affected notation from its source.'}]}
  assert.equal(recoverFailedChapterByRenderingHygiene(work),true)
  assert.equal(work.stage,'review')
- assert.equal(work.chapters[0].review,'pending')
- assert.equal(work.chapters[0].teachingPlan.objectives[0].goal,'acquisition → inference')
- assert.equal(work.issues.length,0)
+ assert.equal(work.chapters[1].review,'pending')
+ assert.equal(work.chapters[1].teachingPlan.objectives[0].goal,'acquisition → inference')
+ assert.equal(work.issues.length,1)
+ assert.equal(work.issues[0].topicId,'earlier')
  assert.equal(work.teachingPlans['chapter-1'].objectives[0].goal,'acquisition → inference')
 })
 test('local usage keeps unknown totals and separates phases, chapters and task budget',()=>{
