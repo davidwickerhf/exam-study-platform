@@ -2,8 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { nextFactualReview, acceptFactualReview, factualAuditIssues, answerKind } from '../lib/study-factual-review.mjs'
 import { questionRepairStep, applyQuestionRepair, locateReviewIssues, teachingContent } from '../lib/study-chapter-repair.mjs'
-import { nextPedagogicalReview, acceptPedagogicalReview, preservePedagogicalReview, combinedPedagogicalReview } from '../lib/study-pedagogical-review.mjs'
-import { reviewBaseline, reviewFocusFor, reviewRoundOutcome } from '../lib/study-review-rounds.mjs'
+import { nextPedagogicalReview, acceptPedagogicalReview, preservePedagogicalReview, combinedPedagogicalReview, focusedQuestionKeys } from '../lib/study-pedagogical-review.mjs'
+import { reviewBaseline, reviewFocusFor, reviewRoundOutcome, applyReviewFocus } from '../lib/study-review-rounds.mjs'
 import { deriveObjectiveCoverage, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
 import { studyLessonQuality } from '../lib/study-content-quality.mjs'
 import { evidencePrompt } from '../lib/study-version-content.mjs'
@@ -199,6 +199,33 @@ test('after a correction the next review verifies prior findings, judges only ch
   assert.doesNotMatch(solve.prompt,/PREVIOUSLY REPORTED FINDINGS/)
   acceptFactualReview(corrected,solve,teachingResponse(solve.prompt,['e-current']))
   assert.match(nextFactualReview(course,[],evidence,corrected).prompt,/PREVIOUSLY REPORTED FINDINGS[^\n]*never explains disjointness/)
+})
+
+test('a question-only re-review sends changed and linked questions while retaining omitted passing checks',()=>{
+  const objective={id:'objective-1'}
+  const questions=[
+    {key:'changed',objectiveIds:[objective.id],practiceStage:'independent',misconceptions:[{followUpKey:'linked'}]},
+    {key:'linked',objectiveIds:[objective.id],practiceStage:'remediation',misconceptions:[]},
+    {key:'guided-anchor',objectiveIds:[objective.id],practiceStage:'guided',misconceptions:[]},
+    {key:'accepted-transfer',objectiveIds:[objective.id],practiceStage:'transfer',misconceptions:[]},
+    {key:'accepted-extra',objectiveIds:[objective.id],practiceStage:'independent',misconceptions:[]},
+  ]
+  const draft={sections:[],questions,teachingPlan:{objectives:[objective]},reviewFocus:{changed:['question:changed'],accepted:questions.slice(1).map(q=>`question:${q.key}`),priorFindings:[],round:1}}
+  draft.reviewBaseline={
+    objectiveChecks:{[objective.id]:{objectiveId:objective.id,adequate:true,guidedQuestionKey:'guided-anchor',independentQuestionKey:'accepted-extra'}},
+    transferChecks:{'accepted-transfer':{questionKey:'accepted-transfer',closestExampleSectionId:null,changedCondition:'Previously accepted.',variation:'new_context',rationale:'Accepted.'}},
+    followUpChecks:{}
+  }
+  const keys=focusedQuestionKeys(draft,[objective])
+  assert.ok(keys.has('changed'))
+  assert.ok(keys.has('linked'),'the changed question carries its diagnostic target')
+  assert.ok(keys.has('guided-anchor') && keys.has('accepted-extra'),'the prior objective anchors remain visible')
+  assert.ok(!keys.has('accepted-transfer'))
+  assert.ok(keys.size<questions.length,'unrelated accepted practice is omitted from the second-review packet')
+  const restored=applyReviewFocus(draft,{issues:[],transferChecks:[],followUpChecks:[]})
+  assert.ok(restored.transferChecks.some(row=>row.questionKey==='accepted-transfer'),'an omitted passing transfer verdict is retained')
+  delete draft.reviewBaseline.objectiveChecks
+  assert.equal(focusedQuestionKeys(draft,[objective]),null,'older checkpoints without objective anchors keep the complete review packet')
 })
 
 test('without an accepted review baseline nothing is held back',()=>{

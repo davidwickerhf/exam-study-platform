@@ -6,7 +6,7 @@ import { deleteAllDocuments } from '../lib/user-store.mjs'
 import { addStudyNote, readStudySourceSnapshot } from '../lib/study-version-sources.mjs'
 import { createStudyVersion, ownStudyVersion, mutateStudyVersion } from '../lib/study-version-store.mjs'
 import { processStudyStep } from '../lib/study-version-pipeline.mjs'
-import { studyPlanPrecheckStep } from '../lib/study-plan-precheck.mjs'
+import { studyPlanPrecheckStep, semanticPlanRetryPrompt } from '../lib/study-plan-precheck.mjs'
 import { studyPlanPrecheckEnabled, studyModelPhase } from '../lib/study-model-routing.mjs'
 import { course, teachingPlan, practiceBlueprint } from '../scripts/verification/study-fixtures.mjs'
 
@@ -20,6 +20,20 @@ test('the plan precheck validates exact objective and practice targets',()=>{
  assert.match(step.prompt,/contradictory same-edition evidence/)
  assert.equal(step.accept({findings:[{targetType:'practice',targetId:practice[0].key,detail:'The changed condition introduces an untaught mechanism.',severity:'error'}]}).length,1)
  assert.throws(()=>step.accept({findings:[{targetType:'practice',targetId:'missing',detail:'Unknown target.',severity:'error'}]}),/unknown practice missing/)
+})
+
+test('a semantic retry carries the complete proposal but only its cited evidence',()=>{
+ const evidence=[
+  {id:'e-1',text:'Addition combines disjoint groups and subtraction checks the result.'},
+  {id:'e-2',text:'UNRELATED-CONTEXT '.repeat(5000)},
+ ]
+ const plan=teachingPlan(['e-1']),practice=practiceBlueprint(plan)
+ const prompt=semanticPlanRetryPrompt(evidence,{...plan,practice},['practice:question-1: unsupported mechanism'])
+ assert.match(prompt,/COMPLETE corrected plan/)
+ assert.match(prompt,/question-1/)
+ assert.match(prompt,/Addition combines disjoint groups/)
+ assert.doesNotMatch(prompt,/UNRELATED-CONTEXT/)
+ assert.ok(prompt.length<JSON.stringify(evidence).length/4)
 })
 
 test('the semantic plan gate is opt-in and routable',()=>{
