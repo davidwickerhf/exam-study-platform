@@ -672,3 +672,24 @@ exact-ID locator ran and bought a whole-chapter rewrite instead. Exact chapter
 question IDs are now accepted as a bounded location, and the scope ledger names
 the selected patch targets. A no-provider replay of the saved finding selects
 one practice patch over the transfer and linked remediation questions.
+
+The next three untouched chapters validated that corrected routing. Core
+usability part 1 passed after one bounded practice patch for $0.374003 after
+allocating half of its parent topic's shared $0.023215 plan cost. Part 2 passed
+without correction for $0.239510 on the same allocation basis. Heuristics and
+usability inspection passed after one two-patch section/scope correction for
+$0.685757. There were no whole-chapter rewrites and no Mini-to-Sol correction
+fallbacks. The segment cost $1.299269 across 43 measured calls.
+
+The heuristics outlier spent $0.147607 on planning: its first structured plan
+needed the one format retry, then the semantic gate narrowed five findings to
+one, one and zero across all three re-plans. It made no unsupported Sol draft.
+This is remaining cost variance, not a correction-count failure.
+
+Across six fresh standard-profile chapters, correction counts were 0, 1, 1,
+1, 0 and 1. All 6/6 met the at-most-one-correction target. Total cost was
+$2.782373 and average cost was $0.463729; 4/6 chapters were individually below
+$0.50. The cumulative conservative pilot ledger is $43.061274 of $50. The
+pipeline has therefore reached the stated aggregate target. The next roadmap
+work is variance reduction, chiefly plan retries and the cost of a focused
+second review, without relaxing the evidence or acceptance gates.

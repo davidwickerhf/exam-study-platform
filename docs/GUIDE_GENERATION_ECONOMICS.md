@@ -401,6 +401,15 @@ names the chapter's faulty question and linked remediation target by exact ID,
 the bounded question patch selects those items and records them in the scope
 ledger. Genuinely unlocated prose still falls back to a coherent chapter repair.
 
+The production-standard validation now covers six fresh chapters. Every one
+passed with at most one correction; total measured cost was $2.782373, or
+$0.463729 per chapter on average. Four chapters were individually below $0.50.
+After the exact linked-question locator fix, the next three used only bounded
+corrections and had no question-model fallback. Their $0.685757 outlier used
+$0.147607 on one plan-format retry plus three evidence-narrowing re-plans.
+This meets the aggregate target; further work should reduce variance without
+weakening plan scope, factual review or pedagogical acceptance.
+
 **Prompt caching.** Retries, re-plans, fill retries and merge re-prompts re-send
 the identical prompt with their note appended last, so a same-schema retry can
 reuse a cached prefix. Cross-phase prefix sharing is not attempted: each phase
