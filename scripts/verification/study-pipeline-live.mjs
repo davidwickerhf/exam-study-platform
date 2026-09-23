@@ -23,7 +23,7 @@ const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-ve
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
 const planOnly=!!pilot && process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
-if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning or updates.')
+if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY','STUDY_PIPELINE_REDRAFT_TOPIC'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning, redrafting or updates.')
 const fixture=pilot ? 'course:'+pilot.course.courseCode : process.env.STUDY_PIPELINE_FIXTURE || 'probability'
 if(!pilot&&!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
 assertPilotExecutionMode(pilot, process.env)
@@ -139,6 +139,7 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
           run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined,...(executionConverted?{executionConverted}:{})};report.runs=[...previous.runs.filter(r=>r.passed),run]
         }else if(executionConverted)run.executionConverted=executionConverted
         if(!saved)throw new Error('No saved draft for this execution mode.')
+        if(process.env.STUDY_PIPELINE_REDRAFT_TOPIC && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('A pilot redraft cannot also request correction, recheck, replanning or update work.')
         if(!planOnly || !pilotPlanReady(saved))await mutateStudyVersion(id,version=>{
           version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0,attempts:0}
           version.draft.billing={...version.draft.billing,maxJobUsd:spendingCap}
@@ -158,6 +159,18 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
           await mutateStudyVersion(id,version=>{version.draft.status='failed'})
           await controlStudyGeneration(id,'retry')
           run.requestedCorrection=true
+        }
+        if(process.env.STUDY_PIPELINE_REDRAFT_TOPIC) {
+          const {redraftPilotChapter}=await import('./study-pilot-redraft.mjs')
+          const chapterId=process.env.STUDY_PIPELINE_REDRAFT_TOPIC
+          const correctionLimit=process.env.STUDY_PIPELINE_REDRAFT_MAX_CORRECTIONS===undefined ? undefined : Number(process.env.STUDY_PIPELINE_REDRAFT_MAX_CORRECTIONS)
+          await mutateStudyVersion(id,version=>{
+            version.draft=redraftPilotChapter(version.draft,chapterId,{maxCorrections:correctionLimit})
+            version.draft.status=execution==='local'?'local-ready':'queued'
+          })
+          run.steps=[]
+          run.redraftedTopic=chapterId
+          if(correctionLimit!==undefined)run.redraftMaxCorrections=correctionLimit
         }
         run.resumedFrom=process.env.STUDY_PIPELINE_RESUME_FILE
       }

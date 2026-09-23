@@ -40,6 +40,11 @@ test('unpriced models, provider changes, malformed routes and price escalation f
  for(const p of ['not-json',{version:1,routes:{typo:'gpt-5-mini'}},{version:1,routes:{'source-mapping':'unknown'}},{version:1,routes:{'source-mapping':'claude-sonnet-4-5'}}])assert.throws(()=>routeStudyModel(billing,options,p))
  assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},options,{version:1,routes:{'source-mapping':'gpt-6-astra'}}),/cannot increase/)
 })
+test('GPT-6 Sol is a priced route below Astra without changing the selected job model',()=>{
+ const routed=routeStudyModel(billing,{...options,usageMetadata:{versionId:'sv-test',stage:'chapters'}},{version:1,routes:{authoring:{model:'gpt-6-sol',reasoning:'medium'}}})
+ assert.deepEqual(routed,{model:'gpt-6-sol',baseModel:'gpt-6-astra',phase:'authoring',policyVersion:1,reasoningEffort:'medium'})
+ assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},options,{version:1,routes:{'source-mapping':'gpt-6-sol'}}),/cannot increase/)
+})
 test('a route may set a supported reasoning effort without changing the model or raising price',()=>{
  const effort={version:1,routes:{'source-mapping':{model:'gpt-5-mini',reasoning:'low'}}}
  assert.deepEqual(routeStudyModel(billing,options,effort),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'source-mapping',policyVersion:1,reasoningEffort:'low'})

@@ -564,3 +564,40 @@ draft records `planChecks`, `planSemanticLog`, `planProseRepairs`, `structuralFi
 `mergeValidations`, `correctionTrials` and `reviewRounds[].calls`. The pilot
 report's `callDetails` also carries the trial, re-prompt, re-plan and fill
 markers.
+
+## GPT-6 Sol target-pipeline pilot (23 September 2026)
+
+GPT-6 Sol is priced and routable as an opt-in model, but is not a production
+default. Its verified standard price is $2 input / $10 output per million
+tokens, half the corresponding GPT-5.6 Sol rates. The pilot kept GPT-5 mini for
+the plan gates, pre-checks, factual review and question-only corrections, and
+used GPT-6 Sol at medium reasoning for drafting, pedagogical review and other
+corrections.
+
+The first controlled redraft retained a plan made before the current semantic
+gate. The GPT-6 Sol draft reduced the first pedagogical review from the mini
+baseline's 23 errors to 7, but the plan itself required administrative course
+facts and silently chose between contradictory current evidence. After one
+whole-chapter correction the second review still returned 9 errors. This was a
+plan failure, not useful evidence that another chapter rewrite would converge.
+
+Plan pre-check version 3 therefore rejects administrative or exam-policy
+objectives and unresolved same-edition conflicts. A new gate version gets its
+own bounded re-plan allowance, so attempts spent under an older rule set do not
+cause an immediate failure. The isolated pilot can rewind one non-passing
+chapter to its retained plan with `STUDY_PIPELINE_REDRAFT_TOPIC`; the optional
+`STUDY_PIPELINE_REDRAFT_MAX_CORRECTIONS` limit makes a correction target
+enforceable rather than observational.
+
+The repeated redraft exercised that new gate. It rejected and re-planned the
+old objective before authoring, then passed after exactly one correction round:
+one GPT-6 Sol section patch and two GPT-5 mini practice calls (the second was a
+merge-validation re-prompt), followed by clean factual and pedagogical reviews.
+The first full review contained two localized errors and the second contained
+none. Measured cost was $0.578993 across 19 calls: $0.029617 for plan checking
+and re-planning, $0.213798 for drafting, $0.157076 for the first review cycle,
+$0.056117 for the three bounded patch calls, and $0.122385 for the final review
+cycle. This meets the at-most-one-correction target and narrowly misses the
+approximately-$0.50 cost target. It is one chapter, not yet evidence of a
+stable course-wide rate; the next experiment should repeat the same frozen
+profile on fresh chapters rather than tune against this result.

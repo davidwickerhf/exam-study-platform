@@ -292,9 +292,12 @@ test('Sol and Astra preserve explicit model selection and reserve current long-c
       await assert.rejects(resolveStudyBilling({quality},{...platform,provider:'anthropic'}),/OpenAI/)
     }
     assert.equal(studyModelCost('gpt-5.6-sol',1000,1000),25000)
+    assert.equal(studyModelCost('gpt-6-sol',1000,1000),12500)
     assert.equal(studyModelCost('gpt-6-astra',1000,1000),62500)
+    assert.equal(studyModelCost('gpt-6-sol',1000,1000,{cachedInputTokens:500,cacheWriteInputTokens:200}),11200)
     assert.equal(studyModelCost('gpt-6-astra',1000,1000,{cachedInputTokens:500,cacheWriteInputTokens:200}),56000)
     assert.equal(studyModelCost('gpt-5.6-sol',300000,1000),3030000)
+    assert.equal(studyModelCost('gpt-6-sol',300000,1000),1515000)
     assert.equal(studyModelCost('gpt-6-astra',300000,1000),7575000)
   })
 })

@@ -16,6 +16,8 @@ test('the plan precheck validates exact objective and practice targets',()=>{
  const step=studyPlanPrecheckStep(evidence,plan,practice)
  assert.match(step.prompt,/before any chapter is drafted/)
  assert.match(step.prompt,/cited evidence collectively/)
+ assert.match(step.prompt,/assessment weights/)
+ assert.match(step.prompt,/contradictory same-edition evidence/)
  assert.equal(step.accept({findings:[{targetType:'practice',targetId:practice[0].key,detail:'The changed condition introduces an untaught mechanism.',severity:'error'}]}).length,1)
  assert.throws(()=>step.accept({findings:[{targetType:'practice',targetId:'missing',detail:'Unknown target.',severity:'error'}]}),/unknown practice missing/)
 })
@@ -39,6 +41,9 @@ test('a failed semantic plan gate schedules at most two narrowing re-plans befor
    const plan=teachingPlan(ids),practice=practiceBlueprint(plan),topic={id:'addition',title:'Addition',sourceIds:ids}
    await mutateStudyVersion(version.id,next=>{
     next.draft.stage='chapters';next.draft.topics=[topic];next.draft.teachingPlans={addition:plan};next.draft.practiceBlueprints={addition:{practice,valid:true,issues:[]}}
+    // A newer gate version gets its own bounded retries; attempts spent under
+    // an older rule set must not make the first new finding fail immediately.
+    next.draft.planSemanticAttempts={addition:2};next.draft.planSemanticChecks={addition:{version:2,status:'complete',findings:[]}}
    })
    let calls=0
    const finding={targetType:'practice',targetId:practice[0].key,detail:'The changed condition requires reasoning absent from the evidence.',severity:'error'}

@@ -31,8 +31,10 @@ test('invalid reasoning settings fall back safely and public status contains no 
 })
 
 
-test('Astra guide calls retain medium reasoning and map unsupported minimal to low',()=>{
+test('GPT-6 guide calls retain medium reasoning and map unsupported minimal to low',()=>{
   assert.equal(openAiReasoningEffort('gpt-6-astra','medium'),'medium')
   assert.equal(openAiReasoningEffort('gpt-6-astra','minimal'),'low')
+  assert.equal(openAiReasoningEffort('gpt-6-sol','medium'),'medium')
+  assert.equal(openAiReasoningEffort('gpt-6-sol','minimal'),'low')
   assert.equal(openAiReasoningEffort('gpt-5.6-sol','medium'),'medium')
 })
