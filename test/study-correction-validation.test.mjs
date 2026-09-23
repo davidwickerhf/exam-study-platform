@@ -269,6 +269,34 @@ test('several non-overlapping patches are applied as one correction round and ch
   }finally{await f.cleanup()}
 })
 
+test('a later practice patch preserves an objective edit accepted earlier in the same correction round', async () => {
+  const findings=[
+    {severity:'error',itemKey:'objective:obj-a',detail:'obj-a: narrow the goal to the addition reasoning that is actually taught.'},
+    {severity:'error',itemKey:'question:question-3',detail:'question-3: the answer omits the inverse check.'}
+  ]
+  const f=await fixture(findings)
+  try{
+    await f.run(async()=>{
+      const narrowed={...f.plan.objectives[0],goal:'Add two disjoint quantities and verify the sum.'}
+      let calls=0
+      while((await draftOf(f.version.id)).stage==='chapters' && calls<8){
+        await processStudyStep(f.version.id,{generate:async(_prompt,options)=>{
+          calls++
+          const base=(await draftOf(f.version.id)).repair.chapter
+          if(options.usageMetadata.phase==='objective-correction')return {objectives:{'obj-a':narrowed}}
+          if(options.usageMetadata.phase==='section-correction')return {sections:Object.fromEntries(base.sections.filter(row=>row.objectiveIds.includes('obj-a')).map(row=>[row.id,teachingSchema.shape.sections.element.parse(row)]))}
+          if(options.usageMetadata.phase==='practice-correction')return {questions:Object.fromEntries(base.questions.filter(row=>row.objectiveIds.includes('obj-a')).map(row=>[row.key,{...teachingSchema.shape.questions.element.parse(row),...(row.key==='question-3'?{answer:row.answer+' Subtract one term to check the total.'}:{})}]))}
+          throw new Error(`unexpected phase ${options.usageMetadata.phase}`)
+        }})
+      }
+      const draft=await draftOf(f.version.id)
+      assert.equal(draft.stage,'review')
+      assert.equal(draft.chapters[0].teachingPlan.objectives.find(row=>row.id==='obj-a').goal,narrowed.goal)
+      assert.equal(draft.teachingPlans[ID].objectives.find(row=>row.id==='obj-a').goal,narrowed.goal)
+    })
+  }finally{await f.cleanup()}
+})
+
 test('complexity is locked in scope and objective patches; only an explicit understated-complexity finding unlocks it, with additions validated on the merge', async () => {
   const ids = ['e-1']
   const {plan, draft} = validDraft(ids)
