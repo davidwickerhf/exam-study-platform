@@ -639,3 +639,20 @@ cycles. Sending question patches directly to Sol is the next measured roadmap
 step: preserve the one-correction result while reducing the observed cost
 variance. The next fresh continuation should compare per-chapter cost and
 review-call count against the $0.472952 three-chapter baseline.
+
+The first production-profile continuation passed two fresh chapters before a
+third stopped at the plan gate. Requirements elicitation part 2 passed with no
+correction for $0.279563. Design intent, mental models and trust passed after
+one whole-chapter correction for $0.737011. The third chapter spent $0.069899
+on planning only and made no Sol draft: its rejected practice shrank from nine
+semantic findings to three and then two, but each re-plan substituted a new
+unsupported mechanism. Total incremental cost was $1.086482 across 35 measured
+calls; the cumulative conservative ledger is $41.365374 of $50.
+
+Plan pre-check version 4 carries every prior semantic rejection into later
+re-plans, forbids replacement tasks from inventing new logs, tools, persistence
+policies, algorithms or runtime behavior, and permits an objective to be
+lowered to simple when its evidence cannot support a genuine transfer. The
+cheap narrowing allowance is three re-plans; a fourth failed check still stops
+before authoring. The next continuation resumes the failed plan under that new
+gate, then completes the intended third fresh-chapter checkpoint.

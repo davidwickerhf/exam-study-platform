@@ -28,7 +28,7 @@ test('the semantic plan gate is opt-in and routable',()=>{
  assert.equal(studyModelPhase({usageMetadata:{phase:'teaching-plan-check'}}),'teaching-plan-check')
 })
 
-test('a failed semantic plan gate schedules at most two narrowing re-plans before drafting',async()=>{
+test('a failed semantic plan gate carries every rejected mechanism through at most three narrowing re-plans',async()=>{
  const userId=`study-plan-precheck-${randomUUID()}`
  const run=fn=>withRequestContext({userId,mode:'local'},fn)
  const saved=process.env.STUDY_MODEL_ROUTES
@@ -87,9 +87,25 @@ test('a failed semantic plan gate schedules at most two narrowing re-plans befor
    }})
    draft=(await ownStudyVersion(version.id)).draft
    assert.equal(calls,5)
+   assert.equal(draft.status,'running')
+   assert.equal(draft.planSemanticAttempts.addition,3)
+   assert.equal(draft.teachingPlans.addition,undefined)
+
+   await processStudyStep(version.id,{generate:async(prompt,options)=>{
+    calls++;assert.equal(options.usageMetadata.phase,'teaching-plan');assert.match(prompt,/permanent exclusion/);assert.match(prompt,/does not add a mechanism/)
+    return {...plan,practice}
+   }})
+   await processStudyStep(version.id,{generate:async(_prompt,options)=>{
+    calls++;assert.equal(options.usageMetadata.phase,'teaching-plan-check')
+    return {findings:[finding]}
+   }})
+   draft=(await ownStudyVersion(version.id)).draft
+   assert.equal(calls,7)
    assert.equal(draft.status,'failed')
-   assert.equal(draft.planSemanticAttempts.addition,2,'no third re-plan is scheduled')
+   assert.equal(draft.planSemanticAttempts.addition,3,'no fourth re-plan is scheduled')
    assert.equal(draft.planSemanticChecks.addition.status,'failed')
+   assert.equal(draft.planSemanticChecks.addition.version,4)
+   assert.deepEqual(draft.planSemanticRejectedFindings.addition,[`practice:${practice[0].key}: ${finding.detail}`])
    assert.match(draft.error,/still exceeds its evidence/)
   })
  }finally{
