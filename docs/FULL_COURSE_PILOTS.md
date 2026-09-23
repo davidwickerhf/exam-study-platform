@@ -601,3 +601,25 @@ cycle. This meets the at-most-one-correction target and narrowly misses the
 approximately-$0.50 cost target. It is one chapter, not yet evidence of a
 stable course-wide rate; the next experiment should repeat the same frozen
 profile on fresh chapters rather than tune against this result.
+
+That frozen continuation then produced three untouched derived chapters from
+two new topics (both topics were split by the existing pre-draft size gate).
+All three passed with the one-correction ceiling unchanged: requirements and
+prioritisation part 1 used no correction, part 2 used one correction round, and
+elicitation-methods part 1 used one. Total measured cost was $1.418856, or
+$0.472952 per passed chapter on average. Allocating each parent topic's shared
+planning cost equally across its derived parts gives $0.327599, $0.641848 and
+$0.449410 respectively. The correction target therefore held for 3/3 fresh
+chapters and the average cost met the approximate $0.50 target, but the target
+did not hold chapter-by-chapter: part 2 was expensive because the mini practice
+patch needed a GPT-6 Sol fallback and two additional review cycles.
+
+Part 2 initially stopped on its final review because a scope patch preserved
+two real gap sentences with an empty generated suffix, `Sources: and.`. This
+was the only remaining error; both teaching findings were already resolved.
+The deterministic corrupt-prose pass now removes that suffix while retaining
+the preceding sentence (or drops the entry when no sentence remains), records
+an `empty source placeholder` repair, and recognises the matching stale review
+finding. Resuming the saved failed chapter repaired and recovered it without a
+new correction or full review cycle. The conservative pilot ledger after these
+runs is $40.278892 of the $50 ceiling.

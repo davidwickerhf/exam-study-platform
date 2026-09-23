@@ -48,6 +48,16 @@ test('an entry truncated on an opening bracket or a trailing comma is not sent t
   assert.equal(incoherentProseReason('The textbook chapter is quoted as “partially covered by the slides.'), 'unbalanced quotes')
 })
 
+test('an empty generated source suffix is removed while the real gap prose survives', () => {
+  const gap = 'The rendered diagrams are not reproduced here; consult the original slides for exact axes and values. Sources: and.'
+  const result = repairIncoherentProse(chapter({ teachingPlan: { gaps: [gap, 'Sources: and.'], exclusions: [] } }))
+  assert.deepEqual(result.teachingPlan.gaps, ['The rendered diagrams are not reproduced here; consult the original slides for exact axes and values.'])
+  assert.deepEqual(result.proseRepairs, [
+    { field: 'teachingPlan.gaps', index: 0, reason: 'empty source placeholder' },
+    { field: 'teachingPlan.gaps', index: 1, reason: 'empty source placeholder', dropped: true }
+  ])
+})
+
 test('coherent prose with legitimate punctuation is left byte-identical, quotes, colons, parentheses and bracketed citations included', () => {
   const original = chapter({
     caveats: ['The term "affordance": a property that suggests its own use (Norman, 1988) — see [Shneiderman 2016, ch. 3] for the fuller treatment.'],
@@ -114,6 +124,19 @@ test('a chapter failed only because a gaps entry is corrupt re-enters review for
   assert.deepEqual(recovered.evidenceReview.issues, [])
   assert.deepEqual(recovered.pedagogyAudit.reviews['objective-1'].issues, [{ severity: 'warning', detail: 'Consider one more worked example.' }])
   assert.deepEqual(recovered.factualAudit.judgments.scope, { correct: true, issues: [] })
+})
+
+test('a failed chapter with an incomplete source placeholder re-enters review for free', () => {
+  const placeholder = 'The diagrams are not reproduced here; consult the original slides for their exact values. Sources: and.'
+  const work = failedWork([
+    { topicId: 'addition', severity: 'error', detail: "The 'gaps' entries include incomplete placeholder text ('Sources: and.') instead of concrete source IDs." }
+  ], {
+    chapter: { teachingPlan: { ...teachingPlan(ids), gaps: [placeholder], exclusions: [] } },
+    teachingPlans: { addition: { ...teachingPlan(ids), gaps: [placeholder], exclusions: [] } }
+  })
+  assert.equal(recoverFailedChapterByCorruptPlanProse(work), true)
+  assert.deepEqual(work.chapters[0].teachingPlan.gaps, ['The diagrams are not reproduced here; consult the original slides for their exact values.'])
+  assert.equal(work.automaticRepairs.addition, 3)
 })
 
 test('a chapter carrying any other error finding is left for the ordinary correction path', () => {
