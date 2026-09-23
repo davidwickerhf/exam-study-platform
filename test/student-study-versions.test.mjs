@@ -13,7 +13,8 @@ import {
   addStudyNote,
   studyCourse,
   listStudySources,
-  readStudySourceSnapshot
+  readStudySourceSnapshot,
+  studySourcesStillAvailable
 } from '../lib/study-version-sources.mjs'
 import {
   claimStudyDispatch,
@@ -89,6 +90,15 @@ test('source snapshots change when extraction improves but the original checksum
     const second = await readStudySourceSnapshot(course, ['editorial-extraction-test'], options)
     assert.equal(first.sources[0].sha256, second.sources[0].sha256)
     assert.notEqual(first.sourceHash, second.sourceHash)
+  })
+})
+test('source snapshots remain accessible after a Canvas path moves the same bytes', async () => {
+  await withRequestContext({ userId:`moved-source-${randomUUID()}`, mode:'local' }, async () => {
+    const before = { key:'old-path', title:'Exam.pdf', kind:'editorial', academicYear:course.academicYear, period:course.period, sha256:'same-original', pages:[{page:1,text:'Original exam text.'}] }
+    const snapshot = await readStudySourceSnapshot(course, ['old-path'], { editorialSources:async()=>[before] })
+    const moved = { ...before, key:'new-path' }
+    assert.equal(await studySourcesStillAvailable(snapshot, course, { editorialSources:async()=>[moved] }), true)
+    assert.equal(await studySourcesStillAvailable(snapshot, course, { editorialSources:async()=>[{...moved,sha256:'changed-original'}] }), false)
   })
 })
 async function fixture() {
