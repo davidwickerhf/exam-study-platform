@@ -49,6 +49,9 @@ test('the GPT-6 Sol standard uses the measured mixed profile without the failed 
  const standard={source:'platform',provider:'openai',model:'gpt-6-sol'}
  assert.equal(effectiveStudyModelRouting(standard),STANDARD_STUDY_MODEL_ROUTES)
  assert.equal(routeStudyModel(standard,options,STANDARD_STUDY_MODEL_ROUTES).model,'gpt-5-mini')
+ const arbiter=routeStudyModel(standard,{...options,usageMetadata:{versionId:'sv-test',phase:'teaching-plan-arbiter'}},STANDARD_STUDY_MODEL_ROUTES)
+ assert.equal(arbiter.model,'gpt-6-sol')
+ assert.equal(arbiter.reasoningEffort,'medium')
  const authoring=routeStudyModel(standard,{...options,usageMetadata:{versionId:'sv-test',stage:'chapters'}},STANDARD_STUDY_MODEL_ROUTES)
  assert.equal(authoring.model,'gpt-6-sol')
  assert.equal(authoring.reasoningEffort,'medium')

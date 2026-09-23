@@ -120,7 +120,7 @@ test('a failed semantic plan gate carries every rejected mechanism through at mo
     return {...plan,practice}
    }})
    await processStudyStep(version.id,{generate:async(_prompt,options)=>{
-    calls++;assert.equal(options.usageMetadata.phase,'teaching-plan-check')
+    calls++;assert.equal(options.usageMetadata.phase,'teaching-plan-arbiter')
     return {findings:[finding]}
    }})
    draft=(await ownStudyVersion(version.id)).draft
