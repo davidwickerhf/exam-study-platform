@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
-import {routeStudyModel,studyModelPhase} from '../lib/study-model-routing.mjs'
+import {effectiveStudyModelRouting,pedagogicalPrecheckEnabled,questionCorrectionTrial,routeStudyModel,STANDARD_STUDY_MODEL_ROUTES,studyModelPhase,studyPlanPrecheckEnabled} from '../lib/study-model-routing.mjs'
 import {runBudgetedStudyCall,studyModelCost} from '../lib/study-ai-budget.mjs'
 import {withRequestContext} from '../lib/request-context.mjs'
 import {deleteAllDocuments,readDocument} from '../lib/user-store.mjs'
@@ -45,6 +45,21 @@ test('GPT-6 Sol is a priced route below Astra without changing the selected job 
  assert.deepEqual(routed,{model:'gpt-6-sol',baseModel:'gpt-6-astra',phase:'authoring',policyVersion:1,reasoningEffort:'medium'})
  assert.throws(()=>routeStudyModel({...billing,model:'gpt-5-mini'},options,{version:1,routes:{'source-mapping':'gpt-6-sol'}}),/cannot increase/)
 })
+test('the GPT-6 Sol standard uses the measured mixed profile without the failed Mini question trial',()=>{
+ const standard={source:'platform',provider:'openai',model:'gpt-6-sol'}
+ assert.equal(effectiveStudyModelRouting(standard),STANDARD_STUDY_MODEL_ROUTES)
+ assert.equal(routeStudyModel(standard,options,STANDARD_STUDY_MODEL_ROUTES).model,'gpt-5-mini')
+ const authoring=routeStudyModel(standard,{...options,usageMetadata:{versionId:'sv-test',stage:'chapters'}},STANDARD_STUDY_MODEL_ROUTES)
+ assert.equal(authoring.model,'gpt-6-sol')
+ assert.equal(authoring.reasoningEffort,'medium')
+ assert.equal(routeStudyModel(standard,{...options,usageMetadata:{versionId:'sv-test',phase:'practice-correction',routePhase:'question-correction'}},STANDARD_STUDY_MODEL_ROUTES).model,'gpt-6-sol')
+ assert.equal(questionCorrectionTrial({STUDY_MODEL_ROUTES:JSON.stringify(STANDARD_STUDY_MODEL_ROUTES)}).active,false)
+ assert.equal(studyPlanPrecheckEnabled(standard),true)
+ assert.equal(pedagogicalPrecheckEnabled(standard),true)
+ assert.equal(effectiveStudyModelRouting({...standard,source:'personal'}),null)
+ const override={version:1,routes:{authoring:'gpt-5-mini'}}
+ assert.equal(effectiveStudyModelRouting(standard,override),override)
+})
 test('a route may set a supported reasoning effort without changing the model or raising price',()=>{
  const effort={version:1,routes:{'source-mapping':{model:'gpt-5-mini',reasoning:'low'}}}
  assert.deepEqual(routeStudyModel(billing,options,effort),{model:'gpt-5-mini',baseModel:'gpt-6-astra',phase:'source-mapping',policyVersion:1,reasoningEffort:'low'})
@@ -64,6 +79,9 @@ test('routed call reserves and settles the actual model; exhausted caps still pr
   assert.equal(await runBudgetedStudyCall('test',options,{billing,jobKey,callPlatform,modelRouting:policy}),'result')
   const withEffort=async(prompt,opts)=>{assert.equal(opts.reasoningEffort,'low');assert.equal(opts.usageMetadata.modelRoute.reasoningEffort,'low');return {text:'result',usage}}
   assert.equal(await runBudgetedStudyCall('test',options,{billing,jobKey:'effort-route-'+randomUUID(),callPlatform:withEffort,modelRouting:{version:1,routes:{'source-mapping':{model:'gpt-5-mini',reasoning:'low'}}}}),'result')
+  const standardBilling={...billing,model:'gpt-6-sol'}
+  const standardCall=async(_prompt,opts)=>{assert.equal(opts.model,'gpt-5-mini');assert.equal(opts.usageMetadata.modelRoute.baseModel,'gpt-6-sol');return {text:'result',usage}}
+  assert.equal(await runBudgetedStudyCall('test',options,{billing:standardBilling,jobKey:'standard-route-'+randomUUID(),callPlatform:standardCall}),'result')
   await assert.rejects(()=>runBudgetedStudyCall('test',options,{billing:{...billing,maxJobUsd:0.000001},jobKey:'blocked-route',callPlatform,modelRouting:policy}))
   assert.equal(called,1)
   await withRequestContext({userId:'wicker-study-platform-budget',mode:'study-budget'},async()=>{
@@ -102,7 +120,6 @@ test('the opt-in pedagogical pre-review has its own cheap route',()=>{
 })
 
 test('the question-only trial is switched on only by a distinct question-correction route',async()=>{
- const {questionCorrectionTrial}=await import('../lib/study-model-routing.mjs')
  const profile=routes=>JSON.stringify({version:1,routes})
  assert.equal(questionCorrectionTrial({}).active,false)
  assert.equal(questionCorrectionTrial({STUDY_MODEL_ROUTES:profile({correction:'gpt-5.6-sol'})}).active,false)

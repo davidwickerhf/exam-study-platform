@@ -49,12 +49,12 @@ export function StudyBillingFields({
       {setQuality && source === 'platform' && <Field>
         <FieldLabel htmlFor="study-quality">Generation quality</FieldLabel>
         <select id="study-quality" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={quality} onChange={e => setQuality(e.target.value)}>
-          <option value="standard">Standard · Configured platform model</option>
-          <option value="sol" disabled={budget?.platform.provider !== 'openai'}>GPT-5.6 Sol</option>
+          <option value="standard" disabled={budget?.platform.provider !== 'openai'}>Standard · GPT-6 Sol</option>
+          <option value="sol" disabled={budget?.platform.provider !== 'openai'}>Legacy · GPT-5.6 Sol</option>
           <option value="astra" disabled={budget?.platform.provider !== 'openai'}>GPT-6 Astra</option>
           <option value="enhanced" disabled={budget?.platform.provider !== 'openai'}>Enhanced · GPT-5.4</option>
         </select>
-        <FieldDescription>{quality !== 'standard' ? 'A stronger model for explanations and evidence review. Higher cost; your spending limits still apply.' : 'Uses the configured model and the same evidence checks.'}</FieldDescription>
+        <FieldDescription>{quality !== 'standard' ? 'An explicit legacy or premium model choice. Higher cost; your spending limits still apply.' : 'Uses GPT-6 Sol for teaching and judgment, with GPT-5 Mini for bounded checks.'}</FieldDescription>
       </Field>}
       <Field>
         <FieldLabel htmlFor="study-billing-source">AI billing</FieldLabel>

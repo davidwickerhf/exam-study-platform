@@ -307,20 +307,20 @@ test('paid-call reservation remains exclusive beyond the old five-minute lease',
   assert.throws(()=>reserveStudyLedger(first.ledger,{...input,now:input.now+360000},limits),/Another chapter/)
 })
 
-test('guide defaults use Astra without rerouting assessments or changing an existing job',async()=>{
+test('guide defaults use GPT-6 Sol without rerouting assessments or changing an existing job',async()=>{
   const {resolveGuideBilling}=await import('../lib/study-ai-budget.mjs')
   const userId=`guide-routing-${randomUUID()}`
   await withRequestContext({userId,mode:'hosted',email:'student@example.test'},async()=>{
     try{
       const platform={configured:true,provider:'openai',model:'gpt-5-mini'}
-      assert.equal((await resolveGuideBilling({},platform)).model,'gpt-6-astra')
+      assert.equal((await resolveGuideBilling({},platform)).model,'gpt-6-sol')
       assert.equal((await resolveStudyBilling({},platform)).model,'gpt-5-mini')
       const existing={source:'platform',model:'gpt-5.6-sol',maxJobUsd:0.75}
       const resumed=await resolveGuideBilling({},platform,existing)
       assert.equal(resumed.model,existing.model)
       assert.equal(resumed.maxJobUsd,existing.maxJobUsd)
       assert.equal((await resolveGuideBilling({quality:'astra'},platform,existing)).model,'gpt-6-astra')
-      assert.equal((await resolveGuideBilling({quality:'standard'},platform)).model,'gpt-5-mini')
+      assert.equal((await resolveGuideBilling({quality:'standard'},platform)).model,'gpt-6-sol')
       await assert.rejects(resolveGuideBilling({source:'personal'},platform),/key|connect|configured/i)
     }finally{await deleteAllDocuments()}
   })

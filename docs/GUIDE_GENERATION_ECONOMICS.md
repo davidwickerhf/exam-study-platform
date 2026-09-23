@@ -141,7 +141,7 @@ smaller for whole-chapter batches and 6.1–34.7% smaller for single-question ba
 These are character measurements, not live quality results or dollar savings.
 They demonstrate that input trimming alone will not solve the course economics.
 
-### Phase-specific model routing, disabled by default
+### Phase-specific model routing
 
 An operator can configure `STUDY_MODEL_ROUTES` as a versioned JSON profile:
 `{"version":1,"routes":{"source-mapping":"gpt-5-mini"}}`. A route value may also
@@ -164,7 +164,16 @@ and any route with higher input/output pricing fail before a provider call. Each
 reservation and settlement uses the actual routed model; routing does not raise
 any cap. The only automatic fallback is the opt-in question-only correction
 trial described below, which falls back to the ordinary correction route. Model-route metadata accompanies
-usage metadata. No profile has been enabled as part of this change.
+usage metadata.
+
+New standard platform guides use the measured GPT-6 Sol profile in code: Sol
+at medium reasoning for authoring, pedagogical review and correction; GPT-5
+Mini for mapping, outlining, plan generation/checking, structural fill,
+pedagogical pre-check and factual review. The standard profile deliberately
+omits `question-correction`, so question patches go directly to Sol. In the
+fresh-chapter pilot, a failed Mini-first question patch caused a Sol fallback
+and two additional review cycles. `STUDY_MODEL_ROUTES` remains an operator
+override. Personal-key, local and unrelated calls still do not inherit it.
 
 The isolated pilot client supports the same policy via
 `STUDY_PIPELINE_MODEL_ROUTES`, recording each call's actual model and pricing mixed
@@ -382,9 +391,9 @@ result, the same correction is redone on the `correction` route without
 spending another correction. `draft.correctionTrials` records, per correction,
 the first route, the route whose patch was accepted, whether a fallback
 occurred and why, and the review outcome. Without the route there is no trial.
-No saving has been measured yet. The only prior evidence on gpt-5-mini
-corrections is negative (whole-chapter rewrites), so this is an experiment,
-not a default.
+The experiment remains available through an explicit route, but is not in the
+standard profile. One fresh chapter's Mini question patch required a Sol
+fallback and two additional review cycles, making that chapter cost $0.641848.
 
 **Prompt caching.** Retries, re-plans, fill retries and merge re-prompts re-send
 the identical prompt with their note appended last, so a same-schema retry can

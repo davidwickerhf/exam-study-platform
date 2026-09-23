@@ -24,8 +24,8 @@ test('the opt-in pre-review returns only located findings over a lean teaching p
 })
 
 test('the pedagogical pre-check adds no call unless its route is explicit',()=>{
- assert.equal(pedagogicalPrecheckEnabled({STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'pedagogical-review':'gpt-5.6-sol'}})}),false)
- assert.equal(pedagogicalPrecheckEnabled({STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'pedagogical-precheck':'gpt-5-mini'}})}),true)
+ assert.equal(pedagogicalPrecheckEnabled(null,{STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'pedagogical-review':'gpt-5.6-sol'}})}),false)
+ assert.equal(pedagogicalPrecheckEnabled(null,{STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'pedagogical-precheck':'gpt-5-mini'}})}),true)
  assert.equal(studyModelPhase({usageMetadata:{phase:'pedagogical-precheck'}}),'pedagogical-precheck')
 })
 

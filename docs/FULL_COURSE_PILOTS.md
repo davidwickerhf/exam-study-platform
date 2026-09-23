@@ -567,8 +567,8 @@ markers.
 
 ## GPT-6 Sol target-pipeline pilot (23 September 2026)
 
-GPT-6 Sol is priced and routable as an opt-in model, but is not a production
-default. Its verified standard price is $2 input / $10 output per million
+GPT-6 Sol began this pilot as an opt-in model. Its verified standard price is
+$2 input / $10 output per million
 tokens, half the corresponding GPT-5.6 Sol rates. The pilot kept GPT-5 mini for
 the plan gates, pre-checks, factual review and question-only corrections, and
 used GPT-6 Sol at medium reasoning for drafting, pedagogical review and other
@@ -623,3 +623,19 @@ an `empty source placeholder` repair, and recognises the matching stale review
 finding. Resuming the saved failed chapter repaired and recovered it without a
 new correction or full review cycle. The conservative pilot ledger after these
 runs is $40.278892 of the $50 ceiling.
+
+### Production-standard decision
+
+The measured profile is now the default for new hosted OpenAI guides. GPT-6
+Sol at medium reasoning handles authoring, pedagogical review and correction;
+GPT-5 Mini handles bounded mapping, planning, checks, structural fill and
+factual review. Existing jobs keep their selected model, and personal-key,
+local-agent, assessment and unrelated calls are unchanged.
+
+The standard profile omits the Mini-first `question-correction` route. That
+experiment remains available through an explicit operator profile, but its
+failure on requirements part 2 caused a Sol fallback and two extra review
+cycles. Sending question patches directly to Sol is the next measured roadmap
+step: preserve the one-correction result while reducing the observed cost
+variance. The next fresh continuation should compare per-chapter cost and
+review-call count against the $0.472952 three-chapter baseline.

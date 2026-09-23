@@ -23,8 +23,8 @@ test('the plan precheck validates exact objective and practice targets',()=>{
 })
 
 test('the semantic plan gate is opt-in and routable',()=>{
- assert.equal(studyPlanPrecheckEnabled({STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'teaching-plan':'gpt-5-mini'}})}),false)
- assert.equal(studyPlanPrecheckEnabled({STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'teaching-plan-check':'gpt-5-mini'}})}),true)
+ assert.equal(studyPlanPrecheckEnabled(null,{STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'teaching-plan':'gpt-5-mini'}})}),false)
+ assert.equal(studyPlanPrecheckEnabled(null,{STUDY_MODEL_ROUTES:JSON.stringify({version:1,routes:{'teaching-plan-check':'gpt-5-mini'}})}),true)
  assert.equal(studyModelPhase({usageMetadata:{phase:'teaching-plan-check'}}),'teaching-plan-check')
 })
 
