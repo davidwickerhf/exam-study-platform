@@ -8,6 +8,7 @@ import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Stores only isolated local validation accounts; never writes production data.
 import { readFile } from 'node:fs/promises'
 import { writePilotJson, assertPilotNotPaused, pilotAttemptCap, assertPilotChapterTarget } from './study-pilot-ledger.mjs'
+import { assertPilotExecutionMode, resolveSavedPilotRun } from './study-pilot-execution-gate.mjs'
 import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
 import { estimateStudyCall, studyModelCost, StudyBudgetError } from '../../lib/study-ai-budget.mjs'
@@ -17,15 +18,15 @@ if(!key || key==='[SENSITIVE]')throw new Error('A usable OPENAI_API_KEY is requi
 const {withRequestContext}=await import('../../lib/request-context.mjs')
 const {deleteAllDocuments}=await import('../../lib/user-store.mjs')
 const {readStudySourceSnapshot}=await import('../../lib/study-version-sources.mjs')
-const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion}=await import('../../lib/study-version-store.mjs')
+const {createStudyVersion,ownStudyVersion,studyRevision,mutateStudyVersion,listCourseBundleChildren}=await import('../../lib/study-version-store.mjs')
 const {processStudyStep,controlStudyGeneration}=await import('../../lib/study-version-pipeline.mjs')
 const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/study-local-generation.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
 const planOnly=!!pilot && process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
-if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning or updates.')
+if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY','STUDY_PIPELINE_REDRAFT_TOPIC'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning, redrafting or updates.')
 const fixture=pilot ? 'course:'+pilot.course.courseCode : process.env.STUDY_PIPELINE_FIXTURE || 'probability'
 if(!pilot&&!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
-if(pilot && (process.env.STUDY_PIPELINE_MODE!=='local' || !Array.isArray(pilot.updateSourceKeys)))throw new Error('Course maintenance pilots require local mode and explicit synthetic update source keys.')
+assertPilotExecutionMode(pilot, process.env)
 const builtIn=pilot ? null : await import(fixture==='iot'?'./study-iot-fixture.mjs':'../../lib/study-quality-fixture.mjs')
 const course=pilot?.course || builtIn.evaluationCourse
 let evaluationSources=pilot ? pilot.sources.filter(s=>!pilot.updateSourceKeys.includes(s.key)) : builtIn.evaluationSources.map(s=>({...s,pages:builtIn.evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))
@@ -52,8 +53,14 @@ async function generateOnce(prompt,options){
   }
   const route=routeStudyModel({source:'platform',provider:'openai',model:report.model},{...options,generationRuntime:report.runtime},process.env.STUDY_PIPELINE_MODEL_ROUTES)
   const model=route?.model || report.model
+  // A route may also set the phase's reasoning effort; record the effective one.
+  const reasoningEffort=route?.reasoningEffort || options.reasoningEffort || 'medium'
   const started=Date.now()
-  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort:options.reasoningEffort || 'medium',phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  const meta=options.usageMetadata || {}
+  // Pipeline-path markers for the measured run: the question-only trial route
+  // and its fallback, merge-validation re-prompts, plan re-plans and fills.
+  const path=Object.fromEntries(['modelTrial','mergeReprompt','replan','fillAttempt','correctionAttempt'].filter(key=>meta[key]!==undefined).map(key=>[key,meta[key]]))
+  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:meta.chapterId,reasoningEffort,phase:meta.phase || options.stage || 'generation',...path,promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>attemptCap){
@@ -69,7 +76,7 @@ async function generateOnce(prompt,options){
   if(report.runtime==='agents-sdk-responses') {
     let usage
     try {
-      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model,reasoningEffort:options.reasoningEffort || 'medium'})
+      const result=await runStudyAgentsSdk(prompt,{...options,apiKey:key,model,reasoningEffort})
       usage=result.usage
       return result.text
     } catch(error) {usage=error.usage;call.error={name:error.name,code:error.code,message:error.message,causeName:error.cause?.name,providerStatus:error.providerStatus,providerRequestId:error.providerRequestId};throw error}
@@ -78,7 +85,7 @@ async function generateOnce(prompt,options){
       if(usage){report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,usage.inputTokens,usage.outputTokens,usage)/1000000}
     }
   }
-  const response=await providerFetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:'medium',messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),},options.providerTimeoutMs || 600000).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500),causeCode:error.cause?.code});throw error})
+  const response=await providerFetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},body:JSON.stringify({model,max_completion_tokens:options.maxOutputTokens,reasoning_effort:reasoningEffort,messages:[{role:'user',content:prompt}],response_format:{type:'json_schema',json_schema:{name:'pipeline',strict:true,schema:options.responseSchema}}}),},options.providerTimeoutMs || 600000).catch(error=>{report.providerFailures ||= [];report.providerFailures.push({name:error.name,message:error.message.slice(0,500),causeCode:error.cause?.code});throw error})
   if(!response.ok){const failure=await response.json().catch(()=>({}));report.providerFailures ||= [];report.providerFailures.push({status:response.status,message:failure.error?.message||'Provider error'});const error=new Error(`Provider HTTP ${response.status}: ${failure.error?.message||'No detail'}`);error.retryable=response.status>=500;throw error}
   const result=await response.json();call.elapsedMs=Date.now()-started;call.usage=result.usage;call.finishReason=result.choices?.[0]?.finish_reason;if(!Number.isSafeInteger(result.usage?.prompt_tokens)||result.usage.prompt_tokens<0||!Number.isSafeInteger(result.usage?.completion_tokens)||result.usage.completion_tokens<0){const error=new Error('Provider omitted valid input/output usage; reservation remains held.');error.code='provider_missing_usage';throw error}report.calculatedUsd-=reserved;report.calculatedUsd+=studyModelCost(model,result.usage?.prompt_tokens||0,result.usage?.completion_tokens||0,{cachedInputTokens:result.usage?.prompt_tokens_details?.cached_tokens,cacheWriteInputTokens:result.usage?.prompt_tokens_details?.cache_write_tokens})/1000000
   if(result.choices?.[0]?.finish_reason==='length'){report.providerFailures ||= [];report.providerFailures.push({name:'OutputLimit',maxOutputTokens:options.maxOutputTokens});throw new Error('Provider output budget exhausted before a complete correction was returned.')}
@@ -107,23 +114,34 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       if(savedReport?.isolatedVersionId){
         id=savedReport.isolatedVersionId
       }else if(execution==='hosted'){
-        const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true})
-        id=(await createStudyVersion(course,'default',snapshot,{execution,billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
-      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
+        // Both execution modes must plan the same course: a bundle pilot that
+        // silently became a single hosted guide would not be hosted parity.
+        const courseBundle=pilot?.courseBundle===true
+        const snapshot=await readStudySourceSnapshot(course,sourceKeys,{...sourceOptions,includeHistorical:true,courseBundle})
+        id=(await createStudyVersion(course,'default',snapshot,{execution,courseBundle,title:pilot?.title || 'Isolated live validation',billing:{source:'platform',model:report.model,maxJobUsd:spendingCap}})).id
+      }else id=(await startLocalStudy({...course,sourceKeys,includeHistorical:true,courseBundle:pilot?.courseBundle===true,title:pilot?.title || 'Isolated live validation'},sourceOptions)).version.id
       report.isolatedVersionId=id
       if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
         report.priorEvaluationUsd=Math.max(report.priorEvaluationUsd,(previous.priorEvaluationUsd || 0)+previous.calculatedUsd)
-        const savedRun=previous.runs.findLast(r=>r.execution===execution&&r.draft)
+        // Prefer a saved run from the exact same execution mode. A saved
+        // draft from the OTHER mode (for example, this course's saved draft
+        // was generated locally and this pass is STUDY_PIPELINE_MODE=hosted)
+        // is a genuine mode mismatch: never resume it silently. Require an
+        // explicit opt-in that converts the draft's execution for this
+        // isolated pilot account, and record the conversion in the report;
+        // otherwise refuse with a clear message naming both modes.
+        const {savedRun,executionConverted}=resolveSavedPilotRun(previous,execution,process.env.STUDY_PIPELINE_CONVERT_EXECUTION==='1')
         const saved=savedRun?.draft
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(savedReport){
           evaluationSources=savedRun.phase==='update'?pilot.sources:evaluationSources
-          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined};report.runs=[...previous.runs.filter(r=>r.passed),run]
-        }
+          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined,...(executionConverted?{executionConverted}:{})};report.runs=[...previous.runs.filter(r=>r.passed),run]
+        }else if(executionConverted)run.executionConverted=executionConverted
         if(!saved)throw new Error('No saved draft for this execution mode.')
+        if(process.env.STUDY_PIPELINE_REDRAFT_TOPIC && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('A pilot redraft cannot also request correction, recheck, replanning or update work.')
         if(!planOnly || !pilotPlanReady(saved))await mutateStudyVersion(id,version=>{
-          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}
+          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0,attempts:0}
           version.draft.billing={...version.draft.billing,maxJobUsd:spendingCap}
           delete version.draft.localRequest
           if(process.env.STUDY_PIPELINE_RECHECK_PEDAGOGY || process.env.STUDY_PIPELINE_RECHECK_ALL) {
@@ -141,6 +159,18 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
           await mutateStudyVersion(id,version=>{version.draft.status='failed'})
           await controlStudyGeneration(id,'retry')
           run.requestedCorrection=true
+        }
+        if(process.env.STUDY_PIPELINE_REDRAFT_TOPIC) {
+          const {redraftPilotChapter}=await import('./study-pilot-redraft.mjs')
+          const chapterId=process.env.STUDY_PIPELINE_REDRAFT_TOPIC
+          const correctionLimit=process.env.STUDY_PIPELINE_REDRAFT_MAX_CORRECTIONS===undefined ? undefined : Number(process.env.STUDY_PIPELINE_REDRAFT_MAX_CORRECTIONS)
+          await mutateStudyVersion(id,version=>{
+            version.draft=redraftPilotChapter(version.draft,chapterId,{maxCorrections:correctionLimit})
+            version.draft.status=execution==='local'?'local-ready':'queued'
+          })
+          run.steps=[]
+          run.redraftedTopic=chapterId
+          if(correctionLimit!==undefined)run.redraftMaxCorrections=correctionLimit
         }
         run.resumedFrom=process.env.STUDY_PIPELINE_RESUME_FILE
       }
@@ -187,6 +217,25 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       const version=await ownStudyVersion(id)
       run.status=version.draft.status;run.error=version.draft.error;run.issues=version.draft.issues
       run.revision=await studyRevision(version);run.passed=run.status==='complete' && !!run.revision
+      // A completed course run is not a completed course: every derived guide
+      // must itself be readable, complete and non-empty before this run passes.
+      if(version.courseBundle){
+        const published=version.bundleGuides || []
+        run.guides=[]
+        for(const guide of published){
+          const child=await ownStudyVersion(guide.id).catch(()=>null)
+          const childRevision=child ? await studyRevision(child).catch(()=>null) : null
+          run.guides.push({versionId:guide.id,guideId:guide.guideId||child?.courseBundleParent?.guideId||null,title:child?.title||guide.title,
+            status:child?.draft?.status || 'missing',state:child?.courseBundleParent?.state || null,activeRevisionId:child?.activeRevisionId||null,chapters:childRevision?.chapters.length||0})
+        }
+        const derived=(await listCourseBundleChildren(id)).filter(v=>v.courseBundleParent?.state!=='archived')
+        const complete=run.guides.filter(g=>g.status==='complete' && g.state==='published' && g.activeRevisionId && g.guideId && g.chapters>0)
+        run.bundle={plannedGuides:version.draft.guides?.length||published.length,publishedGuides:published.length,derivedGuides:derived.length,completeGuides:complete.length,publication:version.bundlePublication||null}
+        if(run.passed && (!published.length || complete.length!==published.length || derived.length!==published.length)){
+          run.passed=false
+          run.error=run.error || `Course bundle published ${complete.length} complete guides of ${published.length} (${derived.length} derived documents).`
+        }
+      }
       if(!run.passed)run.draft=version.draft
       else delete run.draft
       if(cycle===0 && pilot?.updateSourceKeys.length && process.env.STUDY_PIPELINE_DEFER_UPDATE!=='1' && run.passed){

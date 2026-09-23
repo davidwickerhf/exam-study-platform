@@ -24,7 +24,7 @@ const externalReads = new Set(`get_calendar get_study_briefing canvas_updates pr
 canvas_groups canvas_assignment_detail canvas_course_requirements canvas_list_remote_courses
 canvas_list_remote_course_modules admin_list_canvas_courses admin_list_canvas_course_modules`.split(/\s+/))
 const additiveWrites = new Set(`feedback_prepare feedback_submit feedback_reply
-study_generation_start study_generation_add_notes tutor_prepare_context tutor_prepare_attendance_update
+study_generation_start study_guide_fork study_generation_add_notes tutor_prepare_context tutor_prepare_attendance_update
 tutor_add_source create_flashcard record_chapter_read download_course_original prepare_original_download`.split(/\s+/))
 
 export function toolAnnotations(name) {

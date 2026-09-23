@@ -186,6 +186,117 @@ restricted to the evidence IDs supplied to that exact generation step. Structura
 errors report field paths and validator codes without logging private source text.
 Format conformance does not replace deterministic and independent evidence checks.
 
+## Whole-course bundles and managed guides
+
+A course run (`courseBundle:true` on `POST /api/study-versions/local` or
+`study_generation_start`) maps the selected sources once, plans one curriculum
+for the whole course with a primary home for every concept, and splits that
+plan into 2–12 guides with stable ids instead of generating one guide per
+source selection. Chapters are authored and reviewed per guide against the
+shared plan. Child guides are staged invisibly (`courseBundleParent.state:
+'staged'`, no active revision, never listed, claimed or readable) and only
+become visible when the parent run records their publication inside its own
+lease-fenced commit. A lease expiry, worker stop, or partial failure cannot
+expose a half-built guide, a superseded worker cannot repoint one, and a
+retried commit converges on the same guide identities and archives any guide
+the new plan drops. Children reference the parent's immutable snapshot by
+reference — the scoped sources and evidence they actually cite, not a copy of
+the whole course — and hydrate the shared parts on read. A bundle counts as
+one version against the 20-version course limit regardless of guide count;
+see [Guide generation economics](../GUIDE_GENERATION_ECONOMICS.md) for the
+per-chapter budget mechanics and [Full-course pilots](../FULL_COURSE_PILOTS.md)
+for how source mapping and outline recovery are being exercised at course
+scale.
+
+Guides produced by a course run are **managed guides**: read-only derivatives
+of the parent's plan. `edit`, `improve`, `restore`, `refresh`, `control` and
+maintenance-enroll all return 409 naming the parent course run instead of
+acting on the child, because the parent's next publication replaces that
+child's content wholesale. `POST /api/study-versions/:id/fork` (and the MCP
+`study_guide_fork` tool) copies one saved revision of a managed guide into an
+independent, editable private version — no model call, no hosted job, no
+billing — and that fork is never touched by the parent again; it counts as
+its own version. Sharing a managed guide is still allowed, with its private
+source references stripped from the shared copy. `studyVersionSummary` carries
+typed `bundle` (parent: child guides and status) and `managed` (child: owning
+parent) blocks so the UI and MCP clients can navigate between a course run and
+its guides without inferring the relationship from raw fields.
+
+A rejected course outline is corrected rather than fatal. When the resolver
+refuses a proposed plan — dropped mapped concepts, one concept owned by two
+guides, unknown or repeated refs, duplicate ids, or the chapter ceiling — the
+rejected proposal and a structured issue list (missing concept ids with their
+titles and the group already teaching that concept) are saved on the draft, and
+the next step re-issues the same `course-outline` phase with those issues and
+the previous proposal instead of re-sending evidence. At most two corrections
+are allowed per outline, counted in the draft's ordinary automatic-correction
+ledger (`stage:outline`), so a resume, hosted retry or local `next` continues
+the same budget rather than restarting it; when it is spent the run fails with
+the same clear error, its source maps and rejected proposal intact, and
+re-entering that failed stage costs no further call. The same bound applies to
+the non-bundle combined outline.
+
+Below max(3, 2% of all mapped concepts), a dropped concept with no other
+error-level issue is instead placed deterministically into the chapter that
+already holds the most refs from its source map (tie-broken by shared
+evidence, then plan order) rather than rejected, with every placement recorded
+in `planning.autoPlaced`; larger gaps and unplaceable concepts still follow the
+correction path above, and re-entering an outline stage with a saved rejected
+proposal re-checks it under the current rules first, accepting it with no
+provider call if it now passes.
+
+Chapter ceilings apply per guide, not per course: each child is an ordinary
+guide, so a guide may plan at most 24 chapters and hold at most 40 after the
+evidence-capacity split, and a bundle of 2–12 guides is bounded by guides × 40.
+The bundle prompt states the per-chapter evidence allowance, that oversized
+chapters are split into parts, and the minimum chapters and guides the selected
+evidence needs. A guide that still expands past 40 is a correctable rejection
+listing the guide, the chapters split into parts and the excess; any other
+outline failure also saves the rejected proposal on the draft before failing.
+
+Scope and granularity are decided automatically for every whole-course bundle
+(`scope-roles-v1`, `lib/study-course-scope-policy.mjs`); students are never
+asked. The outline gives each mapped concept a role: `core` (assessed in the
+current edition), `supporting` (prerequisite or practical/project material,
+carried by the core chapter that needs it or by at most one compact reference
+chapter per guide) or `excluded`. An exclusion needs a reason and a citation of
+current scope context or current-edition lecture material, may cover at most
+35% of mapped concepts, cannot also be taught, and is saved as a visible scope
+note; violations are correctable outline issues. The chapter budget is computed
+from core evidence only (current lecture evidence, or historical lecture
+evidence for concepts with nothing current; code, archives and datasets never
+count): about one chapter per 36,000 characters, at least 6, capped at 60 but
+never below what the evidence capacity physically needs, with 3–10 chapters per
+guide. Parts are sized by core evidence; supporting evidence fills remaining
+capacity by relevance and the rest is trimmed and recorded in `evidenceTrims`.
+A budget breach goes through the same bounded correction. Review, citation and
+pedagogy standards are unchanged, and no assessed concept is dropped to fit.
+A saved bundle outline from an older policy with no authored chapters or
+teaching plans re-enters the outline stage on resume from its saved maps; the
+superseded plan and its outline-correction count are archived in
+`replannedOutlines`, other correction counters are kept. Single-guide outlines
+are unchanged.
+
+Source mapping now recovers from a `provider_output_limit` response by halving
+the offending batch, at most two levels, while keeping already-accepted maps
+and citations; the split is persisted so a resumed run repeats the same batch
+boundaries. `STUDY_MODEL_ROUTES` / `STUDY_PIPELINE_MODEL_ROUTES` entries may
+also be `{model, reasoning}` pairs, validated against the efforts the OpenAI
+provider layer accepts. Nothing here changes pricing or is enabled by default.
+
+Known limits: the first real whole-course bundle run reached the outline stage
+but its single outline call omitted two mapped concepts, which is what the
+bounded correction above now absorbs; no real run has yet produced published
+guides end to end;
+concept duplicate detection across the shared plan is exact-name only, not
+semantic; automatic Canvas onboarding still uses the existing per-module
+maintenance workflow — a course run is opt-in from the creation form or MCP,
+not the automatic path; `bundle.guides` status is derived from the parent, not
+polled per child; and there is a residual window where children are visible
+while the parent's final completion commit is still pending — a retry
+converges on the same result, but a reader mid-window may briefly see an
+incomplete bundle.
+
 ### Personal edits, feedback and revision history
 
 The chapter's **Improve chapter** side panel accepts feedback and requests an AI

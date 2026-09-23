@@ -222,6 +222,13 @@ test('BYOK is encrypted, account-bound, redacted, explicitly selected, and never
       await assert.rejects(runBudgetedStudyCall('hello',{maxOutputTokens:64000},{...config,callPersonal:async()=>{throw incomplete}}),/incomplete/)
       const afterFailure=await readDocument('study-ai-personal-budget',month)
       assert.equal(afterFailure.total-beforeFailure.total,studyModelCost(billing.model,10,10))
+      // A call abandoned at its own deadline reports no usage at all, so it
+      // settles exactly like any other unknown-usage failure: the whole
+      // reservation stays charged rather than being written off as free.
+      const timedOut=Object.assign(new Error('deadline'),{name:'TimeoutError',code:'provider_timeout',retryable:true})
+      await assert.rejects(runBudgetedStudyCall('hello',{maxOutputTokens:64000},{...config,callPersonal:async()=>{throw timedOut}}),/deadline/)
+      const afterTimeout=await readDocument('study-ai-personal-budget',month)
+      assert.ok(afterTimeout.total-afterFailure.total>studyModelCost(billing.model,10,10),'an abandoned call retains its full reservation')
       await removePersonalAiKey()
       await assert.rejects(
         runBudgetedStudyCall('hello', {}, config),
@@ -285,9 +292,12 @@ test('Sol and Astra preserve explicit model selection and reserve current long-c
       await assert.rejects(resolveStudyBilling({quality},{...platform,provider:'anthropic'}),/OpenAI/)
     }
     assert.equal(studyModelCost('gpt-5.6-sol',1000,1000),25000)
+    assert.equal(studyModelCost('gpt-6-sol',1000,1000),12500)
     assert.equal(studyModelCost('gpt-6-astra',1000,1000),62500)
+    assert.equal(studyModelCost('gpt-6-sol',1000,1000,{cachedInputTokens:500,cacheWriteInputTokens:200}),11200)
     assert.equal(studyModelCost('gpt-6-astra',1000,1000,{cachedInputTokens:500,cacheWriteInputTokens:200}),56000)
     assert.equal(studyModelCost('gpt-5.6-sol',300000,1000),3030000)
+    assert.equal(studyModelCost('gpt-6-sol',300000,1000),1515000)
     assert.equal(studyModelCost('gpt-6-astra',300000,1000),7575000)
   })
 })
@@ -297,20 +307,20 @@ test('paid-call reservation remains exclusive beyond the old five-minute lease',
   assert.throws(()=>reserveStudyLedger(first.ledger,{...input,now:input.now+360000},limits),/Another chapter/)
 })
 
-test('guide defaults use Astra without rerouting assessments or changing an existing job',async()=>{
+test('guide defaults use GPT-6 Sol without rerouting assessments or changing an existing job',async()=>{
   const {resolveGuideBilling}=await import('../lib/study-ai-budget.mjs')
   const userId=`guide-routing-${randomUUID()}`
   await withRequestContext({userId,mode:'hosted',email:'student@example.test'},async()=>{
     try{
       const platform={configured:true,provider:'openai',model:'gpt-5-mini'}
-      assert.equal((await resolveGuideBilling({},platform)).model,'gpt-6-astra')
+      assert.equal((await resolveGuideBilling({},platform)).model,'gpt-6-sol')
       assert.equal((await resolveStudyBilling({},platform)).model,'gpt-5-mini')
       const existing={source:'platform',model:'gpt-5.6-sol',maxJobUsd:0.75}
       const resumed=await resolveGuideBilling({},platform,existing)
       assert.equal(resumed.model,existing.model)
       assert.equal(resumed.maxJobUsd,existing.maxJobUsd)
       assert.equal((await resolveGuideBilling({quality:'astra'},platform,existing)).model,'gpt-6-astra')
-      assert.equal((await resolveGuideBilling({quality:'standard'},platform)).model,'gpt-5-mini')
+      assert.equal((await resolveGuideBilling({quality:'standard'},platform)).model,'gpt-6-sol')
       await assert.rejects(resolveGuideBilling({source:'personal'},platform),/key|connect|configured/i)
     }finally{await deleteAllDocuments()}
   })

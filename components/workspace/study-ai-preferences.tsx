@@ -113,7 +113,7 @@ export function StudyAiPreferenceSummary({
   return (
     <span className="text-xs text-muted-foreground">
       {preferences
-        ? `${preferences.quality !== 'standard' && preferences.billingSource === 'platform' ? ({enhanced:'GPT-5.4',sol:'GPT-5.6 Sol',astra:'GPT-6 Astra'}[preferences.quality] || preferences.quality) : preferences.billingSource === 'personal' ? 'Your configured model' : 'Standard model'} · ${preferences.billingSource === 'personal' ? 'Your AI key' : 'Platform allowance'}`
+        ? `${preferences.quality !== 'standard' && preferences.billingSource === 'platform' ? ({enhanced:'GPT-5.4',sol:'GPT-5.6 Sol · Legacy',astra:'GPT-6 Astra'}[preferences.quality] || preferences.quality) : preferences.billingSource === 'personal' ? 'Your configured model' : 'GPT-6 Sol · Standard'} · ${preferences.billingSource === 'personal' ? 'Your AI key' : 'Platform allowance'}`
         : 'Loading AI preferences…'}
     </span>
   )
