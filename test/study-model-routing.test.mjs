@@ -52,6 +52,8 @@ test('the GPT-6 Sol standard uses the measured mixed profile without the failed 
  const arbiter=routeStudyModel(standard,{...options,usageMetadata:{versionId:'sv-test',phase:'teaching-plan-arbiter'}},STANDARD_STUDY_MODEL_ROUTES)
  assert.equal(arbiter.model,'gpt-6-sol')
  assert.equal(arbiter.reasoningEffort,'medium')
+ const planRepair=routeStudyModel(standard,{...options,usageMetadata:{versionId:'sv-test',phase:'teaching-plan-repair'}},STANDARD_STUDY_MODEL_ROUTES)
+ assert.equal(planRepair.model,'gpt-6-sol')
  const authoring=routeStudyModel(standard,{...options,usageMetadata:{versionId:'sv-test',stage:'chapters'}},STANDARD_STUDY_MODEL_ROUTES)
  assert.equal(authoring.model,'gpt-6-sol')
  assert.equal(authoring.reasoningEffort,'medium')
