@@ -654,5 +654,21 @@ re-plans, forbids replacement tasks from inventing new logs, tools, persistence
 policies, algorithms or runtime behavior, and permits an objective to be
 lowered to simple when its evidence cannot support a genuine transfer. The
 cheap narrowing allowance is three re-plans; a fourth failed check still stops
-before authoring. The next continuation resumes the failed plan under that new
-gate, then completes the intended third fresh-chapter checkpoint.
+before authoring. The continuation resumed the failed plan under that new gate;
+its second constrained re-plan passed, so the third chapter drafted and passed
+after one two-patch correction. Including the earlier failed-plan spend, that
+chapter cost $0.466530.
+
+Across the intended three fresh chapters, correction counts were 0, 1 and 1;
+the total was $1.483104 and the average was $0.494368. The one-correction and
+average-cost targets therefore held for 3/3, while the per-chapter $0.50 target
+held for 2/3. The cumulative conservative ledger is $41.762005 of $50.
+
+The remaining $0.737011 outlier exposed an exact correction-routing bug. Its
+sole finding named both a faulty transfer question and its remediation target,
+but intentionally had no single `itemKey`. The question patcher supports that
+two-item diagnostic repair; the multi-patch dispatcher rejected it before the
+exact-ID locator ran and bought a whole-chapter rewrite instead. Exact chapter
+question IDs are now accepted as a bounded location, and the scope ledger names
+the selected patch targets. A no-provider replay of the saved finding selects
+one practice patch over the transfer and linked remediation questions.

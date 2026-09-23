@@ -6,7 +6,7 @@ import { deleteAllDocuments } from '../lib/user-store.mjs'
 import { addStudyNote, readStudySourceSnapshot } from '../lib/study-version-sources.mjs'
 import { createStudyVersion, ownStudyVersion, mutateStudyVersion } from '../lib/study-version-store.mjs'
 import { processStudyStep, prepareLesson } from '../lib/study-version-pipeline.mjs'
-import { questionRepairStep, applyQuestionRepair } from '../lib/study-chapter-repair.mjs'
+import { questionRepairStep, questionRepairSteps, repairScopeDecision, applyQuestionRepair } from '../lib/study-chapter-repair.mjs'
 import { contractRegressions } from '../lib/study-chapter-contract.mjs'
 import { routeStudyModel, questionCorrectionTrial } from '../lib/study-model-routing.mjs'
 import { teachingSchema } from '../lib/study-version-content.mjs'
@@ -31,6 +31,17 @@ function validDraft(ids) {
   ]}}
 }
 const ID = 'validated-chapter'
+
+test('a diagnostic finding that exactly names a question and its follow-up stays a bounded practice patch',()=>{
+  const ids=['e-1'],{plan,draft}=validDraft(ids)
+  const evidence=[{id:'e-1',sourceKey:'s',text:'Evidence.'}]
+  const chapter={...prepareLesson(JSON.stringify(draft),{id:ID,sourceIds:ids},evidence,plan),teachingPlan:plan}
+  const finding={severity:'error',topicId:ID,detail:'question-7 links to question-8, but question-8 does not exercise the specific mistaken reasoning. The follow-up should test that reasoning directly.'}
+  const steps=questionRepairSteps(course,[],evidence,chapter,[finding])
+  assert.equal(steps.length,1)
+  assert.deepEqual(steps[0].keys.sort(),['question-7','question-8'])
+  assert.deepEqual(repairScopeDecision(chapter,[finding],steps[0]),{path:'patch',repair:'practice-correction',findings:1,targets:['question:question-7','question:question-8']})
+})
 
 async function fixture(findings, {automaticRepairs = {[ID]: 1}} = {}) {
   const userId = `study-correction-validation-${randomUUID()}`

@@ -395,6 +395,12 @@ The experiment remains available through an explicit route, but is not in the
 standard profile. One fresh chapter's Mini question patch required a Sol
 fallback and two additional review cycles, making that chapter cost $0.641848.
 
+An exact multi-question diagnostic finding no longer forces a whole-chapter
+rewrite merely because it cannot honestly have one `itemKey`. When its detail
+names the chapter's faulty question and linked remediation target by exact ID,
+the bounded question patch selects those items and records them in the scope
+ledger. Genuinely unlocated prose still falls back to a coherent chapter repair.
+
 **Prompt caching.** Retries, re-plans, fill retries and merge re-prompts re-send
 the identical prompt with their note appended last, so a same-schema retry can
 reuse a cached prefix. Cross-phase prefix sharing is not attempted: each phase
