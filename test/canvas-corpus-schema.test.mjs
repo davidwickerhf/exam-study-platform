@@ -19,7 +19,8 @@ test('Canvas connection and material collection are separate explicit permission
 test('private snapshots stay account-scoped while community snapshots can be reused by enrolled accounts', () => {
   assert.match(migration, /contributor_user_id TEXT NOT NULL/)
   assert.match(retrieval, /s\.contributor_user_id=\$\{accountId\}.+s\.sharing_mode='community'.+accepted\.consent_status='accepted'/s)
-  assert.match(worker, /permission\.sharing_mode === 'community' \? 'candidate' : 'private'/)
+  assert.match(worker, /const sharingMode = privateOnly \? 'private' : permission\.sharing_mode/)
+  assert.match(worker, /sharingMode === 'community' \? 'candidate' : 'private'/)
 })
 
 test('the durable worker versions sources and schedules freshness checks', () => {
