@@ -2,6 +2,7 @@ import { runStudyAgentsSdk } from './lib/study-agents-sdk.mjs'
 import { providerFetch } from './lib/provider-fetch.mjs'
 import { scheduleModuleGuides } from './lib/study-module-automation.mjs'
 import { prepareOriginalDownload } from './lib/original-downloads.mjs'
+import { explicitCanvasMaterial } from './lib/canvas-explicit-retrieval.mjs'
 import { sendCorpusAsset } from './lib/corpus-asset-response.mjs'
 import { isMcpRoute, handleRemoteMcp, remoteMcpService } from './lib/mcp-service.mjs'
 import { internalMcpAuth } from './lib/mcp-bridge.mjs'
@@ -3949,6 +3950,21 @@ async function handleRequest(req, res) {
         send(res, 202, JSON.stringify(await enqueueAndWake(enqueueCanvasCourseSync({ accountId: currentAuth().userId, origin, course, force: body?.force !== false }))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'The selected Canvas course could not be queued.' }))
+      }
+      return
+    }
+    if (url.pathname === '/api/integrations/canvas/material-link' && req.method === 'POST') {
+      try {
+        const body = await readBody(req, 8 * 1024)
+        const origin = parseCanvasOrigin(body?.canvasUrl || 'https://canvas.maastrichtuniversity.nl').origin
+        const result = await explicitCanvasMaterial({
+          accountId: currentAuth().userId, origin, courseId: String(body?.canvasCourseId || ''),
+          link: String(body?.link || ''), fileId: body?.fileId, version: body?.version,
+          transfer: body?.transfer === true
+        })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      } catch (error) {
+        send(res, 400, JSON.stringify({ error: error instanceof Error ? error.message : 'Canvas material lookup failed.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       }
       return
     }
