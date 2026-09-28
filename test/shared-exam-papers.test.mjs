@@ -27,6 +27,7 @@ test('original-file access requires an eligible signed-in browser identity', () 
   assert.equal(canOpenSharedExam({ authenticated: true, mode: 'clerk', email: 'student@student.maastrichtuniversity.nl' }), true)
   assert.equal(canOpenSharedExam({ authenticated: true, mode: 'clerk', email: 'student@other.example' }), false)
   assert.equal(canOpenSharedExam({ authenticated: true, mode: 'clerk', email: 'reviewer@other.example', admin: true }), true)
+  assert.equal(canOpenSharedExam({ authenticated: true, mode: 'local' }, { NODE_ENV: 'production' }), false)
 })
 
 test('course share links survive sign-in without accepting off-site redirects', () => {
