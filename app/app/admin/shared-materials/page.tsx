@@ -24,8 +24,14 @@ export default function SharedMaterialReviews() {
   }
   useEffect(() => { if (!session?.admin) return; const timer = window.setTimeout(() => { void load().catch(cause => setError(cause.message)) }, 250); return () => window.clearTimeout(timer) }, [session?.admin, search])
   const distinct = useMemo(() => {
-    const seen = new Set<string>()
-    return rows.filter(row => { const key = `${row.courseCode}/${row.academicYear}/${row.assetId}`; if (seen.has(key)) return false; seen.add(key); return true })
+    const byAsset = new Map<string, Candidate>()
+    const rank = { pending: 0, withheld: 1, approved: 2 }
+    for (const row of rows) {
+      const key = `${row.courseCode}/${row.academicYear}/${row.assetId}`
+      const previous = byAsset.get(key)
+      if (!previous || rank[row.status] > rank[previous.status]) byAsset.set(key, row)
+    }
+    return [...byAsset.values()]
   }, [rows])
   const pending = distinct.filter(row => row.status === 'pending')
   const chosen = distinct.filter(row => selected[row.snapshotId])
