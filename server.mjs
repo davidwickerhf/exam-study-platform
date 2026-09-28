@@ -100,7 +100,7 @@ import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHu
 import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
 import { examPaperReviewQueue, publishedExamPapers, reviewExamPaper, sharedExamAsset, sharedExamCourseCode } from './lib/shared-exam-papers.mjs'
 import { publishedCourseMaterials, reviewSharedCourseMaterials, sharedCourseMaterialAsset, sharedMaterialReviewQueue, sharedMaterialIndex, sharedCourseQuestions } from './lib/shared-course-materials.mjs'
-import { generateSharedCourseQuestions, publishSharedCourseQuestions, removeSharedCourseDraftQuestion, reviewSharedCourseQuestionSet } from './lib/shared-course-questions.mjs'
+import { editSharedCourseDraftQuestion, generateSharedCourseQuestions, publishSharedCourseQuestions, removeSharedCourseDraftQuestion, reviewSharedCourseQuestionSet } from './lib/shared-course-questions.mjs'
 import { canOpenSharedExam } from './lib/shared-exam-policy.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { workspaceProgrammeCatalogue, loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
@@ -3818,10 +3818,13 @@ async function handleRequest(req, res) {
       return
     }
     const sharedQuestionDeleteMatch = /^\/api\/admin\/shared-questions\/([^/]+)\/draft\/([^/]+)$/.exec(url.pathname)
-    if (sharedQuestionDeleteMatch && req.method === 'DELETE') {
+    if (sharedQuestionDeleteMatch && ['DELETE','PUT'].includes(req.method)) {
       try {
         if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review questions in a signed-in browser.' })); return }
-        send(res, 200, JSON.stringify(await removeSharedCourseDraftQuestion(sharedQuestionDeleteMatch[1], decodeURIComponent(sharedQuestionDeleteMatch[2]))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+        const result = req.method === 'DELETE'
+          ? await removeSharedCourseDraftQuestion(sharedQuestionDeleteMatch[1], decodeURIComponent(sharedQuestionDeleteMatch[2]))
+          : await editSharedCourseDraftQuestion(sharedQuestionDeleteMatch[1], decodeURIComponent(sharedQuestionDeleteMatch[2]), await readBody(req, 8 * 1024))
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Question review failed.' })) }
       return
     }
