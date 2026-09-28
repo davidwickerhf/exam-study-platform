@@ -3793,7 +3793,7 @@ async function handleRequest(req, res) {
     }
 
     if (url.pathname === '/api/admin/exam-papers' && req.method === 'GET') {
-      send(res, 200, JSON.stringify({ papers: await examPaperReviewQueue() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      send(res, 200, JSON.stringify({ papers: await examPaperReviewQueue({ search: url.searchParams.get('search') || '' }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       return
     }
     if (url.pathname === '/api/admin/exam-papers' && req.method === 'POST') {
@@ -3801,7 +3801,7 @@ async function handleRequest(req, res) {
         if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review exam originals in a signed-in browser.' })); return }
         const body = await readBody(req, 4 * 1024)
         const result = await reviewExamPaper({ snapshotId: body?.snapshotId, status: body?.status,
-          reviewerId: currentAuth().userId, note: body?.note })
+          reviewerId: currentAuth().userId, note: body?.note, kind: body?.kind })
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) {
         send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Paper review failed.' }))

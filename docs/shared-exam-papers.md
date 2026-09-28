@@ -8,11 +8,12 @@ and this page does not require programme selection or workspace onboarding.
 
 Canvas **Share with community** consent creates potential contributions. It
 does not release originals. The global administration page links to **Exam
-originals review**, which lists current PDF candidates classified as papers or
-solutions. To release one:
+originals review**, which suggests likely papers and solutions. Enable **Show
+all PDFs** to find files whose names do not identify them as exams, such as
+`F14-t1.pdf`, and classify them manually. To release one:
 
 1. Review and accept the contribution in the existing editorial rights review.
-2. Inspect the exact original and record the basis for sharing that original
+2. Inspect the exact original, classify it as a paper or solutions, and record the basis for sharing that original
    with all verified Maastricht members.
 3. Approve the original in `/app/admin/exam-papers`.
 

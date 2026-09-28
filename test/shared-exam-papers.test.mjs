@@ -1,15 +1,23 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { canOpenSharedExam, examMaterialKind, sharedExamCourseCode } from '../lib/shared-exam-policy.mjs'
+import { canOpenSharedExam, examMaterialKind, reviewedExamKind, sharedExamCourseCode } from '../lib/shared-exam-policy.mjs'
 import { safeAuthDestination } from '../lib/workspace/auth-session.mjs'
 
-test('only exam PDFs enter the original-sharing review queue', () => {
+test('exam PDFs receive a suggested classification for review', () => {
   assert.equal(examMaterialKind({ filename: 'Past exam 2024.pdf' }), 'paper')
   assert.equal(examMaterialKind({ filename: 'Mock exam solutions.pdf' }), 'solutions')
   assert.equal(examMaterialKind({ filename: 'Solutions.pdf', sourcePath: 'Course/Exam 2025/Solutions.pdf' }), 'solutions')
   assert.equal(examMaterialKind({ filename: 'Lecture slides.pdf', sourcePath: 'Course/Exam preparation/Lecture slides.pdf' }), null)
   assert.equal(examMaterialKind({ filename: 'Assignment solutions.pdf' }), null)
   assert.equal(examMaterialKind({ filename: 'Past exam 2024.docx' }), null)
+})
+
+test('a rights reviewer can explicitly classify a cryptically named PDF, but not another file type', () => {
+  assert.equal(reviewedExamKind({ filename: 'F14-t1.pdf' }), null)
+  assert.equal(reviewedExamKind({ filename: 'F14-t1.pdf', kind: 'paper' }), 'paper')
+  assert.equal(reviewedExamKind({ filename: 'F14-t1-solution.pdf', kind: 'solutions' }), 'solutions')
+  assert.equal(reviewedExamKind({ filename: 'lecture.pdf', kind: 'other' }), null)
+  assert.equal(reviewedExamKind({ filename: 'exam.docx', kind: 'paper' }), null)
 })
 
 test('original-file access requires an eligible signed-in browser identity', () => {
