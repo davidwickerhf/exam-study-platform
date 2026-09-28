@@ -3826,7 +3826,10 @@ async function handleRequest(req, res) {
         else if (req.method === 'POST' && action === 'publish') result = await publishSharedCourseQuestions(code, currentAuth().userId)
         else { send(res, 405, JSON.stringify({ error: 'Method not allowed.' })); return }
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
-      } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Question processing failed.' })) }
+      } catch (error) {
+        console.warn('Shared question processing failed:', error.code || error.name, error.providerStatus || error.status || '')
+        send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Question processing failed.', code: error.code || null, providerStatus: error.providerStatus || null }))
+      }
       return
     }
     if (url.pathname === '/api/admin/exam-papers' && req.method === 'GET') {
