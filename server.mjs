@@ -1249,7 +1249,9 @@ async function runCodex(prompt, opts = {}) {
   }
   try {
     let result
-    const model = opts.model || stageModel(opts.stage)
+    // An absent stage must leave provider-specific defaults intact. Passing an
+    // empty string defeats parameter defaults and sends model:"" upstream.
+    const model = opts.model || stageModel(opts.stage) || undefined
     switch (LLM_PROVIDER) {
       case 'codex':  result = await runCodexCli(prompt, { ...opts, model }); break
       case 'claude': result = await runClaudeCli(prompt, { ...opts, model }); break
