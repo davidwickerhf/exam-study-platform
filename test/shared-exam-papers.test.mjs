@@ -10,6 +10,8 @@ test('exam PDFs receive a suggested classification for review', () => {
   assert.equal(examMaterialKind({ filename: 'Lecture slides.pdf', sourcePath: 'Course/Exam preparation/Lecture slides.pdf' }), null)
   assert.equal(examMaterialKind({ filename: 'Assignment solutions.pdf' }), null)
   assert.equal(examMaterialKind({ filename: 'Past exam 2024.docx' }), null)
+  assert.equal(examMaterialKind({ filename: 'Exam manual.pdf' }), null)
+  assert.equal(examMaterialKind({ filename: 'Exam syllabus.pdf' }), null)
 })
 
 test('a rights reviewer can explicitly classify a cryptically named PDF, but not another file type', () => {
@@ -35,6 +37,7 @@ test('course share links survive sign-in without accepting off-site redirects', 
   assert.equal(sharedExamCourseCode(' bcs1540 '), 'BCS1540')
   assert.equal(sharedExamCourseCode('..'), null)
   assert.equal(safeAuthDestination('/share/courses/BCS1540/exam-papers?year=2025', origin), '/share/courses/BCS1540/exam-papers?year=2025')
+  assert.equal(safeAuthDestination('/share/courses/BCS1540/materials?tab=index', origin), '/share/courses/BCS1540/materials?tab=index')
   assert.equal(safeAuthDestination('https://evil.example/share/courses/BCS1540/exam-papers', origin), '/app')
   assert.equal(safeAuthDestination('/share/courses/../exam-papers', origin), '/app')
 })
