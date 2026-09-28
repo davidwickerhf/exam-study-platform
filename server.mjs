@@ -3832,7 +3832,7 @@ async function handleRequest(req, res) {
         const [, code, action] = sharedQuestionAdminMatch
         let result
         if (req.method === 'GET' && !action) result = await reviewSharedCourseQuestionSet(code)
-        else if (req.method === 'POST' && action === 'generate') result = await generateSharedCourseQuestions(code, { generate: runCodex, reviewerId: currentAuth().userId })
+        else if (req.method === 'POST' && action === 'generate') result = await generateSharedCourseQuestions(code, { generate: runCodex, reviewerId: currentAuth().userId, append: url.searchParams.get('append') === '1' })
         else if (req.method === 'POST' && action === 'publish') result = await publishSharedCourseQuestions(code, currentAuth().userId)
         else { send(res, 405, JSON.stringify({ error: 'Method not allowed.' })); return }
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })

@@ -20,10 +20,10 @@ export default function SharedQuestionReview() {
     setSets(current => ({ ...current, [code]: data }))
   }
   useEffect(() => { if (session?.admin) void Promise.all(COURSES.map(load)).catch(cause => setError(cause.message)) }, [session?.admin])
-  async function action(code: string, operation: 'generate' | 'publish') {
+  async function action(code: string, operation: 'generate' | 'publish', append = false) {
     setBusy(`${code}-${operation}`); setError('')
     try {
-      const response = await fetch(`/api/admin/shared-questions/${code}/${operation}`, { method: 'POST' })
+      const response = await fetch(`/api/admin/shared-questions/${code}/${operation}${append ? '?append=1' : ''}`, { method: 'POST' })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || `${operation} failed.`)
       await load(code)
@@ -43,7 +43,7 @@ export default function SharedQuestionReview() {
   if (!session?.admin) return <main className="mx-auto max-w-4xl p-8"><h1 className="text-2xl font-semibold">Administrator access required</h1></main>
   return <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 p-6 sm:p-8"><header className="border-b pb-5"><a href="/app/admin" className="text-sm font-semibold text-primary">← Administration</a><h1 className="font-heading mt-3 text-3xl font-semibold tracking-tight">Shared practice questions</h1><p className="mt-2 max-w-[74ch] text-sm leading-6 text-muted-foreground">Generate questions from approved indexed course materials, check every answer against its cited original, then publish each course set. These are Wicker exercises, not official exam questions.</p></header>
     {error && <p role="alert" className="border border-destructive/40 p-3 text-sm text-destructive">{error}</p>}
-    {COURSES.map(code => { const set = sets[code]; return <section key={code} className="border p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="font-heading text-xl font-semibold">{code}</h2><p className="mt-1 text-sm text-muted-foreground">{set ? `${set.draft.length} draft · ${set.published.length} published` : 'Loading…'}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={Boolean(busy)} onClick={() => void action(code, 'generate')}>{busy === `${code}-generate` ? 'Generating…' : 'Generate draft'}</Button><Button disabled={Boolean(busy) || !set || set.draft.length < 6} onClick={() => void action(code, 'publish')}>Publish reviewed set</Button></div></div>
+    {COURSES.map(code => { const set = sets[code]; return <section key={code} className="border p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="font-heading text-xl font-semibold">{code}</h2><p className="mt-1 text-sm text-muted-foreground">{set ? `${set.draft.length} draft · ${set.published.length} published` : 'Loading…'}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={Boolean(busy)} onClick={() => void action(code, 'generate')}>{busy === `${code}-generate` ? 'Generating…' : 'Generate draft'}</Button><Button variant="outline" disabled={Boolean(busy) || !set?.draft.length} onClick={() => void action(code, 'generate', true)}>Generate more</Button><Button disabled={Boolean(busy) || !set || set.draft.length < 6} onClick={() => void action(code, 'publish')}>Publish reviewed set</Button></div></div>
       {set?.draft.length ? <ol className="mt-5 divide-y border-t">{set.draft.map((question, index) => <li key={question.id} className="py-4 text-sm"><p className="font-data text-xs text-muted-foreground">{index+1}. {question.kind} · {question.chapter}</p><p className="mt-2 font-semibold">{question.question}</p><p className="mt-2 leading-6">Answer: {question.expected}</p><div className="mt-2 flex flex-wrap items-center gap-4"><a className="text-xs font-semibold text-primary" href={question.sourceUrl} target="_blank" rel="noreferrer">Check source: {question.sourceTitle}{question.sourcePage != null ? ` · p. ${question.sourcePage}` : ''} ↗</a><button className="text-xs font-semibold text-destructive" disabled={Boolean(busy)} onClick={() => void remove(code, question.id)}>Remove from draft</button></div></li>)}</ol> : <p className="mt-5 text-sm text-muted-foreground">No draft yet.</p>}
     </section> })}
   </main>
