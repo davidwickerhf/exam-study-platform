@@ -98,6 +98,8 @@ import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, list
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
 import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
+import { examPaperReviewQueue, publishedExamPapers, reviewExamPaper, sharedExamAsset, sharedExamCourseCode } from './lib/shared-exam-papers.mjs'
+import { canOpenSharedExam } from './lib/shared-exam-policy.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { workspaceProgrammeCatalogue, loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -3717,6 +3719,17 @@ async function handleRequest(req, res) {
       }
       return
     }
+    const publicExamMatch = /^\/api\/public\/exam-papers\/([^/]+)$/.exec(url.pathname)
+    if (publicExamMatch && req.method === 'GET') {
+      const code = sharedExamCourseCode(publicExamMatch[1])
+      if (!code) { send(res, 404, JSON.stringify({ error: 'Course not found.' })); return }
+      try {
+        send(res, 200, JSON.stringify(await publishedExamPapers(code)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch {
+        send(res, 503, JSON.stringify({ error: 'The paper list is temporarily unavailable.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      }
+      return
+    }
 
     // Step three of the agent authorization: an agent with no credential trades
     // its single-use code and verifier for a freshly minted API key, once.
@@ -3777,6 +3790,34 @@ async function handleRequest(req, res) {
       if(!url.pathname.startsWith('/api/feedback')&&!url.pathname.startsWith('/api/admin/feedback')&&url.pathname!=='/api/tutor')res.once('finish',()=>{
         if(res.statusCode>=500)void recordQualityEvent({code:'API_FAILURE',stage:'request',route:url.pathname,durationMs:Date.now()-feedbackStarted},{userId:auth.userId}).catch(()=>{})
       })
+    }
+
+    if (url.pathname === '/api/admin/exam-papers' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ papers: await examPaperReviewQueue() }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/admin/exam-papers' && req.method === 'POST') {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review exam originals in a signed-in browser.' })); return }
+        const body = await readBody(req, 4 * 1024)
+        const result = await reviewExamPaper({ snapshotId: body?.snapshotId, status: body?.status,
+          reviewerId: currentAuth().userId, note: body?.note })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Paper review failed.' }))
+      }
+      return
+    }
+    const sharedExamAssetMatch = /^\/api\/shared-exam-papers\/assets\/([^/]+)$/.exec(url.pathname)
+    if (sharedExamAssetMatch && ['GET','HEAD'].includes(req.method)) {
+      if (!canOpenSharedExam(currentAuth())) {
+        send(res, 403, JSON.stringify({ error: 'Sign in with a Maastricht University account to open this paper.' })); return
+      }
+      const asset = await sharedExamAsset(decodeURIComponent(sharedExamAssetMatch[1]))
+      if (!asset) { send(res, 404, JSON.stringify({ error: 'This paper is no longer available.' })); return }
+      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store' }) }
+      catch (error) { if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This paper could not be opened.' })); else res.destroy(error) }
+      return
     }
 
     if (await handleFeedbackRoute(req,res,url,{readBody,send})) return

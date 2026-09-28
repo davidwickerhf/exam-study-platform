@@ -681,7 +681,7 @@ export default function AdminPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 p-5 sm:p-8">
       <header className="flex flex-col gap-1">
-        <a href="/app/admin/feedback" className="text-primary mb-3 text-sm font-semibold">Feedback review →</a>
+        <div className="mb-3 flex flex-wrap gap-5"><a href="/app/admin/feedback" className="text-primary text-sm font-semibold">Feedback review →</a><a href="/app/admin/exam-papers" className="text-primary text-sm font-semibold">Exam originals review →</a></div>
         <h1 className="font-heading text-[32px] leading-[1.1] font-semibold tracking-[-0.03em]">
           Editorial workspace
         </h1>

@@ -16,7 +16,7 @@ const appearance = {
     colorBackground: '#ffffff',
     colorInputBackground: '#ffffff',
     colorInputText: '#20263a',
-    borderRadius: '4px',
+    borderRadius: '6px',
     fontFamily: 'var(--font-ui)',
     fontSize: '14px'
   },
@@ -103,7 +103,7 @@ export function AuthPage({ mode, enabled, allowedDomains, localAccounts = [] }: 
       const response = await fetch('/api/auth/local-session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
       const body = await response.json().catch(() => null)
       if (!response.ok) throw new Error(body?.error || 'Test sign-in failed.')
-      window.location.assign('/app')
+      window.location.assign(safeAuthDestination(new URLSearchParams(window.location.search).get('redirect_url'), window.location.origin))
     } catch (cause) {
       setLocalError((cause as Error).message)
       setLocalBusy(false)
