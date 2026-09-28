@@ -99,7 +99,7 @@ import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from '.
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
 import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
 import { examPaperReviewQueue, publishedExamPapers, reviewExamPaper, sharedExamAsset, sharedExamCourseCode } from './lib/shared-exam-papers.mjs'
-import { publishedCourseMaterials, reviewSharedCourseMaterials, sharedCourseMaterialAsset, sharedMaterialReviewQueue, sharedMaterialIndex, sharedCourseQuestions } from './lib/shared-course-materials.mjs'
+import { publishedCourseArchive, publishedCourseMaterials, reviewSharedCourseMaterials, sharedCourseMaterialAsset, sharedMaterialReviewQueue, sharedMaterialIndex, sharedCourseQuestions } from './lib/shared-course-materials.mjs'
 import { editSharedCourseDraftQuestion, generateSharedCourseQuestions, publishSharedCourseQuestions, removeSharedCourseDraftQuestion, reviewSharedCourseQuestionSet } from './lib/shared-course-questions.mjs'
 import { canOpenSharedExam } from './lib/shared-exam-policy.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
@@ -3732,6 +3732,11 @@ async function handleRequest(req, res) {
       } catch {
         send(res, 503, JSON.stringify({ error: 'The paper list is temporarily unavailable.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       }
+      return
+    }
+    if (url.pathname === '/api/public/materials' && req.method === 'GET') {
+      try { send(res, 200, JSON.stringify(await publishedCourseArchive()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
+      catch { send(res, 503, JSON.stringify({ error: 'The course archive is temporarily unavailable.' })) }
       return
     }
     const publicMaterialsMatch = /^\/api\/public\/materials\/([^/]+)$/.exec(url.pathname)

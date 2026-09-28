@@ -80,6 +80,7 @@ function QuestionCard({
   onResultChange,
   onDraftChange,
   onBusyChange,
+  referenceOnly = false,
 }: {
   question: PracticeQuestion;
   draft: string;
@@ -91,6 +92,7 @@ function QuestionCard({
   onDeckChange: (id: string) => void;
   onMistake: () => void;
   onEvent: (event: QuestionEvent) => void;
+  referenceOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const attempt = draft;
@@ -105,6 +107,11 @@ function QuestionCard({
 
   const grade = async () => {
     if (!attempt.trim() || busy) return;
+    if (referenceOnly) {
+      setResult({ correction: question.expected || 'No reference answer was published for this question.', score: null });
+      setOpen(false);
+      return;
+    }
     setBusy(true);
     setFailure(null);
     try {
@@ -159,7 +166,7 @@ function QuestionCard({
   return (
     <div data-study-task={question.id} className="mx-auto flex w-full min-w-0 max-w-[900px] flex-col gap-5 sm:gap-6">
       <div className="flex flex-col gap-2 sm:gap-3">
-        <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">Question details</summary><div className="mt-2 flex flex-wrap justify-between gap-2"><TypeLine question={question} /><FeedbackButton subject={{kind:"practice",courseId:question.courseId,questionId:question.id}} excerpt={question.question}>Report question</FeedbackButton></div></details>
+        <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">Question details</summary><div className="mt-2 flex flex-wrap justify-between gap-2"><TypeLine question={question} />{!referenceOnly && <FeedbackButton subject={{kind:"practice",courseId:question.courseId,questionId:question.id}} excerpt={question.question}>Report question</FeedbackButton>}</div></details>
         <Prose
           source={question.question}
           className={`${PROSE} !text-lg leading-relaxed font-medium`}
@@ -184,9 +191,9 @@ function QuestionCard({
                 onClick={() => void grade()}
                 disabled={busy || !attempt.trim()}
               >
-                {busy ? "Checking…" : "Check answer"}
+                {busy ? "Checking…" : referenceOnly ? "Compare answer" : "Check answer"}
               </Button>
-              {!question.study && <Button
+              {!question.study && !referenceOnly && <Button
                 size="sm"
                 variant="outline"
                 className="w-full bg-background sm:w-auto"
@@ -213,7 +220,7 @@ function QuestionCard({
               >
                 Clear answer
               </Button>
-              {question.expected && (
+              {question.expected && !referenceOnly && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -232,13 +239,14 @@ function QuestionCard({
         />
       </div>
       {question.study && <StudyQuestionSource question={question} />}
+      {question.sourceUrl && <a className="text-sm font-semibold text-primary" href={question.sourceUrl} target="_blank" rel="noreferrer">Source: {question.sourceTitle || 'Original material'}{question.sourcePage != null ? ` · page ${question.sourcePage}` : ''} ↗</a>}
       {result && (
         <div className="bg-card overflow-hidden rounded-[10px] border">
           <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
-            <strong className="text-sm">Grader feedback</strong>
-            <strong className={`text-sm ${NUMERALS}`}>
+            <strong className="text-sm">{referenceOnly ? 'Reference answer' : 'Grader feedback'}</strong>
+            {!referenceOnly && <strong className={`text-sm ${NUMERALS}`}>
               {result.score === null ? "Not scored" : `${result.score}/10`}
-            </strong>
+            </strong>}
           </div>
           <div className="px-4 py-4">
             <Prose source={result.correction} className={PROSE} />
@@ -250,9 +258,9 @@ function QuestionCard({
           {failure}
         </p>
       )}
-      {open && question.expected ? (
+      {open && question.expected && !referenceOnly ? (
         <Prose source={question.expected} className={PAPER} />
-      ) : !question.expected ? (
+      ) : !question.expected && !referenceOnly ? (
         <p className="text-muted-foreground text-xs">
           No reference answer was published with this question.
         </p>
@@ -274,9 +282,11 @@ export default function QuestionsTab({
   onClearSession,
   lockedCourseId,
   initialChapterId,
+  referenceOnly = false,
 }: {
   lockedCourseId?: string;
   initialChapterId?: string;
+  referenceOnly?: boolean;
   payload: PracticePayload | null;
   error: string | null;
   deck: Set<string>;
@@ -377,7 +387,7 @@ export default function QuestionsTab({
     );
   }
 
-  if (ended) {
+  if (ended && !referenceOnly) {
     return (
       <SessionLedger
         title="That is this session recorded"
@@ -404,7 +414,7 @@ export default function QuestionsTab({
   return (
     <div ref={workspaceRef} tabIndex={-1} className="practice-question-workspace flex flex-col gap-5 outline-none">
       {!browsing && <div className="flex flex-wrap items-center justify-between gap-3"><Button size="sm" variant="ghost" disabled={grading} onClick={()=>setBrowsing(true)}><ChevronLeftIcon/>Back to question bank</Button></div>}
-      {browsing && <div className="question-origin-tabs" role="group" aria-label="Question source">{[['all','All questions'],['paper','From course papers'],['generated','Guide practice'],['editorial','Editorial practice']].filter(([value])=>value!=='editorial'||all.some(q=>!q.study)).map(([value,label])=><Button key={value} size="sm" disabled={grading} variant={origin===value?'default':'ghost'} aria-pressed={origin===value} onClick={()=>{setOrigin(value);setGuideId('all');setFocus(null)}}>{label}<span className="ml-1 text-xs opacity-75">{all.filter(q=>(courseId==='all'||q.courseId===courseId) && (value==='all'||(q.practiceOrigin||(q.study?'generated':'editorial'))===value)).length}</span></Button>)}</div>}
+      {browsing && !referenceOnly && <div className="question-origin-tabs" role="group" aria-label="Question source">{[['all','All questions'],['paper','From course papers'],['generated','Guide practice'],['editorial','Editorial practice']].filter(([value])=>value!=='editorial'||all.some(q=>!q.study)).map(([value,label])=><Button key={value} size="sm" disabled={grading} variant={origin===value?'default':'ghost'} aria-pressed={origin===value} onClick={()=>{setOrigin(value);setGuideId('all');setFocus(null)}}>{label}<span className="ml-1 text-xs opacity-75">{all.filter(q=>(courseId==='all'||q.courseId===courseId) && (value==='all'||(q.practiceOrigin||(q.study?'generated':'editorial'))===value)).length}</span></Button>)}</div>}
       {browsing && (focus ? (
         <div className="bg-background flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-5 py-4">
           <p className="text-sm">
@@ -542,7 +552,7 @@ export default function QuestionsTab({
           <EmptyHeader>
 <EmptyTitle>{all.length ? "Nothing matches" : "No exercises yet"}</EmptyTitle>
             <EmptyDescription>
-              {all.length ? `${all.length} questions sit outside this filter. Widen the chapter or type.` : "Generate a study guide to add practice questions, or open Mock papers to practise from an original exam."}
+              {all.length ? `${all.length} questions sit outside this filter. Widen the chapter or type.` : referenceOnly ? "No processed Wicker questions have been published for this course yet." : "Generate a study guide to add practice questions, or open Mock papers to practise from an original exam."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -558,7 +568,7 @@ export default function QuestionsTab({
                   {current.chapterName}
                 </p>
               </div>
-              {current.practiceOrigin !== 'paper' && <Button
+              {!referenceOnly && current.practiceOrigin !== 'paper' && <Button
                 variant="ghost"
                 size="sm"
                 nativeButton={false}
@@ -614,7 +624,7 @@ export default function QuestionsTab({
                   <ShuffleIcon data-icon="inline-start" />
                   Shuffle
                 </Button>
-                <Button
+                {!referenceOnly && <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onEndedChange(true)}
@@ -626,7 +636,7 @@ export default function QuestionsTab({
                   }
                 >
                   End session
-                </Button>
+                </Button>}
               </div></details>
             </div>
             <div className="question-session-body">
@@ -642,6 +652,7 @@ export default function QuestionsTab({
                 onDeckChange={onDeckChange}
                 onMistake={onMistake}
                 onEvent={onEvent}
+                referenceOnly={referenceOnly}
               />
             </div>
 

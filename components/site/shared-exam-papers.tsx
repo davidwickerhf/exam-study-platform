@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@clerk/nextjs'
-import { ArrowUpRightIcon, CheckIcon, CopyIcon, FileTextIcon, LockKeyholeIcon } from 'lucide-react'
+import { ArrowRightIcon, ArrowUpRightIcon, CheckIcon, CopyIcon, FileTextIcon, LockKeyholeIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 type Paper = { id: string; title: string; kind: 'paper' | 'solutions'; academicYear: string; period: string; byteSize: number; url: string; downloadUrl: string }
@@ -51,7 +51,7 @@ export function SharedExamPapers({ courseCode, authEnabled }: { courseCode: stri
   return <main id="main-content" className="site-reading-page mx-auto w-full max-w-[1060px] px-5 pb-24 pt-12 sm:px-8 sm:pt-16">
     {authEnabled ? <HostedAccess onAccess={setAccess} /> : <LocalAccess onAccess={setAccess} />}
     <div className="border-b border-current/15 pb-8">
-      <p className="font-data text-xs font-semibold tracking-[0.13em] uppercase text-primary">Course archive / {courseCode}</p>
+      <p className="font-data text-xs font-semibold tracking-[0.13em] uppercase text-primary"><a className="underline-offset-4 hover:underline" href="/share/courses">Course archive</a> / {courseCode}</p>
       <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
         <div>
           <h1 className="font-heading text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl">Exam papers</h1>
@@ -62,6 +62,8 @@ export function SharedExamPapers({ courseCode, authEnabled }: { courseCode: stri
         </button>
       </div>
     </div>
+
+    <section className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-primary/25 bg-primary/5 p-5" aria-label="Continue in workspace"><div><h2 className="font-semibold">Practise this course in your workspace</h2><p className="mt-1 text-sm text-muted-foreground">Use papers alongside course practice, progress and study tools.</p></div><a className="site-button site-button-primary" href={`/app/courses/${encodeURIComponent(courseCode)}?tab=papers`}>Open in workspace <ArrowRightIcon className="size-4" /></a></section>
 
     {access === 'guest' && <section className="mt-8 flex flex-wrap items-center justify-between gap-5 border border-primary/25 bg-primary/5 p-5 sm:p-6" aria-label="Sign in to open papers">
       <div className="flex max-w-[58ch] gap-3"><LockKeyholeIcon className="mt-0.5 size-5 shrink-0 text-primary" /><div><h2 className="text-base font-semibold">Open with your Maastricht account</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Sign in or create an account with your university email. You’ll return directly to this page; no study setup is needed.</p></div></div>
