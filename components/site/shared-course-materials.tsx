@@ -17,7 +17,7 @@ function HostedAccess({ onAccess }: { onAccess: (value: Access) => void }) {
     if (!isSignedIn) { onAccess('guest'); return }
     let live = true
     void getToken().then(token => fetch('/api/auth/session', { headers: token ? { authorization: `Bearer ${token}` } : {} }))
-      .then(response => { if (live) onAccess(response.ok ? 'allowed' : 'denied') })
+      .then(async response => { const session = response.ok ? await response.json() : null; if (live) onAccess(session && (session.admin || /@(student\.)?maastrichtuniversity\.nl$/i.test(session.email || '')) ? 'allowed' : 'denied') })
       .catch(() => { if (live) onAccess('denied') })
     return () => { live = false }
   }, [isLoaded, isSignedIn, getToken, onAccess])
