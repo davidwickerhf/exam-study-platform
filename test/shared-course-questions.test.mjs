@@ -22,5 +22,5 @@ test('question processing rejects a thin or ungrounded draft', () => {
   assert.throws(() => parseQuestionDraft(JSON.stringify({ questions: [{ kind: 'recall', topic: 'Topic',
     question: 'A long enough question about unsupported material?',
     expected: 'A long enough answer but with no approved citation.', sourceChunkId: '999' }] }), passages),
-  /Fewer than six grounded questions/)
+  /Only 0 of 1 questions passed validation/)
 })
