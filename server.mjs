@@ -98,6 +98,10 @@ import { CanvasConnectionError, canvasAccessToken, canvasStorageConfigured, list
 import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from './lib/canvas-course-import.mjs'
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
 import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
+import { examPaperReviewQueue, publishedExamPapers, reviewExamPaper, sharedExamAsset, sharedExamCourseCode } from './lib/shared-exam-papers.mjs'
+import { publishedCourseMaterials, reviewSharedCourseMaterials, sharedCourseMaterialAsset, sharedMaterialReviewQueue, sharedMaterialIndex, sharedCourseQuestions } from './lib/shared-course-materials.mjs'
+import { editSharedCourseDraftQuestion, generateSharedCourseQuestions, publishSharedCourseQuestions, removeSharedCourseDraftQuestion, reviewSharedCourseQuestionSet } from './lib/shared-course-questions.mjs'
+import { canOpenSharedExam } from './lib/shared-exam-policy.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { workspaceProgrammeCatalogue, loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
 import { joinProgramme, setMembership, removeMembership, listMembers, membershipCounts, programmesForEmail, scopeDecision, scopeCatalogue, publicProgramme } from './lib/organisations.mjs'
@@ -1245,7 +1249,9 @@ async function runCodex(prompt, opts = {}) {
   }
   try {
     let result
-    const model = opts.model || stageModel(opts.stage)
+    // An absent stage must leave provider-specific defaults intact. Passing an
+    // empty string defeats parameter defaults and sends model:"" upstream.
+    const model = opts.model || stageModel(opts.stage) || undefined
     switch (LLM_PROVIDER) {
       case 'codex':  result = await runCodexCli(prompt, { ...opts, model }); break
       case 'claude': result = await runClaudeCli(prompt, { ...opts, model }); break
@@ -3717,6 +3723,25 @@ async function handleRequest(req, res) {
       }
       return
     }
+    const publicExamMatch = /^\/api\/public\/exam-papers\/([^/]+)$/.exec(url.pathname)
+    if (publicExamMatch && req.method === 'GET') {
+      const code = sharedExamCourseCode(publicExamMatch[1])
+      if (!code) { send(res, 404, JSON.stringify({ error: 'Course not found.' })); return }
+      try {
+        send(res, 200, JSON.stringify(await publishedExamPapers(code)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch {
+        send(res, 503, JSON.stringify({ error: 'The paper list is temporarily unavailable.' }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      }
+      return
+    }
+    const publicMaterialsMatch = /^\/api\/public\/materials\/([^/]+)$/.exec(url.pathname)
+    if (publicMaterialsMatch && req.method === 'GET') {
+      const code = sharedExamCourseCode(publicMaterialsMatch[1])
+      if (!code) { send(res, 404, JSON.stringify({ error: 'Course not found.' })); return }
+      try { send(res, 200, JSON.stringify(await publishedCourseMaterials(code)), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
+      catch { send(res, 503, JSON.stringify({ error: 'The materials list is temporarily unavailable.' })) }
+      return
+    }
 
     // Step three of the agent authorization: an agent with no credential trades
     // its single-use code and verifier for a freshly minted API key, once.
@@ -3777,6 +3802,96 @@ async function handleRequest(req, res) {
       if(!url.pathname.startsWith('/api/feedback')&&!url.pathname.startsWith('/api/admin/feedback')&&url.pathname!=='/api/tutor')res.once('finish',()=>{
         if(res.statusCode>=500)void recordQualityEvent({code:'API_FAILURE',stage:'request',route:url.pathname,durationMs:Date.now()-feedbackStarted},{userId:auth.userId}).catch(()=>{})
       })
+    }
+
+    if (url.pathname === '/api/admin/shared-materials' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ materials: await sharedMaterialReviewQueue({ search: url.searchParams.get('search') || '' }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/admin/shared-materials/review' && req.method === 'POST') {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review originals in a signed-in browser.' })); return }
+        const body = await readBody(req, 32 * 1024)
+        const result = await reviewSharedCourseMaterials({ ...body, reviewerId: currentAuth().userId })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Material review failed.' })) }
+      return
+    }
+    const sharedQuestionDeleteMatch = /^\/api\/admin\/shared-questions\/([^/]+)\/draft\/([^/]+)$/.exec(url.pathname)
+    if (sharedQuestionDeleteMatch && ['DELETE','PUT'].includes(req.method)) {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review questions in a signed-in browser.' })); return }
+        const result = req.method === 'DELETE'
+          ? await removeSharedCourseDraftQuestion(sharedQuestionDeleteMatch[1], decodeURIComponent(sharedQuestionDeleteMatch[2]))
+          : await editSharedCourseDraftQuestion(sharedQuestionDeleteMatch[1], decodeURIComponent(sharedQuestionDeleteMatch[2]), await readBody(req, 8 * 1024))
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Question review failed.' })) }
+      return
+    }
+    const sharedQuestionAdminMatch = /^\/api\/admin\/shared-questions\/([^/]+)(?:\/(generate|publish))?$/.exec(url.pathname)
+    if (sharedQuestionAdminMatch) {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review questions in a signed-in browser.' })); return }
+        const [, code, action] = sharedQuestionAdminMatch
+        let result
+        if (req.method === 'GET' && !action) result = await reviewSharedCourseQuestionSet(code)
+        else if (req.method === 'POST' && action === 'generate') result = await generateSharedCourseQuestions(code, { generate: runCodex, reviewerId: currentAuth().userId, append: url.searchParams.get('append') === '1' })
+        else if (req.method === 'POST' && action === 'publish') result = await publishSharedCourseQuestions(code, currentAuth().userId)
+        else { send(res, 405, JSON.stringify({ error: 'Method not allowed.' })); return }
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        console.warn('Shared question processing failed:', error.code || error.name, error.providerStatus || error.status || '')
+        send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Question processing failed.', code: error.code || null, providerStatus: error.providerStatus || null }))
+      }
+      return
+    }
+    if (url.pathname === '/api/admin/exam-papers' && req.method === 'GET') {
+      send(res, 200, JSON.stringify({ papers: await examPaperReviewQueue({ search: url.searchParams.get('search') || '' }) }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      return
+    }
+    if (url.pathname === '/api/admin/exam-papers' && req.method === 'POST') {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review exam originals in a signed-in browser.' })); return }
+        const body = await readBody(req, 4 * 1024)
+        const result = await reviewExamPaper({ snapshotId: body?.snapshotId, status: body?.status,
+          reviewerId: currentAuth().userId, note: body?.note, kind: body?.kind })
+        send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) {
+        send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Paper review failed.' }))
+      }
+      return
+    }
+    const sharedExamAssetMatch = /^\/api\/shared-exam-papers\/assets\/([^/]+)$/.exec(url.pathname)
+    if (sharedExamAssetMatch && ['GET','HEAD'].includes(req.method)) {
+      if (!canOpenSharedExam(currentAuth())) {
+        send(res, 403, JSON.stringify({ error: 'Sign in with a Maastricht University account to open this paper.' })); return
+      }
+      const asset = await sharedExamAsset(decodeURIComponent(sharedExamAssetMatch[1]))
+      if (!asset) { send(res, 404, JSON.stringify({ error: 'This paper is no longer available.' })); return }
+      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store', sandboxActiveContent: true }) }
+      catch (error) { if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This paper could not be opened.' })); else res.destroy(error) }
+      return
+    }
+    const sharedMaterialAssetMatch = /^\/api\/shared-materials\/assets\/([^/]+)$/.exec(url.pathname)
+    if (sharedMaterialAssetMatch && ['GET','HEAD'].includes(req.method)) {
+      if (!canOpenSharedExam(currentAuth())) { send(res, 403, JSON.stringify({ error: 'Sign in with a Maastricht University account to open this material.' })); return }
+      const asset = await sharedCourseMaterialAsset(decodeURIComponent(sharedMaterialAssetMatch[1]))
+      if (!asset) { send(res, 404, JSON.stringify({ error: 'This material is no longer available.' })); return }
+      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store', sandboxActiveContent: true }) }
+      catch (error) { if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This material could not be opened.' })); else res.destroy(error) }
+      return
+    }
+    const sharedIndexMatch = /^\/api\/shared-materials\/index\/([^/]+)$/.exec(url.pathname)
+    if (sharedIndexMatch && req.method === 'GET') {
+      if (!canOpenSharedExam(currentAuth())) { send(res, 403, JSON.stringify({ error: 'Maastricht University sign-in required.' })); return }
+      send(res, 200, JSON.stringify(await sharedMaterialIndex(sharedIndexMatch[1], url.searchParams.get('q') || '')), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
+    }
+    const sharedQuestionsMatch = /^\/api\/shared-materials\/questions\/([^/]+)$/.exec(url.pathname)
+    if (sharedQuestionsMatch && req.method === 'GET') {
+      if (!canOpenSharedExam(currentAuth())) { send(res, 403, JSON.stringify({ error: 'Maastricht University sign-in required.' })); return }
+      send(res, 200, JSON.stringify(await sharedCourseQuestions(sharedQuestionsMatch[1])), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
+      return
     }
 
     if (await handleFeedbackRoute(req,res,url,{readBody,send})) return
