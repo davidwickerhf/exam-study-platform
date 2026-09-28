@@ -100,7 +100,7 @@ import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHu
 import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
 import { examPaperReviewQueue, publishedExamPapers, reviewExamPaper, sharedExamAsset, sharedExamCourseCode } from './lib/shared-exam-papers.mjs'
 import { publishedCourseMaterials, reviewSharedCourseMaterials, sharedCourseMaterialAsset, sharedMaterialReviewQueue, sharedMaterialIndex, sharedCourseQuestions } from './lib/shared-course-materials.mjs'
-import { generateSharedCourseQuestions, publishSharedCourseQuestions, reviewSharedCourseQuestionSet } from './lib/shared-course-questions.mjs'
+import { generateSharedCourseQuestions, publishSharedCourseQuestions, removeSharedCourseDraftQuestion, reviewSharedCourseQuestionSet } from './lib/shared-course-questions.mjs'
 import { canOpenSharedExam } from './lib/shared-exam-policy.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
 import { workspaceProgrammeCatalogue, loadEditorialProgrammeCatalogue } from './lib/editorial-programmes.mjs'
@@ -3815,6 +3815,14 @@ async function handleRequest(req, res) {
         const result = await reviewSharedCourseMaterials({ ...body, reviewerId: currentAuth().userId })
         send(res, 200, JSON.stringify(result), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
       } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Material review failed.' })) }
+      return
+    }
+    const sharedQuestionDeleteMatch = /^\/api\/admin\/shared-questions\/([^/]+)\/draft\/([^/]+)$/.exec(url.pathname)
+    if (sharedQuestionDeleteMatch && req.method === 'DELETE') {
+      try {
+        if (currentAuth().mode === 'api-key') { send(res, 403, JSON.stringify({ error: 'Review questions in a signed-in browser.' })); return }
+        send(res, 200, JSON.stringify(await removeSharedCourseDraftQuestion(sharedQuestionDeleteMatch[1], decodeURIComponent(sharedQuestionDeleteMatch[2]))), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
+      } catch (error) { send(res, error.status || 500, JSON.stringify({ error: error.status ? error.message : 'Question review failed.' })) }
       return
     }
     const sharedQuestionAdminMatch = /^\/api\/admin\/shared-questions\/([^/]+)(?:\/(generate|publish))?$/.exec(url.pathname)
