@@ -3837,7 +3837,7 @@ async function handleRequest(req, res) {
       }
       const asset = await sharedExamAsset(decodeURIComponent(sharedExamAssetMatch[1]))
       if (!asset) { send(res, 404, JSON.stringify({ error: 'This paper is no longer available.' })); return }
-      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store' }) }
+      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store', sandboxActiveContent: true }) }
       catch (error) { if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This paper could not be opened.' })); else res.destroy(error) }
       return
     }
@@ -3846,7 +3846,7 @@ async function handleRequest(req, res) {
       if (!canOpenSharedExam(currentAuth())) { send(res, 403, JSON.stringify({ error: 'Sign in with a Maastricht University account to open this material.' })); return }
       const asset = await sharedCourseMaterialAsset(decodeURIComponent(sharedMaterialAssetMatch[1]))
       if (!asset) { send(res, 404, JSON.stringify({ error: 'This material is no longer available.' })); return }
-      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store' }) }
+      try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store', sandboxActiveContent: true }) }
       catch (error) { if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This material could not be opened.' })); else res.destroy(error) }
       return
     }
