@@ -99,7 +99,7 @@ import { listCanvasCourseModules, listCanvasCourses, parseCanvasOrigin } from '.
 import { CANVAS_HUB_PARTS, CANVAS_HUB_SCOPES, clearCanvasHubCache, fetchCanvasHub } from './lib/canvas-hub.mjs'
 import { controlCanvasSyncJob, cancelPendingCanvasSyncs, canvasCorpusAsset, canvasCorpusPermission, canvasCorpusStatus, enqueueCanvasCatalogSync, enqueueCanvasCourseSync, listCanvasCorpusMaterials, setCanvasCorpusPermission, setCanvasRefreshSettings } from './lib/course-corpus.mjs'
 import { examPaperReviewQueue, publishedExamPapers, reviewExamPaper, sharedExamAsset, sharedExamCourseCode } from './lib/shared-exam-papers.mjs'
-import { publishedCourseMaterials, reviewSharedCourseMaterials, sharedCourseMaterialAsset, sharedMaterialReviewQueue, sharedMaterialIndex, sharedCourseQuestions } from './lib/shared-course-materials.mjs'
+import { publishedCourseArchive, publishedCourseMaterials, reviewSharedCourseMaterials, sharedCourseMaterialAsset, sharedMaterialReviewQueue, sharedCourseQuestions } from './lib/shared-course-materials.mjs'
 import { editSharedCourseDraftQuestion, generateSharedCourseQuestions, publishSharedCourseQuestions, removeSharedCourseDraftQuestion, reviewSharedCourseQuestionSet } from './lib/shared-course-questions.mjs'
 import { canOpenSharedExam } from './lib/shared-exam-policy.mjs'
 import { findEditorialProgramme } from './lib/editorial-programmes.mjs'
@@ -3734,6 +3734,11 @@ async function handleRequest(req, res) {
       }
       return
     }
+    if (url.pathname === '/api/public/materials' && req.method === 'GET') {
+      try { send(res, 200, JSON.stringify(await publishedCourseArchive()), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' }) }
+      catch { send(res, 503, JSON.stringify({ error: 'The course archive is temporarily unavailable.' })) }
+      return
+    }
     const publicMaterialsMatch = /^\/api\/public\/materials\/([^/]+)$/.exec(url.pathname)
     if (publicMaterialsMatch && req.method === 'GET') {
       const code = sharedExamCourseCode(publicMaterialsMatch[1])
@@ -3879,12 +3884,6 @@ async function handleRequest(req, res) {
       if (!asset) { send(res, 404, JSON.stringify({ error: 'This material is no longer available.' })); return }
       try { await sendCorpusAsset(req, res, asset, { download: url.searchParams.get('download') === '1', cacheControl: 'private, no-store', sandboxActiveContent: true }) }
       catch (error) { if (!res.headersSent) send(res, 503, JSON.stringify({ error: 'This material could not be opened.' })); else res.destroy(error) }
-      return
-    }
-    const sharedIndexMatch = /^\/api\/shared-materials\/index\/([^/]+)$/.exec(url.pathname)
-    if (sharedIndexMatch && req.method === 'GET') {
-      if (!canOpenSharedExam(currentAuth())) { send(res, 403, JSON.stringify({ error: 'Maastricht University sign-in required.' })); return }
-      send(res, 200, JSON.stringify(await sharedMaterialIndex(sharedIndexMatch[1], url.searchParams.get('q') || '')), 'application/json; charset=utf-8', { 'Cache-Control': 'private, no-store' })
       return
     }
     const sharedQuestionsMatch = /^\/api\/shared-materials\/questions\/([^/]+)$/.exec(url.pathname)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@clerk/nextjs'
-import { ArrowUpRightIcon, CheckIcon, CopyIcon, FileTextIcon, LockKeyholeIcon } from 'lucide-react'
+import { ArrowRightIcon, ArrowUpRightIcon, CheckIcon, CopyIcon, FileTextIcon, LockKeyholeIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 type Paper = { id: string; title: string; kind: 'paper' | 'solutions'; academicYear: string; period: string; byteSize: number; url: string; downloadUrl: string }
@@ -51,15 +51,15 @@ export function SharedExamPapers({ courseCode, authEnabled }: { courseCode: stri
   return <main id="main-content" className="site-reading-page mx-auto w-full max-w-[1060px] px-5 pb-24 pt-12 sm:px-8 sm:pt-16">
     {authEnabled ? <HostedAccess onAccess={setAccess} /> : <LocalAccess onAccess={setAccess} />}
     <div className="border-b border-current/15 pb-8">
-      <p className="font-data text-xs font-semibold tracking-[0.13em] uppercase text-primary">Course archive / {courseCode}</p>
+      <p className="font-data text-xs font-semibold tracking-[0.13em] uppercase text-primary"><a className="underline-offset-4 hover:underline" href="/share/courses">Course archive</a> / {courseCode}</p>
       <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
         <div>
           <h1 className="font-heading text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl">Exam papers</h1>
           <p className="mt-3 max-w-[62ch] text-base text-muted-foreground">{index?.courseName || courseCode} · Papers shared for Maastricht University members.</p>
         </div>
-        <button type="button" className="inline-flex h-10 items-center gap-2 rounded-sm border border-current/20 px-4 text-sm font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" onClick={async () => { await navigator.clipboard.writeText(window.location.href); setCopied(true); window.setTimeout(() => setCopied(false), 2500) }}>
+        <div className="flex flex-wrap items-center gap-2"><a className="site-button site-button-primary" href={`/app/courses/${encodeURIComponent(courseCode)}?tab=papers`}>Open in workspace <ArrowRightIcon className="size-4" /></a><button type="button" className="inline-flex h-10 items-center gap-2 rounded-sm border border-current/20 px-4 text-sm font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" onClick={async () => { await navigator.clipboard.writeText(window.location.href); setCopied(true); window.setTimeout(() => setCopied(false), 2500) }}>
           {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}{copied ? 'Link copied' : 'Copy page link'}
-        </button>
+        </button></div>
       </div>
     </div>
 
