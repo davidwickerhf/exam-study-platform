@@ -10,6 +10,7 @@ test('a paused newer extraction never hides a checked section',()=>{
  assert.equal(paperReadiness(info.ready,job),'8 questions ready · selected pages')
  assert.equal(paperSelection([next,done],[job],'p','new').ready,undefined)
  assert.equal(paperSelection([next,done],[job],'other').ready,undefined)
+ assert.equal(paperSelection([next,done],[job],['alias','p']).ready,done)
 })
 test('finished automatic sets and empty results are labelled honestly',()=>{
  const ready={id:'whole',questionCount:2}

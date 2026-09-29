@@ -15,6 +15,12 @@ export type StudySource = {
   historical?: boolean
   periodMismatch?: boolean
   url?: string
+  sourceKeys?: string[]
+  locations?: {
+    moduleId?: string
+    moduleName?: string
+    assignmentTitle?: string
+  }[]
 }
 export type Evidence = {
   id: string

@@ -79,9 +79,11 @@ const title = (s: string) =>
 export function StudyPaperBank({
   revision,
   course: courseProp,
+  active = true,
 }: {
   revision?: StudyRevision
   course?: StudyRevision['course']
+  active?: boolean
 }) {
   const course = courseProp || revision!.course
   const courseMode = !revision
@@ -114,6 +116,7 @@ export function StudyPaperBank({
     setError('')
   }
   useEffect(() => {
+    if (!active) return
     let live = true
     setError(''); setBank(null)
     void studyRequest<Bank>(courseMode ? paperUrl : `${base}/paper-bank`)
@@ -122,7 +125,7 @@ export function StudyPaperBank({
     return () => {
       live = false
     }
-  }, [base, paperUrl, courseMode])
+  }, [active, base, paperUrl, courseMode])
   // Backfill earlier imports once. New files are queued by ingestion itself;
   // closing this page never stops processing.
   useEffect(() => {
@@ -304,7 +307,7 @@ export function StudyPaperBank({
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
   const detail = bank?.papers.find(p => p.key === detailKey)
-  const info = (p: StudySource) => paperSelection(bank?.sets || [], bank?.processing || [], p.key, setChoices[p.key])
+  const info = (p: StudySource) => paperSelection(bank?.sets || [], bank?.processing || [], p.sourceKeys || p.key, setChoices[p.key])
   const choosePages = (p: StudySource) => { setDetailKey(null); setPaper(p); setSolution(''); setFrom(''); setTo('') }
   const backToPaper = () => { setDetailKey(paper?.key || fitSet?.questionSourceKey || null); setPaper(null); setFitSet(null); setError('') }
   const inspectFit = (set: SetInfo) => { setDetailKey(null); setFitSet(set); setSyllabi(bank?.syllabi.map(s=>s.key).slice(0,1) || []) }
@@ -350,6 +353,7 @@ export function StudyPaperBank({
               {detailInfo.sets.length>0 && <div className="mt-4 space-y-3"><label className="block text-sm">Saved question set<select aria-label={`Prepared questions for ${title(detail.title)}`} className="mt-2 w-full rounded-md border bg-card p-2 text-sm" value={detailInfo.chosen?.id || ''} onChange={e=>setSetChoices(old=>({...old,[detail.key]:e.target.value}))}>{detailInfo.sets.map(s=><option key={s.id} value={s.id}>{s.sourcePages?.length ? `Pages ${s.sourcePages[0]}–${s.sourcePages.at(-1)} · ` : ''}{s.title} · {s.questionCount} questions · {s.status==='complete'?'Ready':s.status}</option>)}</select></label>{!!detailInfo.chosen?.sourcePages?.length && <p className="text-xs text-muted-foreground">Prepared source pages: {detailInfo.chosen.sourcePages[0]}–{detailInfo.chosen.sourcePages.at(-1)}. This set covers these pages only.</p>}</div>}
               {detail.paperKind!=='solutions' && <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={busy} onClick={()=>choosePages(detail)}>{detailInfo.sets.length ? 'Prepare another section' : 'Choose pages to prepare'}</Button>{detailInfo.chosen && detailInfo.chosen.status!=='complete' && <Button size="sm" variant="outline" disabled={busy} onClick={()=>void resume(detailInfo.chosen!)}>{busy && operation==='resume' ? 'Resuming…' : 'Resume questions'}</Button>}</div>}
             </section>
+            {!!detail.locations?.length && <section className="border-t py-5"><h3 className="font-semibold">Canvas locations</h3><ul className="mt-2 space-y-1 text-sm text-muted-foreground">{detail.locations.map((location,index)=><li key={`${location.moduleId || 'location'}-${index}`}>{[location.moduleName,location.assignmentTitle].filter(Boolean).join(' · ') || 'Linked course material'}</li>)}</ul></section>}
             {detailInfo.job && <section className="border-t py-5"><h3 className="font-semibold">Automatic preparation</h3><p className="mt-2 text-sm text-muted-foreground">{detailInfo.job.status==='paused' ? 'Preparation paused. Your original and any checked questions are still available.' : detailInfo.job.status==='complete' ? 'Preparation finished.' : `${detailInfo.job.completedSections} of ${detailInfo.job.totalSections || '…'} sections checked. You can leave this page.`}</p>{detailInfo.job.error && <details className="mt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Why it paused</summary><p className="mt-2 leading-5">{detailInfo.job.error}</p></details>}{detailInfo.job.status==='paused' && <Button className="mt-4" size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(detailInfo.job!)}>{busy && !operation ? 'Retrying…' : 'Retry processing'}</Button>}</section>}
             {detailInfo.ready && <section className="border-t py-5"><h3 className="font-semibold">Current syllabus</h3><p className="mt-2 text-sm text-muted-foreground">Check whether these questions still match the topics and question formats in your course.</p><Button className="mt-4" size="sm" variant="outline" onClick={()=>inspectFit(detailInfo.ready!)}>Syllabus fit</Button></section>}
             <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">Preparation and syllabus checks use your saved AI preferences and spending limits.</p>

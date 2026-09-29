@@ -768,6 +768,19 @@ test('syllabus fit does not accept invented citations, missing questions or unsu
   assert.equal(paperKind({ title: 'Introduction lecture slides.pdf' }), null)
   assert.equal(paperKind({ title: 'practice_exam--file-123.pdf' }), 'paper')
   assert.equal(paperKind({ title: 'mock_exam_solutions.pdf' }), 'solutions')
+  for (const title of [
+    'resit-P1-2025.pdf',
+    'F14-t1.pdf',
+    'S19-T2.pdf',
+    'S17-t3.pdf',
+    'S19-final-optional.pdf',
+    'final-OS-y3.pdf',
+  ]) assert.equal(paperKind({ title }), 'paper', title)
+  for (const title of [
+    'F14-t1-solution.pdf',
+    'S19-T2-solutions.pdf',
+    'solutions-Exam-Y3-P4-25-25.docx.pdf',
+  ]) assert.equal(paperKind({ title }), 'solutions', title)
 })
 
 test('practice citation output is constrained to selected chunks and a bad citation gets one correction', async () => {
