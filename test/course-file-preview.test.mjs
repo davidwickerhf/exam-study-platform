@@ -181,7 +181,7 @@ test("code formats are indexed and recognizable; legacy unsupported assets are u
   assert.equal(
     needsExtractionUpgrade("code.zip", {
       extraction_status: "complete",
-      metadata: { fileFormatVersion: 5 },
+      metadata: { fileFormatVersion: 6 },
     }),
     false,
   );
