@@ -14,8 +14,8 @@ function question(c) { return {label:`${c.page}`,question:c.text,sharedContext:'
 function generation(calls) {return async(prompt,opts)=>{
   calls.push(opts)
   if(opts.usageMetadata.stage==='review')return JSON.stringify({issues:[]})
-  const chunks=JSON.parse(prompt.split('EVIDENCE: ').at(-1))
-  return JSON.stringify({title:'Original questions',questions:chunks.map(question),warnings:[]})
+  const chunks=JSON.parse(prompt.split('EVIDENCE: ').at(-1)),roles=JSON.parse(prompt.match(/SOURCE ROLES: (\{.*?\})\n/)[1])
+  return JSON.stringify({title:'Original questions',questions:chunks.filter(c=>c.sourceKey===roles.question).map(question),warnings:[]})
 }}
 async function drain(id,options){for(let i=0;i<20;i++){if(!(await processPaperJob(id,options)).again)return}throw new Error('Job did not finish')}
 test('retrieved papers run without a browser, join all pages, dedupe overlap and respect a single budget identity',async()=>fixture(async()=>{
@@ -30,7 +30,8 @@ test('retrieved papers run without a browser, join all pages, dedupe overlap and
   const job=await readDocument(PAPER_JOBS,a[0].id,null)
   assert.equal(job.status,'complete',job.error);assert.equal(job.completedSections,2)
   const set=await readDocument('study-practice',job.setId,null)
-  assert.equal(set.result.questions.length,8);assert.equal(set.snapshot.chunks.length,8)
+  assert.equal(set.result.questions.length,8);assert.equal(set.snapshot.chunks.length,9,'8 question pages plus the paired solutions page')
+  assert.equal(job.solution.title,'Practice exam solutions.pdf')
   assert.ok(set.result.questions.every(q=>q.answerBasis==='unavailable' && q.answer===''))
   assert.equal(new Set(calls.map(c=>c.jobKey)).size,1);assert.equal(calls[0].jobKey,job.id)
   const previous=calls.length
@@ -256,3 +257,33 @@ test('the extraction review is told which outcomes are allowed, and sees the pag
   for(const allowed of ['empty questions list','needsOriginal=true','answerBasis=unavailable','outside questionPageRange'])assert.ok(prompts[0].includes(allowed),allowed)
   assert.match(prompts[0],/"questionPageRange":\{"from":1,"to":1\}/)
 }))
+test('automatic preparation sends the paired answer key, and answers cite it',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'F14-t1.pdf'},Array.from({length:8},(_,i)=>({page:i+1,text:`Explain the reasoning for problem ${i+1} in detail.`})))
+  await addStudyNote({...course,title:'F14-t1-solution.pdf'},Array.from({length:8},(_,i)=>({page:i+1,text:`Official answer ${i+1}: the reasoning follows from the definition.`})))
+  const [job]=await queueCoursePapers(course),seen=[]
+  const generate=async(prompt,opts)=>{
+    if(opts.usageMetadata.stage==='review')return JSON.stringify({issues:[]})
+    const chunks=JSON.parse(prompt.split('EVIDENCE: ').at(-1)),roles=JSON.parse(prompt.match(/SOURCE ROLES: (\{.*?\})\n/)[1])
+    seen.push(roles.solution)
+    const answers=chunks.filter(c=>c.sourceKey===roles.solution)
+    return JSON.stringify({title:'F14-t1',questions:chunks.filter(c=>c.sourceKey===roles.question).map(c=>{const a=answers.find(x=>x.page===c.page);return {...question(c),...(a?{answer:a.text,answerBasis:'source',answerSourceIds:[a.id]}:{})}}),warnings:[]})
+  }
+  await drain(job.id,{platform,generate})
+  const saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'complete',saved.error);assert.equal(saved.solution.title,'F14-t1-solution.pdf')
+  assert.ok(seen.length>=2 && seen.every(key=>key===saved.solution.key),'every section names the paired key')
+  const set=await readDocument('study-practice',saved.setId,null)
+  assert.equal(set.result.questions.length,8);assert.equal(set.solutionSourceKey,saved.solution.key)
+  assert.ok(set.result.questions.every(q=>q.answerBasis==='source' && /Official answer/.test(q.answer)))
+  assert.ok(set.result.questions.every(q=>q.answerSourceIds.every(id=>set.snapshot.chunks.some(c=>c.id===id))),'answer citations stay resolvable in the joined set')
+}))
+test('a long answer key is windowed per section, and an oversized one is left out with a warning',async()=>{
+  const {solutionWindow}=await import('../lib/study-paper-jobs.mjs')
+  const questions=Array.from({length:12},(_,i)=>({page:i+1,text:'x'.repeat(3000)}))
+  const pageChars=n=>Object.fromEntries(Array.from({length:12},(_,i)=>[i+1,n]))
+  assert.deepEqual(solutionWindow({from:1,to:6},questions,{pageChars:pageChars(1000)}),{from:1,to:10000},'a short key goes in whole')
+  const window=solutionWindow({from:7,to:12},questions,{pageChars:pageChars(5000)})
+  assert.ok(window.from>=6 && window.from<=7 && window.to===12,JSON.stringify(window))
+  assert.deepEqual(solutionWindow({from:1,to:6},questions,{pageChars:pageChars(40000)}),{skipped:true})
+  assert.equal(solutionWindow({from:1,to:6},questions,null),null)
+})
