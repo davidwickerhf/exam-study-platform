@@ -181,3 +181,14 @@ test('a job saved under a legacy source-key id still blocks a second job for the
   await compareAndSwapDocument(PAPER_JOBS,legacy.id,{...legacy,status:'duplicate',revision:'next'},legacy.revision)
   assert.notEqual((await queueCoursePapers(course))[0].id,legacy.id,'a merged duplicate does not count as the file\'s job')
 }))
+test('a used daily allowance makes the paper wait for the reset; a job spending cap still pauses',async()=>fixture(async()=>{
+  const {StudyBudgetError}=await import('../lib/study-ai-budget.mjs')
+  await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
+  await addStudyNote({...course,title:'Resit exam.pdf'},[{page:1,text:'Explain this other original problem.'}])
+  const [daily,capped]=await queueCoursePapers(course),resetsAt=Date.now()+5*3600000
+  await drain(daily.id,{platform,generate:async()=>{throw new StudyBudgetError('Your platform generation allowance is used. Resume later or explicitly choose your own AI key in Settings.',5*3600,resetsAt)}})
+  const waiting=await readDocument(PAPER_JOBS,daily.id,null)
+  assert.equal(waiting.status,'queued');assert.equal(waiting.runAfter,resetsAt);assert.match(paperJobSummary(waiting).notice,/allowance is used/)
+  await drain(capped.id,{platform,generate:async()=>{throw new StudyBudgetError('This generation reached its spending cap. Review its progress and explicitly raise the cap to continue.')}})
+  assert.equal((await readDocument(PAPER_JOBS,capped.id,null)).status,'paused')
+}))
