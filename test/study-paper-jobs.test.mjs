@@ -311,3 +311,60 @@ test('a paper finished without its answer key can be prepared again, replacing i
   assert.equal(after.id,before.id,'the same set is replaced');assert.notEqual(after.revision,before.revision)
   assert.equal(after.result.questions[0].answerBasis,'source');assert.match(after.result.questions[0].answer,/Official answer/)
 }))
+test('BCS3210 mock: typography, page breaks with running headers and miscited pages no longer drop questions',async()=>{
+  const {validatePracticeSet}=await import('../lib/study-practice.mjs')
+  const header='BCS3210 — Mock Exam                                                                     Page 3 / 7'
+  const chunks=[
+    {id:'p3',sourceKey:'mock',page:3,text:`BCS3210 — Mock Exam                                                                     Page 2 / 7\n\n[2p] 4a How does Ethereum’s state-transition function fundamentally differ from Bitcoin’s?\nA) It consumes UTXOs\nB) It runs a program over the world state\n[2p] 4b Under EIP-1559, if the previous block was completely full (used its full gas limit), what`},
+    {id:'p4',sourceKey:'mock',page:4,text:`${header}\n\nhappens to the base fee for the next block?\nA) It is reset to zero\nB) It increases by 12.5%\n[2p] 1 Explain why gas exists.\nExercise 2\n[2p] 1 Explain why blocks have a gas limit.`},
+  ]
+  const record={mode:'extract',questionSourceKey:'mock',solutionSourceKey:null,snapshot:{chunks,questionPageRange:{from:3,to:4}}}
+  const item=(over)=>({label:'x',question:'',sharedContext:'',type:'mc',options:['A','B'],correctOptions:[],marks:2,page:3,answer:'',answerBasis:'unavailable',hint:'',difficulty:'standard',sourceIds:['p3'],answerSourceIds:[],needsOriginal:false,...over})
+  const set=validatePracticeSet({title:'Mock',warnings:[],questions:[
+    item({label:'4a',question:"How does Ethereum's state-transition function fundamentally differ from Bitcoin's?"}),
+    item({label:'4b',page:4,sourceIds:['p4'],question:'Under EIP-1559, if the previous block was completely full (used its full gas limit), what happens to the base fee for the next block?'}),
+    item({label:'1',page:4,sourceIds:['p4'],type:'written',options:[],question:'Explain why gas exists.'}),
+    item({label:'1',page:4,sourceIds:['p4'],type:'written',options:[],question:'Explain why blocks have a gas limit.'}),
+  ]},record,{dropInvalid:true})
+  assert.deepEqual(set.questions.map(q=>q.label),['4a','4b','1','1'],JSON.stringify(set.omittedQuestions))
+  const b=set.questions[1];assert.equal(b.page,3,'4b starts on page 3');assert.deepEqual(b.sourceIds.sort(),['p3','p4'])
+  assert.throws(()=>validatePracticeSet({title:'Mock',warnings:[],questions:[item({label:'4a',question:'How does Ethereum work?'})]},record),/differs from its cited text/,'paraphrases are still rejected')
+})
+test('joining treats "8a (b)" and "8a(b)" as one item and drops introductions and lab steps',()=>{
+  const q=(over)=>({...question({id:'c',page:6,text:'x'}),...over})
+  const intro='A smart contract escrow holds funds until both parties approve the release.'
+  const {questions}=combinePaperSections([
+    {result:{questions:[q({label:'8a (shared)',question:intro,marks:null}),q({label:'8a (b)',question:'Explain the reentrancy risk.',sharedContext:intro,marks:3})]}},
+    {result:{questions:[q({label:'8a(b)',question:'Explain the reentrancy risk.',sharedContext:intro,marks:3}),q({label:'2',question:'Run the provided EthereumKeyManager code.'})]}},
+  ])
+  assert.deepEqual(questions.map(x=>[x.label,x.question]),[['8a (b)','Explain the reentrancy risk.']])
+})
+test('"Mock_Exam_Solutions_Slides" pairs with "Mock_Exam"',async()=>{
+  const {paperKind,solutionPairsFor,pairedSolution}=await import('../lib/study-paper-bank.mjs')
+  const files=[{title:'003 Mock_Exam--file-6729909.pdf'},{title:'001 Mock_Exam_Solutions_Slides--file-6748534.pdf'}]
+  assert.equal(paperKind(files[1]),'solutions')
+  assert.equal(pairedSolution(files[0],solutionPairsFor(files))?.title,files[1].title)
+})
+test('the practice list hides a joined paper\'s sections and sets without questions',async()=>fixture(async()=>{
+  const {listStudyPractice}=await import('../lib/study-practice.mjs')
+  await addStudyNote({...course,title:'Mock exam.pdf'},Array.from({length:8},(_,i)=>({page:i+1,text:`Explain the reasoning for problem ${i+1} in detail.`})))
+  await addStudyNote({...course,title:'Resit exam.pdf'},[{page:1,text:'Room and time information only.'}])
+  const [mock,resit]=await queueCoursePapers(course)
+  await drain(mock.id,{platform,generate:generation([])})
+  await drain(resit.id,{platform,generate:async()=>JSON.stringify({title:'Resit',questions:[],warnings:[]})})
+  const job=await readDocument(PAPER_JOBS,mock.id,null)
+  const sets=(await listStudyPractice(job.versionId)).filter(r=>r.kind==='set')
+  assert.deepEqual(sets.map(s=>s.id),[job.setId])
+}))
+test('re-joining a completed paper makes no AI calls and replaces its set in place',async()=>fixture(async()=>{
+  const {compareAndSwapDocument}=await import('../lib/user-store.mjs')
+  await addStudyNote({...course,title:'Mock exam.pdf'},Array.from({length:8},(_,i)=>({page:i+1,text:`Explain the reasoning for problem ${i+1} in detail.`})))
+  const [queued]=await queueCoursePapers(course)
+  await drain(queued.id,{platform,generate:generation([])})
+  const job=await readDocument(PAPER_JOBS,queued.id,null),before=await readDocument('study-practice',job.setId,null)
+  await compareAndSwapDocument(PAPER_JOBS,job.id,{...job,status:'queued',revision:'rejoin'},job.revision)
+  await drain(job.id,{platform,generate:async()=>{throw new Error('no AI call expected')}})
+  const after=await readDocument(PAPER_JOBS,job.id,null),set=await readDocument('study-practice',after.setId,null)
+  assert.equal(after.status,'complete',after.error);assert.equal(set.id,before.id);assert.notEqual(set.revision,before.revision)
+  assert.equal(set.result.questions.length,8)
+}))
