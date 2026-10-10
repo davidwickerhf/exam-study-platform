@@ -5,7 +5,7 @@ import { withRequestContext } from '../lib/request-context.mjs'
 import { deleteAllDocuments, readDocument, listDocuments, deleteDocument } from '../lib/user-store.mjs'
 import { addStudyNote, listStudySources } from '../lib/study-version-sources.mjs'
 import { course } from '../scripts/verification/study-fixtures.mjs'
-import { queueCoursePapers, processPaperJob, PAPER_JOBS, claimPaperDispatch, retryPaperJob, paperSections, combinePaperSections, paperJobRecord } from '../lib/study-paper-jobs.mjs'
+import { queueCoursePapers, processPaperJob, PAPER_JOBS, claimPaperDispatch, retryPaperJob, paperSections, combinePaperSections, paperJobRecord, paperJobSummary } from '../lib/study-paper-jobs.mjs'
 import { coursePaperBank } from '../lib/study-paper-bank.mjs'
 import { activeProgrammeId } from '../lib/programme-scope.mjs'
 const platform={configured:true,provider:'openai',model:'gpt-5-mini'}
@@ -76,4 +76,108 @@ test('automatic preparation reuses an identical completed manual extraction with
   await drain(job.id,{platform,generate:generation(calls)})
   assert.equal((await readDocument(PAPER_JOBS,job.id,null)).status,'complete')
   assert.equal(calls.length,0)
+}))
+
+async function later(ms,fn){const real=Date.now;Date.now=()=>real()+ms;try{return await fn()}finally{Date.now=real}}
+test('a busy account budget lease queues the paper with a delay instead of pausing it, and it later completes',async()=>fixture(async()=>{
+  const {StudyBudgetError}=await import('../lib/study-ai-budget.mjs')
+  await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
+  const [job]=await queueCoursePapers(course),calls=[]
+  let busy=true
+  const generate=async(prompt,opts)=>{if(busy){busy=false;throw new StudyBudgetError('Another chapter is generating on your account. This job will continue shortly.',30)}return generation(calls)(prompt,opts)}
+  await drain(job.id,{platform,generate})
+  let saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'queued');assert.ok(saved.runAfter>Date.now());assert.equal(saved.queueDeliveryUntil,saved.runAfter)
+  assert.equal(paperJobSummary(saved).notice,'Another chapter is generating on your account. This job will continue shortly.')
+  assert.deepEqual(await claimPaperDispatch(),[])
+  await drain(job.id,{platform,generate});assert.equal(calls.length,0)
+  await later(31000,async()=>{
+    assert.deepEqual(await claimPaperDispatch(),[job.id])
+    await drain(job.id,{platform,generate})
+  })
+  saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'complete',saved.error);assert.equal(calls.length,2)
+}))
+test('dispatch delivers at most one paper per account at a time',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
+  await addStudyNote({...course,title:'Resit exam.pdf'},[{page:1,text:'Explain this other original problem.'}])
+  assert.equal((await queueCoursePapers(course)).length,2)
+  assert.equal((await claimPaperDispatch()).length,1)
+  assert.deepEqual(await claimPaperDispatch(),[])
+}))
+test('an output-limit failure splits the section by page instead of pausing',async()=>fixture(async()=>{
+  const {OPENAI_OUTPUT_LIMIT_MESSAGE}=await import('../lib/study-provider-output.mjs')
+  const {StudyVersionError}=await import('../lib/study-version-content.mjs')
+  await addStudyNote({...course,title:'Practice exam.pdf'},Array.from({length:8},(_,i)=>({page:i+1,text:`Explain the reasoning for problem ${i+1} in detail.`})))
+  const [job]=await queueCoursePapers(course),calls=[]
+  const generate=async(prompt,opts)=>{
+    if(opts.usageMetadata.stage!=='review' && new Set(JSON.parse(prompt.split('EVIDENCE: ').at(-1)).map(c=>c.page)).size>3)throw new StudyVersionError(OPENAI_OUTPUT_LIMIT_MESSAGE,502)
+    return generation(calls)(prompt,opts)
+  }
+  await drain(job.id,{platform,generate})
+  const saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'complete',saved.error)
+  assert.ok(saved.sections.every(s=>s.to-s.from<3))
+  assert.deepEqual([...new Set(saved.sections.flatMap(s=>Array.from({length:s.to-s.from+1},(_,i)=>s.from+i)))].sort((a,b)=>a-b),[1,2,3,4,5,6,7,8])
+  assert.equal((await readDocument('study-practice',saved.setId,null)).result.questions.length,8)
+  assert.ok(calls.filter(c=>c.usageMetadata.stage!=='review').every(c=>c.maxOutputTokens>12000))
+  assert.ok(calls.filter(c=>c.usageMetadata.stage==='review').every(c=>c.maxOutputTokens===4000))
+}))
+test('review issues are shown on the paused job and an explicit retry restores the repair allowance',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
+  const [job]=await queueCoursePapers(course),calls=[]
+  let reviews=['Question 1 omits its marks.','Question 1 omits its marks.','Question 1 still omits its marks.']
+  const generate=async(prompt,opts)=>opts.usageMetadata.stage==='review' && reviews.length ? JSON.stringify({issues:[reviews.shift()]}) : generation(calls)(prompt,opts)
+  await drain(job.id,{platform,generate})
+  let saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'paused');assert.deepEqual(paperJobSummary(saved).issues,['Question 1 omits its marks.'])
+  await retryPaperJob(job.id)
+  await drain(job.id,{platform,generate})
+  saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'complete',saved.error);assert.deepEqual(saved.issues,[])
+}))
+test('one question that differs from its cited text is omitted and reported; the rest of the section is kept',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'Practice exam.pdf'},Array.from({length:3},(_,i)=>({page:i+1,text:`Explain the reasoning for problem ${i+1} in detail.`})))
+  const [job]=await queueCoursePapers(course)
+  const generate=async(prompt,opts)=>{
+    if(opts.usageMetadata.stage==='review')return JSON.stringify({issues:[]})
+    const chunks=JSON.parse(prompt.split('EVIDENCE: ').at(-1))
+    return JSON.stringify({title:'Original questions',questions:chunks.map((c,i)=>i===1?{...question(c),question:'A paraphrased question.'}:question(c)),warnings:[]})
+  }
+  await drain(job.id,{platform,generate})
+  const saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'complete',saved.error)
+  const set=await readDocument('study-practice',saved.setId,null)
+  assert.deepEqual(set.result.questions.map(q=>q.page),[1,3])
+  assert.ok(set.result.warnings.some(w=>/Question 2 \(page 2\) was omitted: An extracted question differs/.test(w)))
+}))
+test('copies of one file under different source keys share one job and one paper row; same-titled different files do not',async()=>fixture(async()=>{
+  const pages=[{page:1,text:'Explain this original problem.'}]
+  await addStudyNote({...course,title:'OS-Exam-P1-2025.pdf'},pages)
+  await addStudyNote({...course,title:'OS-Exam-P1-2025.pdf'},pages)
+  await addStudyNote({...course,title:'Copy of OS-Exam-P1-2025.pdf'},pages)
+  await addStudyNote({...course,title:'OS-Exam-P1-2025.pdf'},[{page:1,text:'A different paper with the same name.'}])
+  const sources=await listStudySources(course)
+  assert.equal(new Set(sources.map(s=>s.key)).size,4);assert.equal(new Set(sources.map(s=>s.sha256)).size,2)
+  const first=await queueCoursePapers(course)
+  assert.equal(first.length,2)
+  assert.deepEqual((await queueCoursePapers(course)).map(j=>j.id).sort(),first.map(j=>j.id).sort(),'re-queueing is idempotent')
+  assert.equal((await listDocuments(PAPER_JOBS)).length,2)
+  const {coursePracticeHost}=await import('../lib/study-course-practice.mjs')
+  const bank=await coursePaperBank(await coursePracticeHost(course,await activeProgrammeId()))
+  assert.equal(bank.papers.length,2)
+  const copied=bank.papers.find(p=>p.copies.length===3)
+  assert.ok(copied);assert.ok(bank.processing.some(j=>j.sourceKey===copied.key),'the job points at the row that is shown')
+  assert.equal(bank.papers.find(p=>p!==copied).copies.length,1)
+}))
+test('a job saved under a legacy source-key id still blocks a second job for the same file',async()=>fixture(async()=>{
+  const {compareAndSwapDocument}=await import('../lib/user-store.mjs')
+  await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
+  const [source]=await listStudySources(course)
+  const legacy={...paperJobRecord('owner',await activeProgrammeId(),course,source),id:'pap-00000000-0000-0000-0000-000000000001',sourceKey:source.key}
+  await compareAndSwapDocument(PAPER_JOBS,legacy.id,legacy,null)
+  assert.deepEqual((await queueCoursePapers(course)).map(j=>j.id),[legacy.id])
+  assert.equal((await listDocuments(PAPER_JOBS)).length,1)
+  await compareAndSwapDocument(PAPER_JOBS,legacy.id,{...legacy,status:'duplicate',revision:'next'},legacy.revision)
+  assert.notEqual((await queueCoursePapers(course))[0].id,legacy.id,'a merged duplicate does not count as the file\'s job')
 }))

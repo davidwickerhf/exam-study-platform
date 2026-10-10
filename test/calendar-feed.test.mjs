@@ -215,3 +215,15 @@ test('university Type labels connect syllabus attendance to course-only event ti
   assert.equal(result.events.find(e=>e.activity==='Tutorial').attendanceRequired,true)
   assert.equal(result.events.find(e=>e.activity==='Lecture').attendanceRequired,null)
 })
+
+test('the gap between a period\'s last teaching day and its exam week stays in that period', () => {
+  const calendar = [
+    { title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', kind: 'period', period: 1, academicYear: '2026-2027' },
+    { title: 'Exam week · Period 1', date: '2026-10-12', endDate: '2026-10-16', kind: 'exam-week', period: 1, academicYear: '2026-2027' },
+    { title: 'Period 2', date: '2026-10-26', endDate: '2026-12-04', kind: 'period', period: 2, academicYear: '2026-2027' }
+  ]
+  const weekend = resolveAcademicTimeContext(calendar, { date: '2026-10-10' })
+  assert.deepEqual([weekend.period, weekend.phase, weekend.label, weekend.daysUntil], ['Period 1', 'upcoming', 'Exam week · Period 1', 2])
+  const afterExams = resolveAcademicTimeContext(calendar, { date: '2026-10-20' })
+  assert.deepEqual([afterExams.period, afterExams.phase, afterExams.label], ['Period 2', 'upcoming', 'Period 2'])
+})
