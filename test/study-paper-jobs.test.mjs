@@ -192,3 +192,48 @@ test('a used daily allowance makes the paper wait for the reset; a job spending 
   await drain(capped.id,{platform,generate:async()=>{throw new StudyBudgetError('This generation reached its spending cap. Review its progress and explicitly raise the cap to continue.')}})
   assert.equal((await readDocument(PAPER_JOBS,capped.id,null)).status,'paused')
 }))
+test('the BCS2140 Exam Prep files classify as papers and solutions; weak names need corroboration',async()=>{
+  const {paperKind,solutionPairsFor}=await import('../lib/study-paper-bank.mjs')
+  const examPrep=[{moduleName:'Exam Prep'}]
+  const expected={'020 OS-Exam-P1-2025--file-6587123.pdf':'paper','021 OS-Exam-P1-2025-solutions--file-6587085.pdf':'solutions','022 resit-P1-2025--file-6587293.pdf':'paper',
+    'F14-t1.pdf':'paper','S19-T2.pdf':'paper','S17-t3.pdf':'paper','F14-t1-solution.pdf':'solutions','S19-T2-solutions.pdf':'solutions','S17-t3-solutions.pdf':'solutions',
+    'S19-final-optional.pdf':'paper','final-OS-y3.pdf':'paper','030 solutions-Exam-Y3-P4-25-25.docx--file-6587292.pdf':'solutions'}
+  const files=Object.keys(expected).map(title=>({title,locations:examPrep})),solutionPairs=solutionPairsFor(files)
+  assert.deepEqual(Object.fromEntries(files.map(f=>[f.title,paperKind(f,{solutionPairs})])),expected)
+  for(const title of ['final-OS-y3.pdf','F14-t1.pdf','Final project report.pdf','Quiz night poster.pdf'])assert.equal(paperKind({title}),null,title)
+  assert.equal(paperKind({title:'009 Assessment of Example Project Plans--file-6691733.pdf'}),null,'"example" is not "exam"')
+  assert.equal(paperKind({title:'F14-t1.pdf'},{solutionPairs:solutionPairsFor([{title:'F14-t1-solution.pdf'}])}),'paper','a matching solutions file corroborates a term code')
+  assert.equal(paperKind({title:'final-OS-y3.docx'}),null,'only PDFs are papers')
+})
+test('a term-coded paper is queued through its solutions file, which is paired but never processed itself',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'F14-t1.pdf'},[{page:1,text:'Explain this original problem.'}])
+  await addStudyNote({...course,title:'F14-t1-solution.pdf'},[{page:1,text:'The worked solution.'}])
+  const jobs=await queueCoursePapers(course)
+  assert.deepEqual(jobs.map(j=>j.title),['F14-t1.pdf'])
+  const {coursePracticeHost}=await import('../lib/study-course-practice.mjs')
+  const bank=await coursePaperBank(await coursePracticeHost(course,await activeProgrammeId()))
+  const paper=bank.papers.find(p=>p.title==='F14-t1.pdf'),solution=bank.papers.find(p=>p.title==='F14-t1-solution.pdf')
+  assert.equal(paper.paperKind,'paper');assert.equal(solution.paperKind,'solutions');assert.equal(paper.solutionKey,solution.key);assert.equal(solution.solutionKey,null)
+}))
+test('Canvas ingestion uses the module placement to corroborate a weak paper name',async()=>fixture(async()=>{
+  const {indexedPaperJob}=await import('../lib/study-paper-jobs.mjs')
+  const {currentUserId}=await import('../lib/request-context.mjs')
+  const binding={id:'b1',course_code:course.courseCode,course_name:course.courseName,academic_year:course.academicYear,period:course.period}
+  assert.equal(await indexedPaperJob(currentUserId(),binding,'linked-files/materials/031 final-OS-y3--file-1.pdf','sha-final'),null)
+  const job=await indexedPaperJob(currentUserId(),binding,'linked-files/materials/031 final-OS-y3--file-1.pdf','sha-final',[{moduleName:'Exam Prep'}])
+  assert.ok(job);assert.equal(job.sha256,'sha-final')
+}))
+test('a job for a file the classifier no longer accepts is skipped before any paid call',async()=>fixture(async()=>{
+  const {compareAndSwapDocument}=await import('../lib/user-store.mjs')
+  const {paperKind}=await import('../lib/study-paper-bank.mjs')
+  for(const title of ['001 IUI_Exam_manual--file-5716305.pdf','002 Lecture 2 - Course Logistics Assignment--file-1.pdf','003 Project_plan_Example_C--file-2.pdf'])assert.equal(paperKind({title}),null,title)
+  assert.equal(paperKind({title:'Exam guide with practice questions.pdf'}),'paper')
+  await addStudyNote({...course,title:'001 IUI_Exam_manual--file-5716305.pdf'},[{page:1,text:'Rules for the exam.'}])
+  const [source]=await listStudySources(course)
+  const legacy=paperJobRecord('owner',await activeProgrammeId(),course,{...source,title:'Mock exam.pdf'})
+  await compareAndSwapDocument(PAPER_JOBS,legacy.id,{...legacy,title:source.title},null)
+  let calls=0
+  await drain(legacy.id,{platform,generate:async()=>{calls++;throw new Error('no call expected')}})
+  const saved=await readDocument(PAPER_JOBS,legacy.id,null)
+  assert.equal(saved.status,'skipped');assert.equal(calls,0);assert.match(paperJobSummary(saved).notice,/not recognised/)
+}))
