@@ -237,3 +237,19 @@ test('a job for a file the classifier no longer accepts is skipped before any pa
   const saved=await readDocument(PAPER_JOBS,legacy.id,null)
   assert.equal(saved.status,'skipped');assert.equal(calls,0);assert.match(paperJobSummary(saved).notice,/not recognised/)
 }))
+test('a section without questions completes without a review call',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Exam logistics and room information only.'}])
+  const [job]=await queueCoursePapers(course),calls=[]
+  await drain(job.id,{platform,generate:async(prompt,opts)=>{calls.push(opts.usageMetadata.stage);return JSON.stringify({title:'Mock exam',questions:[],warnings:[]})}})
+  const saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'complete',saved.error);assert.deepEqual(calls,['generate'])
+  assert.equal((await readDocument('study-practice',saved.setId,null)).result.questions.length,0)
+}))
+test('the extraction review is told which outcomes are allowed, and sees the page range',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
+  const [job]=await queueCoursePapers(course),prompts=[]
+  await drain(job.id,{platform,generate:async(prompt,opts)=>{if(opts.usageMetadata.stage==='review')prompts.push(prompt);return generation([])(prompt,opts)}})
+  assert.equal(prompts.length,1)
+  for(const allowed of ['empty questions list','needsOriginal=true','answerBasis=unavailable','outside questionPageRange'])assert.ok(prompts[0].includes(allowed),allowed)
+  assert.match(prompts[0],/"questionPageRange":\{"from":1,"to":1\}/)
+}))
