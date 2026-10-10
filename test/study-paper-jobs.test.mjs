@@ -401,3 +401,22 @@ test('an automatic paper keeps going when every item in one section fails verifi
   assert.ok(set.result.questions.length>0 && set.result.questions.length<8,'the other section still contributes')
   assert.ok(set.result.warnings.some(w=>/was omitted/.test(w)))
 }))
+test('BCS3210 mock 8a(a): subscript spacing and line-break hyphens in the PDF text layer still verify',async()=>{
+  const {validatePracticeSet}=await import('../lib/study-practice.mjs')
+  const p6=` (a) [7 points] Give the complete sequence of hash computations Bitcoin performs to build this\n     tree, showing explicitly where duplication occurs at each level, all the way to the Merkle\n     root. Write hi1 ,i2 ,... for the node whose subtree covers leaves ti1 , ti2 , . . . in left-to-right order,\n     listing every contributing index. For example h12 = H(h1 ∥h2 ) and h1234 = H(h12 ∥h34 ),\n     where ∥ denotes concatenation. Indices here are single digits, so no separator is needed.\n\n (b) [7 points] Trace the execution of the combined script ScriptSig ∥ ScriptPK, operation-by-\n     operation, giving the stack state (top at right) after every single step.`
+  const p7=`[8p] 8d A PBFT deployment has n = 10 replicas, satisfying the required n = 3f + 1 form.\n (a) What is the maximum number of Byzantine replicas f this system tolerates?`
+  const chunks=[{id:'q6',page:6,sourceKey:'mock',text:p6},{id:'q7',page:7,sourceKey:'mock',text:p7},{id:'k14',page:14,sourceKey:'key',text:'Solution 8d: f = 3.'}]
+  const item=(over)=>({hint:'',type:'written',marks:7,answer:'',options:[],difficulty:'standard',answerBasis:'unavailable',needsOriginal:false,sharedContext:'',correctOptions:[],answerSourceIds:[],...over})
+  const set=validatePracticeSet({title:'Mock',warnings:[],questions:[
+    item({label:'8a(a)',page:6,sourceIds:['q6'],question:'Give the complete sequence of hash computations Bitcoin performs to build this tree, showing explicitly where duplication occurs at each level, all the way to the Merkle root. Write hi1,i2,... for the node whose subtree covers leaves ti1, ti2, ... in left-to-right order, listing every contributing index. For example h12 = H(h1 ∥h2) and h1234 = H(h12 ∥h34), where ∥ denotes concatenation.'}),
+    item({label:'8b(b)',page:6,sourceIds:['q6'],question:'Trace the execution of the combined script ScriptSig ∥ ScriptPK, operation-by-operation, giving the stack state (top at right) after every single step.'}),
+    item({label:'8d(a)',page:14,sourceIds:['k14'],question:'What is the maximum number of Byzantine replicas f this system tolerates?'}),
+  ]},{mode:'extract',questionSourceKey:'mock',solutionSourceKey:'key',snapshot:{chunks,questionPageRange:{from:6,to:7}}},{dropInvalid:true})
+  assert.deepEqual(set.questions.map(q=>[q.label,q.page]),[['8a(a)',6],['8b(b)',6],['8d(a)',7]],JSON.stringify(set.omittedQuestions))
+  assert.ok(set.questions[2].sourceIds.includes('q7'),'8d cites the paper, not the key page it was tagged with')
+})
+test('joining keeps one copy when only one section could see the exercise header',()=>{
+  const q=(over)=>({...question({id:'c',page:4,text:'x'}),label:'4c',question:'How long does transient storage persist?',...over})
+  const {questions}=combinePaperSections([{result:{questions:[q({sharedContext:''})]}},{result:{questions:[q({sharedContext:'Exercise 4 Ethereum & Smart Contracts'})]}}])
+  assert.equal(questions.length,1);assert.equal(questions[0].sharedContext,'Exercise 4 Ethereum & Smart Contracts')
+})
