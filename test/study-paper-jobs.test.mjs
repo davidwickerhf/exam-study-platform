@@ -301,6 +301,12 @@ test('a paper finished without its answer key can be prepared again, replacing i
   assert.equal(job.status,'complete');assert.equal(paperJobSummary(job).preparedWithAnswerKey,false)
   const before=await readDocument('study-practice',job.setId,null)
   assert.equal(before.result.questions[0].answerBasis,'unavailable')
+  // Even without a new key, preparing again extracts again rather than reusing the cached section.
+  const calls=[]
+  await retryPaperJob(record.id,{withAnswerKey:true})
+  await drain(record.id,{platform,generate:async(prompt,opts)=>{calls.push(opts.usageMetadata.stage);return answering(prompt,opts)}})
+  assert.ok(calls.includes('generate'),'a re-preparation makes a fresh extraction call')
+  job=await readDocument(PAPER_JOBS,record.id,null);assert.equal(job.preparation,2)
   await addStudyNote({...course,title:'Resit exam 2019 solutions.pdf'},[{page:1,text:'Official answer: it follows from the definition.'}])
   assert.equal((await retryPaperJob(record.id)).status,'complete','a plain retry leaves a finished paper alone')
   await retryPaperJob(record.id,{withAnswerKey:true})
