@@ -374,3 +374,30 @@ test('re-joining a completed paper makes no AI calls and replaces its set in pla
   assert.equal(after.status,'complete',after.error);assert.equal(set.id,before.id);assert.notEqual(set.revision,before.revision)
   assert.equal(set.result.questions.length,8)
 }))
+test('Tutorial 3: a page-numbered footer between the halves of a task is layout, not wording',async()=>{
+  const {validatePracticeSet}=await import('../lib/study-practice.mjs')
+  const head='Introduction to Blockchains                                                      Tutorial 3'
+  const page=(n,body)=>({id:`p${n}`,page:n,sourceKey:'t',text:`${head}\n\n${body}\n\n                                              ${n}               DACS, Maastricht University`})
+  const chunks=[page(12,'Step 6'),page(13,' Task 2: Implement Pause Functionality\n Requirements:\n      • Add pause() function (owner only)'),page(14,'      • Emit Paused and Unpaused events\n    Task 3: Add Maximum Supply Cap')]
+  const item={hint:'',page:14,type:'written',label:'Task 2',marks:null,answer:'',options:[],sourceIds:['p14'],difficulty:'standard',answerBasis:'unavailable',needsOriginal:false,sharedContext:'',correctOptions:[],answerSourceIds:[],
+    question:'Task 2: Implement Pause Functionality\nRequirements:\n • Add pause() function (owner only)\n • Emit Paused and Unpaused events'}
+  const set=validatePracticeSet({title:'T3',warnings:[],questions:[item]},{mode:'extract',questionSourceKey:'t',snapshot:{chunks,questionPageRange:{from:12,to:14}}},{dropInvalid:true})
+  assert.deepEqual(set.questions.map(q=>[q.label,q.page]),[['Task 2',13]])
+})
+test('an automatic paper keeps going when every item in one section fails verification',async()=>fixture(async()=>{
+  await addStudyNote({...course,title:'Mock exam.pdf'},Array.from({length:8},(_,i)=>({page:i+1,text:`Explain the reasoning for problem ${i+1} in detail.`})))
+  const [job]=await queueCoursePapers(course)
+  let first=true
+  const generate=async(prompt,opts)=>{
+    if(opts.usageMetadata.stage==='review')return JSON.stringify({issues:[]})
+    const chunks=JSON.parse(prompt.split('EVIDENCE: ').at(-1)),roles=JSON.parse(prompt.match(/SOURCE ROLES: (\{.*?\})\n/)[1])
+    const qs=chunks.filter(c=>c.sourceKey===roles.question).map(question)
+    if(first){first=false;return JSON.stringify({title:'Mock',warnings:[],questions:qs.map(q=>({...q,question:'A paraphrase that is not in the paper.'}))})}
+    return JSON.stringify({title:'Mock',warnings:[],questions:qs})
+  }
+  await drain(job.id,{platform,generate})
+  const saved=await readDocument(PAPER_JOBS,job.id,null),set=await readDocument('study-practice',saved.setId,null)
+  assert.equal(saved.status,'complete',saved.error)
+  assert.ok(set.result.questions.length>0 && set.result.questions.length<8,'the other section still contributes')
+  assert.ok(set.result.warnings.some(w=>/was omitted/.test(w)))
+}))
