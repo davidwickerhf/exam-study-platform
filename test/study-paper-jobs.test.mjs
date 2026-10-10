@@ -53,14 +53,17 @@ test('provider failures pause paid work, explicit retry resumes, revoked sources
   await drain(job.id,{platform,generate:fail})
   assert.equal(calls,1);assert.match((await readDocument(PAPER_JOBS,job.id,null)).error,/access|changed/)
 }))
-test('paper job identities isolate owners and content changes; ranges never drop pages and conflicting overlaps fail',()=>{
+test('paper job identities isolate owners and content changes; ranges never drop pages and conflicting overlaps keep one reading with a warning',()=>{
   const source={key:'x',title:'exam.pdf',sha256:'one'}
   assert.notEqual(paperJobRecord('a','p',course,source).id,paperJobRecord('b','p',course,source).id)
   assert.notEqual(paperJobRecord('a','p',course,source).id,paperJobRecord('a','p',course,{...source,sha256:'two'}).id)
   const sections=paperSections(Array.from({length:15},(_,i)=>({page:i+1,text:'x'.repeat(12000)})))
   assert.deepEqual([...new Set(sections.flatMap(s=>Array.from({length:s.to-s.from+1},(_,i)=>s.from+i)))],Array.from({length:15},(_,i)=>i+1))
   const q={...question({id:'c',page:1,text:'Original question'}),id:'q-1'}
-  assert.throws(()=>combinePaperSections([{result:{questions:[q]}},{result:{questions:[{...q,marks:2}]}}]),/disagree/)
+  const joined=combinePaperSections([{result:{questions:[q]}},{result:{questions:[{...q,marks:2,sourceIds:['c','d']}]}}])
+  assert.equal(joined.questions.length,1);assert.equal(joined.questions[0].marks,2,'the better-evidenced reading wins')
+  assert.match(joined.warnings[0],/read differently by two overlapping sections/)
+  assert.equal(combinePaperSections([{result:{questions:[{...q,marks:3}]}},{result:{questions:[{...q,marks:2}]}}]).questions[0].marks,2,'the later section wins a tie')
 })
 
 test('automatic preparation reuses an identical completed manual extraction without another paid call',async()=>fixture(async()=>{
