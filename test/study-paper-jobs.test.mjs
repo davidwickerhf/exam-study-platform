@@ -126,18 +126,18 @@ test('an output-limit failure splits the section by page instead of pausing',asy
   assert.ok(calls.filter(c=>c.usageMetadata.stage!=='review').every(c=>c.maxOutputTokens>12000))
   assert.ok(calls.filter(c=>c.usageMetadata.stage==='review').every(c=>c.maxOutputTokens===4000))
 }))
-test('review issues are shown on the paused job and an explicit retry restores the repair allowance',async()=>fixture(async()=>{
+test('review findings left after the correction round become notes on a completed paper',async()=>fixture(async()=>{
   await addStudyNote({...course,title:'Mock exam.pdf'},[{page:1,text:'Explain this original problem.'}])
   const [job]=await queueCoursePapers(course),calls=[]
-  let reviews=['Question 1 omits its marks.','Question 1 omits its marks.','Question 1 still omits its marks.']
+  let reviews=['Question 1 depends on a figure.','Question 1 still depends on a figure.']
   const generate=async(prompt,opts)=>opts.usageMetadata.stage==='review' && reviews.length ? JSON.stringify({issues:[reviews.shift()]}) : generation(calls)(prompt,opts)
   await drain(job.id,{platform,generate})
-  let saved=await readDocument(PAPER_JOBS,job.id,null)
-  assert.equal(saved.status,'paused');assert.deepEqual(paperJobSummary(saved).issues,['Question 1 omits its marks.'])
-  await retryPaperJob(job.id)
-  await drain(job.id,{platform,generate})
-  saved=await readDocument(PAPER_JOBS,job.id,null)
-  assert.equal(saved.status,'complete',saved.error);assert.deepEqual(saved.issues,[])
+  const saved=await readDocument(PAPER_JOBS,job.id,null)
+  assert.equal(saved.status,'complete',saved.error)
+  const set=await readDocument('study-practice',saved.setId,null)
+  assert.equal(set.result.questions.length,1)
+  assert.ok(set.result.warnings.includes('Review note: Question 1 still depends on a figure.'))
+  assert.equal(calls.filter(c=>c.usageMetadata.stage==='generate').length,2,'one correction round still runs first')
 }))
 test('one question that differs from its cited text is omitted and reported; the rest of the section is kept',async()=>fixture(async()=>{
   await addStudyNote({...course,title:'Practice exam.pdf'},Array.from({length:3},(_,i)=>({page:i+1,text:`Explain the reasoning for problem ${i+1} in detail.`})))
