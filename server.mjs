@@ -49,7 +49,7 @@ import { runBudgetedStudyCall } from './lib/study-ai-budget.mjs'
 import { studyVersionApi } from './lib/study-version-api.mjs'
 import { processStudyStep } from './lib/study-version-pipeline.mjs'
 import { pendingStudyVersions, claimStudyDispatch, resolveStudyJob, asStudyOwner } from './lib/study-version-store.mjs'
-import { openAiResponseText } from './lib/study-provider-output.mjs'
+import { openAiResponseText, OPENAI_OUTPUT_LIMIT_MESSAGE } from './lib/study-provider-output.mjs'
 import { digest as studyDigest, StudyVersionError } from './lib/study-version-content.mjs'
 import { studyProviderError } from './lib/study-provider-errors.mjs'
 import { deleteDocument, healthcheck, listDocuments, readDocument, storageMode, writeDocument } from './lib/user-store.mjs'
@@ -1391,6 +1391,9 @@ async function runAnthropicApi(prompt, { schemaPath, responseSchema, images = []
       throw await studyProviderError(resp)
     }
     const data = await resp.json()
+    // Truncated structured output can never parse; report the output limit so
+    // callers can split the work, as with OpenAI's finish_reason=length.
+    if (data.stop_reason === 'max_tokens' && (responseSchema || schemaPath)) throw new StudyVersionError(OPENAI_OUTPUT_LIMIT_MESSAGE, 502)
     const text = (data.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim()
     if (!text) throw new Error(`Anthropic API returned no text content (stop_reason=${data.stop_reason})`)
     return {

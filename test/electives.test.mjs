@@ -7,7 +7,7 @@
 // same courses the planner recognises: they were not, so re-saving from
 // programme settings silently listed every chosen course twice.
 
-import test from 'node:test'
+import test, { before, after, mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { withRequestContext } from '../lib/request-context.mjs'
 import { deleteAllDocuments } from '../lib/user-store.mjs'
@@ -16,6 +16,10 @@ import { applyProgramme, chooseElectiveGroups, chooseElectives, electiveChoices,
 import { readAcademicState } from '../lib/academics.mjs'
 
 const CS = 'maastricht-university-bsc-computer-science'
+// Current-period choices follow the academic calendar, so pin the clock inside
+// 2026-2027 Period 1 teaching instead of depending on the day the suite runs.
+before(() => mock.timers.enable({ apis: ['Date'], now: new Date('2026-09-15T12:00:00Z') }))
+after(() => mock.timers.reset())
 const version = () => {
   const programme = loadEditorialProgrammeCatalogue().programmes.find((entry) => entry.id === CS)
   return programme.versions.find((entry) => entry.id === '2026-2027')
