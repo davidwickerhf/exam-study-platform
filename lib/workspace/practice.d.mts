@@ -9,6 +9,9 @@ export type PracticeQuestion = {
   paperLabel?: string | null
   marks?: number | null
   source?: string | null
+  sourceUrl?: string | null
+  sourceTitle?: string | null
+  sourcePage?: number | null
   type?: string | null
   difficulty?: string | null
   question: string

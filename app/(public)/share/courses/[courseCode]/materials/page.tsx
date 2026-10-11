@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 
 export const metadata: Metadata = {
   title: 'Shared course materials',
-  description: 'Course files, indexed passages and practice for Maastricht University members.',
+  description: 'Course files and practice for Maastricht University members.',
   robots: { index: false, follow: false }
 }
 
