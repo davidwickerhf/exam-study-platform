@@ -215,20 +215,9 @@ email, password reset by code, and Google when configured. Account creation is
 refused for addresses outside `lib/access-policy.mjs`. The global admin role is
 `auth_user."wickerStudyRole" = 'admin'`; `ADMIN_USER_IDS` works as before.
 
-History: Clerk users were moved to Better Auth on 2026-10-26 with the script
-below, which keeps their `user_…` ids. Clerk is no longer used; this is kept
-for reference only.
-
-```bash
-# dry run (read-only against Clerk)
-CLERK_SECRET_KEY=sk_live_… npm run auth:migrate-clerk -- [--csv clerk-users.csv]
-# write
-CLERK_SECRET_KEY=sk_live_… DATABASE_URL=… npm run auth:migrate-clerk -- --apply [--csv clerk-users.csv]
-```
-
-`--csv` is the Clerk dashboard export (Users → Export); its bcrypt
-`password_digest` values keep existing passwords working. Without it, password
-users choose a new one with "Forgot password?". Sessions are not migrated.
+History: Clerk users were moved to Better Auth on 2026-10-26, keeping their
+`user_…` ids and bcrypt password digests. Clerk is no longer used; the one-off
+import script is in git history.
 
 ## Pulling updates
 

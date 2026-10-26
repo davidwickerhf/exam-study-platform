@@ -20,7 +20,6 @@
     "policies:ingest": "node scripts/ingest-programme-policies.mjs",
     "content:verify-precomputed": "node scripts/verify-precomputed.mjs",
     "user:import": "node scripts/import-local-user.mjs",
-    "auth:migrate-clerk": "node scripts/migrate-clerk-to-better-auth.mjs",
     "canvas:sync": "node scripts/canvas-course-sync.mjs",
     "canvas:corpus-worker": "node scripts/canvas-corpus-worker.mjs",
     "canvas:agent": "node scripts/wicker-local-agent.mjs",

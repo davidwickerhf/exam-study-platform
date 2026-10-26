@@ -96,7 +96,7 @@ Postgres (`editorial_source_assets`, `*_chunks` tables). There are no `S3_*` env
   empty; there is no Google Cloud OAuth project for this app).
 - Sign-up is limited by `ALLOWED_EMAIL_DOMAINS` / `ALLOWED_EMAILS` (`lib/access-policy.mjs`).
 - Admins: `auth_user."wickerStudyRole" = 'admin'`, plus `ADMIN_USER_IDS`.
-- Clerk users were imported on 2026-10-26 with `npm run auth:migrate-clerk` (ids kept as
+- Clerk users were imported on 2026-10-26 with a one-off script (now in git history) (ids kept as
   `user_…`). That was a one-off; Clerk is gone.
 - No mobile app.
 
@@ -223,7 +223,7 @@ Locations only; see [wicker-infra credentials.md](https://github.com/davidwicker
 - `CANVAS_CONNECTION_ENCRYPTION_KEY` must be identical on web, api and worker.
 - Migration checksums are immutable; editing an applied `db/*.sql` file makes the api refuse to boot.
 - The database is large; manual dumps fill the postgres container layer. Clean up.
-- `vercel.json` and `deploy/worker/Dockerfile` are leftovers from the Vercel era and are not used by Coolify.
+- `deploy/worker/Dockerfile` is a leftover from the Vercel era and is not used by Coolify.
 
 ## Related wicker-infra docs
 
