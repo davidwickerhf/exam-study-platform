@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import { dispatchCanvasSteps, sendCanvasProbe, callCanvasService, sendCanvasStep } from '@/lib/canvas-queue-client'
+import { dispatchCanvasSteps, sendCanvasProbe, runDispatchSweep, sendCanvasStep } from '@/lib/canvas-queue-client.mjs'
 import { queueWorkersEnabled } from '@/lib/queue-runtime.mjs'
 import { verifyCanvasTask } from '@/lib/canvas-queue-protocol.mjs'
 export const maxDuration = 60
@@ -8,10 +8,11 @@ export async function GET(request: Request) {
   const expected = `Bearer ${process.env.CRON_SECRET || ''}`
   const actual = request.headers.get('authorization') || ''
   if (!process.env.CRON_SECRET || actual.length !== expected.length || !timingSafeEqual(Buffer.from(actual), Buffer.from(expected))) return new Response('Unauthorized', { status: 401 })
-  const [canvas, feedback] = await Promise.allSettled([dispatchCanvasSteps(), callCanvasService({ action: 'feedback-maintenance' })])
-  const feedbackStatus = feedback.status === 'fulfilled' ? 'processed' : 'deferred'
-  if(canvas.status === 'rejected') return Response.json({ error: 'Canvas dispatch failed.', feedback: feedbackStatus }, {status:503})
-  return Response.json({...canvas.value,feedback:feedbackStatus})
+  // Self-hosted deployments run this sweep every minute inside the pg-boss
+  // worker; this route stays for Vercel Cron and manual `curl` triggers.
+  const { ok, ...result } = await runDispatchSweep()
+  if (!ok) return Response.json(result, { status: 503 })
+  return Response.json(result)
 }
 export async function POST(request: Request) {
   const body = await request.text()

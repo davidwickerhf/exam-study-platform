@@ -5,26 +5,6 @@
       "root": ".",
       "framework": "nextjs",
       "buildCommand": "npm run build",
-      "functions": {
-        "app/internal/canvas-consume/route.ts": {
-          "experimentalTriggers": [
-            {
-              "type": "queue/v2beta",
-              "topic": "canvas-sync-v1",
-              "maxConcurrency": 2
-            }
-          ]
-        },
-        "app/internal/study-consume/route.ts": {
-          "experimentalTriggers": [
-            {
-              "type": "queue/v2beta",
-              "topic": "study-generation-v1",
-              "maxConcurrency": 1
-            }
-          ]
-        }
-      },
       "bindings": [
         {
           "type": "service",

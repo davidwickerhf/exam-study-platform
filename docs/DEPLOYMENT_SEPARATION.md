@@ -143,3 +143,25 @@ once per minute. See [Canvas collection](CANVAS_CORPUS.md) for user controls.
 Startup verification and the migration runner share discovery of numbered `db/*.sql` files. Adding a migration no longer requires editing a separate allow-list. Checksums remain immutable once recorded.
 
 Production messages retain the SDK's deployment pinning. After a step, consumers wake the dispatcher through `VERCEL_PROJECT_PRODUCTION_URL`, so the current release owns subsequent notifications rather than letting an obsolete deployment grow an indefinite continuation chain. A delayed job or failed wake-up is recovered by the minute SQL-outbox sweep. Preview probes remain pinned and previews cannot process real work. A legacy pinned chain may require retiring its obsolete deployment and re-dispatching the durable job. Unpinned sends were not observed to trigger production delivery during live recovery, so they are not used.
+
+## Self-hosted (Coolify)
+
+`docker-compose.coolify.yml` runs the same split on one host:
+
+- `web` (`deploy/web/Dockerfile`, `next start` on port 3000) serves pages and
+  proxies `/api/*`, `/skills/*` and the OAuth `/.well-known/` paths to
+  `WICKER_API_SERVICE_URL` (`http://api:8080`). Next compiles these rewrites at
+  build time, so the URL is also a build argument. `/internal/canvas-dispatch`
+  stays here and enqueues pg-boss jobs.
+- `api` (`Containerfile`) is unchanged apart from the database driver. With
+  `WICKER_QUEUE_BACKEND=pg-boss` it behaves as on Vercel: work is enqueued and
+  the dispatcher at `WICKER_QUEUE_DISPATCHER_URL` is woken, never run inline.
+- `worker` (same image as `web`, `npm run worker`) replaces Vercel Queues and
+  Cron with pg-boss on the application database: `canvas-sync-v1` with two
+  concurrent steps, `study-generation-v1` with one, and a `* * * * *` pg-boss
+  schedule running the former cron sweep. Run exactly one replica.
+
+SQL remains the source of truth; pg-boss (schema `pgboss`) only carries job-ID
+notifications, as Vercel Queues did. The database driver is `pg` through
+`lib/pg.mjs`, which keeps the tagged-template/`transaction([...])` interface and
+uses TLS only when the URL asks for it, so the same build runs against Neon.
