@@ -2,10 +2,10 @@
 import '../lib/env.mjs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { neon } from '@neondatabase/serverless'
+import { createSql } from '../lib/pg.mjs'
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required')
-const sql = neon(process.env.DATABASE_URL)
+const sql = createSql(process.env.DATABASE_URL, { queryTimeoutMs: 0 })
 const migration = await readFile(resolve('db/003_editorial_retrieval.sql'), 'utf8')
 for (const statement of migration.split(';').map((part) => part.trim()).filter(Boolean)) await sql.query(statement)
 

@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production CANVAS_CORPUS_ASSET_DIR=/tmp/corpus-assets
 RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr unzip python3 python3-pip && rm -rf /var/lib/apt/lists/*

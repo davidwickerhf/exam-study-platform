@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { extname, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { neon } from '@neondatabase/serverless'
+import { createSql } from '../lib/pg.mjs'
 
 const execFileAsync = promisify(execFile)
 const root = resolve(new URL('..', import.meta.url).pathname)
@@ -16,7 +16,7 @@ const chunkBytes = Number(process.env.CONTENT_CHUNK_BYTES || 512 * 1024)
 const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms))
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required')
-const sql = neon(process.env.DATABASE_URL)
+const sql = createSql(process.env.DATABASE_URL, { queryTimeoutMs: 0 })
 const definitionBytes = await readFile(definitionPath)
 const definition = JSON.parse(definitionBytes)
 

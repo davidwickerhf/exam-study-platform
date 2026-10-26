@@ -4,23 +4,13 @@ import { mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import pg from 'pg'
-import * as neonModule from '@neondatabase/serverless'
+import { createSql } from '../../lib/pg.mjs'
 process.env.NODE_ENV = 'test' // Exercise ordinary account caps even on a development machine.
 const url = new URL(process.env.STUDY_TEST_DATABASE_URL || '')
 if (!['localhost', '127.0.0.1'].includes(url.hostname))
   throw new Error('Use a disposable localhost database.')
 const pool = new pg.Pool({ connectionString: url.href })
-function sql(strings, ...values) {
-  return pool
-    .query(
-      strings.reduce((out, part, i) => out + (i ? `$${i}` : '') + part, ''),
-      values
-    )
-    .then((r) => r.rows)
-}
-mock.module('@neondatabase/serverless', {
-  namedExports: { ...neonModule, neon: () => sql }
-})
+const sql = createSql(url.href)
 // Canvas HTTP/persistence is exercised separately by canvas-queue.mjs.
 // This fixture isolates the source-to-rule scan and its real SQL cache.
 mock.module('../../lib/priority-announcements.mjs',{namedExports:{refreshPriorityAnnouncements:async()=>({announcements:0})}})

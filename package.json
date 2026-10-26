@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20.18.1"
+    "node": ">=22.12"
   },
   "scripts": {
     "setup": "node setup.mjs",
@@ -39,7 +39,8 @@
     "pretest:e2e": "node scripts/prepare-pdf-viewer.mjs",
     "test:tutor:live": "node scripts/verification/tutor-grounding-live.mjs",
     "test:study:readiness:live": "node scripts/verification/study-readiness-live.mjs",
-    "test:study:pipeline:live": "node scripts/verification/study-pipeline-live.mjs"
+    "test:study:pipeline:live": "node scripts/verification/study-pipeline-live.mjs",
+    "worker": "node scripts/worker.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -52,9 +53,7 @@
     "@fullcalendar/react": "^6.1.21",
     "@fullcalendar/timegrid": "^6.1.21",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@neondatabase/serverless": "^1.1.0",
     "@openai/agents": "^0.18.0",
-    "@vercel/queue": "^0.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -65,6 +64,8 @@
     "next": "^16.3.3",
     "openai": "^7.15.0",
     "pdfjs-dist": "^6.3.289",
+    "pg": "^8.23.1",
+    "pg-boss": "^12.38.0",
     "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.8",
@@ -88,7 +89,6 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "ajv": "^8.20.0",
-    "pg": "^8.23.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },

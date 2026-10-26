@@ -5,14 +5,14 @@ import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { neon } from '@neondatabase/serverless'
+import { createSql } from '../lib/pg.mjs'
 import { chunkProgrammePolicyText, validateProgrammePolicyPublication } from '../lib/programme-policy-sources.mjs'
 import { embedTexts, embeddingConfiguration } from '../lib/embeddings.mjs'
 
 const execFileAsync = promisify(execFile)
 const checkOnly = process.argv.includes('--check')
 if (!process.env.DATABASE_URL && !checkOnly) throw new Error('DATABASE_URL is required (or pass --check to verify the files without writing).')
-const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null
+const sql = process.env.DATABASE_URL ? createSql(process.env.DATABASE_URL, { queryTimeoutMs: 0 }) : null
 
 function argument(name, fallback = '') {
   const index = process.argv.indexOf(`--${name}`)

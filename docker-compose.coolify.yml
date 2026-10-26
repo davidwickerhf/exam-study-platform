@@ -1,0 +1,146 @@
+# Coolify (Docker Compose build pack) deployment for study.wicker.life.
+#
+#   web     Next.js pages; proxies /api, /skills and the OAuth /.well-known
+#           paths to `api` (the former vercel.json `services` routing).
+#           Public domain: https://study.wicker.life:3000 (port = container port).
+#   api     Existing Node API container (LibreOffice, Tesseract, Poppler).
+#           Internal only; no domain.
+#   worker  pg-boss consumers for canvas-sync-v1 (x2) and study-generation-v1
+#           (x1), plus the every-minute dispatch sweep (former Vercel Cron).
+#           Same image as web. Run exactly one replica.
+#
+# PostgreSQL is a separate Coolify resource on the same network; point
+# DATABASE_URL at it (postgres://user:pass@host:5432/db, no TLS).
+# Values left as ${VAR} are set in Coolify's environment-variable UI.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: deploy/web/Dockerfile
+      args:
+        WICKER_API_SERVICE_URL: http://api:8080
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: ${DATABASE_URL}
+      WICKER_API_SERVICE_URL: http://api:8080
+      WICKER_QUEUE_BACKEND: pg-boss
+      CANVAS_CONNECTION_ENCRYPTION_KEY: ${CANVAS_CONNECTION_ENCRYPTION_KEY}
+      CRON_SECRET: ${CRON_SECRET}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://study.wicker.life}
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: Containerfile
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      HOSTNAME: 0.0.0.0
+      WICKER_SERVICE: api
+      CANVAS_CORPUS_WORKER: "off"
+      WICKER_QUEUE_BACKEND: pg-boss
+      # The API wakes the dispatcher on the web service after enqueueing work.
+      WICKER_QUEUE_DISPATCHER_URL: http://web:3000
+      WICKER_MCP_ORIGIN: ${WICKER_MCP_ORIGIN:-https://study.wicker.life}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS}
+      ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS}
+      CANVAS_CONNECTION_ENCRYPTION_KEY: ${CANVAS_CONNECTION_ENCRYPTION_KEY}
+      AI_CONNECTION_ENCRYPTION_KEY: ${AI_CONNECTION_ENCRYPTION_KEY}
+      FEEDBACK_ENCRYPTION_KEY: ${FEEDBACK_ENCRYPTION_KEY}
+      FEEDBACK_SUBMISSIONS: ${FEEDBACK_SUBMISSIONS}
+      FEEDBACK_DIAGNOSTICS: ${FEEDBACK_DIAGNOSTICS}
+      FEEDBACK_AI_TRIAGE: ${FEEDBACK_AI_TRIAGE}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL}
+      CHAT_MODEL: ${CHAT_MODEL}
+      CHAT_REASONING_EFFORT: ${CHAT_REASONING_EFFORT}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+      LLM_MAP_MODEL: ${LLM_MAP_MODEL}
+      LLM_DRAFT_MODEL: ${LLM_DRAFT_MODEL}
+      LLM_QUALITY_MODEL: ${LLM_QUALITY_MODEL}
+      STUDY_MODEL_ROUTES: ${STUDY_MODEL_ROUTES}
+      STUDY_PIPELINE_MODEL_ROUTES: ${STUDY_PIPELINE_MODEL_ROUTES}
+      AI_CHAT_REQUESTS_PER_MINUTE: ${AI_CHAT_REQUESTS_PER_MINUTE}
+      AI_CHAT_REQUESTS_PER_DAY: ${AI_CHAT_REQUESTS_PER_DAY}
+      AI_CHAT_MAX_OUTPUT_TOKENS: ${AI_CHAT_MAX_OUTPUT_TOKENS}
+      AI_EXERCISE_REQUESTS_PER_MINUTE: ${AI_EXERCISE_REQUESTS_PER_MINUTE}
+      AI_EXERCISE_REQUESTS_PER_DAY: ${AI_EXERCISE_REQUESTS_PER_DAY}
+      AI_EXERCISE_MAX_OUTPUT_TOKENS: ${AI_EXERCISE_MAX_OUTPUT_TOKENS}
+      AI_INTAKE_REQUESTS_PER_MINUTE: ${AI_INTAKE_REQUESTS_PER_MINUTE}
+      AI_INTAKE_REQUESTS_PER_DAY: ${AI_INTAKE_REQUESTS_PER_DAY}
+      AI_INTAKE_MAX_OUTPUT_TOKENS: ${AI_INTAKE_MAX_OUTPUT_TOKENS}
+      AI_TOKENS_PER_DAY: ${AI_TOKENS_PER_DAY}
+      AI_TOKENS_PER_MONTH: ${AI_TOKENS_PER_MONTH}
+      AI_INGEST_ENDPOINT: ${AI_INGEST_ENDPOINT}
+      AI_INGEST_TOKEN: ${AI_INGEST_TOKEN}
+      STUDY_PLATFORM_DAILY_USD: ${STUDY_PLATFORM_DAILY_USD}
+      STUDY_PLATFORM_MONTHLY_USD: ${STUDY_PLATFORM_MONTHLY_USD}
+      STUDY_USER_DAILY_USD: ${STUDY_USER_DAILY_USD}
+      STUDY_USER_MONTHLY_USD: ${STUDY_USER_MONTHLY_USD}
+      STUDY_CHAPTERS_PER_DAY: ${STUDY_CHAPTERS_PER_DAY}
+      STUDY_CHAPTERS_PER_MONTH: ${STUDY_CHAPTERS_PER_MONTH}
+      STUDY_REQUESTS_PER_MINUTE: ${STUDY_REQUESTS_PER_MINUTE}
+      STUDY_TOKENS_PER_DAY: ${STUDY_TOKENS_PER_DAY}
+      STUDY_PERSONAL_TOKENS_PER_DAY: ${STUDY_PERSONAL_TOKENS_PER_DAY}
+      STUDY_MAX_JOB_USD: ${STUDY_MAX_JOB_USD}
+      WICKER_TIME_ZONE: ${WICKER_TIME_ZONE}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: deploy/web/Dockerfile
+      args:
+        WICKER_API_SERVICE_URL: http://api:8080
+    command: ["node", "scripts/worker.mjs"]
+    restart: unless-stopped
+    # Study steps can run for up to 11 minutes; give active jobs time to finish.
+    stop_grace_period: 90s
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      WICKER_API_SERVICE_URL: http://api:8080
+      WICKER_QUEUE_BACKEND: pg-boss
+      CANVAS_CONNECTION_ENCRYPTION_KEY: ${CANVAS_CONNECTION_ENCRYPTION_KEY}
+      WORKER_HEALTH_PORT: "8081"
+      WORKER_STOP_TIMEOUT_MS: "80000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8081/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    depends_on:
+      api:
+        condition: service_healthy

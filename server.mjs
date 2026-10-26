@@ -11,7 +11,7 @@ import { readCanvasGroups } from './lib/canvas-group-context.mjs'
 import {tutorFailure} from './lib/tutor-errors.mjs'
 import { claimPaperDispatch, resolvePaperJob, processPaperJob } from './lib/study-paper-jobs.mjs'
 import { courseExerciseBank } from './lib/study-course-practice.mjs'
-import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queueRequestHeaders } from './lib/queue-runtime.mjs'
+import { queueWorkersEnabled, queueWorkerAllowsUser, queueDispatcherOrigin, queueRequestHeaders, hostedQueue } from './lib/queue-runtime.mjs'
 import { activeProgrammeId } from './lib/programme-scope.mjs'
 import { originalContext, originalStatus, beginOriginal, putOriginalChunk, completeOriginal, readOriginalChunk } from './lib/academic-originals.mjs'
 import { aiQuotaExemption } from './lib/ai-quota-policy.mjs'
@@ -136,7 +136,7 @@ let canvasCorpusWorkerProcess = null
 let stoppingCanvasWorker = false
 let canvasWorkerRestart = null
 function startCanvasCorpusWorkerProcess() {
-  if (apiOnly || process.env.VERCEL || process.env.VERCEL_ENV || process.env.CANVAS_CORPUS_WORKER !== 'embedded' || stoppingCanvasWorker || canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
+  if (apiOnly || hostedQueue() || process.env.CANVAS_CORPUS_WORKER !== 'embedded' || stoppingCanvasWorker || canvasCorpusWorkerProcess || !process.env.DATABASE_URL || process.env.CANVAS_CORPUS_WORKER === 'off') return false
   canvasCorpusWorkerProcess = spawn(process.execPath, [join(__dirname, 'scripts/canvas-corpus-worker.mjs')], { cwd: __dirname, env: { ...process.env, CANVAS_WORKER_HEALTH_PORT: '0' }, stdio: 'inherit' })
   canvasCorpusWorkerProcess.on('exit', () => {
     canvasCorpusWorkerProcess = null
@@ -3643,7 +3643,7 @@ async function runStudentStudyJob(id) {
 }
 const localStudyJobs = new Set()
 async function wakeStudentStudy(id) {
-  if (process.env.VERCEL || process.env.VERCEL_ENV) { await wakeCanvasQueue(); return }
+  if (hostedQueue()) { await wakeCanvasQueue(); return }
   if (localStudyJobs.has(id)) return
   localStudyJobs.add(id)
   setImmediate(async () => {
@@ -3713,7 +3713,7 @@ async function handleRequest(req, res) {
       return
     }
     if (url.pathname === '/api/health' && req.method === 'GET') {
-      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured(), queue: { enabled: queueWorkersEnabled(), environment: process.env.VERCEL_ENV || 'local', revision: (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 12) } } })) }
+      try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured(), queue: { enabled: queueWorkersEnabled(), backend: process.env.WICKER_QUEUE_BACKEND || (process.env.VERCEL ? 'vercel' : 'local'), environment: process.env.VERCEL_ENV || process.env.WICKER_ENVIRONMENT || 'local', revision: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.SOURCE_COMMIT || '').slice(0, 12) } } })) }
       catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
       return
     }
@@ -6870,8 +6870,8 @@ server.listen(port, hostname, () => {
   if (startCanvasCorpusWorkerProcess()) console.log('Canvas corpus worker: separate process running')
 })
 
-// Local recovery uses the same durable outbox as Vercel Cron. No browser worker.
-if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+// Local recovery uses the same durable outbox as the hosted dispatcher. No browser worker.
+if (!hostedQueue()) {
   const recovery = setInterval(async () => {
     try { await scheduleModuleGuides({sourceOptions:studySourceOptions,platform:llmConfiguration()}); for (const row of await pendingStudyVersions()) await wakeStudentStudy(row.key); for (const id of await claimPaperDispatch()) await wakeStudentStudy(id) }
     catch (error) { console.error('Study recovery deferred:', error.message) }
