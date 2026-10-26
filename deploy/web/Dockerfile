@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --include=dev --no-audit --no-fund
 COPY . .
 # Next compiles rewrites into the build output, so the API address is a build
-# argument. Every page renders dynamically; Clerk keys are read at runtime.
+# argument. Every page renders dynamically; auth settings are read at runtime.
 ARG WICKER_API_SERVICE_URL=http://api:8080
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 WICKER_API_SERVICE_URL=$WICKER_API_SERVICE_URL
 RUN npm run build && npm prune --omit=dev --no-audit --no-fund

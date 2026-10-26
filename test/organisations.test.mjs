@@ -35,14 +35,14 @@ test('organisation naming is stable', () => {
 })
 
 test('organisation admins may maintain only their own programme', () => {
-  const orgAdmin = { admin: false, mode: 'clerk', memberships: [{ programmeId: 'um-bsc-cs', role: 'admin' }, { programmeId: 'tue-bsc-cs', role: 'member' }] }
+  const orgAdmin = { admin: false, mode: 'session', memberships: [{ programmeId: 'um-bsc-cs', role: 'admin' }, { programmeId: 'tue-bsc-cs', role: 'member' }] }
   assert.equal(authorise(orgAdmin, { method: 'PUT', pathname: '/api/admin/programmes/um-bsc-cs/calendar' }), null)
   assert.equal(authorise(orgAdmin, { method: 'PUT', pathname: '/api/admin/programmes/um-bsc-cs' }), null)
   assert.equal(authorise(orgAdmin, { method: 'GET', pathname: '/api/admin/programmes' }), null)
   assert.match(authorise(orgAdmin, { method: 'PUT', pathname: '/api/admin/programmes/tue-bsc-cs/calendar' }), /Administrator/)
   assert.match(authorise(orgAdmin, { method: 'DELETE', pathname: '/api/admin/programmes/um-bsc-cs' }), /Administrator/)
   assert.match(authorise(orgAdmin, { method: 'PUT', pathname: '/api/admin/courses/sec' }), /Administrator/)
-  const member = { admin: false, mode: 'clerk', memberships: [{ programmeId: 'um-bsc-cs', role: 'member' }] }
+  const member = { admin: false, mode: 'session', memberships: [{ programmeId: 'um-bsc-cs', role: 'member' }] }
   assert.match(authorise(member, { method: 'PUT', pathname: '/api/admin/programmes/um-bsc-cs/calendar' }), /Administrator/)
-  assert.equal(authorise({ admin: true, mode: 'clerk', memberships: [] }, { method: 'DELETE', pathname: '/api/admin/programmes/x' }), null)
+  assert.equal(authorise({ admin: true, mode: 'session', memberships: [] }, { method: 'DELETE', pathname: '/api/admin/programmes/x' }), null)
 })

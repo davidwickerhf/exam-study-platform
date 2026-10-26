@@ -32,9 +32,9 @@ services:
       WICKER_QUEUE_BACKEND: pg-boss
       CANVAS_CONNECTION_ENCRYPTION_KEY: ${CANVAS_CONNECTION_ENCRYPTION_KEY}
       CRON_SECRET: ${CRON_SECRET}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      # Only tells the web service to render hosted sign-in; sessions are
+      # verified by the api service, which serves /api/auth/*.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://study.wicker.life}
     depends_on:
       api:
@@ -59,9 +59,14 @@ services:
       WICKER_MCP_ORIGIN: ${WICKER_MCP_ORIGIN:-https://study.wicker.life}
       DATABASE_URL: ${DATABASE_URL}
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      # Better Auth (self-hosted sign-in at /api/auth/*).
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-https://study.wicker.life}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # Mail for sign-in, verification and reset codes (nodemailer URL).
+      SMTP_URL: ${SMTP_URL}
+      EMAIL_FROM: ${EMAIL_FROM:-Wicker Study <no-reply@study.wicker.life>}
       ADMIN_USER_IDS: ${ADMIN_USER_IDS}
       ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS}

@@ -18,9 +18,10 @@ test('public contact addresses use the study hostname', () => {
   assert.doesNotMatch(reviewedSources, /(?:mailto:|https:\/\/clerk\.)[a-z]*@?wicker\.life/)
 })
 
-test('the Clerk production origin uses the current custom hostname', () => {
-  assert.match(security, /https:\/\/clerk\.study\.wicker\.life/)
-  assert.match(securityDocs, /`clerk\.study\.wicker\.life`/)
+test('sign-in is same-origin: the CSP names no third-party authentication host', () => {
+  assert.doesNotMatch(security, /clerk/i)
+  assert.doesNotMatch(securityDocs, /clerk\.study\.wicker\.life/)
+  assert.match(securityDocs, /Better Auth/)
 })
 
 test('legal pages identify the individual operator and controller', () => {

@@ -140,7 +140,7 @@ export function AccountDataControls({
       icon: Trash2Icon,
       title: "Delete your account",
       description:
-        "Permanently remove your private Wicker records and Clerk sign-in identity. Public library material you agreed to share stays available without a link to your account.",
+        "Permanently remove your private Wicker records and your sign-in identity. Public library material you agreed to share stays available without a link to your account.",
       danger: true,
       action: (
         <Button
@@ -224,11 +224,11 @@ export function AccountDataControls({
         open={accountOpen}
         onOpenChange={setAccountOpen}
         title="Permanently delete your account?"
-        description="Wicker first removes your private data, then deletes your sign-in identity from Clerk and signs you out."
+        description="Wicker first removes your private data, then deletes your sign-in identity and signs you out."
         removes={[
           "Every programme, course plan, result, attendance record and study event",
           "Tutor conversations, remembered plans, files and private retrieval indexes",
-          "Canvas connections, API keys, usage records and your Clerk sign-in identity",
+          "Canvas connections, API keys, usage records and your sign-in identity",
         ]}
         word={accountConfirmation}
         action="Delete account permanently"

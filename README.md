@@ -7,8 +7,8 @@ The maintained editorial library includes Statistics, Algorithmic Design,
 Embedded Programming, Computer Security and Numerical Methods; connected Canvas
 editions extend that library without mixing historical retakes into current rules.
 
-Built with Next.js App Router, React, TypeScript and a Node API, with Clerk
-authentication and Neon storage. Vercel runs the web/API deployment and durable
+Built with Next.js App Router, React, TypeScript and a Node API, with
+self-hosted Better Auth sign-in and PostgreSQL storage. Vercel runs the web/API deployment and durable
 Canvas queue tasks. Local AI clients use the same account through MCP 2.9;
 individual writes require explicit confirmation. Preferences and availability
 can be shared with Tutor, and API-key requests are visible in Settings → AI activity.
@@ -161,7 +161,7 @@ personal records only exist in the database — so those surfaces cannot be
 exercised locally without a way to be somebody against a real database.
 
 `WICKER_LOCAL_USER` is that way. Set it, point `DATABASE_URL` at a database,
-and leave the Clerk keys unset:
+and leave `BETTER_AUTH_SECRET` unset:
 
 ```bash
 # .env — development only, never commit real credentials
@@ -187,11 +187,45 @@ Notes:
 - **Admin rights are explicit.** `ADMIN_USER_IDS` is the same mechanism used in
   production, so name the test user there to reach `#/admin`.
 - **It refuses to start where it could matter.** Setting `WICKER_LOCAL_USER`
-  with `NODE_ENV=production`, on Vercel, or alongside Clerk keys is a startup
+  with `NODE_ENV=production`, on Vercel, or alongside `BETTER_AUTH_SECRET` is a startup
   error, not a warning: it would let an unauthenticated caller act as a real
   user.
 - **It replaces sign-in entirely.** There is no sign-in page in this mode and
   no session; the browser simply is that user.
+
+## Hosted sign-in (Better Auth)
+
+Sign-in is self-hosted [Better Auth](https://www.better-auth.com), served by
+the API service at `/api/auth/*` on the study origin (the web service proxies
+it like every other `/api` path). Its tables (`auth_user`, `auth_session`,
+`auth_account`, `auth_verification`) come from `db/050_better_auth.sql` and
+are applied by `npm run db:migrate`.
+
+| Variable | Service | Purpose |
+| --- | --- | --- |
+| `BETTER_AUTH_SECRET` | api, web | Signs session cookies (`openssl rand -base64 32`). The web service only checks that it is set. |
+| `BETTER_AUTH_URL` | api | Public origin, e.g. `https://study.wicker.life`. |
+| `SMTP_URL` | api | nodemailer URL for verification, sign-in and reset codes. Without it production refuses sign-up, codes and resets; development prints codes to the console. |
+| `EMAIL_FROM` | api | Sender, default `Wicker Study <no-reply@study.wicker.life>`. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | api | Optional Google sign-in. Redirect URI: `https://study.wicker.life/api/auth/callback/google`. |
+
+Methods: email + password (verified once by a 6-digit code), sign-in code by
+email, password reset by code, and Google when configured. Account creation is
+refused for addresses outside `lib/access-policy.mjs`. The global admin role is
+`auth_user."wickerStudyRole" = 'admin'`; `ADMIN_USER_IDS` works as before.
+
+Moving users from Clerk keeps their `user_…` ids:
+
+```bash
+# dry run (read-only against Clerk)
+CLERK_SECRET_KEY=sk_live_… npm run auth:migrate-clerk -- [--csv clerk-users.csv]
+# write
+CLERK_SECRET_KEY=sk_live_… DATABASE_URL=… npm run auth:migrate-clerk -- --apply [--csv clerk-users.csv]
+```
+
+`--csv` is the Clerk dashboard export (Users → Export); its bcrypt
+`password_digest` values keep existing passwords working. Without it, password
+users choose a new one with "Forgot password?". Sessions are not migrated.
 
 ## Pulling updates
 
@@ -212,7 +246,7 @@ without trampling on personal progress is a future improvement.
 
 In local mode, personal state lives in ignored flat files under
 `data/users/local-dev/`; only configured AI requests leave the machine. In
-hosted mode, Clerk provides authentication, Neon stores per-user study state
+hosted mode, self-hosted Better Auth provides sign-in, PostgreSQL stores per-user study state
 and AI usage, Vercel hosts the service, and the configured AI provider receives
 only requested tutor, further-exercise, or academic-plan extraction inputs.
 Curriculum and transcript files are processed as an import draft; the original
@@ -224,7 +258,7 @@ the user explicitly accepts them; a source omission never deletes a course.
 
 Signed-in users can see their AI allowances in Settings, export their active
 personal record as JSON, and permanently delete both the stored personal record
-and Clerk authentication identity. The shipped templates and published course
+and the sign-in identity. The shipped templates and published course
 sources are shared editorial content and contain no personal attempts, mistake
 history, or mastery scores.
 

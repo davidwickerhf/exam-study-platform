@@ -12,7 +12,7 @@
  */
 
 import { type ReactNode, useEffect, useState } from "react";
-import { useClerk } from "@clerk/nextjs";
+import { authClient, signOutTo } from "@/lib/auth-client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -158,23 +158,79 @@ export function Failed({ what, message }: { what: string; message: string }) {
 }
 
 export function HostedProfileActions() {
-  const clerk = useClerk();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (open) { setError(null); setDone(false); }
+  }, [open]);
+
+  async function changePassword(form: FormData) {
+    const currentPassword = String(form.get("current-password") || "");
+    const newPassword = String(form.get("new-password") || "");
+    if (newPassword.length < 8) { setError("Use at least 8 characters for your new password."); return; }
+    setBusy(true);
+    setError(null);
+    try {
+      const { error: failure } = await authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions: true });
+      if (failure) {
+        setError(failure.code === "INVALID_PASSWORD"
+          ? "Your current password is not right. If you never set one, sign out and use \u201cForgot password?\u201d on the sign-in page."
+          : failure.message || "Your password could not be changed.");
+        return;
+      }
+      setDone(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <span className="flex flex-wrap gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => clerk.openUserProfile()}
-      >
-        Manage sign-in &amp; password
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        Change password
       </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}
-      >
+      <Button variant="ghost" size="sm" onClick={() => void signOutTo()}>
         Sign out
       </Button>
+      <AlertDialog open={open} onOpenChange={(next: boolean) => { if (!busy) setOpen(next); }}>
+        <AlertDialogContent className="gap-5 p-5 sm:max-w-[440px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change password</AlertDialogTitle>
+            <AlertDialogDescription>
+              Other devices are signed out when your password changes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {done ? (
+            <p role="status" className="text-sm font-medium">Your password is updated.</p>
+          ) : (
+            <form
+              id="change-password"
+              className="flex flex-col gap-3 text-sm"
+              onSubmit={(event) => { event.preventDefault(); void changePassword(new FormData(event.currentTarget)); }}
+            >
+              <label className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground">Current password</span>
+                <Input name="current-password" type="password" autoComplete="current-password" required disabled={busy} />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground">New password</span>
+                <Input name="new-password" type="password" autoComplete="new-password" minLength={8} required disabled={busy} />
+              </label>
+              {error && <p role="alert" className="text-sm font-medium">{error}</p>}
+            </form>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>{done ? "Close" : "Cancel"}</AlertDialogCancel>
+            {!done && (
+              <Button type="submit" form="change-password" disabled={busy}>
+                {busy ? "Saving…" : "Save password"}
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </span>
   );
 }

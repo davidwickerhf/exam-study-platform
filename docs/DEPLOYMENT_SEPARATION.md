@@ -21,12 +21,12 @@ message that expires after seven days remains recoverable from Neon.
 
 Preview workers require a dedicated Neon branch. Configure `DATABASE_URL`,
 `WICKER_PREVIEW_DATABASE_HOST` (the exact database hostname), and
-`WICKER_PREVIEW_WORKER_USERS` (comma-separated Clerk test-user IDs) as overrides
+`WICKER_PREVIEW_WORKER_USERS` (comma-separated test-user IDs) as overrides
 for the preview Git branch. A hostname mismatch disables processing. Both
 outbox selection and job leasing restrict processing to those test accounts.
 Automatic refresh sweeps are disabled in previews, since database snapshots can
 contain other accounts. Keep the preview's existing Canvas encryption key and
-Clerk settings when branching its database so saved connections remain readable.
+auth settings when branching its database so saved connections remain readable.
 
 Preview wake-ups use `VERCEL_BRANCH_URL`, falling back only to `VERCEL_URL`, never
 the production alias. Automation bypass headers are included on protected

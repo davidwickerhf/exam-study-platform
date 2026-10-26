@@ -3,21 +3,25 @@
 ## Boundaries
 
 - Every `/api/*` route except `/api/health`, `/api/auth/config`, and editorial
-  PDFs requires either a Clerk session or a personal API key. Personal data is
+  PDFs requires either a session or a personal API key. Personal data is
   scoped by the authenticated user id in every query.
 - API keys (`wsk_…`, 192 bits of entropy) are stored as SHA-256 hashes, carry
   explicit scopes (`read` / `write` / `admin`), expire (30 days, 90 days, or 1
   year), can be revoked, and cannot manage other keys, reset data, or delete
   the account. `admin` keys can only be minted by the fixed administrator
-  email, users listed in `ADMIN_USER_IDS`, or users assigned the Clerk
-  private-metadata admin role;
+  email, users listed in `ADMIN_USER_IDS`, or users whose stored role
+  (`auth_user."wickerStudyRole"`) is `admin`;
   `/api/admin/*` requires that flag.
 - Account deletion and data resets require a typed confirmation and a session.
 
-- Production runs on a Clerk *production* instance on the app's own domain
-  (Frontend API `clerk.study.wicker.life`); preview deployments keep the development
-  instance. Social sign-in in production requires custom OAuth credentials
-  configured in the Clerk dashboard.
+- Sign-in is self-hosted Better Auth on the app's own origin (`/api/auth/*`,
+  served by the API service; tables `auth_user`, `auth_session`,
+  `auth_account`, `auth_verification` in the app database). Sessions are
+  HttpOnly, Secure, SameSite=Lax first-party cookies. Passwords are scrypt
+  (bcrypt digests imported from Clerk are still verified). Email codes are
+  6 digits, hashed at rest, expire after 10 minutes and allow 5 attempts.
+  Every account-creation path rejects addresses outside the access policy.
+  Google sign-in is optional (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`).
 
 - Eligibility is fixed in server code: only a verified primary email exactly
   at `maastrichtuniversity.nl` or `student.maastrichtuniversity.nl` may enter.
@@ -60,13 +64,15 @@
 ## Browser protections
 
 - Strict CSP on HTML: no inline or eval scripts; scripts only from the app,
-  jsdelivr (reader libraries, Clerk), and Clerk; `frame-ancestors 'none'`;
+  jsdelivr (reader libraries) and the self-hosted analytics origin; no
+  third-party sign-in hosts; `frame-src 'none'`; `frame-ancestors 'none'`;
   `object-src 'none'`.
 - HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`,
   `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, and a
   restrictive `Permissions-Policy` on every response.
 - Cookie-authenticated mutations are refused unless `Sec-Fetch-Site` /
-  `Origin` show they originated from this site (CSRF). Bearer calls carry no
+  `Origin` show they originated from this site (CSRF); Better Auth applies its
+  own trusted-origin check to `/api/auth/*`. Bearer calls (API keys) carry no
   ambient credentials and are exempt.
 
 ## Server-side fetches

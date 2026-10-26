@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuth } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { ArrowUpRightIcon, CheckIcon, CopyIcon, LockKeyholeIcon, SearchIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -11,16 +11,17 @@ type Question = { id?: string; chapter: string; type?: string; kind?: string; qu
 type Access = 'checking' | 'guest' | 'allowed' | 'denied'
 
 function HostedAccess({ onAccess }: { onAccess: (value: Access) => void }) {
-  const { isLoaded, isSignedIn, getToken } = useAuth()
+  const { data: session, isPending } = authClient.useSession()
+  const signedIn = Boolean(session)
   useEffect(() => {
-    if (!isLoaded) return
-    if (!isSignedIn) { onAccess('guest'); return }
+    if (isPending) return
+    if (!signedIn) { onAccess('guest'); return }
     let live = true
-    void getToken().then(token => fetch('/api/auth/session', { headers: token ? { authorization: `Bearer ${token}` } : {} }))
+    void fetch('/api/auth/session', { cache: 'no-store' })
       .then(async response => { const session = response.ok ? await response.json() : null; if (live) onAccess(session && (session.admin || /@(student\.)?maastrichtuniversity\.nl$/i.test(session.email || '')) ? 'allowed' : 'denied') })
       .catch(() => { if (live) onAccess('denied') })
     return () => { live = false }
-  }, [isLoaded, isSignedIn, getToken, onAccess])
+  }, [isPending, signedIn, onAccess])
   return null
 }
 

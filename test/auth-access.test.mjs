@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isMissingClerkSession } from '../lib/auth.mjs'
+import { isBetterAuthRoute, isPublicApi } from '../lib/auth.mjs'
 import { accessPolicy, emailAllowed, isAccessAdministratorEmail, verifiedPrimaryEmail } from '../lib/access-policy.mjs'
 
 test('access policy is locked to exact Maastricht domains and the administrator exception', () => {
@@ -45,18 +45,16 @@ test('eligibility reads only a verified primary email', () => {
   assert.equal(verifiedPrimaryEmail(user), 'person@student.maastrichtuniversity.nl')
 })
 
-test('a deleted Clerk session or user is treated as signed out', () => {
-  assert.equal(isMissingClerkSession({
-    status: 404,
-    errors: [{ code: 'resource_not_found', message: 'No session was found with id sess_dead' }]
-  }), true)
-  assert.equal(isMissingClerkSession({
-    status: 404,
-    errors: [{ code: 'resource_not_found', message: 'No user was found with id user_dead' }]
-  }), true)
-  assert.equal(isMissingClerkSession({
-    status: 404,
-    errors: [{ code: 'resource_not_found', message: 'No organisation was found.' }]
-  }), false)
-  assert.equal(isMissingClerkSession({ status: 500, message: 'Clerk is unavailable.' }), false)
+test('Better Auth serves /api/auth/* except the three paths Wicker owns', () => {
+  for (const path of ['/api/auth/sign-in/email', '/api/auth/get-session', '/api/auth/email-otp/send-verification-otp', '/api/auth/callback/google', '/api/auth/sign-out']) {
+    assert.equal(isBetterAuthRoute(path), true, path)
+    assert.equal(isPublicApi(path), true, path)
+  }
+  for (const path of ['/api/auth/session', '/api/auth/config', '/api/auth/local-session', '/api/account', '/api/authx']) assert.equal(isBetterAuthRoute(path), false, path)
+  assert.equal(isPublicApi('/api/auth/session'), false)
+})
+
+test('a Better Auth user row is eligible only through a verified email', () => {
+  assert.equal(verifiedPrimaryEmail({ email: 'Person@Student.MaastrichtUniversity.nl', emailVerified: true }), 'person@student.maastrichtuniversity.nl')
+  assert.equal(verifiedPrimaryEmail({ email: 'person@student.maastrichtuniversity.nl', emailVerified: false }), null)
 })

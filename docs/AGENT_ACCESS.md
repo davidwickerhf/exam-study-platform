@@ -14,15 +14,15 @@ it and carries scopes:
 | `write` | study mutations: answers, reviews, flashcards, mistakes, mocks, mastery, plan |
 | `admin` | editorial content and the programme catalogue (administrators only) |
 
-Administrators are either the Clerk user ids listed in `ADMIN_USER_IDS` or
-users assigned the Clerk private-metadata role `wickerStudyRole: "admin"`.
+Administrators are either the user ids listed in `ADMIN_USER_IDS` or users
+whose stored role `auth_user."wickerStudyRole"` is `admin`.
 In local development without a database, `local-dev` is an administrator.
 
 Keys are stored as SHA-256 hashes (`api_keys`, db/008). They cannot manage other
 keys, reset data, or delete the account — those need a signed-in session.
 
 Send the key as `Authorization: Bearer wsk_…`. Keys work in every mode
-(Clerk-protected production and local development).
+(session-protected production and local development).
 
 ## Finding published courses and Canvas materials
 

@@ -13,7 +13,7 @@ import {
 
 test('document register keeps derived version metadata without retaining file contents', async () => {
   const owner = `user_docs_${randomUUID().slice(0, 8)}`
-  const asOwner = (callback) => withRequestContext({ userId: owner, mode: 'clerk' }, callback)
+  const asOwner = (callback) => withRequestContext({ userId: owner, mode: 'session' }, callback)
   try {
     const first = await asOwner(() => recordAcademicDocumentVersion({
       kind: 'transcript',
