@@ -1,4 +1,12 @@
-# Vercel web, API and durable Canvas tasks
+# Web, API and durable Canvas tasks
+
+> **History note (October 2026):** most of this file describes the former
+> Vercel deployment (Vercel Queues, Vercel Cron, preview workers on Neon
+> branches). Production now runs the layout in
+> [Self-hosted (Coolify)](#self-hosted-coolify) below: pg-boss replaces Vercel
+> Queues and Cron, and there are no preview deployments. The queue protocol,
+> persistence and recovery sections still apply. Current operations:
+> [HOSTING.md](HOSTING.md).
 
 The public domain routes pages/assets to native Next.js (`web`), and `/api/*`
 and `/skills/*` to the existing Node API container (`api`). Keeping the API
