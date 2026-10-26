@@ -21,12 +21,14 @@ import {
   type Mistake,
   type PracticeQuestion,
   agoLabel,
+  answerWasCorrect,
   difficultyLabel,
   gradeRequest,
   groupMistakes,
   typeLabel,
 } from "@/lib/workspace/practice.mjs";
 import type { StudyCourse } from "@/lib/workspace/courses.mjs";
+import { trackEvent } from "@/lib/analytics";
 import {
   AnswerControl,
   COLUMN_LABEL,
@@ -102,6 +104,7 @@ export default function MistakesTab({
         },
       );
       setResults((current) => ({ ...current, [mistake.id]: data }));
+      trackEvent("practice-answer-graded", { source: "mistake-retry", correct: answerWasCorrect(data.score) });
       if (mistake.questionId) onDeckChange(mistake.questionId);
     } catch (cause) {
       setFailure((cause as Error).message);

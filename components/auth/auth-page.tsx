@@ -7,6 +7,7 @@ import { resumableAuthSessions, safeAuthDestination } from '@/lib/workspace/auth
 import { BrandMark } from '@/components/brand/brand-mark'
 import { contacts } from '@/lib/site-content'
 import { SiteIcon } from '@/components/site/icon'
+import { trackEvent } from '@/lib/analytics'
 
 const appearance = {
   variables: {
@@ -69,6 +70,18 @@ function HostedAuth({ signUp }: { signUp: boolean }) {
   useEffect(() => {
     if (isLoaded && sessionsLoaded && !isSignedIn && soleSessionId && attemptedSession.current !== soleSessionId) void resumeSession(soleSessionId)
   }, [isLoaded, sessionsLoaded, isSignedIn, soleSessionId, resumeSession])
+  // Count a completed sign-in or sign-up only when this page saw the visitor
+  // signed out first, so arriving with an existing session is not counted.
+  const sawSignedOut = useRef(false)
+  const tracked = useRef(false)
+  useEffect(() => {
+    if (!isLoaded) return
+    if (!isSignedIn) { sawSignedOut.current = true; return }
+    if (sawSignedOut.current && !tracked.current) {
+      tracked.current = true
+      trackEvent(signUp ? 'sign-up-completed' : 'sign-in-completed', { resumed: attemptedSession.current !== null })
+    }
+  }, [isLoaded, isSignedIn, signUp])
   useEffect(() => { if (isLoaded && isSignedIn) router.replace(destination) }, [isLoaded, isSignedIn, destination, router])
   // Do not mount a second sign-in flow over an active session. Pending Clerk
   // session tasks remain signed-out here and are completed inside the widget.

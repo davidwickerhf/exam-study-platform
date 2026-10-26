@@ -50,6 +50,14 @@ test('the CSP forbids inline scripts and framing', () => {
   assert.ok(!/script-src[^;]*\x27unsafe-eval\x27/.test(csp))
 })
 
+test('the CSP allows the Umami tracker script and its collect endpoint', () => {
+  const csp = contentSecurityPolicy({ nonce: 'abc' })
+  const directive = (name) => csp.split('; ').find((part) => part.startsWith(`${name} `))
+  assert.match(directive('script-src'), /https:\/\/analytics\.wicker\.life/)
+  assert.match(directive('script-src'), /'nonce-abc'/)
+  assert.match(directive('connect-src'), /https:\/\/analytics\.wicker\.life/)
+})
+
 test('the healthcheck reports whether Canvas connections can be stored, without key material', async (t) => {
   const { canvasStorageConfigured } = await import('../lib/canvas-connections.mjs')
   const original = process.env.CANVAS_CONNECTION_ENCRYPTION_KEY
