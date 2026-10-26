@@ -28,7 +28,7 @@ The product is used for long, high-focus desktop study sessions and shorter mobi
   authentication, metadata, and the application boundary. The remaining
   vanilla study engine is an isolated migration boundary, not the platform
   architecture.
-- Clerk provides authentication and Neon stores editorial and personal data.
+- Self-hosted Better Auth provides sign-in and PostgreSQL stores editorial and personal data.
 - All existing workflows and local lesson sources must remain intact.
 - The interface must handle dense academic material without wasting wide-screen space.
 - Every signed-in surface is part of the redesign; mixed legacy and new visual systems are unacceptable.

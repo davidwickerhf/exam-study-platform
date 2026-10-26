@@ -29,7 +29,7 @@ test.after(async () => {
   await rm(join(dataRoot, '_agent-authorizations'), { recursive: true, force: true })
 })
 
-const asUser = (id, callback) => withRequestContext({ userId: id, mode: 'clerk' }, callback)
+const asUser = (id, callback) => withRequestContext({ userId: id, mode: 'session' }, callback)
 
 test('an agent key is only ever delivered to loopback', () => {
   assert.equal(assertLoopbackRedirect('http://127.0.0.1:8765/callback'), 'http://127.0.0.1:8765/callback')

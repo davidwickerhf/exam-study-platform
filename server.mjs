@@ -42,7 +42,8 @@ import { verifyCanvasTask, signCanvasTask } from './lib/canvas-queue-protocol.mj
 import { canvasSyncLog } from './lib/canvas-sync-log.mjs'
 import { createDocumentReview, readDocumentReviews, academicDocumentCheck, academicDocumentEvidence, discardDocumentReviews } from './lib/academic-document-review.mjs'
 import { documentRows, validateDocumentRows, compareAcademicDocuments } from './lib/academic-document-check.mjs'
-import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
+import { authenticate, authConfig, authorise, deleteAuthUser, getAuthUser, isBetterAuthRoute, isPublicApi, identityFor, forgetAuthUser, localAccountForEmail, localSessionCookie, localTestUserId } from './lib/auth.mjs'
+import { handleBetterAuth } from './lib/better-auth-route.mjs'
 import { createApiKey, listApiKeys, revokeApiKey, API_SCOPES } from './lib/api-keys.mjs'
 import { currentUserId, currentAuth, setRequestContext } from './lib/request-context.mjs'
 import { runBudgetedStudyCall } from './lib/study-ai-budget.mjs'
@@ -318,7 +319,7 @@ if (!apiOnly) {
 // A local test user is an explicit, named development configuration rather
 // than a half-finished deployment, so it satisfies this pairing on its own.
 if (!localTestUserId() && Boolean(process.env.DATABASE_URL) !== authConfig().enabled) {
-  throw new Error('Hosted mode requires DATABASE_URL, CLERK_PUBLISHABLE_KEY, and CLERK_SECRET_KEY together. Refusing a partially configured deployment.')
+  throw new Error('Hosted mode requires DATABASE_URL and BETTER_AUTH_SECRET together. Refusing a partially configured deployment.')
 }
 
 // ─── LLM provider config ─────────────────────────────────────────────────────
@@ -661,7 +662,7 @@ async function sessionPayload(auth, { autoScope = false } = {}) {
   let memberships = auth.memberships
   const eligible = memberships === null ? catalogue.programmes : programmesForEmail(catalogue.programmes, auth.email, { trusted: auth.trusted })
   let joined = null
-  if (autoScope && auth.mode === 'clerk' && memberships) {
+  if (autoScope && auth.mode === 'session' && memberships) {
     const decision = scopeDecision({ memberships, eligible })
     if (decision.action === 'join') {
       try {
@@ -3712,6 +3713,7 @@ async function handleRequest(req, res) {
       send(res, 200, JSON.stringify({ ok: true }), 'application/json; charset=utf-8', { 'Set-Cookie': localSessionCookie('', { clear: true }), 'Cache-Control': 'no-store' })
       return
     }
+    if (isBetterAuthRoute(url.pathname)) { await handleBetterAuth(req, res, url); return }
     if (url.pathname === '/api/health' && req.method === 'GET') {
       try { send(res, 200, JSON.stringify({ ...await healthcheck(), integrations: { llm: llmConfiguration(), canvasConnections: canvasStorageConfigured(), queue: { enabled: queueWorkersEnabled(), backend: process.env.WICKER_QUEUE_BACKEND || (process.env.VERCEL ? 'vercel' : 'local'), environment: process.env.VERCEL_ENV || process.env.WICKER_ENVIRONMENT || 'local', revision: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.SOURCE_COMMIT || '').slice(0, 12) } } })) }
       catch (error) { send(res, 503, JSON.stringify({ ok: false, error: error.message })) }
@@ -3786,7 +3788,7 @@ async function handleRequest(req, res) {
         return
       }
       // Browser sessions ride on cookies; refuse mutations that did not originate here.
-      if (auth.mode === 'clerk' && isForbiddenCrossSite(req)) {
+      if (auth.mode === 'session' && isForbiddenCrossSite(req)) {
         send(res, 403, JSON.stringify({ error: 'Cross-site request refused.' }))
         return
       }
@@ -4256,7 +4258,7 @@ async function handleRequest(req, res) {
     }
 
     if (url.pathname === '/api/account/summary' && req.method === 'GET') {
-      const identity = await getAuthUser(currentAuth().clerkUserId || currentAuth().userId)
+      const identity = await getAuthUser(currentAuth().authUserId || currentAuth().userId)
       const summary = await summarisePersonalData()
       const session = await sessionPayload(currentAuth())
       send(res, 200, JSON.stringify({ account: { ...identity, mode: currentAuth().mode, storage: storageMode() }, programmes: session.programmes, ...summary }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
@@ -4293,7 +4295,7 @@ async function handleRequest(req, res) {
     }
 
     if (url.pathname === '/api/account/export' && req.method === 'GET') {
-      const identity = await getAuthUser(currentAuth().clerkUserId || currentAuth().userId)
+      const identity = await getAuthUser(currentAuth().authUserId || currentAuth().userId)
       const payload = await exportPersonalData(identity)
       const date = new Date().toISOString().slice(0, 10)
       send(res, 200, JSON.stringify(payload, null, 2), 'application/json; charset=utf-8', {
@@ -4374,8 +4376,8 @@ async function handleRequest(req, res) {
     if (url.pathname === '/api/account' && req.method === 'DELETE') {
       const body = await readBody(req, 64 * 1024)
       const auth = currentAuth()
-      const clerkUserId = auth.clerkUserId || auth.userId
-      const account = await getAuthUser(clerkUserId)
+      const authUserId = auth.authUserId || auth.userId
+      const account = await getAuthUser(authUserId)
       const expected = account.email || 'DELETE'
       if (body?.confirmation !== expected) {
         send(res, 400, JSON.stringify({ error: account.email ? 'Enter your exact email address to confirm account deletion.' : 'Type DELETE to confirm permanent account deletion.' }))
@@ -4390,11 +4392,11 @@ async function handleRequest(req, res) {
       }
       let identity
       try {
-        identity = await deleteAuthUser(clerkUserId)
+        identity = await deleteAuthUser(authUserId)
       } catch (error) {
         send(res, 502, JSON.stringify({
-          error: 'Your Wicker data was removed, but the Clerk sign-in identity could not be deleted. Retry this action or contact privacy@study.wicker.life.',
-          code: 'CLERK_ACCOUNT_DELETE_FAILED',
+          error: 'Your Wicker data was removed, but the sign-in identity could not be deleted. Retry this action or contact privacy@study.wicker.life.',
+          code: 'AUTH_ACCOUNT_DELETE_FAILED',
           personalDataDeleted: true
         }), 'application/json; charset=utf-8', { 'Cache-Control': 'no-store' })
         return

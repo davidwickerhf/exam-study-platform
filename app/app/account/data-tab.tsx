@@ -381,7 +381,7 @@ export function DataTab({
       </Section>
 
       {/* Account deletion remains distinct from record resets because it also
-          removes the Clerk identity and ends the signed-in session. */}
+          removes the sign-in identity and ends the signed-in session. */}
       <div className="flex flex-col gap-6 pt-4">
         <Separator />
         <section className="flex flex-col gap-3">

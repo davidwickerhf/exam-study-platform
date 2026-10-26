@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuth } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { ArrowUpRightIcon, CheckIcon, CopyIcon, FileTextIcon, LockKeyholeIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -9,16 +9,17 @@ type Index = { courseCode: string; courseName: string | null; papers: Paper[] }
 type Access = 'checking' | 'guest' | 'allowed' | 'denied'
 
 function HostedAccess({ onAccess }: { onAccess: (value: Access) => void }) {
-  const { isLoaded, isSignedIn, getToken } = useAuth()
+  const { data: session, isPending } = authClient.useSession()
+  const signedIn = Boolean(session)
   useEffect(() => {
-    if (!isLoaded) return
-    if (!isSignedIn) { onAccess('guest'); return }
+    if (isPending) return
+    if (!signedIn) { onAccess('guest'); return }
     let live = true
-    void getToken().then(token => fetch('/api/auth/session', { headers: token ? { authorization: `Bearer ${token}` } : {} }))
+    void fetch('/api/auth/session', { cache: 'no-store' })
       .then(response => { if (live) onAccess(response.ok ? 'allowed' : 'denied') })
       .catch(() => { if (live) onAccess('denied') })
     return () => { live = false }
-  }, [isLoaded, isSignedIn, getToken, onAccess])
+  }, [isPending, signedIn, onAccess])
   return null
 }
 

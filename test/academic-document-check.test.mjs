@@ -103,7 +103,7 @@ test('printed partial credit awards survive normalization and do not become full
 test('reviews bind checked data to owner, revision and source removal; re-read evidence upgrades legacy versions', async () => {
   const owner = `test-document-check-${randomUUID()}`
   try {
-    await withRequestContext({ userId: owner, mode: 'clerk' }, async () => {
+    await withRequestContext({ userId: owner, mode: 'session' }, async () => {
       const source = evidence([row()])
       const changes = [{ id: 'result:1', payload: { grade: 7 } }]
       const id = await createDocumentReview({ evidence: source, changes, revision: 1 })
@@ -111,7 +111,7 @@ test('reviews bind checked data to owner, revision and source removal; re-read e
       assert.equal((await readDocumentReviews([id], [{ payload: { grade: 7 }, id: 'result:1' }], 1)).length, 1)
       await assert.rejects(() => readDocumentReviews([id], [{ id: 'result:1', payload: { grade: 9 } }], 1), /changed after/)
       await assert.rejects(() => readDocumentReviews([id], changes, 2), /programme changed/)
-      await withRequestContext({ userId: `${owner}-other`, mode: 'clerk' }, async () => { await assert.rejects(() => readDocumentReviews([id], changes, 1), /expired/) })
+      await withRequestContext({ userId: `${owner}-other`, mode: 'session' }, async () => { await assert.rejects(() => readDocumentReviews([id], changes, 1), /expired/) })
       await recordAcademicDocumentVersion({ kind: 'transcript', fingerprint: 'old' })
       await recordAcademicDocumentVersion({ kind: 'transcript', fingerprint: 'old', evidence: source })
       await recordAcademicDocumentVersion({ kind: 'academic-overview', fingerprint: 'overview', evidence: source })
