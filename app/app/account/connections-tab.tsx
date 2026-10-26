@@ -35,6 +35,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { readJson, useJson } from "@/components/workspace/use-json";
 import { connectionOrigin } from "@/lib/workspace/updates.mjs";
+import { trackEvent } from "@/lib/analytics";
 import {
   type CorpusStatus,
   canvasCorpusSummary,
@@ -400,6 +401,7 @@ export function ConnectionsTab() {
         body: JSON.stringify({ canvasUrl: origin, accessToken: token }),
       });
       credentialsSaved = true;
+      trackEvent("canvas-connected", { materials: materialMode });
       setToken("");
       setAddingHost(false);
       connections.reload();

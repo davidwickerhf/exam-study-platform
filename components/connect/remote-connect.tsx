@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, BookOpen, PencilLine, UserRound } from 'lucide-react'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { contacts } from '@/lib/site-content'
+import { trackEvent } from '@/lib/analytics'
 import styles from './agent-connect.module.css'
 
 type Account = { id: string; email: string | null }
@@ -51,6 +52,7 @@ export function RemoteConnect() {
         }
         throw new Error(body.error_description || body.error || 'Could not complete this connection.')
       }
+      if (approved) trackEvent('agent-connected', { kind: 'remote' })
       window.location.assign(body.redirect)
     } catch (error) { setError(error instanceof Error ? error.message : 'Could not complete this connection.'); setBusy(null) }
   }

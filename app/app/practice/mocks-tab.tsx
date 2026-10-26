@@ -45,6 +45,7 @@ import {
   sampleQuestions,
 } from "@/lib/workspace/practice.mjs";
 import type { StudyCourse } from "@/lib/workspace/courses.mjs";
+import { trackEvent } from "@/lib/analytics";
 import {
   AnswerControl,
   COLUMN_LABEL,
@@ -144,6 +145,7 @@ export default function MocksTab({
         method: "POST",
         body: JSON.stringify(session),
       });
+      trackEvent("mock-exam-completed", { questions: active.questions.length });
       onChanged([saved, ...(sessions ?? [])]);
       setSelected(saved);
       setRun(null);

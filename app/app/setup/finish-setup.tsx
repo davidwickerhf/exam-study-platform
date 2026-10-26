@@ -21,6 +21,7 @@ import { ChevronRightIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { json, type View } from './view'
+import { trackEvent } from '@/lib/analytics'
 
 export function FinishSetup({
   view,
@@ -50,6 +51,7 @@ export function FinishSetup({
       // Also offers the dashboard tour to established accounts finishing
       // explicitly; a previous dismissal is preserved by the server.
       const next = await json<View>('/api/onboarding/finish', { method: 'POST' })
+      trackEvent('setup-finished', { mode: 'explicit' })
       onFinished?.(next)
       router.replace('/app')
       // The redirect that guards /app is decided on the server, so the cached

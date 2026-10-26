@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import styles from './agent-connect.module.css'
+import { trackEvent } from '@/lib/analytics'
 
 const SCOPE_COPY: Record<string, { title: string; detail: string }> = {
   read: { title: 'Read', detail: 'Course material, questions, your progress, plan, and calendar.' },
@@ -100,6 +101,7 @@ export function AgentConnect() {
       const body = await response.json().catch(() => null)
       if (!response.ok) throw new Error(body?.error || `Authorization failed (${response.status}).`)
       setStatus('granted')
+      trackEvent('agent-connected', { kind: 'local' })
       answer({ code: body.code })
     } catch (failure) {
       setStatus('idle')
