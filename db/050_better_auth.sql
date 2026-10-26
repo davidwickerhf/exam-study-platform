@@ -4,7 +4,7 @@
 -- auth_user.id keeps the Clerk user id (user_...) for imported accounts, so
 -- every personal table, ADMIN_USER_IDS and programme_memberships still refer
 -- to the same person. New accounts get Better Auth's generated ids.
--- Users are imported with scripts/migrate-clerk-to-better-auth.mjs.
+-- Users were imported from Clerk once (scripts/migrate-clerk-to-better-auth.mjs, now in git history).
 
 CREATE TABLE IF NOT EXISTS auth_user (
   id TEXT PRIMARY KEY,

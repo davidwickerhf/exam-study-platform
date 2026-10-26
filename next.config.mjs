@@ -1,17 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Same-origin service split. Vercel routes these paths to the `api` service
-  // in vercel.json; elsewhere (Coolify, local) Next proxies them to the API
-  // container at WICKER_API_SERVICE_URL (e.g. http://api:8080). Rewrites are
-  // compiled at build time, so the variable must be set when building.
+  // Same-origin service split: Next proxies these paths to the API container
+  // at WICKER_API_SERVICE_URL (e.g. http://api:8080). Rewrites are compiled at
+  // build time, so the variable must be set when building.
   async rewrites() {
-    if (process.env.VERCEL) return []
     const api = process.env.WICKER_API_SERVICE_URL || process.env.WICKER_API_ORIGIN
     if (!api) return []
     const target = new URL(api)
     if (!['http:', 'https:'].includes(target.protocol) || target.username || target.password || target.pathname !== '/') throw new Error('WICKER_API_SERVICE_URL must be an HTTP origin without credentials or a path.')
     const origin = target.origin
-    // beforeFiles: these paths always belong to the API, as on Vercel.
+    // beforeFiles: these paths always belong to the API.
     return {
       beforeFiles: [
         { source: '/.well-known/oauth-authorization-server', destination: `${origin}/.well-known/oauth-authorization-server` },
