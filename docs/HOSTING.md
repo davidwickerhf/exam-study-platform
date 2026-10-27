@@ -109,9 +109,11 @@ Postgres (`editorial_source_assets`, `*_chunks` tables). There are no `S3_*` env
 - **Target:** Stalwart sender `noreply@study.wicker.life`
   (`SMTP_URL=smtps://noreply%40study.wicker.life:<pw>@mail.wicker.life:465`), switched after the
   port unblock. See [mail.md](https://github.com/davidwickerhf/wicker-infra/blob/main/docs/mail.md).
-- The code's fallback sender is `no-reply@study.wicker.life` (with a hyphen), which does not match
-  the Stalwart account; always set `EMAIL_FROM` explicitly.
-- Inbound aliases on study.wicker.life (info, support, privacy, ...) go through forwardemail.net.
+- The code's fallback sender is `Wicker Study <noreply@study.wicker.life>`, matching the Stalwart
+  account. Production still sets `EMAIL_FROM` explicitly while it sends through Resend.
+- Public addresses: `hello@` (general), `support@`, `privacy@`, `security@` and `legal@`
+  study.wicker.life all land in the `hello@study.wicker.life` Stalwart inbox; `info@` and
+  `contact@` remain working aliases.
 
 ## Background jobs and crons
 
@@ -201,7 +203,7 @@ See also [.env.example](../.env.example).
 - OpenAI (production provider) and Anthropic (optional), including students' own keys.
 - Canvas LMS (Maastricht University) via each student's personal access token.
 - Resend SMTP (temporary mail bridge, to be removed after the Stalwart switch).
-- forwardemail.net (inbound aliases, to be moved to Stalwart).
+- Stalwart on mail.wicker.life (inbound mail; MX points there).
 
 ## Credentials
 

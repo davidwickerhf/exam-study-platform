@@ -7,7 +7,7 @@ export const courses = [
 ] as const
 
 export const contacts = {
-  info: 'info@study.wicker.life',
+  hello: 'hello@study.wicker.life',
   support: 'support@study.wicker.life',
   privacy: 'privacy@study.wicker.life',
   security: 'security@study.wicker.life',
