@@ -207,7 +207,7 @@ are applied by `npm run db:migrate`.
 | `BETTER_AUTH_SECRET` | api, web | Signs session cookies (`openssl rand -base64 32`). The web service only checks that it is set. |
 | `BETTER_AUTH_URL` | api | Public origin, e.g. `https://study.wicker.life`. |
 | `SMTP_URL` | api | nodemailer URL for verification, sign-in and reset codes. Without it production refuses sign-up, codes and resets; development prints codes to the console. |
-| `EMAIL_FROM` | api | Sender, default `Wicker Study <no-reply@study.wicker.life>`. |
+| `EMAIL_FROM` | api | Sender, default `Wicker Study <noreply@study.wicker.life>`. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | api | Optional Google sign-in. Redirect URI: `https://study.wicker.life/api/auth/callback/google`. |
 
 Methods: email + password (verified once by a 6-digit code), sign-in code by

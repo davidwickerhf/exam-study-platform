@@ -12,7 +12,7 @@ const publicSite = [siteContent, about, privacy, terms].join('\n')
 const reviewedSources = [publicSite, security, securityDocs].join('\n')
 
 test('public contact addresses use the study hostname', () => {
-  for (const mailbox of ['info', 'support', 'privacy', 'security', 'legal']) {
+  for (const mailbox of ['hello', 'support', 'privacy', 'security', 'legal']) {
     assert.match(publicSite, new RegExp(`${mailbox}@study\\.wicker\\.life`))
   }
   assert.doesNotMatch(reviewedSources, /(?:mailto:|https:\/\/clerk\.)[a-z]*@?wicker\.life/)
