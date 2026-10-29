@@ -65,11 +65,13 @@
 
 - Strict CSP on HTML: no inline or eval scripts; scripts only from the app,
   jsdelivr (reader libraries) and the self-hosted analytics origin; no
-  third-party sign-in hosts; `frame-src 'none'`; `frame-ancestors 'none'`;
-  `object-src 'none'`.
-- HSTS, `X-Content-Type-Options`, `X-Frame-Options: DENY`,
-  `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, and a
-  restrictive `Permissions-Policy` on every response.
+  third-party sign-in hosts; `frame-src 'none'`;
+  `frame-ancestors 'self' https://wicker.life` (wicker.life embeds the site in
+  its full-screen live view; no other site may frame it); `object-src 'none'`.
+- HSTS, `X-Content-Type-Options`, `Cross-Origin-Opener-Policy`,
+  `Cross-Origin-Resource-Policy`, and a restrictive `Permissions-Policy` on
+  every response; `X-Frame-Options: DENY` on every non-HTML response (HTML
+  pages rely on `frame-ancestors`, which can name wicker.life).
 - Cookie-authenticated mutations are refused unless `Sec-Fetch-Site` /
   `Origin` show they originated from this site (CSRF); Better Auth applies its
   own trusted-origin check to `/api/auth/*`. Bearer calls (API keys) carry no
