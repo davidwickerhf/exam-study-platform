@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: anvil-2cpu
     services:
       postgres:
         image: pgvector/pgvector:pg17
