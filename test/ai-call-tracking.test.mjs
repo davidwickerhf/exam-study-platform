@@ -54,3 +54,13 @@ test('aggregate cost never silently treats unknown usage as a measured zero',()=
  const rows=aggregateCallEvents([{createdAt:new Date().toISOString(),status:'failed',usageStatus:'unavailable',inputTokens:null,outputTokens:null,estimatedCostUsd:null}])
  const total=rows.find(r=>r.dimension==='total');assert.equal(total.calls,1);assert.equal(total.unknownUsageCalls,1);assert.equal(total.unpricedCalls,1)
 })
+test('a custom endpoint without counts is recorded as unavailable instead of failing',async()=>{
+ const saved=[]
+ const result=await trackAiCall({provider:'openai',model:'local-model',firstParty:false},async observe=>observe({usage:null,id:'r1'}),{save:async e=>saved.push(structuredClone(e))})
+ assert.equal(result.id,'r1');assert.equal(saved.at(-1).status,'completed');assert.equal(saved.at(-1).usageStatus,'unavailable');assert.equal(saved.at(-1).estimatedCostUsd,null)
+})
+test('every selectable study model has an observability price',async()=>{
+ const {STUDY_MODELS}=await import('../lib/study-ai-settings.mjs')
+ const usage=normalizeCallUsage({input_tokens:1000,output_tokens:100,input_tokens_details:{cached_tokens:0,cache_write_tokens:0}})
+ for(const [model,{provider}] of Object.entries(STUDY_MODELS))assert.notEqual(callCost(model,usage,{provider}).estimatedCostUsd,null,model)
+})
