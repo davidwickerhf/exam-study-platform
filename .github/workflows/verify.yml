@@ -1,8 +1,9 @@
 name: Verify study platform
 on:
   pull_request:
+  # main, and the batches Anvil's merge queue pushes to anvil/queue/<n> (ci-ok on the batch head decides the merge).
   push:
-    branches: [main]
+    branches: [main, "anvil/queue/**"]
 permissions:
   contents: read
 concurrency:
@@ -99,3 +100,21 @@ jobs:
             sleep 1
           done
           exit 1
+
+  # The one check the merge queue and branch protection need: fails when any job failed or was cancelled, passes when
+  # they all succeeded or were skipped.
+  ci-ok:
+    name: ci-ok
+    needs: [verify, container]
+    if: always()
+    runs-on: anvil-2cpu
+    timeout-minutes: 2
+    steps:
+      - env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          if echo "$RESULTS" | grep -qE '"(failure|cancelled)"'; then
+            echo "::error::a CI job failed or was cancelled"
+            exit 1
+          fi
