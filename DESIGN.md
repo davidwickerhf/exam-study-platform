@@ -306,7 +306,7 @@ Narrow; explanatory prose and controls use Archivo.
 - Canvas material collection is an explicit, default-off permission separate from the encrypted Canvas connection. Enabling it requires a second, explicit choice between private retrieval, the default, and community sharing. Community sharing creates a candidate only: another account cannot retrieve that material until a rights review has accepted its contribution record. When collection is enabled, each user's catalogue and observed courses refresh daily by default; active work is deduplicated per user and course, and a terminal failure receives a six-hour cooldown by default before automatic requeue. Each completed course refresh versions its sources, indexes retrievable chunks, and runs the obligation scan against that user's evidence.
 - Canvas priority extraction is narrow and provenance-preserving. It selects obligation-bearing passages, ranks syllabus and requirement material above supplementary slides and pages, and keeps chunk references on every attendance rule and assessment component. The scan is cached by per-user course binding and evidence hash with `confirmed`, `needs-review`, or `not-found` state. A published human-confirmed profile remains authoritative; otherwise only a confirmed scan may create rule-backed Home obligations.
 - Canvas assignments reconcile conservatively with confirmed assessment components by compatible kind and substantive title overlap. A match becomes one priority with both sources named; a date mismatch remains one actionable Canvas row explicitly marked as a rule conflict, and weak generic-word matches remain separate. Conflicting or unsupported extracted claims stay `needs-review`, surface in Setup, and are withheld as rule-backed obligations until resolved.
-- Practice uses the **Session Cockpit** pattern: one destination with Questions, Flashcards, Mistakes, and Mocks as local tabs under the shared page header. Tab labels carry a count pill only when due or open work exists, while the header line summarises what is waiting. Questions begins with a compact ruled setup instrument, then gives the remaining board to one full-width white question plane with a centered 900px response column. The response instrument owns its answer actions and adapts natively to written, true/false, single-choice, and multiple-choice questions; session navigation stays in the plane's full-width footer. On mobile, setup condenses to one summary row and the page reserves 64px for global bottom navigation. Practice never gains a permanent or resizable inner rail.
+- Practice keeps Questions, Flashcards, Mistakes, and Mocks under the shared page header. Questions and course Exercises open on the full filtered bank, grouped by original paper or generated guide/chapter. Numbered controls open any question in a focused white answer plane with a centered response measure capped at 900px. Question-native written and choice controls own submission and feedback; previous/next and return-to-overview controls preserve the working answer. Setup and shorter batches are optional; history is collapsed. Practice never reserves a permanent inner context rail.
 - Study activity is recorded server-side (answers, flashcard reviews, mocks, resolved mistakes, chapters read) and powers the streak, weekly totals, and the feed on Home and in Account. Nothing in the ledger derives from editorial material.
 - Calendar (`#/calendar`) is a first-class destination built on FullCalendar: month, week, day, and agenda views over one unified feed (exam attempts, Wicker events, the institution calendar, saved timetable feeds, and Canvas). A compact left rail owns the mini-calendar, source visibility, subscription management, and attendance summary; the mini-calendar is a full-width white rail section rather than a tinted inset card, and the source selector follows familiar calendar software with grouped “My calendars” and “Connected calendars” lists, one-line names, small colour-and-check visibility toggles, and management actions kept behind a row menu. It does not turn sources into two-line connection records or show event counts beside every calendar. The right Day Desk owns the selected date or event. On desktop both rails have a true 1px full-height divider, can be resized by dragging, can be collapsed and visibly reopened, and restore their saved width. Personal events are created, edited, and removed in the Wicker calendar from the page header. Calendar is never nested under Planning.
 - Exam dates recorded in Planning flow outward: they order the course ledger, appear as countdowns on Home and in each course header, and never have to be re-entered.
@@ -317,8 +317,8 @@ Narrow; explanatory prose and controls use Archivo.
 - Updates never turns an incomplete Canvas response into a plausible zero. Truncated counts carry an open-ended marker, unavailable parts say unavailable, and partial briefings and empty results name their limited evidence. “New since last visit” compares announcements against the prior visit watermark and advances that watermark only after a successful, complete announcement response.
 - Courses appear as ruled rows with aligned columns. Repeated academic records never become a floating card grid.
 - A register-led overview may pair a broad content desk with a resizable context rail when the rail directly explains or filters the register. At the two-column desktop breakpoint, the Courses rail is sticky, persists its width, supports pointer and keyboard resizing from 256–400px, and protects at least 660px for the register. Below that breakpoint the separator disappears and the rail follows the register in one document flow. This pattern does not authorize permanent rails inside reading or practice.
-- Course detail uses a compact identity header, a 180–200px local navigation rail and a flat white working plane with direct chapter rows. Below 1024px the rail becomes a horizontal tab row; its keyboard orientation follows the layout. Academic-year controls appear only for the sections they scope. See `docs/design/course-detail.md` for the course-specific composition and state rules.
-- Reading and chapter practice use one centered primary canvas. Outline, progress, and the grounded tutor are contextual drawers that never reserve permanent columns. A chapter has one local mode switch; course-level tabs do not repeat inside it.
+- Course detail uses a compact identity header, a 180–200px local navigation rail and a flat white working plane. The study-guide library exposes matching guides and direct chapter entry. Below 1024px the rail becomes a horizontal tab row; its keyboard orientation follows the layout. Academic-year controls appear only for the sections they scope. See `docs/design/course-detail.md` for the course-specific composition and state rules.
+- Study reading responds to available container width, including an open tutor split. At 960px the reader has a 232px contents column beside its white reading plane; below that width a labelled chapter picker discloses the outline. Lesson diagrams move beside prose only when their own container reaches 820px. A chapter has one local mode switch; course-level tabs do not repeat inside it. The grounded tutor opens contextually and retains the chapter or document context.
 - Mobile is a distinct quick-study mode, not a stacked desktop view. It uses bottom primary navigation, an action-led home, single-task reading/practice screens, and contextual outline/tools sheets.
 - Auth, mistakes, flashcards, mock sessions, search, forms, dialogs, empty states, loading states, and errors inherit the same spacing, surface, and control system.
 - Public pages use a product-led editorial layout: direct value proposition,
@@ -507,6 +507,30 @@ aligned ruled rows. Hover may shift an interactive row by 8–12px, but does not
 turn it into a card. The shared-course/private-history boundary is a single
 split major plane: a soft indigo thesis block beside two white evidence columns.
 
+### Study workspace
+
+The reader and libraries extend the incumbent palette, type and controls. Chapter
+titles step from 24px to 32px as the reader gains room; quiet metadata and ruled
+local tabs sit beneath the title. White reading and guide surfaces use the
+existing 10px corners. Indigo identifies the active chapter, meaningful stored
+progress and study actions. No new global token scale is introduced.
+
+**The Content First Rule.** In study surfaces, guide maintenance and chapter
+review live in labelled options; learning goals disclose on request. The initial
+phone view exposes lesson prose, a material row, or the question prompt and the
+start of its answer control. Compress supporting chrome before the task.
+
+**The Stored Progress Rule.** Guide progress counts chapters explicitly marked
+read. Question maps distinguish drafts from checked answers; neither reading nor
+answer presence is presented as mastery. Preserve drafts and feedback when
+moving between questions and the overview.
+
+**The Available Space Rule.** Reading navigation and lesson visuals respond to
+their container, so opening contextual help does not compress desktop columns
+into an unreadable split. Material and paper viewers use labelled Expand and
+Back to split view controls. Surface-specific routes, provenance and review
+limits live in `docs/design/study-guide-reader.md` and `.impeccable/surfaces/`.
+
 ### Shared system rules
 
 - Canvas is warm-neutral `#f7f7f4`; white is the primary working surface; subtle gray-violet groups secondary tools and rails.
@@ -561,7 +585,7 @@ split major plane: a soft indigo thesis block beside two white evidence columns.
 
 ### Don't
 
-- Do not reintroduce serif fonts, oversized dashboard heroes, permanent or resizable contextual study rails inside reading or practice, raw source paths, duplicate course navigation, gradients, glass, or decorative paper textures. The resizable workspace navigation sidebar is the intentional exception.
+- Do not reintroduce serif fonts, oversized dashboard heroes, permanent or resizable tutor/context rails inside reading or practice, raw source paths, duplicate course navigation, gradients, glass, or decorative paper textures. The resizable workspace navigation sidebar and the container-responsive chapter contents column are intentional navigation patterns.
 - Do not use per-course accent colors for global UI. Course color may identify a course icon or local datum only.
 - Do not invent one-off spacing, radii, shadows, or colors outside the documented tokens.
 - Do not hide dense information inside nested containers when a ruled list or table is clearer.

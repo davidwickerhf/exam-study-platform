@@ -24,7 +24,7 @@ export function StudyGuidedAttempt({ question }: { question: StudyQuestion }) {
     <StudyHints question={question} />
     <Button variant="ghost" size="sm" onClick={() => setRevealed(!revealed)}>{revealed ? 'Hide worked solution' : 'Compare with worked solution'}</Button>
     {revealed && <StudyProse>{question.answer}</StudyProse>}
-    <p className="text-xs text-muted-foreground">Untimed learning practice. This draft stays on this page; use Practice to save an assessed attempt. Reading or completing this example does not establish mastery.</p>
+    <p className="text-xs text-muted-foreground">Try it in your own words, then compare. To save and check an answer, open the Practice tab.</p>
   </div>
 }
 

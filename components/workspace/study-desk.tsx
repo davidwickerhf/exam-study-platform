@@ -153,7 +153,7 @@ export function StudyDesk({ children }: { children: ReactNode }) {
               restoreWork()
             }}
           >
-            Your work
+            {courseContext?.courseTab === 'materials' ? 'Materials list' : 'Back to study'}
           </Button>
           <Button
             size="sm"
@@ -232,14 +232,14 @@ export function StudyDesk({ children }: { children: ReactNode }) {
               </div>
               {companion?.kind==='document' && courseContext && <Button size="sm" variant="outline" aria-expanded={documentTutor} onClick={()=>documentTutor ? setDocumentTutor(false) : value.openCourseTutor()}>Ask tutor</Button>}
               <Button
-                size="icon-sm"
-                variant="ghost"
+                size="sm"
+                variant="outline"
                 className={documentTutor ? "hidden" : "hidden lg:inline-flex"}
                 aria-label={focus ? 'Split view' : companion?.kind==='document' ? 'Focus document' : 'Focus tutor'}
                 title={focus ? 'Split view' : companion?.kind==='document' ? 'Focus document' : 'Focus tutor'}
                 onClick={toggleFocus}
               >
-                {focus ? <Columns2Icon /> : <MaximizeIcon />}
+                {focus ? <Columns2Icon /> : <MaximizeIcon />}{focus ? 'Back to split view' : 'Expand'}
               </Button>
               <Button
                 size="icon-sm"

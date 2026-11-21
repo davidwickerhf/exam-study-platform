@@ -1,5 +1,6 @@
 export const STUDY_GENERATION_LIMITS: Readonly<{
   providerTimeoutMs: number
+  callDeadlineMs: number
   workerLeaseMs: number
   chapterTokens: number
   planTokens: number

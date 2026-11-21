@@ -14,7 +14,7 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 44)
+  assert.equal(tools.size, 55)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
@@ -38,6 +38,10 @@ test('MCP writes preserve exact proposals, identities and idempotency keys', asy
   assert.equal((await call('canvas_sync_control', { jobId: 'job', action: 'retry' })).body.action, 'retry')
   const diagnostic = await call('answer_study_diagnostic', { diagnosticId: 'quiz', answers: { q1: 2 }, requestId: 'attempt-1234' })
   assert.deepEqual(diagnostic.body, { answers: { q1: 2 }, requestId: 'attempt-1234' })
+  assert.throws(() => call('study_guide_fork', { versionId: 'sv-1' }))
+  const fork = await call('study_guide_fork', { versionId: 'sv-1', title: 'My copy', confirmed: true })
+  assert.equal(fork.path, '/api/study-versions/sv-1/fork')
+  assert.deepEqual(fork.body, { title: 'My copy' })
   const source = await call('tutor_add_source', { name: 'Draft', text: 'My draft' })
   assert.equal(source.body.dataUrl, 'data:text/plain;base64,TXkgZHJhZnQ=')
 })
@@ -101,4 +105,24 @@ test('local generation tools forward the live contract and idempotency fields wi
   const submitted=await call('study_generation_submit',{versionId:'sv-id',requestId:'local-request',contractId:'deployed-hash',response:{issues:[]}})
   assert.deepEqual(submitted.body,{requestId:'local-request',contractId:'deployed-hash',response:{issues:[]}})
   assert.equal(tools.get('study_generation_next').schema.safeParse({versionId:'sv-id'}).success,true)
+})
+
+test('local paper tools preserve evidence identity and continuation request IDs', async () => {
+  const { call } = fixture()
+  const start = await call('study_paper_start', {courseCode:'BCS2120',academicYear:'2026-2027',questionSourceKey:'paper',confirmed:true})
+  assert.equal(start.pathname || start.path || start.url, '/api/study-versions/course-papers/local')
+  const submission=await call('study_paper_submit',{versionId:'sv-test',setId:'sp-test',requestId:'request-test',response:{issues:[]}})
+  assert.deepEqual(submission.body,{requestId:'request-test',response:{issues:[]}})
+})
+
+// A timetable feed builds event IDs as feed:<link>:<provider event id>; Maastricht lab sessions reach 165 characters.
+const longEventId = `feed:${'l'.repeat(36)}:${'9f2c4e1a7b3d'.repeat(9)}#${'a1b2c3d4e5'}#lab`
+test('attendance preparation accepts the long calendar event IDs get_attendance returns', async () => {
+  assert.equal(longEventId.length, 165)
+  const { call } = fixture()
+  const prepared = await call('tutor_prepare_attendance_update', { eventIds: [longEventId], status: 'attended' })
+  assert.deepEqual(prepared.body.eventIds, [longEventId])
+  assert.equal(prepared.body.kind, 'attendance')
+  await assert.rejects(async () => call('tutor_prepare_attendance_update', { eventIds: ['x'.repeat(513)], status: 'attended' }))
+  await assert.rejects(async () => call('tutor_prepare_attendance_update', { eventIds: [''], status: 'attended' }))
 })

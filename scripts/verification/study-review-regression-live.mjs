@@ -11,9 +11,9 @@ const base=JSON.parse(await readFile(process.env.STUDY_REVIEW_BASE_FILE,'utf8'))
 if(!base)throw new Error('A completed baseline is required.')
 const chapter=corruptEvaluationChapter(base.chapters[0])
 // Focus this regression on the two incorrect answers, scope attribution and visual.
-chapter.questions=chapter.questions.slice(0,2);chapter.sections=chapter.sections.slice(0,1)
-chapter.flashcards=[];delete chapter.factualAudit
-const report={model:'gpt-6-astra',reasoningEffort:'low',capUsd:5,accountedUsd:0,calls:[],passed:false}
+if(process.env.STUDY_REVIEW_FULL_CHAPTER!=='1'){chapter.questions=chapter.questions.slice(0,2);chapter.sections=chapter.sections.slice(0,1);chapter.flashcards=[]}
+delete chapter.factualAudit
+const report={model:'gpt-6-astra',reasoningEffort:'low',capUsd:5,accountedUsd:Number(process.env.STUDY_REVIEW_PRIOR_RESERVED_USD || 0),calls:[],passed:false}
 const artifact=process.env.STUDY_REVIEW_REPORT || '/tmp/wicker-review-regression-live.json'
 try{
  for(let n=0;n<20;n++){

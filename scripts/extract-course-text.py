@@ -7,6 +7,12 @@ MAX_BYTES = 128 * 1024 * 1024
 MAX_ENTRIES = 2000
 MAX_INVENTORY_ENTRIES = 50000
 BINARY_SAMPLE = 200
+GENERATED_ARCHIVE_DIRS = frozenset(('.utmp', '.gradle', '.git', '__pycache__', 'node_modules',
+    # Vendored SDKs and IDE state, e.g. STM32CubeMX's Drivers/CMSIS and
+    # Middlewares/Third_Party. The course's own code stays (Core/, src/, ...).
+    'cmsis', 'middlewares', 'third_party', 'thirdparty', 'third-party', 'vendor',
+    '.vscode', '.idea', '.settings', '.venv', 'venv', 'site-packages'))
+VENDOR_ARCHIVE_DIR = re.compile(r'^\w+_hal_driver$|^bsp$', re.I)
 used = 0
 entries = 0
 inventory_entries = 0
@@ -243,6 +249,7 @@ def read_text(data, name, depth=0):
                 return '\n'.join(parts)
             parts = []
             binary_count = 0
+            generated_count, generated_bytes, generated_sample = 0, 0, []
             for info in infos:
                 if info.is_dir(): continue
                 if '..' in pathlib.PurePosixPath(info.filename).parts or info.filename.startswith('/'):
@@ -252,6 +259,14 @@ def read_text(data, name, depth=0):
                 # Office archives. Keep them in the original, not study evidence.
                 member_path = pathlib.PurePosixPath(info.filename)
                 if ext == '.zip' and ('__MACOSX' in member_path.parts or member_path.name.startswith('._') or member_path.name == '.DS_Store'):
+                    continue
+                # Build caches and installed dependencies are not authored course
+                # explanations. Keep their bytes in the original and report the
+                # exclusion; never expand them into model teaching evidence.
+                if ext == '.zip' and any(part.lower() in GENERATED_ARCHIVE_DIRS or VENDOR_ARCHIVE_DIR.match(part) for part in member_path.parts[:-1]):
+                    generated_count += 1
+                    generated_bytes += info.file_size
+                    if len(generated_sample) < 20: generated_sample.append(info.filename[:240])
                     continue
                 if ext == '.docx' and info.filename != 'word/document.xml': continue
                 if ext == '.pptx' and not (info.filename.startswith('ppt/slides/slide') and info.filename.endswith('.xml')): continue
@@ -263,6 +278,8 @@ def read_text(data, name, depth=0):
                 contents = read_member(z, info)
                 text = office_text(xml(contents)) if ext in ('.docx', '.pptx') else read_text(contents, info.filename, depth+1)
                 parts.append(f'File: {info.filename}\n{text or "[Binary member retained in original archive]"}')
+            if generated_count:
+                parts.insert(0, f'Archive extraction: {generated_count} build-cache, version-control, IDE, vendored-SDK or installed-dependency members ({generated_bytes} uncompressed bytes) excluded from teaching text; original archive retained unchanged. Sample paths (at most 20): ' + '; '.join(generated_sample))
             if binary_count > BINARY_SAMPLE:
                 parts.insert(0, f'Archive profile: {binary_count} binary members. Filename sample shows the first {BINARY_SAMPLE}; {binary_count - BINARY_SAMPLE} names omitted. This is not a complete file listing. All original bytes remain in the archive; binary members were not expanded.')
             return '\n\n'.join(parts)

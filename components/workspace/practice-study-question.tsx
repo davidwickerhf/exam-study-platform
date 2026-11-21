@@ -137,7 +137,7 @@ export function StudyQuestionSource({
         disabled={busy}
         onClick={() => void open()}
       >
-        {busy ? 'Opening source…' : 'View teaching source'}
+        {busy ? 'Opening source…' : question.practiceOrigin === 'paper' ? 'View original paper' : 'View teaching source'}
       </Button>
       {error && <p role="alert">{error}</p>}
       {reference && (

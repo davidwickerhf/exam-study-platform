@@ -16,32 +16,28 @@ related_targets:
 
 # Practice surface brief
 
-- Build path: comp-led for this surface. The project has no standing `buildPath`; the direction round carried the default `comp` value and the user selected Session Cockpit in-thread after reviewing the options.
-- Approval record: Session Cockpit is the approved decision comp at `.impeccable/mocks/decision/practice-session-cockpit.png`. The 1280 × 800 reproduction checkpoint is `.impeccable/review/practice-hero-repro.png`. Finish reviewer disposition: **ship**, with no material fixes.
-- Scope: the shared Practice destination and the question-native response instrument reused by Questions, Mistakes, and Mocks. Operate mode.
-- Job: let a student configure a sitting once, answer one question without interface noise, understand the result, and move through the session without losing progress when switching between Practice tabs.
-- Existing truth: Practice has Questions, Flashcards, Mistakes, and Mocks as local tabs. The bank currently contains 553 questions across five active courses. Question ids repeat across chapters, unknown types and absent difficulty stay honest, and generated placeholder choices must never be presented as answers.
-- Refero grounding: the strongest study tools keep the product itself visually dominant, limit active color to the next action, and reduce setup controls after work begins. Wicker applies that calm focus through its own warm ruled-board language rather than copying a consumer-learning aesthetic.
-- Chosen direction: Session Cockpit, with a stronger adaptive answer instrument. A compact setup strip states the active course, chapter, type, and result count. One centered working plane owns the source, prompt, answer control, feedback, and full-width session footer. There is no permanent contextual rail.
-- Primary actions: configure the question bank, provide an answer in the question-native control, check it, add the item to flashcards, move through the queue, shuffle, or end the sitting.
-- Proof: current course/chapter/source/type, current position and filtered total, selected answer or written attempt, grading response, flashcard state, and this sitting's recorded answers.
+- Current build path: existing-world, code-led extension requested on September 15. The earlier Session Cockpit comp remains historical provenance for the answer instrument, not the current bank-first composition.
+- Scope: Questions in global Practice and course Exercises; Flashcards, Mistakes and Mocks retain their existing workflows.
+- Job: survey the available questions, choose any question, answer with contextual help, and return without losing work.
+- Visual authority: Wicker's existing Archivo typography, warm neutral board, white working surfaces, navy ink and semantic indigo. The current direction and reference lock are in `docs/design/study-guide-reader.md`.
 
 ## Direction contract
 
-- THESIS: Practice is a focused sitting, not a searchable catalogue with an answer field.
-- OWN-WORLD: Warm board, one white ruled work plane, near-black ink, indigo only for action and selection, and compact Archivo Narrow instrumentation.
-- STORY: Set the scope once, answer one question, check it, and advance without losing the sitting or leaving the page.
-- FIRST VIEWPORT: A compact setup instrument sits below the local tabs. One broad question plane fills the remaining board, centers a 900px response column, and anchors session navigation to its full-width footer. The primary action belongs to the answer surface.
-- FORM: Session Cockpit, ranked second in seed `ba84d8fd` and selected as the comp-led direction.
-- FINISH: shipped direction approved with no material fixes; the reusable pattern is recorded in `DESIGN.md`, and the approved comp and review captures retain their provenance under `.impeccable/`.
+- THESIS: The full bank supports free navigation; a chosen question receives a focused answer view.
+- OWN-WORLD: Preserve Wicker's established academic workspace and question-native controls.
+- STORY: Browse original-paper or generated guide/chapter groups → choose any numbered question → answer/check or ask the tutor → previous/next or return to overview with retained work.
+- FIRST VIEWPORT: The default overview exposes the matching question groups. The focused mobile view keeps the prompt and start of the answer control together.
+- FORM: Existing-world/code-led extension. No new seed or approved bitmap comp is claimed.
+- FINISH: Fresh reviewer returned ship for four resolved findings: earlier content, mobile material rows and answer controls, removed reader eyebrow, and persisted direction contract. This is not whole-site approval.
 
 ## Quality bar
 
-- Composition: the active question must read as the destination, not as a card floating in unused page space. At wide desktop the plane approaches the full 1180px destination measure and owns the remaining viewport height.
-- Interaction: written, true/false, single-choice, and multiple-choice controls must each look native to their task while sharing one answer-surface grammar. Checking an answer remains deliberate.
-- Restraint: no additional rail, progress decoration, nested cards, gradient, or decorative illustration. Depth comes from ruled ownership and state, not shadow.
-- Responsive: mobile reduces setup to one summary row, preserves side-by-side true/false, keeps the primary action adjacent to the response, and reserves the 64px global bottom navigation.
-- Provenance: the approved comp, generated alternatives, responsive captures, and reproduction checkpoint remain under `.impeccable/`; all shipping rasters retain embedded prompts.
+- Show the full filtered bank initially. Original-paper and generated sources remain explicit; group by paper or guide/chapter and use freely navigable numbered controls.
+- Optional setup offers shorter batches. Keep history collapsed. A drafted answer has a dashed map border; a checked answer uses the secondary surface and primary text; current selection uses solid indigo with contrasting text.
+- The focused answer plane uses a response measure capped at 900px, question-native controls, contextual tutor access, previous/next, and a return to the overview.
+- Preserve drafts and feedback across navigation and hydrate saved assessments. Reading progress and checked states never imply mastery.
+- At compact container widths, reduce body and header spacing so the prompt and response begin together. Keep labelled actions reachable and native keyboard/focus behavior intact.
+- Evidence and validation limits: `docs/design/study-guide-reader.md`; local captures: `.impeccable/review/study-redesign/`. Deterministic fixture tests do not establish hosted AI quality or large-bank usability.
 
 ## Answer instruments
 
@@ -56,10 +52,10 @@ related_targets:
 
 - Preserve the established Wicker board language: 1180px destination measure, 32px page title, Archivo Narrow for headings and data, warm canvas, flat white planes, 14px major corners, near-black text, and indigo only for action or selection.
 - Local Practice tabs remain directly under the page header. Count pills appear only for due or open work.
-- Setup is a compact ruled strip, not a stack of nested cards. Once a filtered sitting is underway, it may visually recede but every filter remains reachable.
+- Setup is optional and remains reachable from the bank and focused question flow.
 - Every internal divider spans the full owning plane. Padding belongs inside ruled headers, bodies, and footers; no short middle borders.
 - The active question is a single centered canvas. Outline, progress, and tutor affordances may open contextually but never reserve a permanent or resizable inner column.
-- The session footer owns Previous, position, Next, Shuffle, and End session. Queue position is stated once.
+- Focused question navigation owns Previous, position and Next, with a visible return to overview; changing questions preserves the working answer.
 - Closed-question controls need visible hover, focus-visible, selected, disabled, grading, graded, and error states; keyboard operation must remain native.
 - Mobile presents one task: setup condenses, answer rows remain full width, and session navigation stays reachable without horizontally compressing the desktop composition.
 - Flashcards, Mistakes, and Mocks retain their working behavior and share the revised destination header and tab grammar.

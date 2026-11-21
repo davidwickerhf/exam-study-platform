@@ -1,4 +1,12 @@
-# Vercel web, API and durable Canvas tasks
+# Web, API and durable Canvas tasks
+
+> **History note (October 2026):** most of this file describes the former
+> Vercel deployment (Vercel Queues, Vercel Cron, preview workers on Neon
+> branches). Production now runs the layout in
+> [Self-hosted (Coolify)](#self-hosted-coolify) below: pg-boss replaces Vercel
+> Queues and Cron, and there are no preview deployments. The queue protocol,
+> persistence and recovery sections still apply. Current operations:
+> [HOSTING.md](HOSTING.md).
 
 The public domain routes pages/assets to native Next.js (`web`), and `/api/*`
 and `/skills/*` to the existing Node API container (`api`). Keeping the API
@@ -21,12 +29,12 @@ message that expires after seven days remains recoverable from Neon.
 
 Preview workers require a dedicated Neon branch. Configure `DATABASE_URL`,
 `WICKER_PREVIEW_DATABASE_HOST` (the exact database hostname), and
-`WICKER_PREVIEW_WORKER_USERS` (comma-separated Clerk test-user IDs) as overrides
+`WICKER_PREVIEW_WORKER_USERS` (comma-separated test-user IDs) as overrides
 for the preview Git branch. A hostname mismatch disables processing. Both
 outbox selection and job leasing restrict processing to those test accounts.
 Automatic refresh sweeps are disabled in previews, since database snapshots can
 contain other accounts. Keep the preview's existing Canvas encryption key and
-Clerk settings when branching its database so saved connections remain readable.
+auth settings when branching its database so saved connections remain readable.
 
 Preview wake-ups use `VERCEL_BRANCH_URL`, falling back only to `VERCEL_URL`, never
 the production alias. Automation bypass headers are included on protected
@@ -143,3 +151,25 @@ once per minute. See [Canvas collection](CANVAS_CORPUS.md) for user controls.
 Startup verification and the migration runner share discovery of numbered `db/*.sql` files. Adding a migration no longer requires editing a separate allow-list. Checksums remain immutable once recorded.
 
 Production messages retain the SDK's deployment pinning. After a step, consumers wake the dispatcher through `VERCEL_PROJECT_PRODUCTION_URL`, so the current release owns subsequent notifications rather than letting an obsolete deployment grow an indefinite continuation chain. A delayed job or failed wake-up is recovered by the minute SQL-outbox sweep. Preview probes remain pinned and previews cannot process real work. A legacy pinned chain may require retiring its obsolete deployment and re-dispatching the durable job. Unpinned sends were not observed to trigger production delivery during live recovery, so they are not used.
+
+## Self-hosted (Coolify)
+
+`docker-compose.coolify.yml` runs the same split on one host:
+
+- `web` (`deploy/web/Dockerfile`, `next start` on port 3000) serves pages and
+  proxies `/api/*`, `/skills/*` and the OAuth `/.well-known/` paths to
+  `WICKER_API_SERVICE_URL` (`http://api:8080`). Next compiles these rewrites at
+  build time, so the URL is also a build argument. `/internal/canvas-dispatch`
+  stays here and enqueues pg-boss jobs.
+- `api` (`Containerfile`) is unchanged apart from the database driver. With
+  `WICKER_QUEUE_BACKEND=pg-boss` it behaves as on Vercel: work is enqueued and
+  the dispatcher at `WICKER_QUEUE_DISPATCHER_URL` is woken, never run inline.
+- `worker` (same image as `web`, `npm run worker`) replaces Vercel Queues and
+  Cron with pg-boss on the application database: `canvas-sync-v1` with two
+  concurrent steps, `study-generation-v1` with one, and a `* * * * *` pg-boss
+  schedule running the former cron sweep. Run exactly one replica.
+
+SQL remains the source of truth; pg-boss (schema `pgboss`) only carries job-ID
+notifications, as Vercel Queues did. The database driver is `pg` through
+`lib/pg.mjs`, which keeps the tagged-template/`transaction([...])` interface and
+uses TLS only when the URL asks for it, so the same build runs against Neon.

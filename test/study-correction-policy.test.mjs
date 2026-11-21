@@ -29,6 +29,11 @@ test('correction context carries earlier fixes without leaking other chapters',a
   assert.match(context,/Explain nonnegativity/)
   assert.match(context,/Earlier findings may already be resolved/)
   assert.match(context,/distinct from the independent and transfer/)
+  // Unsupported-evidence findings must be told to remove/relabel the content
+  // and its assessment, never to invent new teaching to justify it.
+  assert.match(context,/not established by the supplied evidence/)
+  assert.match(context,/remove it or clearly relabel it as background/)
+  assert.match(context,/[Dd]o not add new teaching to justify unsupported content/)
   assert.ok(!context.includes('Other chapter secret'))
   assert.equal(correctionContext({},'a'),'')
 })

@@ -19,12 +19,11 @@ test('production environments refuse it', () => {
   assert.throws(() => resolveLocalTestUser({ WICKER_LOCAL_USER: 'user_localtest', VERCEL: '1' }), /development-only/)
 })
 
-test('it cannot be combined with Clerk', () => {
+test('it cannot be combined with hosted sign-in', () => {
   assert.throws(() => resolveLocalTestUser({
     WICKER_LOCAL_USER: 'user_localtest',
-    CLERK_SECRET_KEY: 'sk_test_x',
-    CLERK_PUBLISHABLE_KEY: 'pk_test_x'
-  }), /cannot be combined with Clerk/)
+    BETTER_AUTH_SECRET: 'a-test-secret'
+  }), /cannot be combined with hosted sign-in/)
 })
 
 test('malformed identifiers are rejected rather than silently used', () => {

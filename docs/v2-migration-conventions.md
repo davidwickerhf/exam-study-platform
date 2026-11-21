@@ -53,7 +53,7 @@ per course.
 ## Data
 
 Every `/api/*` route is served by `server.mjs` and is already authenticated —
-`app/app/layout.tsx` attaches the Clerk bearer token, so a page calls plain
+the session is a first-party cookie, so a page calls plain
 `fetch('/api/…', { headers: { accept: 'application/json' } })`.
 
 Fetch in a `useEffect` with a `live` flag so a unmounted component does not set

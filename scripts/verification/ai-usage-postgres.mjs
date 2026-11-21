@@ -15,7 +15,7 @@ const {withRequestContext}=await import('../../lib/request-context.mjs')
 const {randomUUID}=await import('node:crypto')
 const users=[`metrics-${randomUUID()}`,`metrics-${randomUUID()}`]
 try {
- await pool.query(await readFile(new URL('../../db/037_ai_call_events.sql',import.meta.url),'utf8'))
+ await pool.query(await readFile(new URL('../../db/051_ai_call_events.sql',import.meta.url),'utf8'))
  const base={createdAt:new Date().toISOString(),feature:'tutor',model:'gpt-5-mini',payer:'platform',phase:'answer',status:'completed',usageStatus:'reported',inputTokens:100,outputTokens:20,totalTokens:120,cachedInputTokens:10,reasoningTokens:5,estimatedCostUsd:.1,durationMs:15}
  const first={...base,id:randomUUID(),userId:users[0]}
  await Promise.all([saveAiCallEvent(first),saveAiCallEvent({...base,id:randomUUID(),userId:users[1]})]);await saveAiCallEvent(first)

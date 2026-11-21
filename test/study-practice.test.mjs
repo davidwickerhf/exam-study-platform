@@ -786,6 +786,7 @@ test('practice citation output is constrained to selected chunks and a bad citat
     assert.equal(first.stage, 'generate')
     const corrected = await stepStudyPractice(f.version.id, set.id, { generate: async prompt => {
       assert.match(prompt, /A citation was outside the selected evidence/)
+      assert.ok(prompt.includes(JSON.stringify(bad)))
       return JSON.stringify(payload)
     } })
     assert.equal(corrected.stage, 'review')

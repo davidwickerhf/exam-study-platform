@@ -1,4 +1,5 @@
 'use client'
+import './study-lesson-story.css'
 import { useEffect, useRef, useState } from 'react'
 import { StudyProse, StudyInline } from './study-prose'
 import { StudyEvidence } from './study-evidence'
@@ -31,7 +32,7 @@ export function StudyLessonStory({ chapter, revision }: { chapter: StudyChapter;
   const priorVisual = chapter.sections.reduce((last, section, i) => i <= active && section.visual ? i : last, -1)
   const visualIndex = priorVisual >= 0 ? priorVisual : chapter.sections.findIndex(s => s.visual)
   const visualSection = chapter.sections[visualIndex]
-  return <div ref={root} className={hasVisual ? 'grid min-w-0 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-10' : ''}>
+  return <div className="study-story"><div ref={root} className={hasVisual ? 'study-story-layout' : ''}>
     <div className="min-w-0">
       {chapter.sections.map((section, index) => <section key={`${chapter.id}-${index}`} id={section.id ? `lesson-${chapter.id}-${section.id}` : undefined} data-story-section={index} className="mb-12 scroll-mt-8 last:mb-0">
         <p className="mb-3 text-xs font-medium tabular-nums text-muted-foreground">{String(index + 1).padStart(2, '0')} / {String(chapter.sections.length).padStart(2, '0')}</p>
@@ -42,13 +43,13 @@ export function StudyLessonStory({ chapter, revision }: { chapter: StudyChapter;
         {section.detail && <details className="mt-5 border-y py-3"><summary className="cursor-pointer text-sm font-medium">Go deeper: {section.title}</summary><div className="mt-4 max-w-prose"><StudyProse>{section.detail}</StudyProse></div></details>}
         {chapter.formatVersion === 3 && chapter.questions.filter(q => q.practiceStage === 'guided' && chapter.objectiveCoverage?.some(path => path.workedExampleSectionIds.at(-1) === section.id && path.guidedQuestionKeys.includes(q.key || ''))).map(q => <StudyGuidedAttempt key={q.id} question={q} />)}
         <StudyEvidence ids={section.sourceIds} revision={revision} />
-        {section.visual && <div className="mt-6 xl:hidden"><StudyVisual visual={section.visual} /><StudyEvidence ids={section.visual.sourceIds} revision={revision} /></div>}
+        {section.visual && <div className="study-story-inline-visual mt-6"><StudyVisual visual={section.visual} /><StudyEvidence ids={section.visual.sourceIds} revision={revision} /></div>}
       </section>)}
     </div>
-    {visualSection?.visual && <aside aria-label="Visual explanation" className="sticky top-6 hidden min-w-0 xl:block" data-active-story-section={visualIndex}>
+    {visualSection?.visual && <aside aria-label="Visual explanation" className="study-story-side-visual sticky top-6 min-w-0" data-active-story-section={visualIndex}>
       <p className="mb-3 text-xs text-muted-foreground">{visualSection.title}</p>
       <StudyVisual key={`${chapter.id}-${visualIndex}`} visual={visualSection.visual} />
       <StudyEvidence ids={visualSection.visual.sourceIds} revision={revision} />
     </aside>}
-  </div>
+  </div></div>
 }

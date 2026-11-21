@@ -33,3 +33,18 @@ test('oversized and malformed upstream bodies are bounded and never displayed', 
   assert.equal(malformed.code, 'provider_unavailable')
   assert.doesNotMatch(malformed.message, /private-account/)
 })
+
+
+test('provider failures retain safe correlation IDs and respect bounded retry delays',async()=>{
+ const {studyRetryDelayMs}=await import('../lib/study-provider-errors.mjs')
+ const error=await studyProviderError(new Response('upstream unavailable',{status:503,headers:{'x-request-id':'req_safe-123','retry-after':'30'}}))
+ assert.equal(error.providerRequestId,'req_safe-123')
+ assert.equal(error.providerStatus,503)
+ assert.equal(studyRetryDelayMs(error,1),30000)
+ assert.equal(studyRetryDelayMs({},1),10000)
+ assert.equal(studyRetryDelayMs({},2),20000)
+ assert.equal(studyRetryDelayMs({retryAfter:120},2),60000)
+ const unsafe=await studyProviderError(new Response('private account details',{status:503,headers:{'x-request-id':'unexpected-private-data'}}))
+ assert.equal(unsafe.providerRequestId,undefined)
+ assert.doesNotMatch(unsafe.message,/private account/)
+})

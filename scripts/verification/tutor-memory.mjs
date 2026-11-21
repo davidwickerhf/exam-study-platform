@@ -1,18 +1,11 @@
 // Disposable PostgreSQL verification; never accepts a remote database.
-// QUEUE_TEST_DATABASE_URL=postgres://... node --experimental-test-module-mocks scripts/verification/tutor-memory.mjs
-import { mock } from 'node:test'
+// QUEUE_TEST_DATABASE_URL=postgres://... node scripts/verification/tutor-memory.mjs
 import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import pg from 'pg'
-import * as neonModule from '@neondatabase/serverless'
 const url = new URL(process.env.QUEUE_TEST_DATABASE_URL || '')
 if (!['localhost','127.0.0.1'].includes(url.hostname)) throw new Error('Use a disposable localhost database.')
 const pool = new pg.Pool({ connectionString: url.href })
-function sql(strings, ...values) {
-  const text = strings.reduce((out, part, i) => out + (i ? `$${i}` : '') + part, '')
-  return pool.query(text, values).then(result => result.rows)
-}
-mock.module('@neondatabase/serverless', { namedExports: { ...neonModule, neon: () => sql } })
 process.env.DATABASE_URL = url.href
 const { withRequestContext } = await import('../../lib/request-context.mjs')
 const { writeDocument, readDocument, compareAndSwapDocument } = await import('../../lib/user-store.mjs')

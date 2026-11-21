@@ -49,7 +49,7 @@ export default function AboutPage() {
 
       <section className="about-contact">
         <div><h2>Built and operated independently.</h2><p>Wicker Study is operated by {operatorName}. Send your request to the queue that matches it best.</p></div>
-        <div className="contact-register"><p><span>General</span><ContactLink kind="info" /></p><p><span>Product support</span><ContactLink kind="support" /></p><p><span>Privacy</span><ContactLink kind="privacy" /></p><p><span>Security</span><ContactLink kind="security" /></p><p><span>Legal</span><ContactLink kind="legal" /></p></div>
+        <div className="contact-register"><p><span>General</span><ContactLink kind="hello" /></p><p><span>Product support</span><ContactLink kind="support" /></p><p><span>Privacy</span><ContactLink kind="privacy" /></p><p><span>Security</span><ContactLink kind="security" /></p><p><span>Legal</span><ContactLink kind="legal" /></p></div>
       </section>
 
       <section className="reading-cta"><h2>See the maintained curriculum.</h2><a className="site-button site-button-primary" href="/courses">View courses <SiteIcon name="arrow" /></a></section>

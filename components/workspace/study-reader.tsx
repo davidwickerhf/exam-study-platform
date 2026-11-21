@@ -1,11 +1,12 @@
 'use client'
 import dynamic from 'next/dynamic'
+import './study-reader.css'
 import { useStudyDesk } from './study-desk'
 import {useCourseTutorContext} from './course-tutor-entry'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { StudyPracticeWorkspace } from './study-practice-workspace'
-import { useEffect, useState } from 'react'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ChevronDownIcon, SearchIcon, BookOpenIcon, MessageCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +41,10 @@ export function StudyReader({
   editable?: boolean
 }) {
   const desk = useStudyDesk()
+  const navigationId = useId()
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const [chaptersOpen, setChaptersOpen] = useState(false)
+  const [chapterSearch, setChapterSearch] = useState('')
   const [tutorOpen, setTutorOpen] = useState(false), [tutorQuestion, setTutorQuestion] = useState<string | undefined>()
   const [topicId, setTopicId] = useState(revision.chapters[0]?.id || ''),
     [tab, setTab] = useState('lesson')
@@ -112,71 +117,81 @@ export function StudyReader({
             s.key
         )
   )
+  const chapterIndex = revision.chapters.findIndex(c => c.id === chapter.id)
+  const readCount = revision.chapters.filter(c => progress.some(p => p.topicId === c.id && p.read)).length
+  const filteredTopics = revision.topics.filter(t => t.title.toLowerCase().includes(chapterSearch.trim().toLowerCase()))
+  function selectChapter(id: string) {
+    setTopicId(id)
+    setTab('lesson')
+    setChaptersOpen(false)
+    if (personal) {
+      const url = new URL(window.location.href)
+      url.searchParams.set('chapter', id)
+      url.searchParams.delete('practice')
+      window.history.replaceState(null, '', url)
+    }
+    requestAnimationFrame(() => {
+      titleRef.current?.focus({ preventScroll: true })
+      titleRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
+    })
+  }
   return (
-    <div className="flex min-w-0 flex-col gap-5">
-      <details className="rounded-xl border bg-card">
-        <summary className="cursor-pointer px-5 py-4 text-sm font-medium">Chapters · {chapter.title} <span className="ml-2 text-muted-foreground">{revision.chapters.length} ready</span></summary>
-      <nav
-        aria-label="Study chapters"
-        className="grid border-t sm:grid-cols-2"
-      >
-        <p className="text-muted-foreground border-b px-4 py-3 text-xs font-medium">
-          {revision.chapters.length} chapters ready · {revision.topics.length}{' '}
-          mapped
-        </p>
-        {revision.topics.map((topic, index) => {
-          const ready = revision.chapters.some((c) => c.id === topic.id)
-          return (
-            <button
-              key={topic.id}
-              disabled={!ready}
-              onClick={() => setTopicId(topic.id)}
-              aria-current={chapter.id === topic.id ? 'page' : undefined}
-              className="hover:bg-muted/50 aria-[current=page]:bg-muted flex items-start gap-3 border-b px-4 py-3 text-left text-sm last:border-0 disabled:opacity-50"
-            >
-              <span className="text-muted-foreground font-data text-xs tabular-nums">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <span className="min-w-0 flex-1">
-                {topic.title}
-                {!ready && (
-                  <span className="text-muted-foreground block text-xs">
-                    Preparing
-                  </span>
-                )}
-              </span>
-              {progress.find((p) => p.topicId === topic.id)?.read && (
-                <CheckIcon className="size-3.5 shrink-0" />
-              )}
-            </button>
-          )
-        })}
-      </nav>
-      </details>
-      <article className="min-w-0 rounded-xl border bg-card p-5 sm:p-7">
-        <header className="mb-5 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{chapter.review === 'student-edited' ? 'Personally edited' : 'AI-generated'}</Badge>
-            <Badge variant="secondary">{chapter.review === 'passed' ? 'Evidence checked by AI' : chapter.review === 'student-edited' ? 'Changes not AI checked' : 'Evidence review pending'}</Badge>
-            {historical && (
-              <Badge variant="outline">Includes supplements</Badge>
-            )}
+    <div className="study-reader">
+    <div className="study-reader-layout">
+      <aside className="study-reader-contents" aria-label="Guide contents">
+        <button type="button" className="study-reader-picker" aria-expanded={chaptersOpen} aria-controls={navigationId} onClick={() => setChaptersOpen(!chaptersOpen)}>
+          <BookOpenIcon className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate text-left">Chapter {chapterIndex + 1} · {chapter.title}</span>
+          <ChevronDownIcon className={`size-4 shrink-0 ${chaptersOpen ? 'rotate-180' : ''}`} />
+        </button>
+        <div id={navigationId} className="study-reader-navigation" data-open={chaptersOpen}>
+          <div className="study-reader-contents-heading">
+            <h2 className="text-sm font-semibold">Contents</h2>
+            <span className="text-xs text-muted-foreground">{revision.chapters.length} ready</span>
           </div>
-          <h2 className="font-heading text-2xl font-semibold tracking-tight">
-            {chapter.title}
-          </h2>
-          <p className="text-muted-foreground text-xs">
-            Not editorially reviewed. Source passages are available below each
-            explanation.
-          </p>
-          {personal && <div><Button variant="outline" onClick={() => openTutor()}>Ask AI tutor</Button></div>}
+          {personal && <div className="mb-5">
+            <div className="mb-2 flex justify-between text-xs text-muted-foreground"><span>Reading progress</span><span>{readCount} / {revision.chapters.length}</span></div>
+            <progress className="study-reader-progress" value={readCount} max={revision.chapters.length} aria-label="Chapters marked read" />
+          </div>}
+          <label className="study-reader-search">
+            <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+            <input aria-label="Find a chapter" placeholder="Find a chapter…" value={chapterSearch} onChange={e => setChapterSearch(e.target.value)} />
+          </label>
+          <nav aria-label="Study chapters" className="study-reader-chapters">
+            {filteredTopics.map(topic => {
+              const index = revision.topics.findIndex(t => t.id === topic.id)
+              const ready = revision.chapters.some(c => c.id === topic.id)
+              const read = progress.some(p => p.topicId === topic.id && p.read)
+              return <button type="button" key={topic.id} disabled={!ready} onClick={() => selectChapter(topic.id)} aria-current={chapter.id === topic.id ? 'page' : undefined}>
+                <span className="study-reader-chapter-number">{read ? <CheckIcon className="size-3.5" aria-label="Read" /> : String(index + 1).padStart(2, '0')}</span>
+                <span className="min-w-0"><span className="block">{topic.title}</span>{!ready && <span className="mt-1 block text-xs text-muted-foreground">Preparing</span>}</span>
+              </button>
+            })}
+            {!filteredTopics.length && <p role="status" className="px-3 py-4 text-sm text-muted-foreground">No chapters match “{chapterSearch}”.</p>}
+          </nav>
+          <p className="mt-4 text-xs leading-5 text-muted-foreground">{revision.topics.length} topics mapped{personal ? ' · Checkmarks mean marked read.' : ''}</p>
+        </div>
+      </aside>
+      <article className="study-reader-article">
+        <header className="study-reader-header">
+          <h2 ref={titleRef} tabIndex={-1} className="study-reader-title">{chapter.title}</h2>
+          <div className="study-reader-actions flex flex-wrap items-center justify-between gap-2">
+            {personal && <Button size="sm" variant="ghost" onClick={() => openTutor()}><MessageCircleIcon className="size-4" />Ask AI tutor</Button>}
+            {record?.read && <span className="text-xs text-muted-foreground inline-flex items-center gap-1"><CheckIcon className="size-3" />Marked read</span>}
+          <details className="study-reader-review relative">
+            <summary>Chapter options</summary><div className="absolute right-0 z-20 mt-2 w-64 rounded-md border bg-card p-3 shadow-lg">
+          <details className="study-reader-review">
+            <summary>{chapter.review === 'student-edited' ? 'Personally edited · Review details' : chapter.review === 'passed' ? 'Evidence checked by AI · Not editorially reviewed.' : 'AI-generated · Evidence review pending'}</summary>
+            <p className="mt-2 leading-5">Not editorially reviewed. Source passages are available below each explanation.{chapter.review === 'student-edited' ? ' Your changes have not been AI checked.' : ''}{historical ? ' Includes supplements from another academic year.' : ''}</p>
+          </details>
           {tab === 'lesson' && editable && onEdited && <StudyChapterEditor key={`${revision.id}-${chapter.id}`} chapter={chapter} revision={revision} onChanged={onEdited} />}
-          {tab === 'lesson' && !!chapter.learningGoals?.length && <div className="mt-2 border-t pt-5"><p className="mb-3 text-sm font-medium">By the end, you can</p><ul className="grid gap-x-8 gap-y-2 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span><StudyInline>{goal}</StudyInline></li>)}</ul></div>}
+            </div></details>
+          </div>
         </header>
         <Tabs value={tab} onValueChange={setTab} className="min-w-0 gap-5">
           <TabsList
             variant="line"
-            className="max-w-full justify-start overflow-x-auto"
+            className="study-reader-tabs max-w-full justify-start overflow-x-auto"
           >
             <TabsTrigger value="lesson">Learn</TabsTrigger>
             <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -185,6 +200,7 @@ export function StudyReader({
             {personal && <TabsTrigger value="notes">My notes</TabsTrigger>}
           </TabsList>
           <TabsContent value="lesson" className="flex flex-col gap-7">
+            {!!chapter.learningGoals?.length && <details className="study-reader-goals"><summary>What you’ll learn</summary><ul className="mt-3 grid gap-2 text-sm leading-6 text-muted-foreground">{chapter.learningGoals.map(goal => <li key={goal} className="flex gap-2"><span aria-hidden="true">→</span><StudyInline>{goal}</StudyInline></li>)}</ul></details>}
             {(chapter.formatVersion === 2 || chapter.formatVersion === 3) ? <StudyLessonStory key={chapter.id} chapter={chapter} revision={revision} /> : chapter.sections.map((section, index) => (
               <section key={index}>
                 <h3 className="mb-3 text-base font-semibold">
@@ -449,7 +465,12 @@ export function StudyReader({
             {notice}
           </p>
         )}
+        <nav aria-label="Chapter navigation" className="study-reader-pagination">
+          <Button variant="ghost" disabled={chapterIndex === 0} onClick={() => selectChapter(revision.chapters[chapterIndex - 1].id)}><ArrowLeftIcon />Previous chapter</Button>
+          <Button variant="outline" disabled={chapterIndex === revision.chapters.length - 1} onClick={() => selectChapter(revision.chapters[chapterIndex + 1].id)}>Next chapter<ArrowRightIcon /></Button>
+        </nav>
       </article>
+    </div>
       {personal && <Sheet open={tutorOpen} onOpenChange={setTutorOpen}><SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-6xl"><SheetHeader><SheetTitle>Chapter tutor</SheetTitle><SheetDescription>{chapter.title} · Using this saved revision and its source evidence</SheetDescription></SheetHeader><div className="min-h-0 flex-1">{tutorOpen && <Tutor key={`${revision.id}-${chapter.id}-${tutorQuestion || ''}`} embedded initialContext={{ courseCode:revision.course.courseCode, courseName:revision.course.courseName, chapterId:chapter.id, chapterName:chapter.title, studyVersionId:revision.versionId, studyRevisionId:revision.id, studyQuestionId:tutorQuestion }} />}</div></SheetContent></Sheet>}
     </div>
   )

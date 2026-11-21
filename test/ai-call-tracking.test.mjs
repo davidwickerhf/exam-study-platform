@@ -27,7 +27,7 @@ test('one durable event per attempt, with isolated user/context and no prompt le
 })
 test('missing counts fail acceptance without retrying and remain explicitly unpriced',async()=>{
  const saved=[];let calls=0
- await assert.rejects(trackAiCall({provider:'openai',model:'gpt-5-mini'},async()=>{calls++;return {usage:null}}, {save:async e=>saved.push(structuredClone(e))}),e=>e.code==='provider_usage_missing'&&e.retryable===false)
+ await assert.rejects(trackAiCall({provider:'openai',model:'gpt-5-mini'},async()=>{calls++;return {usage:null}}, {save:async e=>saved.push(structuredClone(e))}),e=>e.code==='provider_missing_usage'&&e.retryable===false)
  assert.equal(calls,1);assert.equal(saved.at(-1).status,'failed');assert.equal(saved.at(-1).inputTokens,null);assert.equal(saved.at(-1).estimatedCostUsd,null)
 })
 test('failed parsing preserves reported usage and settlement failure cannot trigger a paid retry',async()=>{

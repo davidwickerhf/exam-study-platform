@@ -13,7 +13,7 @@ Reference lock: the previously researched Memorisely style (69d7433e-f1f8-4366-9
 
 User screenshot is the anti-reference: oversized processing notice, repeated retry/range/options controls and no paper-type structure. First viewport should expose at least four documents at desktop width when there are six. Group exam papers before exercise sheets and optional solutions. Each row shows title, year, one honest readiness line, original viewer, ready practice action and details. No invented paper thumbnails or fake counts.
 
-Paper details owns saved sections, processing reason/retry, page selection and syllabus checking; task forms retain their protected focus. A compact preparation-status action opens all job states. Ready checked questions remain available when another extraction pauses. Manual page subsets are labelled as sections, not whole papers. Search/year filters have explicit reset. Mobile rows wrap actions below the title, and sheets remain scrollable with close reachable.
+The library exposes completed sections; paper details owns saved-set selection, processing reason/retry, page selection and syllabus checking; task forms retain their protected focus. A compact preparation-status action opens all job states. Ready checked questions remain available when another extraction pauses. Manual page subsets are labelled as sections, not whole papers. Search/year filters have explicit reset. Mobile rows wrap actions below the title, and sheets remain scrollable with close reachable.
 
 Motion uses the existing Sheet transitions; no animation or new visual identity is introduced. Original viewing and opening details never launch paid retries.
 
@@ -30,3 +30,9 @@ Paper details owns preparation controls, operation errors, automatic progress, t
 Choose pages to prepare / Prepare another section and Syllabus fit temporarily replace details with a focused form. Back to paper, Escape and sheet dismissal return to the same paper when idle. On an accepted manual preparation request, the form closes and details displays Preparing questions while extraction/review continues; later failures remain in details. A failure before request acceptance remains in the page form. Resume uses Resuming questions in the detail status and Resuming on its button. Syllabus checking keeps its pending state, errors and evidence in the fit form. Busy requests protect form dismissal; sheet bodies scroll independently.
 
 This records the built composition and state ownership, not a fresh live-AI validation result. The global design system, original PDF viewer and reference lock above are unchanged.
+
+## September 15 section visibility
+
+Completed saved sections appear directly below their paper row with title, actual question count, recorded page range when available, and Start practice. Section readiness does not assert whole-paper coverage. Original viewing opens in the document split, whose labelled controls are Expand and Back to split view. Preparation and resume controls stay in paper details. This extension preserves the prior selection and failure behavior above.
+
+Direction, fixture validation and review limits: `docs/design/study-guide-reader.md`; local screenshots: `.impeccable/review/study-redesign/`. The later ship review addressed four scoped findings across the study extension, not a new blanket paper-processing or live AI approval.

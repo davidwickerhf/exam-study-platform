@@ -309,7 +309,8 @@ function PracticeContent() {
           />
         </TabsContent>
       </Tabs>
-      {(tab === "questions" || tab === "mistakes") && <PersonalPracticeHistory mistakesOnly={tab === "mistakes"} />}
+      {tab === "questions" && <details className="border-t pt-4"><summary className="cursor-pointer text-sm text-muted-foreground">Previous practice attempts</summary><PersonalPracticeHistory /></details>}
+      {tab === "mistakes" && <PersonalPracticeHistory mistakesOnly />}
     </div>
   );
 }

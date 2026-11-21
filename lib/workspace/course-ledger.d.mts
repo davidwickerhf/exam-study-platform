@@ -69,6 +69,7 @@ export declare const SCOPES: LedgerScope[]
 export declare function cleanCanvasName(name: string, code: string): string
 export declare function normalizedPeriod(value: unknown): string
 export declare function periodLabel(value: unknown): string | null
+export declare function scheduledPeriod(course: AcademicCourse | null | undefined): string
 export declare function reconcileCourses(sources?: LedgerSources): LedgerCourse[]
 export declare function compareLedger(academicCourses: AcademicCourse[], today?: string): (left: LedgerCourse, right: LedgerCourse) => number
 export declare function comparePeriod(academicCourses: AcademicCourse[], today?: string): (left: LedgerCourse, right: LedgerCourse) => number

@@ -26,6 +26,7 @@ import { readTutorFile } from '@/lib/workspace/tutor-files'
 import { tutorFailure, type TutorFailure } from '@/lib/tutor-errors.mjs'
 import { tutorStream } from '@/lib/workspace/tutor-stream'
 import { tutorDocket } from '@/lib/tutor-docket.mjs'
+import { trackEvent } from '@/lib/analytics'
 import { TutorWidgets, PreparedDraft, type TutorPresentation } from './tutor-widgets'
 
 export type TutorContext = {
@@ -235,6 +236,7 @@ export function TutorWorkspace({ initialContext = {}, embedded = false }: { init
       const result = await tutorStream<{ conversation: Hub['conversation']; conversations: Conversation[]; memory: Hub['memory']; receipts: Receipt[]; attachments: Attachment[] }>('/api/tutor', { method: 'POST', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(190_000)]), body: JSON.stringify({ message, conversation: targetId, create: creatingRef.current === targetId, context: previousQuestion?.context || context, retry: retrying }) }, message => { if (isCurrent()) { setProgress(message); setPartialAnswer('') } }, text => { if (isCurrent()) setPartialAnswer(text) })
       if (!isCurrent()) return
       if (!(result.conversation?.messages.at(-1)?.role === 'assistant' && result.conversation.messages.at(-1)?.content.trim())) throw new Error('Tutor did not return an answer. Please retry your question.')
+      trackEvent('tutor-question-answered', { scope: initialContext.courseCode ? 'course' : 'workspace', embedded, new_conversation: creatingRef.current === targetId, attachments: context.attachmentIds.length, retry: retrying })
       setConversationId(result.conversation.id); setConversationLocation(result.conversation.id); setMessages(result.conversation.messages)
       setHub((previous) => previous && { ...previous, conversation: result.conversation, conversations: result.conversations, memory: result.memory, receipts: result.receipts, attachments: result.attachments })
       creatingRef.current = null

@@ -10,21 +10,24 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_PASSWORD: fixture
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # Anvil's runners, except for pull requests from forks: those run on GitHub's, so code from outside the
+    # repository never runs on Anvil's server. anvil-4cpu: LibreOffice, the Next build and Playwright in one job.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'anvil-4cpu' }}
     steps:
       - uses: actions/checkout@v4
+      # Anvil runners have no Docker daemon, so a `services:` container can't start there. Postgres 17
+      # from the PostgreSQL apt repository, in the job itself, on localhost:5432 as before.
+      - name: Start Postgres 17
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends postgresql-17 postgresql-17-pgvector
+          # GitHub's images (fork pull requests run there) have another cluster: keep 5432 for this one.
+          pg_lsclusters -h | awk '$1 != "17" {print $1, $2}' | while read -r v c; do sudo pg_dropcluster --stop "$v" "$c"; done
+          sudo pg_conftool 17 main set port 5432
+          sudo pg_ctlcluster 17 main start
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -q -c "alter role postgres password 'fixture'"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -41,7 +44,16 @@ jobs:
           done
       - name: Install document rendering dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress libreoffice-writer poppler-utils fonts-liberation fonts-dejavu-core
-      - run: npm run verify
+      # npm run verify, one step each, so the tests can write a JUnit report for Anvil's CI → Tests.
+      - run: npm run typecheck
+      - run: npm test -- --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=junit.xml
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: junit-verify
+          path: junit.xml
+          if-no-files-found: warn
+      - run: npm run build
       - run: npm run test:study:postgres
         env:
           STUDY_TEST_DATABASE_URL: postgres://postgres:fixture@localhost:5432/postgres
@@ -61,6 +73,26 @@ jobs:
         run: node scripts/verification/mcp-postgres.mjs
         env:
           MCP_TEST_DATABASE_URL: postgres://postgres:fixture@localhost:5432/postgres
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          # server.mjs listens on $HOSTNAME when it's set. In a container (Anvil's runners) HOSTNAME is the container's
+          # name, so the server wasn't on localhost and Playwright's webServer check timed out. 0.0.0.0 is its default.
+          HOSTNAME: 0.0.0.0
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: test-results/
+          retention-days: 7
+
+  # Stays on GitHub's runners: it starts the built image with `docker run`, and Anvil runners have no Docker
+  # daemon (they can build images, not run them).
+  container:
+    name: Production API container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Build and boot the production API container
         run: |
           docker build -f Containerfile -t study-api-check .
@@ -71,11 +103,3 @@ jobs:
             sleep 1
           done
           exit 1
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: browser-failure-evidence
-          path: test-results/
-          retention-days: 7

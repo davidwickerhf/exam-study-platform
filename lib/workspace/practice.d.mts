@@ -2,6 +2,12 @@
 
 export type PracticeQuestion = {
   id: string
+  savedAttempt?: {answer:string;result:{score:number|null;correction:string}|null}
+  practiceOrigin?: 'paper' | 'generated'
+  guideTitle?: string
+  academicYear?: string
+  paperLabel?: string | null
+  marks?: number | null
   source?: string | null
   type?: string | null
   difficulty?: string | null

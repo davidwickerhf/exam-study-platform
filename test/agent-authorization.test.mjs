@@ -8,7 +8,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { withRequestContext } from '../lib/request-context.mjs'
-import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization } from '../lib/agent-authorization.mjs'
+import { AgentAuthorizationError, approveAgentAuthorization, assertLoopbackRedirect, exchangeAgentAuthorization, deleteOwnAgentAuthorizations } from '../lib/agent-authorization.mjs'
 import { authorizationUrl, makeVerifier, startCallbackListener } from '../mcp/authorize.mjs'
 import { configPath, forgetApiKey, listSavedServers, normaliseServerUrl, resolveApiKey, saveApiKey } from '../mcp/config.mjs'
 import { checkMcpVendor } from '../scripts/sync-mcp-vendor.mjs'
@@ -29,7 +29,7 @@ test.after(async () => {
   await rm(join(dataRoot, '_agent-authorizations'), { recursive: true, force: true })
 })
 
-const asUser = (id, callback) => withRequestContext({ userId: id, mode: 'clerk' }, callback)
+const asUser = (id, callback) => withRequestContext({ userId: id, mode: 'session' }, callback)
 
 test('an agent key is only ever delivered to loopback', () => {
   assert.equal(assertLoopbackRedirect('http://127.0.0.1:8765/callback'), 'http://127.0.0.1:8765/callback')
@@ -64,6 +64,18 @@ test('a code is single use, verifier-bound, and mints a key only at exchange', a
   assert.deepEqual(granted.scopes, ['read', 'write'])
 
   // Spent codes stay spent, even with the right verifier.
+  await assert.rejects(() => exchangeAgentAuthorization({ code: approval.code, verifier }), AgentAuthorizationError)
+})
+
+test('deleting an unrelated account does not rewrite the shared authorization table', async () => {
+  const owner = scratchUser('grant_owner'), other = scratchUser('no_grants')
+  const { verifier, challenge } = makeVerifier()
+  const approval = await asUser(owner, () => approveAgentAuthorization({ name: 'Local test', scopes: ['read'], challenge }))
+  const path = join(dataRoot, '_agent-authorizations', 'tables', 'agent_authorizations.json')
+  const before = await stat(path, { bigint: true })
+  assert.equal(await asUser(other, deleteOwnAgentAuthorizations), 0)
+  assert.equal((await stat(path, { bigint: true })).mtimeNs, before.mtimeNs)
+  await exchangeAgentAuthorization({ code: approval.code, verifier })
   await assert.rejects(() => exchangeAgentAuthorization({ code: approval.code, verifier }), AgentAuthorizationError)
 })
 

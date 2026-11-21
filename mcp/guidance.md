@@ -20,14 +20,18 @@ This is the end-to-end handoff for another agent, including agents connecting to
 
 1. **Discover or resume.** Read `study_generation_queue` first when continuing work. Keep the requested version ID; never start a duplicate to escape a failed review or recover an interrupted start. For a new run, discover the exact course code and academic year with `canvas_corpus_status`, then list `study_generation_sources`. Published `list_courses` is not the Canvas inventory.
 2. **Check source coverage.** Select the student-authorised source keys and current-year scope. Inspect `canvas_course_materials` for originals. Use `prepare_original_download` plus native file tools when text alone misses diagrams, tables, notes or textbook pages; verify size/hash and preserve filenames/page numbers. Save authorised additional extraction through `study_generation_add_notes`, explicitly labelling interpretations, then include the returned ID in the selection. Missing textbook contents remain a gap; past-year coverage does not establish this year's scope. If stored materials need refreshing, follow the authorised Canvas refresh and sync-log workflow before starting.
-3. **Start once.** Call `study_generation_start` with the exact course/year and sourceKeys, or use the version ID already created by the user. The student's request for this local run authorises its generation, review and automatic correction continuations. It does not authorise other source selections, sharing or unrelated writes.
+3. **Start once.** Call `study_generation_start` with the exact course/year and sourceKeys, or use the version ID already created by the user. The student's request for this local run authorises its generation, review and automatic correction continuations. It does not authorise other source selections, sharing or unrelated writes. Pass `courseBundle:true` to plan the whole selected course once and split it into 2–12 separate guides under one run instead of one guide per source set; omit it for the ordinary single-guide flow. A bundle still runs through the same next/submit loop — its steps just address a shared course plan and several child guides in turn — and it counts as one version against the student's course version limit regardless of how many guides it produces.
 4. **Fetch one work packet.** Call `study_generation_next`. Follow `nextAction` and inspect `request.task` for the phase, chapter, role and context mode. Use the local model/subscription to answer `request.prompt` against `request.responseSchema`. All necessary step evidence is included. Preserve source IDs and objective IDs; do not load the whole course or accumulated chat history into every step. Output ceilings are capacity, not length targets.
 5. **Keep reviews independent.** For `fresh-isolated`, run a new reviewer context with only the exact request prompt and schema. The blind solver must not see the author's lesson, answers or hints. Answer comparison and pedagogical review use only the artifacts intentionally supplied in their prompts. If your client cannot isolate a reviewer context, pause with the version/request IDs and hand off to a capable agent. Do not relabel a same-context self-check as independent review. Client semantic review is not an independently hosted platform review.
 6. **Upload every checkpoint.** Submit the complete JSON result using `study_generation_submit({versionId, requestId, contractId, response})`. Use actual returned IDs, never invented examples. A worker can return its JSON to the controlling agent, which submits it unchanged. `accepted:true` acknowledges this checkpoint, not the whole guide. Keep the exact payload until its acknowledgement; resubmit it unchanged if the network outcome is uncertain. Fetch next after every accepted submission. A stale contract requires a fresh next request, not forcing an old result through.
 7. **Let bounded repair run.** Reviewer findings automatically produce correction packets based on saved content. Follow those packets instead of rewriting the whole guide or clearing findings. `version.corrections` is the authoritative limit/history. On `nextAction.kind=wait`, wait its retryAfterMs before the specified next call. On `blocked` or `stopped`, report the saved issue and pause; never loop `retry:true`, reset counters or invent a passing review. An explicit retry requests additional work beyond that pause.
-8. **Verify completion.** Only `version.status=complete` with a revisionId means a saved guide is ready. Return version.url, coverage/source gaps and remaining warnings. Chapters, objective plans, worked teaching, practice, diagnostic follow-ups, flashcards and revision summaries are saved through the structured pipeline. Existing readable revisions stay available until the replacement passes. No editorial publication occurs.
+8. **Verify completion.** Only `version.status=complete` with a revisionId means a saved guide is ready. Return version.url, coverage/source gaps and remaining warnings. Chapters, objective plans, worked teaching, practice, diagnostic follow-ups, flashcards and revision summaries are saved through the structured pipeline. Existing readable revisions stay available until the replacement passes. No editorial publication occurs. For a `courseBundle` run, completion covers every derived guide, not just the parent; a summary carries a typed `bundle` block on the parent (its child guides, each with id and status) and a typed `managed` block on each child (the parent it belongs to), for two-way navigation. A child stays invisible — not listed, claimed or readable — until the parent's fenced publication commits it; report the parent's status while any child is still pending.
 
 The shared acceptance path checks schema, citations, objective coverage, arithmetic, visible teaching and required factual/pedagogical verdicts. Difficult objectives need mechanism explanation, worked reasoning, a supported attempt and independent assessment. Transfer must change the reasoning; follow-ups must target the diagnosed mistake, not merely its broad topic. Never equate counts, labels, reading or completion with mastery. The current request supplies the full standard; this guide is orchestration, not a replacement prompt pack.
+
+## Managed guides (whole-course bundles)
+
+A guide produced by a `courseBundle` run is a **managed guide**: a read-only derivative of the parent course run's plan. Calls to edit, improve, restore, refresh, control or maintenance-enroll a managed guide fail with a 409 naming the parent course run — those changes belong in the parent run, which replaces every child's content on its next publication. To get an independently editable copy, call `study_guide_fork({versionId, revisionId?, title?, confirmed:true})` (or `POST /api/study-versions/:id/fork`): it copies one saved revision verbatim into a new private version with no model call, no hosted job and no billing, and the fork is never touched by the parent again. A fork counts as its own version against the course limit; the managed guides it was copied from do not, and the parent bundle counts as one.
 
 To maintain guides later, configure **local** module automation only when requested and inspect `study_generation_queue` on reconnection. New files, modified materials and exam-scope amendments may enqueue a new revision. The agent's subscription does no unattended work while disconnected, and the platform must not silently fall back to paid hosted generation.
 
@@ -514,3 +518,106 @@ and durable logs. Existing runs retain their original billing/execution choice.
 ### Continuity between MCP and in-app study
 
 At the start of tutoring, read `study_session_context` for the course and academic year, plus `tutor_sources` for lasting preferences. After the student authorises remembering this study session, save concise checkpoints with `study_session_save` at meaningful topic boundaries. Keep one sessionId throughout; use a new requestId per checkpoint, reused unchanged on retry. Explain what was saved. No hosted AI is called. Do not save invented student answers, mastery claims, credentials, or a full transcript. Separate observed answers (include the actual response), student reports and unassessed topics. Record unresolved misconceptions and a concrete next exercise. Reassess understanding when resuming; a summary is not a grade or proof of mastery. These checkpoints are available to the in-app Tutor and included in Tutor data export/deletion. `study_session_forget` removes an individual checkpoint. At most 80 recent checkpoints are retained per programme. Existing preference and attendance tools retain their own exact-write review requirements.
+
+### Locally parsed papers → Mock papers
+
+Use `study_papers` to inspect original papers and active extracted sets, then
+`study_generation_sources` to select the exact original question source and optional
+solution source. With the student's authorisation, call `study_paper_start`.
+Its request contains the deployed extraction prompt, immutable evidence chunk IDs
+and JSON schema. Map locally parsed questions to those IDs; local filenames,
+source keys and page numbers are not citation IDs. Preserve every leaf question,
+original wording, page, context, options and explicit marks. Do not invent an answer
+when no official key is available. Use explicit page ranges for large papers.
+
+Submit with `study_paper_submit`, then follow `study_paper_next`. The review must
+run in a fresh critique context and check completeness against the original.
+The server labels this review client-reported, enforces schema and source checks,
+and activates the normal private paper-library set only after a passing review.
+One correction is permitted after review findings, retaining the previous candidate.
+A failed final review stops the run; do not repeatedly start equivalent runs.
+Invalid citations leave the current request available for repair. Network retries
+must reuse the identical request ID and payload. Changed/withdrawn originals require
+a fresh source selection. These tools make no hosted AI calls and do not cancel
+ongoing hosted paper or lesson-guide jobs. If the server has no readable original
+text, report that gap; never relabel local OCR notes as original paper evidence.
+
+### Resuming after a pipeline deployment
+
+Keep existing version IDs, source snapshots, authored drafts and completed revisions.
+Read the new guidance and `study_generation_contract`, then call
+`study_generation_next` on unfinished guides without `retry:true`. Incompatible
+pending packets receive new request IDs; old unaccepted submissions are rejected.
+Before reusing a locally prepared response, compare the exact prompt, schema,
+task and input hash with the new request. A changed packet requires fresh work.
+An accepted identical receipt remains replay-safe across deployments.
+
+Factual review now uses bounded chapter-scale packets (up to 24 items / 48,000
+artifact characters), with smaller packets on output exhaustion. Teaching review
+batches up to four coherent objectives. Keep blind solving, answer comparison and
+teaching critique in separate contexts; never seed a reviewer with prior verdicts.
+After correction, matching checks are reused only when their content, evidence,
+teaching dependencies and applicable review rules match. IDs alone never establish
+compatibility. Factual and teaching findings are collected before a consolidated
+correction; deterministic corruption/link defects are handled before model review.
+The same automatic/manual correction limits still apply.
+
+Use `study_generation_usage` for phase/chapter task counts, available client-reported
+input/output/cache/reasoning tokens, credits and elapsed time. Supply actual available
+`usage` with a submission; omit unavailable counts, never invent zeros. Historical
+truncated receipts cannot reconstruct the whole subscription bill. Use
+`study_generation_budget` to set an explicit review-task limit; it pauses issuance
+of new review packets at that limit without resetting any correction allowance.
+Cached checks can still be reconciled and the guide completed at the limit.
+Task projections describe one review round; context/output splitting may add tasks.
+
+For existing parsed papers call `study_paper_validate` with the next request's
+`evidenceManifest.hash` before submission. Include stable question `id`, original
+`sourceKey`, page/subquestion label, shared context, exact options/marks and original
+reference metadata. Select required diagram/lecture sources with supportingSourceKeys.
+When sourceIds are omitted, the validator resolves only the selected source's exact
+page and still checks verbatim question text. Unknown citations return question ID,
+field and offending citation. Generated answers stay labelled worked explanations;
+they never become official grading keys. A dry run does not activate or overwrite
+anything. Never represent selected historical pages as a complete original exam,
+or metadata-only quiz exports as extracted question bodies.
+
+When an original contains image-only question text or text interrupted by a figure,
+the local importer supports an explicit `originalTranscription` with the selected
+original's `sourceKey`, `sha256`, `page`, and `reason` (`image` or `fragmented-text`).
+This is a client transcription, not verified indexed text: it always requires the
+original and cannot cite a private note as the original. The review packet requires
+one `originalChecks` entry per such question, matching that exact file hash/page.
+A reviewer must actually inspect the original before setting `reviewed:true`; use a
+blocking issue when inspection is unavailable. Hash/page/citation checks remain
+mandatory. Image-only pages may have no text chunks: use their bound original,
+not invented sourceIds. Selected textless supporting diagrams remain available
+in the manifest. Transcribed pages must be inside the selected page range.
+Empty quiz exports still cannot be turned into invented questions.
+New local guides default to a 128-review-task budget; existing runs retain their
+current allowance until the student explicitly configures one.
+
+### Maintaining existing guides economically
+
+Use `study_guide_maintenance` with `dryRun:true` to preview enrollment of a completed
+local guide. Select explicit current-edition Canvas module boundaries and the exact
+active revision ID; do not infer enrollment from a similar title. With student
+authorization, repeat with `dryRun:false`. This retains the existing guide ID and
+revision and enables local maintenance only. It does not grant hosted spending or
+Canvas consent. `enabled:false` pauses that guide's future maintenance. Global
+pipeline and Canvas pause controls still apply. `study_module_guides` includes
+`maintainedGuides`; check its activity for withdrawn/unreadable sources.
+
+A material change queues a revision of the same guide. Active generation is not
+interrupted, and the published revision stays readable until all checks pass. Source
+refresh requests return patches: omitted teaching/questions remain unchanged; removals
+must be explicit. Follow the exact current schema. Scope amendments and changed
+citations must still be reviewed. Do not delete a guide and regenerate it to perform
+an update.
+
+Keep coordination deterministic and small: store request packets and responses in
+files, pass only the current packet to each isolated reviewer, and return IDs/status
+and usage to the coordinator rather than whole chapters. Do not repeatedly read every
+guide to poll progress. External model usage must come from actual provider/client
+counters; unavailable counters remain unknown. A local subscription API-equivalent
+estimate is not an invoice or a production cost-per-student measurement.

@@ -8,7 +8,7 @@ import { runWorker } from '../lib/worker-runtime.mjs'
 if (!process.env.DATABASE_URL) throw new Error('The independent worker requires DATABASE_URL.')
 if (process.env.VERCEL || process.env.VERCEL_ENV) throw new Error('Run this worker on an always-running host, outside Vercel web deployments.')
 if (Buffer.from(process.env.CANVAS_CONNECTION_ENCRYPTION_KEY || '', 'base64').length !== 32) throw new Error('The worker requires the same Canvas encryption key as the API.')
-for (const [command, args] of [['pdftotext', ['-v']], ['pdftoppm', ['-v']], ['tesseract', ['--version']], ['unzip', ['-v']]]) {
+for (const [command, args] of [['pdftotext', ['-v']], ['pdfinfo', ['-v']], ['pdftoppm', ['-v']], ['tesseract', ['--version']], ['unzip', ['-v']]]) {
   execFileSync(command, args, { stdio: 'ignore', timeout: 5000 })
 }
 if (!await hasVerifiedHostedSchema(process.cwd())) throw new Error('Apply tracked database migrations before starting this worker.')

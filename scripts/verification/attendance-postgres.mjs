@@ -1,15 +1,11 @@
 // Use a disposable, empty localhost database. No hosted data or model calls.
-// STUDY_TEST_DATABASE_URL=postgres://... node --experimental-test-module-mocks scripts/verification/attendance-postgres.mjs
-import {mock} from 'node:test'
+// STUDY_TEST_DATABASE_URL=postgres://... node scripts/verification/attendance-postgres.mjs
 import assert from 'node:assert/strict'
 import {readFile,readdir} from 'node:fs/promises'
 import pg from 'pg'
-import * as neonModule from '@neondatabase/serverless'
 const url=new URL(process.env.STUDY_TEST_DATABASE_URL || '')
 if(!['localhost','127.0.0.1'].includes(url.hostname)) throw new Error('Use a disposable localhost database.')
 const pool=new pg.Pool({connectionString:url.href})
-const sql=(strings,...values)=>pool.query(strings.reduce((out,part,i)=>out+(i?`$${i}`:'')+part,''),values).then(r=>r.rows)
-mock.module('@neondatabase/serverless',{namedExports:{...neonModule,neon:()=>sql}})
 process.env.DATABASE_URL=url.href
 const {canvasPriorityProfiles}=await import('../../lib/priority-evidence.mjs')
 const {supportedCourseAssessment}=await import('../../lib/course-rule-evidence.mjs')

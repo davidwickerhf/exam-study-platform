@@ -26,7 +26,7 @@ test('removing a newly imported course preserves another source but clears its o
 test('connected state uses actual documents; removing an import clears context and permits replacement', async () => {
   const owner = `test-onboarding-${randomUUID()}`
   try {
-    await withRequestContext({ userId: owner, mode: 'clerk' }, async () => {
+    await withRequestContext({ userId: owner, mode: 'session' }, async () => {
       const initial = await readAcademicState()
       const seeded = await saveActiveAcademicWorkspace({ ...initial.workspace, profile: { ...initial.workspace.profile, programme: 'Test' }, courses: [{ id: 'c1', name: 'Math', code: 'MTH101', attempts: [{ id: 'manual', grade: 7, status: 'passed' }] }] }, initial.workspace.revision)
       assert.equal((await setupState()).transcript, false, 'manual grades are not a transcript')
@@ -46,7 +46,7 @@ test('connected state uses actual documents; removing an import clears context a
 test('removing both sources never resurrects the first source through undo history', async () => {
   const owner = `test-onboarding-${randomUUID()}`
   try {
-    await withRequestContext({ userId: owner, mode: 'clerk' }, async () => {
+    await withRequestContext({ userId: owner, mode: 'session' }, async () => {
       const initial = await readAcademicState()
       const record = await saveActiveAcademicWorkspace({ ...initial.workspace, courses: [{ id: 'c1', name: 'Math', attempts: [{ id: 'overview', grade: 8, status: 'passed' }] }] }, initial.workspace.revision)
       await rememberDocumentImport('record', initial.workspace, record.workspace)

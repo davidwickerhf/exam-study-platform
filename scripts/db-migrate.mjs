@@ -3,7 +3,7 @@ import '../lib/env.mjs'
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { neon } from '@neondatabase/serverless'
+import { createSql } from '../lib/pg.mjs'
 import { splitSqlStatements } from '../lib/sql-statements.mjs'
 import { migrationFiles } from '../lib/hosted-schema.mjs'
 
@@ -11,7 +11,7 @@ if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is required')
   process.exit(1)
 }
-const sql = neon(process.env.DATABASE_URL)
+const sql = createSql(process.env.DATABASE_URL, { queryTimeoutMs: 0 })
 const migrations = await migrationFiles(resolve('.'))
 
 // Keep a durable ledger instead of replaying the entire schema on every web
