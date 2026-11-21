@@ -127,7 +127,10 @@ test('stale contract, stopped work, source revocation and another account cannot
   await controlStudyGeneration(id,'stop')
   await assert.rejects(answer(id,updated.request,{}),/stale/)
   await nextLocalStudy(id,{retry:true})
-  await mutateStudyVersion(id,next=>{next.draft.snapshot.sources[0].key='missing-source'})
+  await mutateStudyVersion(id,next=>{
+    next.draft.snapshot.sources[0].key='missing-source'
+    next.draft.snapshot.sources[0].sha256='missing-bytes'
+  })
   await assert.rejects(nextLocalStudy(id),/no longer accessible/)
 }))
 
