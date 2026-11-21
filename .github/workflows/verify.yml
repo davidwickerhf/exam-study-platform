@@ -103,9 +103,11 @@ jobs:
 
   # The one check the merge queue and branch protection need: fails when any job failed or was cancelled, passes when
   # they all succeeded or were skipped.
+  # Gates on the jobs that run on Anvil's runners. `container` (docker run) stays on GitHub's runners and reports its own check,
+  # but doesn't hold the merge queue: GitHub-hosted jobs stop when the account's hosted minutes run out.
   ci-ok:
     name: ci-ok
-    needs: [verify, container]
+    needs: [verify]
     if: always()
     runs-on: anvil-2cpu
     timeout-minutes: 2
