@@ -91,11 +91,11 @@ Existing saved spending choices, personal monthly caps and environment overrides
 
 ## Modern model choices
 
-Hosted generation offers explicit GPT-5.6 Sol (`sol`) and GPT-6 Astra (`astra`) choices alongside the configured platform model and existing GPT-5.4 enhanced option. The same choices are available for automatic module guides; personal-key users select their provider model in AI settings. Existing saved preferences and in-flight billing/model choices are preserved. MCP-led generation uses the model selected in the connected client and does not silently invoke a hosted model.
+New hosted OpenAI guides use GPT-6 Sol as the standard choice. GPT-5.6 Sol (`sol`) remains an explicit legacy choice, with GPT-6 Astra (`astra`) and GPT-5.4 (`enhanced`) also available. The same choices are available for automatic module guides; personal-key users select their provider model in AI settings. Existing saved preferences and in-flight billing/model choices are preserved. MCP-led generation uses the model selected in the connected client and does not silently invoke a hosted model.
 
-Official model pricing verified 14 September 2026: [Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol) costs $4 input / $20 output per million tokens; [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra) costs $10 / $50. Spending reservations account for cache-write prices and the >272K long-context surcharge. When the provider returns cache-write/read token counts, settlement uses those counts; otherwise accounting remains conservative. Cache hits are never assumed for a reservation. Structured-output schemas are included in the input reservation.
+Official model pricing verified 23 September 2026: [GPT-5.6 Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol) costs $4 input / $20 output per million tokens, [GPT-6 Sol](https://developers.openai.com/api/docs/models/gpt-6-sol) costs $2 / $10, and [Astra](https://developers.openai.com/api/docs/models/gpt-6-astra) costs $10 / $50. Spending reservations account for cache-write prices and the >272K long-context surcharge. When the provider returns cache-write/read token counts, settlement uses those counts; otherwise accounting remains conservative. Cache hits are never assumed for a reservation. Structured-output schemas are included in the input reservation.
 
-Guide generation uses structured JSON without model tool calls. Astra's Chat Completions support is sufficient for this path; its tool-calling requirement for Responses means this addition does not migrate the Tutor to Astra. Medium reasoning is retained for guide/review calls. A live Astra structured-output probe correctly returned 108 ms and no notification wake-up from an ordinary variable write. This is compatibility evidence, not an end-to-end teaching-quality evaluation. Sol is being evaluated through the full generation/review/correction pipeline before any default production-model switch.
+Guide generation uses structured JSON without model tool calls. The standard profile uses GPT-6 Sol at medium reasoning for authoring, pedagogical review and correction, and GPT-5 Mini for bounded planning, pre-check and factual-review phases. It does not use the experimental Mini-first question-correction route. Astra remains an explicit premium choice; this change does not alter Tutor, assessment, personal-key or local-agent model routing.
 
 ### Long guide steps
 
@@ -185,7 +185,7 @@ incomplete response. Credit and model-access failures pause immediately. Account
 quota exemptions no longer bypass the explicitly selected per-generation cap.
 The cap remains visible and editable for exempt accounts.
 
-New hosted OpenAI guides default to Astra. Existing jobs preserve their selected
+New hosted OpenAI guides default to GPT-6 Sol. Existing jobs preserve their selected
 model, payer and allowance on retry; general AI workloads retain their existing
 model routing. Both root and service-runtime manifests declare the native client.
 

@@ -10,7 +10,7 @@ import { originalContext,originalStatus,beginOriginal,putOriginalChunk,completeO
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex')
 async function fixture(fn) {
  const owner=`original-test-${randomUUID()}`
- return withRequestContext({userId:owner,mode:'clerk'},async()=>{try{
+ return withRequestContext({userId:owner,mode: 'session'},async()=>{try{
   await recordAcademicDocumentVersion({kind:'transcript',label:'Transcript.pdf',fingerprint:randomUUID()})
   await fn(owner)
  }finally{await deleteAllDocuments()}})
@@ -22,7 +22,7 @@ test('private originals survive storage round trips and are isolated by account 
  const file=await start(bytes);await put(file,bytes);await completeOriginal('transcript',file.id)
  assert.deepEqual(Buffer.concat(await Promise.all([0,1].map(i=>readOriginalChunk('transcript',file.id,i)))),bytes)
  const originalProgramme=(await originalContext('transcript')).key.split(':')[0]
- await withRequestContext({userId:owner+'-other',mode:'clerk'},async()=>{try{assert.equal((await originalStatus('transcript')).original,null);await assert.rejects(readOriginalChunk('transcript',file.id,0),{status:404})}finally{await deleteAllDocuments()}})
+ await withRequestContext({userId:owner+'-other',mode: 'session'},async()=>{try{assert.equal((await originalStatus('transcript')).original,null);await assert.rejects(readOriginalChunk('transcript',file.id,0),{status:404})}finally{await deleteAllDocuments()}})
  await createAcademicProgramme({programme:'Other programme'})
  assert.equal((await originalStatus('transcript')).original,null)
  await assert.rejects(readOriginalChunk('transcript',file.id,0),{status:404})

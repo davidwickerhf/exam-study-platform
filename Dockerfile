@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 # Editorial extraction: Poppler for PDFs, Tesseract for scans/images, and

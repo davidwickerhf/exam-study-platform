@@ -72,7 +72,7 @@ export function ProfileTab({ summary, summaryError, reload }: { summary: Account
               <p className="text-muted-foreground mt-0.5 truncate text-sm">{account?.email || (account?.mode === "local" ? "Local development account" : "Reading account…")}</p>
             </div>
           </div>
-          {account?.mode === "clerk" && <HostedProfileActions />}
+          {account?.mode === "session" && <HostedProfileActions />}
         </div>
 
         <div className="grid gap-x-8 gap-y-5 border-t px-5 py-5 sm:grid-cols-3 sm:px-6">
@@ -82,7 +82,7 @@ export function ProfileTab({ summary, summaryError, reload }: { summary: Account
           </div>
           <div className="flex items-start gap-3">
             <ShieldCheckIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
-            <div className="min-w-0"><p className={RULE}>Sign-in</p><p className="mt-1 text-sm font-semibold">{account?.mode === "clerk" ? "Password-first" : "Local account"}</p><p className="text-muted-foreground mt-0.5 text-xs">{account?.mode === "clerk" ? "Email verification stays available for recovery" : "No hosted identity"}</p></div>
+            <div className="min-w-0"><p className={RULE}>Sign-in</p><p className="mt-1 text-sm font-semibold">{account?.mode === "session" ? "Password-first" : "Local account"}</p><p className="text-muted-foreground mt-0.5 text-xs">{account?.mode === "session" ? "Email verification stays available for recovery" : "No hosted identity"}</p></div>
           </div>
           <div className="flex items-start gap-3">
             <DatabaseIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />

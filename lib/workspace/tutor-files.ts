@@ -1,5 +1,6 @@
 const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs'
 const PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs'
+const MIN_VISUAL_PIXELS = 512
 export const MAX_TUTOR_FILE_BYTES = 12 * 1024 * 1024
 
 type PdfPage = {
@@ -46,6 +47,18 @@ async function shrinkImage(file: File) {
   return canvas.toDataURL('image/jpeg', 0.78)
 }
 
+export function hasVisiblePixels(data: Uint8ClampedArray) {
+  let visible = 0
+  for (let index = 0; index < data.length; index += 4) {
+    if (data[index + 3] > 0 && (data[index] < 250 || data[index + 1] < 250 || data[index + 2] < 250)) {
+      visible += 1
+      // Ignore blank separator leaves and isolated printed page numbers.
+      if (visible >= MIN_VISUAL_PIXELS) return true
+    }
+  }
+  return false
+}
+
 async function extractPdf(file: File) {
   const library = await pdfLibrary()
   const pdf = await library.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
@@ -67,7 +80,8 @@ async function extractPdf(file: File) {
         context.fillStyle = '#fff'
         context.fillRect(0, 0, canvas.width, canvas.height)
         await page.render({ canvasContext: context, viewport }).promise
-        images.push(canvas.toDataURL('image/jpeg', 0.75))
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+        if (hasVisiblePixels(pixels)) images.push(canvas.toDataURL('image/jpeg', 0.75))
       }
     }
   }

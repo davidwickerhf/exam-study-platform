@@ -294,3 +294,19 @@ test('legacy announcement publication metadata is not treated as a due date',()=
   assert.ok(row.content.includes('Scheduled publication 2026-08-31T09:00:00Z'))
   assert.ok(row.content.includes('Deadline today at 23:59.'))
 })
+
+test('paged archive reduction matches a single pass across page boundaries', async () => {
+  const {obligationSourceRows}=await import('../lib/priority-evidence.mjs')
+  const rows=[
+    {chunkId:1,assetId:'zip',filename:'lab.zip',content:'File: lab/README.md\nLab attendance is mandatory.'},
+    {chunkId:2,assetId:'zip',filename:'lab.zip',content:'Submit the report by 2026-10-01.\nFile: lab/Drivers/hal.c\n#include "hal.h"'},
+    {chunkId:3,assetId:'zip',filename:'lab.zip',content:'int required_class(void) { return 1; }\nFile: lab/notes.txt\nBring your board.'},
+    {chunkId:4,assetId:'pdf',filename:'syllabus.pdf',sourceType:'syllabus',content:'Attendance is required.'}
+  ]
+  const whole=priorityEvidenceCandidates(rows,Infinity)
+  const members=new Map()
+  const paged=[...obligationSourceRows(rows.slice(0,1),members),...obligationSourceRows(rows.slice(1,3),members),...obligationSourceRows(rows.slice(3),members)]
+  assert.deepEqual(priorityEvidenceCandidates(paged,Infinity),whole)
+  assert.match(paged.find(row=>row.chunkId===2).content,/Submit the report/)
+  assert.ok(!paged.some(row=>/hal\.h|required_class/.test(row.content)))
+})

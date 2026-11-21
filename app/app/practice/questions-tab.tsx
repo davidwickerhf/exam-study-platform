@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trackEvent } from "@/lib/analytics";
 import {
   type PracticePayload,
   type PracticeQuestion,
@@ -124,6 +125,7 @@ function QuestionCard({
         ),
       });
       setResult(data);
+      trackEvent("practice-answer-graded", { source: question.study ? "study-guide" : "question", correct: answerWasCorrect(data.score) });
       onEvent({
         key: questionKey(question),
         courseId: question.courseId,

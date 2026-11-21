@@ -83,7 +83,7 @@ Course structure for the bundled seed corpus lives in `data/study-state.template
 under each course's `content/<knowledgeBase>/` directory. These local files are
 the immutable authoring sources and backup; hosted requests read the active,
 versioned editorial release from Neon. User notes/progress remain in separate
-Clerk-keyed tables and are never part of an editorial release.
+user-keyed tables and are never part of an editorial release.
 
 Use this path for repository-authored seed content and disaster recovery:
 
@@ -135,7 +135,7 @@ digest.
 
 The PDF viewer route (`GET /api/pdf/:courseId/:paperId[/solutions]`) is a
 public, read-only editorial route. This is intentional: native browser PDF
-iframes can remain open beyond a Clerk token lifetime, and the route contains
+iframes can remain open beyond a session lifetime, and the route contains
 no personal data. Every personal and generative endpoint remains authenticated.
 
 ## Retrieval and AI integration
@@ -200,3 +200,14 @@ materials, uploaded notes and optional editorial guides without an editorial req
 Source selection, edition handling, refreshes, explicit sharing, spending reservations
 and validation are documented in [Student study versions](design/student-study-versions.md).
 The editorial workflow above remains the route for reviewed institutional releases.
+
+A student can also opt into planning a whole course at once (`courseBundle:true`)
+instead of one guide per generation: sources are mapped once, one curriculum is
+planned for the course, and the plan is split into 2–12 guides that publish together
+inside a single fenced parent commit. Guides produced this way are read-only managed
+guides owned by that course run; forking makes an independent editable copy. See
+[Student study versions](design/student-study-versions.md#whole-course-bundles-and-managed-guides)
+for the contract and known limits, and
+[Guide generation economics](GUIDE_GENERATION_ECONOMICS.md) /
+[Full-course pilots](FULL_COURSE_PILOTS.md) for cost/routing and how course-scale
+mapping is being exercised. This is opt-in and not part of automatic Canvas onboarding.

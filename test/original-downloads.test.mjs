@@ -107,6 +107,15 @@ test('byte ranges reject malformed and unsafe values without confusing suffixes 
   for(const range of ['bytes=-','bytes=-0','bytes=10-','bytes=5-3','bytes=9007199254740992-','bytes=0-1,3-4'])assert.throws(()=>originalByteRange(10,range),{status:416})
 })
 
+test('shared HTML originals download under a sandbox instead of executing in the app origin', async () => {
+  const req = { method: 'HEAD', headers: {} }
+  let headers
+  const res = { writeHead(_status, value) { headers = value }, end() {} }
+  await sendCorpusAsset(req, res, { id: 'html-a', filename: 'assignment.html', mediaType: 'text/html; charset=utf-8', byteSize: 0, sha256: 'abc' }, { sandboxActiveContent: true })
+  assert.match(headers['Content-Disposition'], /^attachment;/)
+  assert.equal(headers['Content-Security-Policy'], "sandbox; default-src 'none'")
+})
+
 
 test('real API key and OAuth grant revocation invalidate their file capabilities',async t=>{
   const api=fixture();api.auth.userId=`download-test-${randomUUID()}`

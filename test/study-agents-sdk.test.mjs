@@ -57,3 +57,49 @@ test('legacy models do not receive unsupported explicit cache options',async()=>
  })
  assert.equal(request.prompt_cache_options,undefined)
 })
+
+
+test('a non-string cause code is classified without throwing',async()=>{
+ const {providerErrorCode}=await import('../lib/study-provider-errors.mjs')
+ // DOMException carries a numeric legacy `code`; wrapped transport errors can
+ // carry anything at all. None of these may reach a string method.
+ for(const code of [23,20,Symbol('provider_unavailable'),{startsWith:null},['provider_x'],0,null,undefined])
+  assert.equal(providerErrorCode(Object.assign(new Error('socket'),{code})),null,`code ${String(code)} must not classify`)
+ assert.equal(providerErrorCode(undefined),null)
+ assert.equal(providerErrorCode({}),null)
+ assert.equal(providerErrorCode({code:'provider_credits'}),'provider_credits')
+})
+
+test('the original provider failure survives classification with its request id',async()=>{
+ await fixture((req,res)=>{res.writeHead(503,{'content-type':'application/json','x-request-id':'req_abc123'});res.end('{"error":{"message":"private provider details"}}')},async options=>{
+  await assert.rejects(runStudyAgentsSdk('test',options),error=>
+   error.name!=='TypeError' && error.code==='provider_unavailable' && error.providerRequestId==='req_abc123' && !error.message.includes('private'))
+ })
+})
+
+test('an aborted request surfaces the abort itself, never a diagnostic TypeError',async()=>{
+ const controller=new AbortController()
+ await fixture((req,res)=>{controller.abort()},async options=>{
+  // The abort reason is a DOMException whose `code` is the number 20.
+  await assert.rejects(runStudyAgentsSdk('test',{...options,signal:controller.signal}),
+   error=>error.name!=='TypeError' && !/startsWith/.test(String(error.message)))
+ })
+})
+
+test('a stalled call is abandoned at its deadline and settles as unknown usage',async()=>{
+ let calls=0
+ await fixture((req,res)=>{calls++/* never responds */},async options=>{
+  const started=Date.now()
+  await assert.rejects(runStudyAgentsSdk('test',{...options,callDeadlineMs:200}),error=>
+   error.code==='provider_timeout' && error.name==='TimeoutError' && error.retryable===true
+   // No usage means the full reservation is retained: an abandoned call is
+   // never settled as zero cost.
+   && error.usage===undefined && /allowance/.test(error.message))
+  assert.ok(Date.now()-started<15000,'the deadline must fire well before the provider timeout')
+ })
+ assert.equal(calls,1,'a timed-out call is never silently re-sent inside one checkpoint')
+})
+
+test('the per-call deadline must be a finite positive duration',async()=>{
+ await assert.rejects(runStudyAgentsSdk('test',{apiKey:'k',model:'gpt-6-astra',maxOutputTokens:10,callDeadlineMs:0}),/finite per-call deadline/)
+})

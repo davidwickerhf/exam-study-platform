@@ -4,7 +4,7 @@ import { CourseGuideAutomation } from './course-guide-automation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowRightIcon, PlusIcon, BookOpenIcon, TargetIcon, FolderOpenIcon, CheckIcon } from 'lucide-react'
+import { ArrowRightIcon, PlusIcon, BookOpenIcon, TargetIcon, FolderOpenIcon, CheckIcon, LibraryIcon } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import type { CourseTab } from '@/lib/workspace/course-detail.mjs'
@@ -75,9 +75,10 @@ export function CourseStudyVersions({
           const next = chapters.find(c=>!c.read) || chapters[0]
           const url = `/app/study/${guide.id}`
           return <article key={guide.id} className="study-library-guide">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><BookOpenIcon className="size-4"/><span>{guide.course.academicYear}</span><span className="ml-auto">{chapters.length} chapters</span></div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground"><BookOpenIcon className="size-4"/><span>{guide.course.academicYear}</span><span className="ml-auto">{guide.bundle ? `Whole course · ${guide.bundle.guides.length} ${guide.bundle.guides.length === 1 ? 'guide' : 'guides'} planned` : `${chapters.length} chapters`}</span></div>
             <h3 className="mt-4 text-lg font-semibold leading-6 text-balance"><Link href={url}>{guide.title}</Link></h3>
-            {chapters.length ? <>
+            {guide.managed && <Link href={`/app/study/${guide.managed.parentVersionId}`} className="mt-1 inline-flex items-center gap-1.5 text-xs text-primary hover:underline"><LibraryIcon className="size-3"/>Part of course run</Link>}
+            {guide.bundle ? <div className="mt-5"><p className="mb-4 text-sm text-muted-foreground">{guide.bundle.complete ? 'Guides publish independently as each one finishes.' : 'Planning the course material into separate guides.'}</p><Link href={url} className={buttonVariants({size:'sm',className:'w-full justify-between'})}>View course run<ArrowRightIcon/></Link></div> : chapters.length ? <>
               <div className="my-5"><div className="mb-2 flex justify-between text-xs text-muted-foreground"><span>{read === chapters.length ? 'All chapters marked read' : read ? 'Keep going' : 'Ready when you are'}</span><span>{read} / {chapters.length} read</span></div><progress className="study-reader-progress" aria-label={`Reading progress for ${guide.title}`} value={read} max={chapters.length}/></div>
               <Link className={buttonVariants({size:'sm',className:'w-full justify-between'})} href={`${url}?chapter=${encodeURIComponent(next.id)}`}>{read === chapters.length ? 'Review guide' : read ? 'Continue studying' : 'Start studying'}<ArrowRightIcon/></Link>
               <details className="mt-4 border-t pt-3"><summary className="cursor-pointer text-xs font-medium">Explore chapters</summary><ol className="mt-2 divide-y">{chapters.map((chapter,index)=><li key={chapter.id}><Link className="flex items-start gap-3 py-3 text-sm hover:text-primary" href={`${url}?chapter=${encodeURIComponent(chapter.id)}`}><span className="text-xs tabular-nums text-muted-foreground">{chapter.read ? <CheckIcon className="size-3.5" aria-label="Read"/> : String(index+1).padStart(2,'0')}</span><span>{chapter.title}</span></Link></li>)}</ol></details>

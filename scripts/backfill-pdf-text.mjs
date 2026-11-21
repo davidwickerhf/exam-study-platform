@@ -5,11 +5,11 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { neon } from '@neondatabase/serverless'
+import { createSql } from '../lib/pg.mjs'
 
 const exec = promisify(execFile)
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required')
-const sql = neon(process.env.DATABASE_URL)
+const sql = createSql(process.env.DATABASE_URL, { queryTimeoutMs: 0 })
 
 async function plainExtract(path) {
   const { stdout } = await exec('pdftotext', ['-layout', '-enc', 'UTF-8', path, '-'], { maxBuffer: 64 * 1024 * 1024 })
