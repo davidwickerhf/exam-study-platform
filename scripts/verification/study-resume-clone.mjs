@@ -5,19 +5,17 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { withRequestContext } from '../../lib/request-context.mjs'
 import { ownStudyVersion, studyRevision } from '../../lib/study-version-store.mjs'
 import { nextLocalStudy, submitLocalStudy } from '../../lib/study-local-generation.mjs'
-import {neonCurlFetch} from './neon-curl-fetch.mjs'
-import { neonConfig, neon } from '@neondatabase/serverless'
+import { createSql } from '../../lib/pg.mjs'
 import { writeDocument } from '../../lib/user-store.mjs'
 import {teachingContent} from '../../lib/study-chapter-repair.mjs'
 import { digest } from '../../lib/study-version-content.mjs'
 if(!process.env.RESUME_CLONE_HOST || new URL(process.env.DATABASE_URL).hostname!==process.env.RESUME_CLONE_HOST)throw Error('Select the explicit isolated clone host.')
-if(process.env.RESUME_CURL_TRANSPORT==='1')neonConfig.fetchFunction=neonCurlFetch
 const manifest=JSON.parse(await readFile(process.env.RESUME_MANIFEST,'utf8'))
 const report=[]
 await withRequestContext({userId:process.env.RESUME_USER_ID,mode:'local'},async()=>{
   if(process.argv.includes('--seed-from-primary-read-only')) {
     if(!process.env.RESUME_PRIMARY_READ_URL || new URL(process.env.RESUME_PRIMARY_READ_URL).hostname===process.env.RESUME_CLONE_HOST)throw Error('Source must differ from the explicit clone.')
-    const primaryRead=neon(process.env.RESUME_PRIMARY_READ_URL)
+    const primaryRead=createSql(process.env.RESUME_PRIMARY_READ_URL)
     for(const guide of manifest.guides) {
       const rows=await primaryRead`SELECT value FROM user_documents WHERE user_id=${process.env.RESUME_USER_ID} AND namespace='study-versions' AND document_key=${guide.id}`
       assert.equal(rows.length,1)

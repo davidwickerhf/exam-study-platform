@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
 import { Archivo, Archivo_Narrow } from 'next/font/google'
+import { headers } from 'next/headers'
+import Script from 'next/script'
 import { connection } from 'next/server'
 import type { ReactNode } from 'react'
 import './tailwind.css'
 import './public.css'
 import './next.css'
 import { cn } from "@/lib/utils";
+import { UMAMI_DOMAINS, UMAMI_SCRIPT_URL, UMAMI_WEBSITE_ID } from "@/lib/analytics";
 
 
 
@@ -68,6 +71,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   // The strict CSP uses a fresh request nonce, so every document must be
   // rendered against the request headers rather than emitted as static HTML.
   await connection()
+  // The proxy (and server.mjs locally) puts the per-request CSP nonce here.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
 
   return (
     <html lang="en" className={cn(archivo.variable, archivoNarrow.variable, "font-sans")} suppressHydrationWarning>
@@ -75,6 +80,18 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {/* eslint-disable-next-line react/no-danger */}
         <div dangerouslySetInnerHTML={{ __html: DIRECTION_CONTRACT }} />
         {children}
+        {/* Cookieless Umami. Query strings and hashes are dropped because
+            they can carry OAuth state, redirect targets and conversation ids;
+            data-domains keeps localhost, previews and staging out. */}
+        <Script
+          src={UMAMI_SCRIPT_URL}
+          strategy="afterInteractive"
+          nonce={nonce}
+          data-website-id={UMAMI_WEBSITE_ID}
+          data-domains={UMAMI_DOMAINS}
+          data-exclude-search="true"
+          data-exclude-hash="true"
+        />
       </body>
     </html>
   )

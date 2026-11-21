@@ -66,6 +66,7 @@ import {
   ledgerStatus,
   periodLabel,
   rowDestination,
+  scheduledPeriod,
   sortLedger,
 } from "@/lib/workspace/course-ledger.mjs";
 import { localIsoDate } from "@/lib/workspace/home.mjs";
@@ -570,7 +571,7 @@ export default function CoursesPage() {
                 </span>
               )}
               <small className="text-muted-foreground text-xs lg:hidden">
-                {periodLabel(entry.academic?.period || entry.corpus?.period) ||
+                {periodLabel(scheduledPeriod(entry.academic) || entry.corpus?.period) ||
                   "Unplaced"}{" "}
                 · {material.detail}
               </small>
@@ -623,7 +624,7 @@ export default function CoursesPage() {
                 </span>
                 <small className="text-muted-foreground text-xs">
                   {periodLabel(
-                    entry.academic?.period || entry.corpus?.period,
+                    scheduledPeriod(entry.academic) || entry.corpus?.period,
                   ) ||
                     exam.type ||
                     "Scheduled"}
@@ -637,7 +638,7 @@ export default function CoursesPage() {
                 <span className="text-sm font-medium">No date</span>
                 <small className="text-muted-foreground text-xs">
                   {periodLabel(
-                    entry.academic?.period || entry.corpus?.period,
+                    scheduledPeriod(entry.academic) || entry.corpus?.period,
                   ) || "Unplaced"}
                 </small>
               </>

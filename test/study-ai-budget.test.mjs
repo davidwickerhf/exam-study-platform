@@ -325,3 +325,17 @@ test('guide defaults use GPT-6 Sol without rerouting assessments or changing an 
     }finally{await deleteAllDocuments()}
   })
 })
+
+test('allowances that reset on their own report when they reset; a job spending cap does not', () => {
+  const now = Date.UTC(2026, 8, 6, 22)
+  const a = reserveStudyLedger(null, { ...input, now }, limits)
+  const b = reserveStudyLedger(settleStudyLedger(a.ledger, a.reservation.id, null), { ...input, now, chapterKey: 'two' }, limits)
+  const spent = settleStudyLedger(b.ledger, b.reservation.id, null)
+  const daily = (() => { try { reserveStudyLedger(spent, { ...input, now, chapterKey: 'three' }, limits) } catch (error) { return error } })()
+  assert.match(daily.message, /allowance is used/)
+  assert.equal(daily.resetsAt, Date.UTC(2026, 8, 7))
+  assert.equal(daily.retryAfter, 2 * 3600)
+  const capped = (() => { try { reserveStudyLedger(null, { ...input, now, maxJobUsd: 0.1 }, limits) } catch (error) { return error } })()
+  assert.match(capped.message, /spending cap/)
+  assert.equal(capped.resetsAt, null)
+})

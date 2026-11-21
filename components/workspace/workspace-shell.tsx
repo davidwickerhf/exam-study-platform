@@ -52,7 +52,7 @@ import { WorkspaceTour } from '@/components/workspace/dashboard-tour'
 import { WorkspaceSearch } from '@/components/workspace/workspace-search'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useClerk, useUser } from '@clerk/nextjs'
+import { authClient, signOutTo } from '@/lib/auth-client'
 import { useWorkspaceData } from '@/hooks/use-workspace-data'
 import { useWorkspaceSession } from '@/components/workspace/require-auth'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -156,20 +156,19 @@ function AccountMenu({ identity, programmeIndex, onSignOut }: { identity: Accoun
   )
 }
 
-/** Clerk's hooks throw outside a ClerkProvider, so they live behind this. */
-function ClerkAccountMenu({ programmeIndex }: { programmeIndex: ProgrammeIndex | null }) {
-  const clerk = useClerk()
-  const { user } = useUser()
+/** Hosted sign-in: the Better Auth session names the account. */
+function HostedAccountMenu({ programmeIndex }: { programmeIndex: ProgrammeIndex | null }) {
+  const { data } = authClient.useSession()
   return (
     <AccountMenu
-      identity={{ name: user?.fullName || user?.firstName || 'Student', email: user?.primaryEmailAddress?.emailAddress || null }}
+      identity={{ name: data?.user.name || 'Student', email: data?.user.email || null }}
       programmeIndex={programmeIndex}
-      onSignOut={() => clerk.signOut({ redirectUrl: '/sign-in' })}
+      onSignOut={() => signOutTo()}
     />
   )
 }
 
-/** Local development: the session, not Clerk, names the account. */
+/** Local development: the workspace session names the account. */
 function LocalAccountMenu({ programmeIndex, email }: { programmeIndex: ProgrammeIndex | null; email: string | null }) {
   return (
     <AccountMenu
@@ -205,8 +204,8 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const prefetchIntent = (href: string) => { cancelPrefetch(); prefetchTimer.current = setTimeout(() => router.prefetch(href), 120) }
   const isMobile = useIsMobile()
   // The gate already read /api/auth/session; asking again would double every
-  // workspace load, and Clerk is simply absent in the local modes.
-  const { clerkEnabled, session } = useWorkspaceSession()
+  // workspace load, and hosted sign-in is simply absent in the local modes.
+  const { hostedAuth, session } = useWorkspaceSession()
   const [sidebarWidth, setSidebarWidth] = useState(248)
   const { data: academic } = useWorkspaceData<{ index: ProgrammeIndex }>('/api/academics')
   const programmeIndex = academic?.index ?? null
@@ -291,8 +290,8 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <SidebarFooter className="border-t border-sidebar-border p-0 group-data-[collapsible=icon]:p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              {clerkEnabled
-                ? <ClerkAccountMenu programmeIndex={programmeIndex} />
+              {hostedAuth
+                ? <HostedAccountMenu programmeIndex={programmeIndex} />
                 : <LocalAccountMenu programmeIndex={programmeIndex} email={session?.email ?? null} />}
             </SidebarMenuItem>
           </SidebarMenu>

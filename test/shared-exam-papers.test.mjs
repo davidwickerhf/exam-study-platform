@@ -24,11 +24,11 @@ test('a rights reviewer can explicitly classify a cryptically named PDF, but not
 
 test('original-file access requires an eligible signed-in browser identity', () => {
   assert.equal(canOpenSharedExam(null), false)
-  assert.equal(canOpenSharedExam({ authenticated: false, mode: 'clerk' }), false)
+  assert.equal(canOpenSharedExam({ authenticated: false, mode: 'session' }), false)
   assert.equal(canOpenSharedExam({ authenticated: true, mode: 'api-key', email: 'student@student.maastrichtuniversity.nl' }), false)
-  assert.equal(canOpenSharedExam({ authenticated: true, mode: 'clerk', email: 'student@student.maastrichtuniversity.nl' }), true)
-  assert.equal(canOpenSharedExam({ authenticated: true, mode: 'clerk', email: 'student@other.example' }), false)
-  assert.equal(canOpenSharedExam({ authenticated: true, mode: 'clerk', email: 'reviewer@other.example', admin: true }), true)
+  assert.equal(canOpenSharedExam({ authenticated: true, mode: 'session', email: 'student@student.maastrichtuniversity.nl' }), true)
+  assert.equal(canOpenSharedExam({ authenticated: true, mode: 'session', email: 'student@other.example' }), false)
+  assert.equal(canOpenSharedExam({ authenticated: true, mode: 'session', email: 'reviewer@other.example', admin: true }), true)
   assert.equal(canOpenSharedExam({ authenticated: true, mode: 'local' }, { NODE_ENV: 'production' }), false)
 })
 

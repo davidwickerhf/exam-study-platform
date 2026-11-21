@@ -78,6 +78,7 @@ import { FinishSetup } from './finish-setup'
 import { json, type ElectiveGroup, type Message, type ProgrammeOption, type View } from './view'
 import { BrandMark } from '@/components/brand/brand-mark'
 import { useWorkspaceSession } from '@/components/workspace/require-auth'
+import { trackEvent } from '@/lib/analytics'
 
 const CANVAS_SETTINGS = 'https://canvas.maastrichtuniversity.nl/profile/settings'
 const TIMETABLE_PORTAL = 'https://timetable.maastrichtuniversity.nl/m/#loggedin'
@@ -1197,6 +1198,7 @@ function UnifiedSetup({
     completionAttempted.current = true
     setLeavingSetup(true)
     void json<View>('/api/onboarding/finish', { method: 'POST' }).then((fresh) => {
+      trackEvent('setup-finished', { mode: 'automatic' })
       onApplied(fresh)
       router.replace('/app')
       router.refresh()
@@ -1238,6 +1240,7 @@ function UnifiedSetup({
     setDeferError(null)
     try {
       const fresh = await json<View>('/api/onboarding/finish', { method: 'POST', body: JSON.stringify({ skip: true }) })
+      trackEvent('setup-finished', { mode: 'skipped' })
       onApplied(fresh)
       router.replace('/app')
       router.refresh()

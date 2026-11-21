@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production WICKER_SERVICE=api CANVAS_CORPUS_WORKER=off
 RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr unzip python3 python3-pip libreoffice-impress libreoffice-writer fonts-liberation fonts-dejavu-core && rm -rf /var/lib/apt/lists/*

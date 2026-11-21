@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { coursePapers, paperPdfHref, pastExamGradeRequest, type Paper } from '@/lib/workspace/past-exam.mjs'
+import { answerWasCorrect } from '@/lib/workspace/practice.mjs'
+import { trackEvent } from '@/lib/analytics'
 
 type Question = { id: string; label?: string; text: string; sharedContext?: string; marks?: number; page?: number; modelAnswer?: string }
 type Payload = { questions: Question[] }
@@ -24,7 +26,7 @@ export default function PastExamPage() {
   const papers = coursePapers(course); const paper = papers.find((item) => item.id === examId); const question = payload?.questions[index]
   const paperAssetHref = (_courseId: string, _examId: string, path: string) => paperPdfHref(courseId, examId, path === paper?.solutionsPdf)
   const parse = async () => { setBusy(true); setError(null); try { setPayload(await api(`/api/practice-exam/${encodeURIComponent(courseId)}/${encodeURIComponent(examId)}/parse`, { method: 'POST', body: '{}' })) } catch (cause) { setError((cause as Error).message) } finally { setBusy(false) } }
-  const grade = async () => { if (!question) return; setBusy(true); try { const result = await api<{ correction: string; score: number | null }>(`/api/practice-exam/${encodeURIComponent(courseId)}/${encodeURIComponent(examId)}/grade`, { method: 'POST', body: JSON.stringify(pastExamGradeRequest(question.id, attempts[question.id])) }); setResults((current) => ({ ...current, [question.id]: result })) } catch (cause) { setError((cause as Error).message) } finally { setBusy(false) } }
+  const grade = async () => { if (!question) return; setBusy(true); try { const result = await api<{ correction: string; score: number | null }>(`/api/practice-exam/${encodeURIComponent(courseId)}/${encodeURIComponent(examId)}/grade`, { method: 'POST', body: JSON.stringify(pastExamGradeRequest(question.id, attempts[question.id])) }); setResults((current) => ({ ...current, [question.id]: result })); trackEvent('practice-answer-graded', { source: 'past-paper', correct: answerWasCorrect(result.score) }) } catch (cause) { setError((cause as Error).message) } finally { setBusy(false) } }
   const hint = async () => { if (!question) return; setBusy(true); try { const result = await api<{ guidance: string }>(`/api/practice-exam/${encodeURIComponent(courseId)}/${encodeURIComponent(examId)}/guidance/${encodeURIComponent(question.id)}`, { method: 'POST' }); setGuidance((current) => ({ ...current, [question.id]: result.guidance })) } catch (cause) { setError((cause as Error).message) } finally { setBusy(false) } }
   if (!course && !error) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>
   if (!course) return <Empty><EmptyHeader><EmptyTitle>Past papers could not be read</EmptyTitle><EmptyDescription>{error}</EmptyDescription></EmptyHeader></Empty>

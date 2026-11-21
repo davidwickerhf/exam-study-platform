@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { trackEvent } from "@/lib/analytics";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBytes } from "@/lib/workspace/account.mjs";
 import { localIsoDate } from "@/lib/workspace/home.mjs";
@@ -95,6 +96,7 @@ export default function CourseRequestPage() {
       const payload = requestPayload({ course, academicYear, period, categories: selected, urls, notes, consent, license, files });
       const result = await json("/api/course-content-requests", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       for (let index = 0; index < files.length; index += 1) await uploadFile(result.request.id, files[index], (value) => setProgress(`Uploading ${index + 1} of ${files.length} · ${value}`));
+      trackEvent("course-requested", { files: files.length, categories: selected.length, shared: consent });
       await loadRequests(course.id); setFiles([]); setSelected([]); setUrls(""); setNotes(""); setConsent(false); setLicense("own-notes"); setNotice(`Request received with ${files.length} source file${files.length === 1 ? "" : "s"}.`); window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (cause) { setError((cause as Error).message); } finally { setBusy(false); setProgress(""); }
   };
