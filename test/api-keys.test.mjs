@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { authenticateApiKey, createApiKey, listApiKeys, revokeApiKey } from '../lib/api-keys.mjs'
-import { authorise, isClerkAdministrator } from '../lib/auth.mjs'
+import { authorise, isRoleAdministrator } from '../lib/auth.mjs'
 import { deletePersonalData } from '../lib/account-data.mjs'
 import { withRequestContext } from '../lib/request-context.mjs'
 
@@ -38,12 +38,13 @@ test('authorise enforces scopes for key requests and admin routes', () => {
   assert.match(authorise(readOnly, { method: 'POST', pathname: '/api/sr/review' }), /read-only/)
   assert.match(authorise({ mode: 'api-key', scopes: ['read', 'write'], admin: false }, { method: 'GET', pathname: '/api/admin/courses' }), /Administrator/)
   assert.match(authorise({ mode: 'api-key', scopes: ['read', 'write'], admin: false }, { method: 'GET', pathname: '/api/account/api-keys' }), /Account page/)
-  assert.equal(authorise({ mode: 'clerk', admin: true }, { method: 'PUT', pathname: '/api/admin/courses/x' }), null)
-  assert.equal(authorise({ mode: 'clerk', admin: false }, { method: 'POST', pathname: '/api/sr/review' }), null)
+  assert.equal(authorise({ mode: 'session', admin: true }, { method: 'PUT', pathname: '/api/admin/courses/x' }), null)
+  assert.equal(authorise({ mode: 'session', admin: false }, { method: 'POST', pathname: '/api/sr/review' }), null)
 })
 
-test('Clerk private metadata grants only the explicit global administrator role', () => {
-  assert.equal(isClerkAdministrator({ wickerStudyRole: 'admin' }), true)
-  assert.equal(isClerkAdministrator({ wickerStudyRole: 'member' }), false)
-  assert.equal(isClerkAdministrator({ role: 'admin' }), false)
+test('the stored user role grants only the explicit global administrator role', () => {
+  assert.equal(isRoleAdministrator('admin'), true)
+  assert.equal(isRoleAdministrator('member'), false)
+  assert.equal(isRoleAdministrator(null), false)
+  assert.equal(isRoleAdministrator(undefined), false)
 })

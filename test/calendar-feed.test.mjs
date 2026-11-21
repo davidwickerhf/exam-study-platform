@@ -97,6 +97,23 @@ test('current courses combine the active study year, unresolved retakes, and tim
   assert.equal(result.find((course) => course.code === 'BCS3210').outsidePlan, true)
 })
 
+test('an elective chosen from an older curriculum is current in the period of this year\'s attempt, not the old placement', () => {
+  // BCS3210 was a Period 2 elective in the 2023–2024 cohort curriculum and moved
+  // to Period 1 in 2026–2027; the course row kept the old placement.
+  const workspace = normalizeAcademicWorkspace({
+    programmeTemplate: { programmeId: 'cs', versionId: '2023-2024', currentStudyYear: 'Year 3', selectedChoices: {} },
+    courses: [
+      { id: 'block', code: 'BCS3210', name: 'Block Chains', yearLevel: 'Year 3', period: 'Period 2', programmeRequirement: 'elective', attempts: [{ status: 'upcoming', academicYear: '2026-2027', period: 'Period 1' }] },
+      { id: 'crypto', code: 'BCS3230', name: 'Cryptography', yearLevel: 'Year 3', period: 'Period 2', programmeRequirement: 'elective', attempts: [{ status: 'upcoming', academicYear: '2026-2027', period: 'Period 2' }] }
+    ]
+  })
+  const codes = (period) => resolveCurrentCourses(workspace, { period, academicYear: '2026-2027' }).map((course) => course.code)
+  assert.deepEqual(codes('Period 2'), ['BCS3230'])
+  assert.deepEqual(codes('Period 1'), ['BCS3210'])
+  const evidence = calendarPeriodCourseEvidence(workspace, [{ link: { id: 'feed', label: 'Timetable' }, events: [{ title: 'BCS3210 Lecture', date: '2026-09-02', notes: '' }] }], { start: '2026-08-31', end: '2026-10-23', period: 'Period 1' })
+  assert.equal(evidence[0].active, true)
+})
+
 test('teaching appointments remain current-course evidence before they are copied into the academic record', () => {
   const calendar = [{ title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', kind: 'period', period: 1, academicYear: '2026-2027' }]
   const workspace = normalizeAcademicWorkspace({ profile: {}, courses: [
@@ -214,4 +231,16 @@ test('university Type labels connect syllabus attendance to course-only event ti
   ]}]})
   assert.equal(result.events.find(e=>e.activity==='Tutorial').attendanceRequired,true)
   assert.equal(result.events.find(e=>e.activity==='Lecture').attendanceRequired,null)
+})
+
+test('the gap between a period\'s last teaching day and its exam week stays in that period', () => {
+  const calendar = [
+    { title: 'Period 1', date: '2026-08-31', endDate: '2026-10-09', kind: 'period', period: 1, academicYear: '2026-2027' },
+    { title: 'Exam week · Period 1', date: '2026-10-12', endDate: '2026-10-16', kind: 'exam-week', period: 1, academicYear: '2026-2027' },
+    { title: 'Period 2', date: '2026-10-26', endDate: '2026-12-04', kind: 'period', period: 2, academicYear: '2026-2027' }
+  ]
+  const weekend = resolveAcademicTimeContext(calendar, { date: '2026-10-10' })
+  assert.deepEqual([weekend.period, weekend.phase, weekend.label, weekend.daysUntil], ['Period 1', 'upcoming', 'Exam week · Period 1', 2])
+  const afterExams = resolveAcademicTimeContext(calendar, { date: '2026-10-20' })
+  assert.deepEqual([afterExams.period, afterExams.phase, afterExams.label], ['Period 2', 'upcoming', 'Period 2'])
 })

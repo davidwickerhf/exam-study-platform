@@ -219,13 +219,14 @@ test('MCP scope correction persists in both the saved plan and prepared chapter'
     version.draft.repair={topicId:'addition',phase:'factual',chapter:structuredClone(chapter)}
     version.draft.chapters=[]
     version.draft.stage='chapters'
-    version.draft.issues=[{topicId:'addition',severity:'error',itemKey:'scope',detail:'Correct the false claim that assessment rules were absent.'}]
+    version.draft.issues=[{topicId:'addition',severity:'error',itemKey:'scope',detail:'objective-1 and the gaps: correct the false claim that assessment rules were absent.'}]
     version.draft.automaticRepairs={addition:1}
   })
   const repair=await nextLocalStudy(id)
   assert.match(repair.request.prompt,/REPAIR OBJECTIVE SCOPE/)
   const plan=(await ownStudyVersion(id)).draft.teachingPlans.addition
-  const response={learningGoals:['Explain supported addition.'],caveats:['No explicit exam-topic exclusions.'],scope:{objectives:Object.fromEntries(plan.objectives.map(o=>[o.id,{...o,goal:o.id==='objective-1'?'Explain supported addition.':o.goal}])),gaps:['No explicit exam-topic exclusions.'],exclusions:[]}}
+  // Only the objective the finding names is unlocked (narrow scope patch).
+  const response={learningGoals:['Explain supported addition.'],caveats:['No explicit exam-topic exclusions.'],scope:{objectives:Object.fromEntries(plan.objectives.filter(o=>o.id==='objective-1').map(o=>[o.id,{...o,goal:'Explain supported addition.'}])),gaps:['No explicit exam-topic exclusions.'],exclusions:[]}}
   await answer(id,repair.request,response)
   assert.equal((await answer(id,repair.request,response)).duplicate,true)
   const draft=(await ownStudyVersion(id)).draft

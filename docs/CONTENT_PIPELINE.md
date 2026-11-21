@@ -83,7 +83,7 @@ Course structure for the bundled seed corpus lives in `data/study-state.template
 under each course's `content/<knowledgeBase>/` directory. These local files are
 the immutable authoring sources and backup; hosted requests read the active,
 versioned editorial release from Neon. User notes/progress remain in separate
-Clerk-keyed tables and are never part of an editorial release.
+user-keyed tables and are never part of an editorial release.
 
 Use this path for repository-authored seed content and disaster recovery:
 
@@ -135,7 +135,7 @@ digest.
 
 The PDF viewer route (`GET /api/pdf/:courseId/:paperId[/solutions]`) is a
 public, read-only editorial route. This is intentional: native browser PDF
-iframes can remain open beyond a Clerk token lifetime, and the route contains
+iframes can remain open beyond a session lifetime, and the route contains
 no personal data. Every personal and generative endpoint remains authenticated.
 
 ## Retrieval and AI integration

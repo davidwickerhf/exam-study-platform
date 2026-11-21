@@ -7,7 +7,7 @@ export type AccountIdentity = {
   lastName?: string | null
   createdAt: string | null
   admin?: boolean
-  mode: 'clerk' | 'local' | 'api-key'
+  mode: 'session' | 'local' | 'api-key'
   storage: string
 }
 

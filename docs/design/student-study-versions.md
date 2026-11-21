@@ -44,7 +44,7 @@ and permitted source evidence into the existing review inbox.
 ## Cost and quality contract
 
 Development and Vercel preview environments have no application AI usage caps.
-Production accounts whose server-resolved, verified primary Clerk email is
+Production accounts whose server-resolved, verified account email is
 `davidwickerhf@gmail.com` or `d.wicker@student.maastrichtuniversity.nl` are also
 uncapped. This applies to study generation, private quality evaluations, background
 priority scans, tutor/exercise/import quotas and the AI-specific request bucket.

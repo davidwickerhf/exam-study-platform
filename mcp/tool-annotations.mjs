@@ -9,7 +9,7 @@ list_questions get_practice_queue get_progress list_flashcards list_due_cards
 list_mistakes list_mock_sessions get_mock_session get_academic_plan get_planning_context
 list_known_programmes get_calendar get_activity get_account_summary get_study_briefing
 canvas_updates preview_calendar study_generation_contract study_generation_sources
-read_course_source read_original_chunk canvas_course_materials
+read_course_source read_original_chunk canvas_course_materials canvas_inspect_material_link
 study_pipeline_status study_generation_queue study_module_guides study_papers study_paper_next study_paper_validate study_generation_usage
 canvas_groups canvas_assignment_detail canvas_sync_logs tutor_history tutor_conversation
 study_session_context tutor_sources get_study_work get_attendance get_course_obligations get_study_readiness
@@ -25,7 +25,7 @@ canvas_groups canvas_assignment_detail canvas_course_requirements canvas_list_re
 canvas_list_remote_course_modules admin_list_canvas_courses admin_list_canvas_course_modules`.split(/\s+/))
 const additiveWrites = new Set(`feedback_prepare feedback_submit feedback_reply
 study_generation_start study_guide_fork study_generation_add_notes tutor_prepare_context tutor_prepare_attendance_update
-tutor_add_source create_flashcard record_chapter_read download_course_original prepare_original_download`.split(/\s+/))
+tutor_add_source create_flashcard record_chapter_read download_course_original prepare_original_download canvas_retrieve_material_link`.split(/\s+/))
 
 export function toolAnnotations(name) {
   if (['study_paper_start', 'study_paper_submit'].includes(name)) return { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }

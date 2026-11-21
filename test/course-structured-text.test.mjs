@@ -5,7 +5,8 @@ import { promisify } from 'node:util'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { extracted } from '../lib/canvas-corpus-worker.mjs'
+import { extracted, ocrPdf } from '../lib/canvas-corpus-worker.mjs'
+import { needsExtractionUpgrade } from '../lib/course-file-types.mjs'
 const exec=promisify(execFile)
 test('macOS resource forks cannot fail a ZIP containing real Office documents', async () => {
   const root = await mkdtemp(join(tmpdir(), 'queue-macos-archive-'))
@@ -128,7 +129,71 @@ with zipfile.ZipFile(sys.argv[1],'w') as z:
   const result=await extracted(await readFile(path),'lab.zip')
   assert.equal(result.status,'complete')
   assert.match(result.text,/Authored lab task/);assert.match(result.text,/Study the CleaningTask/)
-  assert.match(result.text,/2 build-cache, version-control or installed-dependency members/)
+  assert.match(result.text,/2 build-cache, version-control, IDE, vendored-SDK or installed-dependency members/)
   assert.doesNotMatch(result.text,/GENERATED_CACHE_CONTENT|INSTALLED_DEPENDENCY_CONTENT/)
  }finally{await rm(root,{recursive:true,force:true})}
+})
+
+test('vendored SDK directories in lab archives are excluded while the lab code remains',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'archive-vendor-sdk-'))
+ try {
+  const path=join(root,'lab1_assignment3.zip')
+  await exec('python3',['-c',`import zipfile,sys
+with zipfile.ZipFile(sys.argv[1],'w') as z:
+ z.writestr('lab1/Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal.c','HAL_VENDOR_SOURCE')
+ z.writestr('lab1/Drivers/CMSIS/Include/core_cm33.h','CMSIS_VENDOR_HEADER')
+ z.writestr('lab1/Drivers/BSP/B-U585I-IOT02A/bsp.c','BSP_VENDOR_SOURCE')
+ z.writestr('lab1/Middlewares/Third_Party/FreeRTOS/tasks.c','RTOS_VENDOR_SOURCE')
+ z.writestr('lab1/.vscode/settings.json','IDE_STATE')
+ z.writestr('lab1/Core/Src/main.c','/* Assignment 3: blink the LED when the button is pressed. */')
+ z.writestr('lab1/Drivers/sensor_driver.c','/* Student task: finish the sensor driver. */')`,path])
+  const result=await extracted(await readFile(path),'lab1_assignment3.zip')
+  assert.equal(result.status,'complete')
+  assert.match(result.text,/blink the LED/);assert.match(result.text,/finish the sensor driver/)
+  assert.match(result.text,/5 build-cache, version-control, IDE, vendored-SDK or installed-dependency members/)
+  assert.doesNotMatch(result.text,/HAL_VENDOR_SOURCE|CMSIS_VENDOR_HEADER|BSP_VENDOR_SOURCE|RTOS_VENDOR_SOURCE|IDE_STATE/)
+ }finally{await rm(root,{recursive:true,force:true})}
+})
+
+test('archives extracted before vendored-SDK exclusion are extracted again',()=>{
+  assert.equal(needsExtractionUpgrade('lab.zip',{extraction_status:'complete',metadata:{fileFormatVersion:5}}),true)
+  assert.equal(needsExtractionUpgrade('lab.zip',{extraction_status:'complete',metadata:{fileFormatVersion:6}}),false)
+  assert.equal(needsExtractionUpgrade('slides.pptx',{extraction_status:'complete',metadata:{fileFormatVersion:5}}),false)
+})
+
+test('PDF OCR reads page by page and stops at its time allowance',async()=>{
+  const calls=[]
+  let now=0
+  const realNow=Date.now
+  Date.now=()=>now
+  try {
+    const run=async(command,args)=>{
+      calls.push(command)
+      if(command==='pdfinfo') return {stdout:'Title: scan\nPages:          5\n'}
+      if(command==='pdftoppm') {now+=40;return {stdout:''}}
+      return {stdout:args[0].endsWith('.png')&&calls.filter(c=>c==='tesseract').length===2?'  ':'Page text'}
+    }
+    const result=await ocrPdf(Buffer.from('%PDF'),{deadlineMs:100,run})
+    assert.deepEqual(calls,['pdfinfo','pdftoppm','tesseract','pdftoppm','tesseract','pdftoppm','tesseract'])
+    assert.deepEqual(result.pages.map(page=>page.page),[1,3])
+    assert.equal(result.pageCount,5);assert.equal(result.complete,false)
+  } finally {Date.now=realNow}
+})
+
+test('an image-only PDF is read by OCR instead of failing extraction',async t=>{
+  try {for(const tool of ['pdfinfo','pdftoppm','tesseract']) await exec(tool,['-v']).catch(error=>{if(error.code==='ENOENT') throw error});await exec('python3',['-c','import PIL'])}
+  catch {return t.skip('poppler, tesseract or Pillow unavailable')}
+  const root=await mkdtemp(join(tmpdir(),'scanned-pdf-'))
+  try {
+    const path=join(root,'scan.pdf')
+    await exec('python3',['-c',`import sys
+from PIL import Image,ImageDraw,ImageFont
+page=Image.new('L',(1240,1754),255)
+ImageDraw.Draw(page).text((120,200),'Project plan example: deliverables due in week five',fill=0,font=ImageFont.load_default(size=40))
+page.save(sys.argv[1],'PDF',resolution=150)`,path])
+    const result=await extracted(await readFile(path),'001 Project_plan_Example_A.pdf')
+    assert.equal(result.status,'complete')
+    assert.match(result.text,/deliverables due in week five/i)
+    assert.deepEqual(result.ocr,{pages:1,pageCount:1,complete:true})
+  } finally {await rm(root,{recursive:true,force:true})}
 })

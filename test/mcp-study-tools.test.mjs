@@ -14,7 +14,7 @@ function fixture() {
 }
 test('MCP exposes focused reads without requesting unrelated payloads', async () => {
   const { tools, call } = fixture()
-  assert.equal(tools.size, 53)
+  assert.equal(tools.size, 55)
   assert.deepEqual(await call('read_course_source', { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 }), { path: '/api/retrieve/source', query: { assetId: 'esa-source', courseCode: 'BCS3120', offset: 12 } })
   assert.equal((await call('tutor_history')).query.view, 'history')
   assert.equal((await call('tutor_sources')).query.view, 'sources')
@@ -113,4 +113,16 @@ test('local paper tools preserve evidence identity and continuation request IDs'
   assert.equal(start.pathname || start.path || start.url, '/api/study-versions/course-papers/local')
   const submission=await call('study_paper_submit',{versionId:'sv-test',setId:'sp-test',requestId:'request-test',response:{issues:[]}})
   assert.deepEqual(submission.body,{requestId:'request-test',response:{issues:[]}})
+})
+
+// A timetable feed builds event IDs as feed:<link>:<provider event id>; Maastricht lab sessions reach 165 characters.
+const longEventId = `feed:${'l'.repeat(36)}:${'9f2c4e1a7b3d'.repeat(9)}#${'a1b2c3d4e5'}#lab`
+test('attendance preparation accepts the long calendar event IDs get_attendance returns', async () => {
+  assert.equal(longEventId.length, 165)
+  const { call } = fixture()
+  const prepared = await call('tutor_prepare_attendance_update', { eventIds: [longEventId], status: 'attended' })
+  assert.deepEqual(prepared.body.eventIds, [longEventId])
+  assert.equal(prepared.body.kind, 'attendance')
+  await assert.rejects(async () => call('tutor_prepare_attendance_update', { eventIds: ['x'.repeat(513)], status: 'attended' }))
+  await assert.rejects(async () => call('tutor_prepare_attendance_update', { eventIds: [''], status: 'attended' }))
 })

@@ -196,7 +196,7 @@ test('a snapshot records the derived record and never the document', async () =>
   const { fileURLToPath } = await import('node:url')
 
   const owner = `user_snap_${randomUUID().slice(0, 8)}`
-  const asOwner = (callback) => withRequestContext({ userId: owner, mode: 'clerk' }, callback)
+  const asOwner = (callback) => withRequestContext({ userId: owner, mode: 'session' }, callback)
   try {
     const first = parseAcademicWork(OVERVIEW)
     const stored = await asOwner(() => recordAcademicSnapshot({ kind: first.kind, sourceLabel: 'Academic Work.pdf', printedOn: first.printedOn, courses: first.courses, summary: first.summary }))

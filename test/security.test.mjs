@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { consume, classifyRequest, resetRateLimits } from '../lib/rate-limit.mjs'
-import { assertPublicUrl, isForbiddenCrossSite, isPrivateAddress, contentSecurityPolicy } from '../lib/security.mjs'
+import { assertPublicUrl, isForbiddenCrossSite, isPrivateAddress, contentSecurityPolicy, securityHeaders } from '../lib/security.mjs'
 
 test('rate limiter counts within a window and resets after it', () => {
   resetRateLimits()
@@ -43,11 +43,19 @@ test('cookie-authenticated cross-site mutations are refused, bearer calls are no
   assert.equal(isForbiddenCrossSite({ method: 'GET', headers: { 'sec-fetch-site': 'cross-site' } }), false)
 })
 
-test('the CSP forbids inline scripts and framing', () => {
+test('the CSP forbids inline scripts and framing by anyone but wicker.life', () => {
   const csp = contentSecurityPolicy()
-  assert.match(csp, /frame-ancestors 'none'/)
+  assert.match(csp, /frame-ancestors 'self' https:\/\/wicker\.life(;|$)/)
   assert.ok(!/script-src[^;]*unsafe-inline/.test(csp))
   assert.ok(!/script-src[^;]*\x27unsafe-eval\x27/.test(csp))
+})
+
+test('the CSP allows the Umami tracker script and its collect endpoint', () => {
+  const csp = contentSecurityPolicy({ nonce: 'abc' })
+  const directive = (name) => csp.split('; ').find((part) => part.startsWith(`${name} `))
+  assert.match(directive('script-src'), /https:\/\/analytics\.wicker\.life/)
+  assert.match(directive('script-src'), /'nonce-abc'/)
+  assert.match(directive('connect-src'), /https:\/\/analytics\.wicker\.life/)
 })
 
 test('the healthcheck reports whether Canvas connections can be stored, without key material', async (t) => {
@@ -65,4 +73,11 @@ test('the healthcheck reports whether Canvas connections can be stored, without 
   process.env.CANVAS_CONNECTION_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64')
   assert.equal(canvasStorageConfigured(), true)
   assert.equal(typeof canvasStorageConfigured(), 'boolean', 'the signal must never carry the key itself')
+})
+
+test('pages drop X-Frame-Options so wicker.life can frame them; other responses keep DENY', () => {
+  const page = securityHeaders({ page: true })
+  assert.equal(page['X-Frame-Options'], undefined)
+  assert.match(page['Content-Security-Policy'], /frame-ancestors 'self' https:\/\/wicker\.life/)
+  assert.equal(securityHeaders()['X-Frame-Options'], 'DENY')
 })

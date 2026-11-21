@@ -229,7 +229,7 @@ test('the programme a student recorded outranks the programme they are a member 
 
   // The bug this replaces: a saved academic programme, reported as none.
   const recorded = programmeFacts(
-    { programmes: [], account: { mode: 'clerk' } },
+    { programmes: [], account: { mode: 'session' } },
     { profile: { programme: 'BSc Data Science and AI', university: 'Maastricht' } }
   )
   assert.equal(recorded.programme, 'BSc Data Science and AI')
@@ -239,13 +239,13 @@ test('the programme a student recorded outranks the programme they are a member 
   assert.equal(recorded.empty, false)
 
   // With no record of their own, membership answers instead.
-  const joined = programmeFacts({ programmes: membership, account: { mode: 'clerk' } }, null)
+  const joined = programmeFacts({ programmes: membership, account: { mode: 'session' } }, null)
   assert.equal(joined.programme, 'BSc Data Science')
   assert.equal(joined.source, 'membership')
 
   // Admin is a fact about the membership, not about the programme.
   const admin = programmeFacts(
-    { programmes: [{ ...membership[0], role: 'admin' }], account: { mode: 'clerk' } },
+    { programmes: [{ ...membership[0], role: 'admin' }], account: { mode: 'session' } },
     null
   )
   assert.equal(admin.memberships[0].admin, true)
@@ -257,7 +257,7 @@ test('the programme a student recorded outranks the programme they are a member 
   assert.equal(local.membership, 'All programmes (local development)')
 
   // Genuinely nothing recorded anywhere.
-  assert.equal(programmeFacts({ programmes: [], account: { mode: 'clerk' } }, null).empty, true)
+  assert.equal(programmeFacts({ programmes: [], account: { mode: 'session' } }, null).empty, true)
 })
 
 test('the Canvas import ledger is grouped in one pass', () => {

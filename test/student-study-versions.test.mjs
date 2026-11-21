@@ -1,5 +1,5 @@
-import { nextPedagogicalReview } from '../lib/study-pedagogical-review.mjs'
-import { teachingPlanSchema, pedagogyReviewSchema, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
+import { nextPedagogicalReview, acceptPedagogicalReview, combinedPedagogicalReview } from '../lib/study-pedagogical-review.mjs'
+import { teachingPlanResponseSchema as teachingPlanSchema, pedagogyReviewSchema, pedagogyReviewIssues } from '../lib/study-pedagogy.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
@@ -31,9 +31,12 @@ import {
   processStudyStep,
   refreshStudyVersion,
   controlStudyGeneration,
-  recoverFailedChapterByStaleFactualJudgments
+  recoverFailedChapterByStaleFactualJudgments,
+  recoverFailedChapterByEvidenceIdHygiene,
+  recoverFailedChapterByLinkNormalization,
+  prepareLesson
 } from '../lib/study-version-pipeline.mjs'
-import { nextFactualReview, acceptFactualReview, factualAuditIssues } from '../lib/study-factual-review.mjs'
+import { nextFactualReview, acceptFactualReview, factualAuditIssues, factualFingerprint } from '../lib/study-factual-review.mjs'
 import {
   publishStudyVersion,
   readStudyPublication,
@@ -43,7 +46,7 @@ import {
 import {
   mapSchema, outlineSchema,
   lessonSchema,
-  teachingSchema, teachingResponseSchema,
+  teachingSchema, teachingResponseSchema, draftResponseSchema,
   reviewSchema,
   studyResponseSchema,
   pedagogicalResponseSchema,
@@ -130,7 +133,7 @@ async function finish(f, { reviewIssues = [] } = {}) {
       const value=lesson(ids)
       return {sections:value.sections,removeSectionIds:[],questions:value.questions,removeQuestionKeys:[],flashcards:value.flashcards,summary:value.summary,caveats:value.caveats,learningGoals:value.learningGoals,walkthrough:value.walkthrough}
     }
-    assert.deepEqual(options.responseSchema, expected === teachingSchema ? teachingResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? nextPedagogicalReview('',v.draft.chapters.find(c=>c.review==='pending')).responseSchema : studyResponseSchema(expected, ids))
+    assert.deepEqual(options.responseSchema, expected === teachingSchema ? draftResponseSchema(teachingPlan(ids),ids) : expected === pedagogyReviewSchema ? nextPedagogicalReview('',v.draft.chapters.find(c=>c.review==='pending')).responseSchema : studyResponseSchema(expected, ids))
     if (teachingResponse(prompt, ids)) return teachingResponse(prompt, ids)
     if (prompt.includes('Map this evidence batch'))
       return {
@@ -409,13 +412,19 @@ test('failed independent evidence review cannot activate or publish a revision',
       assert.equal(corrected.draft.repair, undefined)
       assert.equal(corrected.draft.stage, 'review')
       assert.equal(corrected.activeRevisionId, null)
+      // How the correction was scoped is recorded on the draft.
+      const scope = corrected.draft.correctionScopes.at(-1)
+      assert.equal(scope.chapterId, 'addition')
+      assert.equal(scope.path, 'whole-chapter')
+      assert.equal(scope.repair, 'whole-chapter-correction')
+      assert.ok(scope.reason)
     })
   } finally {
     await f.cleanup()
   }
 })
 
-test('a source-recall card receives one automatic correction before the paid evidence review', async () => {
+test('a source-recall card names its own group and is corrected by a bounded flashcard patch', async () => {
   const f = await fixture()
   try {
     await f.run(async () => {
@@ -427,14 +436,60 @@ test('a source-recall card receives one automatic correction before the paid evi
         if (prompt.includes('Independently check')) { reviewed++; return {issues:[]} }
         generated++
         const value = lesson(ids)
-        if (generated === 1) value.flashcards[0].front = 'What question summarizes addition on the slide?'
-        else { assert.match(prompt, /smallest coherent changes/); assert.match(prompt, /academic concept directly/) }
-        return value
+        if (generated === 1) { value.flashcards[0].front = 'What question summarizes addition on the slide?'; return value }
+        // The deterministic rule names the offending card group, so the
+        // correction re-buys four cards instead of the whole chapter.
+        assert.match(prompt, /REPAIR SELECTED FLASHCARDS/)
+        assert.match(prompt, /academic concept directly/)
+        return {flashcards: Object.fromEntries([0, 1, 2, 3].map(i => [`card-${i}`, value.flashcards[i]]))}
       }
       for (let i = 0; i < 70; i++) { await processStudyStep(f.version.id, {generate}); if ((await ownStudyVersion(f.version.id)).activeRevisionId) break }
       assert.equal(generated, 2)
       assert.equal(reviewed, 0) // Exhaustive reviews use the dedicated fixture responses.
-      assert.ok((await ownStudyVersion(f.version.id)).activeRevisionId)
+      const done = await ownStudyVersion(f.version.id)
+      assert.ok(done.activeRevisionId)
+      const scope = done.draft.correctionScopes.at(-1)
+      assert.equal(scope.path, 'patch')
+      assert.equal(scope.repair, 'flashcard-correction')
+      assert.deepEqual(scope.targets, ['cards:0'])
+      // The review round after the patch records the finding as resolved and
+      // nothing newly introduced.
+      const round = done.draft.reviewRounds.at(-1)
+      assert.equal(round.chapterId, 'addition')
+      assert.deepEqual(round.resolved.map(f => f.itemKey), ['cards:0'])
+      assert.deepEqual(round.carried, [])
+      assert.deepEqual(round.introduced, [])
+    })
+  } finally { await f.cleanup() }
+})
+
+// Every retry buys a fresh reservation, so an identical review step that keeps
+// failing must stop with an explicit saved error instead of looping.
+test('a review step that keeps failing the same way stops at its cap', async () => {
+  const f = await fixture()
+  try {
+    await f.run(async () => {
+      const ids = f.snapshot.chunks.map(c => c.id)
+      await mutateStudyVersion(f.version.id, v => { v.draft.stage = 'chapters'; v.draft.topics = [{id:'addition',title:'Addition',sourceIds:ids}] })
+      let solves = 0
+      const generate = async prompt => {
+        if (prompt.includes('INDEPENDENT QUESTION SOLVING')) {
+          solves++
+          throw Object.assign(new Error('The AI service is receiving too many requests.'), {status: 429, retryAfter: 1})
+        }
+        return teachingResponse(prompt, ids) || lesson(ids)
+      }
+      for (let i = 0; i < 40; i++) {
+        await processStudyStep(f.version.id, {generate})
+        if ((await ownStudyVersion(f.version.id)).draft.status === 'failed') break
+        await mutateStudyVersion(f.version.id, v => { v.draft.runAfter = 0 })
+      }
+      const failed = await ownStudyVersion(f.version.id)
+      assert.equal(failed.draft.status, 'failed')
+      assert.equal(solves, 3, 'the same review step is re-bought at most three times')
+      assert.equal(failed.draft.stepFailures.count, 3)
+      assert.match(failed.draft.stepFailures.key, /^factual:addition:solve:/)
+      assert.match(failed.draft.error, /failed 3 times in a row/)
     })
   } finally { await f.cleanup() }
 })
@@ -788,11 +843,14 @@ test('outbox claims prevent fan-out while another course is waiting for delivery
     second = await fixture()
   try {
     const claims = (
-      await Promise.all([claimStudyDispatch(), claimStudyDispatch()])
+      await Promise.all([
+        claimStudyDispatch({ owners: [first.context.userId, second.context.userId] }),
+        claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })
+      ])
     ).flat()
     assert.equal(claims.filter((id) => id === first.version.id).length, 1)
     assert.equal(claims.filter((id) => id === second.version.id).length, 1)
-    assert.equal((await claimStudyDispatch()).includes(first.version.id), false)
+    assert.equal((await claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })).includes(first.version.id), false)
     await first.run(() =>
       processStudyStep(first.version.id, {
         generate: async () => ({
@@ -807,7 +865,7 @@ test('outbox claims prevent fan-out while another course is waiting for delivery
         })
       })
     )
-    const next = await claimStudyDispatch()
+    const next = await claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })
     assert.equal(next.includes(first.version.id), true)
     assert.equal(next.includes(second.version.id), false)
     await second.run(() =>
@@ -815,7 +873,7 @@ test('outbox claims prevent fan-out while another course is waiting for delivery
         v.queueDeliveryUntil = Date.now() - 1
       })
     )
-    assert.equal((await claimStudyDispatch()).includes(second.version.id), true)
+    assert.equal((await claimStudyDispatch({ owners: [first.context.userId, second.context.userId] })).includes(second.version.id), true)
   } finally {
     await first.cleanup()
     await second.cleanup()
@@ -1179,6 +1237,234 @@ test('a chapter failed for a content-review (non-answers) finding is never re-op
   }
   assert.equal(recoverFailedChapterByStaleFactualJudgments(work, course), false)
   assert.equal(work.chapters[0].review, 'failed')
+})
+
+test('the chapter-acceptance point strips internal evidence ids from prose before review, for a first draft and a correction alike', () => {
+  const ids = ['e-abc123def456']
+  const evidence = ids.map(id => ({ id }))
+  const topic = { id: 'addition', title: 'Addition', sourceIds: ids }
+  // A first draft: the objective plan itself (generated once, ahead of any
+  // draft or correction) carries a stray identifier in its gaps prose.
+  const dirtyGapsPlan = { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${ids[0]}).`], exclusions: [] }
+  const draftChapter = prepareLesson(lesson(ids), topic, evidence, dirtyGapsPlan)
+  assert.doesNotMatch(draftChapter.teachingPlan.gaps.join(' '), /\be-[0-9a-f]{6,}\b/)
+  assert.ok(draftChapter.evidenceIdRepairs?.some(r => r.field === 'teachingPlan.gaps'))
+  // A correction's raw response resolves to the identical prepareLesson call
+  // (see the pipeline's stage:'chapters' handling: the refresh, repair and
+  // whole-chapter-correction branches all feed prepareLesson the same way as
+  // a first draft), so its own regenerated caveats must be hygienised too.
+  const correctionRaw = { ...lesson(ids), caveats: [`Historical rule predates this edition (${ids[0]}).`] }
+  const correctionChapter = prepareLesson(correctionRaw, topic, evidence, teachingPlan(ids))
+  assert.doesNotMatch(correctionChapter.caveats.join(' '), /\be-[0-9a-f]{6,}\b/)
+  assert.ok(correctionChapter.evidenceIdRepairs?.some(r => r.field === 'caveats'))
+})
+
+test('a chapter failed only because student-facing prose printed an internal evidence id re-enters review for free, with zero model calls', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${ids[0]}).`], exclusions: [] } }
+  const finding = { topicId: draft.id, severity: 'error', detail: `The teaching-plan gap prose prints an internal evidence identifier (${ids[0]}) that must not appear in student-facing text.` }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.doesNotMatch(chapter.teachingPlan.gaps.join(' '), /\be-[0-9a-f]{6,}\b/)
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+})
+
+test('an unrelated warning on the same chapter does not block the evidence-id hygiene recovery: only error-severity findings gate it', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${ids[0]}).`], exclusions: [] } }
+  const findings = [
+    { topicId: draft.id, severity: 'error', detail: `Prints an internal identifier ${ids[0]} in prose.` },
+    { topicId: draft.id, severity: 'warning', detail: 'The gaps subsection could be phrased more concisely.' }
+  ]
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: findings,
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  assert.equal(work.chapters[0].review, 'pending')
+  assert.deepEqual(work.issues, [])
+})
+
+test('a chapter failed for a genuine pedagogical/factual finding with no evidence-id mention is not reopened by the hygiene recovery', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition' }
+  const finding = { topicId: draft.id, severity: 'error', detail: 'The worked example computes the wrong total.' }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
+  assert.equal(work.chapters[0].review, 'failed')
+})
+
+test('a chapter failed on a mix of an evidence-id finding and a genuine finding is not reopened by the hygiene recovery', () => {
+  const ids = ['e-abc123def456']
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: { ...teachingPlan(ids), gaps: [`Missing proof (${ids[0]}).`], exclusions: [] } }
+  const findings = [
+    { topicId: draft.id, severity: 'error', detail: `Prints an internal identifier ${ids[0]} in prose.` },
+    { topicId: draft.id, severity: 'error', detail: 'The worked example computes the wrong total.' }
+  ]
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: findings,
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
+  assert.equal(work.chapters[0].review, 'failed')
+})
+
+test('a chapter whose identifiers were already stripped by an earlier hygiene pass, with the stale finding still recorded, still re-enters review for free with zero model calls', () => {
+  const ids = ['e-abc123def456']
+  // No identifier remains in any student-facing field the hygiene pass
+  // cleans (an earlier pass already did that, recorded on evidenceIdRepairs)
+  // — only the stale finding from that earlier failed review is still here.
+  const draft = {
+    ...lesson(ids),
+    id: 'addition',
+    teachingPlan: { ...teachingPlan(ids), gaps: ['No worked proof was supplied for this method.'], exclusions: [] },
+    evidenceIdRepairs: [{ field: 'teachingPlan.gaps', index: 0, ref: ids[0] }]
+  }
+  const finding = { topicId: draft.id, severity: 'error', detail: `The teaching-plan gap prose printed an internal evidence identifier (${ids[0]}) that must not appear in student-facing text.` }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  // Re-running is stable: the chapter is no longer 'failed', so it is a no-op.
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
+  assert.equal(work.chapters[0].review, 'pending')
+})
+
+test('a successful evidence-id hygiene recovery drops the matching stale finding from every cache that held it — evidenceReview, factualAudit.judgments, pedagogyAudit.reviews and pedagogicalReview — reusing every other cached judgment and repeating stably', () => {
+  const ids = ['e-abc123def456']
+  const strayId = 'e-999999999999'
+  const evidence = [{ id: ids[0], sourceKey: 'source', text: 'Adding disjoint groups: two plus three equals five. Check with subtraction.' }]
+  const dirtyPlan = { ...teachingPlan(ids), gaps: [`No worked proof was supplied for this method (${strayId}).`], exclusions: [] }
+  const draft = { ...lesson(ids), id: 'addition', teachingPlan: dirtyPlan }
+  // A genuinely reviewed factualAudit (blind solve, answer check and content
+  // check all pass), then the 'scope' item's verdict is corrected the way the
+  // real reviewer actually reported it: the stray-id finding plus one
+  // genuine, unrelated content warning that must survive the recovery.
+  for (let step; (step = nextFactualReview(course, [], evidence, draft));) acceptFactualReview(draft, step, teachingResponse(step.prompt, ids))
+  const matching = { detail: `The 'gaps' text references non-existent evidence IDs (${strayId}) that are not part of the supplied evidence list.`, severity: 'error' }
+  const unrelatedWarning = { detail: 'The scope note could name the specific slide deck more precisely.', severity: 'warning' }
+  draft.factualAudit.judgments.scope = { correct: false, rationale: matching.detail, issues: [matching, unrelatedWarning] }
+  draft.evidenceReview = { issues: factualAuditIssues(draft) }
+  assert.ok(draft.evidenceReview.issues.some(i => i.detail === matching.detail && i.severity === 'error'))
+  // A genuinely reviewed pedagogyAudit, then every objective's cached verdict
+  // is corrected with the same pair — mirroring the real saved state, where
+  // every per-objective review carried the identical chapter-wide finding
+  // because the reviewer sees the whole teaching plan each time.
+  for (let step; (step = nextPedagogicalReview('evidence context', draft));) acceptPedagogicalReview(draft, step, teachingResponse(step.prompt, ids))
+  const pedMatching = { topicId: 'source-integrity', severity: 'error', detail: `The teaching-plan gap prose prints an internal evidence identifier (${strayId}) that must not appear in student-facing text.` }
+  const pedUnrelatedWarning = { topicId: 'original-figure-referral', severity: 'warning', detail: 'The gaps direct students to an original figure that is not established as missing.' }
+  for (const id of Object.keys(draft.pedagogyAudit.reviews)) draft.pedagogyAudit.reviews[id] = { ...draft.pedagogyAudit.reviews[id], issues: [pedMatching, pedUnrelatedWarning] }
+  draft.pedagogicalReview = combinedPedagogicalReview(draft)
+  assert.ok(draft.pedagogicalReview.issues.some(i => i.detail === pedMatching.detail))
+
+  const findings = [...draft.evidenceReview.issues, ...pedagogyReviewIssues(draft, draft.pedagogicalReview)].map(i => ({ ...i, topicId: draft.id }))
+  assert.equal(findings.filter(i => i.severity === 'error').length, 2) // both stale error findings present, matching the real symptom
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: findings,
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  // The repaired content — not the original dirty prose — is what's persisted.
+  assert.doesNotMatch(chapter.teachingPlan.gaps.join(' '), /\be-[0-9a-f]{6,}\b/)
+
+  // The matching finding is gone from every cache; the unrelated one survives.
+  assert.ok(!chapter.evidenceReview.issues.some(i => i.detail === matching.detail))
+  assert.ok(chapter.evidenceReview.issues.some(i => i.detail === unrelatedWarning.detail))
+  assert.equal(chapter.factualAudit.judgments.scope.correct, true)
+  assert.deepEqual(chapter.factualAudit.judgments.scope.issues, [unrelatedWarning])
+  assert.equal(chapter.factualAudit.fingerprint, factualFingerprint(chapter))
+  for (const review of Object.values(chapter.pedagogyAudit.reviews)) {
+    assert.ok(!review.issues.some(i => i.detail === pedMatching.detail))
+    assert.ok(review.issues.some(i => i.detail === pedUnrelatedWarning.detail))
+  }
+  assert.ok(!chapter.pedagogicalReview.issues.some(i => i.detail === pedMatching.detail))
+  assert.ok(chapter.pedagogicalReview.issues.some(i => i.detail === pedUnrelatedWarning.detail))
+
+  // The exact gate processStudyStep applies at the 'finish' stage before
+  // activation now passes cleanly, proving no further model call is needed.
+  assert.equal(chapter.evidenceReview.issues.some(i => i.severity === 'error'), false)
+  assert.equal(factualAuditIssues(chapter).some(i => i.severity === 'error'), false)
+  assert.equal(pedagogyReviewIssues(chapter, chapter.pedagogicalReview).some(i => i.severity === 'error'), false)
+
+  // Re-running is stable: the chapter is no longer 'failed', so it is a no-op.
+  assert.equal(recoverFailedChapterByEvidenceIdHygiene(work), false)
+  assert.equal(work.chapters[0].review, 'pending')
+})
+
+test('a chapter whose stray objective-coverage link was already normalized by an earlier pass, with the stale finding still recorded, still re-enters review for free with zero model calls', () => {
+  const ids = ['e-abc123def456']
+  // objectiveCoverage is already fully valid (as if an earlier normalization
+  // pass already dropped the stray reference, recorded on linkRepairs) —
+  // only the stale finding from that earlier failed review is still here.
+  const draft = {
+    ...lesson(ids),
+    id: 'addition',
+    linkRepairs: [{ objectiveId: 'objective-1', list: 'workedExampleSectionIds', ref: 'section-stray', reason: 'section is not tagged with this objective' }]
+  }
+  const finding = { topicId: draft.id, severity: 'error', detail: 'objective-1: workedExampleSectionIds must point to visible teaching for this objective.' }
+  const work = {
+    chapters: [{ ...draft, review: 'failed' }],
+    topics: [{ id: draft.id, sourceIds: ids }],
+    issues: [finding],
+    automaticRepairs: { [draft.id]: 3 },
+    status: 'failed',
+    error: 'This chapter still needs a correction after 3 of 3 automatic correction attempts.'
+  }
+  assert.equal(recoverFailedChapterByLinkNormalization(work), true)
+  const chapter = work.chapters[0]
+  assert.equal(chapter.review, 'pending')
+  assert.deepEqual(work.issues, [])
+  assert.equal(work.stage, 'review')
+  assert.equal(work.error, undefined)
+  assert.equal(work.automaticRepairs[draft.id], 3) // unchanged: no correction spent
+  // Re-running is stable: the chapter is no longer 'failed', so it is a no-op.
+  assert.equal(recoverFailedChapterByLinkNormalization(work), false)
+  assert.equal(work.chapters[0].review, 'pending')
 })
 
 test('long guide calls keep their lease and reject duplicate workers beyond five minutes',async t=>{

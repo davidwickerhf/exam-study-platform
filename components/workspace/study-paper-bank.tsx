@@ -62,10 +62,12 @@ type Fit = {
     }[]
   }
 }
-type PaperJob = { id: string; sourceKey: string; status: string; completedSections: number; totalSections: number; setId: string | null; error: string | null }
+type CanvasLocation = { moduleName?: string | null; assignmentTitle?: string | null }
+type BankPaper = StudySource & { paperKind: string; solutionKey?: string | null; locations?: CanvasLocation[]; copies?: { key: string; sourcePath?: string; academicYear?: string }[] }
+type PaperJob = { id: string; sourceKey: string; status: string; preparedWithAnswerKey?: boolean; completedSections: number; totalSections: number; setId: string | null; error: string | null; issues?: string[]; notice?: string | null; runAfter?: string | null }
 type Bank = {
   processing?: PaperJob[]
-  papers: (StudySource & { paperKind: string })[]
+  papers: BankPaper[]
   syllabi: StudySource[]
   sets: SetInfo[]
   reviews: Fit[]
@@ -139,9 +141,9 @@ export function StudyPaperBank({
     }, 8000)
     return () => window.clearInterval(timer)
   }, [processing, paperUrl])
-  async function retryAuto(job: PaperJob) {
+  async function retryAuto(job: PaperJob, withAnswerKey = false) {
     setBusy(true);setError('')
-    try { await studyRequest('/api/study-versions/course-papers', {...course,action:'retry-auto',jobId:job.id}); await load() }
+    try { await studyRequest('/api/study-versions/course-papers', {...course,action:'retry-auto',jobId:job.id,withAnswerKey}); await load() }
     catch(e) {setError((e as Error).message)} finally {setBusy(false)}
   }
   async function openSet(s: SetInfo) {
@@ -305,7 +307,9 @@ export function StudyPaperBank({
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
   const detail = bank?.papers.find(p => p.key === detailKey)
   const info = (p: StudySource) => paperSelection(bank?.sets || [], bank?.processing || [], p.key, setChoices[p.key])
-  const choosePages = (p: StudySource) => { setDetailKey(null); setPaper(p); setSolution(''); setFrom(''); setTo('') }
+  const choosePages = (p: BankPaper) => { setDetailKey(null); setPaper(p); setSolution(p.solutionKey || ''); setFrom(''); setTo('') }
+  const detailSolution = detail?.solutionKey ? bank?.papers.find(p => p.key === detail.solutionKey) : undefined
+  const detailPlaces = [...new Set((detail?.locations || []).map(l => l.moduleName || l.assignmentTitle).filter(Boolean))] as string[]
   const backToPaper = () => { setDetailKey(paper?.key || fitSet?.questionSourceKey || null); setPaper(null); setFitSet(null); setError('') }
   const inspectFit = (set: SetInfo) => { setDetailKey(null); setFitSet(set); setSyllabi(bank?.syllabi.map(s=>s.key).slice(0,1) || []) }
   const attention = bank?.processing?.filter(j=>j.status==='paused') || []
@@ -345,12 +349,13 @@ export function StudyPaperBank({
           {detail && detailInfo && <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
             {error && <p role="alert" className="my-4 text-sm text-destructive">{error}</p>}
             {busy && operation && <p role="status" className="flex items-center gap-2 pt-5 text-sm"><LoaderCircleIcon className="size-4 animate-spin"/>{operation==='prepare' ? 'Preparing questions…' : 'Resuming questions…'}</p>}
-            <div className="flex flex-wrap items-center gap-2 py-5">{(detail.url || detail.assetId) && <StudySourceInspector source={detail} chunks={[]} label="View paper" onOpen={()=>setDetailKey(null)}/>}{detailInfo.ready && <Button size="sm" disabled={busy} onClick={()=>void openSet(detailInfo.ready!)}>Practise</Button>}</div>
+            <div className="flex flex-wrap items-center gap-2 py-5">{(detail.url || detail.assetId) && <StudySourceInspector source={detail} chunks={[]} label="View paper" onOpen={()=>setDetailKey(null)}/>}{detailSolution && (detailSolution.url || detailSolution.assetId) && <StudySourceInspector source={detailSolution} chunks={[]} label="View solutions" onOpen={()=>setDetailKey(null)}/>}{detailInfo.ready && <Button size="sm" disabled={busy} onClick={()=>void openSet(detailInfo.ready!)}>Practise</Button>}</div>
+            {(detailPlaces.length > 0 || (detail.copies?.length || 0) > 1) && <section className="border-t py-5"><h3 className="font-semibold">In Canvas</h3><p className="mt-2 text-sm text-muted-foreground">{detailPlaces.length ? detailPlaces.join(' · ') : 'Linked from course pages'}{(detail.copies?.length || 0) > 1 ? ` · linked ${detail.copies!.length} times, shown once` : ''}</p>{detailSolution && <p className="mt-1 text-sm text-muted-foreground">Solutions: {title(detailSolution.title)}</p>}</section>}
             <section className="border-t py-5"><h3 className="font-semibold">Practice questions</h3><p className="mt-2 text-sm text-muted-foreground">{paperReadiness(detailInfo.ready,detailInfo.job)}</p>
               {detailInfo.sets.length>0 && <div className="mt-4 space-y-3"><label className="block text-sm">Saved question set<select aria-label={`Prepared questions for ${title(detail.title)}`} className="mt-2 w-full rounded-md border bg-card p-2 text-sm" value={detailInfo.chosen?.id || ''} onChange={e=>setSetChoices(old=>({...old,[detail.key]:e.target.value}))}>{detailInfo.sets.map(s=><option key={s.id} value={s.id}>{s.sourcePages?.length ? `Pages ${s.sourcePages[0]}–${s.sourcePages.at(-1)} · ` : ''}{s.title} · {s.questionCount} questions · {s.status==='complete'?'Ready':s.status}</option>)}</select></label>{!!detailInfo.chosen?.sourcePages?.length && <p className="text-xs text-muted-foreground">Prepared source pages: {detailInfo.chosen.sourcePages[0]}–{detailInfo.chosen.sourcePages.at(-1)}. This set covers these pages only.</p>}</div>}
               {detail.paperKind!=='solutions' && <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={busy} onClick={()=>choosePages(detail)}>{detailInfo.sets.length ? 'Prepare another section' : 'Choose pages to prepare'}</Button>{detailInfo.chosen && detailInfo.chosen.status!=='complete' && <Button size="sm" variant="outline" disabled={busy} onClick={()=>void resume(detailInfo.chosen!)}>{busy && operation==='resume' ? 'Resuming…' : 'Resume questions'}</Button>}</div>}
             </section>
-            {detailInfo.job && <section className="border-t py-5"><h3 className="font-semibold">Automatic preparation</h3><p className="mt-2 text-sm text-muted-foreground">{detailInfo.job.status==='paused' ? 'Preparation paused. Your original and any checked questions are still available.' : detailInfo.job.status==='complete' ? 'Preparation finished.' : `${detailInfo.job.completedSections} of ${detailInfo.job.totalSections || '…'} sections checked. You can leave this page.`}</p>{detailInfo.job.error && <details className="mt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Why it paused</summary><p className="mt-2 leading-5">{detailInfo.job.error}</p></details>}{detailInfo.job.status==='paused' && <Button className="mt-4" size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(detailInfo.job!)}>{busy && !operation ? 'Retrying…' : 'Retry processing'}</Button>}</section>}
+            {detailInfo.job && <section className="border-t py-5"><h3 className="font-semibold">Automatic preparation</h3><p className="mt-2 text-sm text-muted-foreground">{detailInfo.job.status==='paused' ? 'Preparation paused. Your original and any checked questions are still available.' : detailInfo.job.status==='complete' ? 'Preparation finished.' : `${detailInfo.job.completedSections} of ${detailInfo.job.totalSections || '…'} sections checked. You can leave this page.`}</p>{detailInfo.job.status==='queued' && detailInfo.job.runAfter && <p className="mt-2 text-xs text-muted-foreground">{detailInfo.job.notice || 'Waiting for another generation on your account to finish.'} This continues automatically{new Date(detailInfo.job.runAfter).getTime() - Date.now() > 3600000 ? ` after ${new Date(detailInfo.job.runAfter).toLocaleString()}` : ''}.</p>}{detailInfo.job.error && <details className="mt-3 text-xs text-muted-foreground"><summary className="cursor-pointer">Why it paused</summary><p className="mt-2 leading-5">{detailInfo.job.error}</p>{!!detailInfo.job.issues?.length && <ul className="mt-2 list-disc space-y-1 pl-4 leading-5">{detailInfo.job.issues.map((issue,i)=><li key={i}>{issue}</li>)}</ul>}</details>}{detailInfo.job.status==='paused' && <Button className="mt-4" size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(detailInfo.job!)}>{busy && !operation ? 'Retrying…' : 'Retry processing'}</Button>}{detailInfo.job.status==='complete' && detail.solutionKey && !detailInfo.job.preparedWithAnswerKey && <><p className="mt-3 text-sm text-muted-foreground">These questions were prepared before the answer key was linked, so their answers are unavailable.</p><Button className="mt-3" size="sm" variant="outline" disabled={busy} onClick={()=>void retryAuto(detailInfo.job!, true)}>{busy && !operation ? 'Starting…' : 'Prepare again with the answer key'}</Button></>}</section>}
             {detailInfo.ready && <section className="border-t py-5"><h3 className="font-semibold">Current syllabus</h3><p className="mt-2 text-sm text-muted-foreground">Check whether these questions still match the topics and question formats in your course.</p><Button className="mt-4" size="sm" variant="outline" onClick={()=>inspectFit(detailInfo.ready!)}>Syllabus fit</Button></section>}
             <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">Preparation and syllabus checks use your saved AI preferences and spending limits.</p>
           </div>}

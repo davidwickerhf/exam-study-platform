@@ -8,6 +8,7 @@ import { providerFetch } from '../../lib/provider-fetch.mjs'
 // Stores only isolated local validation accounts; never writes production data.
 import { readFile } from 'node:fs/promises'
 import { writePilotJson, assertPilotNotPaused, pilotAttemptCap, assertPilotChapterTarget } from './study-pilot-ledger.mjs'
+import { assertPilotExecutionMode, resolveSavedPilotRun } from './study-pilot-execution-gate.mjs'
 import { STUDY_GENERATION_LIMITS } from '../../lib/study-generation-limits.mjs'
 import { randomUUID } from 'node:crypto'
 import { estimateStudyCall, studyModelCost, StudyBudgetError } from '../../lib/study-ai-budget.mjs'
@@ -23,10 +24,10 @@ const {startLocalStudy,nextLocalStudy,submitLocalStudy}=await import('../../lib/
 const {studyMappingConcurrency}=await import('../../lib/study-course-plan.mjs')
 const pilot=process.env.STUDY_PIPELINE_COURSE_FILE ? JSON.parse(await readFile(process.env.STUDY_PIPELINE_COURSE_FILE,'utf8')) : null
 const planOnly=!!pilot && process.env.STUDY_PIPELINE_PLAN_ONLY==='1'
-if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning or updates.')
+if(planOnly && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY','STUDY_PIPELINE_REDRAFT_TOPIC'].some(key=>process.env[key]))throw Error('Planning-only validation cannot also request corrections, rechecks, replanning, redrafting or updates.')
 const fixture=pilot ? 'course:'+pilot.course.courseCode : process.env.STUDY_PIPELINE_FIXTURE || 'probability'
 if(!pilot&&!['probability','iot'].includes(fixture))throw new Error('Unknown evaluation fixture.')
-if(pilot && (process.env.STUDY_PIPELINE_MODE!=='local' || !Array.isArray(pilot.updateSourceKeys)))throw new Error('Course maintenance pilots require local mode and explicit synthetic update source keys.')
+assertPilotExecutionMode(pilot, process.env)
 const builtIn=pilot ? null : await import(fixture==='iot'?'./study-iot-fixture.mjs':'../../lib/study-quality-fixture.mjs')
 const course=pilot?.course || builtIn.evaluationCourse
 let evaluationSources=pilot ? pilot.sources.filter(s=>!pilot.updateSourceKeys.includes(s.key)) : builtIn.evaluationSources.map(s=>({...s,pages:builtIn.evaluationChunks.filter(c=>c.sourceKey===s.key).map(c=>({page:c.page,text:c.text}))}))
@@ -56,7 +57,11 @@ async function generateOnce(prompt,options){
   // A route may also set the phase's reasoning effort; record the effective one.
   const reasoningEffort=route?.reasoningEffort || options.reasoningEffort || 'medium'
   const started=Date.now()
-  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:options.usageMetadata?.chapterId,reasoningEffort,phase:options.usageMetadata?.phase || options.stage || 'generation',promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
+  const meta=options.usageMetadata || {}
+  // Pipeline-path markers for the measured run: the question-only trial route
+  // and its fallback, merge-validation re-prompts, plan re-plans and fills.
+  const path=Object.fromEntries(['modelTrial','mergeReprompt','replan','fillAttempt','correctionAttempt'].filter(key=>meta[key]!==undefined).map(key=>[key,meta[key]]))
+  const call={model,modelRoute:route,experimentPhase:report.runs.at(-1)?.phase,chapterId:meta.chapterId,reasoningEffort,phase:meta.phase || options.stage || 'generation',...path,promptCharacters:prompt.length,schemaCharacters:JSON.stringify(options.responseSchema || {}).length,maxOutputTokens:options.maxOutputTokens}
   report.callDetails.push(call)
   const reserved=estimateStudyCall(prompt+JSON.stringify(options.responseSchema || {}),options.maxOutputTokens,model).micros/1000000
   if((report.priorEvaluationUsd || 0)+report.calculatedUsd+reserved>attemptCap){
@@ -120,16 +125,24 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
       if(process.env.STUDY_PIPELINE_RESUME_FILE && process.env.STUDY_PIPELINE_UPDATE_ONLY!=='1') {
         const previous=JSON.parse(await readFile(process.env.STUDY_PIPELINE_RESUME_FILE,'utf8'))
         report.priorEvaluationUsd=Math.max(report.priorEvaluationUsd,(previous.priorEvaluationUsd || 0)+previous.calculatedUsd)
-        const savedRun=previous.runs.findLast(r=>r.execution===execution&&r.draft)
+        // Prefer a saved run from the exact same execution mode. A saved
+        // draft from the OTHER mode (for example, this course's saved draft
+        // was generated locally and this pass is STUDY_PIPELINE_MODE=hosted)
+        // is a genuine mode mismatch: never resume it silently. Require an
+        // explicit opt-in that converts the draft's execution for this
+        // isolated pilot account, and record the conversion in the report;
+        // otherwise refuse with a clear message naming both modes.
+        const {savedRun,executionConverted}=resolveSavedPilotRun(previous,execution,process.env.STUDY_PIPELINE_CONVERT_EXECUTION==='1')
         const saved=savedRun?.draft
         if(!saved)throw new Error('No saved draft for this execution mode.')
         if(savedReport){
           evaluationSources=savedRun.phase==='update'?pilot.sources:evaluationSources
-          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined};report.runs=[...previous.runs.filter(r=>r.passed),run]
-        }
+          run={...savedRun,steps:[...savedRun.steps],passed:false,planned:false,error:undefined,status:undefined,...(executionConverted?{executionConverted}:{})};report.runs=[...previous.runs.filter(r=>r.passed),run]
+        }else if(executionConverted)run.executionConverted=executionConverted
         if(!saved)throw new Error('No saved draft for this execution mode.')
+        if(process.env.STUDY_PIPELINE_REDRAFT_TOPIC && ['STUDY_PIPELINE_CORRECT','STUDY_PIPELINE_RECHECK_ALL','STUDY_PIPELINE_RECHECK_PEDAGOGY','STUDY_PIPELINE_REPLAN_REMAINING','STUDY_PIPELINE_UPDATE_ONLY'].some(key=>process.env[key]))throw Error('A pilot redraft cannot also request correction, recheck, replanning or update work.')
         if(!planOnly || !pilotPlanReady(saved))await mutateStudyVersion(id,version=>{
-          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0}
+          version.draft={...structuredClone(saved),id:version.draft.id,status:execution==='local'?'local-ready':'queued',execution,lease:null,error:null,runAfter:0,attempts:0}
           version.draft.billing={...version.draft.billing,maxJobUsd:spendingCap}
           delete version.draft.localRequest
           if(process.env.STUDY_PIPELINE_RECHECK_PEDAGOGY || process.env.STUDY_PIPELINE_RECHECK_ALL) {
@@ -147,6 +160,18 @@ for(const execution of ['hosted','local'].filter(mode=>!process.env.STUDY_PIPELI
           await mutateStudyVersion(id,version=>{version.draft.status='failed'})
           await controlStudyGeneration(id,'retry')
           run.requestedCorrection=true
+        }
+        if(process.env.STUDY_PIPELINE_REDRAFT_TOPIC) {
+          const {redraftPilotChapter}=await import('./study-pilot-redraft.mjs')
+          const chapterId=process.env.STUDY_PIPELINE_REDRAFT_TOPIC
+          const correctionLimit=process.env.STUDY_PIPELINE_REDRAFT_MAX_CORRECTIONS===undefined ? undefined : Number(process.env.STUDY_PIPELINE_REDRAFT_MAX_CORRECTIONS)
+          await mutateStudyVersion(id,version=>{
+            version.draft=redraftPilotChapter(version.draft,chapterId,{maxCorrections:correctionLimit})
+            version.draft.status=execution==='local'?'local-ready':'queued'
+          })
+          run.steps=[]
+          run.redraftedTopic=chapterId
+          if(correctionLimit!==undefined)run.redraftMaxCorrections=correctionLimit
         }
         run.resumedFrom=process.env.STUDY_PIPELINE_RESUME_FILE
       }

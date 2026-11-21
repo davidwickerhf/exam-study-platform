@@ -3,8 +3,8 @@
 /**
  * The one way a migrated page reads the API.
  *
- * `app/app/layout.tsx` has already attached the Clerk bearer token to
- * same-origin /api/* requests, so this is plain `fetch` with two additions
+ * The session is a first-party cookie sent with same-origin /api/* requests,
+ * so this is plain `fetch` with two additions
  * every surface needs: the server's own error message is surfaced rather than
  * a status code, and a component that unmounts mid-flight does not set state.
  */

@@ -63,7 +63,7 @@ export function PublicChrome({ children }: { children: ReactNode }) {
             <p>Course material, academic planning, focused practice, and a continuous private study record.</p>
           </div>
           <div className="site-footer-group"><strong>Explore</strong><nav aria-label="Product links"><Link href="/">Overview</Link><Link href="/courses">Courses</Link><Link href="/about">Approach</Link><Link href="/docs">Docs</Link></nav></div>
-          <div className="site-footer-group"><strong>Account</strong><nav aria-label="Account and contact links"><Link href="/sign-in">Sign in</Link><ContactLink kind="support">Support</ContactLink><ContactLink kind="info">Contact</ContactLink></nav></div>
+          <div className="site-footer-group"><strong>Account</strong><nav aria-label="Account and contact links"><Link href="/sign-in">Sign in</Link><ContactLink kind="support">Support</ContactLink><ContactLink kind="hello">Contact</ContactLink></nav></div>
           <div className="site-footer-group"><strong>Trust</strong><nav aria-label="Legal links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><ContactLink kind="security">Security</ContactLink></nav></div>
           <p className="site-footer-note"><span>© 2026 {operatorName}, operating as Wicker Study.</span><span>Essential authentication storage only. No advertising trackers.</span></p>
         </footer>

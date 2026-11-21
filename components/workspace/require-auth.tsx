@@ -8,10 +8,11 @@
  * provides the two client behaviours the workspace needs:
  *
  *   1. Sends an unauthenticated visitor to /sign-in.
- *   2. Attaches the Clerk bearer token to same-origin /api/* requests, so a
- *      page can call plain `fetch`.
+ *   2. Watches same-origin /api/* responses, so a session that ended on the
+ *      server (expired, revoked, account deleted) returns to sign-in. The
+ *      session itself is a first-party cookie, so a page calls plain `fetch`.
  *
- * Without a publishable key there is no sign-in at all — that is local
+ * Without BETTER_AUTH_SECRET there is no sign-in at all — that is local
  * development, where the server resolves every request to one account.
  */
 
@@ -26,7 +27,7 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { authClient, signOutTo } from "@/lib/auth-client";
 import { ChevronRightIcon } from "lucide-react";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Button } from "@/components/ui/button";
@@ -51,9 +52,8 @@ import {
  * What the gate already knows about this visitor.
  *
  * The gate reads `/api/auth/session` before it will render anything, so the
- * shell has no reason to ask for it a second time. `clerkEnabled` records
- * whether a ClerkProvider is mounted above, because the local development
- * modes have none and Clerk's hooks throw outside their provider.
+ * shell has no reason to ask for it a second time. `hostedAuth` records
+ * whether hosted sign-in is on; the local development modes have none.
  */
 export type WorkspaceSession = {
   userId?: string | null;
@@ -66,9 +66,9 @@ export type WorkspaceSession = {
 };
 
 const WorkspaceSessionContext = createContext<{
-  clerkEnabled: boolean;
+  hostedAuth: boolean;
   session: WorkspaceSession | null;
-}>({ clerkEnabled: false, session: null });
+}>({ hostedAuth: false, session: null });
 
 export function useWorkspaceSession() {
   return useContext(WorkspaceSessionContext);
@@ -97,13 +97,13 @@ function Gate({
   onSession: (session: WorkspaceSession) => void;
   children: ReactNode;
 }) {
-  const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
-  const { user } = useUser();
-  const clerk = useClerk();
+  const { data: authSession, isPending } = authClient.useSession();
+  const isLoaded = !isPending;
+  const isSignedIn = Boolean(authSession);
+  const sessionId = authSession?.session.id ?? null;
+  const signedInEmail = authSession?.user.email ?? null;
   const router = useRouter();
   const pathname = usePathname();
-  const getTokenRef = useRef(getToken);
-  getTokenRef.current = getToken;
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
   const [retry, setRetry] = useState(0);
@@ -153,15 +153,13 @@ function Gate({
     setOnboardingFinished(null);
     const authenticatedFetch = createAuthenticatedFetch({
       fetchImpl: original.bind(window),
-      getToken: options => getTokenRef.current(options),
       origin: window.location.origin,
       isActive: () => live && sessionIdRef.current === sessionId,
-      onUnauthorized: failure => {
-        if (!live) return;
-        if (failure?.reason === "stale_session" && !recoveringSession) {
-          recoveringSession = true;
-          void clerk.signOut({ redirectUrl: "/sign-in" }).catch(() => window.location.assign("/sign-in"));
-        }
+      onUnauthorized: () => {
+        if (!live || recoveringSession) return;
+        // The server no longer recognises this session: clear it and sign in again.
+        recoveringSession = true;
+        void signOutTo(`/sign-in?redirect_url=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       },
     });
     window.fetch = authenticatedFetch;
@@ -227,7 +225,7 @@ function Gate({
       // underneath the next mount (including React Strict Mode's re-mount).
       if (window.fetch === authenticatedFetch) window.fetch = original;
     };
-  }, [clerk, isLoaded, isSignedIn, sessionId, onSession, router, retry]);
+  }, [isLoaded, isSignedIn, sessionId, onSession, router, retry]);
 
   // Setup stays compulsory: leaving it for another destination re-reads the
   // status once instead of reloading the document, and setup remains reachable
@@ -265,12 +263,12 @@ function Gate({
             {access.domains.map((domain) => `@${domain}`).join(" or ") ||
               "an eligible university"}{" "}
             address. You are signed in as{" "}
-            {user?.primaryEmailAddress?.emailAddress || "this account"}.
+            {signedInEmail || "this account"}.
           </EmptyDescription>
         </EmptyHeader>
         <Button
           variant="outline"
-          onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}
+          onClick={() => void signOutTo()}
         >
           Sign out and use another account
         </Button>
@@ -283,7 +281,7 @@ function Gate({
           <EmptyTitle>Unable to start your workspace</EmptyTitle>
           <EmptyDescription>{access.message}</EmptyDescription>
         </EmptyHeader>
-        <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => setRetry(value => value + 1)}>Try again</Button><Button variant="ghost" onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}>Use another account</Button></div>
+        <div className="flex flex-wrap justify-center gap-2"><Button onClick={() => setRetry(value => value + 1)}>Try again</Button><Button variant="ghost" onClick={() => void signOutTo()}>Use another account</Button></div>
       </Empty>
     );
   if (access.kind === "programme") {
@@ -316,7 +314,7 @@ function Gate({
         });
       }
     };
-    const address = user?.primaryEmailAddress?.emailAddress;
+    const address = signedInEmail;
     // The same focused frame as /app/setup: a small brand bar with one quiet
     // escape action, a flat page header, then a ruled register of choices.
     return (
@@ -336,7 +334,7 @@ function Gate({
             variant="ghost"
             size="sm"
             disabled={access.saving}
-            onClick={() => void clerk.signOut({ redirectUrl: "/sign-in" })}
+            onClick={() => void signOutTo()}
           >
             Sign out
           </Button>
@@ -559,7 +557,7 @@ function AuthenticatedWorkspace({
     updateSession(next);
   }, [authEnabled]);
   const value = useMemo(
-    () => ({ clerkEnabled: authEnabled, session }),
+    () => ({ hostedAuth: authEnabled, session }),
     [authEnabled, session],
   );
   const workspace = (

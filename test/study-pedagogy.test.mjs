@@ -161,3 +161,28 @@ test('terminal remediation breaks diagnostic cycles without replacing assessment
   chapter.objectiveCoverage[0].independentQuestionKeys=[followUp.key]
   assert.match(objectiveCoverageIssues(chapter).join(' '),/independent question/)
 })
+
+// The recurring, evidenced failure classes from the hosted pilots are stated
+// once in the drafting and planning prompts so a chapter stops earning the
+// correction that costs far more than avoiding the fault.
+test('the drafting and teaching-plan prompts state the recurring failure rules', async () => {
+  const { lessonPrompt } = await import('../lib/study-version-content.mjs')
+  const chunks = [{ id: 'e-1', sourceKey: 'slides', page: 1, text: 'Addition combines disjoint quantities.' }]
+  const draft = lessonPrompt({ courseCode: 'CS101', courseName: 'Foundations', academicYear: '2026-2027' }, [], chunks, { title: 'Addition', sourceIds: ['e-1'] })
+  const plan = teachingPlanPrompt('Evidence', { id: 'addition', title: 'Addition' })
+  for (const prompt of [draft, plan]) {
+    assert.match(prompt, /RECURRING FAILURES TO AVOID/)
+    assert.match(prompt, /misconception/i)
+    assert.match(prompt, /exercise that specific mistaken reasoning/)
+    assert.match(prompt, /transfer/i)
+    assert.match(prompt, /absent from the supplied evidence/)
+    assert.match(prompt, /background/)
+    assert.match(prompt, /internal evidence identifiers/)
+    assert.match(prompt, /current-edition evidence/)
+  }
+  // Existing instructions are not weakened by the additions.
+  assert.match(draft, /Return JSON only/)
+  assert.match(draft, /At most 2 simple recall questions/)
+  assert.match(plan, /not access to its contents/)
+  assert.match(plan, /Return only the structured plan/)
+})
